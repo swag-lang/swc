@@ -162,7 +162,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
     let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
     if postTable.count < 32 do
         try fault(0x9B)
-    let format    = try readU32(postTable, 0)
+    let format = try readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
         try fault(0x9A)
 
@@ -294,11 +294,12 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             var hasPrevious     = false
             for index in groupCount
             {
-                let base          = 16'u64 + cast(u64, index) * 12
-                let startCode     = try readU32(subTable, base)
-                let endCode       = try readU32(subTable, base + 4)
-                let startGlyph    = try readU32(subTable, base + 8)
-                if startCode > endCode or endCode > 0x10FFFF or
+                let base       = 16'u64 + cast(u64, index) * 12
+                let startCode  = try readU32(subTable, base)
+                let endCode    = try readU32(subTable, base + 4)
+                let startGlyph = try readU32(subTable, base + 8)
+                if startCode > endCode or
+                   endCode > 0x10FFFF or
                    (hasPrevious and startCode <= previousEndCode) do
                     try fault(0x03)
 
@@ -409,18 +410,19 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     for index in glyphCount
     {
         let base = index < numLongMetrics
-            ? cast(u64, index) * 4
-            : cast(u64, numLongMetrics) * 4 + cast(u64, index - numLongMetrics) * 2
+                   ? cast(u64, index) * 4
+                   : cast(u64, numLongMetrics) * 4 + cast(u64, index - numLongMetrics) * 2
         var metric: GlyphVerticalMetrics
         if index < numLongMetrics
         {
-            lastAdvance             = try readU16(vmtx, base)
+            lastAdvance = try readU16(vmtx, base)
             metric.set(lastAdvance, try readS16(vmtx, base + 2))
         }
         else
         {
             metric.set(lastAdvance, try readS16(vmtx, base))
         }
+
         faceData.verticalGlyphMetrics[index] = metric
     }
 
@@ -659,9 +661,9 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
     {
         if post.count < 32 do
             fault(0x9B)
-        result.isFixedPitch = readU32(post, 12) != 0
-        result.italicAngle = readS32(post, 4)
-        result.underlinePosition = readS16(post, 8)
+        result.isFixedPitch       = readU32(post, 12) != 0
+        result.italicAngle        = readS32(post, 4)
+        result.underlinePosition  = readS16(post, 8)
         result.underlineThickness = readS16(post, 10)
     }
 

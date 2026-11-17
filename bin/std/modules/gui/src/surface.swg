@@ -7,8 +7,8 @@ private const SurfaceRenderTargetStep = 256's32
 
 private struct AccessKeyCandidate
 {
-    wnd:           *Wnd
-    menu:          *MenuCtrl? = null
+    wnd:  *Wnd
+    menu: *MenuCtrl?   = null
     menuItemIndex: u64 = Swag.U64.Max
 }
 
@@ -76,12 +76,12 @@ struct Surface
             // surface coordinates are logical and map through this factor.
             dpiScale: f32 = 1
 
-            isHidden:      bool = true     // Whether the surface is not visible.
-            accessKeysVisible: bool        // Whether access-key underlines are shown on this surface.
-            opacity:       f32  = 1        // Opacity the desktop composites the whole surface at, from zero through one.
-            isInitialized: bool            // Whether the surface has received its one-time initialization event.
-            isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
-            isMinimized:   bool            // Whether the surface is minimized.
+            isHidden:          bool = true     // Whether the surface is not visible.
+            accessKeysVisible: bool            // Whether access-key underlines are shown on this surface.
+            opacity:           f32  = 1        // Opacity the desktop composites the whole surface at, from zero through one.
+            isInitialized:     bool            // Whether the surface has received its one-time initialization event.
+            isDisabled:        bool            // Whether the surface refuses input, for example during a modal operation.
+            isMinimized:       bool            // Whether the surface is minimized.
 
             // Whether the desktop owns a live border drag of this surface right now.
             //
@@ -192,6 +192,7 @@ impl Surface
     {
         var candidates: Array'AccessKeyCandidate
         .collectAccessKeyCandidates(cast(*Wnd, .wnd), key, &candidates)
+
         // A headless surface hosts its root view separately rather than as a child of SurfaceWnd.
         // Scan that view too, while keeping normal views (already parented to SurfaceWnd) single.
         if not FocusOrder.contains(cast(*Wnd, .wnd), .wnd.view) do
@@ -205,7 +206,7 @@ impl Surface
             if popupCandidates.count != 1 do
                 return false
             let candidate = popupCandidates[0]
-            let menu = unwrap candidate.menu
+            let menu      = unwrap candidate.menu
             return menu.activateAccessKey(menu.items[candidate.menuItemIndex]!.accessKey)
         }
 
@@ -217,17 +218,21 @@ impl Surface
             return candidate.menu.activateAccessKey(candidate.menu.items[candidate.menuItemIndex]!.accessKey)
         }
 
-        var target = candidate.wnd
+        var target    = candidate.wnd
         var focusOnly = false
         if target is Label as label
         {
             if label.accessKeyTarget
             {
-                target = label.accessKeyTarget
+                target    = label.accessKeyTarget
                 focusOnly = true
             }
         }
-        if target.surface != me or target.focusPolicy == .None or not target.isEnabled() or not target.isVisible() do
+
+        if target.surface != me or
+           target.focusPolicy == .None or
+           not target.isEnabled() or
+           not target.isVisible() do
             return false
 
         target.setFocus()

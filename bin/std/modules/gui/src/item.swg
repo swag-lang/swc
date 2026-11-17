@@ -8,7 +8,7 @@ struct Item
     public
     {
         name:      RichString     // Display label, optionally containing styled spans.
-        accessKey: rune = 0        // Case-insensitive access key; zero means none, and Alt mode reveals its underline.
+        accessKey: rune = 0       // Case-insensitive access key; zero means none, and Alt mode reveals its underline.
         icon:      Icon           // Optional display icon.
         id:        WndId?         // Optional command identifier.
         userData0: *void?         // First caller-owned payload pointer.

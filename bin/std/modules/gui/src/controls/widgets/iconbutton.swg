@@ -501,8 +501,7 @@ impl IWnd for IconButton
                 sf.horzAlignment = .Left
                 if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
                     sf.horzAlignment = .Center
-                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
-                                  .surface?.accessKeysVisible orelse false)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.moveLeft(.name.boundRect.width + metrics.btnIcon_SpacingTextH)
 
                 if not icon.isValid() do
@@ -547,14 +546,12 @@ impl IWnd for IconButton
                 var posText = pos
                 if icon.sizeX > 0 do
                     posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
-                drawAccessKeyText(bc.painter, posText, &.name, sf, me.accessKey,
-                                  .surface?.accessKeysVisible orelse false)
+                drawAccessKeyText(bc.painter, posText, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.width = icon.sizeX
 
             case .Top:
                 sf.vertAlignment = .Top
-                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
-                                  .surface?.accessKeysVisible orelse false)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
                 pos.moveTop(sf.font.regular!.height + metrics.btnIcon_SpacingTextV)
 
                 if not icon.isValid() do
@@ -573,8 +570,7 @@ impl IWnd for IconButton
 
             case .Bottom:
                 sf.vertAlignment = .Bottom
-                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
-                                  .surface?.accessKeysVisible orelse false)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
 
                 pos.height -= sf.font.regular!.height + metrics.btnIcon_SpacingTextV
                 if not icon.isValid() do
@@ -815,8 +811,12 @@ impl IconButton
             format.horzAlignment = .Left
             format.vertAlignment = .Center
             format.flags         = .Clip
-            drawAccessKeyText(painter, Math.Rectangle{x, rect.y, textWidth, rect.height}, &.name, format,
-                              me.accessKey, .surface?.accessKeysVisible orelse false)
+            drawAccessKeyText(painter,
+                              Math.Rectangle{x, rect.y, textWidth, rect.height},
+                              &.name,
+                              format,
+                              me.accessKey,
+                              .surface?.accessKeysVisible orelse false)
             x += textWidth
         }
 

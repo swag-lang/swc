@@ -18,28 +18,28 @@ const TrackHeaderId         = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
 const ParsedEditContainerId = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
 const ParsedEditListId      = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
 const ParsedFreeBoxId       = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
-const MediaDataId          = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
-const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
-const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
-const HandlerId            = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
-const MediaInfoId          = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
-const SampleTableId        = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
-const SampleDescriptionId  = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
-const TimeToSampleId       = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
-const SampleToChunkId      = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
-const SampleSizeId         = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
-const ChunkOffsetId        = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
-const ChunkOffset64Id      = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
-const VideoHandlerId       = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
-const AudioHandlerId       = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
-const ElementaryStreamId   = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
-const PixelAspectRatioId   = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
-const Mpeg4VisualId        = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
-const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
-const Ac3AudioId           = fourCc('a'u32, 'c'u32, '-'u32, '3'u32)
-const Ac3ConfigId          = fourCc('d'u32, 'a'u32, 'c'u32, '3'u32)
-const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
-const Mpeg4AudioObjectType = 0x40'u8
+const MediaDataId           = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
+const MediaId               = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
+const MediaHeaderId         = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
+const HandlerId             = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
+const MediaInfoId           = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
+const SampleTableId         = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
+const SampleDescriptionId   = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
+const TimeToSampleId        = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
+const SampleToChunkId       = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
+const SampleSizeId          = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
+const ChunkOffsetId         = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
+const ChunkOffset64Id       = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
+const VideoHandlerId        = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
+const AudioHandlerId        = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
+const ElementaryStreamId    = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
+const PixelAspectRatioId    = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
+const Mpeg4VisualId         = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
+const Mpeg4AudioId          = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
+const Ac3AudioId            = fourCc('a'u32, 'c'u32, '-'u32, '3'u32)
+const Ac3ConfigId           = fourCc('d'u32, 'a'u32, 'c'u32, '3'u32)
+const WaveId                = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
+const Mpeg4AudioObjectType  = 0x40'u8
 
 const SyncSampleId           = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
 const CompositionId          = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
@@ -98,7 +98,7 @@ private func ac3SpeakerMask(packet: const [..] u8)->u32 fail
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"MP4 AC-3 packet has no sync word"}
 
-    let acmod = (cast(u32, packet[6]) >> 5) & 7
+    let acmod       = (cast(u32, packet[6]) >> 5) & 7
     var lfePosition = 51'u32
     if acmod & 1 and acmod != 1 do
         lfePosition += 2
@@ -190,36 +190,36 @@ private struct ChunkEntry
 // Tables describing one media track.
 struct Track
 {
-    id:             u32
-    codec:          u32
-    width:          s32
-    height:         s32
-    timescale:      u32
-    handler:        u32
-    times:          Array'TimeEntry
-    chunks:         Array'ChunkEntry
-    sizes:          Array'u32
-    offsets:        Array'u64
-    syncSamples:    Array'u32          // Zero-based sync sample indices; empty means every sample.
-    ctsEntries:     Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
-    videoConfig:    Array'u8           // The `avcC` or `hvcC` decoder configuration of a coded track.
+    id:                u32
+    codec:             u32
+    width:             s32
+    height:            s32
+    timescale:         u32
+    handler:           u32
+    times:             Array'TimeEntry
+    chunks:            Array'ChunkEntry
+    sizes:             Array'u32
+    offsets:           Array'u64
+    syncSamples:       Array'u32          // Zero-based sync sample indices; empty means every sample.
+    ctsEntries:        Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
+    videoConfig:       Array'u8           // The `avcC` or `hvcC` decoder configuration of a coded track.
     pixelAspectWidth:  u32
     pixelAspectHeight: u32
-    aacConfig:      Array'u8           // MPEG-4 AudioSpecificConfig of an AAC track.
-    channelCount:   u32
-    sampleRate:     u32
-    sampleBits:     u32
-    hasDescription: bool
-    isJpeg:         bool
-    isAvc:          bool
-    isHevc:         bool
-    isAac:          bool
-    isMp3:          bool
-    isAc3:          bool
-    editMediaTime: s64
-    editDuration:  u64
-    hasSingleEdit: bool
-    editBoxOffset: u64
+    aacConfig:         Array'u8     // MPEG-4 AudioSpecificConfig of an AAC track.
+    channelCount:      u32
+    sampleRate:        u32
+    sampleBits:        u32
+    hasDescription:    bool
+    isJpeg:            bool
+    isAvc:             bool
+    isHevc:            bool
+    isAac:             bool
+    isMp3:             bool
+    isAc3:             bool
+    editMediaTime:     s64
+    editDuration:      u64
+    hasSingleEdit:     bool
+    editBoxOffset:     u64
 }
 
 private impl Track
@@ -514,7 +514,9 @@ impl Layout
                     elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
-                elif candidate.handler == AudioHandlerId and candidate.hasDescription and (candidate.isAac or candidate.isMp3 or candidate.isAc3)
+                elif candidate.handler == AudioHandlerId and
+                     candidate.hasDescription and
+                     (candidate.isAac or candidate.isMp3 or candidate.isAc3)
                 {
                     .audioTracks.add(#move candidate)
                     var fragments: AudioFragmentSamples
@@ -876,6 +878,7 @@ impl Track
             if .isJpeg do
                 try .parsePixelAspectRatio(source, entry)
         }
+
         if Slice.contains(AvcCodecIds, .codec) do
             .isAvc = try .parseCodecConfiguration(source, entry, AvcConfigId)
         if Slice.contains(HevcCodecIds, .codec) do
@@ -900,6 +903,7 @@ impl Track
                 if not .pixelAspectWidth or not .pixelAspectHeight do
                     fail InvalidFormatError{"MP4 pixel-aspect-ratio box has a zero dimension"}
             }
+
             position = child.end
         }
     }
@@ -948,6 +952,7 @@ impl Track
                 .isAc3 = true
                 return
             }
+
             position = child.end
         }
 
@@ -967,6 +972,7 @@ impl Track
                 try .parseAudioElementaryStreamDescriptor(source, child.end)
                 return
             }
+
             if child.kind == WaveId do
                 try .parseAudioChildren(source, child.data, child.end)
             position = child.end
@@ -1023,7 +1029,7 @@ impl Track
     {
         const VisualSampleEntrySize = 78'u64
         var position = entry.data + VisualSampleEntrySize
-        var found = false
+        var found    = false
         while position + BoxHeaderSize <= entry.end
         {
             try source.seek(position)
@@ -1427,8 +1433,9 @@ impl Track
                 try source.readExact(headerSlice)
                 frameSamples = try Audio.packetFrameCount(.Ac3, headerSlice)
             }
+
             result.packets.add(SoundPacket{frame.offset, cast(u32, frame.size), frameSamples})
-            result.frameCount += frameSamples
+            result.frameCount      += frameSamples
             result.maxPacketFrames = Math.max(result.maxPacketFrames, frameSamples)
         }
 
@@ -1612,6 +1619,7 @@ impl IDecoder for Decoder
                                                            cast(f64, videoOrigin) / layout.track.timescale
                         }
                     }
+
                     if audioTrack.isAc3
                     {
                         let firstPacket = packetLayout.packets[0]
@@ -1623,7 +1631,10 @@ impl IDecoder for Decoder
                         if Swag.countOnes(options.speakerMask) != audioTrack.channelCount do
                             fail InvalidFormatError{"MP4 AC-3 packet layout does not match its channel count"}
                     }
-                    if audioTrack.hasSingleEdit and layout.movieTimescale and audioTrack.timescale and
+
+                    if audioTrack.hasSingleEdit and
+                       layout.movieTimescale and
+                       audioTrack.timescale and
                        audioTrack.editMediaTime >= 0 and
                        audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
                     {
@@ -1637,7 +1648,8 @@ impl IDecoder for Decoder
                         if mediaStartFrames >= 0 and mediaStartFrames < cast(f64, decodedFrames)
                         {
                             let leading = cast(u64, mediaStartFrames)
-                            if audibleFrames and audibleFrames <= decodedFrames - leading and
+                            if audibleFrames and
+                               audibleFrames <= decodedFrames - leading and
                                decodedFrames - leading - audibleFrames < packetLayout.maxPacketFrames
                             {
                                 options.leadingTrimFrames  = leading
@@ -1701,9 +1713,7 @@ impl IDecoder for Decoder
             .frames      = #move frames
             .info.width  = layout.track.width
             .info.height = layout.track.height
-            let display = pictureDisplaySize(.info.width, .info.height,
-                                             layout.track.pixelAspectWidth,
-                                             layout.track.pixelAspectHeight)
+            let display = pictureDisplaySize(.info.width, .info.height, layout.track.pixelAspectWidth, layout.track.pixelAspectHeight)
             .info.displayWidth  = display.width
             .info.displayHeight = display.height
         }

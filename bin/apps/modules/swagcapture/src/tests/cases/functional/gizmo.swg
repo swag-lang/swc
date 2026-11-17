@@ -16,9 +16,9 @@ using Swag, Core
     Swag.require(gizmo.mouse(f.editView, {}, &leave))
     Swag.require(gizmo.hotAnchor == Swag.U32.Max)
 
-    gizmo.moving = true
+    gizmo.moving    = true
     gizmo.hotAnchor = 2
-    leave = testMouse(.Leave)
+    leave           = testMouse(.Leave)
     Swag.require(gizmo.mouse(f.editView, {}, &leave))
     Swag.require(gizmo.hotAnchor == 2)
 }

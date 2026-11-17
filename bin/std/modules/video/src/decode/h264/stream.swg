@@ -90,25 +90,25 @@ struct AvcStream
     positioned:   bool                  // A position was chosen rather than merely assumed.
     pending:      Array'PendingFrame
 
-    threadedHead:      u32
-    threadedTail:      u32
-    threadedCount:     u32
-    threadedHighWater: u32
-    laneCount:         u32 = 1
-    lastSetupLane:     u32 = AvcNoLane
-    threadsStarted:    bool
-    reachedEnd:        bool
-    skipBefore:        u64
-    prefix:            Array'u8     // Bytes the container took off the front of every stored frame.
-    decodeLimit:       u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
-    nextDecode:        u64          // Next sample to hand a frame context.
-    nextRank:          u64          // Display rank the next decode call returns.
-    width:             s32
-    height:            s32
+    threadedHead:       u32
+    threadedTail:       u32
+    threadedCount:      u32
+    threadedHighWater:  u32
+    laneCount:          u32 = 1
+    lastSetupLane:      u32 = AvcNoLane
+    threadsStarted:     bool
+    reachedEnd:         bool
+    skipBefore:         u64
+    prefix:             Array'u8     // Bytes the container took off the front of every stored frame.
+    decodeLimit:        u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
+    nextDecode:         u64          // Next sample to hand a frame context.
+    nextRank:           u64          // Display rank the next decode call returns.
+    width:              s32
+    height:             s32
     sampleAspectWidth:  u32 = 1
     sampleAspectHeight: u32 = 1
-    cropLeft:          s32
-    cropTop:           s32
+    cropLeft:           s32
+    cropTop:            s32
 }
 
 impl AvcStream
@@ -125,12 +125,12 @@ impl AvcStream
         let sps = .decoders[0].firstSps()
         if not sps do
             fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
-        .width    = sps.width()
-        .height   = sps.height()
+        .width              = sps.width()
+        .height             = sps.height()
         .sampleAspectWidth  = sps.sampleAspectWidth
         .sampleAspectHeight = sps.sampleAspectHeight
-        .cropLeft = sps.cropLeft
-        .cropTop  = sps.cropTop
+        .cropLeft           = sps.cropLeft
+        .cropTop            = sps.cropTop
 
         let pixels = cast(u64, sps.mbWidth) * cast(u64, sps.mbHeight) * 256
         let wanted = cast(u32, Math.min((pixels + AvcPixelsPerLane - 1) / AvcPixelsPerLane, cast(u64, AvcMaxFrameThreads)))

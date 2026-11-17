@@ -333,7 +333,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     view.chromaShift = 2
     Swag.require(not view.isValidLayout())
 
-    view.chromaShift = 1
+    view.chromaShift  = 1
     view.chromaStride -= 1
     Swag.require(not view.isValidLayout())
 }
@@ -342,8 +342,8 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
 #test
 {
     var storage: Array'u8
-    var view = flatPlanarPicture(&storage, 4, 4, 120, 128, 128)
-    var target = Image.create(4, 4, .RGB8)
+    var view          = flatPlanarPicture(&storage, 4, 4, 120, 128, 128)
+    var target        = Image.create(4, 4, .RGB8)
     let viewPointer   = &view
     let targetPointer = &target
 
@@ -361,9 +361,9 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     })
     Swag.require(negativeStart.raised and reversedRange.raised and pastEnd.raised)
 
-    var wrongTarget = Image.create(4, 4, .RGBA8)
+    var wrongTarget        = Image.create(4, 4, .RGBA8)
     let wrongTargetPointer = &wrongTarget
-    let rejectedFormat = Swag.catchPanic(func|viewPointer, wrongTargetPointer|()
+    let rejectedFormat     = Swag.catchPanic(func|viewPointer, wrongTargetPointer|()
     {
         viewPointer[].convertRowsToRgb(wrongTargetPointer, 0, 4)
     })
@@ -379,7 +379,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     var truncatedTarget = Image.create(4, 4, .RGB8)
     truncatedTarget.pixels.resize(3)
     let truncatedTargetPointer = &truncatedTarget
-    let rejectedStorage = Swag.catchPanic(func|viewPointer, truncatedTargetPointer|()
+    let rejectedStorage        = Swag.catchPanic(func|viewPointer, truncatedTargetPointer|()
     {
         viewPointer[].convertRowsToRgb(truncatedTargetPointer, 0, 4)
     })

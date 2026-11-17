@@ -166,10 +166,10 @@ private func has4KDesktop()->bool fail
         }
     }
 
-    let externalPath = Env.variable("SWAG_CAPTURE_4K_OUTPUT")
-    let qpText = Env.variable("SWAG_CAPTURE_4K_QP")
-    let slicesText = Env.variable("SWAG_CAPTURE_4K_SLICES")
-    let localized = not Env.variable("SWAG_CAPTURE_4K_STATIC_BACKGROUND").isEmpty()
+    let externalPath   = Env.variable("SWAG_CAPTURE_4K_OUTPUT")
+    let qpText         = Env.variable("SWAG_CAPTURE_4K_QP")
+    let slicesText     = Env.variable("SWAG_CAPTURE_4K_SLICES")
+    let localized      = not Env.variable("SWAG_CAPTURE_4K_STATIC_BACKGROUND").isEmpty()
     let quantizationQp = qpText.isEmpty() ? 0'u32 : expect StrConv.toU32(qpText.toString())
     let sliceCount     = slicesText.isEmpty() ? 1'u32 : expect StrConv.toU32(slicesText.toString())
     let retained       = not externalPath.isEmpty()
@@ -205,6 +205,7 @@ private func has4KDesktop()->bool fail
         checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &black))
         checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
     }
+
     for frame in 60'u64
     {
         let paintStart = Time.monotonicMicroseconds()
@@ -216,21 +217,20 @@ private func has4KDesktop()->bool fail
                 {
                     let previousX = cast(s16, (quadrant % 2) * 1_920 + 32 + (frame - 1) * 16)
                     let previousY = cast(s16, (quadrant / 2) * 1_080 + 32 + (frame - 1) * 8)
-                    checkedDynamicX11(connection, check,
-                                      clear(connection, 0, x11.rootWindow(), previousX, previousY,
-                                            cast(u16, Tile), cast(u16, Tile)))
+                    checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), previousX, previousY, cast(u16, Tile), cast(u16, Tile)))
                 }
             }
         }
         else
         {
-            let red = cast(u32, (frame * 5) % 64)
-            let green = cast(u32, (frame * 3) % 64)
-            let blue = cast(u32, (frame * 7) % 64)
+            let red        = cast(u32, (frame * 5) % 64)
+            let green      = cast(u32, (frame * 3) % 64)
+            let blue       = cast(u32, (frame * 7) % 64)
             let background = red << 16 | green << 8 | blue
             checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &background))
             checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
         }
+
         for quadrant in 4'u64
         {
             let destinationX = cast(s16, (quadrant % 2) * 1_920 + 32 + frame * 16)
@@ -307,10 +307,22 @@ private func has4KDesktop()->bool fail
     Swag.require(pcm.count == 47 * 1_024 * 2)
     if localized do
         Console.printf("Localized X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                       quantizationQp, sliceCount, paintMicros, videoMicros, soundMicros, finalizeMicros,
-                       (expect File.info(path)).size, path)
+                       quantizationQp,
+                       sliceCount,
+                       paintMicros,
+                       videoMicros,
+                       soundMicros,
+                       finalizeMicros,
+                       (expect File.info(path)).size,
+                       path)
     else do
         Console.printf("Dynamic X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                       quantizationQp, sliceCount, paintMicros, videoMicros, soundMicros, finalizeMicros,
-                       (expect File.info(path)).size, path)
+                       quantizationQp,
+                       sliceCount,
+                       paintMicros,
+                       videoMicros,
+                       soundMicros,
+                       finalizeMicros,
+                       (expect File.info(path)).size,
+                       path)
 }

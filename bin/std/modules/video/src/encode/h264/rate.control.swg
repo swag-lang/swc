@@ -52,13 +52,13 @@ impl RateControl
         if not durationTicks do
             fail BadParameterError{"H.264 rate-control feedback needs a positive duration"}
 
-        let ticks = cast(u64, durationTicks)
-        let timebase = cast(u64, .ticksPerSecond)
+        let ticks     = cast(u64, durationTicks)
+        let timebase  = cast(u64, .ticksPerSecond)
         let wholeRate = .targetBitsPerSecond / timebase
         if wholeRate > Swag.U64.Max / ticks do
             fail OverflowError{"H.264 rate-control budget overflows"}
         let wholeBudget = wholeRate * ticks
-        let fractional = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
+        let fractional  = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
         if fractional / timebase > Swag.U64.Max - wholeBudget do
             fail OverflowError{"H.264 rate-control budget overflows"}
     }
@@ -94,9 +94,9 @@ impl RateControl
 
         try .validateDuration(durationTicks)
 
-        let ticks = cast(u64, durationTicks)
-        let timebase = cast(u64, .ticksPerSecond)
-        let wholeRate = .targetBitsPerSecond / timebase
+        let ticks       = cast(u64, durationTicks)
+        let timebase    = cast(u64, .ticksPerSecond)
+        let wholeRate   = .targetBitsPerSecond / timebase
         let wholeBudget = wholeRate * ticks
 
         // Both remainders are smaller than a u32 timebase. Their product plus the

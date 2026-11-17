@@ -380,7 +380,7 @@ impl Voice
     {
         if .panValue == 0 do
             return
-        let file           = unwrap .file
+        let file = unwrap .file
         let sourceChannels = file.numChannels()
         if sourceChannels == 0 or sourceChannels > 2 do
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
@@ -391,6 +391,7 @@ impl Voice
                 if bus.channelCount != 2 do
                     fail BadParameterError{"stereo pan requires a stereo output route"}
             }
+
             return
         }
 
@@ -421,7 +422,7 @@ impl Voice
     {
         if pan == 0 do
             return
-        let file           = unwrap .file
+        let file = unwrap .file
         let sourceChannels = file.numChannels()
         if sourceChannels == 0 or sourceChannels > 2 do
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
@@ -433,6 +434,7 @@ impl Voice
                 if bus.channelCount != 2 do
                     fail BadParameterError{"stereo pan requires a stereo output route"}
             }
+
             return
         }
 
@@ -606,6 +608,7 @@ public impl Voice
             if not bus.handle do
                 fail BadParameterError{"routing contains an invalid bus"}
         }
+
         if buses.count > .routingBuses.count do
             fail BadParameterError{"too many output buses"}
         try .validatePanRouteNative(buses)
@@ -631,11 +634,13 @@ public impl Voice
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
         }
+
         for i in .routingBusCount
         {
             if i >= buses.count do
                 .routingBuses[i] = null
         }
+
         .routingBusCount = cast(u32, buses.count)
         for i in buses.count do
             .routingBuses[i] = buses[i]

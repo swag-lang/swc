@@ -77,7 +77,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     Swag.require(label.text() == "Cancel")
 
     let popup = MenuCtrl.createPopup(&host.root)
-    let bar = MenuCtrl.createBar(&host.root, {0, 48, 300, 0})
+    let bar   = MenuCtrl.createBar(&host.root, {0, 48, 300, 0})
     bar.addPopup(&localizedCancelMenuLabel, popup)
     bar.computeLayoutBar()
     Swag.require(bar.items[0]!.name.text == "Cancel")

@@ -44,7 +44,7 @@ struct XmlPairSequencePayload
     payload.counts.add([-1, 0, 4])
     payload.pair = {x: 3, y: -2}
 
-    var output: ConcatBuffer
+    var output:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.Xml
     expect encoder.writeAll(&output, payload)
     let xml = output.toString()
@@ -69,7 +69,7 @@ struct XmlPairSequencePayload
 {
     let payload = XmlFloatPayload{single: 1.5, double: -2.25}
 
-    var output: ConcatBuffer
+    var output:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.Xml
     expect encoder.writeAll(&output, payload)
     let xml = output.toString()
@@ -85,9 +85,9 @@ struct XmlPairSequencePayload
 #test
 {
     let value = XmlTextPayload{value: "before\x01after"}
-    var output: ConcatBuffer
+    var output:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.Xml
-    var error: Swag.Error
+    var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.SerializationError)
 }
@@ -98,9 +98,9 @@ struct XmlPairSequencePayload
     const InvalidUtf8: [1] u8 = [0xFF]
     let value = XmlTextPayload{value: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
 
-    var output: ConcatBuffer
+    var output:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.Xml
-    var error: Swag.Error
+    var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.SerializationError)
 }
@@ -111,9 +111,9 @@ struct XmlPairSequencePayload
     var value: XmlPairSequencePayload
     value.pairs.add({x: 1, y: 2})
 
-    var output: ConcatBuffer
+    var output:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.Xml
-    var error: Swag.Error
+    var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
 }
@@ -174,7 +174,7 @@ struct XmlPairSequencePayload
 
     for input in MalformedDocuments
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var decoder:      Serialization.Decoder'Serialization.Read.Xml
         var errorOutcome: Swag.Error
         catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
         Swag.require(errorOutcome.value() is SyntaxError)

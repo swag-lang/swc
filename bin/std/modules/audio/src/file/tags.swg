@@ -492,9 +492,9 @@ private func isSyncSafe(bytes: const [..] u8)->bool
 }
 
 private func syncSafe(bytes: const [..] u8)->u64 => (cast(u64, bytes[0]) << 21) |
-                                                        (cast(u64, bytes[1]) << 14) |
-                                                        (cast(u64, bytes[2]) << 7) |
-                                                        cast(u64, bytes[3])
+                                                    (cast(u64, bytes[1]) << 14) |
+                                                    (cast(u64, bytes[2]) << 7) |
+                                                    cast(u64, bytes[3])
 private func bigEndian(bytes: const [..] u8)->u64 => (cast(u64, bytes[0]) << 24) |
                                                      (cast(u64, bytes[1]) << 16) |
                                                      (cast(u64, bytes[2]) << 8) |

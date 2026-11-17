@@ -169,7 +169,7 @@ internal func resetOrientation(metadata: *Array'ImageMetadata)
         if record.signature != 1 or not record.isTag("Exif") do
             continue
 
-        let bytes = record.value.toSlice()
+        let bytes     = record.value.toSlice()
         var tiffStart = 0'u64
         while tiffStart + 2 <= bytes.count and bytes[tiffStart] != 'I' and bytes[tiffStart] != 'M' do
             tiffStart += 1
@@ -185,7 +185,7 @@ internal func resetOrientation(metadata: *Array'ImageMetadata)
         let firstDirectory = rawNumber(bytes, tiffStart + 4, 4, littleEndian)
         if firstDirectory < 8 or firstDirectory > bytes.count - tiffStart - 2 do
             continue
-        let directory = tiffStart + firstDirectory
+        let directory  = tiffStart + firstDirectory
         let entryCount = rawNumber(bytes, directory, 2, littleEndian)
         if entryCount > 1024 or entryCount > (bytes.count - directory - 2) / 12 do
             continue
@@ -207,12 +207,12 @@ internal func resetOrientation(metadata: *Array'ImageMetadata)
 
             if littleEndian
             {
-                record.value[valueOffset] = 1
+                record.value[valueOffset]     = 1
                 record.value[valueOffset + 1] = 0
             }
             else
             {
-                record.value[valueOffset] = 0
+                record.value[valueOffset]     = 0
                 record.value[valueOffset + 1] = 1
             }
         }

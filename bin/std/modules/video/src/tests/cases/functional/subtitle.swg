@@ -22,7 +22,7 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
 #test
 {
     let track = expect Subtitle.Track.decode("boundary.srt",
-        "1\n00:00:01,000 --> 00:00:02,000\nOnly cue\n")
+                                             "1\n00:00:01,000 --> 00:00:02,000\nOnly cue\n")
 
     let before = track.presentationAt(0.999)
     Swag.require(before.text.isEmpty())
@@ -42,7 +42,7 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
 {
     var rejected: Swag.Error
     discard catch Subtitle.Track.decode("reversed.srt",
-        "1\n00:00:02,000 --> 00:00:01,000\nInvalid cue\n") as rejected
+                                        "1\n00:00:02,000 --> 00:00:01,000\nInvalid cue\n") as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 
     discard catch Subtitle.Track.decode("unknown.caption", "plain text") as rejected

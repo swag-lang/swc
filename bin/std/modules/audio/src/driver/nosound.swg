@@ -160,6 +160,7 @@ internal impl Voice
             if bus.channelCount != 2 do
                 fail BadParameterError{"stereo pan requires a stereo output route"}
         }
+
         handle.pan = pan
     }
 
@@ -185,6 +186,7 @@ internal impl Voice
             if i >= count do
                 handle.buses[i] = null
         }
+
         handle.busCount = cast(u32, count)
         for i in count
         {

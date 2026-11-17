@@ -216,16 +216,16 @@ impl IForm for FormCallout
         BaseForm.copyBase(dst, src)
         let d = assume cast(*FormCallout, dst)
         let s = assume cast(*FormCallout, src)
-        d.roundSize = s.roundSize
-        d.fontSize  = s.fontSize
-        d.boldSize  = s.boldSize
-        d.fontStyle = s.fontStyle
-        d.fontName  = s.fontName
-        d.textColor = s.textColor
-        d.alignHorz = s.alignHorz
-        d.alignVert = s.alignVert
+        d.roundSize   = s.roundSize
+        d.fontSize    = s.fontSize
+        d.boldSize    = s.boldSize
+        d.fontStyle   = s.fontStyle
+        d.fontName    = s.fontName
+        d.textColor   = s.textColor
+        d.alignHorz   = s.alignHorz
+        d.alignVert   = s.alignVert
         d.lineSpacing = s.lineSpacing
-        d.scale     = s.scale
+        d.scale       = s.scale
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool

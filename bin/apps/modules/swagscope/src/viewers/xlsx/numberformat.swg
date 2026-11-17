@@ -17,9 +17,9 @@ private struct FormatToken
 }
 
 private const ShortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-private const FullMonthNames  = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"]
+                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+private const FullMonthNames = ["January", "February", "March", "April", "May", "June",
+                                "July", "August", "September", "October", "November", "December"]
 
 // A bounded, declarative Excel number format; formulas and conditions never execute.
 struct NumberFormat
@@ -236,8 +236,8 @@ impl NumberFormat
                        items[index + 2].value == '/'u8 and
                        items[index + 3].value == 'P'u8 and
                        items[index + 4].value == 'M'u8
-            var afterHour  = false
-            var at         = 0'u64
+            var afterHour = false
+            var at        = 0'u64
             while at < items.count
             {
                 let token = items[at]

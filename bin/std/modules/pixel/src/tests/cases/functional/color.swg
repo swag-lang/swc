@@ -45,13 +45,13 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
 // Contrast correction preserves colors that already pass and alpha while improving weak contrast.
 #test
 {
-    let white = Color.fromRgb(255, 255, 255)
-    var passing = Color.fromArgb(73, 0, 0, 0)
+    let white           = Color.fromRgb(255, 255, 255)
+    var passing         = Color.fromArgb(73, 0, 0, 0)
     let originalPassing = passing
     passing.ensureContrast(white)
     Swag.require(passing == originalPassing)
 
-    var weak = Color.fromArgb(91, 128, 128, 128)
+    var weak         = Color.fromArgb(91, 128, 128, 128)
     let initialRatio = weak.contrastRatio(Color.fromRgb(140, 140, 140))
     weak.ensureContrast(Color.fromRgb(140, 140, 140), 4.5)
     Swag.require(weak.a == 91)
@@ -62,7 +62,7 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
     Swag.require(source == Color.fromArgb(91, 128, 128, 128))
     Swag.require(result.a == source.a and result.contrastRatio(Color.fromRgb(140, 140, 140)) > initialRatio)
 
-    var unchanged = Color.fromArgb(127, 128, 128, 128)
+    var unchanged         = Color.fromArgb(127, 128, 128, 128)
     let originalUnchanged = unchanged
     unchanged.ensureContrast(white, maxSteps: 0)
     Swag.require(unchanged == originalUnchanged)

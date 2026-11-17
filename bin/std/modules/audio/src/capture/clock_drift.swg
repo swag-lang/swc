@@ -86,6 +86,7 @@ impl CaptureClockDrift
             let frames = sourceFrame - .windowStartFrame
             let rate   = cast(f64, frames) * .clockFrequency / elapsed
             let offset = (rate / .sampleRate - 1.0) * 1_000_000.0
+
             // Keep f64 roundoff at an exact bound from turning +/-1000 ppm into a rejected jump.
             // This sub-micro-ppm allowance is far below the estimator's practical resolution.
             const BoundaryEpsilon = 0.000_001'f64

@@ -31,4 +31,3 @@ func renderBrushCpu(width, height: s32, painter: *Painter)->Image
     let image = renderBrushCpu(4, 4, &painter)
     Swag.require(image.pixelColor(1, 1) == Argb.Red)
 }
-

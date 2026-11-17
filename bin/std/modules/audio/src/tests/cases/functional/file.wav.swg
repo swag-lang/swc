@@ -200,7 +200,7 @@ using Swag, Core
 
     var bytes  = source
     var writer = ByteStream.openWrite(&bytes)
-    writer.setPosition(38) // fmt payload offset 18: valid bits in WAVEFORMATEXTENSIBLE.
+    writer.setPosition(38)     // fmt payload offset 18: valid bits in WAVEFORMATEXTENSIBLE.
     writer.writeLittleEndian(25'u16)
     discard expect File.writeAllBytes(temporary, bytes.toSlice())
 
@@ -246,9 +246,9 @@ using Swag, Core
 {
     let source = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
     var bytes  = Array'u8{}
-    bytes.add(source.toSlice()[0 until 36]) // RIFF and fmt chunks.
+    bytes.add(source.toSlice()[0 until 36])     // RIFF and fmt chunks.
     bytes.add(cast(const [..] u8, "JUNK"))
-    bytes.add([1'u8, 0, 0, 0, 0x7F, 0]) // One-byte payload and its pad byte.
+    bytes.add([1'u8, 0, 0, 0, 0x7F, 0])     // One-byte payload and its pad byte.
     bytes.add(source.toSlice()[36 until source.count])
 
     var writer = ByteStream.openWrite(&bytes)
@@ -269,8 +269,10 @@ using Swag, Core
         return true
     })
     Swag.require(decoded.count == 4)
-    Swag.require(decoded[0] == Swag.S16.Min and decoded[1] == -1 and
-                 decoded[2] == 0 and decoded[3] == Swag.S16.Max)
+    Swag.require(decoded[0] == Swag.S16.Min and
+                 decoded[1] == -1 and
+                 decoded[2] == 0 and
+                 decoded[3] == Swag.S16.Max)
 }
 
 #test

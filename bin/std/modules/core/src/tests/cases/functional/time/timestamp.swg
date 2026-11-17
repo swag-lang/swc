@@ -149,7 +149,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     Swag.require(overflow.raised)
 
     let invalidDate = Time.DateTime{2024, 2, 30, 0, 0, 0, 0}
-    let invalid = Swag.catchPanic(func|invalidDate|()
+    let invalid     = Swag.catchPanic(func|invalidDate|()
     {
         discard Time.Timestamp.fromDateTime(invalidDate)
     })
@@ -268,10 +268,10 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     var span = Time.Timestamp.fromDateTime({2020, 1, 1, 0, 0, 0, 0})
     let originalTicks = span.ticks
 
-    let yearUnderflow = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Min) })
-    let yearOverflow = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Max) })
+    let yearUnderflow  = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Min) })
+    let yearOverflow   = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Max) })
     let monthUnderflow = Swag.catchPanic(func|&span|() { span.addMonths(Swag.S32.Min) })
-    let monthOverflow = Swag.catchPanic(func|&span|() { span.addMonths(Swag.S32.Max) })
+    let monthOverflow  = Swag.catchPanic(func|&span|() { span.addMonths(Swag.S32.Max) })
 
     Swag.require(yearUnderflow.raised and yearUnderflow.message() == "overflow")
     Swag.require(yearOverflow.raised and yearOverflow.message() == "overflow")

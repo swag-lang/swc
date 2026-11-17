@@ -197,13 +197,15 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
     {
         Swag.require(index == pairCount)
         pairCount += 1
-        pairCode = pairCode * 100 + left * 10 + right
+        pairCode  = pairCode * 100 + left * 10 + right
     }
+
     Swag.require(pairCount == 2 and pairCode == 3557)
 
     var empty: StaticArray'(s32, 2'u64)
     for _, _, _ in empty.pairs()
-        do pairCount += 1
+        do
+        pairCount += 1
     Swag.require(pairCount == 2)
 }
 

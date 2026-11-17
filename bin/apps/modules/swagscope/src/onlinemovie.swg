@@ -528,7 +528,7 @@ impl MovieQuery
         let distanceLimit = movieTitleDistanceLimit(wantedText)
         var chosen        = Swag.U64.Max
         var bestDistance  = Swag.U64.Max
-        var ambiguous    = false
+        var ambiguous     = false
         for &film, index in search.results
         {
             let candidate = normalizedMovieTitle(film.trackName.toString())
@@ -566,7 +566,7 @@ impl MovieQuery
         let distanceLimit = movieTitleDistanceLimit(wantedText)
         var chosen        = Swag.U64.Max
         var bestDistance  = Swag.U64.Max
-        var ambiguous    = false
+        var ambiguous     = false
         for &film, index in search.results
         {
             let title    = normalizedMovieTitle(film.title.toString())

@@ -31,11 +31,11 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(cast(u8, PixelFormat.RGB8) == 2 and cast(u8, PixelFormat.RGBA8) == 3)
     Swag.require(cast(u8, PixelFormat.Yuv420) == 4)
 
-    const Bits:     [18] u8   = [8, 16, 16, 32, 16, 32, 32, 64, 24, 32, 24, 32, 48, 64, 48, 64, 96, 128]
-    const Channels: [18] u8   = [1, 2, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
-    const Alpha:    [18] bool = [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
-    const Float:    [18] bool = [false, false, false, false, true, true, true, true, false, false, false, false, false, false, true, true, true, true]
-    const Integer:  [18] bool = [true, true, true, true, false, false, false, false, true, true, true, true, true, true, false, false, false, false]
+    const Bits:      [18] u8   = [8, 16, 16, 32, 16, 32, 32, 64, 24, 32, 24, 32, 48, 64, 48, 64, 96, 128]
+    const Channels:  [18] u8   = [1, 2, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
+    const Alpha:     [18] bool = [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
+    const Float:     [18] bool = [false, false, false, false, true, true, true, true, false, false, false, false, false, false, true, true, true, true]
+    const Integer:   [18] bool = [true, true, true, true, false, false, false, false, true, true, true, true, true, true, false, false, false, false]
     const Grayscale: [18] bool = [true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false]
     for format, index in PackedFormats
     {

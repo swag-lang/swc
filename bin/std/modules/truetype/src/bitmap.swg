@@ -5,9 +5,9 @@ const EmptyBitmapRow: [1] u8 = [0]
 // Identifies the storage layout of a rendered [[TrueType.Bitmap]].
 public enum PixelMode
 {
-    Gray      // One byte represents each grayscale or SDF pixel.
-    Rgba      // Four bytes represent an RGB multi-channel distance field and alpha distance (MSDF).
-    ColorRgba // Four bytes represent color in red, green, blue, alpha byte order.
+    Gray          // One byte represents each grayscale or SDF pixel.
+    Rgba          // Four bytes represent an RGB multi-channel distance field and alpha distance (MSDF).
+    ColorRgba     // Four bytes represent color in red, green, blue, alpha byte order.
 }
 
 public impl PixelMode
@@ -17,8 +17,8 @@ public impl PixelMode
     {
         switch #complete me
         {
-        case .Gray: return 1
-        case .Rgba: return 4
+        case .Gray:      return 1
+        case .Rgba:      return 4
         case .ColorRgba: return 4
         }
     }

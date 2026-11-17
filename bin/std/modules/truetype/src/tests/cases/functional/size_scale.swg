@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     expect face.setPixelSize(12, 24)
@@ -19,7 +19,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     var outcome: Swag.Error

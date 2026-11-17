@@ -266,7 +266,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     var options: UnsupportedOptions
-    var error: Swag.Error
+    var error:   Swag.Error
     discard catch CommandLine.parse(&options, ["-point", "0,0"]) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
 }

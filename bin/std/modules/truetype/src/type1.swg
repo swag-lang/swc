@@ -262,7 +262,7 @@ func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Ar
         result.bytes.add(encrypted)
     else do
         result.bytes = eexecDecrypt(encrypted, EexecCharstringKey, cast(u64, lenIV))
-    result.next  = start + size
+    result.next = start + size
     return result
 }
 

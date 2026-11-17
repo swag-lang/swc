@@ -3,10 +3,10 @@ using Swag, Core
 // Header and directory fields needed to rebuild a WOFF1 font as sfnt.
 struct WoffHeader
 {
-    flavor:       u32
-    length:       u32
-    totalSfntSize: u32
-    numTables:    u16
+    flavor:           u32
+    length:           u32
+    totalSfntSize:    u32
+    numTables:        u16
     fontMajorVersion: u16
     fontMinorVersion: u16
 }
@@ -35,10 +35,10 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     if try readU32(block, 0) != TAG_WOFF do
         try fault(0x08)
 
-    result.header.flavor        = try readU32(block, 4)
-    result.header.length        = try readU32(block, 8)
-    result.header.numTables     = try readU16(block, 12)
-    result.header.totalSfntSize = try readU32(block, 16)
+    result.header.flavor           = try readU32(block, 4)
+    result.header.length           = try readU32(block, 8)
+    result.header.numTables        = try readU16(block, 12)
+    result.header.totalSfntSize    = try readU32(block, 16)
     result.header.fontMajorVersion = try readU16(block, 20)
     result.header.fontMinorVersion = try readU16(block, 22)
 
@@ -60,8 +60,8 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
 
     // Optional metadata and private blocks must use an all-zero pair when absent,
     // and otherwise fit in the file after the fixed header and directory.
-    let metadataOffset = try readU32(block, 24)
-    let metadataLength = try readU32(block, 28)
+    let metadataOffset     = try readU32(block, 24)
+    let metadataLength     = try readU32(block, 28)
     let metadataOrigLength = try readU32(block, 32)
     if metadataOffset == 0
     {
@@ -93,8 +93,8 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     }
 
     result.tables.resize(result.header.numTables)
-    var previousTag = 0'u32
-    var previousDataEnd = directoryEnd
+    var previousTag      = 0'u32
+    var previousDataEnd  = directoryEnd
     var expectedSfntSize = 12'u64 + cast(u64, result.header.numTables) * 16
     for index in result.header.numTables
     {
@@ -113,9 +113,9 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
             try fault(0x08)
 
         try assertRange(block, record.offset, record.compLength)
-        previousTag = record.tag
-        previousDataEnd = cast(u64, record.offset) + record.compLength
-        expectedSfntSize += (cast(u64, record.origLength) + 3) & ~3'u64
+        previousTag          = record.tag
+        previousDataEnd      = cast(u64, record.offset) + record.compLength
+        expectedSfntSize     += (cast(u64, record.origLength) + 3) & ~3'u64
         result.tables[index] = record
     }
 
@@ -155,7 +155,7 @@ private func writeWoffU32(bytes: *Array'u8, offset: u64, value: u32)
 func inflateWoff(block: const [..] u8)->Array'u8 fail
 {
     let directory = try readWoffDirectory(block)
-    let header = directory.header
+    let header    = directory.header
 
     var tables: Array'WoffTable
     tables.resize(header.numTables)
@@ -163,15 +163,16 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
     {
         tables[index].record = record
         let compressed = try getSlice(block, record.offset, record.compLength)
-        if record.compLength == record.origLength do
+        if record.compLength == record.origLength
+        {
             tables[index].data.add(compressed)
+        }
         else
         {
             var zlib: Compress.ZLib
-            tables[index].data = try zlib.decompress(
-                compressed,
-                hintSize: record.origLength,
-                maxOutputSize: record.origLength)
+            tables[index].data = try zlib.decompress(compressed,
+                                                     hintSize: record.origLength,
+                                                     maxOutputSize: record.origLength)
         }
 
         if tables[index].data.count != record.origLength do
@@ -183,13 +184,14 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
     writeWoffU32(&result, 0, header.flavor)
     writeWoffU16(&result, 4, header.numTables)
 
-    var searchPower = 1'u32
+    var searchPower   = 1'u32
     var entrySelector = 0'u16
     while searchPower * 2 <= header.numTables
     {
-        searchPower *= 2
+        searchPower   *= 2
         entrySelector += 1
     }
+
     let searchRange = searchPower * 16
     writeWoffU16(&result, 6, cast(u16, searchRange))
     writeWoffU16(&result, 8, entrySelector)
@@ -209,6 +211,7 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
             let destination = result.storage() + tableOffset
             Memory.copy(cast(*void, destination), cast(const *void, unwrap table.data.buffer), table.data.count)
         }
+
         tableOffset += (table.record.origLength + 3) & ~3'u64
     }
 

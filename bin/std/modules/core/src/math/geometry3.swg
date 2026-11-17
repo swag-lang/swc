@@ -6,7 +6,7 @@
 #[Serialization.Final]
 struct Ray3
 {
-    public origin: Vector3        // Point where the ray begins.
+    public origin:    Vector3     // Point where the ray begins.
     public direction: Vector3     // Direction scaled by the ray's parameterization.
 }
 
@@ -35,8 +35,8 @@ impl Ray3
 #[Serialization.Final]
 struct Plane3
 {
-    public normal: Vector3     // Unit normal that points toward the positive half-space.
-    public distance: f32       // Signed origin offset: `normal.dot(point) == distance` on the plane.
+    public normal:   Vector3     // Unit normal that points toward the positive half-space.
+    public distance: f32         // Signed origin offset: `normal.dot(point) == distance` on the plane.
 }
 
 impl Plane3
@@ -192,18 +192,26 @@ impl Bounds3
     // Returns whether this box contains `point`, including its boundary.
     mtd const contains(point: Vector3)->bool
     {
-        return .isValid() and point.x >= .min.x and point.x <= .max.x and
-               point.y >= .min.y and point.y <= .max.y and
-               point.z >= .min.z and point.z <= .max.z
+        return .isValid() and
+               point.x >= .min.x and
+               point.x <= .max.x and
+               point.y >= .min.y and
+               point.y <= .max.y and
+               point.z >= .min.z and
+               point.z <= .max.z
     }
 
     // Returns whether this box overlaps `other`, including touching faces, edges, or corners.
     mtd const intersects(other: Bounds3)->bool
     {
-        return .isValid() and other.isValid() and
-               .min.x <= other.max.x and .max.x >= other.min.x and
-               .min.y <= other.max.y and .max.y >= other.min.y and
-               .min.z <= other.max.z and .max.z >= other.min.z
+        return .isValid() and
+               other.isValid() and
+               .min.x <= other.max.x and
+               .max.x >= other.min.x and
+               .min.y <= other.max.y and
+               .max.y >= other.min.y and
+               .min.z <= other.max.z and
+               .max.z >= other.min.z
     }
 
     // Returns whether this box overlaps `sphere`, including tangency.
@@ -214,8 +222,8 @@ impl Bounds3
     {
         if not .isValid() do
             return false
-        let center = .center()
-        let extents = .extents()
+        let center          = .center()
+        let extents         = .extents()
         let projectedRadius = Math.abs(plane.normal.x) * extents.x +
                               Math.abs(plane.normal.y) * extents.y +
                               Math.abs(plane.normal.z) * extents.z
@@ -265,7 +273,7 @@ impl Bounds3
         }
 
         var near = -Swag.F32.Max
-        var far = Swag.F32.Max
+        var far  = Swag.F32.Max
         if ray.direction.x == 0
         {
             if ray.origin.x < .min.x or ray.origin.x > .max.x do
@@ -274,11 +282,12 @@ impl Bounds3
         else
         {
             let inverse = 1 / ray.direction.x
-            let a = (.min.x - ray.origin.x) * inverse
-            let b = (.max.x - ray.origin.x) * inverse
+            let a       = (.min.x - ray.origin.x) * inverse
+            let b       = (.max.x - ray.origin.x) * inverse
             near = Math.max(near, Math.min(a, b))
-            far = Math.min(far, Math.max(a, b))
+            far  = Math.min(far, Math.max(a, b))
         }
+
         if ray.direction.y == 0
         {
             if ray.origin.y < .min.y or ray.origin.y > .max.y do
@@ -287,11 +296,12 @@ impl Bounds3
         else
         {
             let inverse = 1 / ray.direction.y
-            let a = (.min.y - ray.origin.y) * inverse
-            let b = (.max.y - ray.origin.y) * inverse
+            let a       = (.min.y - ray.origin.y) * inverse
+            let b       = (.max.y - ray.origin.y) * inverse
             near = Math.max(near, Math.min(a, b))
-            far = Math.min(far, Math.max(a, b))
+            far  = Math.min(far, Math.max(a, b))
         }
+
         if ray.direction.z == 0
         {
             if ray.origin.z < .min.z or ray.origin.z > .max.z do
@@ -300,10 +310,10 @@ impl Bounds3
         else
         {
             let inverse = 1 / ray.direction.z
-            let a = (.min.z - ray.origin.z) * inverse
-            let b = (.max.z - ray.origin.z) * inverse
+            let a       = (.min.z - ray.origin.z) * inverse
+            let b       = (.max.z - ray.origin.z) * inverse
             near = Math.max(near, Math.min(a, b))
-            far = Math.min(far, Math.max(a, b))
+            far  = Math.min(far, Math.max(a, b))
         }
 
         if near > far or far < 0 do
@@ -319,7 +329,7 @@ impl Bounds3
 #[Serialization.Final]
 struct Frustum3
 {
-    public left, right, bottom, top, near, far: Plane3    // Clip boundary planes; their positive side is inside.
+    public left, right, bottom, top, near, far: Plane3     // Clip boundary planes; their positive side is inside.
 }
 
 impl Frustum3
@@ -363,9 +373,12 @@ impl Frustum3
     // Returns whether `point` lies inside or on all six clip planes.
     mtd const contains(point: Vector3)->bool
     {
-        return .left.signedDistanceTo(point) >= 0 and .right.signedDistanceTo(point) >= 0 and
-               .bottom.signedDistanceTo(point) >= 0 and .top.signedDistanceTo(point) >= 0 and
-               .near.signedDistanceTo(point) >= 0 and .far.signedDistanceTo(point) >= 0
+        return .left.signedDistanceTo(point) >= 0 and
+               .right.signedDistanceTo(point) >= 0 and
+               .bottom.signedDistanceTo(point) >= 0 and
+               .top.signedDistanceTo(point) >= 0 and
+               .near.signedDistanceTo(point) >= 0 and
+               .far.signedDistanceTo(point) >= 0
     }
 
     // Returns whether `bounds` may intersect the frustum, rejecting it when wholly outside any one plane.
@@ -375,19 +388,22 @@ impl Frustum3
     {
         if not bounds.isValid() do
             return false
-        return boundsIntersectsPlane(bounds, .left) and boundsIntersectsPlane(bounds, .right) and
-               boundsIntersectsPlane(bounds, .bottom) and boundsIntersectsPlane(bounds, .top) and
-               boundsIntersectsPlane(bounds, .near) and boundsIntersectsPlane(bounds, .far)
+        return boundsIntersectsPlane(bounds, .left) and
+               boundsIntersectsPlane(bounds, .right) and
+               boundsIntersectsPlane(bounds, .bottom) and
+               boundsIntersectsPlane(bounds, .top) and
+               boundsIntersectsPlane(bounds, .near) and
+               boundsIntersectsPlane(bounds, .far)
     }
 }
 
 private func boundsIntersectsPlane(bounds: Bounds3, plane: Plane3)->bool
 {
-    let center = bounds.center()
+    let center  = bounds.center()
     let extents = bounds.extents()
-    let radius = Math.abs(plane.normal.x) * extents.x +
-                 Math.abs(plane.normal.y) * extents.y +
-                 Math.abs(plane.normal.z) * extents.z
+    let radius  = Math.abs(plane.normal.x) * extents.x +
+                  Math.abs(plane.normal.y) * extents.y +
+                  Math.abs(plane.normal.z) * extents.z
     return plane.signedDistanceTo(center) + radius >= 0
 }
 
@@ -398,7 +414,7 @@ func intersectRaySphere(ray: Ray3, center: Vector3, radius: f32)->{ intersects: 
 {
     Swag.assert(radius >= 0)
     let offset = ray.origin - center
-    let a = ray.direction.dot(ray.direction)
+    let a      = ray.direction.dot(ray.direction)
     if a == 0 do
         return {intersects: false, distance: 0, point: ray.origin}
     let b = offset.dot(ray.direction)
@@ -406,7 +422,7 @@ func intersectRaySphere(ray: Ray3, center: Vector3, radius: f32)->{ intersects: 
     let discriminant = b * b - a * c
     if discriminant < 0 do
         return {intersects: false, distance: 0, point: ray.origin}
-    let root = sqrt(discriminant)
+    let root     = sqrt(discriminant)
     var distance = (-b - root) / a
     if distance < 0 do
         distance = (-b + root) / a
@@ -418,15 +434,15 @@ func intersectRaySphere(ray: Ray3, center: Vector3, radius: f32)->{ intersects: 
 // Returns the intersection of a ray with a triangle using a two-sided Möller–Trumbore test.
 func intersectRayTriangle(ray: Ray3, a, b, c: Vector3)->{ intersects: bool, distance: f32, barycentric: Vector3, point: Vector3 }
 {
-    let edge1 = b - a
-    let edge2 = c - a
-    let p = ray.direction.cross(edge2)
+    let edge1       = b - a
+    let edge2       = c - a
+    let p           = ray.direction.cross(edge2)
     let determinant = edge1.dot(p)
     if Math.isZeroEpsilon(determinant) do
         return {intersects: false, distance: 0, barycentric: Vector3.Zero, point: ray.origin}
     let inverse = 1 / determinant
-    let offset = ray.origin - a
-    let u = offset.dot(p) * inverse
+    let offset  = ray.origin - a
+    let u       = offset.dot(p) * inverse
     if u < 0 or u > 1 do
         return {intersects: false, distance: 0, barycentric: Vector3.Zero, point: ray.origin}
     let q = offset.cross(edge1)

@@ -66,7 +66,6 @@ struct Image
     workingBuffer: *Image?
 }
 
-
 // One logical pixel in the representation used between storage formats.
 // Integer formats map their full range to zero through one; floating-point formats retain
 // finite values outside that range so HDR conversions do not clip until an integer target asks.
@@ -340,6 +339,7 @@ impl Image
             if buffer.count != result.byteCount do
                 Swag.panic("pixel buffer size does not match image geometry", #curlocation)
         }
+
         result.allocPixels()
         if buffer
         {
@@ -505,6 +505,7 @@ impl Image
     {
         if stride <= 0 do
             Swag.panic("pixel visit stride must be positive", #curlocation)
+
         // This validation is expanded at the call site with the macro, so keep the checks here
         // instead of calling an internal helper that would not be visible to the caller module.
         let checked: const *Image = me

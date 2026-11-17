@@ -5,27 +5,27 @@ using Core, Pixel
 // Selects the axis along which a [[Gui.DockHost]] divides two pane stacks.
 enum DockSplitOrientation
 {
-    Horizontal    // Places the panes side by side.
-    Vertical      // Places the panes one above the other.
+    Horizontal     // Places the panes side by side.
+    Vertical       // Places the panes one above the other.
 }
 
 // One leaf in a programmatic dock layout, either a tab stack or a split of two leaves.
 private struct DockNode
 {
-    late host:    *DockHost
-    parent:       *DockNode?
-    first:        *DockNode?
-    second:       *DockNode?
-    splitter:     *SplitterCtrl?
-    tab:          *Tab?
-    firstItem:    *SplitterItem?
-    secondItem:   *SplitterItem?
-    firstItemIndex:  u32
-    secondItemIndex: u32
-    orientation:  DockSplitOrientation
-    hasPendingSize: bool
+    late host:        *DockHost
+    parent:           *DockNode?
+    first:            *DockNode?
+    second:           *DockNode?
+    splitter:         *SplitterCtrl?
+    tab:              *Tab?
+    firstItem:        *SplitterItem?
+    secondItem:       *SplitterItem?
+    firstItemIndex:   u32
+    secondItemIndex:  u32
+    orientation:      DockSplitOrientation
+    hasPendingSize:   bool
     pendingPaneIndex: u32
-    pendingSize:  f32
+    pendingSize:      f32
 }
 
 // One stable, host-wide pane identity and its owned page view.
@@ -92,22 +92,23 @@ private impl DockNode
     {
         if .tab
         {
-            let tab = .tab
+            let tab        = .tab
             let tabMinimum = Math.Point{0, tab.barHeight + tab.padding.y + tab.padding.w}
-            var result    = tabMinimum
+            var result     = tabMinimum
             for pane in .host.panes where pane!.node == me and not pane.hidden
             {
                 let viewMinimum = pane.view.measure({}).min
                 result.x = Math.max(result.x, Math.max(pane.minimumSize.x, viewMinimum.x))
                 result.y = Math.max(result.y, Math.max(pane.minimumSize.y, viewMinimum.y))
             }
+
             return result
         }
 
-        let first = unwrap .first
-        let second = unwrap .second
-        let splitter = unwrap .splitter
-        let firstVisible = first.hasVisiblePane()
+        let first         = unwrap .first
+        let second        = unwrap .second
+        let splitter      = unwrap .splitter
+        let firstVisible  = first.hasVisiblePane()
         let secondVisible = second.hasVisiblePane()
         if not firstVisible do
             return secondVisible ? second.minimumSize() : Math.Point{}
@@ -130,7 +131,8 @@ private impl DockNode
                 return true
             return false
         }
-        let first = unwrap .first
+
+        let first  = unwrap .first
         let second = unwrap .second
         return first.hasVisiblePane() or second.hasVisiblePane()
     }
@@ -142,6 +144,7 @@ private impl DockNode
             Swag.assert(.tab.items.isEmpty())
             return me
         }
+
         let first = unwrap .first
         if not first.hasVisiblePane() do
             return first.firstEmptyLeaf()
@@ -153,16 +156,17 @@ private impl DockNode
     {
         if .splitter
         {
-            let splitter = .splitter
+            let splitter  = .splitter
             let available = .orientation == .Vertical ? splitter.position.height : splitter.position.width
             if .hasPendingSize and available > 0 and splitter.isPaneVisible(.pendingPaneIndex)
             {
-                let equalSize = Math.max(0, (available - splitter.themeMetrics().splitView_BarSize) * 0.5)
+                let equalSize     = Math.max(0, (available - splitter.themeMetrics().splitView_BarSize) * 0.5)
                 let requestedSize = .pendingSize > 0 ? .pendingSize : equalSize
                 splitter.setPaneSize(.pendingPaneIndex, requestedSize)
                 .hasPendingSize = false
             }
-            let first = unwrap .first
+
+            let first  = unwrap .first
             let second = unwrap .second
             first.applyPendingSizes()
             second.applyPendingSizes()
@@ -198,9 +202,10 @@ impl DockHost
         }
         else
         {
-            node = .createLeaf(me)
+            node  = .createLeaf(me)
             .root = node
         }
+
         discard .addPaneTo(node, id, title, view, minimumSize)
     }
 
@@ -234,9 +239,9 @@ impl DockHost
         let leaf = target.node
         Swag.assert(leaf.tab != null)
 
-        let oldTab      = leaf.tab
-        let oldParent   = leaf.parent
-        let parent      = oldTab.parent
+        let oldTab    = leaf.tab
+        let oldParent = leaf.parent
+        let parent    = oldTab.parent
         Swag.assert(parent != null)
         let oldPosition = oldTab.position
         var priorItem: *SplitterItem?
@@ -260,8 +265,8 @@ impl DockHost
 
         let newLeaf = .createLeaf(split)
 
-        let oldSize = orientation == .Vertical ? oldPosition.height : oldPosition.width
-        let newSize = splitSize > 0 ? splitSize : oldSize * 0.5
+        let oldSize                      = orientation == .Vertical ? oldPosition.height : oldPosition.width
+        let newSize                      = splitSize > 0 ? splitSize : oldSize * 0.5
         var oldItemMaybe: *SplitterItem? = null
         var newItemMaybe: *SplitterItem? = null
         if after
@@ -275,13 +280,13 @@ impl DockHost
             oldItemMaybe = split.addPane(oldTab, oldSize)
         }
 
-        let oldItem = oldItemMaybe
-        let newItem = newItemMaybe
+        let oldItem   = oldItemMaybe
+        let newItem   = newItemMaybe
         let splitNode = .nodes.allocate()
         splitNode.host             = me
         splitNode.parent           = oldParent
         splitNode.splitter         = split
-        splitNode.orientation       = orientation
+        splitNode.orientation      = orientation
         splitNode.hasPendingSize   = true
         splitNode.pendingPaneIndex = after ? 1 : 0
         splitNode.pendingSize      = splitSize
@@ -299,10 +304,11 @@ impl DockHost
             splitNode.firstItem  = newItem
             splitNode.secondItem = oldItem
         }
+
         splitNode.firstItemIndex  = 0
         splitNode.secondItemIndex = 1
-        leaf.parent    = splitNode
-        newLeaf.parent = splitNode
+        leaf.parent               = splitNode
+        newLeaf.parent            = splitNode
         .nodes.add(splitNode)
 
         if oldParent
@@ -312,8 +318,10 @@ impl DockHost
             else do
                 oldParent.second = splitNode
         }
-        else do
+        else
+        {
             .root = splitNode
+        }
 
         .refreshTree()
         discard .addPaneTo(newLeaf, id, title, view, minimumSize)
@@ -369,6 +377,7 @@ impl DockHost
             if openPane != closingPane and openPane.node == node and openPane.tabIndex > tabIndex do
                 openPane.tabIndex -= 1
         }
+
         let tab = unwrap node.tab
         tab.removeItemAt(tabIndex)
         .panes.deleteAt(index)
@@ -398,7 +407,7 @@ impl DockHost
         Swag.assert(pane != null, "dock pane identifier was not found")
         Swag.assert(not pane.hidden, "a hidden pane cannot be selected")
         let visiblePane = pane
-        let tab = unwrap visiblePane.node.tab
+        let tab         = unwrap visiblePane.node.tab
         tab.setSelectedIndex(visiblePane.tabIndex)
     }
 
@@ -420,13 +429,14 @@ impl DockHost
         {
             host.onTabSelectionChanged(tab)
         }
+
         .nodes.add(node)
         return node
     }
 
     private mtd addPaneTo(node: *DockNode, id: WndId, title: string, view: *Wnd, minimumSize: Math.Point)->*DockPane
     {
-        let tab = unwrap node.tab
+        let tab  = unwrap node.tab
         let pane = .panes.allocate()
         pane.id          = id
         pane.view        = view
@@ -483,6 +493,7 @@ impl DockHost
             .paneCount = 0
             return
         }
+
         .paneCount = .panes.count
         let root = .root
         .refreshNode(root)
@@ -501,7 +512,7 @@ impl DockHost
         .refreshNode(second)
         let firstSize  = first.minimumSize()
         let secondSize = second.minimumSize()
-        let splitter = unwrap node.splitter
+        let splitter   = unwrap node.splitter
         node.firstItem!.minimumSize  = node.orientation == .Horizontal ? firstSize.x : firstSize.y
         node.secondItem!.minimumSize = node.orientation == .Horizontal ? secondSize.x : secondSize.y
         splitter.setPaneVisible(node.firstItemIndex, first.hasVisiblePane())
@@ -522,6 +533,7 @@ private impl Tab
                 return dockHost
             parent = parent.parent
         }
+
         Swag.assert(false, "dock tab is detached from its host")
         unreachable
     }

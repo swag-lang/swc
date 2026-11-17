@@ -133,7 +133,7 @@ func appendLittle32(block: *Array'u8, value: u64)
 #test
 {
     var frames: Array'u8
-    var title: Array'u8
+    var title:  Array'u8
     title.add(0'u8)
     for byte in "Aria" do
         title.add(byte)
@@ -236,7 +236,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(SoundTags.read(headerPath).isEmpty())
 
     var invalidFrame = file
-    invalidFrame[14] |= 0x80 // Frame size, after the ten-byte ID3 header and four-byte frame id.
+    invalidFrame[14] |= 0x80     // Frame size, after the ten-byte ID3 header and four-byte frame id.
     let framePath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                                  Format.toString("swag_audio_tags_bad_frame_%.mp3", Guid64.random()).toString())
     defer discard catch File.delete(framePath)
@@ -248,13 +248,14 @@ func appendLittle32(block: *Array'u8, value: u64)
         invalidExtended.add(byte)
     invalidExtended.add(4'u8)
     invalidExtended.add(0'u8)
-    invalidExtended.add(0x40'u8) // Extended header.
+    invalidExtended.add(0x40'u8)     // Extended header.
     let extendedTagSize = frames.count + 6
     invalidExtended.add(cast(u8, (extendedTagSize >> 21) & 0x7F))
     invalidExtended.add(cast(u8, (extendedTagSize >> 14) & 0x7F))
     invalidExtended.add(cast(u8, (extendedTagSize >> 7) & 0x7F))
     invalidExtended.add(cast(u8, extendedTagSize & 0x7F))
-    for byte in [0x80'u8, 0, 0, 6, 1, 0] do // Extended size has a forbidden high bit.
+    for byte in [0x80'u8, 0, 0, 6, 1, 0] do
+        // Extended size has a forbidden high bit.
         invalidExtended.add(byte)
     invalidExtended.add(frames.toSlice())
     let extendedPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),

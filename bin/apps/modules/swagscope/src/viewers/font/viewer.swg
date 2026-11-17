@@ -269,10 +269,10 @@ private impl Panel
             let entry  = entries.add(Format.toString(strings.ui_ShowCharacter, code),
                                      .GoTo,
                                      func|view = me, character|()
-                                     {
-                                         view.document.showCharacter(character)
-                                         view.refreshPageCommands()
-                                     },
+                                    {
+                                        view.document.showCharacter(character)
+                                        view.refreshPageCommands()
+                                    },
                                      disabled: not mapped)
             if entry and not mapped do
                 entry.detail = strings.ui_NotInFont

@@ -27,10 +27,10 @@ private func cameraFrame(bounds: Scene3d.Bounds)->CameraFrame fail
     let centerX = (cast(f64, bounds.min.x) + cast(f64, bounds.max.x)) * 0.5
     let centerY = (cast(f64, bounds.min.y) + cast(f64, bounds.max.y)) * 0.5
     let centerZ = (cast(f64, bounds.min.z) + cast(f64, bounds.max.z)) * 0.5
-    let halfX = (cast(f64, bounds.max.x) - cast(f64, bounds.min.x)) * 0.5
-    let halfY = (cast(f64, bounds.max.y) - cast(f64, bounds.min.y)) * 0.5
-    let halfZ = (cast(f64, bounds.max.z) - cast(f64, bounds.min.z)) * 0.5
-    let radius = Math.sqrt(halfX * halfX + halfY * halfY + halfZ * halfZ)
+    let halfX   = (cast(f64, bounds.max.x) - cast(f64, bounds.min.x)) * 0.5
+    let halfY   = (cast(f64, bounds.max.y) - cast(f64, bounds.min.y)) * 0.5
+    let halfZ   = (cast(f64, bounds.max.z) - cast(f64, bounds.min.z)) * 0.5
+    let radius  = Math.sqrt(halfX * halfX + halfY * halfY + halfZ * halfZ)
     if not Math.isFinite(radius) or radius > cast(f64, Swag.F32.Max) / 5 do
         fail Errors.InvalidFormatError{texts().err_RangeUnsupported}
 
@@ -49,7 +49,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 private struct ProjectedTriangle
 {
     points: [3] Math.Vector2
-    depth: f32
+    depth:  f32
 }
 
 // Describes the scene viewer to the host; its format list comes from the shared codec module.
@@ -107,10 +107,12 @@ private impl Panel
             .backgroundStyle = .View
             .services        = host.services()
         }
+
         with result.zoomLabel = Viewer.createZoomButton(host.createInfoGroup(Viewer.ZoomSlotWidth), "scope.scene3d.zoom", texts().ui_ZoomMenu)
         {
             .sigPressed += func|view = result|(_) { view.showZoomMenu() }
         }
+
         result.zoomLabel.setText(Viewer.zoomText(result.zoomPercent))
         result.load.start(host.fileName(), &loadScene, result)
         return result
@@ -125,6 +127,7 @@ private impl Panel
             .center = frame.center
             .radius = frame.radius
         }
+
         .services.showDetails(me, .detailsText())
         .invalidate()
     }
@@ -146,17 +149,17 @@ private impl Panel
     }
 
     mtd detailsText()->String => Format.toString(texts().ui_Details,
-                                                  .scene.meshes.count,
-                                                  .triangleCount(),
-                                                  .vertexCount())
+                                                 .scene.meshes.count,
+                                                 .triangleCount(),
+                                                 .vertexCount())
 
     mtd resetCamera()
     {
-        .yaw   = 0.65
-        .pitch = 0.45
+        .yaw         = 0.65
+        .pitch       = 0.45
         .zoomPercent = 100
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
-        .pan   = {}
+        .pan = {}
         .invalidate()
     }
 
@@ -178,7 +181,7 @@ private impl Panel
 
     mtd rotate(horizontal, vertical: f32)
     {
-        .yaw += horizontal
+        .yaw   += horizontal
         .pitch = Math.max(Math.min(.pitch + vertical, 1.5), -1.5)
         .invalidate()
     }
@@ -221,6 +224,7 @@ private impl IWnd for Panel
             .services.showDetails(me, .detailsText())
             .services.informationChanged(me)
         }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -239,6 +243,7 @@ private impl IWnd for Panel
             .services.failed(me, .failureReason)
             return
         }
+
         .publish(&scene)
         .services.loadingChanged(me)
     }
@@ -250,36 +255,43 @@ private impl IWnd for Panel
             .setZoomPercent(evt.delta.y > 0 ? Viewer.zoomIn(.zoomPercent) : Viewer.zoomOut(.zoomPercent))
             return
         }
+
         if evt.kind == .Pressed and evt.button == .Left
         {
             .dragging = true
             return
         }
+
         if evt.kind == .Released and evt.button == .Left
         {
             .dragging = false
             return
         }
+
         if evt.kind == .Pressed and evt.button == .Right
         {
             .panning = true
             return
         }
+
         if evt.kind == .Released and evt.button == .Right
         {
             .panning = false
             return
         }
+
         if evt.kind == .Move and .dragging
         {
             .rotate(cast(f32, evt.delta.x) * 0.01, cast(f32, evt.delta.y) * 0.01)
             return
         }
+
         if evt.kind == .Move and .panning
         {
             .panBy(cast(f32, evt.delta.x), cast(f32, evt.delta.y))
             return
         }
+
         evt.accepted = false
     }
 
@@ -290,29 +302,51 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
         if evt.key == .F and evt.modifiers == .None
         {
             .resetCamera()
             return
         }
+
         if Viewer.isZoomKey(evt)
         {
             .setZoomPercent(Viewer.zoomAfterKey(evt, .zoomPercent))
             return
         }
+
         if evt.modifiers == .Alt or evt.modifiers == .Shift
         {
             let panMode = evt.modifiers == .Shift
             switch evt.key
             {
-            case .Left:  if panMode do .panBy(-24, 0) else do .rotate(-0.12, 0)
-            case .Right: if panMode do .panBy(24, 0) else do .rotate(0.12, 0)
-            case .Up:    if panMode do .panBy(0, -24) else do .rotate(0, -0.12)
-            case .Down:  if panMode do .panBy(0, 24) else do .rotate(0, 0.12)
-            default: evt.accepted = false
+            case .Left:
+                if panMode do
+                    .panBy(-24, 0) else do
+                        .rotate(-0.12, 0)
+
+            case .Right:
+                if panMode do
+                    .panBy(24, 0) else do
+                        .rotate(0.12, 0)
+
+            case .Up:
+                if panMode do
+                    .panBy(0, -24) else do
+                        .rotate(0, -0.12)
+
+            case .Down:
+                if panMode do
+                    .panBy(0, 24) else do
+                        .rotate(0, 0.12)
+
+            default:
+                evt.accepted = false
             }
+
             return
         }
+
         evt.accepted = false
     }
 
@@ -339,19 +373,21 @@ private impl IWnd for Panel
                 for corner in 3'u32
                 {
                     let vertexIndex = corner == 0 ? triangle.a : corner == 1 ? triangle.b : triangle.c
-                    let source = mesh.vertices[vertexIndex].position
-                    let vertex = source - .center
-                    let x = vertex.x * Math.cos(.yaw) + vertex.z * Math.sin(.yaw)
-                    let z = -vertex.x * Math.sin(.yaw) + vertex.z * Math.cos(.yaw)
-                    let y = vertex.y * Math.cos(.pitch) - z * Math.sin(.pitch)
-                    let depth = Math.max(distance + vertex.y * Math.sin(.pitch) + z * Math.cos(.pitch), .radius * 0.15)
+                    let source      = mesh.vertices[vertexIndex].position
+                    let vertex      = source - .center
+                    let x           = vertex.x * Math.cos(.yaw) + vertex.z * Math.sin(.yaw)
+                    let z           = -vertex.x * Math.sin(.yaw) + vertex.z * Math.cos(.yaw)
+                    let y           = vertex.y * Math.cos(.pitch) - z * Math.sin(.pitch)
+                    let depth       = Math.max(distance + vertex.y * Math.sin(.pitch) + z * Math.cos(.pitch), .radius * 0.15)
                     projected.points[corner] = Math.Vector2{client.x + client.width * 0.5 + .pan.x + x * (focal / depth),
-                                                           client.y + client.height * 0.5 + .pan.y - y * (focal / depth)}
+                                                            client.y + client.height * 0.5 + .pan.y - y * (focal / depth)}
                     projected.depth += depth / 3
                 }
+
                 .projected.add(#move projected)
             }
         }
+
         .projected.sort(func(a, b) => b.depth <=> a.depth)
         for &triangle in .projected
         {
@@ -361,7 +397,6 @@ private impl IWnd for Panel
             painter.drawLine(points[1].x, points[1].y, points[2].x, points[2].y, colors.line, metrics.separator_HairlineSize)
             painter.drawLine(points[2].x, points[2].y, points[0].x, points[0].y, colors.line, metrics.separator_HairlineSize)
         }
-
     }
 }
 
@@ -376,8 +411,9 @@ func createViewer(host: Viewer.Host)
     {
         .isLoading = func|view|()->bool => view.load.isPending()
         .needsLoadingOverlay = func|view|()->bool => view.load.isPending()
-        .retire = func|view|()->bool => view.retire()
+        .retire    = func|view|()->bool => view.retire()
     }
+
     host.setLifecycle(lifecycle)
 }
 
@@ -396,6 +432,7 @@ impl Panel
             let size = .scene.bounds.max - .scene.bounds.min
             data.add(.Dimensions, Format.toString("% × % × %", size.x, size.y, size.z))
         }
+
         data.describe(sheet)
     }
 }

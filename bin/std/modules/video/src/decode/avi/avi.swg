@@ -625,7 +625,7 @@ private impl Decoder
 
         let bitCount = layout.format.biBitCount
         .info.codecName = "Uncompressed RGB"
-        .isRgb555 = bitCount == 16 and compression == Bmp.BI_RGB
+        .isRgb555       = bitCount == 16 and compression == Bmp.BI_RGB
         if bitCount != 24 and bitCount != 32 and not .isRgb555 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support uncompressed AVI frames of % bits per pixel", bitCount))}
 

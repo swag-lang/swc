@@ -363,7 +363,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     var pressed: u32
     let button = PushButton.create(&host.root, "Open", {10, 80, 100, 24})
-    button.accessKey = 'o'
+    button.accessKey  = 'o'
     button.sigPressed += func|&pressed|(_)
     {
         pressed += 1
@@ -385,19 +385,20 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(400, 200)
 
-    let field = EditBox.create(&host.root, "", {10, 10, 180, 24})
+    let field  = EditBox.create(&host.root, "", {10, 10, 180, 24})
     var count: u32
-    let first = PushButton.create(&host.root, "First", {10, 50, 90, 24})
+    let first  = PushButton.create(&host.root, "First", {10, 50, 90, 24})
     let second = PushButton.create(&host.root, "Second", {110, 50, 90, 24})
-    let spare = PushButton.create(&host.root, "Spare", {210, 50, 90, 24})
-    first.accessKey = 'x'
+    let spare  = PushButton.create(&host.root, "Spare", {210, 50, 90, 24})
+    first.accessKey  = 'x'
     second.accessKey = 'X'
-    spare.accessKey = 'x'
+    spare.accessKey  = 'x'
     spare.disable()
     first.sigPressed += func|&count|(_)
     {
         count += 1
     }
+
     second.sigPressed += func|&count|(_)
     {
         count += 1

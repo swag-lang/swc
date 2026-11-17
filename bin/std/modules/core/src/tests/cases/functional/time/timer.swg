@@ -26,7 +26,7 @@ func timerTestCallback(_: *Time.Timer)
     Swag.require(Errors.message(zeroFailure.value()) == "timer delay must be positive and finite")
 
     var infiniteDelay = Time.Duration.fromSeconds(1)
-    let seconds = cast(*f64, &infiniteDelay)
+    let seconds       = cast(*f64, &infiniteDelay)
     seconds[] = Swag.F64.Inf
     var infiniteFailure: Swag.Error
     discard catch Time.Timer.create(infiniteDelay, &timerTestCallback) as infiniteFailure

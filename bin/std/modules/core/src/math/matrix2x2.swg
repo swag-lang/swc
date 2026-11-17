@@ -28,7 +28,7 @@ impl Matrix2x2
     func createRotation(angle: Angle)->Matrix2x2
     {
         let cosine = Math.cos(angle.radians)
-        let sine = Math.sin(angle.radians)
+        let sine   = Math.sin(angle.radians)
         return Matrix2x2{[[cosine, sine], [-sine, cosine]]}
     }
 

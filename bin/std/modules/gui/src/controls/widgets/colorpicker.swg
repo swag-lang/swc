@@ -457,32 +457,42 @@ private impl ColorPicker
         case .SaturationLightness:
             .saturation = Math.clamp(.saturation + delta, 0, 1)
             .computeRGB()
+
         case .HueSaturation, .HueLightness, .HueHorizontal:
             .hue = Math.clamp(.hue + delta, 0, 1)
             .computeRGB()
+
         case .GreenBlue:
             .green = Math.clamp(.green + delta, 0, 1)
             .computeHsl()
+
         case .RedBlue, .RedGreen:
             .red = Math.clamp(.red + delta, 0, 1)
             .computeHsl()
+
         case .LightnessHorizontal:
             .lightness = Math.clamp(.lightness + delta, 0, 1)
             .computeRGB()
+
         case .SaturationHorizontal:
             .saturation = Math.clamp(.saturation + delta, 0, 1)
             .computeRGB()
+
         case .AlphaHorizontal:
             .alpha = Math.clamp(.alpha + delta, 0, 1)
+
         case .RedHorizontal:
             .red = Math.clamp(.red + delta, 0, 1)
             .computeHsl()
+
         case .GreenHorizontal:
             .green = Math.clamp(.green + delta, 0, 1)
             .computeHsl()
+
         case .BlueHorizontal:
             .blue = Math.clamp(.blue + delta, 0, 1)
             .computeHsl()
+
         default:
             return false
         }
@@ -498,38 +508,50 @@ private impl ColorPicker
         case .SaturationLightness:
             .lightness = Math.clamp(.lightness - delta, 0, 1)
             .computeRGB()
+
         case .HueSaturation:
             .saturation = Math.clamp(.saturation - delta, 0, 1)
             .computeRGB()
+
         case .HueLightness:
             .lightness = Math.clamp(.lightness - delta, 0, 1)
             .computeRGB()
+
         case .GreenBlue, .RedBlue:
             .blue = Math.clamp(.blue + delta, 0, 1)
             .computeHsl()
+
         case .RedGreen:
             .green = Math.clamp(.green + delta, 0, 1)
             .computeHsl()
+
         case .HueVertical:
             .hue = Math.clamp(.hue + delta, 0, 1)
             .computeRGB()
+
         case .LightnessVertical:
             .lightness = Math.clamp(.lightness + delta, 0, 1)
             .computeRGB()
+
         case .SaturationVertical:
             .saturation = Math.clamp(.saturation + delta, 0, 1)
             .computeRGB()
+
         case .AlphaVertical:
             .alpha = Math.clamp(.alpha + delta, 0, 1)
+
         case .RedVertical:
             .red = Math.clamp(.red + delta, 0, 1)
             .computeHsl()
+
         case .GreenVertical:
             .green = Math.clamp(.green + delta, 0, 1)
             .computeHsl()
+
         case .BlueVertical:
             .blue = Math.clamp(.blue + delta, 0, 1)
             .computeHsl()
+
         default:
             return false
         }

@@ -16,7 +16,7 @@ using Swag
 #test
 {
     var monitors: Array'Env.Monitor
-    var left: Env.Monitor
+    var left:     Env.Monitor
     left.physicalBounds = {0, 0, 100, 100}
     var right: Env.Monitor
     right.physicalBounds = {100, 0, 100, 100}
@@ -28,7 +28,7 @@ using Swag
     Swag.require(Env.monitorForPointIn(monitors, {99, 50}).physicalBounds.x == 0)
 
     var stacked: Array'Env.Monitor
-    var top: Env.Monitor
+    var top:     Env.Monitor
     top.physicalBounds = {0, 0, 100, 100}
     var bottom: Env.Monitor
     bottom.physicalBounds = {0, 100, 100, 100}
@@ -41,7 +41,7 @@ using Swag
 #test
 {
     var monitors: Array'Env.Monitor
-    var first: Env.Monitor
+    var first:    Env.Monitor
     first.physicalBounds = {0, 0, 100, 100}
     var second: Env.Monitor
     second.physicalBounds = {200, 0, 100, 100}

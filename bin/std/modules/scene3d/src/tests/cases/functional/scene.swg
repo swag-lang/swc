@@ -18,7 +18,7 @@ using Swag, Core, Core.Errors
 #test
 {
     let source = "v 1000 1000 1000\nv -1 -1 -1\nv 1 -1 -1\nv 0 1 -1\nv 0 0 1\nvt 0 0\nvt 1 0\nvn 0 0 1\nusemtl ceramic\nf -4/1 -2//1 -3/2/1 -1 # tetra side\n"
-    let scene = expect decode("tetra.obj", cast(const [..] u8, source))
+    let scene  = expect decode("tetra.obj", cast(const [..] u8, source))
     Swag.require(scene.meshes.count == 1 and scene.nodes.count == 1)
     Swag.require(scene.meshes[0].triangles.count == 2 and scene.meshes[0].vertices.count == 6)
     Swag.require(scene.materials.count == 2 and scene.materials[1].name == "ceramic")
@@ -38,7 +38,7 @@ using Swag, Core, Core.Errors
 #test
 {
     let source = "solid sample\n facet normal 0 0 1\n  outer loop\n   vertex 0 0 0\n   vertex 1 0 0\n   vertex 0 1 0\n  endloop\n endfacet\nendsolid sample\n"
-    let scene = expect decode("triangle.stl", cast(const [..] u8, source))
+    let scene  = expect decode("triangle.stl", cast(const [..] u8, source))
     Swag.require(scene.meshes[0].triangles.count == 1 and scene.meshes[0].vertices.count == 3)
     Swag.require(scene.meshes[0].vertices[0].hasNormal)
     Swag.require(scene.meshes[0].bounds.max.x == 1 and scene.meshes[0].bounds.max.y == 1)

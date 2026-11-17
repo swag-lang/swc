@@ -196,21 +196,21 @@ struct RenderOgl
         // The clipping region, rendered as coverage into a texture the size of the target and read
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
         // and a region cut along a curve needs the fraction of each pixel its edge covers.
-        clipMasks:             Array'ClipMask          // One mask per target size a region was drawn for.
-        clipMaskClock:         u64                     // Counter stamping each mask request, for reuse order.
-        clipMaskIndex:         s32 = -1                // Mask of the region in force, or none yet.
-        clipMaskOn:            bool                    // Whether fragments are cut by the region.
-        clipMaskWriting:       bool                    // Whether fragments are writing the region.
-        stackClipMaskOn:       Array'SuspendedClipMask // Regions suspended by the render targets bound inside them.
-        nativeContext:         const *void?            // Shared native OpenGL context owned by interface-created drawables.
-        offscreen:             bool                    // Contexts own invisible drawables and never present to the desktop.
-        contextCount:          u32                     // Number of live interface-created drawables.
-        contexts:              Array'(*OglContext)     // The live interface-created drawables, which share `nativeContext`.
-        generation:            TextureGeneration       // Device generation stamped on every texture and target.
-        resetQuery:            u8                      // How the context reports a device reset, if it does.
-        deviceLost:            bool                    // Whether a reported reset still waits for a replacement context.
-        advancedBlending:      u8                      // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool                    // Whether this context must keep later framebuffer touches in separate passes.
+        clipMasks:             Array'ClipMask              // One mask per target size a region was drawn for.
+        clipMaskClock:         u64                         // Counter stamping each mask request, for reuse order.
+        clipMaskIndex:         s32 = -1                    // Mask of the region in force, or none yet.
+        clipMaskOn:            bool                        // Whether fragments are cut by the region.
+        clipMaskWriting:       bool                        // Whether fragments are writing the region.
+        stackClipMaskOn:       Array'SuspendedClipMask     // Regions suspended by the render targets bound inside them.
+        nativeContext:         const *void?                // Shared native OpenGL context owned by interface-created drawables.
+        offscreen:             bool                        // Contexts own invisible drawables and never present to the desktop.
+        contextCount:          u32                         // Number of live interface-created drawables.
+        contexts:              Array'(*OglContext)         // The live interface-created drawables, which share `nativeContext`.
+        generation:            TextureGeneration           // Device generation stamped on every texture and target.
+        resetQuery:            u8                          // How the context reports a device reset, if it does.
+        deviceLost:            bool                        // Whether a reported reset still waits for a replacement context.
+        advancedBlending:      u8                          // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool                        // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -1420,7 +1420,10 @@ impl RenderOgl
     // Replaces the planar picture held by a texture, converting nothing.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not view.isValidLayout() or not texture.isValid() or view.width != texture.width or view.height != texture.height do
+        if not view.isValidLayout() or
+           not texture.isValid() or
+           view.width != texture.width or
+           view.height != texture.height do
             return false
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or
@@ -2204,7 +2207,7 @@ impl RenderOgl
             // A layer has a space of its own: the region in force around it cuts the layer when
             // it is drawn, not the marks inside it.
             .stackClipMaskOn.add({index: .clipMaskIndex, on: .clipMaskOn})
-            .clipMaskOn = false
+            .clipMaskOn    = false
             .clipMaskIndex = -1
             .uploadClipMaskState()
 
@@ -2246,7 +2249,7 @@ impl RenderOgl
             {
                 let saved = .stackClipMaskOn.popBack()
                 .clipMaskIndex = saved.index
-                .clipMaskOn = saved.on
+                .clipMaskOn    = saved.on
                 if saved.index >= 0
                 {
                     let mask = .clipMasks[cast(u64, saved.index)]
@@ -2254,6 +2257,7 @@ impl RenderOgl
                     glBindTexture(GL_TEXTURE_2D, mask.texture)
                     glActiveTexture(GL_TEXTURE0)
                 }
+
                 .uploadClipMaskState()
             }
 
@@ -2507,7 +2511,9 @@ impl RenderOgl
     {
         .clipMaskClock += 1
 
-        for &mask, index in .clipMasks where mask.width == width and mask.height == height and not .clipMaskIndexIsSuspended(cast(s32, index))
+        for &mask, index in .clipMasks where mask.width == width and
+                                             mask.height == height and
+                                             not .clipMaskIndexIsSuspended(cast(s32, index))
         {
             mask.lastUse = .clipMaskClock
             return cast(s32, index)
@@ -2517,7 +2523,9 @@ impl RenderOgl
         if .clipMasks.count >= MaxClipMasks
         {
             var oldest = Swag.U64.Max
-            for mask, index in .clipMasks where cast(s32, index) != .clipMaskIndex and not .clipMaskIndexIsSuspended(cast(s32, index)) and mask.lastUse < oldest
+            for mask, index in .clipMasks where cast(s32, index) != .clipMaskIndex and
+                                                not .clipMaskIndexIsSuspended(cast(s32, index)) and
+                                                mask.lastUse < oldest
             {
                 oldest = mask.lastUse
                 reuse  = cast(s32, index)

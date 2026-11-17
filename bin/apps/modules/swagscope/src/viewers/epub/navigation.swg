@@ -41,8 +41,8 @@ impl NavigationEntry
            Utf8.contains(resource, "\\") do
             return result
 
-        let decoded  = catch Url.decodeComponent(resource) { return result; }
-        let local    = cast(string, decoded.toSlice())
+        let decoded = catch Url.decodeComponent(resource) { return result; }
+        let local   = cast(string, decoded.toSlice())
         if Utf8.contains(local, ':'rune) or
            Utf8.contains(local, "\\") or
            (local.count and local[0] == '/'u8) do

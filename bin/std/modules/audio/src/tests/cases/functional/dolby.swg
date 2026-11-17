@@ -152,7 +152,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 // E-AC-3 rejects frames too short to contain the seven-byte mandatory BSI header.
 #test
 {
-    for frameSizeCode in [0'u8, 2] // Declare two bytes, then six bytes.
+    for frameSizeCode in [0'u8, 2]     // Declare two bytes, then six bytes.
     {
         var frame: [8] u8
         frame[0] = 0x0B
@@ -176,8 +176,8 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     var frame: [8] u8
     frame[0] = 0x0B
     frame[1] = 0x77
-    frame[3] = 3 // Eight-byte frame, enough to reach the sampling-rate fields.
-    frame[4] = 0xF0 // fscod 3, reserved fscod2 3.
+    frame[3] = 3        // Eight-byte frame, enough to reach the sampling-rate fields.
+    frame[4] = 0xF0     // fscod 3, reserved fscod2 3.
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("dolby-eac3-rate-%.eac3", Guid128.random()))

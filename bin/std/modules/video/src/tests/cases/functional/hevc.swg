@@ -6,7 +6,7 @@ using Core, Core.Errors, Pixel
 // The VUI stores standard aspect ratios as an id and other ratios as two 16-bit values.
 #test
 {
-    var sps: Hevc.Sps
+    var sps:      Hevc.Sps
     var standard: BitReader
     standard.init([14'u8])
     Hevc.readSampleAspectRatio(&standard, &sps)
@@ -48,7 +48,7 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
 // received before attempting picture reconstruction.
 #test
 {
-    var decoder: Hevc.Decoder
+    var decoder:  Hevc.Decoder
     var rejected: Swag.Error
 
     discard catch decoder.readNalUnit([0x02'u8, 0x01]) as rejected

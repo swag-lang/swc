@@ -148,9 +148,9 @@ private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
 // Skips a page sequence number between the first two pages of the sound stream.
 private func oggSetHeaderSequenceGap(source: const [..] u8)->Array'u8 fail
 {
-    var serial        = 0'u32
-    var hasStream     = false
-    var offset        = 0'u64
+    var serial    = 0'u32
+    var hasStream = false
+    var offset    = 0'u64
     for
     {
         if offset >= source.count do
@@ -162,7 +162,7 @@ private func oggSetHeaderSequenceGap(source: const [..] u8)->Array'u8 fail
 
         if not hasStream and (header.flags & Ogg.FirstPage) != 0
         {
-            serial = header.serial
+            serial    = header.serial
             hasStream = true
         }
         elif hasStream and header.serial == serial
@@ -196,7 +196,7 @@ private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8
     var serial    = 0'u32
     var hasStream = false
     var previous: OggTestPage
-    var offset = 0'u64
+    var offset    = 0'u64
     for
     {
         if offset >= source.count do
@@ -208,9 +208,9 @@ private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8
 
         if not hasStream and (header.flags & Ogg.FirstPage) != 0
         {
-            serial = header.serial
+            serial    = header.serial
             hasStream = true
-            previous = OggTestPage{offset, bytes, header}
+            previous  = OggTestPage{offset, bytes, header}
         }
         elif hasStream and header.serial == serial
         {
@@ -318,8 +318,8 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 {
     let source = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
     let broken = expect oggSetHeaderSequenceGap(source.toSlice())
-    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
-                            Format.toString("audio-ogg-header-sequence-%.ogg", Guid64.random()).toString())
+    let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                              Format.toString("audio-ogg-header-sequence-%.ogg", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
     expect File.writeAllBytes(path.toString(), broken.toSlice())
 
@@ -333,8 +333,8 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 {
     let source = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
     let broken = expect oggSetUnexpectedHeaderContinuation(source.toSlice())
-    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
-                            Format.toString("audio-ogg-header-continuation-%.opus", Guid64.random()).toString())
+    let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                              Format.toString("audio-ogg-header-continuation-%.opus", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
     expect File.writeAllBytes(path.toString(), broken.toSlice())
 

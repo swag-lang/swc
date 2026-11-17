@@ -44,6 +44,7 @@ using Core, Gui
         if text == ExpectedDriveLabel do
             hasExpectedDriveLabel = true
     }
+
     Swag.require(hasExpectedDriveLabel)
 
     for action in ["open", "unmount", "force"]

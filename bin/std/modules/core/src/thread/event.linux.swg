@@ -138,6 +138,7 @@ public impl Event
                 else do
                     state.signaled = false
             }
+
             let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
             if unlocked != 0 do
                 try eventStatus(unlocked).raise()
@@ -179,6 +180,7 @@ public impl Event
             else do
                 state.signaled = false
         }
+
         state.waiters -= #wrap 1
         let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
 

@@ -69,8 +69,8 @@ func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
             return false
 
         let remaining = milliseconds - elapsed
-        let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
-        let status = waitForSingleObjectStatus(handle, cast(DWORD, chunk))
+        let chunk     = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+        let status    = waitForSingleObjectStatus(handle, cast(DWORD, chunk))
         if status.result == WAIT_OBJECT_0 do
             return true
         if status.result == WAIT_FAILED do

@@ -10,6 +10,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     fillPictureList(window)
+
     // Keep this rendering fixture independent of the host-specific privacy label policy.
     window.privacyMode = false
     host.theme.setDark()

@@ -693,14 +693,14 @@ namespace Simd
     // Returns the signed shortest turn between matching angles, per lane, in [-π, π).
     func deltaAngle(start, end: Simd.F32x4)->Simd.F32x4
     {
-        let pi = Swag.vecSplat(ConstF32.Pi)
+        let pi    = Swag.vecSplat(ConstF32.Pi)
         let twoPi = Swag.vecSplat(ConstF32.TwoPi)
         return wrap(end - start + pi, Swag.vecSplat(0'f32), twoPi) - pi
     }
 
     func deltaAngle(start, end: Simd.F64x2)->Simd.F64x2
     {
-        let pi = Swag.vecSplat(ConstF64.Pi)
+        let pi    = Swag.vecSplat(ConstF64.Pi)
         let twoPi = Swag.vecSplat(ConstF64.TwoPi)
         return wrap(end - start + pi, Swag.vecSplat(0'f64), twoPi) - pi
     }

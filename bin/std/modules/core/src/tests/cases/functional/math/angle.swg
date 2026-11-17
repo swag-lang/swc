@@ -72,8 +72,8 @@ using Swag
 #test
 {
     let quarterTurn: Math.Angle = 90.0'deg
-    let halfTurn: Math.Angle = 180.0'deg
-    let fullTurn: Math.Angle = 360.0'deg
+    let halfTurn:    Math.Angle = 180.0'deg
+    let fullTurn:    Math.Angle = 360.0'deg
 
     Swag.require((quarterTurn + quarterTurn).toDegrees() == 180.0)
     Swag.require((halfTurn - quarterTurn).toDegrees() == 90.0)
@@ -93,8 +93,7 @@ using Swag
     Swag.require(Math.isEqualEpsilon(quarterTurn.deltaTo(-quarterTurn).toDegrees(), -180'f32, 0.001))
     Swag.require(Math.isEqualEpsilon(Math.Angle.fromRadians(0.0).sin(), 0'f32, 0.001))
     Swag.require(Math.isEqualEpsilon(Math.Angle.fromRadians(0.0).cos(), 1'f32, 0.001))
-    Swag.require(Math.isEqualEpsilon(
-        Math.Angle.fromDegrees(170).lerpTo(Math.Angle.fromDegrees(-170), 0.5).toDegrees(),
-        180'f32,
-        0.001))
+    Swag.require(Math.isEqualEpsilon(Math.Angle.fromDegrees(170).lerpTo(Math.Angle.fromDegrees(-170), 0.5).toDegrees(),
+                                     180'f32,
+                                     0.001))
 }

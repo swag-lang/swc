@@ -31,12 +31,13 @@ using Swag, Core
     Swag.require(surface.position.width >= (menu.position.width + 2 * surface.shadowMargin()) * surface.dpiScale)
     Swag.require(surface.position.height >= (menu.position.height + 2 * surface.shadowMargin()) * surface.dpiScale)
     let margin = surface.shadowMargin() * surface.dpiScale
-    let work = Env.monitorForPoint({100, 100}).physicalWorkArea
+    let work   = Env.monitorForPoint({100, 100}).physicalWorkArea
     if work.width > 0 and work.height > 0
     {
         Swag.require(Math.abs(surface.position.x + margin - 100) < 0.5)
         Swag.require(Math.abs(surface.position.y + margin - 130) < 0.5)
     }
+
     var wasActive, armed: bool
     Swag.require(not PopupMenuSurface.shouldDismiss(root, menu, &wasActive, &armed))
     Swag.require(armed and menu.mouseCapture() == menu)
@@ -50,5 +51,6 @@ using Swag, Core
         Swag.require(Math.abs(surface.position.bottom() - margin - pointer.y) < 0.5)
         Swag.require(surface.position.x >= work.x and surface.position.y >= work.y)
     }
+
     surface.destroy()
 }

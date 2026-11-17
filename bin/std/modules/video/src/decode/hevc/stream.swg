@@ -195,8 +195,8 @@ impl HevcStream
 
         if not sequence do
             fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
-        .width  = cast(s32, sequence.visibleWidth())
-        .height = cast(s32, sequence.visibleHeight())
+        .width              = cast(s32, sequence.visibleWidth())
+        .height             = cast(s32, sequence.visibleHeight())
         .sampleAspectWidth  = sequence.sampleAspectWidth
         .sampleAspectHeight = sequence.sampleAspectHeight
     }

@@ -292,5 +292,6 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
     {
         slot.setVerticalMetrics(0, 0)
     }
+
     updateSlotMetrics(slot)
 }

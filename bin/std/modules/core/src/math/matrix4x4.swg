@@ -47,7 +47,7 @@ impl Matrix4x4
     {
         Swag.assert(verticalFov > 0 and verticalFov < ConstF32.Pi)
         Swag.assert(aspect > 0 and nearPlane > 0 and farPlane > nearPlane)
-        let focal = 1 / tan(verticalFov / 2)
+        let focal  = 1 / tan(verticalFov / 2)
         var result = Matrix4x4.createIdentity()
         result.m[0, 0] = focal / aspect
         result.m[1, 1] = focal
@@ -80,10 +80,10 @@ impl Matrix4x4
     // `up` must not be parallel to the viewing direction.
     func createLookAt(eye, target, up: Vector3)->Matrix4x4
     {
-        let forward = (target - eye).normalized()
-        let right = forward.cross(up).normalized()
+        let forward  = (target - eye).normalized()
+        let right    = forward.cross(up).normalized()
         let actualUp = right.cross(forward)
-        var result = Matrix4x4.createIdentity()
+        var result   = Matrix4x4.createIdentity()
         result.m[0, 0] = right.x
         result.m[1, 0] = right.y
         result.m[2, 0] = right.z
@@ -142,6 +142,7 @@ impl Matrix4x4
                 result.m[row, column] = value
             }
         }
+
         return result
     }
 
@@ -171,6 +172,7 @@ impl Matrix4x4
             for column in 4 do
                 result.m[row, column] = .m[column, row]
         }
+
         return result
     }
 
@@ -260,6 +262,7 @@ impl Matrix4x4
             for column in 4 do
                 result.m[row, column] /= det
         }
+
         return result
     }
 

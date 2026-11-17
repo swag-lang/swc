@@ -72,8 +72,8 @@ using Swag, Core
 
     var focusedRect: Math.Rectangle = {width: 16, height: 16}
     var emptyRect:   Math.Rectangle = {x: 16, width: 16, height: 16}
-    let focusedScore = source.evaluateCropScore(focusedRect, opts)
-    let emptyScore   = source.evaluateCropScore(emptyRect, opts)
+    let focusedScore                = source.evaluateCropScore(focusedRect, opts)
+    let emptyScore                  = source.evaluateCropScore(emptyRect, opts)
     Swag.require(focusedScore > emptyScore)
 
     opts.maxSearchSteps = 1     // Values below the documented range still produce a valid search.

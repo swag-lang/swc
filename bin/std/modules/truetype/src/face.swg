@@ -28,18 +28,18 @@ public struct FaceMetadata
 {
     public
     {
-        familyName:            String        // Family name, using the same name records as [[TrueType.Face.familyNameAt]].
-        styleName:             String        // Legacy subfamily name such as `Regular`, `Light`, or `Bold Italic`.
-        typographicFamilyName: String        // Preferred family name (name ID 16), falling back to `familyName`.
-        typographicStyleName:  String        // Preferred subfamily name (name ID 17), falling back to `styleName`.
-        weight:                u16 = 400     // Weight from the font, or 400/700 when only regular/bold traits are available.
-        widthClass:            u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
-        embedding:             u16           // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
-        style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
-        isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
-        italicAngle:           s32 = 0       // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
-        underlinePosition:     s16 = 0       // Underline center relative to the baseline, in design units.
-        underlineThickness:    s16 = 0       // Recommended underline thickness in design units.
+        familyName:            String           // Family name, using the same name records as [[TrueType.Face.familyNameAt]].
+        styleName:             String           // Legacy subfamily name such as `Regular`, `Light`, or `Bold Italic`.
+        typographicFamilyName: String           // Preferred family name (name ID 16), falling back to `familyName`.
+        typographicStyleName:  String           // Preferred subfamily name (name ID 17), falling back to `styleName`.
+        weight:                u16  = 400       // Weight from the font, or 400/700 when only regular/bold traits are available.
+        widthClass:            u16  = 5         // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
+        embedding:             u16              // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
+        style:                 StyleFlag        // Bold and italic traits declared by the style tables or subfamily name.
+        isFixedPitch:          bool = false     // True when the `post` table declares a nonzero fixed-pitch value.
+        italicAngle:           s32  = 0         // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
+        underlinePosition:     s16  = 0         // Underline center relative to the baseline, in design units.
+        underlineThickness:    s16  = 0         // Recommended underline thickness in design units.
     }
 }
 
@@ -48,8 +48,8 @@ public struct GlyphVerticalMetrics
 {
     public readonly
     {
-        advanceHeight:   u16     // Vertical pen advance after drawing the glyph.
-        topSideBearing:  s16     // Distance from the glyph's top bound to its vertical origin.
+        advanceHeight:  u16     // Vertical pen advance after drawing the glyph.
+        topSideBearing: s16     // Distance from the glyph's top bound to its vertical origin.
     }
 }
 
@@ -148,7 +148,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
         if faceIndex do
             try fault(0x0F)
         normalized = try inflateWoff(bytes)
-        fontBytes = normalized.toSlice()
+        fontBytes  = normalized.toSlice()
     }
 
     let faceData = Memory.new'FaceImpl(allocationAllocator)
@@ -179,9 +179,9 @@ private func pointsToPpem(pointSize: s32, dpi: u32)->u32 fail
     if pointSize <= 0 or not dpi do
         try fault(0x17)
 
-    let numerator = cast(u64, pointSize) * cast(u64, dpi)
+    let numerator   = cast(u64, pointSize) * cast(u64, dpi)
     let denominator = 72'u64 * 64
-    let ppem = (numerator + denominator / 2) / denominator
+    let ppem        = (numerator + denominator / 2) / denominator
     if not ppem or ppem > Swag.U16.Max do
         try fault(0x17)
     return cast(u32, ppem)
@@ -436,12 +436,14 @@ public impl Face
     // ```
     mtd setCharSize(charWidth26_6, charHeight26_6: s32, horizontalDpi, verticalDpi: u32) fail
     {
-        if charWidth26_6 < 0 or charHeight26_6 < 0 or
+        if charWidth26_6 < 0 or
+           charHeight26_6 < 0 or
            (not charWidth26_6 and not charHeight26_6) or
-           not horizontalDpi or not verticalDpi do
+           not horizontalDpi or
+           not verticalDpi do
             try fault(0x17)
 
-        var widthPpem = 0'u32
+        var widthPpem  = 0'u32
         var heightPpem = 0'u32
         if charWidth26_6 do
             widthPpem = try pointsToPpem(charWidth26_6, horizontalDpi)
@@ -537,7 +539,7 @@ public impl Face
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         var result: #returntype
-        let units = lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
+        let units    = lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
         if not units do
             return result
 
@@ -680,8 +682,7 @@ public impl Face
     // with bytes in red, green, blue, alpha order. This replaces the slot's current
     // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has no
     // color layers.
-    mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0,
-                       foregroundArgb: u32 = 0xFF000000) fail
+    mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0, foregroundArgb: u32 = 0xFF000000) fail
     {
         try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)
     }
@@ -747,7 +748,12 @@ public impl Face
 
 func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: u32)->s16
 {
-    if not leftGlyph or not rightGlyph or leftGlyph >= faceData.face.glyphCount or rightGlyph >= faceData.face.glyphCount or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
+    if not leftGlyph or
+       not rightGlyph or
+       leftGlyph >= faceData.face.glyphCount or
+       rightGlyph >= faceData.face.glyphCount or
+       leftGlyph > Swag.U16.Max or
+       rightGlyph > Swag.U16.Max do
         return 0
 
     var units = 0's16

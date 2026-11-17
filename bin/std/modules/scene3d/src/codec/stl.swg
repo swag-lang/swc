@@ -28,6 +28,7 @@ private func splitStlWords(line: string)->Array'(string)
         result.add(line[start until end])
         start = end
     }
+
     return result
 }
 
@@ -67,7 +68,7 @@ internal func decodeBinaryStl(bytes: const [..] u8, limits: Limits = {})->Scene 
     result.nodes.add(#move root)
     result.materials.add(Material{"Default"})
     let mesh = &result.meshes[0]
-    var at = 84'u64
+    var at   = 84'u64
     for count
     {
         let normal = try stlVertex(bytes, at)
@@ -77,20 +78,20 @@ internal func decodeBinaryStl(bytes: const [..] u8, limits: Limits = {})->Scene 
         let b = try stlVertex(bytes, at)
         at += 12
         let c = try stlVertex(bytes, at)
-        at += 14    // The final two bytes are the facet attribute word.
+        at += 14     // The final two bytes are the facet attribute word.
 
         let first = cast(u32, mesh.vertices.count)
         var va: Vertex
-        va.position = a
-        va.normal = normal
+        va.position  = a
+        va.normal    = normal
         va.hasNormal = true
         var vb: Vertex
-        vb.position = b
-        vb.normal = normal
+        vb.position  = b
+        vb.normal    = normal
         vb.hasNormal = true
         var vc: Vertex
-        vc.position = c
-        vc.normal = normal
+        vc.position  = c
+        vc.normal    = normal
         vc.hasNormal = true
         mesh.vertices.add(#move va)
         mesh.vertices.add(#move vb)
@@ -103,6 +104,7 @@ internal func decodeBinaryStl(bytes: const [..] u8, limits: Limits = {})->Scene 
         try result.bounds.include(b)
         try result.bounds.include(c)
     }
+
     return result
 }
 
@@ -118,10 +120,10 @@ internal func decodeAsciiStl(source: string, limits: Limits = {})->Scene fail
     root.meshIndex = 0
     result.nodes.add(#move root)
     result.materials.add(Material{"Default"})
-    var inFacet = false
-    var inLoop = false
+    var inFacet     = false
+    var inLoop      = false
     var vertices: [3] Math.Vector3
-    var normal: Math.Vector3
+    var normal:   Math.Vector3
     var vertexCount = 0'u32
     for line in Tokenize.splitLines(source)
     {
@@ -135,16 +137,22 @@ internal func decodeAsciiStl(source: string, limits: Limits = {})->Scene fail
             let x = try StrConv.parseF32Invariant(words[2])
             let y = try StrConv.parseF32Invariant(words[3])
             let z = try StrConv.parseF32Invariant(words[4])
-            if x.eat != words[2].count or x.ovf or y.eat != words[3].count or y.ovf or z.eat != words[4].count or z.ovf do
+            if x.eat != words[2].count or
+               x.ovf or
+               y.eat != words[3].count or
+               y.ovf or
+               z.eat != words[4].count or
+               z.ovf do
                 fail InvalidFormatError{"ASCII STL facet normal is malformed"}
             normal = Math.Vector3{x.value, y.value, z.value}
             if not Math.isFinite(normal.x) or not Math.isFinite(normal.y) or not Math.isFinite(normal.z) do
                 fail InvalidFormatError{"ASCII STL facet normal is not finite"}
-            inFacet = true
-            inLoop = false
+            inFacet     = true
+            inLoop      = false
             vertexCount = 0
             continue
         }
+
         if words[0] == "outer"
         {
             if not inFacet or inLoop or words.count < 2 or words[1] != "loop" do
@@ -152,6 +160,7 @@ internal func decodeAsciiStl(source: string, limits: Limits = {})->Scene fail
             inLoop = true
             continue
         }
+
         if words[0] == "vertex"
         {
             if not inFacet or not inLoop or words.count < 4 or vertexCount >= 3 do
@@ -159,14 +168,22 @@ internal func decodeAsciiStl(source: string, limits: Limits = {})->Scene fail
             let x = try StrConv.parseF32Invariant(words[1])
             let y = try StrConv.parseF32Invariant(words[2])
             let z = try StrConv.parseF32Invariant(words[3])
-            if x.eat != words[1].count or x.ovf or y.eat != words[2].count or y.ovf or z.eat != words[3].count or z.ovf do
+            if x.eat != words[1].count or
+               x.ovf or
+               y.eat != words[2].count or
+               y.ovf or
+               z.eat != words[3].count or
+               z.ovf do
                 fail InvalidFormatError{"ASCII STL vertex coordinate is malformed"}
             vertices[vertexCount] = Math.Vector3{x.value, y.value, z.value}
-            if not Math.isFinite(vertices[vertexCount].x) or not Math.isFinite(vertices[vertexCount].y) or not Math.isFinite(vertices[vertexCount].z) do
+            if not Math.isFinite(vertices[vertexCount].x) or
+               not Math.isFinite(vertices[vertexCount].y) or
+               not Math.isFinite(vertices[vertexCount].z) do
                 fail InvalidFormatError{"ASCII STL vertex has a non-finite coordinate"}
             vertexCount += 1
             continue
         }
+
         if words[0] == "endloop"
         {
             if not inLoop or vertexCount != 3 do
@@ -174,32 +191,36 @@ internal func decodeAsciiStl(source: string, limits: Limits = {})->Scene fail
             inLoop = false
             continue
         }
+
         if words[0] == "endfacet"
         {
             if not inFacet or inLoop or vertexCount != 3 do
                 fail InvalidFormatError{"ASCII STL facet needs three vertices"}
             if result.meshes[0].triangles.count >= limits.maxTriangles or result.meshes[0].vertices.count + 3 > limits.maxVertices do
                 fail UnsupportedFormatError{"ASCII STL exceeds geometry limits"}
-            let mesh = &result.meshes[0]
+            let mesh  = &result.meshes[0]
             let first = cast(u32, mesh.vertices.count)
             for vertex in vertices
             {
                 var decoded: Vertex
-                decoded.position = vertex
-                decoded.normal = normal
+                decoded.position  = vertex
+                decoded.normal    = normal
                 decoded.hasNormal = true
                 mesh.vertices.add(#move decoded)
             }
+
             mesh.triangles.add(Triangle{first, first + 1, first + 2, -1})
             for vertex in vertices
             {
                 try mesh.bounds.include(vertex)
                 try result.bounds.include(vertex)
             }
+
             inFacet = false
             continue
         }
     }
+
     if inFacet or inLoop or result.meshes[0].triangles.isEmpty() do
         fail InvalidFormatError{"ASCII STL ends inside a facet or has no facets"}
     return result

@@ -135,10 +135,10 @@ alias FAudioVoice_SetVolume_fn                = func(*FAudioVoice, f32, u32)->u3
 alias FAudioVoice_GetVolume_fn                = func(*FAudioVoice, *f32)
 
 #[Swag.CallingConvention(.C)]
-alias FAudioVoice_SetOutputMatrix_fn           = func(*FAudioVoice, *FAudioVoice, u32, u32, const *f32, u32)->u32
+alias FAudioVoice_SetOutputMatrix_fn          = func(*FAudioVoice, *FAudioVoice, u32, u32, const *f32, u32)->u32
 
 #[Swag.CallingConvention(.C)]
-alias FAudioVoice_GetVoiceDetails_fn            = func(*FAudioVoice, *FAudioVoiceDetails)
+alias FAudioVoice_GetVoiceDetails_fn          = func(*FAudioVoice, *FAudioVoiceDetails)
 
 #[Swag.CallingConvention(.C)]
 alias FAudioVoice_SetOutputVoices_fn          = func(*FAudioVoice, const *FAudioVoiceSends?)->u32

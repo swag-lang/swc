@@ -719,6 +719,7 @@ impl Panel
                 view.publishWaveform(reducer.readyCount)
                 published[] = reducer.readyCount
             }
+
             return not Swag.isCancelled()
         })
         {

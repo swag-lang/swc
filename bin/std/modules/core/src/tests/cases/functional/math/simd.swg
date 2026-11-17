@@ -270,12 +270,12 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let fractions64 = Math.fract(f64Values)
     Swag.require(fractions64[0] == 0.5 and fractions64[1] == 0.5)
 
-    let a = Simd.splat(0'f32)
-    let b = Simd.splat(1'f32)
-    let c = Simd.splat(2'f32)
-    let d = Simd.splat(3'f32)
+    let a       = Simd.splat(0'f32)
+    let b       = Simd.splat(1'f32)
+    let c       = Simd.splat(2'f32)
+    let d       = Simd.splat(3'f32)
     let factors = cast(Simd.F32x4, [0'f32, 0.25, 0.5, 1])
-    let cubic = Math.cubicLerp(a, b, c, d, factors)
+    let cubic   = Math.cubicLerp(a, b, c, d, factors)
     Swag.require(cubic[0] == 1 and cubic[3] == 2)
     let hermite = Math.interpHermite(factors)
     let quintic = Math.interpQuintic(factors)
@@ -283,7 +283,7 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     Swag.require(quintic[0] == 0 and quintic[3] == 1)
 
     let factors64 = cast(Simd.F64x2, [0'f64, 1])
-    let cubic64 = Math.cubicLerp(Simd.splat(0'f64), Simd.splat(1'f64), Simd.splat(2'f64), Simd.splat(3'f64), factors64)
+    let cubic64   = Math.cubicLerp(Simd.splat(0'f64), Simd.splat(1'f64), Simd.splat(2'f64), Simd.splat(3'f64), factors64)
     Swag.require(cubic64[0] == 1 and cubic64[1] == 2)
 }
 
@@ -434,49 +434,44 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 // Range mapping and angular interpolation keep the scalar contracts in every lane.
 #test
 {
-    let start  = cast(Simd.F32x4, [0'f32, 10, 0, 170])
-    let end    = cast(Simd.F32x4, [10'f32, 0, 10, -170])
-    let values = cast(Simd.F32x4, [2'f32, 2, -2, 0])
+    let start   = cast(Simd.F32x4, [0'f32, 10, 0, 170])
+    let end     = cast(Simd.F32x4, [10'f32, 0, 10, -170])
+    let values  = cast(Simd.F32x4, [2'f32, 2, -2, 0])
     let inverse = Math.inverseLerp(start, end, values)
     Swag.require(Math.isEqualEpsilon(inverse[0], 0.2'f32, 0.001))
     Swag.require(Math.isEqualEpsilon(inverse[1], 0.8'f32, 0.001))
     Swag.require(Math.isEqualEpsilon(inverse[2], -0.2'f32, 0.001))
 
-    let wrapped = Math.wrap(
-        cast(Simd.F32x4, [2.25'f32, -0.25, 5, 12]),
-        Simd.splat(0'f32),
-        Simd.splat(1'f32))
+    let wrapped = Math.wrap(cast(Simd.F32x4, [2.25'f32, -0.25, 5, 12]),
+                            Simd.splat(0'f32),
+                            Simd.splat(1'f32))
     Swag.require(wrapped[0] == 0.25'f32 and wrapped[1] == 0.75'f32)
     Swag.require(wrapped[2] == 0'f32 and wrapped[3] == 0'f32)
 
     let radiansStart = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(170'f32)])
-    let radiansEnd = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(-170'f32)])
-    let halfway = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5'f32))
+    let radiansEnd   = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(-170'f32)])
+    let halfway      = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5'f32))
     Swag.require(Math.isEqualEpsilon(halfway[3], Math.toRadians(180'f32), 0.001))
 }
 
 // SIMD range, wave, and smoothstep helpers operate independently on each lane.
 #test
 {
-    let values = cast(Simd.F32x4, [-2'f32, 0, 2, 4])
+    let values  = cast(Simd.F32x4, [-2'f32, 0, 2, 4])
     let lengths = cast(Simd.F32x4, [3'f32, 3, 3, 3])
-    let wave = Math.pingPong(values, lengths)
+    let wave    = Math.pingPong(values, lengths)
     Swag.require(wave[0] == 2 and wave[1] == 0 and wave[2] == 2 and wave[3] == 2)
 
-    let smooth = Math.smoothstep(
-        Simd.splat(0'f32), Simd.splat(1'f32), cast(Simd.F32x4, [-1'f32, 0, 0.5, 2]))
+    let smooth = Math.smoothstep(Simd.splat(0'f32), Simd.splat(1'f32), cast(Simd.F32x4, [-1'f32, 0, 0.5, 2]))
     Swag.require(smooth[0] == 0 and smooth[1] == 0 and smooth[3] == 1)
     Swag.require(Math.isEqualEpsilon(smooth[2], 0.5'f32, 0.001))
 
-    let mapped = Math.map(
-        cast(Simd.F64x2, [0'f64, 5]), Simd.splat(0'f64), Simd.splat(10'f64),
-        Simd.splat(-1'f64), Simd.splat(1'f64))
+    let mapped = Math.map(cast(Simd.F64x2, [0'f64, 5]), Simd.splat(0'f64), Simd.splat(10'f64), Simd.splat(-1'f64), Simd.splat(1'f64))
     Swag.require(mapped[0] == -1 and mapped[1] == 0)
 
     let values64 = cast(Simd.F64x2, [-1'f64, 3])
-    let wave64 = Math.pingPong(values64, Simd.splat(2'f64))
+    let wave64   = Math.pingPong(values64, Simd.splat(2'f64))
     Swag.require(wave64[0] == 1 and wave64[1] == 1)
-    let smooth64 = Math.smoothstep(
-        Simd.splat(0'f64), Simd.splat(10'f64), cast(Simd.F64x2, [0'f64, 5]))
+    let smooth64 = Math.smoothstep(Simd.splat(0'f64), Simd.splat(10'f64), cast(Simd.F64x2, [0'f64, 5]))
     Swag.require(smooth64[0] == 0 and smooth64[1] == 0.5)
 }

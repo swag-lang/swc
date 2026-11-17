@@ -46,9 +46,9 @@ enum ChromaMode
 // Everything the signature line says about the frames that follow it.
 private struct Header
 {
-    info:       StreamInfo
-    colorRange: ColorRange
-    chromaMode: ChromaMode
+    info:         StreamInfo
+    colorRange:   ColorRange
+    chromaMode:   ChromaMode
     aspectWidth:  u32
     aspectHeight: u32
 }
@@ -119,7 +119,7 @@ private func parseHeader(line: string)->Header fail
         case 'C':
             switch value
             {
-            case "411":    result.chromaMode = .Yuv411
+            case "411":  result.chromaMode = .Yuv411
             case "420", "420jpeg", "420mpeg2", "420paldv": result.chromaMode = .Yuv420
             case "422":  result.chromaMode = .Yuv422
             case "444":  result.chromaMode = .Yuv444
@@ -133,12 +133,12 @@ private func parseHeader(line: string)->Header fail
                 fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
             if parts[0] == "0" and parts[1] == "0"
             {
-                result.aspectWidth = 0
+                result.aspectWidth  = 0
                 result.aspectHeight = 0
             }
             else
             {
-                result.aspectWidth = try parsePositiveU32(parts[0], "aspect width")
+                result.aspectWidth  = try parsePositiveU32(parts[0], "aspect width")
                 result.aspectHeight = try parsePositiveU32(parts[1], "aspect height")
             }
 
@@ -163,11 +163,11 @@ private func parseHeader(line: string)->Header fail
         fail InvalidFormatError{"YUV4MPEG2 stream needs an interlacing mode"}
     if result.aspectWidth and result.aspectHeight
     {
-        let display = pictureDisplaySize(result.info.width, result.info.height,
-                                         result.aspectWidth, result.aspectHeight)
-        result.info.displayWidth = display.width
+        let display = pictureDisplaySize(result.info.width, result.info.height, result.aspectWidth, result.aspectHeight)
+        result.info.displayWidth  = display.width
         result.info.displayHeight = display.height
     }
+
     return result
 }
 
@@ -198,13 +198,13 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 
 private func decodePayload(target: *Image, payload: const [..] u8, header: const *Header)
 {
-    let width          = header.info.width
-    let height         = header.info.height
-    let chromaMode     = header.chromaMode
-    let lumaSize       = cast(u64, width) * cast(u64, height)
-    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64, width) :
-                         (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
-                          (cast(u64, width) + 1) / 2)
+    let width       = header.info.width
+    let height      = header.info.height
+    let chromaMode  = header.chromaMode
+    let lumaSize    = cast(u64, width) * cast(u64, height)
+    let chromaWidth = chromaMode == .Yuv444 ? cast(u64, width) :
+                      (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
+                       (cast(u64, width) + 1) / 2)
     let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
     let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
     let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0

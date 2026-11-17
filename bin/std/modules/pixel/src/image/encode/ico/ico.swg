@@ -52,7 +52,10 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 
     for &image in images
     {
-        if image.width <= 0 or image.height <= 0 or not image.isValid() or image.pixels.count != image.byteCount do
+        if image.width <= 0 or
+           image.height <= 0 or
+           not image.isValid() or
+           image.pixels.count != image.byteCount do
             fail InvalidFormatError{"invalid image"}
         if image.width > 256 or image.height > 256 do
             fail UnsupportedFormatError{"icon dimensions must be <= 256"}
@@ -100,8 +103,10 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
             let straight = image.convertedAlphaTo(.Straight)
             appendDib(result, straight)
         }
-        else do
+        else
+        {
             appendDib(result, image)
+        }
     }
 }
 

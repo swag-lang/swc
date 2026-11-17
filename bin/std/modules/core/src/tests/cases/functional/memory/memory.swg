@@ -114,7 +114,7 @@ impl MemoryArrayDropProbe
 // The temporary-allocator scope switches the context allocator and restores it afterward.
 #test
 {
-    let originalAllocator = Swag.getContext().allocator
+    let originalAllocator      = Swag.getContext().allocator
     var usedTemporaryAllocator = false
 
     Memory.withTemporaryAllocator()

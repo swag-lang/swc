@@ -13,7 +13,7 @@ using Swag
     defer stream.close()
 
     var expected: u32 = 0x1234_5678
-    let bytes = Swag.makeSlice(cast(const [*] u8, &expected), #sizeof(u32))
+    let bytes         = Swag.makeSlice(cast(const [*] u8, &expected), #sizeof(u32))
     expect stream.writeAll(bytes)
     expect stream.flush()
     Swag.require(expect stream.position() == #sizeof(u32))

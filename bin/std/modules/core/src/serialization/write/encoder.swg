@@ -375,6 +375,7 @@ impl Encoder
             #static if T == Write.Xml do
                 .serializer.abortWrite()
         }
+
         try .writeValue(value.buffer, Swag.kindOf(value))
         try .end()
     }

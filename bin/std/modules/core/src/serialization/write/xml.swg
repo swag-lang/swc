@@ -31,8 +31,10 @@ internal func xmlCanWrite(type: typeinfo?)->bool
 
     if Reflection.isNative(resolved)
     {
-        return Reflection.isBool(resolved) or Reflection.isInteger(resolved) or
-               Reflection.isFloat(resolved) or Reflection.isRune(resolved)
+        return Reflection.isBool(resolved) or
+               Reflection.isInteger(resolved) or
+               Reflection.isFloat(resolved) or
+               Reflection.isRune(resolved)
     }
 
     if resolved == Core.String do
@@ -46,8 +48,10 @@ internal func xmlCanWrite(type: typeinfo?)->bool
     if elementType
     {
         // The reader has no end marker for dynamic arrays of structs and reads string text as one value.
-        return not Reflection.isStruct(elementType) and not xmlIsStringValue(elementType) and
-               not Reflection.dynamicArrayElementType(elementType) and xmlCanWrite(elementType)
+        return not Reflection.isStruct(elementType) and
+               not xmlIsStringValue(elementType) and
+               not Reflection.dynamicArrayElementType(elementType) and
+               xmlCanWrite(elementType)
     }
 
     if Reflection.isStaticArray(resolved)
@@ -88,7 +92,7 @@ struct Xml
 {
     internal
     {
-        output:         *ConcatBuffer?
+        output:               *ConcatBuffer?
         sequenceCounts:       Array'u64
         sequenceStructDepths: Array'u64
         structDepth:          u64
@@ -133,7 +137,7 @@ impl Xml
             case '&':  .getOutput().addBytes("&amp;")
             case '<':  .getOutput().addBytes("&lt;")
             case '>':  .getOutput().addBytes("&gt;")
-            case '"': .getOutput().addBytes("&quot;")
+            case '"':  .getOutput().addBytes("&quot;")
             case '\'': .getOutput().addBytes("&apos;")
             case '\r': .getOutput().addBytes("&#13;")
             default:   .getOutput().addNative(c)
@@ -163,7 +167,7 @@ impl Xml
         .output = buf
         .sequenceCounts.clear()
         .sequenceStructDepths.clear()
-        .structDepth = 0
+        .structDepth       = 0
         .invalidCharacters = false
         .unsupportedValues = false
     }
@@ -227,8 +231,9 @@ impl Xml
     mtd beginSequence(type: typeinfo?, _: const *void?, count: u64)->bool
     {
         let dynamicElementType = Reflection.dynamicArrayElementType(type)
-        let elementType = dynamicElementType orelse type
-        if not xmlCanWrite(elementType) or xmlIsStringValue(elementType) or
+        let elementType        = dynamicElementType orelse type
+        if not xmlCanWrite(elementType) or
+           xmlIsStringValue(elementType) or
            (dynamicElementType and Reflection.isStruct(elementType) and count > 0) or
            (dynamicElementType and Reflection.dynamicArrayElementType(elementType) and count > 0)
         {
@@ -265,7 +270,8 @@ impl Xml
         if not .sequenceCounts.isEmpty() and .sequenceStructDepths.back() == .structDepth
         {
             let count = .sequenceCounts.backPtr()
-            if count[] do .getOutput().addNative(' 'u8)
+            if count[] do
+                .getOutput().addNative(' 'u8)
             count[] += 1
         }
 

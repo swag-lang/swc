@@ -434,11 +434,11 @@ func testAssertFormFitsItsMargin(itf: IForm)
 
     with let text = testAddText(f.capture, 0, 0, 50, 60)
     {
-        .fontSize  = 34
-        .boldSize  = 2
-        .joinStyle = .Bevel
-        .alignHorz = .RightBottom
-        .alignVert = .LeftTop
+        .fontSize    = 34
+        .boldSize    = 2
+        .joinStyle   = .Bevel
+        .alignHorz   = .RightBottom
+        .alignVert   = .LeftTop
         .lineSpacing = 22
     }
 
@@ -454,7 +454,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     textCopy.alignHorz = text.alignHorz
     textCopy.alignVert = .RightBottom
     Swag.require(not text.IForm.isSame(&textCopy))
-    textCopy.alignVert = text.alignVert
+    textCopy.alignVert   = text.alignVert
     textCopy.lineSpacing += 1
     Swag.require(not text.IForm.isSame(&textCopy))
 

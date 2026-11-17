@@ -154,7 +154,7 @@ func readAllText(fullName: string, normalizeEol = false)->String fail
 // replacement character, following [[Core.Text.decode]]. File access failures are reported.
 func readAllText(fullName: string, encoding: Text.Encoding)->String fail
 {
-    let bytes = try readAllBytes(fullName)
+    let bytes   = try readAllBytes(fullName)
     let content = bytes.toSlice()
     if Text.hasBom(content, encoding) do
         return Text.decode(content[Text.bomLength(encoding) until content.count], encoding)

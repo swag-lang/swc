@@ -215,6 +215,7 @@ private impl Track
             return {width: 0, height: 0}
         if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
             return {width: 0, height: 0}
+
         // StreamInfo uses signed dimensions, so larger container values cannot be represented.
         // Bounding them here also keeps each ratio product within u64 before comparing.
         if .displayWidth > Swag.S32.Max or .displayHeight > Swag.S32.Max do
@@ -1597,9 +1598,9 @@ private impl Layout
         let track   = &.tracks[trackIndex]
         if isVideo
         {
-            let isSync = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
+            let isSync         = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
             let firstTimestamp = try .timestampNanoseconds(clusterTimestamp, relative)
-            var totalDuration = 0'u64
+            var totalDuration  = 0'u64
             if blockDurationTicks
             {
                 if blockDurationTicks > Swag.U64.Max / .timestampScale do
@@ -1612,8 +1613,10 @@ private impl Layout
                     fail InvalidFormatError{"Matroska laced video default duration exceeds the supported range"}
                 totalDuration = track.defaultDuration * cast(u64, .laceSizes.count)
             }
-            elif .laceSizes.count > 1 do
+            elif .laceSizes.count > 1
+            {
                 fail UnsupportedFormatError{"laced Matroska video needs DefaultDuration or BlockDuration timestamps"}
+            }
 
             if .laceSizes.count > 1 and totalDuration < .laceSizes.count do
                 fail InvalidFormatError{"Matroska laced video block duration is too short for its frames"}
@@ -1632,8 +1635,11 @@ private impl Layout
                         let count = cast(u64, .laceSizes.count)
                         offset = totalDuration / count * index + totalDuration % count * index / count
                     }
-                    else do
+                    else
+                    {
                         offset = track.defaultDuration * index
+                    }
+
                     if offset > cast(u64, Swag.S64.Max) or timestamp > Swag.S64.Max - cast(s64, offset) do
                         fail InvalidFormatError{"Matroska laced video timestamp exceeds the supported range"}
                     timestamp += cast(s64, offset)
@@ -1641,6 +1647,7 @@ private impl Layout
 
                 if track.codecId == RealVideoCodecId do
                     timestamp = try track.realVideoClock.presentationTime(cursor.bytes[frameOffset until frameOffset + size], track.headerStrip.toSlice(), timestamp)
+
                 // The SimpleBlock/BlockGroup random-access flag describes the first
                 // lace; later payloads still need their own codec dependencies.
                 track.videoSamples.add(SampleEntry{frameOffset, size, timestamp, isSync and index == 0})
@@ -1649,6 +1656,7 @@ private impl Layout
                     let end = Math.min(frameOffset + size, cursor.bytes.count)
                     track.setup.add(Video.inlineSetupHeaders(cursor.bytes[frameOffset until end]))
                 }
+
                 frameOffset += size
             }
 
@@ -1980,8 +1988,8 @@ private impl Decoder
 {
     mtd configureMetadata(layout: *Layout) fail
     {
-        var video = &layout.tracks[layout.selectedVideo]
-        var aspectWidth = 1'u32
+        var video        = &layout.tracks[layout.selectedVideo]
+        var aspectWidth  = 1'u32
         var aspectHeight = 1'u32
         if video.needsInlineSetup() and video.setup.isEmpty()
         {
@@ -2046,6 +2054,7 @@ private impl Decoder
             .info.displayWidth  = codecDisplay.width
             .info.displayHeight = codecDisplay.height
         }
+
         if video.defaultDuration do
             .info.frameRate = try frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do

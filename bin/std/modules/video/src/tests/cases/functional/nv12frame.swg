@@ -69,8 +69,8 @@ using Swag, Core, Core.Errors, Pixel
                            26, 27, 28, 29, 0, 0,
                            36, 37, 38, 39, 0, 0,
                            46, 47, 48, 49]
-    const Cb: [5] u8 = [100, 110, 0, 130, 140]
-    const Cr: [5] u8 = [150, 140, 0, 120, 110]
+    const Cb:       [5] u8  = [100, 110, 0, 130, 140]
+    const Cr:       [5] u8  = [150, 140, 0, 120, 110]
     const Expected: [24] u8 = [16, 17, 18, 19,
                                26, 27, 28, 29,
                                36, 37, 38, 39,
@@ -80,7 +80,7 @@ using Swag, Core, Core.Errors, Pixel
 
     var planar: PlanarFrame
     planar.resize(4, 4)
-    planar.strideLuma = 6
+    planar.strideLuma   = 6
     planar.strideChroma = 3
     planar.luma.resize(Luma.count)
     planar.chromaB.resize(Cb.count)

@@ -179,9 +179,10 @@ internal func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
         }
 
         let remaining = milliseconds - elapsed
-        let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+        let chunk     = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
         discard state.changed.waitFor(&state.mutex, cast(u32, chunk))
     }
+
     state.mutex.unlock()
 
     let error = Linux.pthread_join(state.thread, null)

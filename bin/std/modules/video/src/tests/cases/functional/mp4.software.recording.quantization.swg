@@ -29,14 +29,12 @@ private func quantizedRecordingPicture(shift: u64)->Image
     let path = videoTempPath("mp4-software-rate-control", "mp4")
     defer discard catch File.delete(path)
     let config = Mp4.SoftwareVideoRateControl{targetBitsPerSecond: 1_000,
-                                               reservoirBits: 1_000,
-                                               minQp: 10,
-                                               maxQp: 40}
-    var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000,
-                                                                 keyInterval: 20,
-                                                                 rateControl: &config)
-    let pacer = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
-    var firstQp = 0'u32
+                                              reservoirBits: 1_000,
+                                              minQp: 10,
+                                              maxQp: 40}
+    var recorder   = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000, keyInterval: 20, rateControl: &config)
+    let pacer      = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
+    var firstQp    = 0'u32
     var firstBytes = 0'u64
     for frame in 8'u64
     {
@@ -44,12 +42,13 @@ private func quantizedRecordingPicture(shift: u64)->Image
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
         if frame == 0
         {
-            firstQp = recorder.videoQuantizationQp()
+            firstQp    = recorder.videoQuantizationQp()
             firstBytes = recorder.videoPacketByteCount()
         }
     }
+
     expect recorder.repeatLastFrame(expect pacer.slotAt(8))
-    let finalQp = recorder.videoQuantizationQp()
+    let finalQp    = recorder.videoQuantizationQp()
     let finalBytes = recorder.videoPacketByteCount()
     expect recorder.end()
 

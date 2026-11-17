@@ -32,7 +32,7 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
 // Waiting on an event without native state fails instead of reporting a timeout.
 #test
 {
-    var event: Sync.Event
+    var event:       Sync.Event
     var waitFailure: Swag.Error
     discard catch event.waitFor(Time.Duration.fromMilliseconds(0)) as waitFailure
     Swag.require(waitFailure.value() is SystemError)

@@ -20,7 +20,7 @@ using Swag
 // A caller can cap inflation exactly and reject output before reserving an oversized hint.
 #test
 {
-    let input = cast(const [..] u8, "bounded output")
+    let input      = cast(const [..] u8, "bounded output")
     var writer: Compress.ZLib
     let compressed = expect writer.compress(input)
 
@@ -30,7 +30,7 @@ using Swag
 
     var limitedReader: Compress.ZLib
     var limitedResult: #decltype(expect limitedReader.decompress(compressed.toSlice()))
-    var limitedError: Swag.Error
+    var limitedError:  Swag.Error
     catch
     {
         limitedResult = try limitedReader.decompress(compressed.toSlice(), maxOutputSize: input.count - 1)
@@ -40,7 +40,7 @@ using Swag
 
     var hintReader: Compress.ZLib
     var hintResult: #decltype(expect hintReader.decompress(compressed.toSlice()))
-    var hintError: Swag.Error
+    var hintError:  Swag.Error
     catch
     {
         hintResult = try hintReader.decompress(compressed.toSlice(), input.count, input.count - 1)
@@ -150,9 +150,9 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     Swag.require((errC is Errors.UnsupportedFormatError))
 
     // CINFO 8 is a valid header check but announces a window larger than 32 KiB.
-    let largeWindow: [6] u8 = [0x88, 0x1C, 0, 0, 0, 0]
-    var largeWindowReader: Compress.ZLib
-    var largeWindowResult: #decltype(expect largeWindowReader.decompress(largeWindow))
+    let largeWindow:        [6] u8 = [0x88, 0x1C, 0, 0, 0, 0]
+    var largeWindowReader:  Compress.ZLib
+    var largeWindowResult:  #decltype(expect largeWindowReader.decompress(largeWindow))
     var largeWindowOutcome: Swag.Error
     catch { largeWindowResult = try largeWindowReader.decompress(largeWindow) } as largeWindowOutcome
     Swag.require(largeWindowResult.isEmpty())

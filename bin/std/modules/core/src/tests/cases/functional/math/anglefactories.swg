@@ -5,7 +5,7 @@ using Swag
 
 #test
 {
-    let quarterTurn = Math.Angle.fromDegrees(90'f32)
+    let quarterTurn  = Math.Angle.fromDegrees(90'f32)
     let negativeTurn = Math.Angle.fromDegrees(-45'f32)
 
     Swag.require(Math.isEqualEpsilon(quarterTurn.radians, Math.ConstF32.PiBy2, 0.001))

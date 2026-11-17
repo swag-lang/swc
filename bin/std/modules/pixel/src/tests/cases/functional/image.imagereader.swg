@@ -46,7 +46,7 @@ impl IImageSetDecoder for ImageReaderMixedDepthDecoder
             return result
         }
 
-        var result = Image.create(1, 1, .RGBA16)
+        var result   = Image.create(1, 1, .RGBA16)
         let channels = cast([*] u16, result.pixels.storage())
         channels[0] = 0x1234
         channels[1] = 0x5678
@@ -326,7 +326,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     Image.registerDecoder'(ImageReaderMismatchDecoder)()
     var reader = expect ImageReader.decode("image.readermismatch", "input")
     var errorOutcome: Swag.Error
-    var image: #decltype(expect reader.read(0))
+    var image:        #decltype(expect reader.read(0))
     catch { image = try reader.read(0) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
@@ -335,15 +335,21 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 #test
 {
     Image.registerDecoder'(ImageReaderMixedDepthDecoder)()
-    var reader = expect ImageReader.decode("image.mixeddepthanimation", "input")
-    let image = expect reader.read(1)
+    var reader   = expect ImageReader.decode("image.mixeddepthanimation", "input")
+    let image    = expect reader.read(1)
     let channels = cast(const [*] u16, image.pixels.storage())
     Swag.require(image.pixelFormat == .RGBA16)
-    Swag.require(channels[0] == 0x1234 and channels[1] == 0x5678 and channels[2] == 0x9ABC and channels[3] == 0xFFFF)
+    Swag.require(channels[0] == 0x1234 and
+                 channels[1] == 0x5678 and
+                 channels[2] == 0x9ABC and
+                 channels[3] == 0xFFFF)
 
     var probeReader = expect ImageReader.decode("image.mixeddepthanimation", "input", {decodePixels: false})
-    let probe = expect probeReader.read(0)
-    Swag.require(probe.width == 1 and probe.height == 1 and probe.pixelFormat == .RGBA16 and probe.pixels.isEmpty())
+    let probe       = expect probeReader.read(0)
+    Swag.require(probe.width == 1 and
+                 probe.height == 1 and
+                 probe.pixelFormat == .RGBA16 and
+                 probe.pixels.isEmpty())
 }
 
 // Closing a reader uses the allocator that created its persistent decoder.

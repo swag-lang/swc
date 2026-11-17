@@ -193,15 +193,15 @@ impl IForm for FormText
         BaseForm.copyBase(dst, src)
         let dstf = assume cast(*FormText, dst)
         let srcf = assume cast(*FormText, src)
-        dstf.fontSize  = srcf.fontSize
-        dstf.boldSize  = srcf.boldSize
-        dstf.joinStyle = srcf.joinStyle
-        dstf.fontName  = srcf.fontName
-        dstf.fontStyle = srcf.fontStyle
-        dstf.alignHorz = srcf.alignHorz
-        dstf.alignVert = srcf.alignVert
+        dstf.fontSize    = srcf.fontSize
+        dstf.boldSize    = srcf.boldSize
+        dstf.joinStyle   = srcf.joinStyle
+        dstf.fontName    = srcf.fontName
+        dstf.fontStyle   = srcf.fontStyle
+        dstf.alignHorz   = srcf.alignHorz
+        dstf.alignVert   = srcf.alignVert
         dstf.lineSpacing = srcf.lineSpacing
-        dstf.scale     = srcf.scale
+        dstf.scale       = srcf.scale
     }
 
     mtd impl mustClipToBound()->bool => true

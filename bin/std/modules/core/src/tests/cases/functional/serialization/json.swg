@@ -306,7 +306,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 // The writer escapes control bytes without losing them, while the reader rejects raw controls.
 #test
 {
-    let payload = JsonStringPayload{ text: "\x00\x01\x0B\x1F" }
+    let payload = JsonStringPayload{text: "\x00\x01\x0B\x1F"}
     var encoder: Serialization.Encoder'Serialization.Write.Json
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)

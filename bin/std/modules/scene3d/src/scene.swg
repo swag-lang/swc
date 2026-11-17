@@ -29,8 +29,8 @@ public impl Bounds
             fail InvalidFormatError{"bound point has a non-finite coordinate"}
         if .isEmpty
         {
-            .min = point
-            .max = point
+            .min     = point
+            .max     = point
             .isEmpty = false
             return
         }

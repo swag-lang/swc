@@ -17,7 +17,7 @@ public struct Limits
         maxTriangles: u64 = 2_000_000
 
         // Maximum nodes and materials stored in the scene.
-        maxNodes: u32 = 65_536
+        maxNodes:     u32 = 65_536
         maxMaterials: u32 = 65_536
     }
 }
@@ -25,5 +25,9 @@ public struct Limits
 public impl Limits
 {
     // Reports whether every configured resource limit is nonzero.
-    mtd const isValid()->bool => .maxInputBytes != 0 and .maxVertices != 0 and .maxTriangles != 0 and .maxNodes != 0 and .maxMaterials != 0
+    mtd const isValid()->bool => .maxInputBytes != 0 and
+                                 .maxVertices != 0 and
+                                 .maxTriangles != 0 and
+                                 .maxNodes != 0 and
+                                 .maxMaterials != 0
 }

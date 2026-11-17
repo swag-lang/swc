@@ -260,9 +260,9 @@ private struct HeaderEnd
 // Advances past the pages holding the codec's header packets and returns where the sound starts.
 private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
 {
-    var completed = 0'u32
-    var sequence = 0'u32
-    var hasSequence = false
+    var completed         = 0'u32
+    var sequence          = 0'u32
+    var hasSequence       = false
     var expectedContinued = false
     var header: PageHeader
     while try walker.next(&header)
@@ -283,8 +283,8 @@ private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
                 fail InvalidFormatError{"Ogg first header page has an invalid sequence or continuation flag"}
             }
 
-            sequence = header.sequence
-            hasSequence = true
+            sequence          = header.sequence
+            hasSequence       = true
             expectedContinued = false
             if header.segments do
                 expectedContinued = header.lacing[header.segments - 1] == 255

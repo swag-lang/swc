@@ -376,13 +376,14 @@ private impl Panel
     // the document gives it, compared without case; `U64.Max` when it names none.
     internal mtd typedPageIndex(text: string)->u64
     {
-        let typed = Latin1.trim(text)
+        let typed        = Latin1.trim(text)
         var isPageNumber = typed.count > 0
         for character in typed where not Latin1.isDigit(character)
         {
             isPageNumber = false
             break
         }
+
         if not isPageNumber
         {
             for label, index in .pageLabels where Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do

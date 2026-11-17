@@ -62,8 +62,8 @@ using Swag
 
 #test
 {
-    let values: [3] s32 = [4, 4, 4]
-    let tooLong: [4] s32 = [4, 4, 4, 4]
+    let values:      [3] s32 = [4, 4, 4]
+    let tooLong:     [4] s32 = [4, 4, 4, 4]
     let empty = values[until 0]
     let overlapping: [5] s32 = [1, 1, 1, 2, 1]
 
@@ -144,8 +144,8 @@ using Swag
     // Several candidate starts in one vector must be checked until the full needle matches.
     for &value in values do
         value[] = 0
-    values[0] = 1
-    values[1] = 2
+    values[0]  = 1
+    values[1]  = 2
     values[16] = 1
     values[17] = 2
     for i in needle.count do

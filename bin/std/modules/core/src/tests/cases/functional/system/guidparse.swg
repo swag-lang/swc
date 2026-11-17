@@ -19,7 +19,7 @@ using Swag
 
 #test
 {
-    var guid128 = expect Guid128.parse("00112233-4455-6677-8899-aabbccddeeff")
+    var guid128  = expect Guid128.parse("00112233-4455-6677-8899-aabbccddeeff")
     let expected = guid128
 
     Swag.require(not Guid128.tryParse("001122334455-6677-8899-aabbccddeeff", &guid128))

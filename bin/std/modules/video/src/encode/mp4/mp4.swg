@@ -7,14 +7,14 @@
 
 using Core, Core.Errors, Pixel
 
-const MovieHeaderId      = fourCc('m'u32, 'v'u32, 'h'u32, 'd'u32)
-const VideoMediaHeaderId = fourCc('v'u32, 'm'u32, 'h'u32, 'd'u32)
-const DataInfoId         = fourCc('d'u32, 'i'u32, 'n'u32, 'f'u32)
-const DataReferenceId    = fourCc('d'u32, 'r'u32, 'e'u32, 'f'u32)
-const DataEntryUrlId     = fourCc('u'u32, 'r'u32, 'l'u32, ' 'u32)
-const IsomBrandId        = fourCc('i'u32, 's'u32, 'o'u32, 'm'u32)
-const Iso2BrandId        = fourCc('i'u32, 's'u32, 'o'u32, '2'u32)
-const Mp41BrandId        = fourCc('m'u32, 'p'u32, '4'u32, '1'u32)
+const MovieHeaderId            = fourCc('m'u32, 'v'u32, 'h'u32, 'd'u32)
+const VideoMediaHeaderId       = fourCc('v'u32, 'm'u32, 'h'u32, 'd'u32)
+const DataInfoId               = fourCc('d'u32, 'i'u32, 'n'u32, 'f'u32)
+const DataReferenceId          = fourCc('d'u32, 'r'u32, 'e'u32, 'f'u32)
+const DataEntryUrlId           = fourCc('u'u32, 'r'u32, 'l'u32, ' 'u32)
+const IsomBrandId              = fourCc('i'u32, 's'u32, 'o'u32, 'm'u32)
+const Iso2BrandId              = fourCc('i'u32, 's'u32, 'o'u32, '2'u32)
+const Mp41BrandId              = fourCc('m'u32, 'p'u32, '4'u32, '1'u32)
 const EncodePixelAspectRatioId = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
 
 private const MaxFrameSide = 65_535's32
@@ -122,6 +122,7 @@ impl IEncoder for Encoder
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
+
         if (.options.pixelAspectWidth == 0) != (.options.pixelAspectHeight == 0) do
             fail BadParameterError{"MP4 pixel aspect ratio needs both numerator and denominator"}
 

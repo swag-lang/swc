@@ -5,8 +5,8 @@ using Swag
 
 #test
 {
-    let negative = Swag.catchPanic(func||() { discard Time.Duration.fromSeconds(-0.5) })
-    let infinite = Swag.catchPanic(func||() { discard Time.Duration.fromSeconds(Swag.F64.Inf) })
+    let negative   = Swag.catchPanic(func||() { discard Time.Duration.fromSeconds(-0.5) })
+    let infinite   = Swag.catchPanic(func||() { discard Time.Duration.fromSeconds(Swag.F64.Inf) })
     let notANumber = Swag.catchPanic(func||() { discard Time.Duration.fromSeconds(Swag.F64.NaN) })
 
     Swag.require(negative.raised)
@@ -38,7 +38,7 @@ using Swag
 
 #test
 {
-    var infinite = Time.Duration.fromSeconds(1)
+    var infinite        = Time.Duration.fromSeconds(1)
     let infiniteSeconds = cast(*f64, &infinite)
     infiniteSeconds[] = Swag.F64.Inf
     let infiniteFailure = Swag.catchPanic(func|&infinite|()

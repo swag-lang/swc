@@ -32,8 +32,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 #test
 {
     var track: Matroska.Track
-    track.displayUnit = 0
-    track.displayWidth = 720
+    track.displayUnit   = 0
+    track.displayWidth  = 720
     track.displayHeight = 480
     Swag.require(track.hasDisplaySize())
     let explicit = track.displaySize(720, 480)
@@ -67,7 +67,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
         Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 0.08, 0.0001))
 
-        let first = expect reader.decodeFrame(0)
+        let first  = expect reader.decodeFrame(0)
         let second = expect reader.decodeFrame(1)
         Swag.require(reader.frameCount() == 2)
         Swag.require(first.isValid() and second.isValid())

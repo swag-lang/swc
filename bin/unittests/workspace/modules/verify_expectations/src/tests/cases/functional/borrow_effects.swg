@@ -6,9 +6,9 @@ using StaticApi
 // Imported interface summaries must preserve the selected implementation's effects.
 func importedNonRetainingInterfaceKeepsInlineViewLocal()
 {
-    var writer: DepBorrowNonRetainingWriter
+    var writer:   DepBorrowNonRetainingWriter
     var callback: DepBorrowWriter = writer
-    var bytes: [8] u8
+    var bytes:    [8] u8
     bytes[0] = 's'u8
     let text: string = cast(string, bytes)
 
@@ -23,9 +23,9 @@ func importedNonRetainingInterfaceKeepsInlineViewLocal()
 
 func importedRetainingInterfaceRejectsInlineView()
 {
-    var writer: DepBorrowRetainingWriter
+    var writer:   DepBorrowRetainingWriter
     var callback: DepBorrowWriter = writer
-    var bytes: [8] u8     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    var bytes:    [8] u8     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     bytes[0] = 's'u8
     let text: string = cast(string, bytes)
 

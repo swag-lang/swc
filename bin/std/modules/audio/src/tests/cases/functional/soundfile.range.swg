@@ -37,15 +37,14 @@ using Swag, Core
 // The voice discard counter cannot represent priming beyond U32 even when the packet timeline can.
 #test
 {
-    const Frames: u64 = cast(u64, Swag.U32.Max) + 1
+    const Frames:  u64 = cast(u64, Swag.U32.Max) + 1
     const Packets: [2] SoundPacket = [
         SoundPacket{0, 0, Swag.U32.Max},
         SoundPacket{0, 0, 1}]
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
     var outcome: Swag.Error
-    discard catch SoundFile.openPacketStream(path, .Mp3, 44_100, 1, Frames, Packets, [],
-        PacketStreamOptions{leadingTrimFrames: Frames}) as outcome
+    discard catch SoundFile.openPacketStream(path, .Mp3, 44_100, 1, Frames, Packets, [], PacketStreamOptions{leadingTrimFrames: Frames}) as outcome
     Swag.require(outcome.value() is Errors.UnsupportedFormatError)
 }
 

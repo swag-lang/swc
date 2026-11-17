@@ -8,9 +8,9 @@
 #[Serialization.Final]
 struct Transform3
 {
-    public position: Vector3     // Translation in world space.
-    public rotation: Quaternion  // Orientation as a unit quaternion.
-    public scale: Vector3         // Per-axis local scale.
+    public position: Vector3        // Translation in world space.
+    public rotation: Quaternion     // Orientation as a unit quaternion.
+    public scale:    Vector3        // Per-axis local scale.
 }
 
 impl Transform3

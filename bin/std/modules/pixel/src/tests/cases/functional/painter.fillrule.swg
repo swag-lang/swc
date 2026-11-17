@@ -75,6 +75,7 @@ private func renderConvexPolygon(clockwise: bool, usePolygonApi: bool)->Image
         path.lineTo(19.75, 31.5)
         path.lineTo(30.5, 8.25)
     }
+
     path.close()
 
     var painter: Painter
@@ -110,6 +111,7 @@ private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
         path.lineTo(31, 13)
         path.lineTo(31, 5)
     }
+
     path.close()
 
     var painter: Painter
@@ -130,7 +132,7 @@ private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
 {
     for usePolygonApi in [false, true]
     {
-        let clockwise    = renderConvexPolygon(true, usePolygonApi)
+        let clockwise     = renderConvexPolygon(true, usePolygonApi)
         let anticlockwise = renderConvexPolygon(false, usePolygonApi)
         Testing.assertImagesNear(&clockwise, &anticlockwise, "fill.convex.winding", {maxChannelDelta: 1})
 

@@ -9,7 +9,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(900, 700)
 
-    let dock = DockHost.create(&host.root, {0, 0, 880, 660})
+    let dock   = DockHost.create(&host.root, {0, 0, 880, 660})
     let editor = Label.create(&host.root, "Editor")
     dock.addPane("editor", "Editor", editor, {200, 100})
     host.pump()
@@ -60,8 +60,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(640, 400)
 
-    let dock = DockHost.create(&host.root, {0, 0, 620, 360})
-    let first = Label.create(&host.root, "First")
+    let dock   = DockHost.create(&host.root, {0, 0, 620, 360})
+    let first  = Label.create(&host.root, "First")
     let second = Label.create(&host.root, "Second")
     dock.addPane("first", "First", first, {120, 80})
     dock.addTab("first", "second", "Second", second, {180, 100})
@@ -96,8 +96,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(640, 400)
 
-    let dock = DockHost.create(&host.root, {0, 0, 620, 360})
-    let left = Label.create(&host.root, "Left")
+    let dock  = DockHost.create(&host.root, {0, 0, 620, 360})
+    let left  = Label.create(&host.root, "Left")
     let right = Label.create(&host.root, "Right")
     dock.addPane("left", "Left", left, {100, 80})
     dock.splitPane("left", "right", "Right", right, .Horizontal, splitSize: 280, minimumSize: {100, 80})
@@ -163,8 +163,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(600, 320)
 
-    let dock = DockHost.create(&host.root, {0, 0, 560, 260})
-    let left = Label.create(&host.root, "Left")
+    let dock  = DockHost.create(&host.root, {0, 0, 560, 260})
+    let left  = Label.create(&host.root, "Left")
     let right = Label.create(&host.root, "Right")
     dock.addPane("left", "Left", left, {120, 80})
     dock.splitPane("left", "right", "Right", right, .Horizontal, minimumSize: {140, 90})

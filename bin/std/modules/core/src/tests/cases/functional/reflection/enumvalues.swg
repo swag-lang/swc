@@ -23,7 +23,7 @@ enum WideFlags: u64
 
 #test
 {
-    var present = ByteValue.Present
+    var present     = ByteValue.Present
     var missing: u8 = 7
     Swag.require(Reflection.enumUnderlyingType(#typeof(ByteValue)) == u8)
     Swag.require(Reflection.enumUnderlyingType(s32) == s32)
@@ -48,9 +48,9 @@ enum WideFlags: u64
 
 #test
 {
-    var none        = WideFlags.None
-    var both        = WideFlags.Both
-    var unknown: u64 = 0x2_0000_0000'u64
+    var none             = WideFlags.None
+    var both             = WideFlags.Both
+    var unknown:     u64 = 0x2_0000_0000'u64
     var partlyKnown: u64 = 0x2_0000_0001'u64
 
     Swag.require(Reflection.hasDeclaredValue(#typeof(WideFlags), &both))

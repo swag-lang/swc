@@ -272,7 +272,7 @@ public impl ImageReader
         if not multiple
         {
             let single = unwrap Swag.makeInterface(.decoder, .decoderType, IImageDecoder)
-            let image = try single.decode(.bytes.toSlice(), .options)
+            let image  = try single.decode(.bytes.toSlice(), .options)
             try .validateDecodedFrame(.info.frames[index], image)
             return image
         }
@@ -283,6 +283,7 @@ public impl ImageReader
             try .validateDecodedFrame(.info.frames[index], image)
             return image
         }
+
         if not .options.decodePixels
         {
             let frame = try multiple.readFrame(index, .options)

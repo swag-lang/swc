@@ -24,8 +24,8 @@ func colorTableRecord(bytes: *Array'u8, tag: u32)->u64
 
 func buildColorFont()->Array'u8
 {
-    var source = loadFontBytes("arial.ttf")
-    let tableCount = readBigU16(&source, 4)
+    var source       = loadFontBytes("arial.ttf")
+    let tableCount   = readBigU16(&source, 4)
     let directoryEnd = 12'u64 + cast(u64, tableCount) * 16
 
     var result: #returntype
@@ -42,12 +42,12 @@ func buildColorFont()->Array'u8
 
     var colr: Array'u8
     colr.resize(32)
-    writeColorU16(&colr, 0, 0)   // version
-    writeColorU16(&colr, 2, 1)   // base glyph records
-    writeBigU32(&colr, 4, 14)    // base glyph records offset
-    writeBigU32(&colr, 8, 20)    // layer records offset
-    writeColorU16(&colr, 12, 3)  // layer records
-    writeColorU16(&colr, 14, 36) // 'A' base glyph
+    writeColorU16(&colr, 0, 0)       // version
+    writeColorU16(&colr, 2, 1)       // base glyph records
+    writeBigU32(&colr, 4, 14)        // base glyph records offset
+    writeBigU32(&colr, 8, 20)        // layer records offset
+    writeColorU16(&colr, 12, 3)      // layer records
+    writeColorU16(&colr, 14, 36)     // 'A' base glyph
     writeColorU16(&colr, 16, 0)
     writeColorU16(&colr, 18, 3)
     writeColorU16(&colr, 20, 70)
@@ -55,7 +55,7 @@ func buildColorFont()->Array'u8
     writeColorU16(&colr, 24, 71)
     writeColorU16(&colr, 26, 1)
     writeColorU16(&colr, 28, 72)
-    writeColorU16(&colr, 30, 0xFFFF) // foreground color
+    writeColorU16(&colr, 30, 0xFFFF)     // foreground color
 
     while (result.count & 3) != 0 do
         result.add(0)
@@ -64,18 +64,31 @@ func buildColorFont()->Array'u8
 
     var cpal: Array'u8
     cpal.resize(32)
-    writeColorU16(&cpal, 0, 0)  // CPAL v0
-    writeColorU16(&cpal, 2, 2)  // entries per palette
-    writeColorU16(&cpal, 4, 2)  // palettes
-    writeColorU16(&cpal, 6, 4)  // color records
-    writeBigU32(&cpal, 8, 16)   // color records offset
+    writeColorU16(&cpal, 0, 0)     // CPAL v0
+    writeColorU16(&cpal, 2, 2)     // entries per palette
+    writeColorU16(&cpal, 4, 2)     // palettes
+    writeColorU16(&cpal, 6, 4)     // color records
+    writeBigU32(&cpal, 8, 16)      // color records offset
     writeColorU16(&cpal, 12, 0)
     writeColorU16(&cpal, 14, 2)
+
     // CPAL records are BGRA; API colors are ARGB.
-    cpal[16] = 0x33; cpal[17] = 0x22; cpal[18] = 0x11; cpal[19] = 0xFF
-    cpal[20] = 0x66; cpal[21] = 0x55; cpal[22] = 0x44; cpal[23] = 0xFF
-    cpal[24] = 0x99; cpal[25] = 0x88; cpal[26] = 0x77; cpal[27] = 0x80
-    cpal[28] = 0xCC; cpal[29] = 0xBB; cpal[30] = 0xAA; cpal[31] = 0xFF
+    cpal[16] = 0x33
+    cpal[17] = 0x22
+    cpal[18] = 0x11
+    cpal[19] = 0xFF
+    cpal[20] = 0x66
+    cpal[21] = 0x55
+    cpal[22] = 0x44
+    cpal[23] = 0xFF
+    cpal[24] = 0x99
+    cpal[25] = 0x88
+    cpal[26] = 0x77
+    cpal[27] = 0x80
+    cpal[28] = 0xCC
+    cpal[29] = 0xBB
+    cpal[30] = 0xAA
+    cpal[31] = 0xFF
 
     while (result.count & 3) != 0 do
         result.add(0)
@@ -97,10 +110,10 @@ func buildColorFont()->Array'u8
 
 func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
 {
-    var source = buildColorFont()
+    var source     = buildColorFont()
     let colrRecord = colorTableRecord(&source, TAG_COLR)
     let colrOffset = cast(u64, readBigU32(&source, colrRecord + 8))
-    let insertion = colrOffset + 32
+    let insertion  = colrOffset + 32
 
     var result: Array'u8
     result.add(Swag.makeSlice(source.buffer, insertion))
@@ -120,14 +133,15 @@ func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
     writeColorU16(&result, colrOffset + 22, 0)
     writeColorU16(&result, colrOffset + 24, 3)
     Memory.copy(cast(*void, result.storage() + colrOffset + 26),
-                cast(const *void, unwrap layerRecords.buffer), 12)
+                cast(const *void, unwrap layerRecords.buffer),
+                12)
     writeBigU32(&result, colrRecord + 12, 38)
     return result
 }
 
 func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
 {
-    var result = buildColorFont()
+    var result     = buildColorFont()
     let colrRecord = colorTableRecord(&result, TAG_COLR)
     let colrOffset = cast(u64, readBigU32(&result, colrRecord + 8))
     writeColorU16(&result, colrOffset + 20, firstGlyph)
@@ -136,7 +150,7 @@ func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
 
     let cpalRecord = colorTableRecord(&result, TAG_CPAL)
     let cpalOffset = cast(u64, readBigU32(&result, cpalRecord + 8))
-    result[cpalOffset + 23] = 0x80 // Palette 0, entry 1 is half-transparent.
+    result[cpalOffset + 23] = 0x80     // Palette 0, entry 1 is half-transparent.
     return result
 }
 
@@ -147,10 +161,10 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
         return destination
 
     let destinationAlpha = (destination >> 24) & 255
-    let outputAlpha = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
-    let sourceRed   = (source >> 16) & 255
-    let sourceGreen = (source >> 8) & 255
-    let sourceBlue  = source & 255
+    let outputAlpha      = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
+    let sourceRed        = (source >> 16) & 255
+    let sourceGreen      = (source >> 8) & 255
+    let sourceBlue       = source & 255
     let destinationRed   = (destination >> 16) & 255
     let destinationGreen = (destination >> 8) & 255
     let destinationBlue  = destination & 255
@@ -167,7 +181,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 #test
 {
     var bytes = buildColorFont()
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     let base = face.glyphIndex('A')
@@ -201,7 +215,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 #test
 {
     var bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     let layers = expect face.getColorLayers(face.glyphIndex('A'))
@@ -214,8 +228,9 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 
 #test
 {
-    var bytes = buildColorFont()
+    var bytes      = buildColorFont()
     let colrRecord = colorTableRecord(&bytes, TAG_COLR)
+
     // The COLR layer table itself falls beyond the declared table extent.
     writeBigU32(&bytes, colrRecord + 12, 21)
 
@@ -225,9 +240,9 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     discard catch face.getColorLayers(36) as malformed
     Swag.require(malformed.value() != null)
 
-    var offsetBytes = buildColorFont()
+    var offsetBytes  = buildColorFont()
     let offsetRecord = colorTableRecord(&offsetBytes, TAG_COLR)
-    let offsetTable = cast(u64, readBigU32(&offsetBytes, offsetRecord + 8))
+    let offsetTable  = cast(u64, readBigU32(&offsetBytes, offsetRecord + 8))
     writeBigU32(&offsetBytes, offsetTable + 8, 0xFFFF_FFF0)
     let offsetFace = expect Face.load(offsetBytes.toSlice())
     defer offsetFace.destroy()
@@ -236,8 +251,8 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     Swag.require(badLayerOffset.value() != null)
 
     var paletteBytes = buildColorFont()
-    let cpalRecord = colorTableRecord(&paletteBytes, TAG_CPAL)
-    let cpalOffset = cast(u64, readBigU32(&paletteBytes, cpalRecord + 8))
+    let cpalRecord   = colorTableRecord(&paletteBytes, TAG_CPAL)
+    let cpalOffset   = cast(u64, readBigU32(&paletteBytes, cpalRecord + 8))
     writeColorU16(&paletteBytes, cpalOffset + 12, 3)
     let paletteFace = expect Face.load(paletteBytes.toSlice())
     defer paletteFace.destroy()
@@ -246,8 +261,8 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     Swag.require(badPaletteRange.value() != null)
 
     var emptyPaletteBytes = buildColorFont()
-    let emptyColrRecord = colorTableRecord(&emptyPaletteBytes, TAG_COLR)
-    let emptyColrOffset = cast(u64, readBigU32(&emptyPaletteBytes, emptyColrRecord + 8))
+    let emptyColrRecord   = colorTableRecord(&emptyPaletteBytes, TAG_COLR)
+    let emptyColrOffset   = cast(u64, readBigU32(&emptyPaletteBytes, emptyColrRecord + 8))
     for index in 3 do
         writeColorU16(&emptyPaletteBytes, emptyColrOffset + 22 + cast(u64, index) * 4, 0xFFFF)
     let emptyCpalRecord = colorTableRecord(&emptyPaletteBytes, TAG_CPAL)
@@ -263,14 +278,14 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 #test
 {
     var duplicateBytes = buildTwoBaseColorFont(36, 36)
-    let duplicateFace = expect Face.load(duplicateBytes.toSlice())
+    let duplicateFace  = expect Face.load(duplicateBytes.toSlice())
     defer duplicateFace.destroy()
     var duplicate: Swag.Error
     discard catch duplicateFace.getColorLayers(36) as duplicate
     Swag.require(duplicate.value() != null)
 
     var unsortedBytes = buildTwoBaseColorFont(37, 36)
-    let unsortedFace = expect Face.load(unsortedBytes.toSlice())
+    let unsortedFace  = expect Face.load(unsortedBytes.toSlice())
     defer unsortedFace.destroy()
     var unsorted: Swag.Error
     discard catch unsortedFace.getColorLayers(36) as unsorted
@@ -280,16 +295,16 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 #test
 {
     var bytes = buildCompositeColorFont(36, 36, 36)
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
     expect face.setPixelSize(0, 48)
 
     let base = face.glyphIndex('A')
     expect face.loadGlyph(base, .Render)
     let baseMetrics = face.glyph.metrics
-    let baseLeft = face.glyph.bitmapLeft
-    let baseTop = face.glyph.bitmapTop
-    let gray = face.glyph.bitmap
+    let baseLeft    = face.glyph.bitmapLeft
+    let baseTop     = face.glyph.bitmapTop
+    let gray        = face.glyph.bitmap
     Swag.require(gray.pixelMode == .Gray)
     var mask: Array'u8
     for row in gray.rows do
@@ -308,7 +323,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     for y in colorBitmap.rows
     {
         let maskRow = cast(u64, y) * colorBitmap.width
-        let rgba = expect colorBitmap.row(y)
+        let rgba    = expect colorBitmap.row(y)
         for x in colorBitmap.width
         {
             let coverage = mask[maskRow + x]
@@ -330,7 +345,7 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     for y in alternate.rows
     {
         let maskRow = cast(u64, y) * alternate.width
-        let rgba = expect alternate.row(y)
+        let rgba    = expect alternate.row(y)
         for x in alternate.width
         {
             let coverage = mask[maskRow + x]
@@ -354,38 +369,38 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
 #test
 {
     var bytes = buildCompositeColorFont(36, 37, 38)
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
     expect face.setPixelSize(0, 48)
 
     var hasBounds = false
-    var left = 0
-    var right = 0
-    var top = 0
-    var bottom = 0
+    var left      = 0
+    var right     = 0
+    var top       = 0
+    var bottom    = 0
     for glyph in [36'u32, 37, 38]
     {
         expect face.loadGlyph(glyph, .Render)
         let bitmap = face.glyph.bitmap
         if not bitmap.width or not bitmap.rows do
             continue
-        let itemLeft = face.glyph.bitmapLeft
-        let itemRight = itemLeft + cast(s32, bitmap.width)
-        let itemTop = face.glyph.bitmapTop
+        let itemLeft   = face.glyph.bitmapLeft
+        let itemRight  = itemLeft + cast(s32, bitmap.width)
+        let itemTop    = face.glyph.bitmapTop
         let itemBottom = itemTop - cast(s32, bitmap.rows)
         if not hasBounds
         {
-            left = itemLeft
-            right = itemRight
-            top = itemTop
-            bottom = itemBottom
+            left      = itemLeft
+            right     = itemRight
+            top       = itemTop
+            bottom    = itemBottom
             hasBounds = true
         }
         else
         {
-            left = Math.min(left, itemLeft)
-            right = Math.max(right, itemRight)
-            top = Math.max(top, itemTop)
+            left   = Math.min(left, itemLeft)
+            right  = Math.max(right, itemRight)
+            top    = Math.max(top, itemTop)
             bottom = Math.min(bottom, itemBottom)
         }
     }

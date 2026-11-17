@@ -7,14 +7,14 @@ func scene3dFixturePath()->String => scopeTestDataPath("viewer.obj")
 
 private func scene3dTestFile(fileName: string)
 {
-    let path = scopeTestDataPath(fileName)
+    let path     = scopeTestDataPath(fileName)
     let registry = createViewerPluginRegistry()
-    let choices = registry.choices(path)
+    let choices  = registry.choices(path)
     Swag.require(not choices.isEmpty() and choices[0].key == "scene3d", fileName)
 
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    let foot = createTestViewerFoot(&host.root)
+    let foot    = createTestViewerFoot(&host.root)
     let session = openTestViewer(Viewers.Scene.viewerPlugin(),
                                  &host.root,
                                  path,
@@ -37,7 +37,7 @@ private func scene3dTestFile(fileName: string)
     var host: Testing.HeadlessHost
     host.setup(800, 600)
     host.theme.setDark()
-    let foot = createTestViewerFoot(&host.root)
+    let foot    = createTestViewerFoot(&host.root)
     let session = openTestViewer(Viewers.Scene.viewerPlugin(),
                                  &host.root,
                                  fileName,
@@ -94,7 +94,7 @@ private func scene3dTestFile(fileName: string)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    let foot = createTestViewerFoot(&host.root)
+    let foot    = createTestViewerFoot(&host.root)
     let session = openTestViewer(Viewers.Scene.viewerPlugin(),
                                  &host.root,
                                  scopeTestDataPath("viewer.extreme.obj"),

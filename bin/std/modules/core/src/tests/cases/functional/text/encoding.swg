@@ -52,7 +52,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
     let cases: [5] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be]
     for encoding in cases
     {
-        let bytes = expect Text.encode(text, encoding, includeBom: true)
+        let bytes  = expect Text.encode(text, encoding, includeBom: true)
         let length = Text.bomLength(encoding)
         Swag.require(Text.hasBom(bytes.toSlice(), encoding))
         Swag.require(Text.decode(bytes.toSlice()[length until bytes.count], encoding) == text)
@@ -66,8 +66,8 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 // Endian encoders spell BMP values and supplementary scalars in the documented byte order.
 #test
 {
-    const Utf16Le: [8] u8 = [0x41, 0, 0xAC, 0x20, 0x3D, 0xD8, 0, 0xDE]
-    const Utf16Be: [8] u8 = [0, 0x41, 0x20, 0xAC, 0xD8, 0x3D, 0xDE, 0]
+    const Utf16Le: [8] u8  = [0x41, 0, 0xAC, 0x20, 0x3D, 0xD8, 0, 0xDE]
+    const Utf16Be: [8] u8  = [0, 0x41, 0x20, 0xAC, 0xD8, 0x3D, 0xDE, 0]
     const Utf32Le: [12] u8 = [0x41, 0, 0, 0, 0xAC, 0x20, 0, 0, 0, 0xF6, 1, 0]
     const Utf32Be: [12] u8 = [0, 0, 0, 0x41, 0, 0, 0x20, 0xAC, 0, 1, 0xF6, 0]
 
@@ -98,7 +98,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 #test
 {
     let invalidBytes: [2] u8 = [0xC0, 0x80]
-    var utf8Outcome: Swag.Error
+    var utf8Outcome:  Swag.Error
     catch encodeText(Swag.makeString(&invalidBytes[0], invalidBytes.count), .Utf8) as utf8Outcome
     Swag.require(utf8Outcome.value() is Errors.InvalidFormatError)
 
@@ -267,13 +267,13 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 {
     Swag.require(Text.looksLikeText(cast(const [..] u8, "page one\fpage two"), .Utf8))
 
-    var atLimit: [20] u8
+    var atLimit:   [20] u8
     var overLimit: [19] u8
     for index in atLimit.count do
         atLimit[index] = 'a'
     for index in overLimit.count do
         overLimit[index] = 'a'
-    atLimit[0] = 1
+    atLimit[0]   = 1
     overLimit[0] = 1
 
     Swag.require(Text.looksLikeText(atLimit, .Utf8))

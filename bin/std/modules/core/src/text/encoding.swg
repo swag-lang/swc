@@ -258,22 +258,27 @@ func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
             result.add(0xEF)
             result.add(0xBB)
             result.add(0xBF)
+
         case .Utf16Le:
             result.add(0xFF)
             result.add(0xFE)
+
         case .Utf16Be:
             result.add(0xFE)
             result.add(0xFF)
+
         case .Utf32Le:
             result.add(0xFF)
             result.add(0xFE)
             result.add(0)
             result.add(0)
+
         case .Utf32Be:
             result.add(0)
             result.add(0)
             result.add(0xFE)
             result.add(0xFF)
+
         case .Windows1252:
             break
         }

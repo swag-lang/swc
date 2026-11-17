@@ -84,14 +84,14 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
 
     var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
     var track: Mp4.Track
-    let entry = Mp4.Box{kind: 0, data: 0, end: bytes.count}
-    let found = expect track.parseCodecConfiguration(&source, entry, Mp4.AvcConfigId)
+    let entry  = Mp4.Box{kind: 0, data: 0, end: bytes.count}
+    let found  = expect track.parseCodecConfiguration(&source, entry, Mp4.AvcConfigId)
     Swag.require(not found)
     Swag.require(track.pixelAspectWidth == 8 and track.pixelAspectHeight == 9)
 
     // A container ratio overrides codec VUI; the display geometry remains separate from pixels.
     var picture: PictureStream
-    picture.sampleAspectWidth = 16
+    picture.sampleAspectWidth  = 16
     picture.sampleAspectHeight = 15
     let display = picture.displaySize(720, 480, track.pixelAspectWidth, track.pixelAspectHeight)
     Swag.require(display.width == 640 and display.height == 480)
@@ -239,11 +239,11 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(mp4FindTag(square.toSlice(), "pasp") == square.count)
 
     var options: Mp4.EncodeOptions
-    options.pixelAspectWidth = 16
+    options.pixelAspectWidth  = 16
     options.pixelAspectHeight = 15
     let bytes = expect clip.encodeToBytes("anamorphic.mp4", options)
-    let raw = bytes.toSlice()
-    let tag = mp4FindTag(raw, "pasp")
+    let raw   = bytes.toSlice()
+    let tag   = mp4FindTag(raw, "pasp")
     Swag.require(tag < bytes.count and mp4ReadU32(raw, tag - 4) == 16)
     Swag.require(mp4ReadU32(raw, tag + 4) == 16 and mp4ReadU32(raw, tag + 8) == 15)
 
@@ -381,7 +381,7 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
         decoded.add(samples)
         return true
     })
-    let wanted = expect File.readAllBytes(videoFixturePath("mp4-layer3-reference.pcm"))
+    let wanted   = expect File.readAllBytes(videoFixturePath("mp4-layer3-reference.pcm"))
     let wantedAt = cast(const [*] s16, wanted.storage())
     Swag.require(decoded.count == sound.sampleFrameCount() and wanted.count / #sizeof(s16) == decoded.count)
     var energy = 0.0'f64
@@ -390,6 +390,7 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
         let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
         energy += difference * difference
     }
+
     let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     Swag.require(rms <= 0.001'f64)
 }
@@ -398,8 +399,8 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
 // explicit Layer III-only header validation instead of opening a misleading packet stream.
 #test
 {
-    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-mp3.mp4"))
-    let media = mp4FindTag(bytes.toSlice(), "mdat")
+    var bytes  = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-mp3.mp4"))
+    let media  = mp4FindTag(bytes.toSlice(), "mdat")
     var header = media
     while header + 1 < bytes.count and
           (bytes[header] != 0xFF or (bytes[header + 1] & 0xE0) != 0xE0 or (bytes[header + 1] & 0x06) != 0x02) do

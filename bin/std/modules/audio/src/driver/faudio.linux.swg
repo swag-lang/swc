@@ -309,7 +309,7 @@ impl Voice
             return
         if pan == 0 and .panValue == 0 do
             return
-        let file           = unwrap .file
+        let file = unwrap .file
         let sourceChannels = file.numChannels()
         if sourceChannels == 0 or sourceChannels > 2 do
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
@@ -321,11 +321,9 @@ impl Voice
         {
             for i in .routingBusCount
             {
-                let bus = unwrap .routingBuses[i]
+                let bus         = unwrap .routingBuses[i]
                 let destination = cast(*FAudio.FAudioVoice, unwrap bus.handle)
-                try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination,
-                                                                   sourceChannels, bus.channelCount,
-                                                                   &matrix[0], batchId),
+                try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination, sourceChannels, bus.channelCount, &matrix[0], batchId),
                                 "cannot set FAudio voice pan")
             }
         }
@@ -334,9 +332,7 @@ impl Voice
             var details: FAudio.FAudioVoiceDetails
             let destination = cast(*FAudio.FAudioVoice, unwrap native.master)
             native.FAudioVoice_GetVoiceDetails(destination, &details)
-            try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination,
-                                                               sourceChannels, details.InputChannels,
-                                                               &matrix[0], batchId),
+            try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination, sourceChannels, details.InputChannels, &matrix[0], batchId),
                             "cannot set FAudio voice pan")
         }
     }

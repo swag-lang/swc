@@ -96,7 +96,7 @@ struct Sps
     fullRange:            bool
     sampleAspectWidth:    u32 = 1
     sampleAspectHeight:   u32 = 1
-    matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
+    matrixCoefficients:   u8  = 2     // H.273 matrix_coefficients; 2 means unspecified.
     hasScaling:           bool
     scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
 
@@ -407,59 +407,75 @@ func readSampleAspectRatio(bits: *BitReader, sps: *Sps)
     switch aspect
     {
     case 1:
-        sps.sampleAspectWidth = 1
+        sps.sampleAspectWidth  = 1
         sps.sampleAspectHeight = 1
+
     case 2:
-        sps.sampleAspectWidth = 12
+        sps.sampleAspectWidth  = 12
         sps.sampleAspectHeight = 11
+
     case 3:
-        sps.sampleAspectWidth = 10
+        sps.sampleAspectWidth  = 10
         sps.sampleAspectHeight = 11
+
     case 4:
-        sps.sampleAspectWidth = 16
+        sps.sampleAspectWidth  = 16
         sps.sampleAspectHeight = 11
+
     case 5:
-        sps.sampleAspectWidth = 40
+        sps.sampleAspectWidth  = 40
         sps.sampleAspectHeight = 33
+
     case 6:
-        sps.sampleAspectWidth = 24
+        sps.sampleAspectWidth  = 24
         sps.sampleAspectHeight = 11
+
     case 7:
-        sps.sampleAspectWidth = 20
+        sps.sampleAspectWidth  = 20
         sps.sampleAspectHeight = 11
+
     case 8:
-        sps.sampleAspectWidth = 32
+        sps.sampleAspectWidth  = 32
         sps.sampleAspectHeight = 11
+
     case 9:
-        sps.sampleAspectWidth = 80
+        sps.sampleAspectWidth  = 80
         sps.sampleAspectHeight = 33
+
     case 10:
-        sps.sampleAspectWidth = 18
+        sps.sampleAspectWidth  = 18
         sps.sampleAspectHeight = 11
+
     case 11:
-        sps.sampleAspectWidth = 15
+        sps.sampleAspectWidth  = 15
         sps.sampleAspectHeight = 11
+
     case 12:
-        sps.sampleAspectWidth = 64
+        sps.sampleAspectWidth  = 64
         sps.sampleAspectHeight = 33
+
     case 13:
-        sps.sampleAspectWidth = 160
+        sps.sampleAspectWidth  = 160
         sps.sampleAspectHeight = 99
+
     case 14:
-        sps.sampleAspectWidth = 4
+        sps.sampleAspectWidth  = 4
         sps.sampleAspectHeight = 3
+
     case 15:
-        sps.sampleAspectWidth = 3
+        sps.sampleAspectWidth  = 3
         sps.sampleAspectHeight = 2
+
     case 16:
-        sps.sampleAspectWidth = 2
+        sps.sampleAspectWidth  = 2
         sps.sampleAspectHeight = 1
+
     case 255:
-        let width = bits.read(16)
+        let width  = bits.read(16)
         let height = bits.read(16)
         if width != 0 and height != 0
         {
-            sps.sampleAspectWidth = width
+            sps.sampleAspectWidth  = width
             sps.sampleAspectHeight = height
         }
     }

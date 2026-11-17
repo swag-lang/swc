@@ -122,16 +122,19 @@ impl IWnd for CheckButton
         if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
         let markerInset = metrics.btnCheck_Size * metrics.btnCheck_AtlasInsetRatio
-        var focusBox = posBox
+        var focusBox    = posBox
         focusBox.width  -= markerInset * 2
         focusBox.height -= markerInset * 2
         if .flags.has(.RightAligned)
         {
-            posBox.x += markerInset
+            posBox.x   += markerInset
             focusBox.x += markerInset * 2
         }
-        else do
+        else
+        {
             posBox.x -= markerInset
+        }
+
         posBox.y -= markerInset
         if presence < 1
         {
@@ -159,13 +162,12 @@ impl IWnd for CheckButton
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
-        var labelPos = clientRect
+        var labelPos     = clientRect
         let markerAndGap = focusBox.width + metrics.btnCheck_Padding
         if not .flags.has(.RightAligned) do
             labelPos.x += markerAndGap
         labelPos.width -= markerAndGap
-        Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin,
-                           accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
+        Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin, accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].

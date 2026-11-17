@@ -43,9 +43,7 @@ func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32, buffer[offset]
                                                         buffer[offset + 3]
 
 // Replaces the sfnt `post` table with a small synthetic name map for parser tests.
-func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
-                          secondGlyph, secondNameIndex: u16, customNames: const [..] string,
-                          truncate: bool = false)->Array'u8 fail
+func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, secondGlyph, secondNameIndex: u16, customNames: const [..] string, truncate: bool = false)->Array'u8 fail
 {
     var glyphCount = 0'u16
     var postRecord = 0'u64
@@ -53,7 +51,7 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
     for index in tableCount
     {
         let record = 12'u64 + cast(u64, index) * 16
-        let tag = try readU32(sfnt, record)
+        let tag    = try readU32(sfnt, record)
         if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
         {
             let offset = try readU32(sfnt, record + 8)
@@ -64,6 +62,7 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
             postRecord = record
         }
     }
+
     Swag.require(glyphCount > secondGlyph)
     Swag.require(postRecord != 0)
 
@@ -78,6 +77,7 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
         post.add(cast(u8, name.count))
         post.add(cast(const [..] u8, name))
     }
+
     if truncate and post.count do
         post.resize(post.count - 1)
 
@@ -92,8 +92,7 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
     return result
 }
 
-func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16,
-                           standardNameIndex: u8)->Array'u8 fail
+func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameIndex: u8)->Array'u8 fail
 {
     var postRecord = 0'u64
     var maxpOffset = Swag.U32.Max
@@ -102,7 +101,7 @@ func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16,
     for index in tableCount
     {
         let record = 12'u64 + cast(u64, index) * 16
-        let tag = try readU32(sfnt, record)
+        let tag    = try readU32(sfnt, record)
         if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
             postRecord = record
         elif tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
@@ -110,6 +109,7 @@ func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16,
         elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
             hheaOffset = try readU32(sfnt, record + 8)
     }
+
     Swag.require(postRecord != 0 and maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max)
     Swag.require(258 > glyphIndex)
 
@@ -142,6 +142,7 @@ func buildPostFormat3Font(sfnt: const [..] u8)->Array'u8 fail
         if try readU32(sfnt, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
             postRecord = record
     }
+
     Swag.require(postRecord != 0)
 
     var post: Array'u8
@@ -169,6 +170,7 @@ func truncatePostTable(font: *Array'u8, length: u32)
             return
         }
     }
+
     Swag.panic("post table missing from test font", #curlocation)
 }
 
@@ -181,7 +183,7 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
     for index in tableCount
     {
         let record = 12'u64 + cast(u64, index) * 16
-        let tag = try readU32(sfnt, record)
+        let tag    = try readU32(sfnt, record)
         if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
             maxpOffset = try readU32(sfnt, record + 8)
         elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
@@ -189,6 +191,7 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
         elif tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
             postRecord = record
     }
+
     Swag.require(maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max and postRecord != 0)
 
     var result: Array'u8
@@ -222,15 +225,15 @@ func buildWoffFont(sfnt: const [..] u8)->Array'u8 fail
     var zlib: Compress.ZLib
     for index in numTables
     {
-        let sfntRecord = 12'u64 + cast(u64, index) * 16
-        let tag        = try readU32(sfnt, sfntRecord)
-        let checksum   = try readU32(sfnt, sfntRecord + 4)
-        let offset     = try readU32(sfnt, sfntRecord + 8)
-        let length     = try readU32(sfnt, sfntRecord + 12)
-        let original   = try getSlice(sfnt, offset, length)
-        let compressed = try zlib.compress(original)
+        let sfntRecord    = 12'u64 + cast(u64, index) * 16
+        let tag           = try readU32(sfnt, sfntRecord)
+        let checksum      = try readU32(sfnt, sfntRecord + 4)
+        let offset        = try readU32(sfnt, sfntRecord + 8)
+        let length        = try readU32(sfnt, sfntRecord + 12)
+        let original      = try getSlice(sfnt, offset, length)
+        let compressed    = try zlib.compress(original)
         let useCompressed = compressed.count < original.count
-        let payload = useCompressed ? compressed.toSlice() : original
+        let payload       = useCompressed ? compressed.toSlice() : original
 
         while (result.count & 3) != 0 do
             result.add(0)

@@ -5,7 +5,7 @@ using Swag, Core
 #test
 {
     var grayPixels: [10] u8 = [1, 2, 3, 99, 99, 4, 5, 6, 99, 99]
-    var gray: Bitmap
+    var gray:       Bitmap
     gray.set(2, 3, 5, &grayPixels[0], .Gray)
 
     let grayRow = expect gray.row(1)

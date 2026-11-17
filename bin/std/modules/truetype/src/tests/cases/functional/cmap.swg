@@ -6,8 +6,8 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
 {
     var cmap: #returntype
     cmap.resize(12 + 8208 + 24)
-    cmap[3] = 1
-    cmap[7] = 4
+    cmap[3]  = 1
+    cmap[7]  = 4
     cmap[11] = 12
 
     let subTable = 12'u64
@@ -364,7 +364,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     discard catch parseCMap(&faceData, false) as rejected
     Swag.require(rejected.value() != null)
 
-    malformed = makeCmap13Fixture()
+    malformed         = makeCmap13Fixture()
     malformed[72 + 3] = 1
     var reserved: FaceImpl
     reserved.face.setGlyphCount(32)

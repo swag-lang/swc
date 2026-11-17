@@ -34,7 +34,7 @@ using Swag, Core
 #test
 {
     var empty: Image
-    let emptyPointer = &empty
+    let emptyPointer  = &empty
     let rejectedEmpty = Swag.catchPanic(func|emptyPointer|()
     {
         emptyPointer[].visitPixels()
@@ -46,7 +46,7 @@ using Swag, Core
 
     var truncated = Image.create(1, 1, .RGBA8)
     truncated.pixels.resize(3)
-    let truncatedPointer = &truncated
+    let truncatedPointer  = &truncated
     let rejectedTruncated = Swag.catchPanic(func|truncatedPointer|()
     {
         truncatedPointer[].visitPixels()

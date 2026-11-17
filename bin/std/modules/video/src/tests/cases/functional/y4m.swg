@@ -33,19 +33,19 @@ func y4mAspectBytes(aspect: string)->Array'u8
 #test
 {
     var nonSquareBytes = y4mAspectBytes("2:1")
-    var nonSquare = expect Reader.openMemory("aspect.y4m", nonSquareBytes.toSlice())
+    var nonSquare      = expect Reader.openMemory("aspect.y4m", nonSquareBytes.toSlice())
     Swag.require(nonSquare.width() == 8 and nonSquare.height() == 4)
     Swag.require(nonSquare.displayWidth() == 16 and nonSquare.displayHeight() == 4)
 
     var squareBytes = y4mAspectBytes("1:1")
-    var square = expect Reader.openMemory("square.y4m", squareBytes.toSlice())
+    var square      = expect Reader.openMemory("square.y4m", squareBytes.toSlice())
     Swag.require(square.displayWidth() == 8 and square.displayHeight() == 4)
     var absentBytes = y4mAspectBytes("0:0")
-    var absent = expect Reader.openMemory("absent.y4m", absentBytes.toSlice())
+    var absent      = expect Reader.openMemory("absent.y4m", absentBytes.toSlice())
     Swag.require(absent.displayWidth() == 8 and absent.displayHeight() == 4)
 
     var overflowBytes = y4mAspectBytes("4294967295:1")
-    var overflow = expect Reader.openMemory("overflow.y4m", overflowBytes.toSlice())
+    var overflow      = expect Reader.openMemory("overflow.y4m", overflowBytes.toSlice())
     Swag.require(overflow.streamInfo().displayWidth == 0 and overflow.streamInfo().displayHeight == 0)
 
     const Invalid = ["A", "A2", "A2:1:1", "A0:1", "A1:0"]
@@ -326,19 +326,19 @@ func y4mAspectBytes(aspect: string)->Array'u8
 // The writer can select standard 4:1:1, 4:2:0, and 4:2:2 output layouts and advertises their sampling.
 #test
 {
-    let rate = expect FrameRate.create(25, 1)
+    let rate   = expect FrameRate.create(25, 1)
     var source = expect Clip.create(2, 2, rate)
     expect source.addFrame(videoTestImage(2, 2, [255'u8, 0, 0, 0, 255, 0,
-                                                0, 0, 255, 255, 255, 255]))
+                                                 0, 0, 255, 255, 255, 255]))
 
-    let full = expect source.encodeToBytes("full.y4m")
+    let full       = expect source.encodeToBytes("full.y4m")
     let fullHeader = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\nFRAME\n"
     Swag.require(Swag.makeString(full.buffer, fullHeader.count) == fullHeader)
     let fullPayload = full.toSlice()[fullHeader.count until full.count]
 
-    let options420 = Y4m.EncodeOptions{chroma: .Yuv420}
+    let options420    = Y4m.EncodeOptions{chroma: .Yuv420}
     let subsampled420 = expect source.encodeToBytes("420.y4m", options420)
-    let header420 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C420jpeg XYSCSS=420JPEG XCOLORRANGE=LIMITED\nFRAME\n"
+    let header420     = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C420jpeg XYSCSS=420JPEG XCOLORRANGE=LIMITED\nFRAME\n"
     Swag.require(Swag.makeString(subsampled420.buffer, header420.count) == header420)
     Swag.require(subsampled420.count == header420.count + 6)
     let payload420 = subsampled420.toSlice()[header420.count until subsampled420.count]
@@ -350,21 +350,22 @@ func y4mAspectBytes(aspect: string)->Array'u8
     var reader420 = expect Reader.openMemory("420.y4m", subsampled420.toSlice())
     Swag.require(reader420.frameCount() == 1 and expect reader420.decodeFrame(0).isValid())
 
-    let options422 = Y4m.EncodeOptions{chroma: .Yuv422}
+    let options422    = Y4m.EncodeOptions{chroma: .Yuv422}
     let subsampled422 = expect source.encodeToBytes("422.y4m", options422)
-    let header422 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C422 XYSCSS=422 XCOLORRANGE=LIMITED\nFRAME\n"
+    let header422     = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C422 XYSCSS=422 XCOLORRANGE=LIMITED\nFRAME\n"
     Swag.require(Swag.makeString(subsampled422.buffer, header422.count) == header422)
     Swag.require(subsampled422.count == header422.count + 8)
     let payload422 = subsampled422.toSlice()[header422.count until subsampled422.count]
     for row in 2'u64
     {
-        let fullChroma = row * 2
+        let fullChroma    = row * 2
         let reducedChroma = 4 + row
-        let meanRowU = (cast(u32, fullPayload[4 + fullChroma]) + fullPayload[5 + fullChroma] + 1) / 2
-        let meanRowV = (cast(u32, fullPayload[8 + fullChroma]) + fullPayload[9 + fullChroma] + 1) / 2
+        let meanRowU      = (cast(u32, fullPayload[4 + fullChroma]) + fullPayload[5 + fullChroma] + 1) / 2
+        let meanRowV      = (cast(u32, fullPayload[8 + fullChroma]) + fullPayload[9 + fullChroma] + 1) / 2
         Swag.require(payload422[reducedChroma] == meanRowU and
                      payload422[reducedChroma + 2] == meanRowV)
     }
+
     var reader422 = expect Reader.openMemory("422.y4m", subsampled422.toSlice())
     Swag.require(reader422.frameCount() == 1 and expect reader422.decodeFrame(0).isValid())
 
@@ -372,16 +373,16 @@ func y4mAspectBytes(aspect: string)->Array'u8
     expect source411.addFrame(videoTestImage(8, 1, [255'u8, 0, 0, 255, 0, 0, 255, 0, 0,
                                                     255, 0, 0, 0, 0, 255, 0, 0, 255,
                                                     0, 0, 255, 0, 0, 255]))
-    let options411 = Y4m.EncodeOptions{chroma: .Yuv411}
+    let options411    = Y4m.EncodeOptions{chroma: .Yuv411}
     let subsampled411 = expect source411.encodeToBytes("411.y4m", options411)
-    let header411 = "YUV4MPEG2 W8 H1 F25:1 Ip A0:0 C411 XYSCSS=411 XCOLORRANGE=LIMITED\nFRAME\n"
+    let header411     = "YUV4MPEG2 W8 H1 F25:1 Ip A0:0 C411 XYSCSS=411 XCOLORRANGE=LIMITED\nFRAME\n"
     Swag.require(Swag.makeString(subsampled411.buffer, header411.count) == header411)
     Swag.require(subsampled411.count == header411.count + 12)
     let payload411 = subsampled411.toSlice()[header411.count until subsampled411.count]
     Swag.require(payload411[0] == 82 and payload411[4] == 41)
     Swag.require(payload411[8] == 90 and payload411[9] == 240)
     Swag.require(payload411[10] == 240 and payload411[11] == 110)
-    var reader411 = expect Reader.openMemory("411.y4m", subsampled411.toSlice())
+    var reader411  = expect Reader.openMemory("411.y4m", subsampled411.toSlice())
     let decoded411 = expect reader411.decodeFrame(0)
     videoAssertColor(decoded411.pixelColor(1, 0), 255, 0, 0, tolerance: 2)
     videoAssertColor(decoded411.pixelColor(6, 0), 0, 0, 255, tolerance: 0)

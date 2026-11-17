@@ -572,6 +572,7 @@ private impl Application
                 if let surface = targetWnd.surface do
                     discard surface.activateAccessKey(r)
             }
+
             return
         }
 
@@ -1021,10 +1022,13 @@ internal impl Application
                     .seedKeyboardFocus()
                 .keyboardFocusWnd?.surface?.setAccessKeysVisible(true)
             }
+
             return
         }
 
-        if .keyboard.isKeyPressed(.LMenu) or .keyboard.isKeyPressed(.RMenu) or .keyboard.isKeyPressed(.MenuCtrl) do
+        if .keyboard.isKeyPressed(.LMenu) or
+           .keyboard.isKeyPressed(.RMenu) or
+           .keyboard.isKeyPressed(.MenuCtrl) do
             return
 
         for surface in .surfaces do

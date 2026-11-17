@@ -198,7 +198,7 @@ using Swag, Core, Gui, Pixel, Video
     defer timeline.stop()
     timeline.resize(800, TimelineHeight)
     discard timeline.capture()
-    timeline.audioPath = "former.mp4"
+    timeline.audioPath  = "former.mp4"
     timeline.silentPath = "former.mp4"
 
     let current = Memory.new'Capture()

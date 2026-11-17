@@ -1170,7 +1170,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     writer.setPosition(0)
     writer.writeNative(0'u32)
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var errorOutcome: Swag.Error
     catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
     let error = errorOutcome.value()
@@ -1407,7 +1407,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
         for length do
             payload.name += "x"
 
-        let bytes = encodeTagBin(payload)
+        let bytes   = encodeTagBin(payload)
         var decoder: Serialization.Decoder'Serialization.Read.TagBin
         let decoded = expect decoder.readAll'TagBinLongText(bytes.toSlice())
         defer Memory.delete(decoded)

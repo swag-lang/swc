@@ -59,7 +59,7 @@ impl YuvPlanarView
         if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
             return false
 
-        let divisor    = 1's32 << .chromaShift
+        let divisor     = 1's32 << .chromaShift
         let chromaWidth = .width / divisor + (.width % divisor != 0 ? 1 : 0)
         return .lumaStride >= cast(u64, .width) and .chromaStride >= cast(u64, chromaWidth)
     }
@@ -116,7 +116,10 @@ impl YuvPlanarView
     {
         if not .isValidLayout() do
             Swag.panic("YUV planar view has an invalid layout", #curlocation)
-        if not target.isValid() or target.pixelFormat != .RGB8 or target.width != .width or target.height != .height do
+        if not target.isValid() or
+           target.pixelFormat != .RGB8 or
+           target.width != .width or
+           target.height != .height do
             Swag.panic("YUV conversion target must be a matching RGB8 image", #curlocation)
         let targetRowBytes = cast(u64, target.width) * 3
         if targetRowBytes > Swag.S32.Max or

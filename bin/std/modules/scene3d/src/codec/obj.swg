@@ -18,6 +18,7 @@ private func splitWords(line: string)->Array'(string)
         result.add(line[start until end])
         start = end
     }
+
     return result
 }
 
@@ -50,14 +51,16 @@ private func faceVertex(token: string, positions: const [..] Math.Vector3, texCo
     result.position = positions[try resolveIndex(parts[0], positions.count)]
     if parts.count > 1 and parts[1].count
     {
-        result.texCoord = texCoords[try resolveIndex(parts[1], texCoords.count)]
+        result.texCoord    = texCoords[try resolveIndex(parts[1], texCoords.count)]
         result.hasTexCoord = true
     }
+
     if parts.count > 2 and parts[2].count
     {
-        result.normal = normals[try resolveIndex(parts[2], normals.count)]
+        result.normal    = normals[try resolveIndex(parts[2], normals.count)]
         result.hasNormal = true
     }
+
     return result
 }
 
@@ -73,7 +76,7 @@ internal func decodeObj(source: string, limits: Limits = {})->Scene fail
 
     var positions: Array'Math.Vector3
     var texCoords: Array'Math.Vector2
-    var normals: Array'Math.Vector3
+    var normals:   Array'Math.Vector3
     var result = Scene.create()
     result.meshes.add(Mesh{"Mesh"})
     var root = Node.create()
@@ -132,6 +135,7 @@ internal func decodeObj(source: string, limits: Limits = {})->Scene fail
                 result.materials.add(Material{String.from(words[1])})
                 found = cast(s32, result.materials.count - 1)
             }
+
             materialIndex = found
             continue
         }
@@ -148,6 +152,7 @@ internal func decodeObj(source: string, limits: Limits = {})->Scene fail
             if face.count > limits.maxTriangles - result.meshes[0].triangles.count + 2 do
                 fail UnsupportedFormatError{"OBJ exceeds the triangle limit"}
         }
+
         if face.count < 3 do
             fail InvalidFormatError{"OBJ face needs at least three vertices"}
         if face.count - 2 > limits.maxTriangles - result.meshes[0].triangles.count do

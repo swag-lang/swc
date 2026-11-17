@@ -121,7 +121,7 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 // Empty forward and reversed views visit no keys.
 #test
 {
-    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var set    = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     var visits = 0
     for _ in set do
         visits += 1

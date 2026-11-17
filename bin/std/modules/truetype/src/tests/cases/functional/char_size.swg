@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     // 12.5 points at 72 DPI rounds to 13 ppem; a fractional result at .5 rounds up.
@@ -23,7 +23,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     // A zero point dimension copies the other axis after its DPI conversion.
@@ -39,7 +39,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
     var outcome: Swag.Error

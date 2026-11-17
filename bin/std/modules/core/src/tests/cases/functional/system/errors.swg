@@ -12,7 +12,7 @@ struct DeepError
 // A base error embedded after unrelated state is not the leading error contract.
 struct NonLeadingBaseError
 {
-    marker: u64
+    marker:     u64
     using base: Swag.BaseError
 }
 

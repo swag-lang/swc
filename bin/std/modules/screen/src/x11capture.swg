@@ -26,6 +26,7 @@ internal func x11Pixel(source: const [*] u8, offset: u64, byteCount, imageByteOr
         let shift = imageByteOrder == 0 ? component * 8 : (byteCount - component - 1) * 8
         pixel |= cast(u32, source[offset + component]) << shift
     }
+
     return pixel
 }
 
@@ -484,8 +485,8 @@ impl X11Capture
 
     // Reuses `target` storage across captures of the same rectangle.
     mtd imageInto(target: *Image, drawCursor: bool, x, y, width, height: s32)->
-        {readbackMicroseconds: u64, copyMicroseconds: u64, composeMicroseconds: u64,
-         copiedPixels: u64} fail
+    {readbackMicroseconds: u64, copyMicroseconds: u64, composeMicroseconds: u64,
+        copiedPixels: u64} fail
     {
         var result: #returntype
         let connection = unwrap .connection
@@ -498,20 +499,20 @@ impl X11Capture
            cast(s64, x) + width > .screen.width_in_pixels or
            cast(s64, y) + height > .screen.height_in_pixels do
             fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
-        let library    = unwrap .library
-        let get        = try symbol'Linux.xcb_get_image_fn(library, "xcb_get_image")
-        let reply      = try symbol'Linux.xcb_get_image_reply_fn(library, "xcb_get_image_reply")
-        let data       = try symbol'Linux.xcb_get_image_data_fn(library, "xcb_get_image_data")
-        let dataLength = try symbol'Linux.xcb_get_image_data_length_fn(library, "xcb_get_image_data_length")
-        let formats    = try symbol'Linux.xcb_setup_pixmap_formats_iterator_fn(library, "xcb_setup_pixmap_formats_iterator")
-        let formatNext = try symbol'Linux.xcb_format_next_fn(library, "xcb_format_next")
-        let depths     = try symbol'Linux.xcb_screen_allowed_depths_iterator_fn(library, "xcb_screen_allowed_depths_iterator")
-        let depthNext  = try symbol'Linux.xcb_depth_next_fn(library, "xcb_depth_next")
-        let visuals    = try symbol'Linux.xcb_depth_visuals_iterator_fn(library, "xcb_depth_visuals_iterator")
-        let visualNext = try symbol'Linux.xcb_visualtype_next_fn(library, "xcb_visualtype_next")
+        let library       = unwrap .library
+        let get           = try symbol'Linux.xcb_get_image_fn(library, "xcb_get_image")
+        let reply         = try symbol'Linux.xcb_get_image_reply_fn(library, "xcb_get_image_reply")
+        let data          = try symbol'Linux.xcb_get_image_data_fn(library, "xcb_get_image_data")
+        let dataLength    = try symbol'Linux.xcb_get_image_data_length_fn(library, "xcb_get_image_data_length")
+        let formats       = try symbol'Linux.xcb_setup_pixmap_formats_iterator_fn(library, "xcb_setup_pixmap_formats_iterator")
+        let formatNext    = try symbol'Linux.xcb_format_next_fn(library, "xcb_format_next")
+        let depths        = try symbol'Linux.xcb_screen_allowed_depths_iterator_fn(library, "xcb_screen_allowed_depths_iterator")
+        let depthNext     = try symbol'Linux.xcb_depth_next_fn(library, "xcb_depth_next")
+        let visuals       = try symbol'Linux.xcb_depth_visuals_iterator_fn(library, "xcb_depth_visuals_iterator")
+        let visualNext    = try symbol'Linux.xcb_visualtype_next_fn(library, "xcb_visualtype_next")
         var captured:   *Linux.xcb_get_image_reply_t?
         var sharedSize: u64
-        var shared = .ensureSharedMemory(width, height)
+        var shared        = .ensureSharedMemory(width, height)
         let readbackStart = Time.monotonicMicroseconds()
         if shared
         {
@@ -610,9 +611,9 @@ impl X11Capture
            visual.green_mask == 0x0000FF00 and
            visual.red_mask == 0x00FF0000
         {
-            let copyStart = Time.monotonicMicroseconds()
-            let opaque = Math.Simd.splat(0xFF000000'u32)
-            let outputBase = target.pixels.storage()
+            let copyStart    = Time.monotonicMicroseconds()
+            let opaque       = Math.Simd.splat(0xFF000000'u32)
+            let outputBase   = target.pixels.storage()
             let outputStride = cast(u64, target.rowStride)
             if imageWidth >= 3840 and imageHeight >= 2160
             {
@@ -637,14 +638,16 @@ impl X11Capture
                                    imageWidth,
                                    opaque)
             }
+
             result.copyMicroseconds = Time.monotonicMicroseconds() - copyStart
-            result.copiedPixels = imageWidth * imageHeight
+            result.copiedPixels     = imageWidth * imageHeight
             if drawCursor
             {
                 let composeStart = Time.monotonicMicroseconds()
                 try .drawCursor(target, x, y)
                 result.composeMicroseconds = Time.monotonicMicroseconds() - composeStart
             }
+
             return result
         }
 
@@ -654,8 +657,7 @@ impl X11Capture
             for column in cast(u64, width)
             {
                 let offset = row * stride + column * bytes
-                let pixel = x11Pixel(source, offset, bytes,
-                                     cast(u32, .setup.image_byte_order))
+                let pixel  = x11Pixel(source, offset, bytes, cast(u32, .setup.image_byte_order))
 
                 let destination = (cast(u64, height) - row - 1) * cast(u64, target.rowStride) + column * 4
                 target.pixels[destination]     = x11Channel(pixel, visual.blue_mask)
@@ -664,8 +666,9 @@ impl X11Capture
                 target.pixels[destination + 3] = 255
             }
         }
+
         result.copyMicroseconds = Time.monotonicMicroseconds() - copyStart
-        result.copiedPixels = cast(u64, width) * cast(u64, height)
+        result.copiedPixels     = cast(u64, width) * cast(u64, height)
 
         if drawCursor
         {
@@ -673,6 +676,7 @@ impl X11Capture
             try .drawCursor(target, x, y)
             result.composeMicroseconds = Time.monotonicMicroseconds() - composeStart
         }
+
         return result
     }
 

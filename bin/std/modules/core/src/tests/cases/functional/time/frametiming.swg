@@ -28,7 +28,7 @@ using Swag
 
 #test
 {
-    var timing = Time.FrameTiming{}
+    var timing       = Time.FrameTiming{}
     let initialDelta = timing.deltaSeconds
     timing.pause()
     timing.update()

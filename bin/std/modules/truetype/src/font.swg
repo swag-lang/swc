@@ -36,10 +36,10 @@ public struct ColorGlyphLayer
 {
     public readonly
     {
-        glyphIndex:   u16     // Glyph index to draw for this layer.
-        paletteIndex: u16     // Entry in the selected `CPAL` palette; 0xFFFF means foreground.
-        hasColor:     bool    // False when paletteIndex is the special foreground entry.
-        argb:         u32     // Resolved color as 0xAARRGGBB; zero when hasColor is false.
+        glyphIndex:   u16      // Glyph index to draw for this layer.
+        paletteIndex: u16      // Entry in the selected `CPAL` palette; 0xFFFF means foreground.
+        hasColor:     bool     // False when paletteIndex is the special foreground entry.
+        argb:         u32      // Resolved color as 0xAARRGGBB; zero when hasColor is false.
     }
 }
 
@@ -47,10 +47,10 @@ public impl ColorGlyphLayer
 {
     internal mtd init(glyphIndex: u16, paletteIndex: u16, hasColor: bool, argb: u32)
     {
-        .glyphIndex = glyphIndex
+        .glyphIndex   = glyphIndex
         .paletteIndex = paletteIndex
-        .hasColor = hasColor
-        .argb = argb
+        .hasColor     = hasColor
+        .argb         = argb
     }
 }
 
@@ -86,19 +86,19 @@ struct FaceImpl
 
     late allocationAllocator: IAllocator
 
-    fontData:         Array'u8
-    tables:           Array'TableRecord
-    glyphMetrics:     Array'GlyphMetric
+    fontData:             Array'u8
+    tables:               Array'TableRecord
+    glyphMetrics:         Array'GlyphMetric
     verticalGlyphMetrics: Array'GlyphVerticalMetrics
-    glyphLocations:   Array'u32
-    late chosenCMap:  const [..] u8
-    cmapFormat:       u16
-    unitsPerEm:       u16
-    numLongMetrics:   u16
-    lineGap:          s16
-    macStyle:         u16
-    hasVerticalMetrics: bool
-    indexToLocFormat: s16
+    glyphLocations:       Array'u32
+    late chosenCMap:      const [..] u8
+    cmapFormat:           u16
+    unitsPerEm:           u16
+    numLongMetrics:       u16
+    lineGap:              s16
+    macStyle:             u16
+    hasVerticalMetrics:   bool
+    indexToLocFormat:     s16
 
     // Format-14 subtable holding the Unicode variation sequences, when the face
     // declares one. It supplements the selected map instead of replacing it.
@@ -120,10 +120,10 @@ struct FaceImpl
     syntheticCMap: HashTable'(u32, u32)
     hasCMap:       bool
 
-    outlinePoints:   Array'Vector
-    outlineTags:     Array'u8
-    outlineContours: Array's16
-    bitmapPixels:    Array'u8
+    outlinePoints:     Array'Vector
+    outlineTags:       Array'u8
+    outlineContours:   Array's16
+    bitmapPixels:      Array'u8
     colorBitmapPixels: Array'u8
 
     // Horizontal kerning pairs from the legacy 'kern' table (format 0).
@@ -138,7 +138,7 @@ struct FaceImpl
     gposPairSubtables: Array'u32
 
     // Names declared by an sfnt `post` table. Keys are owned by this face.
-    postNameToGid: HashTable'(String, u32)
+    postNameToGid:  HashTable'(String, u32)
     postGlyphNames: Array'String
 }
 
@@ -204,12 +204,14 @@ impl FaceImpl
             if not .cff.glyphNames[glyphIndex].length do
                 return null
             return .cff.glyphNames[glyphIndex].toString()
+
         case .Type1:
             if glyphIndex >= .type1.glyphNames.count do
                 return null
             if not .type1.glyphNames[glyphIndex].length do
                 return null
             return .type1.glyphNames[glyphIndex].toString()
+
         case .Glyf:
             if glyphIndex >= .postGlyphNames.count do
                 return null

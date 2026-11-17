@@ -46,7 +46,7 @@ const EmbeddedOther = [111'u8, 107]
 #test
 {
     var bundle: Resources.Bundle
-    var zlib: Compress.ZLib
+    var zlib:   Compress.ZLib
     let compressed = expect zlib.compress(EmbeddedHello, .BestCompression)
     bundle.addEmbeddedZlib("data.bin", compressed.toSlice(), EmbeddedHello.count)
     bundle.addEmbedded("data.bin", EmbeddedOther)
@@ -204,7 +204,8 @@ const EmbeddedOther = [111'u8, 107]
     Swag.require(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
 
     for invalidName in ["", ".", "../outside.txt", "nested/../outside.txt", "nested//file.txt", "nested/", "nested\\file.txt"]
-        do Swag.require(not bundle.isOverridden(invalidName))
+        do
+        Swag.require(not bundle.isOverridden(invalidName))
 
     var errorOutcome: Swag.Error
     discard catch bundle.load(name.toString()) as errorOutcome

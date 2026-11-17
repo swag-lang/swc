@@ -118,8 +118,9 @@ impl Reader
         // the image already decoded. Only a backward read needs to find its key record.
         var start: u64
         if .pictureIndex != Swag.U64.Max and .pictureIndex < frame
-        do
+        {
             start = .pictureIndex + 1
+        }
         else
         {
             start = frame
@@ -128,6 +129,7 @@ impl Reader
             if .entryAt(start).kind != .Key do
                 fail Errors.InvalidFormatError{}
         }
+
         for record in start to frame do
             try .apply(record)
 

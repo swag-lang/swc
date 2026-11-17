@@ -888,6 +888,7 @@ impl IAllocator for LibraryRejectAllocator
         let item = testAddLibraryItem(lib.view, name, 10, cast(u16, index + 3))
         item.capture!.tags.add(Format.toString("tag%", index))
     }
+
     let duplicate = testAddLibraryItem(lib.view, "duplicate.scc", 10, 68)
     duplicate.capture!.tags.add("DOCS")
 

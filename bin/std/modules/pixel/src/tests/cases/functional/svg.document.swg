@@ -55,7 +55,7 @@ func makeTrianglePath()->LinePath
 
     var doc = Svg.Document.create(8, 8)
     doc.addPath(path, Color.fromRgb(0, 0, 0))
-    let text = doc.toString()
+    let text  = doc.toString()
     let xText = Format.toString("%", x)
     let yText = Format.toString("%", y)
     Swag.require(text.contains(Format.toString("L% %", xText, yText).toString()))

@@ -29,7 +29,7 @@ func safetyCondition(count: *s32, value: bool)->bool
 #test
 {
     var evaluations = 0
-    let failure = Swag.catchPanic(func|&evaluations|()
+    let failure     = Swag.catchPanic(func|&evaluations|()
     {
         Debug.safetyBoundCheck(safetyCondition(&evaluations, false), "bound check failed")
     })

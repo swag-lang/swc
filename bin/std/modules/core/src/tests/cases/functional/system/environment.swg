@@ -58,8 +58,7 @@ using Swag
 
     let invalidUrlBytes: [22] u8 = [
         'h', 't', 't', 'p', 's', ':', '/', '/', 'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm', '/',
-        0xC0, 0xAF
-    ]
+        0xC0, 0xAF]
     let invalidUrl = Swag.makeString(invalidUrlBytes.buffer, invalidUrlBytes.count)
     Swag.require(not Env.isWebUrl(invalidUrl))
 

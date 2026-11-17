@@ -396,15 +396,15 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 // An incomplete trailing header or frame is ignored; all complete AAC packets remain indexed.
 #test
 {
-    let sourcePath = audioGetTestDataPath("aac-lc-stereo-44100.aac")
-    let source     = expect File.readAllBytes(sourcePath)
-    let reference  = expect SoundFile.load(sourcePath)
-    let last       = expect reference.packet(reference.packetCount() - 1)
-    let directory  = Env.getSpecialDirectory(.Temp)
+    let sourcePath      = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let source          = expect File.readAllBytes(sourcePath)
+    let reference       = expect SoundFile.load(sourcePath)
+    let last            = expect reference.packet(reference.packetCount() - 1)
+    let directory       = Env.getSpecialDirectory(.Temp)
     let shortHeaderPath = Path.combine(directory.toString(),
-        Format.toString("audio-aac-short-tail-%.aac", Guid64.random()).toString())
+                                       Format.toString("audio-aac-short-tail-%.aac", Guid64.random()).toString())
     let shortFramePath = Path.combine(directory.toString(),
-        Format.toString("audio-aac-short-frame-%.aac", Guid64.random()).toString())
+                                      Format.toString("audio-aac-short-frame-%.aac", Guid64.random()).toString())
     defer discard catch File.delete(shortHeaderPath)
     defer discard catch File.delete(shortFramePath)
 

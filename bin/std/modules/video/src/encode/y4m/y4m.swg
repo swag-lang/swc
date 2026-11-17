@@ -8,8 +8,8 @@
 using Core, Core.Errors, Pixel
 
 private func luma(r, g, b: s32)->u8 => clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
-private func cb(r, g, b: s32)->u8 => clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
-private func cr(r, g, b: s32)->u8 => clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
+private func cb(r, g, b: s32)->u8   => clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
+private func cr(r, g, b: s32)->u8   => clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
 
 // Returns the red, green and blue channels of one pixel, whatever order its format stores them in.
 //
@@ -34,9 +34,9 @@ struct Encoder
 {
     internal
     {
-        info:    StreamInfo     // Geometry and rate the stream was opened with.
-        payload: Array'u8       // Scratch storage of one encoded frame.
-        options: EncodeOptions  // Chroma layout applied to every frame.
+        info:    StreamInfo        // Geometry and rate the stream was opened with.
+        payload: Array'u8          // Scratch storage of one encoded frame.
+        options: EncodeOptions     // Chroma layout applied to every frame.
     }
 }
 
@@ -52,6 +52,7 @@ impl IEncoder for Encoder
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
+
         if (.options.chroma == .Yuv420 or .options.chroma == .Yuv422) and info.width & 1 do
             fail BadParameterError{"Y4M 4:2:2 and 4:2:0 output needs an even frame width"}
         if .options.chroma == .Yuv420 and info.height & 1 do
@@ -62,11 +63,12 @@ impl IEncoder for Encoder
         var chromaTag = "C444 XYSCSS=444"
         switch .options.chroma
         {
-            case .Yuv411: chromaTag = "C411 XYSCSS=411"
-            case .Yuv420: chromaTag = "C420jpeg XYSCSS=420JPEG"
-            case .Yuv422: chromaTag = "C422 XYSCSS=422"
-            case .Yuv444: chromaTag = "C444 XYSCSS=444"
+        case .Yuv411: chromaTag = "C411 XYSCSS=411"
+        case .Yuv420: chromaTag = "C420jpeg XYSCSS=420JPEG"
+        case .Yuv422: chromaTag = "C422 XYSCSS=422"
+        case .Yuv444: chromaTag = "C444 XYSCSS=444"
         }
+
         let header = Format.toString("% W% H% F%:% Ip A0:0 % XCOLORRANGE=LIMITED\n",
                                      StreamSignature,
                                      info.width,
@@ -87,13 +89,13 @@ impl IEncoder for Encoder
         default: fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
         }
 
-        let width = cast(u64, .info.width)
-        let height = cast(u64, .info.height)
-        let lumaSize = width * height
+        let width       = cast(u64, .info.width)
+        let height      = cast(u64, .info.height)
+        let lumaSize    = width * height
         let chromaWidth = .options.chroma == .Yuv444 ? width :
                           (.options.chroma == .Yuv411 ? width / 4 : width / 2)
         let chromaHeight = .options.chroma == .Yuv420 ? height / 2 : height
-        let chromaSize = chromaWidth * chromaHeight
+        let chromaSize   = chromaWidth * chromaHeight
         if .payload.count != lumaSize + chromaSize * 2 do
             .payload.resize(lumaSize + chromaSize * 2)
 
@@ -123,17 +125,18 @@ impl IEncoder for Encoder
                 {
                     for dx in stepX
                     {
-                        let x = cx * stepX + dx
-                        let y = cy * stepY + dy
+                        let x         = cx * stepX + dx
+                        let y         = cy * stepY + dy
                         let sourceRow = (height - y - 1) * cast(u64, image.rowStride)
-                        let source = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
+                        let source    = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
                         let {r, g, b} = readRgb(image, source)
                         sumU += cast(u32, cb(r, g, b))
                         sumV += cast(u32, cr(r, g, b))
                     }
                 }
+
                 let samples = stepX * stepY
-                let target = cy * chromaWidth + cx
+                let target  = cy * chromaWidth + cx
                 uPlane[target] = cast(u8, (sumU + cast(u32, samples / 2)) / cast(u32, samples))
                 vPlane[target] = cast(u8, (sumV + cast(u32, samples / 2)) / cast(u32, samples))
             }

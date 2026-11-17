@@ -24,7 +24,7 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
-    var bytes = loadFontBytes("arial.ttf")
+    var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
     let table  = cast(u64, readBigU32(&bytes, record + 8))
 
@@ -44,7 +44,7 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
-    var bytes = loadFontBytes("arial.ttf")
+    var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
     let table  = cast(u64, readBigU32(&bytes, record + 8))
 
@@ -64,7 +64,7 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
-    var bytes = loadFontBytes("arial.ttf")
+    var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
     let table  = cast(u64, readBigU32(&bytes, record + 8))
 
@@ -87,7 +87,7 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
-    var bytes = loadFontBytes("arial.ttf")
+    var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
     writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
 

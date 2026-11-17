@@ -319,8 +319,8 @@ impl Panel
     // background; the piano roll is created when the document arrives.
     func create(host: Viewer.Host)->*Panel
     {
-        let services = host.services()
-        let info     = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
+        let services    = host.services()
+        let info        = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View

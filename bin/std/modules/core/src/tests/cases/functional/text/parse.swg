@@ -133,7 +133,7 @@ using Swag
 // The invariant float parsers keep the dot decimal separator under a comma culture.
 #test
 {
-    let culture           = Globalization.currentCulture()
+    let culture = Globalization.currentCulture()
     let previousNumberFmt = culture.numberFormat
     defer culture.numberFormat = previousNumberFmt
     culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat

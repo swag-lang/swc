@@ -235,15 +235,17 @@ impl Encoder
     {
         if not .quantizationQp or qp < 1 or qp > 51 do
             fail BadParameterError{"H.264 per-picture quantization needs an encoder in lossy mode and QP 1 to 51"}
-        if frame.width != .width or frame.height != .height or
+        if frame.width != .width or
+           frame.height != .height or
            frame.bytes.count != cast(u64, .width) * cast(u64, .height) * 3 / 2 do
             fail BadParameterError{"H.264 encoder needs one NV12 picture of its configured size"}
-        if not duration or decodeTime > Swag.U64.Max - duration or
+        if not duration or
+           decodeTime > Swag.U64.Max - duration or
            (.hasFrame and decodeTime < .previousEnd) do
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
 
         .quantizationQp = qp
-        .lossy.baseQp = qp
+        .lossy.baseQp   = qp
         return try .encode(frame, decodeTime, duration)
     }
 

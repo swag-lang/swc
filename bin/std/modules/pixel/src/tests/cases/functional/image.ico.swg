@@ -704,7 +704,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let entries: [1] Image = [source]
 
     let encoded = expect Ico.encodeAll(entries)
-    let bytes = nnBytes(encoded.toSlice())
+    let bytes   = nnBytes(encoded.toSlice())
     Swag.require(bytes[64] == 128'u8)     // Red, un-premultiplied.
     Swag.require(bytes[65] == 128'u8)     // Alpha.
 }

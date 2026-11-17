@@ -56,7 +56,7 @@ using Swag, Core
     Swag.require(open.accepted and menu.isModalEnded() and menu.modalResult() == "document.open")
 
     let duplicate = MenuCtrl.createPopup(&host.root)
-    duplicate.addItem("Open", "document.open").accessKey = 'o'
+    duplicate.addItem("Open", "document.open").accessKey       = 'o'
     duplicate.addItem("Options", "document.options").accessKey = 'O'
     var ambiguous = KeyEvent{kind: .Character, key: .O, character: 'o', modifiers: .Alt}
     duplicate.handleKeyboard(&ambiguous)

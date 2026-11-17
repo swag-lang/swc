@@ -6,19 +6,16 @@ using Core, Pixel
 
 private func warpPointer(capture: *X11Capture, x, y: s16)
 {
-    let warp = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(
-        unwrap capture.nativeLibrary(), "xcb_warp_pointer")
+    let warp = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer")
     discard warp(unwrap capture.nativeConnection(), 0, capture.rootWindow(), 0, 0, 0, 0, x, y)
 }
 
 private func pointerPosition(capture: *X11Capture)->{x: s16, y: s16} fail
 {
-    let query = expect X11Capture.symbol'Linux.xcb_query_pointer_fn(
-        unwrap capture.nativeLibrary(), "xcb_query_pointer")
-    let replyQuery = expect X11Capture.symbol'Linux.xcb_query_pointer_reply_fn(
-        unwrap capture.nativeLibrary(), "xcb_query_pointer_reply")
+    let query      = expect X11Capture.symbol'Linux.xcb_query_pointer_fn(unwrap capture.nativeLibrary(), "xcb_query_pointer")
+    let replyQuery = expect X11Capture.symbol'Linux.xcb_query_pointer_reply_fn(unwrap capture.nativeLibrary(), "xcb_query_pointer_reply")
     let connection = unwrap capture.nativeConnection()
-    let reply = replyQuery(connection, query(connection, capture.rootWindow()), null)
+    let reply      = replyQuery(connection, query(connection, capture.rootWindow()), null)
     if not reply do
         fail Swag.SystemError{"cannot read the X11 pointer position"}
     defer Linux.free(reply)
@@ -57,30 +54,32 @@ private func sharedSegmentCount()->u64 fail
     let monitors = Env.getMonitors()
     if not monitors.count do
         return
-    let bounds = monitors[0].physicalBounds
-    var source = expect Source.openMonitor(monitors[0])
+    let bounds      = monitors[0].physicalBounds
+    var source      = expect Source.openMonitor(monitors[0])
     let pointSource = expect Source.openMonitorAt({bounds.x + bounds.width / 2,
-                                                    bounds.y + bounds.height / 2})
+                                                   bounds.y + bounds.height / 2})
     let pointOptions = pointSource.captureOptions()
-    Swag.require(pointOptions.x == cast(s32, bounds.x) and pointOptions.y == cast(s32, bounds.y) and
+    Swag.require(pointOptions.x == cast(s32, bounds.x) and
+                 pointOptions.y == cast(s32, bounds.y) and
                  pointOptions.width == cast(s32, bounds.width) and
                  pointOptions.height == cast(s32, bounds.height))
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
     Swag.require(image.width == cast(s32, bounds.width) and
-                 image.height == cast(s32, bounds.height) and image.pixelFormat == .BGRA8)
+                 image.height == cast(s32, bounds.height) and
+                 image.pixelFormat == .BGRA8)
 }
 
 // Opens the full virtual desktop, including any gaps between monitors.
 #[Swag.TestTag("integration.host.linux")]
 #test
 {
-    let width = Env.getSystemMetric(.DesktopWidth)
+    let width  = Env.getSystemMetric(.DesktopWidth)
     let height = Env.getSystemMetric(.DesktopHeight)
     if width <= 0 or height <= 0 do
         return
-    var source = expect Source.openDesktop()
+    var source  = expect Source.openDesktop()
     let options = source.captureOptions()
     Swag.require(options.width == width and options.height == height)
     var image: Image
@@ -104,12 +103,15 @@ private func sharedSegmentCount()->u64 fail
 #[Swag.TestTag("integration.host.linux")]
 #test
 {
-    var source = expect Source.open({0, 0, 320, 240, false})
+    var source  = expect Source.open({0, 0, 320, 240, false})
     let options = source.captureOptions()
-    Swag.require(options.x == 0 and options.y == 0 and options.width == 320 and
-                 options.height == 240 and not options.includeCursor)
+    Swag.require(options.x == 0 and
+                 options.y == 0 and
+                 options.width == 320 and
+                 options.height == 240 and
+                 not options.includeCursor)
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
-    var image = Image.create(8, 8, .RGBA8)
+    var image      = Image.create(8, 8, .RGBA8)
     let firstFresh = expect source.grabInto(&image)
     Swag.require(firstFresh)
     let firstCaptureTime = source.lastFrameCaptureMicroseconds()
@@ -117,11 +119,14 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount == 320 * 240 * 4)
-    let storage = image.pixels.storage()
+    let storage      = image.pixels.storage()
     let firstMetrics = source.metrics()
-    Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0 and
-                 firstMetrics.readbackMicroseconds > 0 and firstMetrics.maxReadbackMicroseconds > 0 and
-                 firstMetrics.copyMicroseconds > 0 and firstMetrics.copiedPixels == 320 * 240)
+    Swag.require(firstMetrics.acquiredFrames == 1 and
+                 firstMetrics.unchangedFrames == 0 and
+                 firstMetrics.readbackMicroseconds > 0 and
+                 firstMetrics.maxReadbackMicroseconds > 0 and
+                 firstMetrics.copyMicroseconds > 0 and
+                 firstMetrics.copiedPixels == 320 * 240)
 
     Memory.set(image.pixels.storage(), 0x5A, image.byteCount)
     let repeatedFresh = expect source.grabInto(&image, copyUnchanged: false)
@@ -130,31 +135,34 @@ private func sharedSegmentCount()->u64 fail
         Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
     Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     let repeatedMetrics = source.metrics()
-    Swag.require(repeatedMetrics.acquiredFrames == 2 and repeatedMetrics.unchangedFrames == 1 and
+    Swag.require(repeatedMetrics.acquiredFrames == 2 and
+                 repeatedMetrics.unchangedFrames == 1 and
                  repeatedMetrics.changeDetectionMicroseconds > 0)
 
     image = Image.create(8, 8, .RGBA8)
     let replacementFresh = expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(not replacementFresh and image.width == 320 and image.height == 240,
                  "a replacement target should receive the cached X11 frame")
-    Swag.require(Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(),
-                                image.byteCount) == 0)
+    Swag.require(Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(), image.byteCount) == 0)
 
     Memory.set(image.pixels.storage(), 0xA5, image.byteCount)
     let copiedFresh = expect source.grabInto(&image)
     Swag.require(not copiedFresh and
-                 Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(),
-                                image.byteCount) == 0,
+                 Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(), image.byteCount) == 0,
                  "default unchanged grabs should copy the cached frame")
 
     let capture = source.sources[0].capture.nativeConnection()
     source.resetMetrics()
     let resetMetrics = source.metrics()
-    Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
-                 resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
-                 resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+    Swag.require(resetMetrics.acquiredFrames == 0 and
+                 resetMetrics.unchangedFrames == 0 and
+                 resetMetrics.acquireMicroseconds == 0 and
+                 resetMetrics.readbackMicroseconds == 0 and
+                 resetMetrics.copyMicroseconds == 0 and
+                 resetMetrics.composeMicroseconds == 0 and
                  resetMetrics.changeDetectionMicroseconds == 0 and
-                 resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
+                 resetMetrics.copiedPixels == 0 and
+                 resetMetrics.mirroredPixels == 0)
     Swag.require(source.sources[0].capture.nativeConnection() == capture and
                  source.lastFrameCaptureMicroseconds() == firstCaptureTime)
 
@@ -174,8 +182,8 @@ private func sharedSegmentCount()->u64 fail
 #[Swag.TestTag("integration.host.linux")]
 #test
 {
-    var source = expect Source.open({0, 0, 320, 240, true})
-    let capture = &source.sources[0].capture
+    var source   = expect Source.open({0, 0, 320, 240, true})
+    let capture  = &source.sources[0].capture
     let original = expect pointerPosition(capture)
     defer warpPointer(capture, original.x, original.y)
 
@@ -198,12 +206,12 @@ private func sharedSegmentCount()->u64 fail
 {
     var source = expect Source.open({0, 0, 64, 48, false})
     var image: Image
-    let fresh = expect source.grabInto(&image)
+    let fresh  = expect source.grabInto(&image)
     Swag.require(fresh)
     let captureTime = source.lastFrameCaptureMicroseconds()
-    let native = source.sources[0]
-    let connection = native.capture.nativeConnection()
-    let originalX = native.options.x
+    let native      = source.sources[0]
+    let connection  = native.capture.nativeConnection()
+    let originalX   = native.options.x
     native.options.x = cast(s32, native.capture.desktopWidth())
     var failure: Swag.Error
     discard catch source.reopen() as failure

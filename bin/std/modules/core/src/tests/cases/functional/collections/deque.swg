@@ -107,14 +107,14 @@ func assertMutableDequeBorrow(values: *Deque's32)
     values.pushBack(2)
     values.pushBack(3)
 
-    var visited = 0'u64
+    var visited  = 0'u64
     var valueSum = 0
     for value, index in values
     {
         if index == 0 do
             continue
 
-        visited += 1
+        visited  += 1
         valueSum += value
         if index == 2 do
             break

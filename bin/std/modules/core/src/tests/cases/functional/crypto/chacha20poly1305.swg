@@ -102,7 +102,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
 
     expect mac.reset(secondKey.toSlice())
     mac.update("fresh message")
-    let resetTag = mac.finalize()
+    let resetTag       = mac.finalize()
     let resetReference = expect Crypto.Poly1305.compute(secondKey.toSlice(), "fresh message")
     Swag.require(Crypto.constantTimeEqual(resetTag, resetReference))
 }

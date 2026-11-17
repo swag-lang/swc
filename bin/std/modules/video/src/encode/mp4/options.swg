@@ -11,8 +11,10 @@ struct EncodeOptions
 {
     // Quality of every frame, in `[1, 100]`; higher values preserve more detail and produce larger files.
     public quality = 90'u8
+
     // Optional pixel aspect ratio numerator. Zero and `pixelAspectHeight` zero omit the `pasp` box.
     public pixelAspectWidth = 0'u32
+
     // Optional pixel aspect ratio denominator; this is not the displayed frame width.
     public pixelAspectHeight = 0'u32
 }

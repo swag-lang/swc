@@ -79,6 +79,7 @@ impl IImageDecoder for TruncatedPixelDecoder
             result.allocPixels()
             result.pixels.resize(3)
         }
+
         return result
     }
 }
@@ -181,7 +182,7 @@ internal impl Image
     Image.registerDecoder'(TruncatedPixelDecoder)()
 
     var errorOutcome: Swag.Error
-    var image: #decltype(expect Image.decode("image.truncatedpixels", "input"))
+    var image:        #decltype(expect Image.decode("image.truncatedpixels", "input"))
     catch { image = try Image.decode("image.truncatedpixels", "input") } as errorOutcome
     Swag.require((errorOutcome.value() is InvalidFormatError))
 

@@ -60,7 +60,7 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     for index in values.count do
         values[index] = index % 2 != 0
 
-    var visited = 0'u64
+    var visited  = 0'u64
     var indexSum = 0'u64
     for value, index in values
     {
@@ -68,7 +68,7 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
             continue
 
         Swag.require(value)
-        visited += 1
+        visited  += 1
         indexSum += index
         if index == 35 do
             break

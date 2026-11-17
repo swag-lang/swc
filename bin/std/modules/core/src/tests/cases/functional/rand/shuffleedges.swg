@@ -9,6 +9,7 @@ var RandomDrawCount: u32
 internal impl NoDrawRandomSource
 {
     mtd seedU32(_: u32) {}
+
     mtd nextU32()->u32
     {
         RandomDrawCount += 1
@@ -22,7 +23,7 @@ internal impl NoDrawRandomSource
     generator.seedU32(1)
     RandomDrawCount = 0
 
-    var empty:   Array'u32
+    var empty:  Array'u32
     var single: [1] u32 = [42]
     generator.shuffle(empty.toSlice())
     generator.shuffle(single)

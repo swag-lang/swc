@@ -80,8 +80,9 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
             if nameIndex >= 258 and nameIndex > maxCustomIndex do
                 maxCustomIndex = nameIndex
         }
+
         var customNames: Array'String
-        let customCount = cast(u64, maxCustomIndex) - 257
+        let customCount  = cast(u64, maxCustomIndex) - 257
         let customOffset = 34 + cast(u64, count) * 2
         if customCount > postTable.count - customOffset do
             try fault(0x9B)
@@ -102,9 +103,10 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         for glyphIndex in count
         {
             let nameIndex = indices[glyphIndex]
-            let name = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258].toString()
+            let name      = nameIndex < 258 ? MacStandardGlyphNames[nameIndex] : customNames[nameIndex - 258].toString()
             addPostGlyphName(faceData, name, glyphIndex)
         }
+
         return
     }
 
@@ -117,7 +119,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         faceData.postGlyphNames.resize(glyphCount)
         for glyphIndex in glyphCount
         {
-            let offset = cast(s8, try readU8(postTable, 34 + glyphIndex))
+            let offset    = cast(s8, try readU8(postTable, 34 + glyphIndex))
             let nameIndex = cast(s32, glyphIndex) + cast(s32, offset)
             if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count do
                 try fault(0x9B)

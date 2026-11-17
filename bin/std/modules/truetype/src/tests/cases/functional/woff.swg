@@ -7,7 +7,7 @@ using Swag, Core
 #test
 {
     let original = loadFontBytes("arial.ttf")
-    var woff = expect buildWoffFont(original.toSlice())
+    var woff     = expect buildWoffFont(original.toSlice())
     let restored = expect inflateWoff(woff.toSlice())
 
     let originalFace = expect Face.load(original.toSlice())
@@ -53,6 +53,7 @@ using Swag, Core
         if readBigU32(&woff, record + 8) < readBigU32(&woff, record + 12) do
             compressedTables += 1
     }
+
     Swag.require(compressedTables > 0)
     Swag.require(compressedTables < readBigU16(&woff, 12))
 }
@@ -61,7 +62,7 @@ using Swag, Core
 #test
 {
     let original = loadFontBytes("arial.ttf")
-    var woff = expect buildWoffFont(original.toSlice())
+    var woff     = expect buildWoffFont(original.toSlice())
 
     var outcome: Swag.Error
     writeBigU32(&woff, 8, cast(u32, woff.count - 1))
@@ -69,19 +70,19 @@ using Swag, Core
     Swag.require(outcome.value() != null)
 
     outcome = {}
-    woff = expect buildWoffFont(original.toSlice())
+    woff    = expect buildWoffFont(original.toSlice())
     writeBigU32(&woff, 48, cast(u32, woff.count + 1))
     discard catch inflateWoff(woff.toSlice()) as outcome
     Swag.require(outcome.value() != null)
 
     outcome = {}
-    woff = expect buildWoffFont(original.toSlice())
+    woff    = expect buildWoffFont(original.toSlice())
     writeBigU32(&woff, 48, 44)
     discard catch inflateWoff(woff.toSlice()) as outcome
     Swag.require(outcome.value() != null)
 
     outcome = {}
-    woff = expect buildWoffFont(original.toSlice())
+    woff    = expect buildWoffFont(original.toSlice())
     let firstTableOffset = readBigU32(&woff, 48)
     writeBigU32(&woff, 24, firstTableOffset)
     writeBigU32(&woff, 28, 4)
@@ -90,7 +91,7 @@ using Swag, Core
     Swag.require(outcome.value() != null)
 
     outcome = {}
-    woff = expect buildWoffFont(original.toSlice())
+    woff    = expect buildWoffFont(original.toSlice())
     writeBigU32(&woff, 68, readBigU32(&woff, 48))
     discard catch inflateWoff(woff.toSlice()) as outcome
     Swag.require(outcome.value() != null)
@@ -100,7 +101,7 @@ using Swag, Core
 #test
 {
     let original = loadFontBytes("arial.ttf")
-    var woff = expect buildWoffFont(original.toSlice())
+    var woff     = expect buildWoffFont(original.toSlice())
 
     var zlib: Compress.ZLib
     let metadata = expect zlib.compress("font metadata")
@@ -139,8 +140,8 @@ using Swag, Core
 // A compressed table may not expand past or stop short of its declared original length.
 #test
 {
-    let original = loadFontBytes("arial.ttf")
-    var woff = expect buildWoffFont(original.toSlice())
+    let original         = loadFontBytes("arial.ttf")
+    var woff             = expect buildWoffFont(original.toSlice())
     var compressedRecord = Swag.U64.Max
     for index in readBigU16(&woff, 12)
     {
@@ -151,10 +152,11 @@ using Swag, Core
             break
         }
     }
+
     Swag.require(compressedRecord != Swag.U64.Max)
 
     let compressedLength = readBigU32(&woff, compressedRecord + 8)
-    let originalLength = readBigU32(&woff, compressedRecord + 12)
+    let originalLength   = readBigU32(&woff, compressedRecord + 12)
     writeBigU32(&woff, compressedRecord + 12, compressedLength + 1)
     writeBigU32(&woff, 16, readBigU32(&woff, 16) - originalLength + compressedLength + 1)
 

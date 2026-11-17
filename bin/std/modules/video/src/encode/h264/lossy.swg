@@ -282,8 +282,7 @@ impl LossyCoder
                 if key do
                     .encodeIntraMb(&bits, mbX, mbY, firstRow, false)
                 else do
-                    .encodeInterMb(&bits, mbX, mbY, firstRow,
-                                   regions[cast(u64, mbX) * 16 / LossyRegionWidth], &skipRun)
+                    .encodeInterMb(&bits, mbX, mbY, firstRow, regions[cast(u64, mbX) * 16 / LossyRegionWidth], &skipRun)
             }
         }
 
@@ -986,6 +985,7 @@ func lossySad16Below(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u6
         if sum >= bound do
             return bound
     }
+
     return sum
 }
 
@@ -1097,6 +1097,7 @@ func lossySadSmallBelow(a: const [*] u8, aStride: u64, b: const [*] u8, bStride:
                 return bound
         }
     }
+
     return sum
 }
 
@@ -1512,6 +1513,7 @@ impl LossyCoder
             if Memory.compare(current + offset, prior + offset, cast(u64, width)) != 0 do
                 unchanged = false
         }
+
         if unchanged
         {
             let chromaStride = .chromaStride()
@@ -1753,7 +1755,7 @@ impl LossyCoder
                 [-16, -16], [16, 16], [-16, 16], [16, -16]]
             for jump in 24'u64
             {
-                let vector = .clampVector(mbX, mbY, {Jumps[jump, 0] * 4, Jumps[jump, 1] * 4})
+                let vector  = .clampVector(mbX, mbY, {Jumps[jump, 0] * 4, Jumps[jump, 1] * 4})
                 let penalty = .vectorCost(vector, predicted)
                 if penalty < cost
                 {
@@ -1897,8 +1899,7 @@ impl LossyCoder
 
     // Codes one macroblock of a P slice: skipped, predicted from the reference, or intra when
     // nothing in the reference comes close.
-    mtd encodeInterMb(bits: *EncoderBits, mbX, mbY, firstRow: u32,
-                      region: LossyRegionResult, skipRun: *u32)
+    mtd encodeInterMb(bits: *EncoderBits, mbX, mbY, firstRow: u32, region: LossyRegionResult, skipRun: *u32)
     {
         let mb        = &.mbs[.mbIndex(mbX, mbY)]
         let predicted = .predictMotion(mbX, mbY, firstRow)

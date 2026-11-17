@@ -82,11 +82,14 @@ public impl Image
         let nh = newHeight != 0 ? newHeight : resizeAspectDimension(.height, .width, newWidth)
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
 
-        if target.width != nw or target.height != nh or
-           target.pixelFormat != .pixelFormat or target.alphaMode != .alphaMode
+        if target.width != nw or
+           target.height != nh or
+           target.pixelFormat != .pixelFormat or
+           target.alphaMode != .alphaMode
         {
             target[] = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
         }
+
         target.metadata = .metadata
 
         if nw == .width and nh == .height

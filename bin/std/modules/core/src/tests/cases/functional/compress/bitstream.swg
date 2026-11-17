@@ -204,7 +204,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 #test
 {
     let first:  [2] u8 = [0xD6, 0xA5]
-    var empty: Array'u8
+    var empty:  Array'u8
     let second: [2] u8 = [0x39, 0x72]
 
     var stream: Compress.BitStream

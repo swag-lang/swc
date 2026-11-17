@@ -1374,7 +1374,7 @@ impl LibraryWnd
             entries.add(LibraryNamedFilter{name, executable, 1})
         }
 
-        var result: #returntype
+        var result:       #returntype
         var applications: HashSet'LibraryNamedFilterKey
         var tags:         HashSet'LibraryNamedFilterKey
         for item in .view.allItems

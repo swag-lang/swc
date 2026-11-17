@@ -373,7 +373,7 @@ internal impl Voice
             return
         if pan == 0 and .panValue == 0 do
             return
-        let file           = unwrap .file
+        let file = unwrap .file
         let sourceChannels = file.numChannels()
         if sourceChannels == 0 or sourceChannels > 2 do
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
@@ -385,12 +385,10 @@ internal impl Voice
         {
             for i in .routingBusCount
             {
-                let bus = unwrap .routingBuses[i]
+                let bus         = unwrap .routingBuses[i]
                 let destination = cast(*IXAudio2Voice, unwrap bus.handle)
                 let setMatrix   = source.vtbl.setOutputMatrix
-                let hr          = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination,
-                                            sourceChannels, bus.channelCount,
-                                            &matrix[0], batchId)
+                let hr          = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination, sourceChannels, bus.channelCount, &matrix[0], batchId)
                 if hr != S_OK do
                     fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
             }
@@ -401,9 +399,7 @@ internal impl Voice
             var details: XAUDIO2_VOICE_DETAILS
             destination.vtbl.getVoiceDetails(destination, &details)
             let setMatrix = source.vtbl.setOutputMatrix
-            let hr        = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination,
-                                      sourceChannels, details.inputChannels,
-                                      &matrix[0], batchId)
+            let hr        = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination, sourceChannels, details.inputChannels, &matrix[0], batchId)
             if hr != S_OK do
                 fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
         }

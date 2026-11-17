@@ -40,8 +40,7 @@ public impl SceneFormat
 
 private const SceneFormats: [2] SceneFormat = [
     SceneFormat{"Wavefront OBJ", ".obj", .Obj},
-    SceneFormat{"STL", ".stl", .Stl}
-]
+    SceneFormat{"STL", ".stl", .Stl}]
 
 internal func sceneFormats()->Array'SceneFormat
 {

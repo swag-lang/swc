@@ -141,7 +141,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     expect hash.reset(32)
     hash.update("abc")
 
-    var wrongLength: [16] u8
+    var wrongLength:     [16] u8
     var mismatchOutcome: Swag.Error
     discard catch hash.finalize(wrongLength) as mismatchOutcome
     let mismatch = mismatchOutcome.value()

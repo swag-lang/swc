@@ -35,7 +35,7 @@ impl Matrix3x3
     func createRotation(angle: Angle)->Matrix3x3
     {
         let cosine = Math.cos(angle.radians)
-        let sine = Math.sin(angle.radians)
+        let sine   = Math.sin(angle.radians)
         var result = Matrix3x3.createIdentity()
         result.m[0, 0] = cosine
         result.m[0, 1] = sine
@@ -78,6 +78,7 @@ impl Matrix3x3
                 result.m[row, column] = value
             }
         }
+
         return result
     }
 
@@ -127,6 +128,7 @@ impl Matrix3x3
             for column in 3 do
                 result.m[row, column] = .m[column, row]
         }
+
         return result
     }
 

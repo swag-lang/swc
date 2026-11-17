@@ -14,13 +14,13 @@ struct PageCommitShared
 
 struct RemoteFreeShared
 {
-    allocator: IAllocator
-    addresses: [256] u64
-    ready:     u32
-    start:     u32
+    allocator:  IAllocator
+    addresses:  [256] u64
+    ready:      u32
+    start:      u32
     nextWorker: u32
-    done:      u32
-    errors:    u32
+    done:       u32
+    errors:     u32
 }
 
 func remoteFreeWorker(thread: const *Threading.Thread)
@@ -30,7 +30,7 @@ func remoteFreeWorker(thread: const *Threading.Thread)
     while Swag.atomicLoad(&shared.start) == 0 do
         Threading.Thread.yield()
 
-    let first  = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
+    let first = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
     for offset in shared.addresses.count / 4
     {
         let i       = first + offset
@@ -145,9 +145,9 @@ func pageCommitWorker(thread: const *Threading.Thread)
         shared.allocator.alloc(&request)
         Swag.require(request.address != null)
         let bytes = cast([*] u8, request.address)
-        bytes[0]                = cast(u8, i)
-        bytes[63]               = cast(u8, i ^ 0xA5)
-        shared.addresses[i]     = cast(u64, request.address)
+        bytes[0]  = cast(u8, i)
+        bytes[63] = cast(u8, i ^ 0xA5)
+        shared.addresses[i] = cast(u64, request.address)
     }
 
     var threads: [4] Threading.Thread

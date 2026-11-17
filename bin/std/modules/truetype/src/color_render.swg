@@ -7,10 +7,10 @@ func compositeColorGlyphPixel(dst: [*] u8, color: u32, coverage: u8)
         return
 
     let destinationAlpha = cast(u32, dst[3])
-    let outputAlpha = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
-    let sourceRed   = (color >> 16) & 255
-    let sourceGreen = (color >> 8) & 255
-    let sourceBlue  = color & 255
+    let outputAlpha      = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
+    let sourceRed        = (color >> 16) & 255
+    let sourceGreen      = (color >> 8) & 255
+    let sourceBlue       = color & 255
 
     let red = ((sourceRed * sourceAlpha +
                 (cast(u32, dst[0]) * destinationAlpha * (255 - sourceAlpha) + 127) / 255) + outputAlpha / 2) / outputAlpha
@@ -28,7 +28,7 @@ func compositeColorGlyphPixel(dst: [*] u8, color: u32, coverage: u8)
 func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foregroundArgb: u32) fail
 {
     let faceData = try getFaceImpl(face)
-    let layers = try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
+    let layers   = try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
     if layers.isEmpty() do
         try fault(0x12)
 
@@ -36,10 +36,10 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
     // owns one reusable grayscale buffer, so the second pass renders directly into
     // the separate color destination without retaining per-layer copies.
     var hasBounds = false
-    var left   = 0
-    var right  = 0
-    var top    = 0
-    var bottom = 0
+    var left      = 0
+    var right     = 0
+    var top       = 0
+    var bottom    = 0
     for layer in layers
     {
         try loadGlyphInternal(face, layer.glyphIndex)
@@ -54,17 +54,17 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
         let layerBottom = layerTop - cast(s32, bitmap.rows)
         if not hasBounds
         {
-            left = layerLeft
-            right = layerRight
-            top = layerTop
-            bottom = layerBottom
+            left      = layerLeft
+            right     = layerRight
+            top       = layerTop
+            bottom    = layerBottom
             hasBounds = true
         }
         else
         {
-            left = Math.min(left, layerLeft)
-            right = Math.max(right, layerRight)
-            top = Math.max(top, layerTop)
+            left   = Math.min(left, layerLeft)
+            right  = Math.max(right, layerRight)
+            top    = Math.max(top, layerTop)
             bottom = Math.min(bottom, layerBottom)
         }
     }
@@ -77,7 +77,7 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
     }
 
     let width = cast(u32, right - left)
-    let rows = cast(u32, top - bottom)
+    let rows  = cast(u32, top - bottom)
     if width > cast(u32, Swag.S32.Max / 4) do
         try fault(0x0A)
     if cast(u64, width) * rows > Swag.U64.Max / 4 do
@@ -96,13 +96,13 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
         if not bitmap.width or not bitmap.rows do
             continue
 
-        let color = layer.hasColor ? layer.argb : foregroundArgb
+        let color   = layer.hasColor ? layer.argb : foregroundArgb
         let offsetX = cast(u32, face.glyph.bitmapLeft - left)
         let offsetY = cast(u32, top - face.glyph.bitmapTop)
         for row in bitmap.rows
         {
             let coverage = try bitmap.row(row)
-            let dstRow = (cast(u64, offsetY + row) * width + offsetX) * 4
+            let dstRow   = (cast(u64, offsetY + row) * width + offsetX) * 4
             for column in bitmap.width do
                 compositeColorGlyphPixel(output + dstRow + cast(u64, column) * 4, color, coverage[column])
         }

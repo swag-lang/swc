@@ -221,8 +221,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 // A frame chunk cannot claim payload bytes beyond the `movi` list that contains it.
 #test
 {
-    var bytes = expect File.readAllBytes(videoFixturePath("edited-no-index.avi"))
-    let raw = bytes.toSlice()
+    var bytes     = expect File.readAllBytes(videoFixturePath("edited-no-index.avi"))
+    let raw       = bytes.toSlice()
     var frameList = 0'u64
     while frameList + 4 <= raw.count and not aviHasId(raw, frameList, "movi") do
         frameList += 1
@@ -243,7 +243,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
-    let raw = bytes.toSlice()
+    let raw   = bytes.toSlice()
     var index = 0'u64
     while index + 24 <= raw.count and not aviHasId(raw, index, "idx1") do
         index += 1

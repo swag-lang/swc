@@ -231,8 +231,7 @@ impl IWnd for PushButton
             icon.sizeX = .iconWidth
         if .iconHeight do
             icon.sizeY = .iconHeight
-        Theme.drawIconText(bc.painter, labelPos, icon, &.name, format, metrics.iconText_Margin,
-                           accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
+        Theme.drawIconText(bc.painter, labelPos, icon, &.name, format, metrics.iconText_Margin, accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

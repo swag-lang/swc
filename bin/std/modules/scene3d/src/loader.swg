@@ -25,6 +25,7 @@ public func load(fileName: string, limits: Limits = {})->Scene fail
         bytes.reserve(length)
         bytes.count = try stream.read(unwrap bytes.buffer, length)
     }
+
     return try decode(fileName, bytes.toSlice(), limits)
 }
 
@@ -57,6 +58,7 @@ public func decode(fileName: string, bytes: const [..] u8, limits: Limits = {})-
         scene.nodes[0].name = scene.name
         return scene
     }
+
     if codec == .Stl or looksLikeAsciiStl(source)
     {
         var scene = try decodeAsciiStl(source, limits)
@@ -64,6 +66,7 @@ public func decode(fileName: string, bytes: const [..] u8, limits: Limits = {})-
         scene.nodes[0].name = scene.name
         return scene
     }
+
     fail UnsupportedFormatError{"scene format is not recognized"}
 }
 
@@ -83,21 +86,22 @@ private func looksLikeBinaryStl(bytes: const [..] u8)->bool
 {
     if bytes.count < 84 do
         return false
-    let count = cast(u64, cast(u32, bytes[80]) |
-                            (cast(u32, bytes[81]) << 8) |
-                            (cast(u32, bytes[82]) << 16) |
-                            (cast(u32, bytes[83]) << 24))
+    let count = cast(u64,
+                     cast(u32, bytes[80]) |
+                     (cast(u32, bytes[81]) << 8) |
+                     (cast(u32, bytes[82]) << 16) |
+                     (cast(u32, bytes[83]) << 24))
     return count != 0 and 84 + count * 50 == bytes.count
 }
 
 private func looksLikeObj(source: string)->bool
 {
     var hasPosition = false
-    var hasFace = false
+    var hasFace     = false
     for line in Tokenize.splitLines(source)
     {
         let trimmed = Tokenize.eatSpaces(line)
-        let words = splitHeaderWords(trimmed)
+        let words   = splitHeaderWords(trimmed)
         if words.count >= 4 and words[0] == "v" do
             hasPosition = true
         if words.count >= 4 and words[0] == "f" do
@@ -105,6 +109,7 @@ private func looksLikeObj(source: string)->bool
         if hasPosition and hasFace do
             return true
     }
+
     return hasPosition and hasFace
 }
 
@@ -124,20 +129,25 @@ private func splitHeaderWords(line: string)->Array'(string)
         result.add(line[start until end])
         start = end
     }
+
     return result
 }
 
 private func looksLikeAsciiStl(source: string)->bool
 {
-    var hasSolid = false
-    var hasFacet = false
+    var hasSolid  = false
+    var hasFacet  = false
     var hasVertex = false
     for line in Tokenize.splitLines(source)
     {
         let trimmed = Tokenize.eatSpaces(line)
-        hasSolid = hasSolid or trimmed == "solid" or Utf8.startsWith(trimmed, "solid ") or Utf8.startsWith(trimmed, "solid\t")
-        hasFacet = hasFacet or Utf8.startsWith(trimmed, "facet ") or Utf8.startsWith(trimmed, "facet\t")
+        hasSolid = hasSolid or
+                   trimmed == "solid" or
+                   Utf8.startsWith(trimmed, "solid ") or
+                   Utf8.startsWith(trimmed, "solid\t")
+        hasFacet  = hasFacet or Utf8.startsWith(trimmed, "facet ") or Utf8.startsWith(trimmed, "facet\t")
         hasVertex = hasVertex or Utf8.startsWith(trimmed, "vertex ") or Utf8.startsWith(trimmed, "vertex\t")
     }
+
     return hasSolid and hasFacet and hasVertex
 }

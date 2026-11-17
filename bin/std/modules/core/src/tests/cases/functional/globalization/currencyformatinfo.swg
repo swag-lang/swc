@@ -55,7 +55,7 @@ using Swag
 #test
 {
     var currency: Globalization.CurrencyFormatInfo
-    currency.symbol = "€"
+    currency.symbol        = "€"
     currency.decimalDigits = 3
     var number: Globalization.NumberFormatInfo
 

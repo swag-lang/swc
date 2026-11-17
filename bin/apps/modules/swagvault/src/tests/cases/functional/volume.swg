@@ -813,7 +813,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("reservedslot")
     defer discard catch File.delete(path)
 
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var volume        = expect Volume.create(path, testPassword(), MinimumSize)
     var reservedIndex = 0'u64
     while (volume.keySlotMask & keySlotBit(reservedIndex)) != 0 do
         reservedIndex += 1
@@ -832,6 +832,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     case Swagvault.Error as volumeError: Swag.require(volumeError.kind == .AccessDenied)
     default: Swag.require(false)
     }
+
     reopened.close()
 
     var stillOpen = expect Volume.open(path, testPassword())

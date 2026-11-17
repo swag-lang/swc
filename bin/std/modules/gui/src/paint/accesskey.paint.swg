@@ -21,8 +21,8 @@ func drawAccessKeyText(painter: *Painter, position: Math.Rectangle, text: *RichS
         }
     }
 
-    let bytes = cast(const [..] u8, text.text)
-    var offset: u64
+    let bytes    = cast(const [..] u8, text.text)
+    var offset:  u64
     var keyStart = Swag.U64.Max
     var keySize: u64
     while offset < bytes.count
@@ -34,6 +34,7 @@ func drawAccessKeyText(painter: *Painter, position: Math.Rectangle, text: *RichS
             keySize  = eat
             break
         }
+
         offset += eat
     }
 

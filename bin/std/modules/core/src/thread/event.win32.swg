@@ -116,7 +116,7 @@ impl Event
         var remaining = timeoutMilliseconds
         for
         {
-            let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+            let chunk  = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
             let status = waitForSingleObjectStatus(.handle, cast(DWORD, chunk))
             if status.result == WAIT_OBJECT_0 do
                 return true

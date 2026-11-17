@@ -6,8 +6,8 @@ using Swag, Core
 // Image creation and conversion preserve packed storage invariants in every build mode.
 #test
 {
-    let source = Image.create(2, 2, .RGBA8)
-    let sourcePointer = &source
+    let source             = Image.create(2, 2, .RGBA8)
+    let sourcePointer      = &source
     let rejectedConversion = Swag.catchPanic(func|sourcePointer|()
     {
         discard sourcePointer[].convertedTo(.Yuv420)
@@ -39,10 +39,10 @@ using Swag, Core
 #test
 {
     let tooShort: [3] u8 = [1, 2, 3]
-    let tooLong: [5] u8  = [1, 2, 3, 4, 5]
-    let shortPointer = &tooShort
-    let longPointer  = &tooLong
-    let rejectedShort = Swag.catchPanic(func|shortPointer|()
+    let tooLong:  [5] u8 = [1, 2, 3, 4, 5]
+    let shortPointer     = &tooShort
+    let longPointer      = &tooLong
+    let rejectedShort    = Swag.catchPanic(func|shortPointer|()
     {
         discard Image.create(1, 1, .RGBA8, Swag.makeSlice(shortPointer[].buffer, 3))
     })
@@ -52,4 +52,3 @@ using Swag, Core
     })
     Swag.require(rejectedShort.raised and rejectedLong.raised)
 }
-

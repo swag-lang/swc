@@ -64,6 +64,7 @@ func renderAfter(warm: string)->Image
 #test
 {
     let reference = renderAfter("")
+
     // GPU filtering and framebuffer conversion can round antialiased coverage by one byte.
     // Keep the CPU reference exact and allow only that single-level edge rounding on GPU.
     let tolerance = Env.variable("SWAG_TEST_RENDERER") == "cpu" ? 0'u32 : 1'u32

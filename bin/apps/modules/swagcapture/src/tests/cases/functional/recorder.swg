@@ -293,6 +293,7 @@ internal func testEndRecording()
     {
         recorder.videoProducer.error.capture(Swag.err)
     }
+
     Atomic.exchange(&recorder.videoProducer.failed, 1)
 
     recorder.advance()

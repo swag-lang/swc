@@ -11,9 +11,9 @@ using Core, Linux
     Swag.require(Linux.mkdtemp(temporary.storage()) == temporary.buffer)
     defer expect Directory.delete(temporary, recurse: true)
 
-    let hadPath = Linux.getenv("PATH".buffer) != null
-    let hadInterop = Linux.getenv("WSL_INTEROP".buffer) != null
-    let originalPath = Env.variable("PATH")
+    let hadPath         = Linux.getenv("PATH".buffer) != null
+    let hadInterop      = Linux.getenv("WSL_INTEROP".buffer) != null
+    let originalPath    = Env.variable("PATH")
     let originalInterop = Env.variable("WSL_INTEROP")
     defer
     {
@@ -26,8 +26,9 @@ using Core, Linux
         else do
             discard Linux.unsetenv("WSL_INTEROP".buffer)
     }
+
     let pidFile = Path.combine(temporary, "powershell.pid")
-    var python = expect Env.runProcess("which", ["python3"])
+    var python  = expect Env.runProcess("which", ["python3"])
     Swag.require(python.exitCode() == 0)
     var pythonPath = String.from(python.standardOutput())
     pythonPath.trim()
@@ -44,8 +45,8 @@ using Core, Linux
     Swag.require(Linux.setenv("PATH".buffer, temporary.storage(), 1) == 0)
     Swag.require(Linux.setenv("WSL_INTEROP".buffer, temporary.storage(), 1) == 0)
 
-    let start = Time.monotonicMilliseconds()
-    let scale = LinuxDesktop.wslDpiScale()
+    let start   = Time.monotonicMilliseconds()
+    let scale   = LinuxDesktop.wslDpiScale()
     let elapsed = Time.monotonicMilliseconds() - start
     Swag.require(scale == 0, "timed-out WSL DPI probe must use the fallback scale")
     Swag.require(elapsed >= 1000, Format.toString("PowerShell probe returned without waiting: %", elapsed))
@@ -53,7 +54,7 @@ using Core, Linux
 
     var pidText = expect File.readAllText(pidFile)
     pidText.trim()
-    let pid = expect StrConv.toS32(pidText.toString())
+    let pid      = expect StrConv.toS32(pidText.toString())
     let deadline = Time.monotonicMilliseconds() + 2000
     while Linux.kill(pid, 0) == 0 and Time.monotonicMilliseconds() < deadline do
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(10))

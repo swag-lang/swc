@@ -278,7 +278,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let pointerType = #typeof(*s32)
     let arrayType   = #typeof([2] s32)
     var values: Array's32
-    let sliceType = #typeof(values.toSlice())
+    let sliceType   = #typeof(values.toSlice())
 
     Swag.require(Reflection.isNative(#typeof(s32)))
     Swag.require(Reflection.isInteger(#typeof(s32)))

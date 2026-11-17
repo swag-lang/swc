@@ -15,9 +15,9 @@ func expectNear(actual, expected: f32)
 
 #test
 {
-    let view = Math.Matrix4x4.createLookAt({0, 0, 5}, {0, 0, 0}, Math.Vector3.UnitY)
+    let view       = Math.Matrix4x4.createLookAt({0, 0, 5}, {0, 0, 0}, Math.Vector3.UnitY)
     let projection = Math.Matrix4x4.createPerspective(Math.ConstF32.PiBy2, 1, 1, 10)
-    let frustum = Math.Geometry.Frustum3.fromMatrix(view.multiplied(projection))
+    let frustum    = Math.Geometry.Frustum3.fromMatrix(view.multiplied(projection))
     Swag.require(frustum.contains({0, 0, 0}))
     Swag.require(not frustum.contains({0, 0, 5}))
     Swag.require(not frustum.contains({20, 0, 0}))
@@ -55,17 +55,20 @@ func expectNear(actual, expected: f32)
     expectVec3(Math.Quaternion.Identity.rotate({1, 2, 3}), {1, 2, 3})
     expectVec3(Math.Quaternion{0, 0, 0, 0}.normalized().rotate({2, 3, 4}), {2, 3, 4})
     let invalidRotation = Math.Quaternion{Swag.F32.NaN, 0, 0, 1}
-    let safeRotation = invalidRotation.normalized()
+    let safeRotation    = invalidRotation.normalized()
     Swag.require(safeRotation.x == 0 and safeRotation.y == 0 and safeRotation.z == 0 and safeRotation.w == 1)
     Swag.require(Math.isNaN(invalidRotation.length()))
     let infiniteRotation = Math.Quaternion{Swag.F32.Inf, 0, 0, 1}.inverse()
-    Swag.require(infiniteRotation.x == 0 and infiniteRotation.y == 0 and infiniteRotation.z == 0 and infiniteRotation.w == 1)
+    Swag.require(infiniteRotation.x == 0 and
+                 infiniteRotation.y == 0 and
+                 infiniteRotation.z == 0 and
+                 infiniteRotation.w == 1)
 
     let halfTurn = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitY, Math.ConstF32.Pi - 0.01)
-    let middle = Math.Quaternion.slerp(Math.Quaternion.Identity, halfTurn, 0.5)
+    let middle   = Math.Quaternion.slerp(Math.Quaternion.Identity, halfTurn, 0.5)
     expectVec3(middle.rotate(Math.Vector3.UnitZ), Math.Vector3.UnitX, 0.01)
 
-    let first = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2)
+    let first  = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2)
     let second = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitX, Math.ConstF32.PiBy2)
     expectVec3(first.multiply(second).rotate(Math.Vector3.UnitY), {0, 0, 1})
     expectVec3((first * second).rotate(Math.Vector3.UnitY), {0, 0, 1})
@@ -73,7 +76,7 @@ func expectNear(actual, expected: f32)
 
 #test
 {
-    let plane = Math.Geometry.Plane3.fromPointNormal({0, 2, 0}, Math.Vector3.UnitY)
+    let plane         = Math.Geometry.Plane3.fromPointNormal({0, 2, 0}, Math.Vector3.UnitY)
     let throughPoints = Math.Geometry.Plane3.fromPoints({0, 2, 0}, {0, 2, 1}, {1, 2, 0})
     expectVec3(throughPoints.normal, Math.Vector3.UnitY)
     expectNear(throughPoints.distance, 2)
@@ -154,14 +157,16 @@ func expectNear(actual, expected: f32)
     expectNear(sphereExit.distance, 1)
     Swag.require(not Math.Geometry.intersectRaySphere(Math.Geometry.Ray3{{0, 0, -3}, {0, 0, -1}}, {0, 0, 0}, 1).intersects)
 
-    let triangleHit = Math.Geometry.intersectRayTriangle(
-        Math.Geometry.Ray3{{0.25, 0.25, -1}, {0, 0, 1}},
-        {0, 0, 0}, {1, 0, 0}, {0, 1, 0})
+    let triangleHit = Math.Geometry.intersectRayTriangle(Math.Geometry.Ray3{{0.25, 0.25, -1}, {0, 0, 1}},
+                                                         {0, 0, 0},
+                                                         {1, 0, 0},
+                                                         {0, 1, 0})
     Swag.require(triangleHit.intersects)
     expectNear(triangleHit.distance, 1)
     expectVec3(triangleHit.barycentric, {0.5, 0.25, 0.25})
     expectVec3(triangleHit.point, {0.25, 0.25, 0})
-    Swag.require(not Math.Geometry.intersectRayTriangle(
-        Math.Geometry.Ray3{{2, 2, -1}, {0, 0, 1}},
-        {0, 0, 0}, {1, 0, 0}, {0, 1, 0}).intersects)
+    Swag.require(not Math.Geometry.intersectRayTriangle(Math.Geometry.Ray3{{2, 2, -1}, {0, 0, 1}},
+                                                        {0, 0, 0},
+                                                        {1, 0, 0},
+                                                        {0, 1, 0}).intersects)
 }

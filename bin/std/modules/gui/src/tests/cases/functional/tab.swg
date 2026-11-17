@@ -248,9 +248,9 @@ var TabHeadlessSelChangedCount: u32
     TabHeadlessSelChangedCount = 0
     let tab = Tab.create(&host.root, {0, 0, 320, 150})
     tab.sigSelectionChanged += func(_) { TabHeadlessSelChangedCount += 1 }
-    let first = Wnd.create'Wnd(tab)
+    let first  = Wnd.create'Wnd(tab)
     let second = Wnd.create'Wnd(tab)
-    let third = Wnd.create'Wnd(tab)
+    let third  = Wnd.create'Wnd(tab)
     tab.addItem("First", view: first)
     tab.addItem("Second", view: second)
     tab.addItem("Third", view: third)

@@ -18,5 +18,5 @@ enum EncodeChromaMode
 // Configures the planar chroma layout written by the Y4M encoder.
 struct EncodeOptions
 {
-    public chroma = EncodeChromaMode.Yuv444    // Output chroma sampling; 4:4:4 preserves one value per pixel.
+    public chroma = EncodeChromaMode.Yuv444     // Output chroma sampling; 4:4:4 preserves one value per pixel.
 }

@@ -38,8 +38,8 @@ func findTestTableRecord(bytes: *Array'u8, tag: u32)->u64
 
 func buildVerticalFont()->Array'u8
 {
-    var source    = loadFontBytes("arial.ttf")
-    let tableCount = readBigU16(&source, 4)
+    var source       = loadFontBytes("arial.ttf")
+    let tableCount   = readBigU16(&source, 4)
     let directoryEnd = 12'u64 + cast(u64, tableCount) * 16
 
     var result: #returntype
@@ -72,6 +72,7 @@ func buildVerticalFont()->Array'u8
         verticalMetrics.add(cast(u8, topSideBearing >> 8))
         verticalMetrics.add(cast(u8, topSideBearing & 0xFF))
     }
+
     result.add(verticalMetrics.toSlice())
 
     let vheaRecord = directoryEnd
@@ -88,7 +89,7 @@ func buildVerticalFont()->Array'u8
 
     // Make the horizontal advance visibly differ from the vertical one.
     let hmtxRecord = findTestTableRecord(&result, TAG_HMTX)
-    let hmtxOffset  = cast(u64, readBigU32(&result, hmtxRecord + 8))
+    let hmtxOffset = cast(u64, readBigU32(&result, hmtxRecord + 8))
     writeTestU16(&result, hmtxOffset, 600)
     return result
 }
@@ -101,9 +102,9 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
-    let first = unwrap (expect face.getVerticalMetrics(0))
+    let first  = unwrap (expect face.getVerticalMetrics(0))
     let second = unwrap (expect face.getVerticalMetrics(1))
-    let third = unwrap (expect face.getVerticalMetrics(2))
+    let third  = unwrap (expect face.getVerticalMetrics(2))
     let fourth = unwrap (expect face.getVerticalMetrics(3))
     Swag.require(first.advanceHeight == 1000 and first.topSideBearing == 100)
     Swag.require(second.advanceHeight == 900 and second.topSideBearing == 200)
@@ -131,7 +132,7 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
 
 #test
 {
-    var bytes = buildVerticalFont()
+    var bytes      = buildVerticalFont()
     let vmtxRecord = findTestTableRecord(&bytes, TAG_VMTX)
     writeBigU32(&bytes, vmtxRecord + 12, 2)
 

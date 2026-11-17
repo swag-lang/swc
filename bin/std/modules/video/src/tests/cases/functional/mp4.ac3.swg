@@ -26,7 +26,7 @@ using Core, Audio
     })
 
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-ac3.pcm"))
-    let wanted = cast(const [*] s16, reference.storage())
+    let wanted    = cast(const [*] s16, reference.storage())
     Swag.require(decoded.count == sound.sampleFrameCount() * sound.numChannels())
     Swag.require(reference.count / #sizeof(s16) == decoded.count)
 
@@ -36,6 +36,7 @@ using Core, Audio
         let difference = cast(f64, decoded[index]) - cast(f64, wanted[index])
         energy += difference * difference
     }
+
     let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     Swag.require(rms <= 0.012'f64)
 }

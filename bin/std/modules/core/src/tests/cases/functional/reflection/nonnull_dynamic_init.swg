@@ -98,7 +98,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let initializedNewAlias = allocatedAliasValue != null and allocatedAliasValue.value == "fallback"
     Memory.free(cast([*] void?, allocatedAlias), cast(u64, defaultAliasType.sizeof))
 
-    let nestedAliasArrayType        = #typeof([3] CoreNonNullRuntimeDefaultPair)
+    let nestedAliasArrayType = #typeof([3] CoreNonNullRuntimeDefaultPair)
     if not Reflection.canDefaultInit(nestedAliasArrayType) do
         return false
     let allocatedNestedAliasArray   = Memory.new(nestedAliasArrayType)
@@ -108,7 +108,7 @@ func testCoreNonNullDynamicInitialization()->bool
                                       nestedAliasValues[5].value == "fallback"
     Memory.free(cast([*] void?, allocatedNestedAliasArray), cast(u64, nestedAliasArrayType.sizeof))
 
-    let nestedArrayType        = #typeof([3][2] CoreNonNullRuntimeDefault)
+    let nestedArrayType = #typeof([3][2] CoreNonNullRuntimeDefault)
     if not Reflection.canDefaultInit(nestedArrayType) do
         return false
     let allocatedNestedArray   = Memory.new(nestedArrayType)

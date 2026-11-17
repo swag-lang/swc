@@ -172,7 +172,7 @@ func(T) expectNumericOverflow(text: string, initial: T)
     Swag.require(text == "hello")
     Swag.require(textRest == " tail")
 
-    var enabled = false
+    var enabled  = false
     let boolRest = expect StrConv.parseValue(&enabled, #typeof(bool), "True,rest")
     Swag.require(enabled and boolRest == ",rest")
 

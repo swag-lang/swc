@@ -34,7 +34,7 @@ struct Label
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted with the target of the link the user activates.
-        accessKeyTarget: *Wnd? = null     // Same-surface window focused when this label's access key is chosen.
+        accessKeyTarget:  *Wnd? = null     // Same-surface window focused when this label's access key is chosen.
 
         readonly
         {
@@ -54,7 +54,7 @@ struct Label
         }
     }
 
-    letterSpacing: f32
+    letterSpacing:       f32
     localizedTextSource: const *string? = null     // Borrowed catalog field refreshed on language changes.
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
@@ -220,8 +220,7 @@ impl IWnd for Label
                                      (.activeLink < .name.chunks.count and chunk.urlStart == .name.chunks[.activeLink].urlStart and .hasVisibleFocus())
             }
 
-            drawAccessKeyText(painter, posText, &.name, sf, me.accessKey,
-                              .surface?.accessKeysVisible orelse false)
+            drawAccessKeyText(painter, posText, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
         }
     }
 

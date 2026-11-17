@@ -46,11 +46,11 @@ func pictureDisplaySize(width, height: s32, aspectWidth, aspectHeight: u32)->{ w
 #[Swag.NoCopy]
 struct PictureStream
 {
-    avc:       H264.AvcStream
-    hevc:      Hevc.HevcStream
-    mpeg4:     Mpeg4.Mpeg4Stream
-    realvideo: RealVideo.Stream
-    kind:      u32
+    avc:                H264.AvcStream
+    hevc:               Hevc.HevcStream
+    mpeg4:              Mpeg4.Mpeg4Stream
+    realvideo:          RealVideo.Stream
+    kind:               u32
     sampleAspectWidth:  u32 = 1
     sampleAspectHeight: u32 = 1
 }

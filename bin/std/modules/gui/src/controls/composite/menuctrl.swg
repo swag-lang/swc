@@ -82,26 +82,26 @@ public struct MenuCtrl
         }
     }
 
-    paddingSel:              f32 = 4                // Selection-background padding.
-    hotIdx:                  u32 = Swag.U32.Max     // Item currently under the pointer.
-    selectedIdx:             u32 = Swag.U32.Max     // Item selected by keyboard navigation.
-    bar:                     bool                   // Whether this control is a persistent menu bar.
-    endModal:                bool                   // Whether the active modal loop should end.
-    endModalResult:          WndId?                 // Selected command, or `null` when dismissed.
-    ownerMenu:               *MenuCtrl?             // Parent menu for a submenu.
-    subVisible:              *MenuCtrl?             // Currently visible submenu.
-    timer:                   *Timer?                // Delayed submenu-opening timer.
-    dirtyLayout:             bool                   // Whether item bounds need recomputing.
-    paintByFrame:            bool                   // Whether the frame paints an anchored popup.
-    popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
-    popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
-    popupAnchorButton:       *IconButton?           // Icon button identified while its popup is open.
-    popupButtonOpensUp:      bool                   // Whether an anchored menu opens above its button.
-    accessKeyRestoreFocus:   *Wnd? = null           // Focus to restore when an access-key-opened bar menu closes.
-    ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
-    popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
-    widgetUnderPointer:      *Wnd?                  // Hosted child currently receiving pointer movement.
-    widgetPointerPos:        Math.Point             // Last pointer position delivered to the hosted child.
+    paddingSel:              f32   = 4                // Selection-background padding.
+    hotIdx:                  u32   = Swag.U32.Max     // Item currently under the pointer.
+    selectedIdx:             u32   = Swag.U32.Max     // Item selected by keyboard navigation.
+    bar:                     bool                     // Whether this control is a persistent menu bar.
+    endModal:                bool                     // Whether the active modal loop should end.
+    endModalResult:          WndId?                   // Selected command, or `null` when dismissed.
+    ownerMenu:               *MenuCtrl?               // Parent menu for a submenu.
+    subVisible:              *MenuCtrl?               // Currently visible submenu.
+    timer:                   *Timer?                  // Delayed submenu-opening timer.
+    dirtyLayout:             bool                     // Whether item bounds need recomputing.
+    paintByFrame:            bool                     // Whether the frame paints an anchored popup.
+    popupBarItemIdx:         u32   = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
+    popupBarItemSurfaceRect: Math.Rectangle           // Owning menu-bar item bounds in surface coordinates.
+    popupAnchorButton:       *IconButton?             // Icon button identified while its popup is open.
+    popupButtonOpensUp:      bool                     // Whether an anchored menu opens above its button.
+    accessKeyRestoreFocus:   *Wnd? = null             // Focus to restore when an access-key-opened bar menu closes.
+    ignoreNextRelease:       bool                     // Whether to ignore the release that opened the popup.
+    popupHasGlyphs:          bool                     // Whether visible popup entries need the shared glyph column.
+    widgetUnderPointer:      *Wnd?                    // Hosted child currently receiving pointer movement.
+    widgetPointerPos:        Math.Point               // Last pointer position delivered to the hosted child.
 }
 
 public impl IWnd for MenuCtrl
@@ -186,8 +186,7 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
-                              .surface?.accessKeysVisible orelse false)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey, .surface?.accessKeysVisible orelse false)
         }
     }
 
@@ -297,8 +296,7 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
-                              .surface?.accessKeysVisible orelse false)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey, .surface?.accessKeysVisible orelse false)
 
             // Everything standing on the entry's line — the check mark, the glyph, the
             // submenu arrow — is levelled with the wording, not with the row.
@@ -762,8 +760,7 @@ impl MenuCtrl
             icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
-        drawAccessKeyText(painter, labelPos, &i.name, format, i.accessKey,
-                          .surface?.accessKeysVisible orelse false)
+        drawAccessKeyText(painter, labelPos, &i.name, format, i.accessKey, .surface?.accessKeysVisible orelse false)
     }
 
     mtd setEndModal(result: WndId?)
@@ -798,8 +795,12 @@ impl MenuCtrl
             let restore = .accessKeyRestoreFocus
             let surface = .surface
             .accessKeyRestoreFocus = null
-            if restore and surface and surface.containsWindow(restore) and
-               restore.focusPolicy != .None and restore.isEnabled() and restore.isVisible()
+            if restore and
+               surface and
+               surface.containsWindow(restore) and
+               restore.focusPolicy != .None and
+               restore.isEnabled() and
+               restore.isVisible()
             {
                 restore.setFocus()
             }
@@ -1258,8 +1259,10 @@ public impl MenuCtrl
 
         if .bar do
             return
-        if evt.kind == .Character and evt.character >= ' 'rune and
-           not evt.modifiers.has(.Control) and not evt.modifiers.has(.Alt)
+        if evt.kind == .Character and
+           evt.character >= ' 'rune and
+           not evt.modifiers.has(.Control) and
+           not evt.modifiers.has(.Alt)
         {
             let letter = Format.toString("%", evt.character)
             .selectKeyboardLetter(letter.toString())
@@ -1293,14 +1296,14 @@ public impl MenuCtrl
                 let index = owner.hotIdx
                 if index < owner.items.count and owner.items[index]!.popup == me
                 {
-                    let item = unwrap owner.items[index]
+                    let item      = unwrap owner.items[index]
                     let returnKey = item.submenuOpensLeft ? Input.Key.Right : Input.Key.Left
                     if evt.key == returnKey
                     {
                         owner.hideSubVisible()
                         owner.hotIdx      = Swag.U32.Max
                         owner.selectedIdx = index
-                        evt.accepted = true
+                        evt.accepted      = true
                         return
                     }
                 }
@@ -1310,7 +1313,7 @@ public impl MenuCtrl
             // submenuOpensLeft from the configured direction and available room.
             if not .bar and .selectedIdx < .items.count
             {
-                let item = unwrap .items[.selectedIdx]
+                let item    = unwrap .items[.selectedIdx]
                 let openKey = item.submenuOpensLeft ? Input.Key.Left : Input.Key.Right
                 if item.popup != null and evt.key == openKey
                 {
@@ -1380,6 +1383,7 @@ public impl MenuCtrl
                 return false
             match = index
         }
+
         if match == Swag.U64.Max do
             return false
 
@@ -1392,16 +1396,19 @@ public impl MenuCtrl
             .showHotPopup()
             return true
         }
+
         if entry.widget
         {
             entry.widget.setFocus()
             return true
         }
+
         if entry.id
         {
             .setEndModal(entry.id)
             return true
         }
+
         return false
     }
 

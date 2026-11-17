@@ -21,10 +21,10 @@ struct SoftwareAudioConfig
 // average rate but cannot guarantee a bitrate or file size for individual pictures.
 struct SoftwareVideoRateControl
 {
-    public targetBitsPerSecond: u64    // Average compressed video rate in bits per second.
-    public reservoirBits:       u64    // Virtual-buffer capacity used to smooth picture-size changes.
-    public minQp:               u32 = 18    // Lowest base QP; rate-controlled encoding requires 1 through 51.
-    public maxQp:               u32 = 42    // Highest base QP; must be at most 51 and no lower than minQp.
+    public targetBitsPerSecond: u64          // Average compressed video rate in bits per second.
+    public reservoirBits:       u64          // Virtual-buffer capacity used to smooth picture-size changes.
+    public minQp:               u32 = 18     // Lowest base QP; rate-controlled encoding requires 1 through 51.
+    public maxQp:               u32 = 42     // Highest base QP; must be at most 51 and no lower than minQp.
 }
 
 private struct SoftwareAudioTrack
@@ -58,20 +58,20 @@ struct SoftwareRecording
 {
     private
     {
-        writer:         FragmentedWriter
-        muxMutex:       Swag.Mutex
-        video:          H264.Encoder
-        tracks:         Array'SoftwareAudioTrack
-        nv12:           Nv12Frame
-        videoOffset:    u64
-        nextVideoTime:  u64
-        frameCount:     u64
-        repeatedFrames: u64
+        writer:           FragmentedWriter
+        muxMutex:         Swag.Mutex
+        video:            H264.Encoder
+        tracks:           Array'SoftwareAudioTrack
+        nv12:             Nv12Frame
+        videoOffset:      u64
+        nextVideoTime:    u64
+        frameCount:       u64
+        repeatedFrames:   u64
         videoPacketBytes: u64
-        rateControl:    H264.RateControl
-        hasRateControl: bool
-        videoQp:       u32
-        ended:          bool
+        rateControl:      H264.RateControl
+        hasRateControl:   bool
+        videoQp:          u32
+        ended:            bool
     }
 }
 
@@ -128,14 +128,15 @@ impl SoftwareRecording
                                                              config.minQp,
                                                              config.maxQp)
             result.hasRateControl = true
-            result.videoQp = 0
-            result.video = try H264.Encoder.create(width, height, keyInterval, config.minQp, sliceCount)
+            result.videoQp        = 0
+            result.video          = try H264.Encoder.create(width, height, keyInterval, config.minQp, sliceCount)
         }
         else
         {
             result.videoQp = quantizationQp
-            result.video = try H264.Encoder.create(width, height, keyInterval, quantizationQp, sliceCount)
+            result.video   = try H264.Encoder.create(width, height, keyInterval, quantizationQp, sliceCount)
         }
+
         if not audioConfigs.count
         {
             result.writer = try FragmentedWriter.create(path, width, height, videoTimescale, result.video.decoderConfig(), options)
@@ -246,17 +247,19 @@ impl SoftwareRecording
         {
             try .rateControl.validateDuration(slot.duration)
         }
+
         try .nv12.convertFrom(image)
         var packet: EncodedPacket
         if .hasRateControl
         {
             .videoQp = .rateControl.chooseQp(.video.willEncodeKeyFrame(), false)
-            packet = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
+            packet   = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
         }
         else
         {
             packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
         }
+
         if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
             fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
@@ -266,9 +269,10 @@ impl SoftwareRecording
         {
             try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
         }
+
         .videoPacketBytes += packet.bytes.count
-        .frameCount    += 1
-        .nextVideoTime = slot.decodeTime + slot.duration
+        .frameCount       += 1
+        .nextVideoTime    = slot.decodeTime + slot.duration
     }
 
     // Fills one missed capture slot with the last converted picture without reading the screen.
@@ -288,16 +292,18 @@ impl SoftwareRecording
         {
             try .rateControl.validateDuration(slot.duration)
         }
+
         var packet: EncodedPacket
         if .hasRateControl and .video.willEncodeKeyFrame()
         {
             .videoQp = .rateControl.chooseQp(true, false)
-            packet = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
+            packet   = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
         }
         else
         {
             packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
         }
+
         if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
             fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
@@ -307,10 +313,11 @@ impl SoftwareRecording
         {
             try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
         }
+
         .videoPacketBytes += packet.bytes.count
-        .frameCount     += 1
-        .repeatedFrames += 1
-        .nextVideoTime  = slot.decodeTime + slot.duration
+        .frameCount       += 1
+        .repeatedFrames   += 1
+        .nextVideoTime    = slot.decodeTime + slot.duration
     }
 
     // Encodes any number of complete interleaved PCM16 source frames into AAC packets.

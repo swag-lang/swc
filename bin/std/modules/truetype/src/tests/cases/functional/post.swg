@@ -6,8 +6,8 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["CustomGlyph"])
-    let face = expect Face.load(font.toSlice())
+    let font  = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["CustomGlyph"])
+    let face  = expect Face.load(font.toSlice())
     defer face.destroy()
 
     Swag.require(face.glyphIndexByName("A") == 36)
@@ -22,8 +22,8 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat2Font(bytes.toSlice(), 200, 258, 201, 259, ["Repeated", "Repeated"])
-    let face = expect Face.load(font.toSlice())
+    let font  = expect buildPostFormat2Font(bytes.toSlice(), 200, 258, 201, 259, ["Repeated", "Repeated"])
+    let face  = expect Face.load(font.toSlice())
     defer face.destroy()
 
     Swag.require(face.glyphIndexByName("Repeated") == 200)
@@ -35,7 +35,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat2Font(bytes.toSlice(), 200, 258, 201, 259, ["OnlyOne"], true)
+    let font  = expect buildPostFormat2Font(bytes.toSlice(), 200, 258, 201, 259, ["OnlyOne"], true)
     var rejected: Swag.Error
     discard catch Face.load(font.toSlice()) as rejected
     Swag.require(rejected.value() != null)
@@ -45,8 +45,8 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat25Font(bytes.toSlice(), 36, 36)
-    let face = expect Face.load(font.toSlice())
+    let font  = expect buildPostFormat25Font(bytes.toSlice(), 36, 36)
+    let face  = expect Face.load(font.toSlice())
     defer face.destroy()
 
     Swag.require(face.glyphIndexByName("A") == 36)
@@ -57,8 +57,8 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat1Font(bytes.toSlice())
-    let face = expect Face.load(font.toSlice())
+    let font  = expect buildPostFormat1Font(bytes.toSlice())
+    let face  = expect Face.load(font.toSlice())
     defer face.destroy()
 
     Swag.require(face.glyphIndexByName("A") == 36)
@@ -69,8 +69,8 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    let font = expect buildPostFormat3Font(bytes.toSlice())
-    let face = expect Face.load(font.toSlice())
+    let font  = expect buildPostFormat3Font(bytes.toSlice())
+    let face  = expect Face.load(font.toSlice())
     defer face.destroy()
 
     Swag.require(face.glyphIndexByName("A") == 0)
@@ -105,7 +105,7 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    var font = expect buildPostFormat3Font(bytes.toSlice())
+    var font  = expect buildPostFormat3Font(bytes.toSlice())
     truncatePostTable(&font, 11)
     var rejected: Swag.Error
     discard catch Face.load(font.toSlice()) as rejected

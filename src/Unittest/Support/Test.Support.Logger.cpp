@@ -83,7 +83,7 @@ SWC_TEST_BEGIN(Logger_CommandHelpIsPlainAsciiLines)
     bool foundOption = false;
     for (const auto& line : Utf8Helper::splitLines(output))
     {
-        if (line.find("--config-file") != Utf8::npos && line.find("Read options from a config file") != Utf8::npos)
+        if (line.find("--config-file") != Utf8::npos && line.find("Read command-line options from a config file") != Utf8::npos)
             foundOption = true;
     }
     if (!foundOption)

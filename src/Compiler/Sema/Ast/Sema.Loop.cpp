@@ -127,6 +127,41 @@ namespace
         return Result::Error;
     }
 
+    Result concretizeForRangeBounds(Sema& sema, AstNodeRef rangeRef)
+    {
+        const auto& range        = sema.node(rangeRef).cast<AstRangeExpr>();
+        TypeRef     indexTypeRef = TypeRef::invalid();
+        for (const AstNodeRef boundRef : {range.nodeExprDownRef, range.nodeExprUpRef})
+        {
+            if (boundRef.isInvalid())
+                continue;
+
+            SemaNodeView bound = sema.viewNodeTypeConstant(boundRef);
+            if (bound.type()->isIntUnsized())
+            {
+                ConstantRef concreteRef;
+                SWC_RESULT(Cast::concretizeConstant(sema, concreteRef, boundRef, bound.cstRef(), TypeInfo::Sign::Unknown));
+                sema.setConstant(boundRef, concreteRef);
+                bound.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            }
+
+            indexTypeRef = indexTypeRef.isValid() ? sema.typeMgr().promote(indexTypeRef, bound.typeRef(), false) : bound.typeRef();
+        }
+
+        for (const AstNodeRef boundRef : {range.nodeExprDownRef, range.nodeExprUpRef})
+        {
+            if (boundRef.isInvalid())
+                continue;
+
+            SemaNodeView bound = sema.viewNodeTypeConstant(boundRef);
+            SWC_RESULT(Cast::castIfNeeded(sema, bound, indexTypeRef, CastKind::Implicit));
+        }
+
+        // A loop index needs runtime storage, even when both bounds were flexible literals.
+        sema.setType(rangeRef, indexTypeRef);
+        return Result::Continue;
+    }
+
     Result resolveForStmtIndexTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef forRef, const AstForStmt& node)
     {
         outTypeRef = TypeRef::invalid();
@@ -671,12 +706,15 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeBodyRef)
     {
         sema.popEscapeBranch(true);
-        auto& payload = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+        auto& payload             = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
         payload.indexCanBeWritten = loopIndexCanBeWritten(sema, sema.curNodeRef(), nodeBodyRef);
     }
 
     if (childRef == nodeExprRef)
     {
+        if (sema.node(nodeExprRef).is(AstNodeId::RangeExpr) && sema.viewType(nodeExprRef).type()->isIntUnsized())
+            SWC_RESULT(concretizeForRangeBounds(sema, nodeExprRef));
+
         const SemaNodeView view  = sema.viewNodeType(nodeExprRef);
         const bool         named = forStmtNameRef(sema, *this).isValid();
         if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, view))

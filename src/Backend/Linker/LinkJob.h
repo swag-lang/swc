@@ -34,14 +34,14 @@ struct LinkJob
     fs::path          pdbPath; // debug-info sidecar; empty when debug info is disabled
     fs::path          buildDir;
 
-    LinkImage                      image;          // Executable / SharedLibrary
-    std::vector<LinkArchiveMember> archiveMembers; // Static libraries, or prepared ELF link objects
-    std::vector<fs::path>          elfLibraries;   // Ordered static/shared ELF library inputs
-    std::vector<fs::path>          elfSearchDirs;  // Module dependency and foreign-library search
-    Utf8                           elfRuntimeHook; // Scoped definition exported by a shared module
-    bool                           elfStripSymbols = false; // Omit non-loaded static symbols; dynamic symbols stay available.
-    bool                           elfRuntimeSymbols = true; // Emit the non-loaded .swagdbg runtime trace table.
-    LinkDebugInfo                  debugInfo;      // self-contained debug records lowered by prepareLink
+    LinkImage                      image;                     // Executable / SharedLibrary
+    std::vector<LinkArchiveMember> archiveMembers;            // Static libraries, or prepared ELF link objects
+    std::vector<fs::path>          elfLibraries;              // Ordered static/shared ELF library inputs
+    std::vector<fs::path>          elfSearchDirs;             // Module dependency and foreign-library search
+    Utf8                           elfRuntimeHook;            // Scoped definition exported by a shared module
+    bool                           elfStripSymbols   = false; // Omit non-loaded static symbols; dynamic symbols stay available.
+    bool                           elfRuntimeSymbols = true;  // Emit the non-loaded .swagdbg runtime trace table.
+    LinkDebugInfo                  debugInfo;                 // self-contained debug records lowered by prepareLink
 
     // The archive a shared library publishes beside its DLL, holding the very same code one
     // function per member so an executable links only what it reaches. Empty path when the build

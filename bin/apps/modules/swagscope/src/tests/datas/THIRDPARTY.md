@@ -1,5 +1,24 @@
 # Swag Scope fixture sources and licences
 
+## Multilingual text fallback fonts
+
+The narrow comprehensive-text golden supplies these local faces with system-font lookup off.
+Its Arabic fallback is the existing `viewer.ttf` fixture; the two small subsets below cover
+the Japanese, Korean, and smiley characters in `comprehensive.txt`.
+
+- `font-fixture-cjk.otf`: six characters (U+65E5, U+672C, U+8A9E, U+AD6D, U+C5B4,
+  U+D55C) from Noto Sans CJK KR Regular, renamed **Swag Scope Fixture CJK**.
+  Copyright 2014–2021 Adobe. Source: [Noto Sans CJK KR](https://github.com/notofonts/noto-cjk/blob/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf).
+  Retrieved 2026-11-17; subset with FontTools 4.65.0, retaining layout tables and name records.
+  Original SHA-256: `6bcb2a0703aa137e874fc2dffa85f6c21ba9a67fa329e81b8c801663af7e992a`.
+  Subset SHA-256: `190b8aa15ff6f2a1393a1259393b26f60ac65c705c5f2e48b12be429272d1bbb`.
+  License: SIL Open Font License 1.1, reproduced in `font-fixture-cjk-OFL.txt`.
+- `font-fixture-emoji.ttf`: unchanged copy of Gui's `testing/fonts/fallback-emoji.ttf`,
+  the U+1F642 subset of Noto Emoji 3.002 at weight 400. Copyright 2013 Google LLC.
+  SHA-256: `202b3a64e8a7da0ffd9a0ba8b35b671544c24f7cf9aada577bafd14f08390fc5`.
+  License: SIL Open Font License 1.1, reproduced in `font-fixture-emoji-OFL.txt`.
+  Original provenance is recorded in `bin/std/modules/gui/src/tests/datas/fonts/README.md`.
+
 ## Licensed comic pages
 
 `viewer.peppercarrot.ep01.cbz` and `viewer.peppercarrot.ep36.cbz` contain the 3 story pages of

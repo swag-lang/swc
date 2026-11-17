@@ -412,8 +412,8 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(MicroSsa_PhiPlacementSkipsRegistersWithoutFrontierDefinitions)
 {
     constexpr uint32_t nonFrontierRegCount = 32;
-    constexpr MicroReg  joinReg            = MicroReg::virtualIntReg(100);
-    MicroSsaState       ssa;
+    constexpr MicroReg joinReg             = MicroReg::virtualIntReg(100);
+    MicroSsaState      ssa;
 
     MicroBuilder builder(ctx);
     for (uint32_t reg = 0; reg < nonFrontierRegCount; ++reg)
@@ -437,7 +437,7 @@ SWC_TEST_BEGIN(MicroSsa_PhiPlacementSkipsRegistersWithoutFrontierDefinitions)
 
     // Rebuild with fewer tracked registers and no frontier. The prior active register
     // index must remain safe to clear even though the new dense register set is smaller.
-    MicroBuilder linearBuilder(ctx);
+    MicroBuilder       linearBuilder(ctx);
     constexpr MicroReg linearReg = MicroReg::virtualIntReg(0);
     linearBuilder.emitLoadRegImm(linearReg, ApInt(3, 64), MicroOpBits::B64);
     linearBuilder.emitLoadMemReg(MicroReg::intReg(2), 0, linearReg, MicroOpBits::B64);
@@ -448,8 +448,8 @@ SWC_TEST_BEGIN(MicroSsa_PhiPlacementSkipsRegistersWithoutFrontierDefinitions)
 
     // A subsequent frontier build must not see stale definitions from either build.
     MicroBuilder rebuiltBuilder(ctx);
-    const auto rebuiltThen = rebuiltBuilder.createLabel();
-    const auto rebuiltJoin = rebuiltBuilder.createLabel();
+    const auto   rebuiltThen = rebuiltBuilder.createLabel();
+    const auto   rebuiltJoin = rebuiltBuilder.createLabel();
     rebuiltBuilder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, rebuiltThen);
     rebuiltBuilder.emitLoadRegImm(linearReg, ApInt(4, 64), MicroOpBits::B64);
     rebuiltBuilder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, rebuiltJoin);

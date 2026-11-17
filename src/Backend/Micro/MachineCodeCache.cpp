@@ -26,14 +26,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC                = 0x3645444f434d5753; // SWMCODE6
+    constexpr uint64_t K_MAGIC                = 0x3745444f434d5753; // SWMCODE7
     constexpr uint32_t K_CHECKSUM_OFFSET      = 56;
     constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE      = 28;
     constexpr uint32_t K_SOURCE_SIZE          = 12;
     constexpr uint32_t K_MAX_IMAGE_SIZE       = 64 * 1024 * 1024;
     constexpr uint32_t K_GENERATED_CONSTANT   = 1u << 31;
-    constexpr uint32_t K_CONSTANT_HEADER_SIZE = 8;
+    constexpr uint32_t K_CONSTANT_HEADER_SIZE = 12;
 
     void appendString(ByteArray& out, const std::string_view text)
     {
@@ -109,6 +109,7 @@ namespace
         out.appendLe32(ctx.typeMgr().get(function.typeRef()).runtimeHash(ctx));
         out.appendLe32(static_cast<uint32_t>(function.callConvKind()));
         out.appendLe32(function.attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly));
+        out.appendLe32(function.neverReturnsSuccess());
         // The sanitizer consumes release summaries even when the call's IR and
         // signature are unchanged after a callee body edit.
         out.appendLe64(function.freesParamsMask());
@@ -336,6 +337,7 @@ namespace
                 return false;
             bytes.appendLe32(allocation.align);
             bytes.appendLe32(allocation.size);
+            bytes.appendLe32(segment.isInternedString(allocation));
             bytes.append(std::span{segment.ptr<std::byte>(allocation.offset), allocation.size});
             return true;
         }
@@ -344,6 +346,7 @@ namespace
     struct StoredConstant
     {
         uint32_t         alignment = 1;
+        bool             interned  = false;
         std::string_view payload;
         DataSegmentRef   source;
         std::string_view materialized;
@@ -464,6 +467,7 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     identity.appendLe64(K_MAGIC);
     identity.appendLe32(static_cast<uint32_t>(hostTargetOs()));
     builder.backendBuildCfg().appendCacheIdentity(identity);
+    builder.appendWarningPolicyCacheIdentity(identity);
     identity.appendLe32(ctx.compiler().buildCfg().backend.enableExceptions);
     identity.appendLe32(static_cast<uint32_t>(command.targetOs));
     identity.appendLe32(static_cast<uint32_t>(command.targetArch));
@@ -592,10 +596,13 @@ bool MachineCodeCache::read(MachineCode& out) const
         if (bytes.size() - constantCursor < K_CONSTANT_HEADER_SIZE)
             return false;
         const uint32_t alignment = bytes.readLe32(constantCursor), size = bytes.readLe32(constantCursor + 4);
+        const uint32_t interned = bytes.readLe32(constantCursor + 8);
         constantCursor += K_CONSTANT_HEADER_SIZE;
         if (!std::has_single_bit(alignment) || alignment > 4096 || !size || size > bytes.size() - constantCursor)
             return false;
-        generated.push_back({.alignment = alignment, .payload = {reinterpret_cast<const char*>(bytes.data() + constantCursor), size}});
+        if (interned > 1 || (interned && (alignment != 1 || bytes.data()[constantCursor + size - 1] != std::byte{})))
+            return false;
+        generated.push_back({.alignment = alignment, .interned = interned != 0, .payload = {reinterpret_cast<const char*>(bytes.data() + constantCursor), size}});
         constantCursor += size;
     }
     if (constantCursor != bytes.size())
@@ -636,8 +643,15 @@ bool MachineCodeCache::read(MachineCode& out) const
             StoredConstant& constant = generated[targetIndex];
             if (delta < 0 || static_cast<uint64_t>(delta) >= constant.payload.size() || relocation.constantCopySize > constant.payload.size() - delta || (relocation.constantCopySize && relocation.form != MicroRelocation::Form::Relative32))
                 return false;
-            if (constant.materialized.empty())
-                constant.materialized = ctx_->cstMgr().addPayloadBuffer(constant.payload, &constant.source, constant.alignment);
+            if (!constant.source.isValid())
+            {
+                // Scalar literals share interned storage across functions before caching.
+                // Preserve that identity when mixing restored and freshly generated code.
+                if (constant.interned)
+                    constant.materialized = ctx_->cstMgr().addPayloadBuffer(constant.payload.substr(0, constant.payload.size() - 1), &constant.source);
+                else
+                    constant.materialized = ctx_->cstMgr().addPayloadBuffer(constant.payload, &constant.source, constant.alignment);
+            }
             relocation.kind           = MicroRelocation::Kind::ConstantAddress;
             relocation.targetAddress  = reinterpret_cast<uint64_t>(constant.materialized.data()) + delta;
             relocation.constantShard  = constant.source.shardIndex;

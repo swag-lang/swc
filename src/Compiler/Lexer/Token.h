@@ -32,14 +32,14 @@ enum class TokenIdKindE : uint32_t
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
     // with the numeric operators, and every site that accepts it handles it on its own.
-    OpArithmetic      = 1 << 14, // + - * / %
-    OpBitwise         = 1 << 15, // & | ^ << >>
-    OpEquality        = 1 << 16, // == !=
-    OpOrdering        = 1 << 17, // < <= > >= <=>
-    OpLogical         = 1 << 18, // and or && ||
-    OpAssign          = 1 << 19, // = and every compound assignment
-    StorageModifier   = 1 << 20, // late tls global
-    PresenceAssertion = 1 << 22, // unwrap and the asserted-access postfix !
+    OpArithmetic               = 1 << 14, // + - * / %
+    OpBitwise                  = 1 << 15, // & | ^ << >>
+    OpEquality                 = 1 << 16, // == !=
+    OpOrdering                 = 1 << 17, // < <= > >= <=>
+    OpLogical                  = 1 << 18, // and or && ||
+    OpAssign                   = 1 << 19, // = and every compound assignment
+    StorageModifier            = 1 << 20, // late tls global
+    PresenceAssertion          = 1 << 22, // unwrap and the asserted-access postfix !
     NativeArtifactCompilerFunc = 1 << 23,
     SubTypeStart               = 1 << 24, // Non-type starters accepted after an array prefix.
     QuoteOperatorPredecessor   = 1 << 25, // Identifiers, numeric literals, and strings before an apostrophe suffix.

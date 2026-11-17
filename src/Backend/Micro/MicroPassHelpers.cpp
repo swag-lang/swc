@@ -80,13 +80,13 @@ bool MicroPassHelpers::isRegisterLiveAfterInstruction(const MicroPassContext& co
 
 namespace
 {
-    template <typename UseDefAt>
+    template<typename UseDefAt>
     MicroPassHelpers::FramePrivacy analyzeFramePrivacyImpl(const MicroPassContext& context, const std::span<const MicroInstrRef> refs, const UseDefAt& useDefAt, const FlatKeyMap<MicroPassHelpers::RegDefinitionSummary>& definitions, const bool collectEscapes)
     {
         MicroPassHelpers::FramePrivacy result;
-        const MicroReg stackPointer = CallConv::get(context.callConvKind).stackPointer;
-        const auto&    storage      = *context.instructions;
-        const auto&    operands     = *context.operands;
+        const MicroReg                 stackPointer = CallConv::get(context.callConvKind).stackPointer;
+        const auto&                    storage      = *context.instructions;
+        const auto&                    operands     = *context.operands;
         if (!stackPointer.isValid())
         {
             result.framePrivate = false;
@@ -103,9 +103,9 @@ namespace
             changed = false;
             for (uint32_t i = 0; i < refs.size(); ++i)
             {
-                const MicroInstr*           inst   = storage.ptr(refs[i]);
-                const auto*                 ops    = inst ? inst->ops(operands) : nullptr;
-                const MicroInstrUseDef&     useDef = useDefAt(i);
+                const MicroInstr*       inst   = storage.ptr(refs[i]);
+                const auto*             ops    = inst ? inst->ops(operands) : nullptr;
+                const MicroInstrUseDef& useDef = useDefAt(i);
                 if (!inst || !propagatesAddress(*inst, ops) || useDef.defs.size() != 1)
                     continue;
                 const MicroReg dst = useDef.defs[0];

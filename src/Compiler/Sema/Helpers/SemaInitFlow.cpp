@@ -171,6 +171,10 @@ namespace
             if (exit == FlowExit::Normal)
                 checkFullInitExit(state);
 
+            // A failing call returns to its error handler, unlike NoReturn. Only remove
+            // its success edge when no explicit return or fallthrough can reach it.
+            sym_->setInferredNeverReturnsSuccess(sym_->isFallible() && !aborted_ && !hadError_ && !mayReturnSuccess_ && !unmodelledExit_ && exit == FlowExit::Jumped);
+
             if (!aborted_)
             {
                 for (const TrackedVar& var : vars_)
@@ -253,8 +257,10 @@ namespace
         uint32_t nodeCount_  = 0;
         uint32_t errorCount_ = 0;
 
-        bool aborted_  = false;
-        bool hadError_ = false;
+        bool aborted_          = false;
+        bool hadError_         = false;
+        bool mayReturnSuccess_ = false;
+        bool unmodelledExit_   = false;
 
         int32_t fullInitReceiverIndex_ = -1;
 
@@ -1274,7 +1280,13 @@ namespace
 
             const bool inlineRoot = inlinePayload != nullptr;
             if (inlineRoot)
+            {
+                // Macro/mixin returns can target their caller. Their access walk does
+                // not establish which function a terminal exit leaves.
+                if (!inlinePayload->sourceFunction || inlinePayload->sourceFunction->attributes().hasMacroOrMixin())
+                    unmodelledExit_ = true;
                 inlineDepth_++;
+            }
             const bool lateExpansion = enterInlineLateGlobals(state, inlinePayload);
 
             activeRefs_.push_back(ref);
@@ -1432,6 +1444,7 @@ namespace
                     // expansion: the caller's locals are not dropped.
                     if (inlineDepth_ == 0)
                     {
+                        mayReturnSuccess_ = true;
                         checkDropsOnExit(state, ref, 0);
                         noteReturnValue(returnStmt.nodeExprRef);
                     }
@@ -1631,6 +1644,8 @@ namespace
 
                 case AstNodeId::OptionalChainExpr:
                 {
+                    // A skipped receiver can bypass the child exit.
+                    unmodelledExit_ = true;
                     conditionalDepth_++;
                     const FlowExit exit = walkChildren(node, state);
                     conditionalDepth_--;
@@ -1651,6 +1666,9 @@ namespace
                 case AstNodeId::CompilerSwitch:
                 case AstNodeId::CompilerSwitchCase:
                 {
+                    // This walk tracks accesses, not the runtime exits of generated code
+                    // or named scopes. Do not derive a callable terminal contract from it.
+                    unmodelledExit_ = true;
                     compileTimeDepth_++;
                     const FlowExit exit = walkChildren(node, state);
                     compileTimeDepth_--;
@@ -2429,7 +2447,7 @@ namespace
 
 bool SemaInitFlow::wantsCheck(Sema& sema, const SymbolFunction& sym)
 {
-    if (sema.hasInitFlowCandidates())
+    if (sema.hasInitFlowCandidates() || sym.isFallible())
         return true;
 
     if (sym.specOpKind() == SpecOpKind::OpSet || sym.specOpKind() == SpecOpKind::OpSetLiteral)

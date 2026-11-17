@@ -23,7 +23,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 formatTestStageStat(const TaskContext& ctx, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
+    Utf8 formatTestStageStat(const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> statParts;
         ScopedTimedLog::appendTestStats(statParts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
@@ -677,7 +677,7 @@ namespace
         for (const SymbolFunction* function : testFunctions)
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
-            const bool testPassed = runJitTestFunction(ctx, *function, &abandoned);
+            const bool testPassed   = runJitTestFunction(ctx, *function, &abandoned);
             if (!testPassed)
             {
                 failedTestCount++;
@@ -807,7 +807,7 @@ namespace Command
         }
 
         if (stage)
-            stage->setStat(formatTestStageStat(ctx, stage->delta()));
+            stage->setStat(formatTestStageStat(stage->delta()));
 
         if (!testPassed && !Stats::hasError())
         {

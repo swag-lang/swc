@@ -37,6 +37,7 @@ using Core, Gui, Pixel, Audio
     window.toggleInformation()
     completeInformation(&host, window)
     window.information.entry.modified = "2026-01-01 12:00"
+    window.information.location       = "fixtures"
     window.information.describe(window.infoSheet)
     window.infoSheet.selectPage(1)
     window.layoutFloatingParts()
@@ -62,6 +63,8 @@ using Core, Gui, Pixel, Audio
     let viewport = host.surface.position
     window.setFullScreen(true)
     host.surface.showNormalAt(viewport)
+    Swag.require(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.appearance == .Light)
+    Swag.require(host.theme.colors.ground == ThemeColors.papierPalette().ground)
     window.applyLayout()
     window.revealViewerBar()
     window.layoutFloatingParts()

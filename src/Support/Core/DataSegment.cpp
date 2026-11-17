@@ -344,7 +344,7 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
     const std::shared_lock lock(relocationsMutex_);
 
     const RelocationOffsetProjection projection{.relocations = &relocations_};
-    const auto appendRange = [&](const std::vector<uint32_t>& index, auto it) {
+    const auto                       appendRange = [&](const std::vector<uint32_t>& index, auto it) {
         for (; it != index.end() && relocations_[*it].offset - offset < size; ++it)
             outRelocations.push_back(relocations_[*it]);
     };
@@ -355,8 +355,8 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
         return;
     }
 
-    auto       indexed     = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
-    auto       tail        = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
+    auto       indexed              = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    auto       tail                 = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
     const bool tailRangeEmpty       = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
     const bool rangesAlreadyOrdered = indexed == relocationsByOffset_.end() || tailRangeEmpty ||
                                       relocations_[relocationsByOffset_.back()].offset <= relocations_[*tail].offset;
@@ -501,7 +501,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         // Large allocations end the paged prefix, but small values that follow still share
         // storage. One OS allocation per value would round each tiny constant to a 4 KiB page.
         const uint32_t storageAlignment = std::max(align, static_cast<uint32_t>(alignof(std::max_align_t)));
-        LargeBlock block;
+        LargeBlock     block;
         block.offset   = Math::alignUpU32(currentExtentLocked(), storageAlignment);
         block.size     = size;
         block.capacity = std::max(size, store_.pageSize());

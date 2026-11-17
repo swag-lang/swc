@@ -1531,8 +1531,8 @@ namespace
         return nullptr;
     }
 
-    const SymbolFunction* knownInterfaceMethodTarget(Sema&                       sema,
-                                                     const SymbolFunction&        interfaceMethod,
+    const SymbolFunction* knownInterfaceMethodTarget(Sema&                                    sema,
+                                                     const SymbolFunction&                    interfaceMethod,
                                                      const SmallVector<ResolvedCallArgument>& args)
     {
         for (const ResolvedCallArgument& arg : args)
@@ -1555,9 +1555,9 @@ namespace
                 if (!candidate || candidate->idRef() != interfaceMethod.idRef())
                     continue;
 
-                const auto& candidateParams = candidate->parameters();
-                const auto& selectedParams  = interfaceMethod.parameters();
-                const size_t offset = selectedParams.size() == candidateParams.size() + 1 ? 1 : 0;
+                const auto&  candidateParams = candidate->parameters();
+                const auto&  selectedParams  = interfaceMethod.parameters();
+                const size_t offset          = selectedParams.size() == candidateParams.size() + 1 ? 1 : 0;
                 if (selectedParams.size() != candidateParams.size() + offset ||
                     candidate->returnTypeRef() != interfaceMethod.returnTypeRef())
                     continue;
@@ -2294,8 +2294,8 @@ namespace
         if (!fn)
             return false;
 
-        const SymbolFunction* summaryFn          = fn;
-        size_t                summaryParamOffset = 0;
+        const SymbolFunction*             summaryFn          = fn;
+        size_t                            summaryParamOffset = 0;
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(resolvedRef, args);
         if (const SymbolFunction* target = knownInterfaceMethodTarget(sema, *fn, args))
@@ -2344,8 +2344,8 @@ namespace
         size_t paramIndex = 0;
         for (const ResolvedCallArgument& arg : args)
         {
-            size_t thisParam = 0;
-            const SymbolVariable* param = nullptr;
+            size_t                thisParam = 0;
+            const SymbolVariable* param     = nullptr;
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
             {
                 // A known concrete target has a receiver parameter that the interface

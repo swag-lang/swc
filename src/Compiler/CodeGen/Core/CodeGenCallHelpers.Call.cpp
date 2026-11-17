@@ -1648,7 +1648,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     if (calleePayload)
     {
-        const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
+        const ScopedDebugSource debugSource(builder, *calleePayload);
         CodeGenNodePayload      callablePayload = *calleePayload;
         TypeRef                 callableTypeRef = CodeGenExprView::payloadTypeRef(codeGen, callablePayload, calleeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);
@@ -1746,7 +1746,12 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
 
     if (calledFunction->isFallible())
-        SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
+    {
+        if (!callTargetReg.isValid() && calledFunction->neverReturnsSuccess())
+            SWC_RESULT(emitFallibleFailureJump(codeGen));
+        else
+            SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
+    }
 
     // Only the success edge owns a result that can be destroyed.
     const bool ownsTemporaryResult = needsResultStorage && directVarInitStorageSym == nullptr && !usesDirectReturnStorage;

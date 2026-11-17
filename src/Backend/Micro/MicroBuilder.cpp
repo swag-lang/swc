@@ -71,12 +71,63 @@ std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroI
 
     // Every instruction keeps its source for sanity diagnostics and debug tables.
     inst->debugSourceInfo = currentDebugSourceInfo_;
+    if (currentSourceWarningPolicy_)
+    {
+        if (!sourceWarningPolicies_)
+            sourceWarningPolicies_.emplace();
+        sourceWarningPolicies_->insert_or_assign(instRef, currentSourceWarningPolicy_);
+    }
     return {instRef, *(inst)};
 }
 
 MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperands)
 {
     return addInstructionWithRef(op, numOperands).second;
+}
+
+void MicroBuilder::setCurrentSourceWarningPolicy(const WarningPolicy* policy)
+{
+    currentSourceWarningPolicy_ = policy && !policy->empty() ? policy : nullptr;
+}
+
+const WarningPolicy* MicroBuilder::sourceWarningPolicy(const MicroInstrRef instruction) const
+{
+    if (!sourceWarningPolicies_)
+        return nullptr;
+    const auto found = sourceWarningPolicies_->find(instruction);
+    return found == sourceWarningPolicies_->end() ? nullptr : found->second;
+}
+
+void MicroBuilder::inheritSourceWarningPolicy(const MicroInstrRef instruction, const MicroInstrRef source)
+{
+    if (const WarningPolicy* policy = sourceWarningPolicy(source))
+        sourceWarningPolicies_->insert_or_assign(instruction, policy);
+}
+
+void MicroBuilder::appendWarningPolicyCacheIdentity(ByteArray& identity) const
+{
+    ctx().cmdLine().warningPolicy.appendCacheIdentity(identity);
+    ctx().compiler().warningPolicy().appendCacheIdentity(identity);
+    if (!sourceWarningPolicies_)
+    {
+        identity.appendLe32(INVALID_REF);
+        return;
+    }
+    const WarningPolicy* previous = nullptr;
+    uint32_t             index    = 0;
+    for (auto it = instructions_.view().begin(); it != instructions_.view().end(); ++it, ++index)
+    {
+        const WarningPolicy* policy = sourceWarningPolicy(it.current);
+        if (policy == previous)
+            continue;
+        identity.appendLe32(index);
+        if (policy)
+            policy->appendCacheIdentity(identity);
+        else
+            WarningPolicy{}.appendCacheIdentity(identity);
+        previous = policy;
+    }
+    identity.appendLe32(INVALID_REF);
 }
 
 void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef)
@@ -1250,9 +1301,11 @@ uint32_t MicroBuilder::printSourceLine() const
 void MicroBuilder::releaseMemory()
 {
     // Explicit empty containers release storage; initializer-list assignment retains it.
-    instructions_                    = {};
-    operands_                        = {};
-    currentDebugSourceInfo_          = {};
+    instructions_               = {};
+    operands_                   = {};
+    currentDebugSourceInfo_     = {};
+    currentSourceWarningPolicy_ = nullptr;
+    sourceWarningPolicies_.reset();
     printSymbol_                     = nullptr;
     usesIntReturnRegOnRet_           = true;
     usesFloatReturnRegOnRet_         = true;

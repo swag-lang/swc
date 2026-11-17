@@ -31,7 +31,7 @@ namespace
         if (safe)
         {
             const mode_t mode = info.st_mode & 07777;
-            safe = requirePrivate ? mode == S_IRWXU : !(mode & (S_IWGRP | S_IWOTH));
+            safe              = requirePrivate ? mode == S_IRWXU : !(mode & (S_IWGRP | S_IWOTH));
         }
         if (!safe)
         {
@@ -43,10 +43,10 @@ namespace
 
     fs::path compilerHome(const uid_t uid)
     {
-        const long recommendedSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+        const long        recommendedSize = sysconf(_SC_GETPW_R_SIZE_MAX);
         std::vector<char> buffer(static_cast<size_t>(recommendedSize > 0 ? recommendedSize : 16384));
-        struct passwd account{};
-        struct passwd* result = nullptr;
+        struct passwd     account{};
+        struct passwd*    result = nullptr;
         if (getpwuid_r(uid, &account, buffer.data(), buffer.size(), &result) != 0 || !result || !account.pw_dir || !*account.pw_dir)
             return {};
         return account.pw_dir;
@@ -106,8 +106,8 @@ namespace
 
     fs::path createHomeCompilerCacheRoot(const uid_t uid)
     {
-        const fs::path home = compilerHome(uid);
-        const int       homeDirectory = openOwnedHome(home, uid);
+        const fs::path home          = compilerHome(uid);
+        const int      homeDirectory = openOwnedHome(home, uid);
         if (homeDirectory < 0)
             return {};
 
@@ -140,7 +140,7 @@ namespace
                 continue;
             }
 
-            const std::string name = std::format("swag-{}", static_cast<uint64_t>(uid));
+            const std::string name      = std::format("swag-{}", static_cast<uint64_t>(uid));
             const int         directory = openOwnedDirectoryAt(parent, name.c_str(), uid, true);
             if (directory >= 0)
             {

@@ -22,7 +22,7 @@ namespace Command
 {
     namespace
     {
-        Utf8 formatCommandStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
+        Utf8 formatCommandStageStat(const CompilerInstance& compiler, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
         {
             std::vector<Utf8> statParts;
             if (deltaSnapshot.numFiles)
@@ -288,7 +288,7 @@ namespace Command
         }
 
         if (stage)
-            stage->setStat(formatCommandStageStat(ctx, compiler, stage->delta()));
+            stage->setStat(formatCommandStageStat(compiler, stage->delta()));
     }
 
     void run(CompilerInstance& compiler)
@@ -321,7 +321,7 @@ namespace Command
         }
 
         if (stage)
-            stage->setStat(formatCommandStageStat(ctx, compiler, stage->delta()));
+            stage->setStat(formatCommandStageStat(compiler, stage->delta()));
     }
 }
 

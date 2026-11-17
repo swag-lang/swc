@@ -1,7 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <utility>
-#include <vector>
 #include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -16,11 +13,15 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
 class Symbol;
 class Encoder;
+class WarningPolicy;
 class MicroPassManager;
 struct MicroPassContext;
 
@@ -64,6 +65,11 @@ public:
     void                            setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
     const SourceCodeRef&            currentDebugSourceCodeRef() const { return currentDebugSourceInfo_.sourceCodeRef; }
     void                            setCurrentDebugNoStep(bool value);
+    void                            setCurrentSourceWarningPolicy(const WarningPolicy* policy);
+    const WarningPolicy*            currentSourceWarningPolicy() const { return currentSourceWarningPolicy_; }
+    const WarningPolicy*            sourceWarningPolicy(MicroInstrRef instruction) const;
+    void                            inheritSourceWarningPolicy(MicroInstrRef instruction, MicroInstrRef source);
+    void                            appendWarningPolicyCacheIdentity(ByteArray& identity) const;
     bool                            currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
     void                            setCurrentSanityMaskOverride(uint16_t mask, bool enabled);
     void                            setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
@@ -103,14 +109,14 @@ public:
         std::ranges::sort(result);
         return result;
     }
-    const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const;
-    void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
-    void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
-    void                                                       mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
-    bool                                                       isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
-    bool                                                       isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
-    void                                                       preserveVirtualCopy(MicroReg virtualReg);
-    bool                                                       shouldPreserveVirtualCopy(MicroReg virtualReg) const;
+    const std::unordered_set<MicroReg>& preservedVirtualCopyRegs() const;
+    void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
+    void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
+    void                                mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
+    bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
+    bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
+    void                                preserveVirtualCopy(MicroReg virtualReg);
+    bool                                shouldPreserveVirtualCopy(MicroReg virtualReg) const;
     // A register that holds the address of a value-handle parameter the ABI
     // passes by reference. The callee takes the handle as an immutable value,
     // so what the address names does not change while the function runs.
@@ -208,20 +214,23 @@ private:
     std::pair<MicroInstrRef, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
     MicroInstr&                           addInstruction(MicroInstrOpcode op, uint8_t numOperands);
 
-    TaskContext*                 ctx_ = nullptr;
-    MicroStorage                 instructions_;
-    MicroOperandStorage          operands_;
-    MicroBuilderFlags            flags_ = MicroBuilderFlagsE::Zero;
-    DebugSourceInfo              currentDebugSourceInfo_;
-    const Symbol*                printSymbol_             = nullptr;
-    bool                         usesIntReturnRegOnRet_   = true;
-    bool                         usesFloatReturnRegOnRet_ = true;
-    uint64_t                     extraReturnRegsOnRet_    = 0;
-    std::vector<Utf8>            printPassOptions_;
-    Runtime::BuildCfgBackend     backendBuildCfg_{};
-    std::vector<MicroInstrRef>   labels_;
-    std::vector<MicroRelocation> relocations_;
-    bool                         hasRelocationsToPrune_ = false;
+    TaskContext*         ctx_ = nullptr;
+    MicroStorage         instructions_;
+    MicroOperandStorage  operands_;
+    MicroBuilderFlags    flags_ = MicroBuilderFlagsE::Zero;
+    DebugSourceInfo      currentDebugSourceInfo_;
+    const WarningPolicy* currentSourceWarningPolicy_ = nullptr;
+    // Sanity consumes this sparse provenance before any optimizing rewrite runs.
+    std::optional<std::unordered_map<MicroInstrRef, const WarningPolicy*>> sourceWarningPolicies_;
+    const Symbol*                                                          printSymbol_             = nullptr;
+    bool                                                                   usesIntReturnRegOnRet_   = true;
+    bool                                                                   usesFloatReturnRegOnRet_ = true;
+    uint64_t                                                               extraReturnRegsOnRet_    = 0;
+    std::vector<Utf8>                                                      printPassOptions_;
+    Runtime::BuildCfgBackend                                               backendBuildCfg_{};
+    std::vector<MicroInstrRef>                                             labels_;
+    std::vector<MicroRelocation>                                           relocations_;
+    bool                                                                   hasRelocationsToPrune_ = false;
     // A builder is made for every function lowered, and an empty node-based table still
     // allocates: each of these exists once something is recorded in it.
     std::optional<std::unordered_map<MicroReg, SmallVector<MicroReg>>> virtualRegForbiddenPhysRegs_;

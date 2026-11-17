@@ -112,18 +112,10 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 ### app.scope.005 — Film matching needs correction and broader coverage
 
-- Evidence: Explorer automatically looks up films on Wikipedia and Wikidata without credentials,
-  conservatively matches titles and years, shows available credits and IMDb ratings, and uses local
-  previews when a result is unavailable. Cached results expire after 120 days.
-- Decision (2026-10-28): real posters and synopses come first from the Apple iTunes Search API,
-  which needs no key (entity `movie`; the 100 px artwork URL scales to a poster size); Wikipedia and
-  Wikidata stay for direction, cast and the IMDb rating. [Apple documents](https://performance-partners.apple.com/search-api)
-  an approximate limit of 20 searches per minute, so requests are spaced and cached. TMDB (key
-  required, attribution in About, cache under six months) is the later option for series and better
-  coverage.
-- Next: query iTunes for posters and synopses, keep the Wikipedia/Wikidata credits, offer a
-  searchable list of candidates and cover TV series separately
-  from films, retaining source attribution, privacy, cancellation and bounded requests.
+- Evidence: film lookup tries TMDB first, then Apple, then Wikipedia/Wikidata; automatic
+  provider fallback does not provide an in-application candidate correction workflow.
+- Next: offer a searchable list of candidates and cover TV series separately from films,
+  retaining source attribution, privacy, cancellation and bounded requests.
 - Done when: users can review candidate matches in the application and correct one without
   looking up an ID elsewhere; series identification remains distinct from film matching.
 - Related: app.scope.004, std.core.001, std.core.003, std.core.005, std.core.006

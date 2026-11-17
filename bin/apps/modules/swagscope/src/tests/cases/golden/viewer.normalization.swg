@@ -8,12 +8,21 @@ using Core, Gui, Pixel
 #test
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth)
+
+    // Pixel owns these shared faces until module shutdown; the host copies their pointer list.
+    let cjk    = expect TypeFace.create("scope-fixture-cjk", #include("../../datas/font-fixture-cjk.otf"))
+    let arabic = expect TypeFace.create("scope-fixture-arabic", #include("../../datas/viewer.ttf"))
+    let emoji  = expect TypeFace.create("scope-fixture-emoji", #include("../../datas/font-fixture-emoji.ttf"))
+    let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth, fallbackFaces: [cjk, arabic, emoji])
+    let font   = host.theme.createDefaultFont(16)
+    for c in [cast(rune, 0xD55C), 0xAD6D, 0xC5B4, 0x0627, 0x0644, 0x0639, 0x1F642] do
+        Swag.require(font.resolveRune(c).glyphIndex(c) != 0, "the multilingual fixture needs its own glyphs")
 
     window.toggleInformation()
     completeInformation(&host, window)
     window.information.entry.modified = "2026-01-01 12:00"
-    window.refreshInformation()
+    window.information.location       = "fixtures"
+    window.information.describe(window.infoSheet)
     window.showSearch()
     window.applyLayout()
     Swag.require(window.searchBox.position.width >= 120)

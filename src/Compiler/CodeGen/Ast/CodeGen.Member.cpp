@@ -225,7 +225,7 @@ namespace
         const TypeRef             memberTypeRef = symVar.typeRef();
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
-        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
+        const ScopedDebugSource   debugSource(builder, leftPayload);
 
         SmallVector<StructUsingPathStep> usingPath;
         if (leftTypeRef.isValid())
@@ -316,7 +316,7 @@ namespace
 
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
         MicroBuilder&             builder = codeGen.builder();
-        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
+        const ScopedDebugSource   debugSource(builder, leftPayload);
         const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftType, leftPayload);
         builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
         return Result::Continue;
@@ -326,7 +326,7 @@ namespace
     {
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
-        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
+        const ScopedDebugSource   debugSource(builder, leftPayload);
 
         // Prefer the method selected on the enclosing call: the right identifier
         // can still name the first homonym of an overloaded '#fwd' method.
@@ -458,7 +458,7 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
 
     const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
     const TypeRef             leftTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, resolvedLeftRef);
-    const ScopedDebugSource   debugSource(codeGen.builder(), leftPayload.sourceCodeRef);
+    const ScopedDebugSource   debugSource(codeGen.builder(), leftPayload);
     CodeGenCompareHelpers::emitConditionFalseJump(codeGen, leftPayload, leftTypeRef, chainState->falseLabel);
     return Result::Continue;
 }

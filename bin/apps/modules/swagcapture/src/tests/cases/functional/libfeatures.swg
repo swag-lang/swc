@@ -110,12 +110,36 @@ using Swag, Core
     lib.updateFolderTabs()
     Swag.require(countOf(lib, sub) == "1")
 
-    // A count the folder has not outdated is reused as it is.
+    // The filesystem may publish the directory write time after the first scan. A reused count
+    // is valid only when the timestamp and library revision still match.
+    var previousWritten: DateTime
+    var previousRevision: u64
+    var hadCached = false
+    for &cached in lib.folderCounts where cached.folder == sub
+    {
+        previousWritten  = cached.written
+        previousRevision = cached.revision
+        hadCached        = true
+        cached.count = 7
+    }
+    Swag.require(hadCached)
+    lib.updateFolderTabs()
+    var stillCurrent = false
+    for cached in lib.folderCounts where cached.folder == sub do
+        stillCurrent = cached.written == previousWritten and cached.revision == previousRevision
+    Swag.require(countOf(lib, sub) == (stillCurrent ? "7" : "1"))
+
+    // An outdated timestamp must recount even if the cached number looks valid.
+    for &cached in lib.folderCounts where cached.folder == sub
+    {
+        cached.written = {}
+        cached.count   = 7
+    }
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "1")
+
     for &cached in lib.folderCounts where cached.folder == sub do
         cached.count = 7
-    lib.updateFolderTabs()
-    Swag.require(countOf(lib, sub) == "7")
-
     g_Library.revision += 1
     lib.updateFolderTabs()
     Swag.require(countOf(lib, sub) == "1")

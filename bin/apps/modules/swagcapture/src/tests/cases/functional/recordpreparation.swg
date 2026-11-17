@@ -48,7 +48,9 @@ using Swag, Core, Gui
     #static if #os == Swag.TargetOs.Windows do
         Swag.require(hud.prepOptions.count == 4)
     else do
-        Swag.require(hud.prepOptions.count == 3 and not hud.prepOptions[2].isEnabled())
+        Swag.require(hud.prepOptions.count == 3 and
+                     not hud.prepOptions[2].isEnabled() and
+                     hud.prepOptions[2].name == appStrings().ui_AimSoundUnavailable)
     let options = &f.main.captureOptions
     Swag.require(options.recordVideoQuality == .Balanced)
 
@@ -82,6 +84,8 @@ using Swag, Core, Gui
     Swag.require(options.captureCursor != before[0] and options.recordCountdown != before[1])
     #static if #os == Swag.TargetOs.Windows do
         Swag.require(options.recordMicrophone != before[2] and options.recordSystemSound != before[3])
+    else do
+        Swag.require(options.recordMicrophone == before[2] and options.recordSystemSound == before[3])
     record.sigPressed.call(record)
     Swag.require(recorder.recordRequested)
 

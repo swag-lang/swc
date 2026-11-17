@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Report/WarningPolicy.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -12,6 +13,19 @@ namespace
     {
         if (decision.has_value())
             level = decision.value();
+    }
+}
+
+void WarningPolicy::appendCacheIdentity(ByteArray& identity) const
+{
+    identity.appendLe32(blanketLevel_ ? static_cast<uint32_t>(*blanketLevel_) : UINT32_MAX);
+    auto entries = levels_;
+    std::ranges::sort(entries, {}, &Entry::id);
+    identity.appendLe32(static_cast<uint32_t>(entries.size()));
+    for (const Entry& entry : entries)
+    {
+        identity.appendLe32(static_cast<uint32_t>(entry.id));
+        identity.appendLe32(static_cast<uint32_t>(entry.level));
     }
 }
 

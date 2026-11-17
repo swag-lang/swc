@@ -277,7 +277,10 @@ namespace
 
         const MicroReg resultReg = codeGen.nextVirtualIntRegister();
         if (isReferenceValueType(codeGen, sourceTypeRef))
+        {
+            const ScopedDebugSource source(codeGen.builder(), payload);
             codeGen.builder().emitLoadRegMem(resultReg, payload.reg, 0, MicroOpBits::B64);
+        }
         else
             codeGen.builder().emitLoadRegReg(resultReg, payload.reg, MicroOpBits::B64);
 
@@ -416,7 +419,10 @@ namespace
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
 
         if (srcPayload.isAddress())
+        {
+            const ScopedDebugSource source(builder, srcPayload);
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, 0, storeBits);
+        }
         else
             builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
     }
@@ -459,7 +465,7 @@ namespace
 
         if (srcPayload.isAddress())
         {
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
+            CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstAddressReg, srcPayload, sizeOf);
             return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstAddressReg);
         }
 
@@ -1088,7 +1094,7 @@ namespace
             {
                 if (exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
                 {
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                    CodeGenMemoryHelpers::storePayloadToAddress(codeGen, outputStorageReg, exprPayload, normalizedRet.indirectSize);
                     SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
                     if (movedPlaceRef.isValid())
                         SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
@@ -1120,7 +1126,7 @@ namespace
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
             {
-                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                CodeGenMemoryHelpers::storePayloadToAddress(codeGen, outputStorageReg, exprPayload, normalizedRet.indirectSize);
                 SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
                 if (movedPlaceRef.isValid())
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
@@ -1153,7 +1159,10 @@ namespace
                         builder.emitLoadRegReg(returnValueReg, referenceReg, MicroOpBits::B64);
                 }
                 else if (exprPayload.isAddress())
+                {
+                    const ScopedDebugSource source(builder, exprPayload);
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
+                }
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
 
@@ -1180,7 +1189,10 @@ namespace
                         builder.emitLoadRegReg(returnValueReg, referenceReg, MicroOpBits::B64);
                 }
                 else if (exprPayload.isAddress())
+                {
+                    const ScopedDebugSource source(builder, exprPayload);
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
+                }
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
 
@@ -1220,9 +1232,9 @@ namespace
 
         if (exprRef.isValid() && !normalizedRet.isVoid)
         {
-            const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
-            const MicroReg            payloadReg      = exprPayload.reg;
-            const bool                payloadLValue   = exprPayload.isAddress();
+            const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+            const MicroReg            payloadReg    = exprPayload.reg;
+            const bool                payloadLValue = exprPayload.isAddress();
             CodeGenFunctionHelpers::emitCompilerRunReturnValue(codeGen, callConvKind, returnTypeRef, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
         }
 

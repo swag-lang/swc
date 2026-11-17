@@ -23,16 +23,16 @@ namespace swc::LinuxHostTests
             if (child == 0)
             {
                 close(channel[0]);
-                const std::string root = WorkspaceLayout::cacheRoot().string();
-                const ssize_t       written = write(channel[1], root.c_str(), root.size() + 1);
+                const std::string root    = WorkspaceLayout::cacheRoot().string();
+                const ssize_t     written = write(channel[1], root.c_str(), root.size() + 1);
                 close(channel[1]);
                 _exit(written == static_cast<ssize_t>(root.size() + 1) ? 0 : 1);
             }
             require(child > 0, "cannot fork cache-root process probe");
             close(channel[1]);
 
-            char   buffer[4096];
-            size_t length = 0;
+            char    buffer[4096];
+            size_t  length = 0;
             ssize_t count;
             while ((count = read(channel[0], buffer + length, sizeof(buffer) - length)) > 0)
             {
@@ -49,7 +49,7 @@ namespace swc::LinuxHostTests
         require(processRoots[0] == processRoots[1], "compiler cache root changes between processes");
 
         const fs::path root = WorkspaceLayout::cacheRoot();
-        struct stat info{};
+        struct stat    info{};
         require(root.is_absolute() && lstat(root.c_str(), &info) == 0, "compiler cache root is unavailable");
         require(S_ISDIR(info.st_mode) && info.st_uid == geteuid() && (info.st_mode & 07777) == S_IRWXU, "compiler cache root is not a private user-owned directory");
     }

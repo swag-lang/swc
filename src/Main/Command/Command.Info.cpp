@@ -124,9 +124,9 @@ namespace
 void Command::info(const TaskContext& ctx)
 {
     const Logger::ScopedLock loggerLock(ctx.global().logger());
-    const fs::path           executable      = Os::getExeFullName();
-    const fs::path           resources       = FileSystem::compilerResourceRoot(executable);
-    const fs::path           stdRoot         = FileSystem::standardLibraryWorkspaceRoot(executable);
+    const fs::path           executable = Os::getExeFullName();
+    const fs::path           resources  = FileSystem::compilerResourceRoot(executable);
+    const fs::path           stdRoot    = FileSystem::standardLibraryWorkspaceRoot(executable);
 
     CommandPrint::printCompilerHeader(ctx);
     std::vector<Logger::FieldEntry> entries;

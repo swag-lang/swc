@@ -35,8 +35,8 @@ struct SemaNodeView
     void computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode);
     void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
 
-    void    getSymbols(SmallVector<Symbol*>& symbols) const;
-    Symbol* singleSymbol() const;
+    void            getSymbols(SmallVector<Symbol*>& symbols) const;
+    Symbol*         singleSymbol() const;
     SymbolFunction* singleFunction() const;
 
     // A singleton span borrows this view's storage; keep the view alive while using it.

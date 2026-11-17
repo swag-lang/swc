@@ -41,6 +41,7 @@
 #include <set>
 #include <shared_mutex>
 #include <span>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>

@@ -23,7 +23,7 @@ namespace Backend::Unittest
         bool    wildcard = false;
     };
 
-    Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
+    Result                parseExpected(const char* text, std::vector<ExpectedByte>& result);
     const SymbolVariable* findRegularGlobal(const NativeBackendBuilder& nativeBuilder, TaskContext& ctx, std::string_view name);
 
     // Runs allocation, legalization, final allocation, and emission for tests.

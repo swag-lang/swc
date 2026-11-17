@@ -76,21 +76,33 @@ struct ScopedDebugNoStep final
 
 struct ScopedDebugSource final
 {
-    ScopedDebugSource(MicroBuilder& builder, const SourceCodeRef& value) :
+    ScopedDebugSource(MicroBuilder& builder, const SourceCodeRef& value, std::optional<const WarningPolicy*> policy = std::nullopt) :
         builder(&builder),
-        savedValue(builder.currentDebugSourceCodeRef())
+        savedValue(builder.currentDebugSourceCodeRef()),
+        savedPolicy(builder.currentSourceWarningPolicy())
     {
         if (value.isValid())
+        {
             builder.setCurrentDebugSourceCodeRef(value);
+            if (policy)
+                builder.setCurrentSourceWarningPolicy(*policy);
+        }
+    }
+
+    ScopedDebugSource(MicroBuilder& builder, const CodeGenNodePayload& payload) :
+        ScopedDebugSource(builder, payload.sourceCodeRef, payload.sourceWarningPolicy)
+    {
     }
 
     ~ScopedDebugSource()
     {
         builder->setCurrentDebugSourceCodeRef(savedValue);
+        builder->setCurrentSourceWarningPolicy(savedPolicy);
     }
 
-    MicroBuilder* builder = nullptr;
-    SourceCodeRef savedValue;
+    MicroBuilder*        builder = nullptr;
+    SourceCodeRef        savedValue;
+    const WarningPolicy* savedPolicy = nullptr;
 };
 
 struct CodeGenDeferredAction
@@ -111,8 +123,12 @@ struct CodeGenDeferredAction
     AstNodeRef       bodyRef      = AstNodeRef::invalid();
     AstModifierFlags modifierFlags;
 
-    TypeRef               lifecycleTypeRef = TypeRef::invalid();
-    const SymbolVariable* variable         = nullptr;
+    TypeRef lifecycleTypeRef = TypeRef::invalid();
+    union
+    {
+        const SymbolVariable* variable = nullptr;  // ImplicitDrop
+        const WarningPolicy*  sourceWarningPolicy; // DeferStmt
+    };
 };
 
 #if !SWC_HAS_REF_DEBUG_INFO
@@ -179,6 +195,9 @@ public:
         bool directReturnStorage = false; // the result is built in the enclosing return storage
     };
 
+    const WarningPolicy* sourceWarningPolicy() const { return sourceWarningPolicy_; }
+    void                 setSourceWarningPolicy(const WarningPolicy* policy) { sourceWarningPolicy_ = policy; }
+
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
@@ -220,12 +239,13 @@ private:
     AstNodeRef    inlineBoundaryRootRef_      = AstNodeRef::invalid();
     bool          currentLoopHasContinueJump_ = false;
 
-    InlineContext inlineContext_;
+    InlineContext        inlineContext_;
+    const WarningPolicy* sourceWarningPolicy_ = nullptr;
 };
 
 #if !SWC_HAS_REF_DEBUG_INFO
 static_assert(sizeof(void*) != 8 || sizeof(CodeGenFrame::InlineContext) == 32);
-static_assert(sizeof(void*) != 8 || sizeof(CodeGenFrame) == 72);
+static_assert(sizeof(void*) != 8 || sizeof(CodeGenFrame) == 80);
 #endif
 
 class CodeGen

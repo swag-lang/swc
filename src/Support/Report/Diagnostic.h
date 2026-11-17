@@ -77,8 +77,8 @@ public:
     bool                                                   silent() const { return silent_; }
 
     // What the '#[Swag.Warning]' attributes in scope where this diagnostic was built say
-    // about it. Only a warning carries them, and only sema knows them, so they are stamped
-    // at build time and read back by report().
+    // about it. Sema resolves the lexical scope; lowering preserves that decision for
+    // later diagnostics. report() combines it with the command and module policies.
     void setSourceWarningLevels(const std::optional<WarningLevel>& blanketLevel, const std::optional<WarningLevel>& level);
 
     DiagnosticElement& addElement(DiagnosticId id);

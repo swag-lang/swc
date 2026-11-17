@@ -147,6 +147,58 @@ SWC_TEST_END()
 
 #endif
 
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicPublicationPreservesLongTargetNames)
+{
+    const fs::path directory = Os::getTemporaryPath() / std::format("swc_atomic_long_p{}", Os::currentProcessId());
+    struct RemoveTestDirectory
+    {
+        const fs::path* path;
+        ~RemoveTestDirectory()
+        {
+            std::error_code error;
+            fs::remove_all(*path, error);
+        }
+    } cleanup{&directory};
+    std::error_code ec;
+    fs::create_directories(directory, ec);
+    if (ec)
+        return Result::Error;
+
+    size_t nameLength = 255;
+#ifdef _WIN32
+    // Leave room for the target, but not for a suffix appended to its complete path.
+    const size_t directoryLength = directory.native().size() + 1;
+    if (directoryLength >= 250)
+        return Result::Error;
+    nameLength = 250 - directoryLength;
+#endif
+    const fs::path          path = directory / std::string(nameLength, 'a');
+    FileSystem::IoErrorInfo error;
+    SWC_RESULT(FileSystem::writeBinaryFile(path, "old", 3, error));
+    SWC_RESULT(FileSystem::writeBinaryFileAtomic(path, "replacement", 11, error));
+    std::string contents;
+    SWC_RESULT(FileSystem::readTextFile(path, contents, error));
+    if (contents != "replacement" || !FileSystem::moveFileAside(path) || fs::exists(path, ec) || ec)
+        return Result::Error;
+
+    size_t asideCount = 0;
+    for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec))
+    {
+        if (!FileSystem::isMovedAsidePath(it->path()))
+            return Result::Error;
+        SWC_RESULT(FileSystem::readTextFile(it->path(), contents, error));
+        if (contents != "replacement")
+            return Result::Error;
+        ++asideCount;
+    }
+    if (ec || asideCount != 1)
+        return Result::Error;
+    FileSystem::removeMovedAsideFiles(directory);
+    if (!fs::is_empty(directory, ec) || ec)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots)
 {
     const fs::path path = Os::getTemporaryPath() / std::format("swc_atomic_concurrent_p{}.bin", Os::currentProcessId());
@@ -358,14 +410,40 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
 {
     const fs::path  directory = Os::getTemporaryPath() / std::format("swc_cache_mapping_p{}", Os::currentProcessId());
-    const fs::path  path      = directory / "cache.bin";
     std::error_code ec;
     fs::create_directories(directory, ec);
     if (ec)
         return Result::Error;
 
     FileSystem::IoErrorInfo error;
-    Result                  result = FileSystem::writeBinaryFileAtomic(path, "old", 3, error);
+    const fs::path          seed = directory / "seed";
+    SWC_RESULT(FileSystem::writeBinaryFile(seed, "seed", 4, error));
+    if (!FileSystem::moveFileAside(seed))
+        return Result::Error;
+    std::string siblingStem;
+    {
+        const fs::directory_iterator first(directory, ec);
+        if (ec || first == fs::directory_iterator{})
+            return Result::Error;
+        siblingStem = first->path().stem().string();
+    }
+    const size_t numberStart = siblingStem.rfind('.');
+    if (numberStart == std::string::npos)
+        return Result::Error;
+    uint64_t   sequence = 0;
+    const auto parsed   = std::from_chars(siblingStem.data() + numberStart + 1, siblingStem.data() + siblingStem.size(), sequence);
+    if (parsed.ec != std::errc{} || parsed.ptr != siblingStem.data() + siblingStem.size())
+        return Result::Error;
+    FileSystem::removeMovedAsideFiles(directory);
+
+    // Make the target look exactly like the next temporary name. It must still publish a
+    // separate generation instead of truncating the storage its current reader maps.
+#ifdef _WIN32
+    const fs::path path = directory / std::format(".SWC-{}.{}.SWCTMP", Os::currentProcessId(), sequence + 1);
+#else
+    const fs::path path = directory / std::format(".swc-{}.{}.swctmp", Os::currentProcessId(), sequence + 1);
+#endif
+    Result result = FileSystem::writeBinaryFile(path, "old", 3, error);
     if (result == Result::Continue)
     {
         Os::ReadOnlyFileMapping oldGeneration;

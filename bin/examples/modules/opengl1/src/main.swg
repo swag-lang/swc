@@ -1,10 +1,18 @@
 using Core, Ogl
 
-var g_Window:  Env.Window
-var g_Context: Ogl.Platform.Win32.Context
-var g_Frame:   Time.FrameTiming
+var g_Window: Env.Window
+#static if #os == Swag.TargetOs.Linux
+{
+    var g_Context: Ogl.Platform.Xcb.Context
+}
+else
+{
+    var g_Context: Ogl.Platform.Win32.Context
+}
 
-func display()
+var g_Frame: Time.FrameTiming
+
+func display() fail
 {
     const SPEED = 100
     glClearColor(0, 0, 0, 0)
@@ -19,7 +27,10 @@ func display()
     glVertex2i(1, -1)
     glEnd()
     glFlush()
-    g_Context.swapBuffers()
+    #static if #os == Swag.TargetOs.Linux do
+        try g_Context.swapBuffers()
+    else do
+        g_Context.swapBuffers()
 }
 
 func onResize(_: *Env.Window, width, height: s32)
@@ -31,7 +42,10 @@ func onResize(_: *Env.Window, width, height: s32)
 {
     g_Window = try Env.createWindow({identifier: "opengl1", title: "OpenGL legacy triangle", width: 512, height: 512})
     defer catch g_Window.close()
-    g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    #static if #os == Swag.TargetOs.Linux do
+        g_Context = try Ogl.Platform.Xcb.createContext(&g_Window)
+    else do
+        g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
     defer g_Context.destroy()
 
     g_Window.callbacks.onResize = &onResize
@@ -42,7 +56,7 @@ func onResize(_: *Env.Window, width, height: s32)
     while loop.next()
     {
         g_Frame.update()
-        display()
+        try display()
         if Env.isSmokeRun() do
             break
     }

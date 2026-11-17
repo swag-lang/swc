@@ -171,6 +171,17 @@ Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const
 namespace
 {
     constexpr std::string_view K_MOVED_ASIDE_EXTENSION = ".swcstale";
+
+    fs::path publicationSiblingPath(const fs::path& path, const std::string_view extension)
+    {
+        static std::atomic_uint64_t sequence = 0;
+        // A valid artifact name may already reach the filesystem's component or path limit.
+        // Keep publication names independent of that basename, on the same volume.
+        // Distinct leading punctuation also prevents a reserved-looking target from aliasing
+        // its temporary or stale sibling on case-insensitive filesystems.
+        const char prefix = path.filename().native().starts_with('.') ? '_' : '.';
+        return path.parent_path() / std::format("{}swc-{}.{}{}", prefix, Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), extension);
+    }
 }
 
 bool FileSystem::isMovedAsidePath(const fs::path& path)
@@ -180,9 +191,7 @@ bool FileSystem::isMovedAsidePath(const fs::path& path)
 
 bool FileSystem::moveFileAside(const fs::path& path)
 {
-    static std::atomic_uint64_t sequence  = 0;
-    fs::path                    asidePath = path;
-    asidePath += std::format(".{}.{}{}", Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), K_MOVED_ASIDE_EXTENSION);
+    const fs::path asidePath = publicationSiblingPath(path, K_MOVED_ASIDE_EXTENSION);
 
     std::error_code ec;
     fs::rename(path, asidePath, ec);
@@ -255,9 +264,7 @@ Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoEr
 
 Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error, const FileReplacement replacement)
 {
-    static std::atomic_uint64_t sequence      = 0;
-    fs::path                    temporaryPath = path;
-    temporaryPath += std::format(".{}.{}.swctmp", Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed));
+    const fs::path temporaryPath = publicationSiblingPath(path, ".swctmp");
 
     Result result = writeBinaryFile(temporaryPath, data, size, error);
     if (result == Result::Continue)

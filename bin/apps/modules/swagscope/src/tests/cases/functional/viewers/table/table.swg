@@ -194,14 +194,15 @@ using Core, Pixel, Gui, Viewers
 // Generated headings follow the language; authored labels and selected rows remain intact.
 #test
 {
-    var host: Testing.HeadlessHost
+    // The readout sink outlives the view that reports into it during teardown.
+    var details: String
+    var host:    Testing.HeadlessHost
     host.setup(640, 360)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     Table.registerTexts(&host.app)
     var document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
     let view     = Table.Panel.createDocument(&host.root, #move document)
-    var details: String
     view.userData = &details
     view.services.reportDetails = func(wnd, value) { cast(*String, unwrap wnd.userData)[] = value }
     view.list.selectLine(0)

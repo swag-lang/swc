@@ -2125,8 +2125,12 @@ func caller()
         std::string                 output;
         uint32_t                    exitCode = 0;
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102)
+        const auto                  initialRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
+        if (initialRun != Os::ProcessRunResult::Ok || exitCode != 102)
+        {
+            std::println(stderr, "unittest error: Linux runtime symbols initial panic, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(initialRun), exitCode, output);
             return Result::Error;
+        }
         const auto leaf   = output.find("NativeSymbols.leaf --> ");
         const auto caller = output.find("SymbolConsumer.caller --> ");
         if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:4", caller) == std::string::npos)
@@ -2151,17 +2155,29 @@ func caller()
         // panic message itself available to callers.
         for (size_t index = 0; index < artifactPaths.size(); ++index)
         {
-            const fs::path& artifact = artifactPaths[index];
-            if (fs::file_size(artifact) >= defaultSizes[index])
+            const fs::path& artifact    = artifactPaths[index];
+            const uint64_t  omittedSize = fs::file_size(artifact);
+            if (omittedSize >= defaultSizes[index])
+            {
+                std::println(stderr, "unittest error: Linux runtime symbol omission did not shrink '{}', shared={}, before={}, after={}", artifact.string(), shared, defaultSizes[index], omittedSize);
                 return Result::Error;
+            }
             output.clear();
-            const std::vector<Utf8> inspect = {"-lW", "-d", "-SW", Utf8(artifact)};
-            if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
+            const std::vector<Utf8> inspect   = {"-lW", "-d", "-SW", Utf8(artifact)};
+            const auto              inspected = Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options);
+            if (inspected != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
+            {
+                std::println(stderr, "unittest error: Linux runtime symbol omission left an unexpected ELF layout in '{}', shared={}, process={}, exit={}\n{}", artifact.string(), shared, static_cast<uint32_t>(inspected), exitCode, output);
                 return Result::Error;
+            }
         }
         output.clear();
-        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("native-symbol-probe") == std::string::npos || output.find("runtime trace") != std::string::npos)
+        const auto omittedRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
+        if (omittedRun != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("native-symbol-probe") == std::string::npos || output.find("runtime trace") != std::string::npos)
+        {
+            std::println(stderr, "unittest error: Linux runtime symbol omission changed the panic contract, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(omittedRun), exitCode, output);
             return Result::Error;
+        }
 
         // Switching back without --rebuild must restore the table from cached object/archive
         // contributions, including the dependency's static-library frames.
@@ -2170,17 +2186,29 @@ func caller()
         SWC_RESULT(runCompiler(restoreSymbolsArguments, ExitCode::Success, ""));
         for (size_t index = 0; index < artifactPaths.size(); ++index)
         {
-            const fs::path& artifact = artifactPaths[index];
-            if (fs::file_size(artifact) != defaultSizes[index])
+            const fs::path& artifact     = artifactPaths[index];
+            const uint64_t  restoredSize = fs::file_size(artifact);
+            if (restoredSize != defaultSizes[index])
+            {
+                std::println(stderr, "unittest error: Linux runtime symbol restoration changed '{}', shared={}, before={}, after={}", artifact.string(), shared, defaultSizes[index], restoredSize);
                 return Result::Error;
+            }
             output.clear();
-            const std::vector<Utf8> inspect = {"-lW", "-d", "-SW", Utf8(artifact)};
-            if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(".swagdbg") == std::string::npos)
+            const std::vector<Utf8> inspect   = {"-lW", "-d", "-SW", Utf8(artifact)};
+            const auto              inspected = Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options);
+            if (inspected != Os::ProcessRunResult::Ok || exitCode || output.find(".swagdbg") == std::string::npos)
+            {
+                std::println(stderr, "unittest error: Linux runtime symbol restoration did not restore the ELF table in '{}', shared={}, process={}, exit={}\n{}", artifact.string(), shared, static_cast<uint32_t>(inspected), exitCode, output);
                 return Result::Error;
+            }
         }
         output.clear();
-        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("NativeSymbols.leaf --> ") == std::string::npos || output.find("SymbolConsumer.caller --> ") == std::string::npos)
+        const auto restoredRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
+        if (restoredRun != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("NativeSymbols.leaf --> ") == std::string::npos || output.find("SymbolConsumer.caller --> ") == std::string::npos)
+        {
+            std::println(stderr, "unittest error: Linux runtime symbol restoration did not restore the panic trace, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(restoredRun), exitCode, output);
             return Result::Error;
+        }
     }
 }
 SWC_TEST_END()

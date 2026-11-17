@@ -5,19 +5,17 @@ must follow the common viewer contract in [app.scope.viewers.md](app.scope.viewe
 Scope presentation in [design/README.md](design/README.md#swag-scope), and the single-executable,
 Swag-implemented product gate described by the [viewer audit](../bin/apps/modules/swagscope/FEATURE_AUDIT.md).
 
-### app.scope.scene.001 — The 3D scene reader lacks common scene formats and inspection
+### app.scope.scene.001 — Rebuild the 3D scene reader with common formats and inspection
 
-- Evidence: the `scene3d` standard module and Swag Scope viewer currently read static OBJ meshes
-  and ASCII/binary STL. [Blender](https://docs.blender.org/manual/en/latest/files/import_export.html)
-  and [MeshLab](https://www.meshlab.net/) also inspect material libraries, textures, scene
-  hierarchy, transforms, and glTF 2.0 scenes, while this reader displays one triangle mesh without
-  selection, material visualization, or multiple-node transforms.
-- Next: replace average-triangle painter sorting with a depth-buffer renderer; add overlapping and
-  intersecting OBJ/STL fixtures to verify per-pixel visibility. Then replace or constrain fan
-  triangulation so concave OBJ polygons cannot be silently
-  misrendered, with parser fixtures that cover convex and concave faces. Then add glTF 2.0
-  (`.gltf`/`.glb`) to `std/scene3d` with bounded buffers and accessors, preserve nodes and transforms
-  through the shared scene model and display them in Scope. Resolve OBJ `mtllib` and texture
+- Evidence: the Swag Scope 3D viewer and its `std/scene3d` module were removed for later
+  redevelopment. [Blender](https://docs.blender.org/manual/en/latest/files/import_export.html)
+  and [MeshLab](https://www.meshlab.net/) support material libraries, textures, scene hierarchy,
+  transforms, and glTF 2.0 scenes; these are candidate capabilities for a rebuilt reader.
+- Next: when this work resumes, design a bounded model-loading module and viewer contract from
+  scratch. Establish depth-buffer rendering and replace or constrain fan triangulation so concave
+  OBJ polygons cannot be silently misrendered, with parser fixtures that cover convex and concave
+  faces. Then add glTF 2.0 (`.gltf`/`.glb`) with bounded buffers and accessors, preserve nodes and
+  transforms through the scene model and display them in Scope. Resolve OBJ `mtllib` and texture
   sidecars only beneath an explicitly chosen scene directory; reject traversal, absolute paths, URLs
   and other external schemes, and report missing resources.
 - Done when: the built-in viewer opens and reliably identifies OBJ/MTL, STL (ASCII and binary),

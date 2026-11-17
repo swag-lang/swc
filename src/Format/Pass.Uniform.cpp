@@ -160,7 +160,7 @@ namespace
             for (const auto& group : FormatSiblings::closureGroups(*model_, options_->uniformClosureBodies))
             {
                 FormatSiblings::BodyGroupShape shapeGroup;
-                std::vector<BodyShape> shapes;
+                std::vector<BodyShape>         shapes;
                 for (const uint32_t i : group)
                 {
                     shapes.push_back(FormatSiblings::functionShape(*model_, bodies[i]));
@@ -206,7 +206,7 @@ namespace
             for (const auto& group : FormatSiblings::functionGroups(*model_, options_->uniformFunctionBodies))
             {
                 FormatSiblings::BodyGroupShape shapeGroup;
-                std::vector<BodyShape> shapes;
+                std::vector<BodyShape>         shapes;
                 for (const uint32_t i : group)
                 {
                     shapes.push_back(FormatSiblings::functionShape(*model_, bodies[i]));

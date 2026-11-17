@@ -5,6 +5,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -302,8 +303,9 @@ void ScopedTimedLog::setStat(Utf8 stat)
     stat_ = std::move(stat);
 }
 
-ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx) :
+ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx, const ExitCode& result) :
     ctx_(&ctx),
+    result_(&result),
     startTick_(ScopedTimedLog::Clock::now())
 {
 }
@@ -320,7 +322,7 @@ ScopedCommandLog::~ScopedCommandLog()
     const size_t       numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
 
     auto outcome = ScopedTimedLog::StageOutcome::Success;
-    if (numErrors)
+    if (*result_ != ExitCode::Success || numErrors)
         outcome = ScopedTimedLog::StageOutcome::Error;
     else if (numWarnings)
         outcome = ScopedTimedLog::StageOutcome::Warning;

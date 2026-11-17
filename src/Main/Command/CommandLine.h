@@ -234,8 +234,8 @@ struct CommandLine
     // Days a dependency copy may go unused before 'clean --cache' takes it; zero removes them all.
     uint32_t cleanCacheDays = 0;
 
-    uint32_t                        numCores        = 0;
-    uint32_t                        tabSize         = 4;
+    uint32_t numCores = 0;
+    uint32_t tabSize  = 4;
 
     Utf8              verboseVerifyFilter;
     Utf8              docCss;
@@ -269,15 +269,15 @@ struct CommandLine
     std::set<fs::path> importApiDirs;
     std::set<fs::path> importApiFiles;
 
-    fs::path                                                            configFile;
-    fs::path                                                            newScriptPath;
-    fs::path                                                            moduleFilePath;
-    fs::path                                                            modulePath;
-    fs::path                                                            workspacePath;
-    fs::path                                                            exportApiDir;
-    fs::path                                                            docOutputDir;
-    fs::path                                                            outDir;
-    fs::path                                                            workDir;
+    fs::path configFile;
+    fs::path newScriptPath;
+    fs::path moduleFilePath;
+    fs::path modulePath;
+    fs::path workspacePath;
+    fs::path exportApiDir;
+    fs::path docOutputDir;
+    fs::path outDir;
+    fs::path workDir;
 
     // Where a shared-library module also publishes the static archive built from the very same
     // objects, so an executable can link its code in instead of importing it from the DLL. The

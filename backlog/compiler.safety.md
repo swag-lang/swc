@@ -139,15 +139,6 @@ is the current scorecard.
   reduce the measured wall time. Its large whole-preset gap is mainly
   `.ValueBorrow`; see compiler.safety.030 and
   [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
-- A fixed-array index in `for index in values.count` is now proven in range when the
-  constant iteration count does not exceed the array extent and the body cannot write the
-  index. The Micro listing for a 256-element exact loop has no panic call; a dynamic-count
-  loop retains one. The safety suite still passes the overlong-count runtime fault and the
-  exact-count write. See `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks` and the
-  `cwe787_out_of_bounds_write.swg` corpus tests.
-- Constant range loops over a fixed array also keep the exact exclusive range guard-free and
-  retain a guard for an inclusive endpoint equal to the array extent. Both cases are covered
-  by `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks`.
 - A first guarded `late` read inside a loop still leaves the check at the body read site on
   every trip: `SemaInitFlow::walkLoopBody` analyzes the body once and does not carry that
   fact across a loop that may execute zero times. A safe hoist must run only after the first
@@ -279,9 +270,6 @@ is the current scorecard.
 - Audit: generic `cast` calls use the same specialized sema rules; reflection assignment copies
   values of one runtime type; text parsing accepts declared enum names; command-line parsing uses
   that parser. `assume cast` remains the explicit unchecked escape hatch.
-- Validation: focused JIT/native enum casts, semantic rejection tests, and the complete `core`
-  standard-library test module pass on Linux. Swag Capture now compiles and links after fixing
-  `Cursor.activate`'s non-propagating Linux error handling, but its GUI tests need an X11 display.
 - Next: run the application tests in a GUI-capable environment, including the migrated Swag Capture
   enum storage and user-data paths.
 - Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime

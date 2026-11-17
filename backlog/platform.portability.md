@@ -50,17 +50,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.041 — Finish Linux hardware discovery validation
 
-- Progress: Linux Hardware.processorCount reads the calling thread's affinity mask, with a
-  conservative one-processor fallback when unavailable; bandwidth quotas are explicitly outside
-  that count. Hardware.macAddress enumerates getifaddrs, skips loopback and unsupported address
-  lengths, and returns the first nonzero six-byte address in native enumeration order. Its
-  documentation excludes a stable machine-identity guarantee. Process/thread IDs now use getpid
-  and gettid, and the public Thread test checks its identity through Env.Process.currentThreadId.
-- Validation: 15 raw Linux binding tests pass JIT/native, including native interface indices,
-  linked-list layouts and affinity-buffer canaries. A separate importing module passes two tests
-  in both modes, including the anonymous native address union, and its executable exits 37.
-  The public hardware case and three thread lifecycle cases pass in JIT/native, including CPU
-  affinity count, hardware address shape and process/thread identity queries.
+- Evidence: Linux CPU counts use thread affinity, not bandwidth quotas; unavailable affinity
+  falls back to one processor. MAC lookup returns the first nonzero six-byte address in native
+  order, without promising stable machine identity. Process and thread identity use native IDs.
+  Memory, display-adjacent and machine capability families remain incomplete.
 - Next: finish the remaining memory, display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
@@ -83,34 +76,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.046 — Finish Linux input backends and hardware validation
 
-- Progress: Linux gamepads share readable evdev enumeration in event-node order. State queries
-  read key bits and advertised axes, normalize full signed ranges without overflow, invert stick
-  Y, map standard X/Y and RX/RY sticks, Z/RZ triggers, and HAT0/button D-pads; optional controls
-  are neutral. No device-specific remapping/deadzone database or atomic multi-ioctl packet is
-  promised. Hotplug/permission changes may renumber indices; write access never renumbers them.
-- Rumble: writable FF_RUMBLE devices retain one effect/file owner per slot. Finite speeds clamp
-  to 0..1; left/right map to native strong/weak motors. Zero stops and closes, native update errors
-  release the prior effect, inode/device changes replace stale ownership, and module shutdown
-  closes every retained descriptor. Native calloc/free storage does not borrow a caller allocator.
-  Zero replay length requests continuous playback, matching the Linux ff-memless implementation;
-  real hardware behavior, driver differences, disconnection and cleanup remain unverified.
-- Validation: a C probe of linux/input.h confirms input_absinfo/input_event (24 bytes), ff_effect
-  (48 bytes, union offset 16, replay 10, trigger 6) and ioctl request values. All 24 raw bindings
-  tests pass JIT/native; the last test also passes through a separately published/imported module.
-  This covers layout, rumble union representation, rejected /dev/null ioctls and canaries, not
-  successful hardware acquisition or motor behavior. No /dev/input or /dev/uinput is exposed.
-  Public normalization and missing-index cases pass in JIT/native; real devices remain unavailable.
-  Raw API HTML has no broken anchors/duplicate IDs; the existing errno synthetic-name finding remains.
+- Evidence: Linux evdev enumeration and normalized state queries support sticks, triggers,
+  D-pad and optional neutral controls. There is no device remapping/dead-zone database or atomic
+  multi-ioctl snapshot; hotplug and permissions can change enumeration indices.
+  Per-slot `FF_RUMBLE` ownership clamps amplitudes and retires effects on stop, close or errors,
+  but driver behavior, disconnection cleanup and physical-device calibration remain unverified.
 - Next: validate real or uinput devices for connect/disconnect, permissions, calibration,
   optional controls, rumble replacement/stop/shutdown and focus loss. Keep normalized state and
   policy common.
 - Done when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
 
-### platform.portability.057 — No second-platform GUI packaging
+### platform.portability.057 — Validate Linux GUI packaging on a clean target
 
-- Progress (Linux): `tools/package-linux.py` stages built Capture or Scope ELF files, published
-  sibling libraries, desktop launchers and shipped 512 px icons under a chosen install prefix.
-  A real Capture DevMode build produced an archive whose executable, launcher and PNG were checked.
+- Evidence: `tools/package-linux.py` stages Capture or Scope ELF files, sibling libraries,
+  desktop launchers and shipped icons under an install prefix. Required desktop dependencies
+  and behavior on a clean target still need validation.
 - Next: audit required EGL/OpenGL, X11 and font dependencies, then exercise installed archives on
   a clean target with open, render and close smoke coverage.
 - Related: platform.portability.050, platform.portability.058
@@ -118,26 +98,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.058 — Finish Linux mixed-script font validation
 
-- Progress: `FontFamily.createTypeFace(name, style)` now loads selected Linux families from the
-  shared catalog, accepting typographic and legacy names and preserving collection indices.
-  Missing bold/italic traits use separately cached typefaces with independent glyph workspaces;
-  ordinary file loads remain unchanged. A separate consumer passes four tests in JIT/native,
-  including real Open Sans legacy aliases and DejaVu synthetic styles. An installed-family
-  integration test passes in both modes, and Pixel's 92 native golden tests remain green.
-- Owned Linux family and face descriptors now expose actual file paths, collection indices
-  and style metadata through `enumerateSystemFonts` and `findSystemFont`. Two focused cases pass
-  JIT/native, and the complete Pixel API page passes its structure and link audit.
-  Native GUI application, surface, cursor and clipboard services now execute on X11; Capture
-  and Vault startup smokes render their font consumers successfully. Swag Scope now starts
-  natively on isolated X11 and opens all 15 registered viewer fixtures through its own
-  review loop, including text, Markdown, HTML, PDF and image consumers. Its thumbnail
-  renderer now falls back to installed Linux families when Segoe UI is absent; the
-  complete offline media-library journey renders posters, local video frames and picture
-  thumbnails in JIT/native Linux execution.
-- Validation: the multilingual HTML golden now owns small, renamed SIL-licensed CJK and
-  outline-emoji subsets and disables system fallback for that fixture. Its reviewed reference
-  changed only around those runs and their spacing; all 85 HTML cases pass with the existing
-  tolerance. This replaces the old implicit dependence on Windows fallback fonts.
+- Evidence: Linux family selection uses the shared catalog's typographic/legacy names, file
+  paths, collection indices and style metadata. Synthetic faces have independent cached glyph
+  workspaces. Installed fallback is cached, while the multilingual HTML golden deliberately
+  uses bundled CJK/outline-emoji subsets; it cannot validate installed fallback in real workflows.
 - Next: exercise mixed-script text, missing glyphs and installed fallback in complete application
   workflows. Bitmap-only color emoji remains outside the outline reader's supported formats.
   The property editor consumes portable owned family names, and `Font.resolveRune` uses cached
@@ -219,55 +183,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.032 — Validate Linux process ownership and lifecycle
 
-- Native groundwork: glibc spawn attributes/file actions and signal-set layouts, posix_spawn(p),
-  waitpid/status macros and kill are now bound. The 21 raw Linux tests pass in JIT/native, including
-  exact empty/spaced/quoted/backslash/UTF-8 argv, explicit environment, child working directory,
-  redirected output, direct spawn error codes, nonblocking wait, signal exit and single reaping.
-  A separate module executes both process probes through the published opaque types/functions.
-  Public owner validation below additionally exercises duplex draining and timeout/drop behavior.
-- Process context: Linux currentEnvironment copies glibc's current environ table, preserving
-  case and distinguishing snapshot mutation from process mutation. The table's address is
-  resolved from the current image; its mutable contents remain caller-synchronized native data.
-  currentExecutablePath reads /proc/self/exe with a growing buffer and retains Linux's deleted
-  image spelling. Procfs failures propagate. The 22 raw tests pass JIT/native and an imported
-  consumer, including truncated readlink without a terminator, image inode identity, missing
-  procfs links and environ/getenv agreement. The public snapshot/ownership case passes JIT/native.
-  An isolated native peer checks live setenv/unsetenv changes, case-sensitive names, empty versus
-  absent values and the stability of snapshots taken before later mutations.
-- Owner implemented: posix_spawnp receives owned argv/environment strings and native file actions
-  for redirection/chdir. Pipe sources are normalized above fd 2; only parent endpoints are
-  nonblocking, and all intermediate descriptors close on failure. Linux rejects raw native
-  arguments, pre-exec affinity and tree accounting before launch. Search uses the parent PATH.
-  Waits own waitpid status, map signal exits to 128+signal, and retry EINTR. Input writes drain
-  both outputs on backpressure and block/consume only a newly generated SIGPIPE on the caller's
-  thread; no process-wide signal disposition changes. kill sends SIGKILL without inventing an
-  arbitrary Windows exit code. Query supportsResourceMeasurement before requesting accounting.
-- Lifecycle implemented: ordinary close transfers a live child to one lazily started reaper;
-  it neither kills nor waits. Native calloc/free state outlives the caller's allocator. Core
-  shutdown joins queued children before unloading worker code or deleting the sandbox root.
-  A destructor after shutdown waits synchronously. This intentional Linux shutdown constraint
-  is documented; owner operations must be serialized and external child reaping is prohibited.
-- Validation: 23 raw tests pass JIT/native, including per-thread SIGPIPE preservation/consumption,
-  EPIPE, zeroed native allocation, independent pipe endpoint flags and FIONREAD. The last probe
-  also passes through a separately published/imported Linux module and native consumer exit 37.
-  Eight Linux public process tests cover context, argv/env/cwd/status, 256 KiB duplex I/O,
-  timeout/kill, broken stdin, close/reaping, unsupported options and simultaneous output/error.
-  All eight public cases pass in JIT/native, including natural child reaping after close.
-  A native child with descriptors 0, 1 and 2 closed passes a public stdin/stdout/stderr pipe
-  roundtrip, confirming that pipe endpoints are moved above the standard descriptor range.
-  A continuously writing child exercises the finite wait deadline in JIT and native execution;
-  a child that exits while a grandchild retains its output pipes does not wait for pipe EOF.
-  All ten cases in the public process file pass in both modes.
-  A separate native stress peer opens 64 processes with three redirected streams and attempts
-  64 missing executables; its /proc/self/fd count returns to baseline after owner close.
-  A native peer stops Core's reaper before closing a live process owner; close waits and reaps
-  that child synchronously, and the later Core shutdown remains safe.
-  A dynamically loaded module also closes a live child before unloading; the consumer observes
-  the child leave procfs while its shared Core dependency keeps the reaper alive. Both native and
-  JIT consumers now exercise that unload boundary with a live child.
-  Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
-  Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
-  audit finding remains. These checks do not prove the reaper's broader native lifetime.
+- Evidence: Linux uses `posix_spawnp` with owned argv/environment values and native file
+  actions. Pipe sources stay above descriptor 2; only parent endpoints are nonblocking.
+  Search uses the parent PATH. Raw native arguments, pre-exec affinity and tree accounting
+  are rejected before launch. Input backpressure drains both outputs and handles only the
+  caller's newly generated SIGPIPE, without changing process-wide signal disposition.
+  Waits own `waitpid` status, retry EINTR and map signal exits to 128+signal. Current-environment
+  snapshots copy caller-synchronized glibc data; procfs failures propagate from executable lookup.
+- Lifetime constraint: close transfers a live child to one lazily started reaper without killing
+  or waiting. Native state outlives the caller's allocator. Core shutdown joins queued children
+  before unloading worker code or deleting the sandbox root; a later destructor waits
+  synchronously. Serialize owner operations and prohibit external child reaping. Focused unload
+  checks do not prove broader concurrent lifetime behavior.
 - Next: run Windows process regressions and broader lifetime stress. Do not mark lifecycle
   conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
@@ -351,26 +278,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.034 — Finish the Linux thread lifecycle backend
 
-- Evidence: Linux sleep uses an absolute CLOCK_MONOTONIC deadline and retries EINTR without
-  extending it; yield uses sched_yield. Raw bindings pass JIT/native lower-bound timing and
-  invalid-timespec tests. Public Linux thread lifecycle tests now execute through complete Core.
-- Progress: the pthread backend creates a gated thread, publishes its kernel TID before init
-  returns, starts once, joins, probes completion with pthread_tryjoin_np, and keeps its original
-  allocator until the owner closes it. A successful nonblocking join is remembered so wait
-  releases the owner without joining twice. Common init now cleans up a priority failure without
-  running the user body and always applies priority when a Thread value is reused.
-- Priority contract: Linux maps the five levels to per-thread nice offsets +2, +1, 0, -1 and -2
-  relative to the creator's inherited baseline, clamped to [-20, 19]. Raising priority can fail
-  with host permission errors; the public level changes only on success. Exited identities are
-  retired before kernel reuse, and real-time policies are left unchanged.
-- Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
-  identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
-  Seven public Core thread cases pass in JIT/native with DevMode and Release compilers,
-  covering nice values, inheritance, permission failures, exited identities, reuse,
-  completion and waits. An eighth DevMode case rejects a second start, keeps its owner
-  joinable, and runs the body once across 64 reuse cycles in JIT/native. Four common
-  thread/timer cases also pass in JIT/native for context inheritance, one-shot and periodic behavior. A native 65-thread stress
-  case crosses the 64-handle wait batch and verifies every owner is released. Windows execution is unavailable.
+- Evidence: the pthread backend gates startup, publishes the kernel TID before initialization
+  returns, retains allocator ownership and remembers nonblocking joins. Resource-pressure and
+  broader lifetime behavior still need validation.
+  Linux priorities are inherited nice offsets (+2, +1, 0, -1, -2), clamped to [-20, 19]. Raising
+  priority can fail for lack of permission; only success updates the public level. Retired thread
+  identities must not be reused, and real-time scheduling policy is left unchanged.
 - Next: exercise thread-creation failures under resource pressure and additional lifetime stress,
   and decide whether to extend Linux priority support.
 - Related: platform.portability.035
@@ -378,59 +291,25 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.037 — Validate the Linux timer backend
 
-- Progress: the shared timer worker now owns monotonic deadlines, serialized callbacks, missed-
-  period coalescing, cancellation wakeup and join-before-free. Linux supplies pthread creation
-  and join; Windows supplies CreateThread and wait/close. The original allocator is retained
-  until the worker has stopped, and callback context isolation remains common.
-- Validation: both public lifecycle cases pass in JIT/native, covering cancellation before a long
-  first deadline, serialized periodic callbacks, waiting for an active callback and repeated release.
-  Windows-target analysis stops at the refusal to JIT-load target Windows log/logf; native Windows
-  execution is unavailable.
-  Four common thread/timer cases also pass JIT/native, including inherited callback context.
+- Evidence: the common timer worker owns monotonic deadlines, serialized callbacks, missed-
+  period coalescing, cancellation and join-before-free. The native leaves create/join threads;
+  concurrent owner shutdown still needs stress coverage.
 - Next: validate the Windows leaf and stress shutdown/concurrent-owner behavior.
 - Related: platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
 ### platform.portability.038 — Finish Linux environment services and validation
 
-- Progress: Linux keeps runtime argv, looks up case-sensitive environment variables, and resolves
-  special directories. TMPDIR is made absolute; HOME falls back to reentrant getpwuid_r. XDG base
-  directories reject relative overrides. Quoted absolute/$HOME user-directory assignments are
-  parsed as data, including escaped literal characters and last valid assignment precedence;
-  commands and other variable expansion are not executed. Missing configuration uses documented
-  conventional subdirectories. Shared media directories explicitly report an unavailable path.
-  Sandboxed queries retain the common per-kind scratch-directory redirection.
-- Validation: 17 raw Linux tests pass JIT/native, including passwd layout/canaries, caller-owned
-  string storage and ERANGE. A separate importing module passes the same user-database call in
-  both modes and its real executable exits 37. Three public environment cases, the XDG parser case
-  and the sandbox-path case pass JIT/native. Empty and relative HOME/XDG overrides are exercised
-  in separate invocations. Validate a path before calling isRooted: it requires a valid nonempty
-  path, so the previous order asserted on empty variables or zero bytes in configuration data.
-  Message-locale lookup now follows LC_ALL, LC_MESSAGES and LANG precedence, omitting encoding/
-  modifier suffixes and mapping separators to hyphens. C/POSIX and malformed names return empty.
-  Two parser/precedence cases pass JIT/native; a separate archive consumer passes seven controlled
-  environment configurations in both modes. No process-wide C locale is changed.
-- Desktop actions: `openFile` and `openUrl` launch `xdg-open` through separate argument values,
-  without shell parsing or inherited streams. Relative file paths become absolute without
-  changing symlink semantics. The result describes launcher startup, not later handler success;
-  missing launchers and invalid inputs return false. JIT/native tests cover exact Unicode and
-  metacharacter transmission, relative/absolute paths, invalid inputs and a missing launcher.
-  A separate importer also exercises the installed `xdg-open` with a controlled BROWSER handler
-  in both modes. `showInFileExplorer` sends an encoded local file URI to FileManager1.ShowItems
-  through `gdbus`, waits for acknowledgement and bounds the request to approximately two seconds.
-  Controlled launcher checks and an importing consumer on a private D-Bus session pass JIT/native:
-  Unicode/reserved characters, accepted/rejected requests, missing service and tools, timeout,
-  and request-process cleanup. Interactive desktop presentation remains unverified.
-- Application chooser: `openFileWith` now uses the optional session OpenURI portal through
-  libsystemd. It passes a real file/directory descriptor and `ask=true`, refuses portal versions
-  below 3, bounds each D-Bus exchange to two seconds and retains the connection until Core
-  unload so acknowledged dialogs survive the API return. A native integration on a private
-  bus passes real descriptor contents, directory identity, repeated requests, sender lifetime,
-  old-version refusal, explicit rejection, timeout/recovery, missing library/bus, invalid targets
-  and sandbox refusal. Core API generation covers 2,099/2,099 declarations and 388/388 members;
-  the isolated Core-only output still lacks the existing linked Gui page. No default-application
-  fallback substitutes for the chooser. Sandboxed
-  target applications receive no writable document-portal grant.
+- Evidence: Linux provides argv, case-sensitive environment queries, locale precedence and
+  special-directory resolution. XDG assignments are data, never shell commands; unsupported
+  shared media directories return unavailable paths, and sandbox redirection remains common.
+  `openFile`/`openUrl` invoke `xdg-open` without a shell; success describes launcher startup.
+  `showInFileExplorer` sends an encoded URI to FileManager1 through `gdbus` with a bounded wait.
+  `openFileWith` uses the optional OpenURI portal through libsystemd, passes a real descriptor
+  with `ask=true`, requires portal version 3 or newer and bounds each D-Bus exchange to two
+  seconds. Core retains the connection until unload so acknowledged dialogs survive the return.
+  No default-application fallback replaces the chooser, and sandboxed targets receive no writable
+  document-portal grant. Private-bus checks do not establish interactive desktop presentation.
 - Next: validate chooser presentation on a real desktop. The
   return value reports request acknowledgement, not eventual user selection or application launch.
 - Related: platform.portability.010, platform.portability.015
@@ -438,20 +317,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.040 — Validate Linux sandbox enforcement and startup
 
-- Progress: Linux early lookup uses runtime argv through common name/value matching. Existing
-  path prefixes are canonicalized with realpath before missing suffixes are normalized, preserving
-  symlink/parent semantics; failed resolutions contain nothing. Common containment preserves Linux
-  case and backslashes, retains Windows normalization, and correctly includes descendants of a
-  filesystem root. Windows canonicalization now fails closed instead of using the literal input.
-  Reparse-point scanning is shared. Unlinking a final file/directory link checks its authorized
-  parent without following that final link; writes and traversal through parent links still fail.
-  Shared tests distinguish Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
-- Validation: 18 raw binding tests pass JIT/native, including realpath allocation/free, a link
-  followed by '..' and ELOOP. Public tests for argv matching, case, root containment, invalid paths,
-  escaped writes/deletes and safe link removal pass in the public Linux integration case in
-  JIT/native. An isolated native peer verifies arming before a later #init and #premain and refuses
-  an outside write without creating its target. A separate native executable importing Core
-  sees the sandbox already armed in its own #init and #premain; native Windows validation is unavailable.
+- Evidence: Linux canonicalizes existing prefixes before normalizing missing suffixes and fails
+  closed on unresolved paths. Containment preserves host case/link semantics; unlinking a final
+  link checks its parent without following that link. Remaining conformance must distinguish
+  Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
 - Next: run the remaining common sandbox and filesystem conformance cases.
   The guards protect Core's operations; they are not an OS security boundary for arbitrary native
   calls and do not make path checks and subsequent mutations atomic against concurrent renames.
@@ -461,27 +330,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.001 — Complete the Linux repository test gate
 
 - Evidence: `tools/linux-tests.py all` covers compiler suites, workspace fixtures, standard
-  modules, examples, applications and reference through the shared Windows/Linux command
-  builders. Complete execution still exposes GUI runtime and platform-assumption failures.
-- Progress: resumable checks now report failure through the shared runtime context, including
-  checks raised inside imported native libraries. Linux timeouts stop detached test descendants,
-  and isolated campaigns reuse dependencies and release inactive file cache on admission waits.
-- Validation on the synchronized GPU-resource changes: all 4,049 native-language cases pass
-  in JIT and native execution. The complete GUI module passes 965 of 969 cases; PDF text and
-  viewer cases pass after standard-font metric/style repairs. The HTML failure then passes in
-  its 85-case focused run with pinned fixture fonts. Three recorded antialiased contour
-  differences remain on Mesa software rendering: confirmation focus (8 pixels, maximum channel delta 4), floating sheet (4 pixels,
-  delta 3), and property-menu separator endpoint (1 pixel, delta 20). Preserve their strict
-  failure status while identifying the geometry, coverage, or driver boundary.
-- Evidence: under Xvfb, with either renderer, Swag Scope cases intermittently never return, with
-  the main thread parked in a wait: a different handful of golden and functional files in each
-  complete run, each passing when run again on its own. The test executable prints `event=start`
-  for the case and nothing after it. A case that panics can leave the run waiting the same way
-  until its timeout.
-- Evidence: as CPU references, the goldens compare exactly on Linux: all 93 of Pixel's, all of
-  Gui's but two `C:/` fixture-path pictures, and all of Swag Scope's but the seven of
-  app.scope.013. Swag Capture's and Swag Vault's still differ where the product itself does on
-  Linux: an unavailable-shortcuts notice, sound capture, and Windows drive paths.
+  modules, examples, applications and reference through shared Windows/Linux command builders.
+  Remaining recorded GUI leads include strict Mesa contour differences at confirmation focus,
+  floating-sheet edges and property-menu separators, plus platform-dependent fixture paths and
+  unavailable application capabilities. Reproduce them on the synchronized checkout before
+  changing geometry, coverage or expectations.
+  Under Xvfb, Scope cases have intermittently stopped after `event=start`, with the main thread
+  waiting and no completion; isolated reruns passed. Panicking cases could leave the same wait.
+  A full uninterrupted campaign must distinguish this lifetime failure from a rendering mismatch.
 - Next: fix remaining failures at their owning boundaries and complete one uninterrupted
   campaign on the synchronized checkout.
   Keep functional, golden and stress coverage, golden expectations and failure status.
@@ -493,22 +349,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.008 — Validate the argv-first process API
 
-- Progress: StartInfo.arguments is now a borrowed nullable slice of strings; null/empty means
-  no arguments after argv[0]. startProcess/runProcess accept separate argument values, and
-  Windows serializes them with the existing C-runtime quoting algorithm. Programs with their own
-  grammar, including cmd.exe tests, explicitly use the Windows-only nativeArguments escape hatch.
-  The common entry validates zero bytes, empty required names, environment names and conflicting
-  argument forms before calling the host leaf. Linux explicitly rejects nativeArguments.
-- Migration: Scope thumbnails, Pixel child tests, Vault's
-  visibility probe and debugger launch now pass vectors without manual quoting. This is a source
-  API change: callers passing a command-line string must pass a vector or explicitly choose
-  StartInfo.nativeArguments for Windows. No shell is inserted implicitly.
-- Validation: raw Linux spawn probes preserve exact argv in JIT/native and an imported consumer.
-  Whole-Core test/doc compilation succeeds. Windows semantic/test compilation on this Linux host
-  stops at the known foreign log/logf imports.
-  Public Linux process cases now pass JIT/native with exact empty, spaced, quoted, backslash and
-  UTF-8 child arguments, and the separate importer executes through complete Core. Native Windows
-  quoting and focused Scope/Pixel/Vault consumers still need execution on supported hosts.
+- Evidence: `StartInfo.arguments` is a borrowed nullable string slice; null/empty supplies no
+  arguments after argv[0]. Windows serializes vectors with C-runtime quoting, while callers
+  needing another grammar explicitly use Windows-only `nativeArguments`. Linux rejects that
+  escape hatch. No shell is inserted implicitly. Exact Windows quoting and migrated consumer
+  behavior still need supported-host execution.
 - Next: run the Windows quoting path and focused Scope/Pixel/Vault consumers on supported hosts.
 - Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix
   direct argv preserve empty, spaced, quoted, and backslash-containing arguments in
@@ -516,9 +361,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.011 — Process-tree resource accounting has no portable capability contract
 
-- Progress: Process.supportsResourceMeasurement reports true on Windows, false on Linux. Linux
-  rejects StartInfo.measureResources with ENOTSUP before launch; unmeasured resources remain zero.
-  The public Linux capability/rejection case passes in JIT/native.
+- Evidence: `Process.supportsResourceMeasurement` is true on Windows and false on Linux.
+  Linux rejects `StartInfo.measureResources` with `ENOTSUP` before launch; unmeasured resources
+  remain zero. Linux tree accounting has no implementation.
 - Next: preserve the stronger resource contract deliberately. Windows Job Objects account a process
   tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
   the capability is unavailable rather than silently measuring only the first child.
@@ -562,16 +407,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.009 — Finish shared process orchestration and conformance
 
-- Progress: input validation, start/run overloads, close/drop dispatch, paired output draining,
-  wait loops, real monotonic timeout budgets and portable termination dispatch live in common
-  process.swg. Ordinary drains cap each stream at 64 KiB; final drains snapshot available bytes
-  so descendant-held pipes cannot make waiting for the direct child wait for EOF. Windows and
-  Linux supply spawn, wait/status, stream operations and native lifetime/reaping.
-  Linux writes service captured output during pipe backpressure; Windows input writes remain
-  blocking and need the equivalent duplex behavior. Eight public Linux lifecycle cases pass
-  JIT/native, including duplex stdin and simultaneous stdout/stderr output beyond pipe capacity.
-- Evidence: the process value, environment map, recorded-status accessors, and convenience
-  `startProcess`/`runProcess` overloads already live in common `process.swg`.
+- Evidence: common `process.swg` owns validation, lifetime dispatch, paired output draining,
+  waits, monotonic timeout budgets and termination policy. Ordinary drains cap each stream at
+  64 KiB; final drains snapshot available bytes so descendant-held pipes do not delay waiting
+  for the direct child until EOF. Linux services captured output during input backpressure;
+  Windows input writes remain blocking and need equivalent duplex behavior.
 - Next: finish sharing redirection preparation/rollback policy where native ownership permits,
   address Windows duplex input backpressure, and execute the same process contract cases on both
   hosts. Native leaves should spawn, poll/wait, terminate, and read/write/close native endpoints.
@@ -607,70 +447,35 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: std.gui.011, platform.portability.052
 - Done when: Windows and the chosen second platform deliver stable pointer identity and contact lifetimes for mouse, touch, and pen through the common event model; cancellation and capture release are tested, and compatibility mouse messages do not duplicate touch or pen actions.
 
-### platform.portability.051 — No second-platform monitor and DPI integration
+### platform.portability.051 — Finish Linux monitor and DPI integration
 
-- Progress (Linux): Core enumerates active RandR 1.5 monitors, clips the current EWMH desktop
-  work area to each, and falls back to real root-screen geometry when RandR is unavailable.
-  Extension presence is checked before any RandR opcode: sending a version query to a server
-  without RandR otherwise closes the entire XCB connection.
-  Missing displays return an empty array. Coordinates are explicitly physical pixels with scale
-  one; physical dimensions are not used to invent scaling. Xvfb JIT/native coverage passes.
-- Next: implement monitor enumeration and per-monitor scale for the platform whose surface exists
-  under platform.portability.050.
+- Evidence: Linux enumerates RandR 1.5 monitors, clips the EWMH work area and falls back to root
+  geometry. Coordinates are physical pixels with scale one; dimensions do not imply a scale.
+  Query extension presence before any RandR opcode, because an absent-extension request can
+  close the XCB connection. Per-monitor scale and topology changes still need integration.
+- Next: integrate per-monitor scale and live topology updates with the existing Linux monitor
+  enumeration and the surface from platform.portability.050.
 - Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.056
 - Done when: The chosen second-platform surface enumerates active monitors, uses the correct per-monitor scale during open, move, and resize, and updates placement after topology or scale changes without exposing native monitor handles.
 
-### platform.portability.052 — No second-platform keyboard routing
+### platform.portability.052 — Finish Linux keyboard and input-method routing
 
-- Progress (Linux): Core polls X11 keymaps and keyboard mappings, exposes canonical keysyms as
-  VirtualKey values, maps common modifiers and the first three mouse buttons, and snapshots basic
-  Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
-  implemented. Standard PC keypad NumLock/Shift selection and held-key release identity pass
-  real XTEST integration in both polling and GUI paths. Extra buttons, IME and broader
-  input-language routing remain pending;
-  polling snapshots are separate native requests, not one atomic input sample. GUI XKB
-  composition now sends every committed Unicode scalar as a separate portable character event;
-  real XTEST input covers ordinary, dead-key and multi-scalar compose sequences in JIT/native.
-  XKB map notifications now reload the keymap and state together; an active GUI accepts a
-  remapped key while preserving physical transition events in JIT/native. A key held across
-  another remap retains its old release identity and uses the new identity on the next press.
-  The GUI enables XKB detectable repeat per client. A genuinely held XTEST key produces
-  multiple character events with one physical press/release pair in JIT/native; a rapid
-  release and press during remapping remains two distinct transitions.
-  XTEST Shift+A and Ctrl+A sequences preserve modifier flags on physical events, produce
-  uppercase text only for Shift and suppress text under Control in JIT/native.
-  An independent XKB client installs US+DE groups and locks each in turn. The same physical
-  Y key produces `z` then `y` while retaining its Y transition identity in JIT/native;
-  the fixture restores the server's original keymap and layout property.
-  XKB map and group changes now emit the separate portable KeyboardLayoutChanged notification
-  to active surfaces; modifier-only state changes do not. The independent layout fixture
-  validates this in JIT/native.
-  The existing XTEST keypad case remains green in both modes.
-  Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
-  The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
-  coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
-  these are protocol tests, not normalized input routing or real-device key transitions.
+- Evidence: Linux routes physical transitions, modifiers, XKB composition and detectable repeat;
+  map/group changes refresh portable layout notifications. Held keys retain release identity
+  across remaps, while subsequent presses use the new map. Polling snapshots are separate native
+  requests, not an atomic sample. Layout-dependent shortcuts, extra buttons and input-method
+  transitions beyond XKB groups remain incomplete.
 - Next: validate layout-dependent shortcuts and input-method transitions beyond XKB groups.
 - Related: platform.portability.050, platform.portability.085, platform.portability.054
 - Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable GUI events, with tests covering key-down/up, repeated keys, and text input independently.
 
-### platform.portability.056 — No second-platform system-theme notifications
+### platform.portability.056 — Complete Linux high-contrast and desktop settings notifications
 
-- Progress (Linux): a real XSETTINGS owner changes Gtk/ApplicationPreferDarkTheme while an
-  X11 surface remains open. The application emits portable ThemeChanged notifications,
-  repaints dark pixels and restores its light palette in JIT/native. High-contrast policy
-  and other desktop setting sources still need an explicit contract and validation.
-- Progress (Linux): the same independent owner changes Gtk/EnableAnimations live. A native
-  application following the system preference finishes an in-flight decorative animation
-  when motion is reduced and accepts another animation when motion is restored in JIT/native.
-- Progress (Linux): killing the independent XSETTINGS owner while dark theme and reduced
-  motion are active restores the default light palette and full motion. The surface repaints
-  and receives ThemeChanged in JIT/native.
-- Progress (Linux): a replacement owner announces the selection with a MANAGER client message.
-  The already open surface adopts its dark theme and reduced-motion setting, repaints and
-  receives ThemeChanged in JIT/native.
-- Next: translate the platform's live theme and high-contrast changes into the portable settings
-  event.
+- Evidence: the Linux XSETTINGS adapter tracks live light/dark and reduced-motion preferences,
+  including owner loss and replacement. High-contrast policy and other desktop setting sources
+  still need an explicit contract and integration validation.
+- Next: define high-contrast policy and translate the remaining desktop settings sources into
+  portable live settings events.
 - Related: platform.portability.082, platform.portability.050, platform.portability.083
 - Done when: Changing light/dark or high-contrast settings while the chosen second-platform GUI runs updates its portable settings event and visible palette without a restart, with platform integration coverage.
 
@@ -701,15 +506,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.071, platform.portability.051
 - Done when: Adding, removing, or rearranging a monitor refreshes enumeration and placement constraints, leaves visible application windows reachable, and has a reproducible Windows integration check.
 
-### platform.portability.085 — Input-language changes are ignored
+### platform.portability.085 — Validate Windows input-language transitions
 
 - Owner: std/gui
-- Progress: Gui.NotifyEvent.Kind.KeyboardLayoutChanged is separate from LanguageChanged, which
-  belongs to application string tables. Windows WM_INPUTLANGCHANGE now forwards the notification
-  through its surface tree. Linux XKB map and group changes notify active surfaces; a native
-  US+DE layout switch checks the event and distinct physical key/text in JIT/native. Windows
-  syntax passes, but Windows semantic analysis on the Linux compiler host stops in the existing
-  runtime log/logf foreign-library JIT gate before reaching Gui.
+- Evidence: `KeyboardLayoutChanged` is distinct from application-string `LanguageChanged`.
+  Windows `WM_INPUTLANGCHANGE` forwards it through the surface tree; Linux XKB map/group
+  changes notify active surfaces. Native Windows layout-switch behavior and input-method
+  transitions beyond keyboard groups still need validation.
 - Next: validate the Windows message with a native layout-switch integration test and define
   input-method transitions beyond keyboard groups.
 - Related: platform.portability.049
@@ -827,113 +630,25 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   including failed mounting and shutdown while requests are active.
 - Related: platform.portability.079
 
-### platform.portability.050 — No second-platform surface and presentation backend
+### platform.portability.050 — Finish Linux surface, presentation and device-loss validation
 
-- Progress (Linux): optional XCB/X11 protocol bindings now cover checked window requests,
-  events, properties, pointer/keyboard snapshots and RandR 1.5 monitor queries. Three opt-in
-  `integration.xcb` tests pass in JIT and native ELF on an isolated Xvfb display, including
-  a separate importing module, BadWindow recovery and malformed-display failure. C headers
-  independently confirm the layouts. Libraries are dynamically loaded, so headless consumers
-  do not acquire a mandatory desktop dependency.
-- Core progress: native-allocated window ownership, owner rebinding after moves, checked create/
-  resize/position/show/hide/focus/close requests, UTF-8 titles and window-manager hints, bounded event dispatch,
-  close-request versus destruction semantics and offscreen realization are implemented. Two
-  public cases pass JIT/native under Xvfb, covering moved owners, resize callbacks, monitor/pointer
-  queries, WM_DELETE_WINDOW, repeated close, external destruction and closing from a paint callback. A separate opt-in
-  case validates neutral queries and failed creation without a display. Explicit paint events
-  also work for fully offscreen windows, where ClearArea would produce no Expose event.
-  The lazy connection retains optional RandR and XFixes libraries until disconnect, avoiding extension-cache
-  identities accumulating from repeated unload/reload. Window operations stay on the creating
-  thread; module shutdown invalidates owners before releasing native state. Connection-loss,
-  module-unload stress and window-manager integration still need dedicated execution.
-  `WindowCallbacks.onFocus` now routes X11 focus gain/loss on the owning thread. Two native/JIT
-  tests change real Xvfb focus between windows, move an owner with a queued event, and close from
-  the callback. A separate importing module also passes both modes. The common callback and
-  Windows dispatch adapter are shared; actual GUI focus policy remains part of GUI integration.
-  Public placement, hide and focus requests enforce open-window and owning-thread contracts.
-  Xvfb tests cover actual geometry and visibility, hidden-window focus rejection, moved owners,
-  callbacks closing their owner and a separately linked importer. Placement remains a native
-  request; decorated window-manager policy and complete GUI integration remain unvalidated.
-  Core cursor visibility uses optional XFixes 4 and a serialized process-wide show/hide counter.
-  Only zero crossings issue native requests; a rejected request leaves the counter unchanged.
-  Missing displays or extensions are neutral, and extension presence is checked before negotiation.
-  Five public desktop cases pass JIT/native: the two window cases, cursor nesting and BadWindow
-  recovery, missing-display neutrality, and a server with RandR/XFixes explicitly disabled.
-  The disabled-extension case failed before the presence guard by losing its XCB connection.
-  Cursor visibility on screen is not visually measured, and a real window manager remains untested.
-  Ogl now supplies an EGL/XCB OpenGL 3.3 compatibility context owner matching Core window visuals.
-  Five framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering,
-  including context creation on a rendering worker and independently owned surfaces sharing GL objects.
-  The stable XCB render descriptor survives moving its Core window owner; native desktop tests cover
-  that identity and its invalidation on close in JIT and native execution. Separate shared-library and companion-archive consumers
-  render and read back pixels in both modes; the Ogl API page passes its structural/link audit.
-  Pixel now has a Linux EGL adapter: one renderer-owned context outlives its individual window surfaces.
-  Eight Pixel integration cases pass JIT/native: render-worker presentation, asynchronous cropped/strided
-  readback, render-target survival after closing the first of two windows, clipping, SVG alpha, sampling,
-  padding and backdrop effects. Six ordinary native renderer/thread tests also pass, including failure
-  retirement. All 92 Pixel golden tests pass natively without changing references. Native
-  application startup, rendering and close now pass for Swag Capture and Swag Vault
-  under Xvfb/Openbox, with captured window pixels inspected. Capture reports unavailable
-  shortcuts when the window manager owns Print/Alt+Print; Ctrl+Print is exercised by real XTEST
-  input after canonical Linux key mapping was corrected. Scope now also passes native startup,
-  WAV loading, waveform display and PCM playback through FAudio's SDL disk device. A fresh
-  native Linux Scope smoke also completes 40 frames, then reviews all 15 registered viewer
-  fixtures on isolated X11. The review opens real documents and waits for presentable content;
-  the existing Scope document-recovery journey now passes in JIT/native Linux after moving
-  its native-presentation verifier to the XCB window path. It presents an image error and
-  then a valid Markdown document in the same surface, comparing X11 pixels with OpenGL.
-  The Scope folder-history journey also passes JIT/native Linux: it presents the toolkit
-  folder dialog, chooses a recent folder from its menu and navigates to the selected path,
-  with native pixel checkpoints.
-  The offline media-library fixture is now platform-neutral. Scope's recent-video journey
-  passes JIT/native Linux twice through playback beyond frame 18 and back to history,
-  with native pixel checks. Compile-time executors run submissions inline, so the video
-  viewer opens there without its persistent decode task and fills its bounded frame
-  queue on GUI ticks; native execution retains the dedicated decoder thread.
-  The full Scope media-library journey also passes JIT/native: repeated local-frame and
-  cached-poster switching, refresh, details/poster/filter modes, film open and return,
-  pending-folder replacement, odd-size resize, and both appearance modes. The thumbnail
-  renderer selects an installed Linux font when Segoe UI is absent. The journey exposed
-  an EGL/XCB window surface that kept its original back-buffer size after X11 resize;
-  Linux presentation now recreates that surface while preserving the shared GL context
-  and copies the visible render-target rectangle directly. The X11 pixel verifier waits
-  for asynchronous swap publication. A focused GUI resize case passes JIT/native.
-  An optional read-only probe of a supplied media directory is now available on Linux.
-  On the 44-file Scope corpus, all eight scroll/artwork/refresh stages pass in JIT/native,
-  with 23-24 exact cache-to-GPU preview matches per stage. Compile-time execution has
-  zero runtime workers, so Explorer now retains one preview slot and submits that work
-  on the caller. A Linux Scope placement journey also passes JIT/native across three
-  full-screen entry/exit cycles, checking X11 origin, window pixels and restored insets.
-  After the information-sheet redesign, the full media journey also opens a cached film's
-  media and technical pages, checks X11 pixels, then closes the sheet before continuing.
-  The 44-file library probe still passes all eight stages JIT/native after that upstream merge.
-  Broader application journeys and physical desktop/device validation remain.
-  GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
-  implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox
-  with a compositor, real XTEST events, XSettings, headless rendering, clipboard
-  UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
-  they do not replace the full application workflows.
-  An isolated Xorg dummy server also passes clipboard owner exit and empty text roundtrips
-  against an independent client in JIT/native. A separate XSETTINGS peer switches a live
-  surface between light and dark themes, with pixel and ThemeChanged checks in both modes.
-  The toolkit-owned file dialog selects existing
-  Linux names containing colons and Unicode, proposes new paths, rejects invalid selections and
-  returns cancellation on a native X11 surface in JIT/native.
-  Native artifact work remains in .093.
-  Nine Ogl JIT/native cases now cover independent XCB connections, shared contexts and resources,
-  worker-thread contexts and pbuffer lifetimes. Two surfaceless cases pass without a display.
-  Core still has no mandatory GL/EGL dependency. Physical GPUs and native Wayland remain open.
-  EGL contexts are not created with lose-on-reset robustness, so `RenderOgl.recoverLostDevice`
-  never sees a GPU reset on Linux: a reset leaves the windows on a context that draws nothing.
-- Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
-  `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
-  shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
-  themes, controls and the toolkit-owned file dialog are platform-neutral. These leaves identify
-  mechanisms to replace; their file count is not a porting plan.
-  Core provides opt-in independent window lifetimes through `WindowOptions.stopLoopOnClose`
-  and `WindowCallbacks.onCloseRequest`. GUI can defer native close requests until renderer borrows
-  are retired and explicitly decide when its application quits; there is no implicit last-window
-  shutdown. Existing WindowLoop consumers retain their default close behavior.
+- Evidence: the Linux XCB/X11 and EGL adapters provide windows, presentation, input, clipboard
+  and drag/drop mechanisms. Headless Core consumers retain optional desktop/GL dependencies.
+  Complete application workflows, physical GPUs, connection-loss and module-unload stress remain
+  unverified. Native Wayland, IME composition and accessibility are separate capabilities.
+  EGL contexts lack lose-on-reset robustness, so `RenderOgl.recoverLostDevice` cannot recover a
+  Linux GPU reset; windows can remain on a context that draws nothing.
+- Constraints: keep window operations on the creating thread and invalidate owners before native
+  state is released. A renderer's shared context must outlive individual window surfaces; resize
+  can require surface recreation while preserving that context. Retain optional RandR/XFixes
+  libraries until disconnect and check extension presence before negotiation. Native X11 swap
+  publication is asynchronous, so pixel verification must wait for presentation.
+  `WindowOptions.stopLoopOnClose` and `WindowCallbacks.onCloseRequest` give consumers explicit
+  lifetime policy. GUI defers close until renderer borrows retire; no implicit last-window
+  shutdown may replace that policy. The retained tree, layout, themes and toolkit file dialog
+  stay platform-neutral. `surface.win32.swg`, `application.win32.swg`, `clipboard.win32.swg`,
+  `dragdrop.win32.swg`, `cursor.win32.swg` and `nativetext.win32.swg` identify native mechanisms,
+  not a porting plan.
 - Next: validate complete application workflows and physical desktop/GPU behavior, finish dynamic
   connection-loss/module-unload stress. Create the shared EGL context with
   `EGL_EXT_create_context_robustness` and implement its `replaceLostContext`, then run the
@@ -951,15 +666,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   platform.portability.035, platform.portability.051, platform.portability.057,
   platform.portability.058, platform.portability.060
 
-### platform.portability.080 — Bare `.swgs` execution has only a Windows shell contract
+### platform.portability.080 — Finish shell and desktop `.swgs` execution contracts
 
-- Evidence: `tools/setup.bat` registers the checkout's `bin/` directory and `SWAG_PATH` for the
-  current user. It no longer claims a file association; `.swgs` examples continue to require an
-  explicit compiler command, while tools launch as `.bat` files.
-- Progress (Linux): `tools/setup.sh` installs, refreshes and removes a marked Bash/Zsh profile
-  block containing the compiler path and this checkout's `SWAG_PATH`. It reports that bare
-  `.swgs` execution is unsupported and prints the explicit compiler command. A temporary profile
-  has executed a representative script through `swc.dm` with the configured standard library.
+- Evidence: `tools/setup.bat` registers the current user's compiler path and `SWAG_PATH`, but
+  does not claim a file association. `tools/setup.sh` maintains a marked Bash/Zsh profile block
+  and reports bare `.swgs` execution as unsupported, with an explicit compiler command.
+  Fresh Windows shells and desktop-launch behavior still need a verified contract.
 - Next: validate Windows bare-script behavior in fresh shells and define desktop-launch behavior
   per host. Machine-wide mutation remains explicit and opt-in.
 - Done when: setup reports whether bare execution is supported for the current shell and either
@@ -1035,13 +747,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.029 — Validate common periodic scheduling and cancellation
 
-- Progress: `time/timer.worker.swg` now owns one worker per timer, monotonic deadlines, serialized
-  periodic callbacks, skipped missed periods, cancellation and join-before-free. Both native
-  leaves only create/join a thread. The public contract states that distinct timers may run
-  concurrently while a single timer never overlaps its own callbacks; this replaces the former
-  Windows timer-queue behavior that allowed overlap.
-- Two public lifecycle and four common thread/timer cases pass Linux JIT/native for cancellation,
-  active callback release, one-shot/periodic behavior and context inheritance.
+- Evidence: `time/timer.worker.swg` owns a worker per timer, monotonic deadlines, serialized
+  periodic callbacks, skipped missed periods, cancellation and join-before-free. Native leaves
+  only create/join threads. Distinct timers can overlap; a single timer cannot overlap its own
+  callbacks. Windows parity and the cost of many dedicated timer threads remain unverified.
 - Next: run the same cases on Windows and assess the dedicated-thread cost for many timers.
 - Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
@@ -1261,16 +970,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.071 — Cross-platform capture backend
 
-- Evidence: `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform
-  boundary on the capture side. The editor, the forms, the library, and the serialization are
-  already portable.
-- Progress (Linux): six isolated JIT/native X11 cases cover root pixels, regions, cursor overlay
-  and window queries, plus application commands that save/reload a screen capture in the editor,
-  publish a selected monitor's pixels through the clipboard, and capture the EWMH active window
-  with its title. The native Capture window opens, executes a fixed capture and an area drag, and
-  presents both results through EGL/X11. Cancelling a subsequent area selection preserves the
-  editor and releases the overlay. A separate XTEST drag crosses the actual X11 pointer-input
-  path and captures its selected pixels. X11 pointer capture now starts after the overlay is shown.
+- Evidence: Linux has X11 screen, region, cursor and window capture with editor publication.
+  Isolated X11 checks do not establish decorated-window focus, a physical compositor session
+  or native Wayland behavior. X11 pointer capture must start after the selection overlay is shown.
+  Keep OS bindings inside the named capture backends.
 - Next: exercise the complete capture application with a compositor and window manager, including
   actual window-manager focus changes and decorated windows. Account for native Wayland capture
   through the desktop portal rather than reading the XWayland root alone.

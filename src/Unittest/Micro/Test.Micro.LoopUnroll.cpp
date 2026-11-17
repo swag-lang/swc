@@ -70,8 +70,8 @@ SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
         constexpr MicroReg counter = MicroReg::virtualIntReg(2);
         constexpr MicroReg bound   = MicroReg::virtualIntReg(3);
         constexpr MicroReg temp    = MicroReg::virtualIntReg(4);
-        const auto header = builder.createLabel();
-        const auto exit   = builder.createLabel();
+        const auto         header  = builder.createLabel();
+        const auto         exit    = builder.createLabel();
         builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
         builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
         builder.emitLoadRegImm(bound, ApInt(40, 64), MicroOpBits::B64);
@@ -79,14 +79,14 @@ SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
         builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
         builder.emitJumpToLabel(boundCond, MicroOpBits::B32, exit);
         builder.emitCmpRegImm(temp, ApInt(0, 8), MicroOpBits::B8);
-        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
-        MicroInstrOperand indexedCompare[7] = {};
-        indexedCompare[0].reg = byteBase;
-        indexedCompare[1].reg = byteIndex;
-        indexedCompare[2].opBits = MicroOpBits::B8;
-        indexedCompare[3].opBits = MicroOpBits::B64;
-        indexedCompare[4].valueU64 = scale;
-        indexedCompare[5].valueU64 = 0;
+        const MicroInstrRef oldCompare        = builder.instructions().lastInstructionRef();
+        MicroInstrOperand   indexedCompare[7] = {};
+        indexedCompare[0].reg                 = byteBase;
+        indexedCompare[1].reg                 = byteIndex;
+        indexedCompare[2].opBits              = MicroOpBits::B8;
+        indexedCompare[3].opBits              = MicroOpBits::B64;
+        indexedCompare[4].valueU64            = scale;
+        indexedCompare[5].valueU64            = 0;
         indexedCompare[6].setImmediateValue(ApInt(byteValue, 8));
         builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
         builder.instructions().erase(oldCompare);
@@ -111,7 +111,7 @@ SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
              std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{2}, false},
              std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{1}, true}})
     {
-        MicroBuilder builder(ctx);
+        MicroBuilder   builder(ctx);
         const uint64_t originalHeaderId = build(builder, boundCond, byteCond, cmpBase, cmpIndex, byte, scale, badCopy);
         SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         const bool accepted = boundCond == MicroCond::AboveOrEqual && byteCond == MicroCond::Equal &&
@@ -131,7 +131,7 @@ SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
         }
         if (accepted)
         {
-            bool sawMask = false, sawFirstMatch = false, saw16Guard = false;
+            bool     sawMask = false, sawFirstMatch = false, saw16Guard = false;
             uint32_t jumpsToScalarHeader = 0;
             for (const MicroInstr& inst : builder.instructions().view())
             {
@@ -168,9 +168,9 @@ SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
     }
     for (uint32_t length = 0; length <= 32; ++length)
     {
-        const uint64_t remaining = length;
-        const bool vectorGuard = remaining >= 16;
-        const bool scalarTail = remaining < 16;
+        const uint64_t remaining   = length;
+        const bool     vectorGuard = remaining >= 16;
+        const bool     scalarTail  = remaining < 16;
         if (vectorGuard == scalarTail)
         {
             return Result::Error;

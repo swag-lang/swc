@@ -23,8 +23,8 @@ namespace ConstantHelpers
         ConstantRef valueRef = ConstantRef::invalid();
     };
 
-    bool   hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr);
-    Result waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
+    bool          hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr);
+    Result        waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     ConstantValue finalizeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, ConstantValue result, DataSegmentRef dataSegmentRef);
 
     uint64_t    materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view);

@@ -81,7 +81,6 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(Viewers.MarkdownText.viewerPlugin())
     expect result.register(Viewers.Captions.viewerPlugin())
     expect result.register(Viewers.Picture.viewerPlugin())
-    expect result.register(Viewers.Scene.viewerPlugin())
     expect result.register(Viewers.Film.viewerPlugin())
     expect result.register(Viewers.PdfDocument.viewerPlugin())
     expect result.register(Viewers.Sound.viewerPlugin())

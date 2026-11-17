@@ -249,19 +249,11 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.034 — PDF packed samples and mask composition remain scalar
 
-- Evidence: default 8-bit gray expansion and CMYK conversion already use packed shuffles in
-  `decode.image.swg`; the remaining paths still use sample extraction and per-pixel composition.
-- Progress: 8-bit soft masks with identity decode copy their samples directly; inverted masks
-  subtract sixteen samples at a time and handle the tail scalarly. PDF tests compare all 256
-  coverage values against the original scalar conversion and cover SIMD block boundaries.
-  Single-component 8-bit color keys also compare sixteen samples at once, with bounds resolved
-  once per image; out-of-range and inverted intervals retain the scalar behavior. RGB and alpha
-  planes and stencil fills combine into four RGBA pixels per SIMD iteration, with bounded row reads
-  and scalar tails; same-size mask planes transfer their buffer instead of resampling every pixel.
-  One-bit mask and stencil decodes expand eight bits per SIMD iteration for either standard
-  decode direction, retaining row padding.
-  Different-size mask resampling advances exact quotient-and-remainder coordinates rather than
-  dividing for each pixel or row.
+- Evidence: default 8-bit gray/CMYK conversion, standard soft masks, single-component color
+  keys, RGB/alpha composition and one-bit mask expansion already have packed paths in
+  `decode.image.swg`. Different-size masks use exact quotient-and-remainder coordinates.
+  Non-default decode arrays, other sample widths and remaining composition paths still need
+  separate profiling and vectorization.
 - Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
   mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
@@ -391,10 +383,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.030 — WebP reconstruction and transforms remain mostly scalar
 
-- Progress: the VP8 DC-only 4x4 inverse transform applies the residual to four pixels per
-  row with packed saturation when a wide read stays inside the row, and uses a scalar edge
-  path otherwise. Tests cover clipping, every valid block offset, untouched neighbours, and
-  lossy reference images. Its effect on decode performance remains unmeasured.
+- Evidence: the VP8 DC-only 4x4 transform has a packed saturated row path with a scalar
+  boundary fallback. Its effect on decode performance remains unmeasured; the other
+  reconstruction and transform stages still need profiling and vectorization.
 - Next: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
   and lossless subtract-green/cross-color/predictor transforms.
 - Done when: lossy and lossless fixture pixels remain identical where specified, predictor and

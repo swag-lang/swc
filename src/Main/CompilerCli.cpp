@@ -5,8 +5,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 #include "Main/ExitCodes.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/ScopedTimedLog.h"
@@ -39,31 +39,30 @@ ExitCode runCompilerCli(const int argc, char* argv[])
 
     global.initialize(cmdLine);
     TaskContext            startupCtx(global, cmdLine);
-    const ScopedCommandLog commandLog(startupCtx);
+    ExitCode               result = ExitCode::ErrorCommand;
+    const ScopedCommandLog commandLog(startupCtx, result);
 
     if (cmdLine.command == CommandKind::New)
     {
-        const Result result = Command::createProject(startupCtx);
-        return result == Result::Continue ? ExitCode::Success : ExitCode::ErrorCommand;
+        result = Command::createProject(startupCtx) == Result::Continue ? ExitCode::Success : ExitCode::ErrorCommand;
+        return result;
     }
 
     // Cleaning needs no input collection, module setup, or scheduler work.
     if (cmdLine.command == CommandKind::Clean)
     {
-        const Result result = Command::clean(startupCtx);
-        return result == Result::Continue ? ExitCode::Success : ExitCode::ErrorCommand;
+        result = Command::clean(startupCtx) == Result::Continue ? ExitCode::Success : ExitCode::ErrorCommand;
+        return result;
     }
 
 #if SWC_HAS_UNITTEST
     if (cmdLine.command == CommandKind::Unittest && !cmdLine.dryRun && !cmdLine.showConfig)
     {
-        if (Unittest::runAll(startupCtx) != Result::Continue)
-            return ExitCode::ErrorCommand;
-        return ExitCode::Success;
+        result = Unittest::runAll(startupCtx) == Result::Continue ? ExitCode::Success : ExitCode::ErrorCommand;
+        return result;
     }
 #endif
 
-    ExitCode result;
     {
         CompilerInstance compiler(global, cmdLine);
         result = compiler.run();

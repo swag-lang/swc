@@ -27,7 +27,7 @@ namespace FormatPassUtil
             return;
 
         std::vector<SegmentSnapshot> snapshots(segments.size());
-        std::vector<FormatGap> leadingGaps(segments.size());
+        std::vector<FormatGap>       leadingGaps(segments.size());
 
         for (size_t s = 0; s < segments.size(); ++s)
         {

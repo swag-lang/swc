@@ -36,7 +36,7 @@ namespace
         SourceRangeLineOffset result;
         const uint32_t        offset = view.tokenByteStart(token);
         const uint32_t        len    = token.id == TokenId::EndOfFile ? 0 : token.byteLength;
-        const size_t           size   = view.stringView().size();
+        const size_t          size   = view.stringView().size();
         if (offset > size || len > size - offset)
             return result;
 
@@ -156,7 +156,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     if (codeRef_.tokRef.get() >= view.tokens().size())
         return codeRange;
 
-    const Token&          baseTok  = view.token(codeRef_.tokRef);
+    const Token&                baseTok  = view.token(codeRef_.tokRef);
     const SourceRangeLineOffset baseLoc  = tokenLineOffset(view, baseTok);
     const uint32_t              baseLine = baseLoc.line;
 

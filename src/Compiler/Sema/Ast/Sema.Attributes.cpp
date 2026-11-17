@@ -922,6 +922,9 @@ Result AstAttributeList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     SWC_RESULT(checkAttributeUsages(sema, *this));
 
     const AttributeList& attributes = sema.frame().currentAttributes();
+    // Lowering revisits the body after this semantic frame has gone away.
+    if (!attributes.warnings.empty())
+        sema.ensureSemaPayload<WarningPolicy>(sema.curNodeRef()) = attributes.warnings;
     if (!attributes.hasRtFlag(RtAttributeFlagsE::PrintAst))
         return Result::Continue;
 

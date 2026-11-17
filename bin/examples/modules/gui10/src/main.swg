@@ -345,7 +345,6 @@ func updateTestMode()
     if cast(s32, g_Variant) + 1 >= ThemeVariantCount
     {
         Env.exit(0)
-        return
     }
 
     showPage(0)

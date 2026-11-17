@@ -42,19 +42,19 @@ namespace FileSystem
         Utf8      because;
     };
 
-    fs::path    absolutePathNoThrow(const fs::path& path);
-    fs::path    compilerResourceRoot(const fs::path& exeFullName);
-    fs::path    standardLibraryWorkspaceRoot(const fs::path& exeFullName);
-    fs::path    currentPathNoThrow();
-    fs::path    generatedDependencyApiDir(const fs::path& exeFullName, std::string_view moduleName);
-    fs::path    normalizePath(const fs::path& path);
-    fs::path    commonPathPrefix(const fs::path& lhs, const fs::path& rhs);
-    Result      normalizeAbsolutePath(fs::path& path, Utf8& because);
-    Result      resolveExistingFile(fs::path& file, Utf8& because);
-    Result      resolveExistingFolder(fs::path& folder, Utf8& because);
-    Result      resolveFile(TaskContext& ctx, fs::path& file);
-    Result      resolveFolder(TaskContext& ctx, fs::path& folder);
-    Result      reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because);
+    fs::path absolutePathNoThrow(const fs::path& path);
+    fs::path compilerResourceRoot(const fs::path& exeFullName);
+    fs::path standardLibraryWorkspaceRoot(const fs::path& exeFullName);
+    fs::path currentPathNoThrow();
+    fs::path generatedDependencyApiDir(const fs::path& exeFullName, std::string_view moduleName);
+    fs::path normalizePath(const fs::path& path);
+    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs);
+    Result   normalizeAbsolutePath(fs::path& path, Utf8& because);
+    Result   resolveExistingFile(fs::path& file, Utf8& because);
+    Result   resolveExistingFolder(fs::path& folder, Utf8& because);
+    Result   resolveFile(TaskContext& ctx, fs::path& file);
+    Result   resolveFolder(TaskContext& ctx, fs::path& folder);
+    Result   reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because);
     // Reports 'id' about 'path', with 'because' as the reason when there is one.
     Result reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path);
     Result reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because);
@@ -67,25 +67,25 @@ namespace FileSystem
     // A loaded library keeps its file mapped: the system will not replace or delete it while
     // it still lets the file be renamed. A publication moves such a file aside under this
     // extension and removes it once nothing maps it any more.
-    bool   isMovedAsidePath(const fs::path& path);
-    bool   moveFileAside(const fs::path& path);
-    void   removeMovedAsideFiles(const fs::path& directory);
-    Result renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error, FileReplacement replacement = FileReplacement::Ordinary);
-    bool   pathEquals(const fs::path& lhs, const fs::path& rhs);
-    bool   pathStartsWith(const fs::path& path, const fs::path& prefix);
-    void   setDiagnosticPath(Diagnostic& diag, const fs::path& path);
-    void   setDiagnosticPathAndBecause(Diagnostic& diag, const fs::path& path, const Utf8& because);
-    Utf8   describePathProblem(PathProblem problem);
-    Utf8   describeIoProblem(IoProblem problem);
-    Utf8   describeIoFailure(const IoErrorInfo& error);
+    bool            isMovedAsidePath(const fs::path& path);
+    bool            moveFileAside(const fs::path& path);
+    void            removeMovedAsideFiles(const fs::path& directory);
+    Result          renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error, FileReplacement replacement = FileReplacement::Ordinary);
+    bool            pathEquals(const fs::path& lhs, const fs::path& rhs);
+    bool            pathStartsWith(const fs::path& path, const fs::path& prefix);
+    void            setDiagnosticPath(Diagnostic& diag, const fs::path& path);
+    void            setDiagnosticPathAndBecause(Diagnostic& diag, const fs::path& path, const Utf8& because);
+    Utf8            describePathProblem(PathProblem problem);
+    Utf8            describeIoProblem(IoProblem problem);
+    Utf8            describeIoFailure(const IoErrorInfo& error);
     const fs::path& displayRoot();
-    Utf8   formatFileName(const fs::path& filePath);
-    Utf8   formatFileLocation(Utf8 fileName, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
-    Utf8   formatPathLocation(const fs::path& filePath, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
-    Utf8   sanitizeFileName(Utf8 value);
-    Utf8   normalizeSystemMessage(const Utf8& msg);
-    Utf8   normalizeSystemMessage(std::error_code ec);
-    Utf8   appendFileUsers(Utf8 because, const fs::path& path);
+    Utf8            formatFileName(const fs::path& filePath);
+    Utf8            formatFileLocation(Utf8 fileName, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
+    Utf8            formatPathLocation(const fs::path& filePath, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
+    Utf8            sanitizeFileName(Utf8 value);
+    Utf8            normalizeSystemMessage(const Utf8& msg);
+    Utf8            normalizeSystemMessage(std::error_code ec);
+    Utf8            appendFileUsers(Utf8 because, const fs::path& path);
 
     inline Result createDirectories(TaskContext& ctx, const fs::path& path, DiagnosticId failureId)
     {

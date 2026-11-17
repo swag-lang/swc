@@ -254,6 +254,7 @@ namespace
 
         ByteArray identity;
         microBuilder->backendBuildCfg().appendCacheIdentity(identity);
+        microBuilder->appendWarningPolicyCacheIdentity(identity);
         identity.pushBack(static_cast<std::byte>(function.callConvKind()));
         identity.appendLe32(function.attributes().effectiveSanityMask(builder.compiler().buildCfg().sanityGuards));
         identity.appendLe32(function.debugStackBaseReg().packed);

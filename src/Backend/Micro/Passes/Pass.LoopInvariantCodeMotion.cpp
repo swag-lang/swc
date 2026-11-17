@@ -263,7 +263,7 @@ namespace
 
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        thread_local std::vector<MicroInstrUseDef>       ownedUseDefs;
+        thread_local std::vector<MicroInstrUseDef>        ownedUseDefs;
         thread_local std::vector<const MicroInstrUseDef*> useDefs;
         // Keyed by the packed register and only looked up; a fresh table costs what this round
         // records.

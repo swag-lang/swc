@@ -212,6 +212,57 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RecreatesOptimizerConstantsInTheConsu
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_PreservesInternedOptimizerConstantsAcrossFunctions)
+{
+    const double           payload = 10.0;
+    const std::string_view bytes{reinterpret_cast<const char*>(&payload), sizeof(payload)};
+    ModuleCacheFixture     producer(ctx, "cacheInternedConstantFirst");
+    TaskContext&           producerCtx = *producer.context;
+    DataSegmentRef         source;
+    const auto             stored = producerCtx.cstMgr().addPayloadBuffer(bytes, &source);
+    MachineCode            expected;
+    expected.bytes.resize(4, std::byte{0});
+    MicroRelocation relocation;
+    relocation.kind              = MicroRelocation::Kind::ConstantAddress;
+    relocation.form              = MicroRelocation::Form::Relative32;
+    relocation.targetAddress     = reinterpret_cast<uint64_t>(stored.data());
+    relocation.constantShard     = source.shardIndex;
+    relocation.constantOffset    = source.offset;
+    relocation.relativeEndOffset = 4;
+    expected.codeRelocations.push_back(relocation);
+    MicroBuilder input(producerCtx);
+    input.emitRet();
+    MachineCodeCache firstWriter(producerCtx, *producer.function, input);
+    firstWriter.write(expected);
+    auto*            secondFunction = makeCacheFunction(producerCtx, "cacheInternedConstantSecond", TypeRef::invalid(), producer.function->decl());
+    MachineCodeCache secondWriter(producerCtx, *secondFunction, input);
+    secondWriter.write(expected);
+
+    ModuleCacheFixture consumer(ctx, "cacheInternedConstantFirst");
+    TaskContext&       consumerCtx = *consumer.context;
+    DataSegmentRef     freshSource;
+    const auto         fresh = consumerCtx.cstMgr().addPayloadBuffer(bytes, &freshSource);
+    MicroBuilder       currentInput(consumerCtx);
+    currentInput.emitRet();
+    MachineCodeCache firstReader(consumerCtx, *consumer.function, currentInput);
+    auto*            secondConsumer = makeCacheFunction(consumerCtx, "cacheInternedConstantSecond", TypeRef::invalid(), consumer.function->decl());
+    MachineCodeCache secondReader(consumerCtx, *secondConsumer, currentInput);
+    for (const MachineCodeCache* reader : {&firstReader, &secondReader})
+    {
+        MachineCode restored;
+        if (!reader->read(restored) || restored.codeRelocations.size() != 1)
+            return Result::Error;
+        const auto& restoredRelocation = restored.codeRelocations.front();
+        if (restoredRelocation.targetAddress != reinterpret_cast<uint64_t>(fresh.data()) || restoredRelocation.constantShard != freshSource.shardIndex || restoredRelocation.constantOffset != freshSource.offset)
+            return Result::Error;
+        DataSegmentAllocation allocation;
+        const auto&           segment = consumerCtx.cstMgr().shardDataSegment(freshSource.shardIndex);
+        if (!segment.findAllocation(allocation, freshSource.offset) || !segment.isInternedString(allocation) || allocation.size != sizeof(payload) + 1)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RejectsGeneratedConstantsWithPointerEdges)
 {
     ModuleCacheFixture fixture(ctx, "cacheGeneratedPointerCaller");
@@ -395,6 +446,11 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeEffectsAndNullability)
     target->setAttributes(ctx, attributes);
     const Utf8 readOnly = cacheKey(ctx, *caller, builder);
     if (before.empty() || readOnly.empty() || before == readOnly)
+        return Result::Error;
+
+    target->setInferredNeverReturnsSuccess(true);
+    const Utf8 noSuccess = cacheKey(ctx, *caller, builder);
+    if (noSuccess.empty() || noSuccess == readOnly)
         return Result::Error;
 
     const TypeRef pointer          = ctx.typeMgr().addType(TypeInfo::makeValuePointer(ctx.typeMgr().typeS32()));
@@ -584,6 +640,34 @@ SWC_TEST_BEGIN(MachineCodeCache_DistinguishesSystemVAggregateRegisterClasses)
     const Utf8 integers = cacheKey(ctx, *function, builder);
     field->setTypeRef(ctx.typeMgr().typeF64());
     if (mixed.empty() || integers.empty() || mixed == integers || cacheKey(ctx, *function, builder) != mixed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_InvalidatesSuppressedSourceWarnings)
+{
+    ModuleCacheFixture fixture(ctx, "cacheSourceWarningPolicy");
+    TaskContext&       localCtx = *fixture.context;
+    WarningPolicy      policy;
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Disable);
+    MicroBuilder builder(localCtx);
+    builder.setCurrentSourceWarningPolicy(&policy);
+    builder.emitRet();
+    MachineCode expected;
+    expected.bytes.pushBack(std::byte{0xC3});
+    MachineCodeCache suppressed(localCtx, *fixture.function, builder);
+    suppressed.write(expected);
+    MachineCode restored;
+    if (!suppressed.read(restored))
+        return Result::Error;
+
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Error);
+    MachineCodeCache promoted(localCtx, *fixture.function, builder);
+    if (promoted.read(restored))
+        return Result::Error;
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Disable);
+    MachineCodeCache unchanged(localCtx, *fixture.function, builder);
+    if (!unchanged.read(restored))
         return Result::Error;
 }
 SWC_TEST_END()

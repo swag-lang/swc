@@ -42,6 +42,48 @@ func fillPastEnd(count: u64)
     #run fillPastEnd(opaqueU64(5))
 }
 
+#[Swag.Safety(.BoundCheck, true)]
+func fillRangePastEnd()
+{
+    var storage: [4] s32
+    for index in 0 to 4 do
+        storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+}
+
+#test
+{
+    #run fillRangePastEnd()
+}
+
+#[Swag.Safety(.BoundCheck, true)]
+func fillRangeBeforeStart()
+{
+    var storage: [4] s32
+    for index in -1 until 3 do
+        storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+}
+
+#test
+{
+    #run fillRangeBeforeStart()
+}
+
+#[Swag.Safety(.BoundCheck, true)]
+func fillRangeWithChangedIndex()
+{
+    var storage: [4] s32
+    for index in 0 until 4
+    {
+        index = 4
+        storage[index] = 1     // swc-expected-error {{safety_err_runtime}}
+    }
+}
+
+#test
+{
+    #run fillRangeWithChangedIndex()
+}
+
 // GAP compiler.safety.006 - 'Swag.memcpy' takes a byte count that has no relation to either
 // operand, so writing more bytes than the destination holds is not judged. Left commented
 // because it really does overwrite the frame.
@@ -63,7 +105,72 @@ func fillExactly()->s32
     return storage[3]
 }
 
+func fillRangeExactly()->s32
+{
+    var storage: [4] s32
+    for index in 0 until 4 do
+        storage[index] = index
+    return storage[3]
+}
+
+func fillRangeInclusive()->s32
+{
+    var storage: [4] s32
+    for index in 1 to 3 do
+        storage[index] = index
+    return storage[3]
+}
+
+func fillRangeWithSafeChangedIndex()->s32
+{
+    var storage: [4] s32
+    for index in 0 until 4
+    {
+        if index == 0 do
+            index = 2
+        storage[index] = index
+    }
+    return storage[2] + storage[3]
+}
+
+func sumRangeWithChangedNegativeIndex()->s32
+{
+    var sum     = 0
+    var changed = false
+    for index in -1 to 1
+    {
+        if index == 0 and not changed
+        {
+            index   = -2
+            changed = true
+        }
+        sum += index
+    }
+    return sum
+}
+
+func firstWideRangeIndex()->s64
+{
+    for index in -1 to 2147483648 do
+        return index
+    return 0
+}
+
+func sumWideRangeIndices()->s64
+{
+    var sum: s64
+    for index in 2147483647 until 2147483649 do
+        sum += index
+    return sum
+}
+
 #test
 {
     Swag.require(fillExactly() == 3)
+    Swag.require(fillRangeExactly() == 3)
+    Swag.require(fillRangeInclusive() == 3)
+    Swag.require(fillRangeWithSafeChangedIndex() == 5)
+    Swag.require(sumRangeWithChangedNegativeIndex() == -3)
+    Swag.require(firstWideRangeIndex() == -1)
+    Swag.require(sumWideRangeIndices() == 4294967295)
 }

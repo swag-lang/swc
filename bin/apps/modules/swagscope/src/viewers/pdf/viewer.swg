@@ -377,10 +377,17 @@ private impl Panel
     internal mtd typedPageIndex(text: string)->u64
     {
         let typed = Latin1.trim(text)
-        for label, index in .pageLabels where typed.count and
-                                              not Latin1.isDigit(typed[0]) and
-                                              Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
-            return index
+        var isPageNumber = typed.count > 0
+        for character in typed where not Latin1.isDigit(character)
+        {
+            isPageNumber = false
+            break
+        }
+        if not isPageNumber
+        {
+            for label, index in .pageLabels where Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
+                return index
+        }
 
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(typed))

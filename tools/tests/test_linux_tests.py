@@ -56,12 +56,12 @@ class LinuxCampaignTests(unittest.TestCase):
                                 'workspace-import-script', 'workspace-import-png-script', 'std-core', 'apps-swagcapture',
                                 'examples-gui1', 'reference-language'})
         cpp = stages[0].command
-        self.assertEqual(cpp[0], '/dev/swc.dm')
+        self.assertEqual(cpp[0], str(Path('/dev/swc.dm')))
         self.assertIn('--dev-full', cpp)
         self.assertNotIn('--build-cfg', cpp)
         app = next(stage.command for stage in stages if stage.name == 'apps-swagcapture')
-        self.assertEqual(app[0], '/release/swc')
-        self.assertIn('--run-arg=--compiler=/release/swc', app)
+        self.assertEqual(app[0], str(Path('/release/swc')))
+        self.assertIn('--run-arg=--compiler=' + str(Path('/release/swc')), app)
         self.assertIn('--no-test-jit', app)
 
     def test_dynamic_fixture_configuration_and_dependency(self):
@@ -69,7 +69,8 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertEqual(len(stages), 3)
         self.assertEqual(stages[1].requires, [stages[0].name])
         self.assertEqual(stages[2].requires, [stages[1].name])
-        self.assertTrue(any('/shared-library/release/x86_64/runtime_context_dynamic_dll.so' in arg for arg in stages[2].command))
+        library = Path('/shared-library/release/x86_64/runtime_context_dynamic_dll.so')
+        self.assertTrue(any(str(library) in arg for arg in stages[2].command))
         workspace = self.plan('workspace')
         sandbox = next(stage.command for stage in workspace if stage.name == 'workspace-sandbox_consumer')
         self.assertIn('--rebuild', sandbox)
@@ -95,7 +96,7 @@ class LinuxCampaignTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             if admission == 'default':
                 admission = [sys.executable, '-c', 'pass']
-            return RUNNER['run_stage'](stage, self.root, {}, timeout, admission)
+            return RUNNER['run_stage'](stage, self.root, os.environ.copy(), timeout, admission)
 
     def test_cloud_stage_can_skip_local_machine_admission(self):
         with patch.object(RUNNER['subprocess'], 'run', side_effect=AssertionError('admission ran')):
@@ -109,8 +110,27 @@ class LinuxCampaignTests(unittest.TestCase):
         code = (f'import subprocess, sys, time; from pathlib import Path; '
                 f'p = subprocess.Popen([sys.executable, "-c", {child!r}], start_new_session=True); '
                 f'Path({str(pid_file)!r}).write_text(str(p.pid)); time.sleep(60)')
+        popen = RUNNER['subprocess'].Popen
+
+        def start_ready_process(*arguments, **options):
+            process = popen(*arguments, **options)
+            try:
+                deadline = time.monotonic() + 10
+                while not pid_file.exists() or not pid_file.read_text().strip():
+                    self.assertIsNone(process.poll(), 'fixture exited before creating its detached child')
+                    self.assertLess(time.monotonic(), deadline, 'fixture did not create its detached child')
+                    time.sleep(0.01)
+            except BaseException:
+                RUNNER['stop_process_tree'](process.pid)
+                process.wait()
+                raise
+            return process
+
         try:
-            result = self.run_stage(code, timeout=1)
+            # Measure timeout cleanup only after the fixture has created the process tree.
+            # Interpreter startup and filesystem latency are not the behavior under test.
+            with patch.object(RUNNER['subprocess'], 'Popen', side_effect=start_ready_process):
+                result = self.run_stage(code, timeout=1, admission=None)
             self.assertEqual(result['status'], 'timeout')
             self.assertEqual(result['returncode'], 124)
             pid = int(pid_file.read_text())

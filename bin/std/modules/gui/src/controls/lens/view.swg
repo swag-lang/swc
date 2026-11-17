@@ -954,7 +954,10 @@ private impl View
 
         // The families in the order of their first command, and the family of each command by its
         // index, so that gathering the commands of a family compares numbers rather than labels.
-        var families: Array'String
+        // A family borrows the label of its first command, which stays put until the next
+        // refresh. The lens finds the family of every command on each keystroke, and comparing
+        // plain strings in place costs well under half of comparing the owned labels.
+        var families: Array'string
         var familyOf: Array'u64
         familyOf.reserve(.commands.count)
         for &command in .commands
@@ -964,11 +967,17 @@ private impl View
             {
                 if command.familyText do
                     command.family = command.familyText()
-                family = Slice.findLinear(families.toSlice(), command.family)
+                let label = command.family.toString()
+                for known, index in families where known == label
+                {
+                    family = index
+                    break
+                }
+
                 if family == Swag.U64.Max
                 {
                     family = families.count
-                    families.add(command.family)
+                    families.add(label)
                 }
             }
 
@@ -979,11 +988,11 @@ private impl View
         {
             // A query that spells the whole label of a family brings every command of it. The
             // label is the same for each of them, so it is matched once.
-            let familyMatch  = match(.results.folded, family[])
+            let familyMatch  = match(.results.folded, family)
             let familyAnswer = familyMatch.matched and
                                familyMatch.spans.count == 1 and
                                familyMatch.spans[0].start == 0 and
-                               familyMatch.spans[0].count == family.length
+                               familyMatch.spans[0].count == family.count
 
             var section: *Section?
             for command, commandIndex in .commands where familyOf[commandIndex] == familyIndex
@@ -1012,7 +1021,7 @@ private impl View
 
                 if not section
                 {
-                    section        = .results.addSection(family[])
+                    section        = .results.addSection(family)
                     section.ranked = true
                 }
 

@@ -645,9 +645,10 @@ private impl Panel
                 view.refreshZoom()
             }
 
+            // Only an open outline follows the reading as it moves; a closed one catches up as it opens.
             .sigScrolled += func|view = me|(_)
             {
-                view.followReading()
+                view.outline?.followOpenReading()
             }
 
             .sigRenderError += func|view = me|(_, message)

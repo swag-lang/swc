@@ -128,6 +128,7 @@ struct MediaInfoStrings
     wordCount:      string = "% words"
     oneCharacter:   string = "1 character"
     characterCount: string = "% characters"
+    noFinalBreak:   string = "no break after the last line"
     glyphCount:     string = "% glyphs"
     mono:           string = "mono"
     stereo:         string = "stereo"
@@ -388,7 +389,10 @@ impl MediaInfoData
             .addFigure(.Custom, statistics.characters == 1 ? String.from(s.oneCharacter) : Format.toString(s.characterCount, statistics.characters))
         }
 
-        let ends = statistics.lineEnds()
+        // A text broken into lines whose last one has no break says so, as a diff would.
+        var ends = statistics.lineEnds()
+        if ends.count and statistics.unended do
+            ends = Format.toString("% · %", ends, s.noFinalBreak)
         if ends.count do
             .add(.LineEnds, ends)
     }

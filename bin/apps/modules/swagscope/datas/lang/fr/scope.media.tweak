@@ -68,3 +68,4 @@ oneWord     1 mot
 wordCount   % mots
 oneCharacter 1 caractère
 characterCount % caractères
+noFinalBreak pas de saut après la dernière ligne

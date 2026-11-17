@@ -217,5 +217,19 @@ using Core, Gui, Viewers
 
     var single: TextStatisticsCounter
     single.append("no break")
-    Swag.require(single.finish().lineEnds().isEmpty())
+    Swag.require(single.finish().lineEnds().isEmpty() and single.finish().unended)
+
+    // The sheet adds that the last line has no break, only to a text that has line breaks.
+    var unended: TextStatisticsCounter
+    unended.append("a\nb")
+    let counted = unended.finish()
+    Swag.require(counted.unended and not unix.finish().unended)
+    var data: MediaInfoData
+    data.addTextStatistics(&counted)
+    let alone = single.finish()
+    data.addTextStatistics(&alone)
+    var lineEnds: Array'String
+    for row in data.rows where row.field == .LineEnds do
+        lineEnds.add(row.value)
+    Swag.require(lineEnds.count == 1 and lineEnds[0] == "LF · no break after the last line", lineEnds.count ? lineEnds[0].toString() : "")
 }

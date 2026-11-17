@@ -8,9 +8,10 @@ struct TextStatistics
     lines:      u64
     words:      u64
     characters: u64
-    lf:         u64     // Lines ended by a lone line feed.
-    crlf:       u64     // Lines ended by a carriage return and a line feed.
-    cr:         u64     // Lines ended by a lone carriage return.
+    lf:         u64      // Lines ended by a lone line feed.
+    crlf:       u64      // Lines ended by a carriage return and a line feed.
+    cr:         u64      // Lines ended by a lone carriage return.
+    unended:    bool     // Whether the text stops on a line with no line break after it.
 }
 
 impl TextStatistics
@@ -116,8 +117,12 @@ impl TextStatisticsCounter
     mtd const finish()->TextStatistics
     {
         var result = .totals
-        if .sawRune and not .endedWithLineBreak do
-            result.lines += 1
+        if .sawRune and not .endedWithLineBreak
+        {
+            result.lines   += 1
+            result.unended = true
+        }
+
         return result
     }
 

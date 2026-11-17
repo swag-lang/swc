@@ -340,8 +340,10 @@ large-file work without editing, implicit network access, macros or source mutat
 ### app.scope.text.003 — Basic text has no newline or control-character diagnostics
 
 - Evidence: basic text and code can mark every space with a dot and every tabulation with a line
-  to its stop (`RichEditFlags.DrawBlanks`), without moving the text. Mixed CRLF/LF/CR, control
-  characters, a BOM and a missing final newline are still invisible.
+  to its stop (`RichEditFlags.DrawBlanks`), without moving the text. The information sheet names
+  the line ends, each convention with its count when they are mixed, and says when the last line
+  of a text broken into lines has no break after it. Line ends are not marked in the text itself,
+  and control characters and a BOM are still invisible.
 - Next: extend the blank marks with line-end and control-character marks drawn over the text's
   own advance, without injecting decoration into selectable text.
 - Done when: mixed newline kinds and invalid/control bytes are distinguishable and copy returns

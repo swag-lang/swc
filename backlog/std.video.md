@@ -309,7 +309,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   2.0% median slowdown;
   one pair was 23.6% slower, while the other five ranged from essentially equal to 13.1%
   slower. These codec-only synthetic results have substantial run variation and do not claim
-  a live capture throughput gain.
+  a physical-display capture throughput gain.
+  The X11 4K60 integration stress test now also has a fixed-background mode that moves four
+  512×512 tiles. On a 3840×2160 Xorg virtual root at QP 28, 60-frame capture/encode/MP4 time
+  fell from 3.42 to 2.64 seconds with four slices (22.8%), and from 3.15 to 2.64 seconds
+  with eight (16.2%). Within each slice count, baseline and optimized MP4 files were
+  byte-identical (401,320 and 1,001,609 bytes respectively), with identical decoded hashes
+  and luma PSNR (49.89 and 47.64 dB). The timer includes X11 root readback, conversion,
+  H.264 and MP4; painting and AAC are reported separately. This validates the software
+  capture path on a virtual display, not a physical Windows desktop.
   On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
   PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
   x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,

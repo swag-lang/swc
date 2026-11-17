@@ -11,6 +11,18 @@ func rejectsSessionInstanceId(id: string)->bool
     return error.value() is Errors.BadParameterError
 }
 
+// Valid identifiers accept the documented ASCII alphabet and the inclusive length bound.
+#test
+{
+    for id in ["a", "Swag-Session.9", "123"] do
+        Swag.require(Env.validSessionApplicationId(id))
+
+    var maximumLength = String.from("")
+    for 128 do
+        maximumLength += "a"
+    Swag.require(Env.validSessionApplicationId(maximumLength.toString()))
+}
+
 // Invalid IDs fail validation before acquiring any system resource.
 #test
 {

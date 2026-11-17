@@ -86,6 +86,11 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.isEmpty())
     Swag.require(not values.contains(1))
 
+    var emptyVisits = 0
+    for _ in values do
+        emptyVisits += 1
+    Swag.require(emptyVisits == 0)
+
     values.add(1)
     values.add(3)
     values.add(1)

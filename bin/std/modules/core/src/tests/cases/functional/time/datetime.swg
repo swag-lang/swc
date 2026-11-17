@@ -71,6 +71,13 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
+    let belowRange = Swag.catchPanic(func||() { discard Time.DateTime.monthName(0) })
+    let aboveRange = Swag.catchPanic(func||() { discard Time.DateTime.monthName(13) })
+    Swag.require(belowRange.raised and aboveRange.raised)
+}
+
+#test
+{
     let value = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
     Swag.require(value.isValid())
     Swag.require(value.dayOfWeek() == Time.DayOfWeek.Thursday)

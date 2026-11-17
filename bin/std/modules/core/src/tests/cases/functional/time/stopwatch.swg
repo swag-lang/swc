@@ -14,6 +14,7 @@ using Swag
     Threading.Thread.sleep(2'ms)
     Swag.require(stopwatch.elapsedTicks() > 0)
     Swag.require(stopwatch.elapsedMicroseconds() > 0)
+    Swag.require(stopwatch.elapsedMilliseconds() > 0)
 
     stopwatch.stop()
     Swag.require(not stopwatch.isRunning())

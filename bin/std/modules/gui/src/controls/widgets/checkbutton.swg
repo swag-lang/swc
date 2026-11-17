@@ -121,6 +121,18 @@ impl IWnd for CheckButton
         posBox.width = posBox.height
         if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
+        let markerInset = metrics.btnCheck_Size * metrics.btnCheck_AtlasInsetRatio
+        var focusBox = posBox
+        focusBox.width  -= markerInset * 2
+        focusBox.height -= markerInset * 2
+        if .flags.has(.RightAligned)
+        {
+            posBox.x += markerInset
+            focusBox.x += markerInset * 2
+        }
+        else do
+            posBox.x -= markerInset
+        posBox.y -= markerInset
         if presence < 1
         {
             theme.drawSubRect(painter, posBox, &rects.btnCheck_Normal, fadeColor(restBk, 1 - presence))
@@ -148,16 +160,17 @@ impl IWnd for CheckButton
         format.flags         = .Clip
         format.font          = .font()
         var labelPos = clientRect
+        let markerAndGap = focusBox.width + metrics.btnCheck_Padding
         if not .flags.has(.RightAligned) do
-            labelPos.x += posBox.width + metrics.btnCheck_Padding
-        labelPos.width -= posBox.width + metrics.btnCheck_Padding
+            labelPos.x += markerAndGap
+        labelPos.width -= markerAndGap
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin,
                            accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
         if not bc.isDisabled and .showsFocusRing() do
-            theme.drawFocusRing(painter, .markerFocusRect(posBox))
+            theme.drawFocusRing(painter, .markerFocusRect(focusBox))
     }
 
     // Reports the room the check box, its padding, and the caption need.

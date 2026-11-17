@@ -136,6 +136,10 @@ func expectNear(actual, expected: f32)
     Swag.require(insideHit.intersects)
     expectNear(insideHit.distance, 1)
     expectVec3(insideHit.point, {0, 2, 0})
+    let stationaryInside = bounds.intersect(Math.Geometry.Ray3{{0, 0, 0}, Math.Vector3.Zero})
+    Swag.require(stationaryInside.intersects and stationaryInside.distance == 0)
+    expectVec3(stationaryInside.point, {0, 0, 0})
+    Swag.require(not bounds.intersect(Math.Geometry.Ray3{{4, 0, 0}, Math.Vector3.Zero}).intersects)
     Swag.require(not bounds.intersect(Math.Geometry.Ray3{{-4, 4, 0}, {1, 0, 0}}).intersects)
 }
 

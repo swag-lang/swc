@@ -87,6 +87,8 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     RadioButton.create(root, "Gio", {Left + 488, 204, 80, 0}).setChecked(true)
     ToggleButton.create(root, {Left + 584, 210})
     ToggleButton.create(root, {Left + 632, 210}).setChecked(true)
+    CheckButton.create(root, "Right", {Left + 668, 204, 72, 0}, flags: .RightAligned)
+    RadioButton.create(root, "Edge", {Left + 744, 204, 72, 0}, flags: .RightAligned)
 
     // Values: a slider, a determinate progress and the circular progress.
     Slider.create(root, {Left, 248, 200, 0}).setValueWithoutGesture(0.4)

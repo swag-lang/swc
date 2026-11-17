@@ -100,6 +100,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(value.isNull())
     Swag.require(value.isEmpty())
     Swag.require(value.isNullOrEmpty())
+    Swag.require(value.back() == 0)
     Swag.require(assertString(value, ""))
 
     value.ensureNotNull()
@@ -348,6 +349,21 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(runes.count == 9)
     Swag.require(runes[0] == 'C'rune)
     Swag.require(runes[8] == '\u00E9'rune)
+}
+
+// Empty needles have the documented string and byte-slice containment behavior.
+#test
+{
+    let value = String.from("abc")
+    var empty: String
+
+    Swag.require(not value.contains(""))
+    Swag.require(value.contains(cast(const [..] u8, "")))
+    Swag.require(value.indexOf("") == Swag.U64.Max)
+    Swag.require(value.startsWith(""))
+    Swag.require(value.endsWith(""))
+    Swag.require(not empty.startsWith(""))
+    Swag.require(not empty.endsWith(""))
 }
 
 #test

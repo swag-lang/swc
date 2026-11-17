@@ -297,3 +297,23 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(not view.read.started and not view.pendingSeek)
     Swag.require(view.editor.selectedText() == "needle")
 }
+
+// An untrusted search offset cannot wrap into the resident window and produce an invalid highlight.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-offset-overflow-", ".txt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "needle")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*PlainText.Panel, session.view)
+    Swag.require(view.bytesRead == view.fileSize)
+
+    let revealed = view.revealOffset(Swag.U64.Max, "needle")
+    Swag.require(revealed)
+    Swag.require(view.pendingSeek and view.pendingSeekOffset == view.fileSize)
+    view.stopLoading()
+    discard view.retire()
+}

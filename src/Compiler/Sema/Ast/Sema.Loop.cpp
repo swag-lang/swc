@@ -35,6 +35,64 @@ namespace
         return SemaHelpers::withoutLookupOverride(sema, [&]() -> T& { return SemaHelpers::registerUniqueSymbol<T>(sema, node, name); });
     }
 
+    bool assignmentWritesSymbol(Sema& sema, AstNodeRef targetRef, const SymbolVariable& symbol)
+    {
+        while (targetRef.isValid())
+        {
+            const AstNodeRef resolvedRef = sema.resolvedNodeRef(targetRef);
+            if (resolvedRef.isValid())
+                targetRef = resolvedRef;
+
+            const AstNode& target = sema.node(targetRef);
+            if (target.is(AstNodeId::Identifier))
+                return sema.viewSymbol(targetRef).sym() == &symbol;
+            if (target.is(AstNodeId::MemberAccessExpr))
+                targetRef = target.cast<AstMemberAccessExpr>().nodeLeftRef;
+            else if (target.is(AstNodeId::IndexExpr))
+                targetRef = target.cast<AstIndexExpr>().nodeExprRef;
+            else if (target.is(AstNodeId::IndexListExpr))
+                targetRef = target.cast<AstIndexListExpr>().nodeExprRef;
+            else if (target.is(AstNodeId::AssignList))
+                return true;
+            else
+                return false;
+        }
+
+        return true;
+    }
+
+    bool loopIndexCanBeWritten(Sema& sema, AstNodeRef loopRef, AstNodeRef bodyRef)
+    {
+        const Symbol* symbol = sema.viewSymbol(loopRef).sym();
+        if (!symbol || !symbol->isVariable())
+            return true;
+
+        const auto& index = symbol->cast<SymbolVariable>();
+        if (index.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) || index.closureCaptureByRef())
+            return true;
+
+        SmallVector<AstNodeRef> pending;
+        pending.push_back(bodyRef);
+        uint32_t budget = 16384;
+        while (!pending.empty() && budget--)
+        {
+            const AstNodeRef nodeRef = pending.back();
+            pending.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+                continue;
+            if (node.is(AstNodeId::AssignStmt) && assignmentWritesSymbol(sema, node.cast<AstAssignStmt>().nodeLeftRef, index))
+                return true;
+
+            node.collectChildrenFromAst(pending, sema.ast());
+        }
+
+        return !pending.empty();
+    }
+
     template<typename Node>
     SWC_FORCE_INLINE Result finishConditionalLoopChild(Sema& sema, const Node& node, const AstNodeRef& childRef)
     {
@@ -611,7 +669,11 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 {
     // The body runs zero or more times: union its borrow effects with the entry state.
     if (childRef == nodeBodyRef)
+    {
         sema.popEscapeBranch(true);
+        auto& payload = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+        payload.indexCanBeWritten = loopIndexCanBeWritten(sema, sema.curNodeRef(), nodeBodyRef);
+    }
 
     if (childRef == nodeExprRef)
     {

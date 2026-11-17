@@ -330,6 +330,53 @@ public func exported()->u32 => 23
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroElidesProvenArrayLoopBoundChecks)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func fillExactly()->u32
+{
+    var values: [256] u32
+    for index in values.count do
+        values[index] = 1
+    return values[255]
+}
+
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func fillDynamic(count: u64)->u32
+{
+    var values: [4] u32
+    for index in count do
+        values[index] = 1
+    return values[0]
+}
+
+#run
+{
+    Swag.assert(fillExactly() == 1)
+    Swag.assert(fillDynamic(0) == 0)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_loop_bounds" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"fillExactly:post-emit", "fillDynamic:post-emit"};
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
+    fs::remove_all(directory, ec);
+
+    const size_t exactCalls   = occurrencesInListing(run.output, "fillExactly", "call ");
+    const size_t dynamicCalls = occurrencesInListing(run.output, "fillDynamic", "call ");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || exactCalls != 0 || dynamicCalls == 0 || dynamicCalls == SIZE_MAX)
+    {
+        std::println(stderr, "[print micro loop bounds] exact calls {}, dynamic calls {}\n{}", exactCalls, dynamicCalls, run.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 // A struct parameter is a value: nothing changes the caller's storage while the call runs, so
 // the pointer a field holds is read once, before the loop, although the body stores through
 // another pointer that could alias anything. The same loop over a pointer parameter reads the

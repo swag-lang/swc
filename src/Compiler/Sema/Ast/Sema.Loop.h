@@ -20,9 +20,10 @@ struct LoopSemaPayload
     AstNodeRef lowerBoundRef = AstNodeRef::invalid();
     AstNodeRef upperBoundRef = AstNodeRef::invalid();
 
-    bool usesCustomVisit = false;
-    bool isRangeLoop     = false;
-    bool inclusive       = false;
+    bool usesCustomVisit   = false;
+    bool isRangeLoop       = false;
+    bool inclusive         = false;
+    bool indexCanBeWritten = true;
 
     SmallVector<Symbol*> localSymbols;
 };

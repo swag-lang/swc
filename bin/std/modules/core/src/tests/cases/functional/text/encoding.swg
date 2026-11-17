@@ -195,6 +195,24 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     Swag.require(Text.looksLikeText(le, .Utf16Le))
 }
 
+// The text heuristic permits form feed and accepts exactly one other control per twenty runes.
+#test
+{
+    Swag.require(Text.looksLikeText(cast(const [..] u8, "page one\fpage two"), .Utf8))
+
+    var atLimit: [20] u8
+    var overLimit: [19] u8
+    for index in atLimit.count do
+        atLimit[index] = 'a'
+    for index in overLimit.count do
+        overLimit[index] = 'a'
+    atLimit[0] = 1
+    overLimit[0] = 1
+
+    Swag.require(Text.looksLikeText(atLimit, .Utf8))
+    Swag.require(not Text.looksLikeText(overLimit, .Utf8))
+}
+
 // A streamed segment never splits a character, and the position advances by the bytes consumed
 // rather than by the length of the UTF-8 it returned.
 #test

@@ -92,6 +92,19 @@ struct XmlPairSequencePayload
     Swag.require(error.value() is Errors.SerializationError)
 }
 
+// XML output rejects invalid UTF-8 bytes instead of emitting an invalid document.
+#test
+{
+    const InvalidUtf8: [1] u8 = [0xFF]
+    let value = XmlTextPayload{value: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
+
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var error: Swag.Error
+    discard catch encoder.writeAll(&output, value) as error
+    Swag.require(error.value() is Errors.SerializationError)
+}
+
 // Unsupported dynamic sequences fail explicitly instead of returning incomplete XML.
 #test
 {

@@ -1067,23 +1067,15 @@ identified assets, not a complete classification of `.rdata`. Resource differenc
 feature parity prevent attributing total executable size to language/code-generation efficiency.
 The license duplication belongs to the experimental port; it is not a Swag compiler defect.
 
-### compiler.optimization.137 — Make runtime stack-symbol tables optional in native images
+### compiler.optimization.137 — Measure the runtime-symbol opt-out on Windows images
 
-- Evidence: `.swagdbg` stores function names and source locations for runtime stack traces; it is
-  separate from DWARF/PDB data and is present in Release by default. The inspected Windows Capture
-  image contains 277,504 bytes in this section. A Linux Release executable built from an empty `#main`
-  measured 145,592 bytes with the table and 136,576 bytes without it (9,016 bytes saved). Twelve
-  Linux Release benchmarks total 1,835,464 bytes with the table and 1,725,032 bytes without it
-  (110,432 bytes saved); all benchmark checksums match.
-- Change: `--no-runtime-symbols` opts out when writing executable and shared-library images. The
-  default keeps the table. Object and static-archive contributions remain available so downstream
-  links can still build their own runtime traces.
-- Tradeoff: panic messages remain, while function names and source locations disappear from runtime
-  traces. This setting does not disable native debugger information.
-- Validation: the full C++ DevMode suite passed (1,860 tests), including Linux executable and shared
-  library links, no-rebuild switches in both directions, smaller files, absent/present `.swagdbg`,
-  and restored static-library frames. Panic output remains available without a runtime trace. A PE
-  image size comparison remains to be run on a Windows link host; the Linux cross-target attempt
-  stopped at unresolved `TlsSetValue` because no Windows API link input was available.
+- Evidence: `--no-runtime-symbols` omits the `.swagdbg` runtime stack table independently of native
+  debugger information. ELF executable and shared-library checks cover clean and incremental
+  switches, file sizes, panic output and static-library frames. A Release PE size comparison remains
+  unmeasured; a Linux cross-target attempt stopped at unresolved `TlsSetValue` without Windows API
+  link inputs.
+- Next: build the same Release executable and shared library with and without the flag on a Windows
+  link host, compare file and `.swagdbg` sizes, then check default stack frames and static-library
+  consumers after incremental switches in both directions.
 - Done when: the opt-out is measured on a Release PE as well as ELF, while the default retains runtime
   frames and static-library consumers keep composing them.

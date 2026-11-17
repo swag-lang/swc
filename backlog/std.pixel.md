@@ -15,7 +15,7 @@ ships; history lives in Git, not here.
 
 ## Entries
 
-### std.pixel.038 — GPU glyph output can vary by one antialiasing level
+### std.pixel.039 — GPU glyph output can vary by one antialiasing level
 
 - Evidence: `text.drawingorder.swg` is exact on the CPU renderer. On Linux's offscreen OpenGL
   renderer, the isolated native test reproducibly differs after warming the atlas with

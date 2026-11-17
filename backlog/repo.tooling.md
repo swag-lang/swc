@@ -90,11 +90,11 @@ being compiled by it.
   `sema_note_generated_source_root` after an error id was inserted before the notes. In one
   case `SemaClone.obj` predated `Errors.Sema.inc`, and touching `SemaClone.cpp` alone fixed
   it: objects compiled against different `Errors.*.inc` enumerations were linked together.
-  Identifiers reach code through `DiagnosticDef.h` from `Errors.inc`/`Notes.inc`, while
+  Identifiers reach code through `DiagnosticTypes.h` from `Errors.inc`/`Notes.inc`, while
   message variants come from the `.msg` catalogs. The health-reset prompt uses `/t:Rebuild`
   to avoid the problem without fixing it.
 - Next: reproduce a catalog edit over a warm Release object tree and inspect the MSBuild tracked
-  reads for `DiagnosticDef.h`, its `.inc` catalogs, and the affected translation units. Distinguish
+  reads for `DiagnosticTypes.h`, its `.inc` catalogs, and the affected translation units. Distinguish
   an identifier insertion in `.inc` from a message-only edit in `.msg`, then fix the dependency
   that fails to invalidate.
 - Done when: an incremental Release build after ids are added to an `.inc` catalog either

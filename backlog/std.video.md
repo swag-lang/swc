@@ -4,8 +4,8 @@ The module reads and writes video as a stream: a codec registered against `Video
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
 and MPEG-4 Part 2 in AVI or Matroska. File-backed AVI exposes integer PCM tracks; ISO-BMFF
-exposes AAC-LC, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,
-and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
+exposes AAC-LC and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 
 The remaining work covers codec and container breadth, decoding cost, and the lifecycle of
@@ -13,19 +13,6 @@ bounded sound windows.
 
 Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
-
-### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
-
-- Evidence: `decode/mp4/mp4.swg` keeps an `mp4a` track only when its decoder-configuration
-  object type is `0x40` (`Mpeg4AudioObjectType`); `0x69` and `0x6B` Layer III tracks are silently
-  left out rather than rejected, although std/audio already decodes Layer III packets and the
-  Matroska reader exposes them.
-- Next: retain the object type while reading the audio descriptor and construct the existing
-  Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
-- Done when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
-  through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
-  MPEG audio layers.
-- Related: std.audio.002
 
 ### std.video.004 — An AVI larger than four gigabytes is refused
 

@@ -105,6 +105,8 @@ struct AvcStream
     nextRank:          u64          // Display rank the next decode call returns.
     width:             s32
     height:            s32
+    sampleAspectWidth:  u32 = 1
+    sampleAspectHeight: u32 = 1
     cropLeft:          s32
     cropTop:           s32
 }
@@ -125,6 +127,8 @@ impl AvcStream
             fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
         .width    = sps.width()
         .height   = sps.height()
+        .sampleAspectWidth  = sps.sampleAspectWidth
+        .sampleAspectHeight = sps.sampleAspectHeight
         .cropLeft = sps.cropLeft
         .cropTop  = sps.cropTop
 

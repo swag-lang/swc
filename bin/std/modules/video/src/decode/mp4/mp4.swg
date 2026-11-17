@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
-//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits.
-//! Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC or MPEG Layer III audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits.
+//! Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC or Layer III.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
 #global namespace Mp4
@@ -33,6 +33,7 @@ const ChunkOffset64Id      = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
 const VideoHandlerId       = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
 const AudioHandlerId       = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
 const ElementaryStreamId   = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
+const PixelAspectRatioId   = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
 const Mpeg4VisualId        = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
 const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
 const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
@@ -165,6 +166,8 @@ struct Track
     syncSamples:    Array'u32          // Zero-based sync sample indices; empty means every sample.
     ctsEntries:     Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
     videoConfig:    Array'u8           // The `avcC` or `hvcC` decoder configuration of a coded track.
+    pixelAspectWidth:  u32
+    pixelAspectHeight: u32
     aacConfig:      Array'u8           // MPEG-4 AudioSpecificConfig of an AAC track.
     channelCount:   u32
     sampleRate:     u32
@@ -174,6 +177,7 @@ struct Track
     isAvc:          bool
     isHevc:         bool
     isAac:          bool
+    isMp3:          bool
     editMediaTime: s64
     editDuration:  u64
     hasSingleEdit: bool
@@ -298,6 +302,13 @@ impl Layout
         return false
     }
 
+    mtd const hasMp3AudioTrack()->bool
+    {
+        for &track in .audioTracks where track.isMp3 do
+            return true
+        return false
+    }
+
     mtd const findAudioTrack(trackId: u32)->u64
     {
         for index in .audioTracks.count where .audioTracks[index].id == trackId do
@@ -362,6 +373,7 @@ impl Layout
                     fail InvalidFormatError{"MP4 movie fragment is out of order"}
                 if not .track.isAvc or
                    .audioTracks.count > 4 or
+                   .hasMp3AudioTrack() or
                    (not .hasFragments and .track.sizes.count) or
                    .hasClassicAudioSamples() do
                     fail UnsupportedFormatError{"MP4 fragments need H.264 and at most four AAC tracks without classic samples"}
@@ -464,7 +476,7 @@ impl Layout
                     elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
-                elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac
+                elif candidate.handler == AudioHandlerId and candidate.hasDescription and (candidate.isAac or candidate.isMp3)
                 {
                     .audioTracks.add(#move candidate)
                     var fragments: AudioFragmentSamples
@@ -844,30 +856,31 @@ impl Track
         if childStart > entry.end do
             fail InvalidFormatError{"MP4 audio sample entry is truncated"}
         if .codec == Mpeg4AudioId do
-            .isAac = try .parseAudioChildren(source, childStart, entry.end)
+            try .parseAudioChildren(source, childStart, entry.end)
     }
 
     // Recursively searches the sample entry and its QuickTime `wave` wrapper for `esds`.
-    mtd parseAudioChildren(source: *ByteSource, start, end: u64)->bool fail
+    mtd parseAudioChildren(source: *ByteSource, start, end: u64) fail
     {
         var position = start
         while position + BoxHeaderSize <= end
         {
             try source.seek(position)
             let child = try readBox(source, end)
-            if child.kind == ElementaryStreamId do
-                return try .parseAacElementaryStreamDescriptor(source, child.end)
-            if child.kind == WaveId and (try .parseAudioChildren(source, child.data, child.end)) do
-                return true
+            if child.kind == ElementaryStreamId
+            {
+                try .parseAudioElementaryStreamDescriptor(source, child.end)
+                return
+            }
+            if child.kind == WaveId do
+                try .parseAudioChildren(source, child.data, child.end)
             position = child.end
         }
-
-        return false
     }
 
     // Reads an MPEG-4 systems descriptor and retains an AAC AudioSpecificConfig.
     #[Swag.Propagate]
-    mtd parseAacElementaryStreamDescriptor(source: *ByteSource, end: u64)->bool fail
+    mtd parseAudioElementaryStreamDescriptor(source: *ByteSource, end: u64) fail
     {
         if FullBoxSize > end - source.position() do
             fail InvalidFormatError{"MP4 elementary-stream box is truncated"}
@@ -892,15 +905,22 @@ impl Track
         let decoder = readDescriptor(source, es.end)
         if decoder.tag != 4 or 13 > decoder.end - source.position() do
             fail InvalidFormatError{"MP4 decoder-configuration descriptor is truncated"}
-        if source.readByte() != Mpeg4AudioObjectType do
-            return false
-        source.skip(12)
-        let specific = readDescriptor(source, decoder.end)
-        if specific.tag != 5 or specific.end <= source.position() do
-            fail InvalidFormatError{"MP4 AAC track has no AudioSpecificConfig"}
-        .aacConfig.resize(specific.end - source.position())
-        source.readExact(.aacConfig.toSlice())
-        return true
+        let objectType = source.readByte()
+        if objectType == Mpeg4AudioObjectType
+        {
+            source.skip(12)
+            let specific = readDescriptor(source, decoder.end)
+            if specific.tag != 5 or specific.end <= source.position() do
+                fail InvalidFormatError{"MP4 AAC track has no AudioSpecificConfig"}
+            .aacConfig.resize(specific.end - source.position())
+            source.readExact(.aacConfig.toSlice())
+            .isAac = true
+        }
+        elif objectType == 0x69 or objectType == 0x6B
+        {
+            // std/audio checks the Layer III frame header while building the packet index.
+            .isMp3 = true
+        }
     }
 
     // Locates and keeps the decoder configuration record of a coded visual sample entry.
@@ -908,6 +928,7 @@ impl Track
     {
         const VisualSampleEntrySize = 78'u64
         var position = entry.data + VisualSampleEntrySize
+        var found = false
         while position + BoxHeaderSize <= entry.end
         {
             try source.seek(position)
@@ -917,13 +938,22 @@ impl Track
                 let size = child.end - child.data
                 .videoConfig.resize(size)
                 try source.readExact(.videoConfig.toSlice())
-                return true
+                found = true
+            }
+            elif child.kind == PixelAspectRatioId
+            {
+                if child.end - child.data < 8 do
+                    fail InvalidFormatError{"MP4 pixel-aspect-ratio box is truncated"}
+                .pixelAspectWidth  = try source.readBigEndian'u32()
+                .pixelAspectHeight = try source.readBigEndian'u32()
+                if not .pixelAspectWidth or not .pixelAspectHeight do
+                    fail InvalidFormatError{"MP4 pixel-aspect-ratio box has a zero dimension"}
             }
 
             position = child.end
         }
 
-        return false
+        return found
     }
 
     // Reads the sync sample table, converting indices to zero-based sample numbers.
@@ -1260,17 +1290,16 @@ impl Track
         return result
     }
 
-    // Expands this AAC track into the packet index consumed by std/audio.
+    // Expands this AAC or Layer III track into the packet index consumed by std/audio.
     //
     // The duration a sample table states is a presentation time, and a writer is free to spread it
-    // across packets so that a track's total lands on a clock it cares about: durations of 1023 and
-    // 1025 either side of 1024 are common, and so are runs of 1008 and 1032. What a packet decodes
-    // to is the codec's business, not the container's, and an AAC-LC access unit decodes to a fixed
-    // number of frames whatever the table says. The table is still required to describe every
-    // packet, because a table that does not is a broken one.
-    mtd buildSoundPackets(sourceSize: u64)->{ packets: Array'SoundPacket, frameCount: u64 } fail
+    // across packets so that a track's total lands on a clock it cares about. What a packet decodes
+    // to is the codec's business, not the container's: AAC-LC access units have a fixed duration,
+    // while Layer III packets state theirs in the frame header. The table is still required to
+    // describe every packet, because a table that does not is a broken one.
+    mtd buildSoundPackets(source: *ByteSource)->{ packets: Array'SoundPacket, frameCount: u64, maxPacketFrames: u32 } fail
     {
-        let frames = try .buildFrames(sourceSize)
+        let frames = try .buildFrames(source.size())
         var result: #returntype
         result.packets.reserve(frames.count)
 
@@ -1282,8 +1311,20 @@ impl Track
 
         for frame in frames
         {
-            result.packets.add(SoundPacket{frame.offset, cast(u32, frame.size), AacFrameSamples})
-            result.frameCount += AacFrameSamples
+            var frameSamples = AacFrameSamples
+            if .isMp3
+            {
+                if frame.size < 4 do
+                    fail InvalidFormatError{"MP4 Layer III packet is shorter than its frame header"}
+                var header: [4] u8
+                try source.seek(frame.offset)
+                let headerSlice = Swag.makeSlice(&header[0], header.count)
+                try source.readExact(headerSlice)
+                frameSamples = try Audio.packetFrameCount(.Mp3, headerSlice)
+            }
+            result.packets.add(SoundPacket{frame.offset, cast(u32, frame.size), frameSamples})
+            result.frameCount += frameSamples
+            result.maxPacketFrames = Math.max(result.maxPacketFrames, frameSamples)
         }
 
         return result
@@ -1299,8 +1340,8 @@ impl Track
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
 // in display order whatever order the file stores them in.
 //
-// AAC-LC mono/stereo tracks, including completed movie fragments, are exposed as packetized
-// std/audio streams. Their payload remains
+// AAC-LC mono/stereo tracks, including completed movie fragments, and classic-table Layer III
+// tracks are exposed as packetized std/audio streams. Their payload remains
 // in the MP4 file and each voice opens its own cursor, so sound and picture can stream in parallel.
 struct Decoder
 {
@@ -1454,8 +1495,17 @@ impl IDecoder for Decoder
                 }
                 else
                 {
-                    let packetLayout = try audioTrack.buildSoundPackets(source.size())
+                    let packetLayout = try audioTrack.buildSoundPackets(source)
                     var options: PacketStreamOptions
+                    if audioTrack.isMp3
+                    {
+                        let audioTimes = try audioTrack.sampleTimes()
+                        if audioTimes.count and audioTrack.timescale
+                        {
+                            options.timelineStartSeconds = cast(f64, audioTimes[0]) / audioTrack.timescale -
+                                                           cast(f64, videoOrigin) / layout.track.timescale
+                        }
+                    }
                     if audioTrack.hasSingleEdit and layout.movieTimescale and audioTrack.timescale and
                        audioTrack.editMediaTime >= 0 and
                        audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
@@ -1471,15 +1521,20 @@ impl IDecoder for Decoder
                         {
                             let leading = cast(u64, mediaStartFrames)
                             if audibleFrames and audibleFrames <= decodedFrames - leading and
-                               decodedFrames - leading - audibleFrames < AacFrameSamples
+                               decodedFrames - leading - audibleFrames < packetLayout.maxPacketFrames
                             {
                                 options.leadingTrimFrames  = leading
                                 options.trailingTrimFrames = decodedFrames - leading - audibleFrames
+                                if audioTrack.isMp3 do
+                                    options.timelineStartSeconds = 0
                             }
                         }
                     }
 
-                    let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
+                    let encoding = audioTrack.isMp3 ? Audio.SoundFileEncoding.Mp3 : Audio.SoundFileEncoding.AacLc
+                    if audioTrack.isMp3 and audioTrack.timescale != audioTrack.sampleRate do
+                        fail UnsupportedFormatError{"MP4 Layer III tracks with a non-sample-rate clock are unsupported"}
+                    let sound = try SoundFile.openPacketStream(path, encoding, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
                     .soundTracks.add(#move sound)
                 }
             }
@@ -1519,6 +1574,9 @@ impl IDecoder for Decoder
             try .video.open(layout.track.isHevc ? PictureHevc : PictureAvc, layout.track.videoConfig.toSlice(), samples.toSlice(), Video.storedNothing())
             .info.width  = .video.width()
             .info.height = .video.height()
+            let display = .video.displaySize(.info.width, .info.height, layout.track.pixelAspectWidth, layout.track.pixelAspectHeight)
+            .info.displayWidth  = display.width
+            .info.displayHeight = display.height
         }
         else
         {

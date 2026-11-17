@@ -3,6 +3,21 @@
 
 using Core, Core.Errors, Pixel
 
+// The VUI stores standard aspect ratios as an id and other ratios as two 16-bit values.
+#test
+{
+    var sps: Hevc.Sps
+    var standard: BitReader
+    standard.init([14'u8])
+    Hevc.readSampleAspectRatio(&standard, &sps)
+    Swag.require(sps.sampleAspectWidth == 4 and sps.sampleAspectHeight == 3)
+
+    var extended: BitReader
+    extended.init([255'u8, 0x03, 0x00, 0x02, 0x00])
+    Hevc.readSampleAspectRatio(&extended, &sps)
+    Swag.require(sps.sampleAspectWidth == 768 and sps.sampleAspectHeight == 512)
+}
+
 private func assertInvalidPocLsbMinus4(payload: const [..] u8)
 {
     var reader: BitReader
@@ -112,6 +127,7 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
+    Swag.require(decoder.video.sampleAspectWidth == 1 and decoder.video.sampleAspectHeight == 1)
 
     var expectedSync = cast(u64, decoder.video.hevc.sampleAtRank[47])
     while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0 do

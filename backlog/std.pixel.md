@@ -15,6 +15,19 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.038 — GPU glyph output shifts with atlas warm order
+
+- Evidence: `text.drawingorder.swg` passes on the CPU renderer. On Linux's offscreen OpenGL
+  renderer, the isolated native test fails reproducibly after warming the atlas with
+  `"The quick brown fox jumps over the lazy dog, 0123456789."`: pixel (130, 53) is
+  `0xff262626` instead of `0xff252525`. The same result occurs in a full GUI run; this is a
+  one-level difference on an antialiased glyph, not a missing glyph or changed geometry.
+- Next: compare the glyph's atlas cell, UV interpolation, MSDF sampling and readback before
+  deciding whether this is atlas-placement leakage or expected hardware rounding. Preserve the
+  strict invariant test until the source of the difference is established.
+- Done when: repeated draws of the same glyph produce consistent pixels across atlas warm orders,
+  or a documented GPU precision tolerance is justified by an isolated shader-level probe.
+
 ### std.pixel.037 — Linux offscreen UI references differ consistently on the baseline
 
 - Evidence: the GPU/Mesa golden campaign on Linux produces 6 GUI, 21 Capture and 7 Vault

@@ -78,7 +78,7 @@ private
     const WaveformPointCount = 4096'u64
 
     // The page of a recording, after `scope.sound`: the cover, the name and who made it, then the
-    // wave as a row of bars with the times under it.
+    // wave as a row of bars, with a band under it that keeps the bars clear of the transport.
     const CoverSize   = 180.0      // Side of the cover.
     const CoverTop    = 88.0       // Distance from the strip to the cover.
     const MinCoverTop = 24.0       // Distance a short window keeps between the strip and the cover.
@@ -92,8 +92,8 @@ private
     const WaveHeight  = 110.0      // Height of the bars at their loudest.
     const BarWidth    = 4.0        // Width of one bar of the wave.
     const BarGap      = 3.5        // Air between two bars.
-    const TimesGap    = 14.0       // Air between the bars and the times under them.
-    const TimesHeight = 26.0       // Height of the line of times.
+    const TimesGap    = 14.0       // Air between the bars and the band under them.
+    const TimesHeight = 26.0       // Height of the band under the bars.
     const WaveGap     = 32.0       // Least air between who made it and the wave.
 }
 
@@ -344,8 +344,8 @@ impl WaveformReducer
 
 private impl IWnd for WaveformView
 {
-    // Draws the wave as a row of bars, the played ones in Arc, with the elapsed time under its
-    // start and the length under its end.
+    // Draws the wave as a row of bars, the played ones in Arc, over the band of a looped passage.
+    // The times are the transport's to read.
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
@@ -847,8 +847,9 @@ impl Panel
         if slower do
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
 
-        // A passage is looped between two points the reader marks while listening.
         entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready)
+
+        // A passage is looped between two points the reader marks while listening.
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
         if .loopStart >= 0 do
@@ -868,9 +869,12 @@ impl Panel
         .refreshDetails()
     }
 
-    // Starts the looped passage where playback stands; an end before it no longer holds.
+    // Starts the looped passage where playback stands; an end before it no longer holds. A
+    // recording that cannot play has no passage to repeat.
     mtd setLoopStart()
     {
+        if not .engineReady do
+            return
         .loopStart = .playbackPosition()
         if .loopEnd <= .loopStart do
             .loopEnd = -1
@@ -881,6 +885,8 @@ impl Panel
     // none was set. A point at or before the start sets nothing.
     mtd setLoopEnd()
     {
+        if not .engineReady do
+            return
         let position = .playbackPosition()
         let start    = .loopStart >= 0 ? .loopStart : 0
         if position <= start do
@@ -921,11 +927,7 @@ impl Panel
     // Returns where playback stands in the recording, in seconds.
     mtd playbackPosition()->f32 => .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
 
-    mtd seekRelative(seconds: f32)
-    {
-        let current = .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
-        .seekSeconds(current + seconds)
-    }
+    mtd seekRelative(seconds: f32) => .seekSeconds(.playbackPosition() + seconds)
 
     mtd setMuted(muted: bool)
     {

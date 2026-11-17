@@ -4,7 +4,7 @@
 using Core, Pixel, Gui, Audio, Viewers
 
 // The recording in the window, against `scope.sound`: the cover, the name and who made it, the
-// wave as bars played in Arc up to the play head, and the times under it.
+// wave as bars played in Arc up to the play head, and the transport under it.
 #[Swag.TestTag("golden")]
 #test
 {

@@ -609,6 +609,10 @@ func soundInformation(bytes: const [..] u8)->String
     host.setup(640, 360)
     var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     let view   = assume cast(*Sound.Panel, result.view)
+
+    // A recording still opening cannot play, so it has no passage to mark.
+    view.setLoopStart()
+    Swag.require(view.loopStart < 0)
     waitForSoundOpen(&host, view)
     Swag.require(view.engineReady and view.duration > 2.9)
 

@@ -272,6 +272,24 @@ struct WaveformView
     loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
 }
 
+impl WaveformView
+{
+    // Returns how many bars the wave stands as across its width.
+    mtd barCount()->u64 => cast(u64, Math.max(Math.floor((.clientRect().width + BarGap) / (BarWidth + BarGap)), 1))
+
+    // Returns how many bars stand in Arc when `progress` of the recording has been played.
+    mtd playedBars(progress: f32)->f32 => Math.ceil(Math.clamp(progress, 0, 1) * cast(f32, .barCount()))
+
+    // Sets the played fraction, and repaints only when a bar changes color.
+    mtd setProgress(progress: f32)
+    {
+        let repaint = .playedBars(progress) != .playedBars(.progress)
+        .progress = progress
+        if repaint do
+            .invalidate()
+    }
+}
+
 // Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
 struct SoundLevels
 {
@@ -389,7 +407,7 @@ private impl IWnd for WaveformView
         let room    = .clientRect()
         let bars    = Math.Rectangle{room.x, room.y, room.width, WaveHeight}
         let center  = bars.vertCenter()
-        let count   = cast(u64, Math.max(Math.floor((bars.width + BarGap) / (BarWidth + BarGap)), 1))
+        let count   = .barCount()
         let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
 
         painter.setParams(.Antialiased)
@@ -486,6 +504,10 @@ struct Panel
     playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
     loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
     loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
+
+    // What the transport last showed, so a tick that would not change it pushes nothing.
+    clockSecond:   s64 = -1     // Whole second the clock was written at.
+    timelinePixel: s32 = -1     // Pixel column the timeline thumb was pushed to.
 
     retireRequested: bool
     retired:         bool
@@ -776,15 +798,46 @@ impl Panel
         .waveform.invalidate()
     }
 
+    // Shows the state of the transport after a gesture or a change of state, then where playback stands.
     mtd refreshTransport()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        // Changing the icon lays the command bar out again, so it is changed only with the state.
+        let icon = .playing ? ThemeIcons.Pause : ThemeIcons.Play
+        if .playButton.icon.index != cast(s32, icon)
+        {
+            .playButton.setIcon(.theme().icon(icon, themeActionIconSize(.themeMetrics())))
+            .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        }
+
         .stopButton.enable(.voice != null)
-        .timeline.setValueWithoutGesture(.elapsed)
-        .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
-        .waveform.progress = .duration > 0 ? .elapsed / .duration : 0
-        .waveform.invalidate()
+        .clockSecond   = -1
+        .timelinePixel = -1
+        .refreshTime()
+    }
+
+    // Shows where playback stands: the clock, the timeline and the played part of the wave.
+    //
+    // The timer calls this thirty times a second while the sound plays, so each part is touched
+    // only when it would visibly change: the clock once a second, the timeline when its thumb
+    // reaches another pixel, and the wave when another bar is played.
+    mtd refreshTime()
+    {
+        let second = cast(s64, Math.floor(Math.max(.elapsed, 0)))
+        if second != .clockSecond
+        {
+            .clockSecond = second
+            .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
+        }
+
+        let width = .timeline.position.width
+        let pixel = .duration > 0 and width > 1 ? cast(s32, .elapsed / .duration * width) : -1
+        if pixel < 0 or pixel != .timelinePixel
+        {
+            .timelinePixel = pixel
+            .timeline.setValueWithoutGesture(.elapsed)
+        }
+
+        .waveform.setProgress(.duration > 0 ? .elapsed / .duration : 0)
     }
 
     mtd ensureVoice()->bool
@@ -1065,7 +1118,7 @@ impl IWnd for Panel
             return
         }
 
-        .refreshTransport()
+        .refreshTime()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)

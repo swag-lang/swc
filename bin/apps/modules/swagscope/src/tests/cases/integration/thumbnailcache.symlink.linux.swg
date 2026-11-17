@@ -23,6 +23,8 @@ using Core
     Swag.require(Linux.symlinkat(target.storage(), Linux.AT_FDCWD, link.storage()) == 0)
     defer discard Linux.unlinkat(Linux.AT_FDCWD, link.storage(), 0)
 
+    discard expect ThumbnailCache.prune(root, Time.Timestamp.utcNow().ticks + 121 * Time.TicksPerDay)
+    Swag.require(File.exists(cached))
     Swag.require((expect ThumbnailCache.clear(root)) == 0)
     Swag.require(File.exists(cached))
 }

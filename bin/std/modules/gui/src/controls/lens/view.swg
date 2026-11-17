@@ -944,16 +944,30 @@ private impl View
         if not owner do
             return
 
+        // The families in the order of their first command, and the family of each command by its
+        // index, so that gathering the commands of a family compares numbers rather than labels.
         var families: Array'String
-        for &command in .commands where command.inLens
+        var familyOf: Array'u64
+        familyOf.reserve(.commands.count)
+        for &command in .commands
         {
-            if command.familyText do
-                command.family = command.familyText()
-            if not families.contains(command.family) do
-                families.add(command.family)
+            var family = Swag.U64.Max
+            if command.inLens
+            {
+                if command.familyText do
+                    command.family = command.familyText()
+                family = Slice.findLinear(families.toSlice(), command.family)
+                if family == Swag.U64.Max
+                {
+                    family = families.count
+                    families.add(command.family)
+                }
+            }
+
+            familyOf.add(family)
         }
 
-        for family in families
+        for family, familyIndex in families
         {
             // A query that spells the whole label of a family brings every command of it. The
             // label is the same for each of them, so it is matched once.
@@ -964,7 +978,7 @@ private impl View
                                familyMatch.spans[0].count == family.length
 
             var section: *Section?
-            for command in .commands where command.inLens and command.family == family[]
+            for command, commandIndex in .commands where familyOf[commandIndex] == familyIndex
             {
                 let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
                 if state.updatedFields.has(.Hidden) and state.hidden do

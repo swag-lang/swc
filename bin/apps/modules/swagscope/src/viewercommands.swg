@@ -545,14 +545,12 @@ impl ViewerWindow
         if not alone and results.query.isEmpty() do
             return
 
-        let texts         = appStrings()
-        let limit         = alone ? LensFilesAlone : LensFilesBeside
-        let typed: String = results.query
-        let query         = typed.toString()
-        .addFileSection(results, texts.ui_Recent, .recent.toSlice(), query, limit, remember: true)
+        let texts = appStrings()
+        let limit = alone ? LensFilesAlone : LensFilesBeside
+        .addFileSection(results, texts.ui_Recent, .recent.toSlice(), limit, remember: true)
         if .siblingsDirty do
             .rebuildSiblings()
-        .addFileSection(results, texts.lens_InFolder, .siblings.toSlice(), query, limit, remember: false)
+        .addFileSection(results, texts.lens_InFolder, .siblings.toSlice(), limit, remember: false)
 
         var section: *Lens.Section?
         for one in .folderHistory
@@ -561,7 +559,7 @@ impl ViewerWindow
                 break
             let folder = one.folder.toString()
             let name   = Path.fileName(folder) orelse folder
-            if not Lens.match(query, name).matched do
+            if not Lens.match(results.folded, name).matched do
                 continue
             if not section do
                 section = results.addSection(texts.ui_FolderHistory)
@@ -582,8 +580,8 @@ impl ViewerWindow
         }
     }
 
-    // Adds the files of `files` whose name answers `query` as one section of the lens.
-    private mtd addFileSection(results: *Lens.Results, label: string, files: const [..] String, query: string, limit: u64, remember: bool)
+    // Adds the files of `files` whose name answers the query of `results` as one section of the lens.
+    private mtd addFileSection(results: *Lens.Results, label: string, files: const [..] String, limit: u64, remember: bool)
     {
         var section: *Lens.Section?
         for one in files
@@ -594,7 +592,7 @@ impl ViewerWindow
             if file == .currentFile.toString() do
                 continue
             let name = Path.fileName(file) orelse file
-            if not Lens.match(query, name).matched do
+            if not Lens.match(results.folded, name).matched do
                 continue
             if not section do
                 section = results.addSection(label)

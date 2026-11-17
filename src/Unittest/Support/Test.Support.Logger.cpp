@@ -88,7 +88,7 @@ SWC_TEST_BEGIN(Logger_CommandHelpWrapsAndAlignsDescriptions)
     {
         if (Utf8Helper::countChars(lines[i]) > 100)
             return Result::Error;
-        const size_t descriptionColumn = lines[i].find("Read options from a config file");
+        const size_t descriptionColumn = lines[i].find("Read command-line options from a config file");
         if (descriptionColumn == Utf8::npos)
             continue;
         if (i + 1 == lines.size() || lines[i + 1].find_first_not_of(' ') != descriptionColumn)

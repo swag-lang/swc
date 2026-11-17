@@ -149,6 +149,21 @@ func sumRangeWithChangedNegativeIndex()->s32
     return sum
 }
 
+func firstWideRangeIndex()->s64
+{
+    for index in -1 to 2147483648 do
+        return index
+    return 0
+}
+
+func sumWideRangeIndices()->s64
+{
+    var sum: s64
+    for index in 2147483647 until 2147483649 do
+        sum += index
+    return sum
+}
+
 #test
 {
     Swag.require(fillExactly() == 3)
@@ -156,4 +171,6 @@ func sumRangeWithChangedNegativeIndex()->s32
     Swag.require(fillRangeInclusive() == 3)
     Swag.require(fillRangeWithSafeChangedIndex() == 5)
     Swag.require(sumRangeWithChangedNegativeIndex() == -3)
+    Swag.require(firstWideRangeIndex() == -1)
+    Swag.require(sumWideRangeIndices() == 4294967295)
 }

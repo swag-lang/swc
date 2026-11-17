@@ -482,6 +482,20 @@ public impl Face
         return &faceData.verticalGlyphMetrics[glyphIndex]
     }
 
+    // Returns a glyph's horizontal advance in font design units without loading its outline.
+    //
+    // Glyf faces use `hmtx`; CFF and Type 1 faces use the width prepared from their charstrings.
+    // The result is independent of the selected pixel size. An index outside
+    // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
+    mtd const getAdvanceWidth(glyphIndex: u32)->u16 fail
+    {
+        if glyphIndex >= .glyphCount do
+            try fault(0x10)
+
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return faceData.glyphMetrics[glyphIndex].advanceWidth
+    }
+
     // Returns horizontal kerning between two glyph indices.
     //
     // The x component uses 26.6 fixed-point pixels at the active size. Both

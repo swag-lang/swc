@@ -10,6 +10,23 @@ impl Capture
         return b.groups[0]
     }
 
+    // Returns the box around every form of the outermost group `gid`.
+    mtd groupBoundRect(gid: u64)->Math.Rectangle
+    {
+        var result: #returntype
+        var first = true
+        for f in .forms where formOuterGroup(f) == gid
+        {
+            if first do
+                result = f.boundRect()
+            else do
+                result.combine(f.boundRect())
+            first = false
+        }
+
+        return result
+    }
+
     mtd newGroupId()->u64
     {
         let id = .nextGroupId

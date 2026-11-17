@@ -85,6 +85,7 @@ def main():
     write_changed(pch, f'#include "{root / "src/pch.h"}"\n')
     binary = build / (('swc.dm' if args.configuration == 'devmode' else 'swc') + ('.exe' if windows else ''))
     objects = [build / source.relative_to(root).with_suffix('.o') for source in sources]
+    makefile = build / 'Makefile'
     for obj in objects:
         obj.parent.mkdir(parents=True, exist_ok=True)
     rules = ['.DELETE_ON_ERROR:', '.PHONY: all', f'all: {make_path(binary)}', '']
@@ -102,10 +103,9 @@ def main():
                   '\t@' + recipe(['echo', f'CXX {source.relative_to(root)}']),
                   '\t@' + recipe(compile_command), '']
     link_flags = ['-static', '-Wl,--stack,8388608', '-lpsapi', '-lrstrtmgr', '-ldbghelp', '-ladvapi32', '-luser32', '-lole32'] if windows else ['-rdynamic', '-ldl']
-    rules += [f'{make_path(binary)}: ' + ' '.join(map(make_path, objects)),
+    rules += [f'{make_path(binary)}: ' + ' '.join(map(make_path, [*objects, makefile])),
               '\t' + recipe([args.cxx, *map(str, objects), '-pthread', *link_flags, '-o', str(binary)]), '',
               '-include ' + ' '.join(make_path(obj.with_suffix('.d')) for obj in objects)]
-    makefile = build / 'Makefile'
     write_changed(makefile, '\n'.join(rules) + '\n')
     if not args.skip_machine_load_admission:
         subprocess.run([sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)

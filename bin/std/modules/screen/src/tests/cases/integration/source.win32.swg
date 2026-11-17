@@ -81,16 +81,21 @@ using Core, Pixel
     var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
                                      cast(s32, bounds.width), cast(s32, bounds.height), false})
     var image: Image
-    Swag.require(expect source.grabInto(&image, copyUnchanged: false,
-                                        updateChangedOnly: true))
+    let firstFresh = expect source.grabInto(&image, copyUnchanged: false,
+                                            updateChangedOnly: true)
+    Swag.require(firstFresh and source.lastFrameCaptureMicroseconds() > 0)
+    var lastCaptureTime = source.lastFrameCaptureMicroseconds()
     let firstMetrics = source.metrics()
     Swag.require(firstMetrics.maxReadbackMicroseconds > 0 and
                  firstMetrics.maxReadbackMicroseconds <= firstMetrics.readbackMicroseconds and
                  firstMetrics.maxAcquireMicroseconds <= firstMetrics.acquireMicroseconds)
     for 12
     {
-        discard expect source.grabInto(&image, copyUnchanged: false,
-                                       updateChangedOnly: true)
+        let fresh = expect source.grabInto(&image, copyUnchanged: false,
+                                           updateChangedOnly: true)
+        let captureTime = source.lastFrameCaptureMicroseconds()
+        Swag.require(captureTime >= lastCaptureTime and (not fresh or captureTime > 0))
+        lastCaptureTime = captureTime
         Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(),
                                     image.byteCount) == 0,
                      "incremental output differs from the composed monitor")

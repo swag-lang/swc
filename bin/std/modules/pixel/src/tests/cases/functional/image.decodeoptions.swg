@@ -62,3 +62,31 @@ using Swag, Core.Errors
     options.maxDecodedBytes = Swag.U64.Max
     expect options.checkImage(Swag.S32.Max, Swag.S32.Max, .Yuv420)
 }
+
+#test
+{
+    var options: DecodeOptions
+    for dimension in [0, -1]
+    {
+        var widthError: Swag.Error
+        discard catch options.checkImage(dimension, 1, .RGBA8) as widthError
+        Swag.require((widthError.value() is InvalidFormatError))
+
+        var heightError: Swag.Error
+        discard catch options.checkImage(1, dimension, .RGBA8) as heightError
+        Swag.require((heightError.value() is InvalidFormatError))
+    }
+
+    options.maxFrames = 0
+    expect options.checkFrameCount(0x7FFFFFFF)
+    var frameCountError: Swag.Error
+    discard catch options.checkFrameCount(0x80000000) as frameCountError
+    Swag.require((frameCountError.value() is UnsupportedFormatError))
+}
+
+#test
+{
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("unused.png", null) as errorOutcome
+    Swag.require((errorOutcome.value() is InvalidFormatError))
+}

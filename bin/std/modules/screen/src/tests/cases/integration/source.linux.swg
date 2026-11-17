@@ -45,13 +45,27 @@ private func sharedSegmentCount()->u64 fail
 #test
 {
     var source = expect Source.open({0, 0, 320, 240, false})
-    var image: Image
-    discard expect source.grabInto(&image)
+    Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    var image = Image.create(8, 8, .RGBA8)
+    let firstFresh = expect source.grabInto(&image)
+    Swag.require(firstFresh)
+    let firstCaptureTime = source.lastFrameCaptureMicroseconds()
+    Swag.require(firstCaptureTime > 0)
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount == 320 * 240 * 4)
+    let storage = image.pixels.storage()
+    let firstMetrics = source.metrics()
+    Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0)
+
     expect source.reopen()
-    discard expect source.grabInto(&image)
+    Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    let secondFresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(secondFresh)
+    Swag.require(source.lastFrameCaptureMicroseconds() >= firstCaptureTime)
     Swag.require(image.width == 320 and image.height == 240)
+    Swag.require(image.pixels.storage() == storage)
+    let secondMetrics = source.metrics()
+    Swag.require(secondMetrics.acquiredFrames == 2 and secondMetrics.readbackMicroseconds > 0)
 }
 
 // A broken XCB socket reconnects without keeping its old descriptor or SysV mapping.

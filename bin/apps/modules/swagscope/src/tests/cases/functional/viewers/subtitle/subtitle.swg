@@ -88,6 +88,12 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     host.finishAnimations()
     Swag.require(view.currentCue == 1)
 
+    // The first cue ends at 2 s, exclusively: that instant and the gap after it lead to the second.
+    view.revealTime(1.99)
+    Swag.require(view.currentCue == 0)
+    view.revealTime(2.0)
+    Swag.require(view.currentCue == 1)
+
     window.lens.open(":1")
     host.finishAnimations()
     var found = false

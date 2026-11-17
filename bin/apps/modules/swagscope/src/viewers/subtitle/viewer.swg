@@ -552,12 +552,14 @@ impl Panel
     }
 
     // Shows the first cue still on screen at `seconds`, or the last cue when the track has ended.
+    // A cue's end is exclusive: at that very instant, or in the gap after it, the next cue is the
+    // one to come.
     mtd revealTime(seconds: f64)
     {
         let count = .track!.cueCount()
         if not count do
             return
-        for index in count where .track.cueEndTime(index) >= seconds
+        for index in count where .track.cueEndTime(index) > seconds
         {
             discard .revealCue(index)
             return

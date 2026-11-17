@@ -126,15 +126,15 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
   fonts produce expected outlines and metrics across supported axes, with invalid variation
   tables rejected.
 
-### std.truetype.016 — No COLR/CPAL layered color glyphs
+### std.truetype.016 — COLR v0 layers are exposed but not composited
 
-- Evidence: the `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves
-  the emoji and text presentation selectors. What is missing is a glyph to draw for the emoji
-  one.
-- Next: implement `COLR` version 0, the cheapest useful subset: layered glyph references with a
-  palette, which the existing outline pipeline can already draw.
-- Done when: a COLR version-0 fixture paints the expected ordered glyph layers in the selected
-  CPAL palette, including text and emoji presentation selection.
+- Evidence: `Face.getColorLayers` exposes ordered `COLR` version-0 layer glyphs and resolved
+  `CPAL` version-0 ARGB colors. The outline and raster APIs still load one glyph at a time and do
+  not composite a color glyph into a bitmap.
+- Next: add a color-glyph drawing path that renders and composites these layers while preserving
+  their order and selected palette.
+- Done when: a color glyph can be loaded and painted as an ordered set of layers from the chosen
+  palette, including text and emoji presentation selection.
 - Related: std.truetype.017, std.truetype.018, std.truetype.019
 
 ### std.truetype.017 — No `sbix` color bitmap strikes

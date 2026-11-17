@@ -16,6 +16,8 @@ const TAG_MAXP = imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
 const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
 const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
 const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
+const TAG_COLR = imageTag('C'u32, 'O'u32, 'L'u32, 'R'u32)
+const TAG_CPAL = imageTag('C'u32, 'P'u32, 'A'u32, 'L'u32)
 const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
 const TAG_CFF  = imageTag('C'u32, 'F'u32, 'F'u32, ' 'u32)
 
@@ -28,6 +30,29 @@ const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)
 const TAG_OTTO = imageTag('O'u32, 'T'u32, 'T'u32, 'O'u32)
 const TAG_WOFF = imageTag('w'u32, 'O'u32, 'F'u32, 'F'u32)
 const TAG_WOF2 = imageTag('w'u32, 'O'u32, 'F'u32, '2'u32)
+
+// One ordered glyph layer from a version-0 `COLR` color glyph.
+public struct ColorGlyphLayer
+{
+    public readonly
+    {
+        glyphIndex:   u16     // Glyph index to draw for this layer.
+        paletteIndex: u16     // Entry in the selected `CPAL` palette; 0xFFFF means foreground.
+        hasColor:     bool    // False when paletteIndex is the special foreground entry.
+        argb:         u32     // Resolved color as 0xAARRGGBB; zero when hasColor is false.
+    }
+}
+
+public impl ColorGlyphLayer
+{
+    internal mtd init(glyphIndex: u16, paletteIndex: u16, hasColor: bool, argb: u32)
+    {
+        .glyphIndex = glyphIndex
+        .paletteIndex = paletteIndex
+        .hasColor = hasColor
+        .argb = argb
+    }
+}
 
 struct TableRecord
 {

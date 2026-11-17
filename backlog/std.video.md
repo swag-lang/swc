@@ -308,6 +308,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   matched exactly. An all-changing 1080p30 control had a 3.3% median slowdown (1.66 to
   1.72 seconds), within substantial run variation; these are codec-only synthetic tests,
   not a live capture throughput claim.
+  On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
+  PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
+  x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,
+  and x264's measured process time includes startup and muxing while Swag's timer covers only
+  encoding; these are rate-quality references, not direct speed ratios.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
   A deterministic four-slice stress case now measures 100 alternating 4K P pictures at

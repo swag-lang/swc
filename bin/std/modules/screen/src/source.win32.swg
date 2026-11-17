@@ -60,6 +60,7 @@ struct NativeSource
     moveRects:    Array'DXGI_OUTDUPL_MOVE_RECT
     changedRects: Array'RECT
     updatedBounds: RECT
+    lastPresentationMicroseconds: u64
     pendingResource:           *IDXGIResource?
     pendingTexture:            *ID3D11Texture2D?
     pendingLeft:               u32
@@ -325,6 +326,9 @@ impl NativeSource
         }
         if status < 0 do
             fail SystemError{"screen capture output was lost", errorID: cast(u64, cast #bit (u32, status))}
+        if info.LastPresentTime > 0 do
+            .lastPresentationMicroseconds = qpcTicksToMicroseconds(cast(u64, info.LastPresentTime),
+                                                                   Time.monotonicFrequency())
         .pending = true
         .pendingResource = resource
         let frameResource = unwrap resource
@@ -730,6 +734,8 @@ impl Source
                 if not try native.finishGrab(&.composed, x, bottom, allowDeferred) do
                     continue
                 fresh = true
+                .lastFramePresentationTime = Math.max(.lastFramePresentationTime,
+                                                      native.lastPresentationMicroseconds)
                 if mirroring
                 {
                     let mirrorStart = Time.monotonicMicroseconds()

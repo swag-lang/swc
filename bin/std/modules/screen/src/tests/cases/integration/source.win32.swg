@@ -105,18 +105,22 @@ using Core, Pixel
     Swag.require(fresh)
     let lastCaptureTime = source.lastFrameCaptureMicroseconds()
     Swag.require(lastCaptureTime > 0)
+    let lastPresentationTime = source.lastFramePresentationMicroseconds()
+    Swag.require(lastPresentationTime > 0)
     let originalX = native.options.x
     native.options.x = Env.getSystemMetric(.DesktopX) + Env.getSystemMetric(.DesktopWidth) + 32
     var rejected = false
     catch source.reopen() { rejected = true }
     Swag.require(rejected, "reopening an unavailable output should fail")
-    Swag.require(source.lastFrameCaptureMicroseconds() == lastCaptureTime)
+    Swag.require(source.lastFrameCaptureMicroseconds() == lastCaptureTime and
+                 source.lastFramePresentationMicroseconds() == lastPresentationTime)
     rejected = false
     discard catch native.beginGrab() { rejected = true }
     Swag.require(rejected, "a failed reopen should leave a recoverable source")
     native.options.x = originalX
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(expect native.beginGrab())
     native.abortGrab()
 }
@@ -135,6 +139,8 @@ using Core, Pixel
     let firstFresh = expect source.grabInto(&image, copyUnchanged: false,
                                             updateChangedOnly: true)
     Swag.require(firstFresh and source.lastFrameCaptureMicroseconds() > 0)
+    Swag.require(source.lastFramePresentationMicroseconds() > 0 and
+                 source.lastFramePresentationMicroseconds() <= source.lastFrameCaptureMicroseconds())
     var lastCaptureTime = source.lastFrameCaptureMicroseconds()
     let firstMetrics = source.metrics()
     Swag.require(firstMetrics.maxReadbackMicroseconds > 0 and

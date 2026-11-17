@@ -163,6 +163,21 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     return &faceData.face
 }
 
+// Converts a 26.6 point size to an integer pixels-per-em value at the requested DPI.
+// A positive point size that rounds below one pixel is not a usable size.
+private func pointsToPpem(pointSize: s32, dpi: u32)->u32 fail
+{
+    if pointSize <= 0 or not dpi do
+        try fault(0x17)
+
+    let numerator = cast(u64, pointSize) * cast(u64, dpi)
+    let denominator = 72'u64 * 64
+    let ppem = (numerator + denominator / 2) / denominator
+    if not ppem or ppem > Swag.U16.Max do
+        try fault(0x17)
+    return cast(u32, ppem)
+}
+
 public impl Face
 {
     internal mtd setNames(familyName, styleName: String)
@@ -380,6 +395,39 @@ public impl Face
             height = width
 
         try .size.setPixelMetrics(width, height)
+    }
+
+    // Selects a character size expressed in 26.6 points at the requested resolutions.
+    //
+    // Each nonzero point dimension is converted to pixels per em and rounded to the
+    // nearest whole pixel before scaled metrics are updated. If one point dimension is
+    // zero, its ppem copies the other converted dimension; both zero dimensions fail.
+    // DPI values must be nonzero, and converted ppem must fit in 16 bits. Scaled metrics
+    // are exposed through [[TrueType.Face.size]].
+    //
+    // ```swag
+    // // Twelve points at 96 DPI is 16 pixels per em.
+    // try face.setCharSize(12 * 64, 12 * 64, 96, 96)
+    // ```
+    mtd setCharSize(charWidth26_6, charHeight26_6: s32, horizontalDpi, verticalDpi: u32) fail
+    {
+        if charWidth26_6 < 0 or charHeight26_6 < 0 or
+           (not charWidth26_6 and not charHeight26_6) or
+           not horizontalDpi or not verticalDpi do
+            try fault(0x17)
+
+        var widthPpem = 0'u32
+        var heightPpem = 0'u32
+        if charWidth26_6 do
+            widthPpem = try pointsToPpem(charWidth26_6, horizontalDpi)
+        if charHeight26_6 do
+            heightPpem = try pointsToPpem(charHeight26_6, verticalDpi)
+        if not widthPpem do
+            widthPpem = heightPpem
+        if not heightPpem do
+            heightPpem = widthPpem
+
+        try .size.setPixelMetrics(widthPpem, heightPpem)
     }
 
     // Returns whether the face contains supported kerning pairs.

@@ -56,9 +56,11 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.006 — Tempo, meter, key, marker, and lyric changes are reduced to first-value summary
 
-- Evidence: summary helpers report only the first tempo, time signature, and key signature.
-  Subsequent tempo changes affect PPQN duration calculation, but none of these changes has a
-  timeline lane; lyrics, markers, and cue points are not parsed into visible lanes.
+- Evidence: the score's summary reports only the first tempo, time signature, and key signature.
+  The information sheet gives the range the tempo moves through, the first meter and the first
+  key, each with how many times it changes. Subsequent tempo changes affect PPQN duration
+  calculation, but none of these changes has a timeline lane or a position; lyrics, markers, and
+  cue points are not parsed into visible lanes.
 - Next: add ruler lanes for tempo, meter, key, markers/cues, and lyrics over the exact event timeline.
 - Done when: every change is positioned and selectable, ramps versus steps are not confused,
   bar numbering follows meter changes, lyrics preserve syllable/order metadata, and lane visibility

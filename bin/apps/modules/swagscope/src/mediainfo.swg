@@ -58,6 +58,8 @@ enum MediaInfoField
     Copyright
     Separator
     Meter
+    Tempo
+    KeySignature
     LineEnds
     Coverage
     Track
@@ -120,6 +122,8 @@ struct MediaInfoStrings
     copyright:      string = "Copyright"
     separator:      string = "Separator"
     meter:          string = "Time signature"
+    tempo:          string = "Tempo"
+    keySignature:   string = "Key"
     lineEnds:       string = "Line ends"
     coverage:       string = "Coverage"
     oneLine:        string = "1 line"
@@ -242,6 +246,8 @@ impl MediaInfoRow
         case .Copyright:      return s.copyright
         case .Separator:      return s.separator
         case .Meter:          return s.meter
+        case .Tempo:          return s.tempo
+        case .KeySignature:   return s.keySignature
         case .LineEnds:       return s.lineEnds
         case .Coverage:       return s.coverage
         case .Track:          return .name.toString()

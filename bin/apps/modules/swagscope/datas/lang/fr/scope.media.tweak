@@ -59,6 +59,8 @@ designer    Créateur
 copyright   Droits d'auteur
 separator   Séparateur
 meter       Mesure
+tempo       Tempo
+keySignature Tonalité
 glyphCount  % glyphes
 lineEnds    Fins de ligne
 coverage    Couverture

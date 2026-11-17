@@ -122,6 +122,61 @@ impl Document
                                key.minor ? texts().ui_Minor : texts().ui_Major)
     }
 
+    // Returns the tempo in beats per minute, as the range it moves through when it changes, followed
+    // by how many times it changes; 120 when the file declares none.
+    mtd const tempoText()->String
+    {
+        var low     = Swag.U32.Max
+        var high    = 0'u32
+        var changes = 0'u64
+        var last    = 0'u32
+        for tempo in .tempos where tempo.microsPerQuarter
+        {
+            let bpm = 60_000_000'u32 / tempo.microsPerQuarter
+            if high and bpm != last do
+                changes += 1
+            low  = Math.min(low, bpm)
+            high = Math.max(high, bpm)
+            last = bpm
+        }
+
+        if not high do
+            return Format.toString("% BPM", .bpm())
+        if low == high do
+            return Format.toString("% BPM", low)
+        return Format.toString("%–% BPM · %", low, high, changeCountText(changes))
+    }
+
+    // Returns the first time signature, followed by how many times the meter changes.
+    mtd const meterChangesText()->String
+    {
+        var changes = 0'u64
+        for index in 1 until .timeSignatures.count
+        {
+            let previous = &.timeSignatures[index - 1]
+            let meter    = &.timeSignatures[index]
+            if meter.numerator != previous.numerator or meter.denominator != previous.denominator do
+                changes += 1
+        }
+
+        return changes ? Format.toString("% · %", .meterText(), changeCountText(changes)) : .meterText()
+    }
+
+    // Returns the first key signature, followed by how many times the key changes.
+    mtd const keyChangesText()->String
+    {
+        var changes = 0'u64
+        for index in 1 until .keySignatures.count
+        {
+            let previous = &.keySignatures[index - 1]
+            let key      = &.keySignatures[index]
+            if key.sharps != previous.sharps or key.minor != previous.minor do
+                changes += 1
+        }
+
+        return changes ? Format.toString("% · %", .keyText(), changeCountText(changes)) : .keyText()
+    }
+
     // Returns the first tempo in beats per minute, or 120 when the file declares none.
     mtd const bpm()->u32
     {
@@ -431,6 +486,11 @@ func loadDocument(fileName: string)->Document fail
     if result.title.isEmpty() do
         result.title = Path.fileNameWithoutExtension(fileName) orelse ""
     result.notes.sort(func(a, b) => a.startTick <=> b.startTick)
+
+    // Each track of a type 1 file may carry its own changes; the timeline orders them all.
+    result.tempos.sort(func(a, b) => a.tick <=> b.tick)
+    result.timeSignatures.sort(func(a, b) => a.tick <=> b.tick)
+    result.keySignatures.sort(func(a, b) => a.tick <=> b.tick)
     computeDuration(&result)
     return result
 }

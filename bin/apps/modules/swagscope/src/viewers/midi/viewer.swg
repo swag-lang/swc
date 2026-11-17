@@ -307,12 +307,12 @@ impl Panel
         data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
         data.addFigure(.Custom, trackCountText(.roll.lanes.count))
         data.addFigure(.Custom, noteCountText(.roll.document.notes.count))
-        let meter = .roll.document.meterText()
-        if meter.count
-        {
-            data.add(.Music, group: true)
-            data.add(.Meter, meter)
-        }
+
+        // The tempo, the meter and the key, each with how often it changes.
+        data.add(.Music, group: true)
+        data.add(.Tempo, .roll.document.tempoText())
+        data.add(.Meter, .roll.document.meterChangesText())
+        data.add(.KeySignature, .roll.document.keyChangesText())
 
         data.describe(sheet)
     }

@@ -43,7 +43,7 @@ impl EditMode
         case .Line:      return CaptureIcons.Line
         case .Polygon:   return CaptureIcons.Polygon
         case .Text:      return CaptureIcons.Text
-        case .Callout:   return CaptureIcons.Text
+        case .Callout:   return CaptureIcons.Callout
         case .Draw:      return CaptureIcons.Draw
         case .Highlight: return CaptureIcons.Highlight
         case .Step:      return CaptureIcons.Step
@@ -51,6 +51,27 @@ impl EditMode
         case .PixSel:    return CaptureIcons.PixSel
         case .Favorites: return CaptureIcons.Favorites
         case .Selection: return CaptureIcons.Select
+        }
+    }
+
+    // Returns what the tool does, as the tooltip of its command says it.
+    func tip(me)->string
+    {
+        switch #complete me
+        {
+        case .Shape:     return appStrings().tip_ToolShape
+        case .Arrow:     return appStrings().tip_ToolArrow
+        case .Line:      return appStrings().tip_ToolLine
+        case .Polygon:   return appStrings().tip_ToolPolygon
+        case .Text:      return appStrings().tip_ToolText
+        case .Callout:   return appStrings().tip_ToolCallout
+        case .Draw:      return appStrings().tip_ToolDraw
+        case .Highlight: return appStrings().tip_ToolHighlight
+        case .Step:      return appStrings().tip_ToolStep
+        case .Image:     return appStrings().tip_ToolImage
+        case .PixSel:    return appStrings().tip_ToolPixSel
+        case .Favorites: return appStrings().tip_ToolFavorites
+        case .Selection: return appStrings().tip_ToolSelect
         }
     }
 

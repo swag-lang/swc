@@ -38,6 +38,13 @@ private const SoundFileFormats: [11] SoundFileFormatSpec = [
     SoundFileFormatSpec{".oga", .Ogg},
     SoundFileFormatSpec{".opus", .Ogg}]
 
+// Returns how long `frames` sample frames last at `sampleRateHz`, divided in double precision
+// and rounded once, as a voice computes its position. A voice that has played the last frame
+// then stands exactly at the duration once its position is rounded to single precision. A
+// division in single precision rounds a frame count above 2^24 first, and could put the
+// duration a step past that position: a player waiting for the end would never reach it.
+private func frameSeconds(frames: u64, sampleRateHz: u32)->f32 => cast(f32, cast(f64, frames) / cast(f64, sampleRateHz))
+
 private func findSoundFileFormat(path: string)->u64
 {
     let extension = Path.lowercaseExtension(path)
@@ -440,7 +447,7 @@ impl SoundFile
 
         result.frameCount      = frameCount - result.leadingTrim - result.trailingTrim
         result.dataSize        = payloadBytes
-        result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
+        result.durationSeconds = frameSeconds(result.frameCount, sampleRateHz)
         result.availableFields = .Format |
                                  .SampleRate |
                                  .ChannelCount |
@@ -512,7 +519,7 @@ impl SoundFile
             result.dataSize   += packet.byteSize
         }
 
-        result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
+        result.durationSeconds = frameSeconds(result.frameCount, sampleRateHz)
         result.availableFields = .Format |
                                  .SampleRate |
                                  .ChannelCount |

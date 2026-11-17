@@ -556,7 +556,7 @@ impl Panel
     mtd copyReport()
     {
         let text = .doc.report.toText()
-        Clipboard.addString(text)
+        Clipboard.setString(text)
     }
 
     // Puts the visible cells of the selected row on the clipboard.
@@ -577,7 +577,7 @@ impl Panel
             text += item.name.text
         }
 
-        Clipboard.addString(text)
+        Clipboard.setString(text)
     }
 
     // Returns the file offset of the selected row, or zero when no selected row has one.
@@ -1101,8 +1101,8 @@ impl Panel
             })
         }
 
-        entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
-        entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
+        entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
 
         // The commands of the report's context menu, so none of them needs a right click.
         entries.add(strings.ui_MenuGoTo, .GoTo, func|view = me|() { view.promptGoToOffset() }, disabled: not .doc.image.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))

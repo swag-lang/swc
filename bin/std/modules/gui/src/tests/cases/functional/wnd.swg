@@ -314,6 +314,30 @@ impl IWnd for AncestorTestWnd {}
     Swag.require(child.position == {0, 0, 100, 100})
 }
 
+// A move to a fractional position that rounds to where the window already stands moves nothing,
+// so it sends no MoveEvent.
+#test
+{
+    var moves: u32
+    var host:  Testing.HeadlessHost
+    host.setup(200, 200)
+    let child = Wnd.create'Wnd(&host.root, null, {10, 20, 50, 50})
+    child.hookOnEvent = func|count = &moves|(_, evt)
+    {
+        if evt is MoveEvent do
+            count[] += 1
+        return false
+    }
+
+    child.move(30.4, 40.6)
+    Swag.require(moves == 1 and child.position.x == 30 and child.position.y == 41)
+    child.move(30.4, 40.6)
+    child.move(29.6, 41.2)
+    Swag.require(moves == 1)
+    child.move(31, 41)
+    Swag.require(moves == 2 and child.position.x == 31)
+}
+
 // Dock layout: Left/Right consume edges, Center fills the rest.
 #test
 {

@@ -59,6 +59,43 @@ using Core, Gui, Gui.Testing, Viewers
                  text)
 }
 
+// A spine reference names the first manifest item with its identifier; one naming no item, or an
+// item that is not a document, makes the book unreadable.
+#test
+{
+    func loadSpine(spine: string)->Swag.Error
+    {
+        const Container = """<?xml version="1.0"?>
+<container><rootfiles><rootfile full-path="book.opf"/></rootfiles></container>"""
+        const Manifest  = """<item id="a" href="first.xhtml" media-type="application/xhtml+xml"/>
+<item id="a" href="second.xhtml" media-type="application/xhtml+xml"/>
+<item id="p" href="picture.png" media-type="image/png"/>"""
+        let package = Format.toString("<package><manifest>%</manifest><spine>%</spine></package>", Manifest, spine)
+        let page    = "<html><body>page</body></html>"
+        let bytes   = storedZipBytes([{name: "mimetype", bytes: cast(const [..] u8, "application/epub+zip")},
+                                      {name: "META-INF/container.xml", bytes: cast(const [..] u8, Container)},
+                                      {name: "book.opf", bytes: package.toSlice()},
+                                      {name: "first.xhtml", bytes: cast(const [..] u8, page)},
+                                      {name: "second.xhtml", bytes: cast(const [..] u8, page)},
+                                      {name: "picture.png", bytes: cast(const [..] u8, page)}])
+        let fileName = Gui.Testing.tempFilePath("scope-epub-spine-", ".epub")
+        defer discard catch File.delete(fileName)
+        expect File.writeAllBytes(fileName, bytes.toSlice())
+
+        var loadError: Swag.Error
+        let book = catch Epub.Book.load(fileName) as loadError
+        if not loadError.value() do
+            Swag.require(book.chapters.count == 2 and
+                         book.chapters[0].path == "first.xhtml" and
+                         book.chapters[1].path == "first.xhtml")
+        return loadError
+    }
+
+    Swag.require(loadSpine("""<itemref idref="a"/><itemref idref="a"/>""").value() == null)
+    Swag.require(loadSpine("""<itemref idref="a"/><itemref idref="b"/>""").value() is Errors.InvalidFormatError)
+    Swag.require(loadSpine("""<itemref idref="p"/>""").value() is Errors.UnsupportedFormatError)
+}
+
 // A root package path cannot escape its archive.
 #test
 {

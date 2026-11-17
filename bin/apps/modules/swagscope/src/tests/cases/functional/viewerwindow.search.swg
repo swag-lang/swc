@@ -242,5 +242,51 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeFind(&host, window)
     Swag.require(window.searchComplete and window.searchMatches.count == 1)
     let toolTip = window.searchCountLabel.toolTip.toString()
-    Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_SomeNoText, 1, 2).toString()), toolTip)
+    Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_OneNoText, 2).toString()), toolTip)
+}
+
+// One page whose text cannot be read is counted as one page, in the sheet and in the search's
+// explanation. The text is extracted from a copy reopened later, so removing the file once it is
+// open makes every page unreadable.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-pdf-unreadable-", ".pdf")
+    defer discard catch File.delete(fileName)
+    var document = Pdf.Document.create()
+    var page     = Pdf.Page.create(320, 220)
+    page.addText("lost words", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move page)
+    expect document.save(fileName)
+
+    var host: HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 680)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+    expect File.delete(fileName)
+    window.toggleInformation()
+
+    let view     = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+    var attempts = 0
+    while not view.pdfView.textCoverage().complete and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        host.pump()
+        attempts += 1
+    }
+
+    host.pump()
+    Swag.require(view.pdfView.textCoverage().unreadable == 1)
+    window.infoSheet.selectPage(1)
+    let text = window.infoSheet.text()
+    Swag.require(Utf8.contains(text, Format.toString("Text layer\n%", PdfDocument.texts().ui_TextLayerOneUnreadable).toString()), text)
+
+    window.showSearch()
+    window.searchBox.setText("lost")
+    completeFind(&host, window)
+    Swag.require(window.searchComplete and window.searchMatches.isEmpty())
+    let toolTip = window.searchCountLabel.toolTip.toString()
+    Swag.require(Utf8.contains(toolTip, PdfDocument.texts().ui_OneUnreadable), toolTip)
 }

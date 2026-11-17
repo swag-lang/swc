@@ -244,6 +244,9 @@ When ranges overlap, the **first matching range** is executed; later overlaps ar
 # Using the 'where' Clause in 'switch'
 
 Add a `where` clause to a `case` to refine matching conditions based on additional logic.
+The case values are tested first, and the guard is evaluated only when one of them matched,
+so a guard with a cost or a side effect runs only for the values its case selects. A
+`fallthrough` into a value case enters its body without testing its values or its guard.
 */
 
 #test

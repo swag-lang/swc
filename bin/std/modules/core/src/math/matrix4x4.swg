@@ -100,6 +100,13 @@ impl Matrix4x4
         return result
     }
 
+    // Creates a transform that scales, then rotates, then translates row vectors.
+    func createTRS(translation: Vector3, rotation: Quaternion, scale: Vector3)->Matrix4x4
+    {
+        let scaled = Matrix4x4.createScale(scale).multiplied(rotation.toMatrix4x4())
+        return scaled.multiplied(Matrix4x4.createTranslation(translation))
+    }
+
     // Creates an identity matrix.
     func createIdentity()->Matrix4x4
     {

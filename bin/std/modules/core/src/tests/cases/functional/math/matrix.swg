@@ -189,6 +189,9 @@ using Swag
     let view = Math.Matrix4x4.createLookAt({0, 0, 1}, {0, 0, 0}, Math.Vector3.UnitY)
     Swag.require(view.transformPoint({0, 0, 1}).isEqualEpsilon(Math.Vector3.Zero, 0.001))
     Swag.require(view.transformPoint(Math.Vector3.Zero).isEqualEpsilon({0, 0, -1}, 0.001))
+    let trs = Math.Matrix4x4.createTRS(
+        {1, 0, 0}, Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2), {2, 1, 1})
+    Swag.require(trs.transformPoint({1, 0, 0}).isEqualEpsilon({1, 2, 0}, 0.001))
     let orthographic = Math.Matrix4x4.createOrthographic(-1, 1, -1, 1, 1, 10)
     let nearPoint = orthographic.transformPoint({0, 0, -1})
     let farPoint = orthographic.transformPoint({0, 0, -10})

@@ -59,6 +59,7 @@ private:
     void     emitDebugInfo(); // builds the PDB and fills the debug-directory section; no-op if disabled
     bool     emit(ByteArray& outBytes, Diagnostic& outDiag);
     bool     debugInfoEnabled() const;
+    void     sortSectionsByRva(std::vector<uint32_t>& order) const;
 
     const LinkImage*                       image_       = nullptr;
     const LinkDebugInfo*                   debugInfo_   = nullptr;

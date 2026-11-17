@@ -15,6 +15,18 @@ func expectNear(actual, expected: f32)
 
 #test
 {
+    let transform = Math.Transform3{
+        {1, 0, 0}, Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2), {2, 1, 1}}
+    let point = transform.transformPoint({1, 0, 0})
+    expectVec3(point, {1, 2, 0})
+    expectVec3(transform.inverseTransformPoint(point), {1, 0, 0})
+    expectVec3(transform.transformDirection({1, 0, 0}), {0, 2, 0})
+    expectVec3(transform.transformNormal({1, 1, 0}), {-1, 0.5, 0})
+    expectVec3(transform.toMatrix4x4().transformPoint({1, 0, 0}), point)
+}
+
+#test
+{
     let quarterTurn = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2)
     expectVec3(quarterTurn.rotate(Math.Vector3.UnitX), Math.Vector3.UnitY)
     let eulerTurn = Math.Quaternion.fromEulerXYZ({0, 0, Math.ConstF32.PiBy2})

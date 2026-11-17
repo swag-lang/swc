@@ -264,20 +264,18 @@ private impl Panel
         let character = queriedCharacter(entries.query)
         if character and not .load.isPending() and .document != null
         {
-            let code       = Format.toString("U+%{X04} %", cast(u32, character), character)
-            let mapped     = .document.face and .document.face.hasChar(character)
-            with let entry = entries.add(Format.toString(strings.ui_ShowCharacter, code),
-                                         .GoTo,
-                                         func|view = me, character|()
-                                         {
-                                             view.document.showCharacter(character)
-                                             view.refreshPageCommands()
-                                         },
-                                         disabled: not mapped)
-            {
-                if not mapped do
-                    .detail = strings.ui_NotInFont
-            }
+            let code   = Format.toString("U+%{X04} %", cast(u32, character), character)
+            let mapped = .document.face and .document.face.hasChar(character)
+            let entry  = entries.add(Format.toString(strings.ui_ShowCharacter, code),
+                                     .GoTo,
+                                     func|view = me, character|()
+                                     {
+                                         view.document.showCharacter(character)
+                                         view.refreshPageCommands()
+                                     },
+                                     disabled: not mapped)
+            if entry and not mapped do
+                entry.detail = strings.ui_NotInFont
         }
 
         // A block the face maps nothing of cannot be shown, so it is offered disabled.

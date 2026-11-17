@@ -369,7 +369,7 @@ impl X11Capture
     mtd image(drawCursor: bool, x, y, width, height: s32)->Image fail
     {
         var result: Image
-        try .imageInto(&result, drawCursor, x, y, width, height)
+        discard try .imageInto(&result, drawCursor, x, y, width, height)
         return result
     }
 
@@ -480,8 +480,11 @@ impl X11Capture
     }
 
     // Reuses `target` storage across captures of the same rectangle.
-    mtd imageInto(target: *Image, drawCursor: bool, x, y, width, height: s32) fail
+    mtd imageInto(target: *Image, drawCursor: bool, x, y, width, height: s32)->
+        {readbackMicroseconds: u64, copyMicroseconds: u64, composeMicroseconds: u64,
+         copiedPixels: u64} fail
     {
+        var result: #returntype
         let connection = unwrap .connection
         if x < 0 or
            y < 0 or
@@ -506,6 +509,7 @@ impl X11Capture
         var captured: *Linux.xcb_get_image_reply_t?
         var sharedSize: u64
         var shared = .ensureSharedMemory(width, height)
+        let readbackStart = Time.monotonicMicroseconds()
         if shared
         {
             var wire: Linux.xcb_shm_get_image_request_t
@@ -544,6 +548,7 @@ impl X11Capture
                              null)
         if not captured do
             fail Swag.SystemError{"X11 cannot read the requested desktop pixels"}
+        result.readbackMicroseconds = Time.monotonicMicroseconds() - readbackStart
         defer Linux.free(captured)
         var format: Linux.xcb_format_t
         var fi = formats(unwrap .setup)
@@ -600,6 +605,7 @@ impl X11Capture
            visual.green_mask == 0x0000FF00 and
            visual.red_mask == 0x00FF0000
         {
+            let copyStart = Time.monotonicMicroseconds()
             let opaque = Math.Simd.splat(0xFF000000'u32)
             let outputBase = target.pixels.storage()
             let outputStride = cast(u64, target.rowStride)
@@ -624,11 +630,18 @@ impl X11Capture
                                    outputBase + (imageHeight - row - 1) * outputStride,
                                    imageWidth, opaque)
             }
-            if drawCursor do
+            result.copyMicroseconds = Time.monotonicMicroseconds() - copyStart
+            result.copiedPixels = imageWidth * imageHeight
+            if drawCursor
+            {
+                let composeStart = Time.monotonicMicroseconds()
                 try .drawCursor(target, x, y)
-            return
+                result.composeMicroseconds = Time.monotonicMicroseconds() - composeStart
+            }
+            return result
         }
 
+        let copyStart = Time.monotonicMicroseconds()
         for row in cast(u64, height)
         {
             for column in cast(u64, width)
@@ -644,9 +657,16 @@ impl X11Capture
                 target.pixels[destination + 3] = 255
             }
         }
+        result.copyMicroseconds = Time.monotonicMicroseconds() - copyStart
+        result.copiedPixels = cast(u64, width) * cast(u64, height)
 
-        if drawCursor do
+        if drawCursor
+        {
+            let composeStart = Time.monotonicMicroseconds()
             try .drawCursor(target, x, y)
+            result.composeMicroseconds = Time.monotonicMicroseconds() - composeStart
+        }
+        return result
     }
 
     private mtd drawCursor(image: *Image, x, y: s32) fail

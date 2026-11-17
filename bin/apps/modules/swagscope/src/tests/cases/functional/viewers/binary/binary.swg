@@ -615,6 +615,32 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(data.offset == 44 and data.length == 8)
 }
 
+// A short LIST payload must not borrow its form from the following chunk.
+#test
+{
+    var bytes: Array'u8
+    bytes.resize(32)
+
+    pokeText(&bytes, 0, "RIFF")
+    poke(&bytes, 4, 24, 4)
+    pokeText(&bytes, 8, "WAVE")
+    pokeText(&bytes, 12, "LIST")
+    poke(&bytes, 16, 2, 4)
+    pokeText(&bytes, 20, "AB")
+    pokeText(&bytes, 22, "data")
+    poke(&bytes, 26, 2, 4)
+    pokeText(&bytes, 30, "xy")
+
+    let fileName = writeFixture("riff-short-list", bytes.toSlice())
+    defer discard catch File.delete(fileName)
+
+    var doc: Binary.Document
+    Swag.require(doc.open(fileName))
+    Swag.require(rowValue(&doc.report, "LIST") == StrConv.toDisplaySize(2))
+    let data = findRow(&doc.report, "data")
+    Swag.require(data != null and data.offset == 30 and data.length == 2)
+}
+
 // A Standard MIDI File exposes its timing, track metadata, and running-status channel events.
 #test
 {

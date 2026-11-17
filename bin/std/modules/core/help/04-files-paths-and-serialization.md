@@ -20,6 +20,11 @@ Use whole-file helpers for small resources and configuration. Prefer streams for
 large files, bounded memory use, or processing that can start before the complete
 file is available.
 
+`File.writeAllText` writes UTF-8 by default. Its encoding overload accepts
+[[Core.Text.Encoding]] and an optional byte-order mark; it encodes the complete
+text before opening the destination, so unrepresentable text does not truncate
+an existing file.
+
 ## Decoding a file of any size
 
 [[Core.ByteSource]] and [[Core.ByteSink]] are what a codec reads and writes through. Each has a

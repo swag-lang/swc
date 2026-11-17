@@ -255,6 +255,9 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     switch result.encoding
     {
     case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32:
+        if result.hasExtensible and result.validBits > result.bitsPerSample do
+            fail InvalidFormatError{"WAV valid sample width exceeds its container width"}
+
         let bytesPerSample = result.bitsPerSample / 8
         let expectedAlign  = result.channels * bytesPerSample
         let expectedRate   = cast(u64, result.sampleRate) * expectedAlign

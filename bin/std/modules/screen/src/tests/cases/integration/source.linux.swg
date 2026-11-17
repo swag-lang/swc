@@ -98,7 +98,9 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount == 320 * 240 * 4)
     let storage = image.pixels.storage()
     let firstMetrics = source.metrics()
-    Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0)
+    Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0 and
+                 firstMetrics.readbackMicroseconds > 0 and firstMetrics.maxReadbackMicroseconds > 0 and
+                 firstMetrics.copyMicroseconds > 0 and firstMetrics.copiedPixels == 320 * 240)
 
     let capture = source.sources[0].capture.nativeConnection()
     source.resetMetrics()

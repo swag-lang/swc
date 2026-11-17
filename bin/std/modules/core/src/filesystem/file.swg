@@ -218,6 +218,17 @@ func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 #[Swag.Discardable]
 func writeAllText(fullName: string, text: string)->u64 fail => try writeAllBytes(fullName, cast(const [..] u8, text))
 
+// Encodes `text` as `encoding`, writes the resulting bytes, and returns their count.
+//
+// `includeBom` writes the encoding's byte-order mark when it has one. The text is fully encoded
+// before the destination is opened, so an encoding failure leaves an existing file unchanged.
+#[Swag.Discardable]
+func writeAllText(fullName: string, text: string, encoding: Text.Encoding, includeBom = false)->u64 fail
+{
+    let bytes = try Text.encode(text, encoding, includeBom)
+    return try writeAllBytes(fullName, bytes.toSlice())
+}
+
 // Creates or replaces a file with `lines`, each followed by `\n`, and returns the number of bytes written.
 #[Swag.Discardable]
 func writeAllLines(fullName: string, lines: Array'(string))->u64 fail

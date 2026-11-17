@@ -38,6 +38,29 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
     Swag.require(waitFailure.value() is SystemError)
 }
 
+// Timeout validation runs before native-state access and rejects durations beyond the wait range.
+#test
+{
+    var event: Sync.Event
+    var error: Swag.Error
+    discard catch event.waitFor(Time.Duration.fromSeconds(Swag.F64.Max)) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}
+
+// A pre-signaled auto-reset event can be consumed once, and release is safe to repeat.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: false, initState: true)
+    Swag.require(event.isValid())
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+
+    event.release()
+    event.release()
+    Swag.require(not event.isValid())
+}
+
 // A timed event wait distinguishes an expiration, an already-pending signal and a later signal.
 #test
 {

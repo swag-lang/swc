@@ -53,7 +53,7 @@ private func reportRiffChunks(image: *BinaryImage, report: *Report, at, end: u64
             break
 
         // A list is a chunk whose payload begins with the form it holds, then more chunks.
-        if id == "LIST" or id == "RIFF"
+        if (id == "LIST" or id == "RIFF") and size >= 4
         {
             let form = image.fixedTextAt(bodyAt, 4)
             report.beginGroup(id, form, stored, offset: bodyAt, length: size)

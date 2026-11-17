@@ -49,3 +49,16 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
     Swag.require(qpcTicksToMicroseconds(2, 3) == 666_666)
     Swag.require(qpcTicksToMicroseconds(1, 0) == 0)
 }
+
+// Frame age is absent until a fresh frame has been delivered.
+#test
+{
+    Swag.require(frameAgeAt(100, 0) == 0)
+    Swag.require(frameAgeAt(100, 40) == 60)
+    Swag.require(frameAgeAt(100, 100) == 0)
+
+    var source: Source
+    Swag.require(source.frameAgeMicroseconds() == 0)
+    source.lastFrameCaptureTime = Time.monotonicMicroseconds() - 60
+    Swag.require(source.frameAgeMicroseconds() >= 60)
+}

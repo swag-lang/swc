@@ -19,6 +19,13 @@ internal func qpcTicksToMicroseconds(ticks, frequency: u64)->u64
     return frequency ? scaled : 0
 }
 
+internal func frameAgeAt(now, capturedAt: u64)->u64
+{
+    if not capturedAt do
+        return 0
+    return now - capturedAt
+}
+
 #[Swag.Inline]
 internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
 {
@@ -61,10 +68,10 @@ struct SourceMetrics
     public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
-    public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
+    public composeMicroseconds:  u64 // Time composing output images, cursor overlays and copies into the caller's image.
     public partialFrames:        u64 // Frames read through a region smaller than the selected output.
     public multiRectFrames:      u64 // Frames read through several bounded desktop update regions.
-    public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
+    public copiedPixels:         u64 // Pixels converted from native readback storage, including full frames.
     public mirroredPixels:       u64 // Pixels incrementally copied from the native cache into a stable caller image.
 }
 
@@ -367,6 +374,10 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
+    // Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivered.
+    // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
+    mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
+
     // Returns the display presentation time for the latest acquired frame, when the backend reports it.
     // The value shares the monotonic microsecond clock; zero means the backend has no presentation time.
     mtd const lastFramePresentationMicroseconds()->u64 => .lastFramePresentationTime
@@ -379,6 +390,7 @@ impl Source
         result.mirroredPixels = .mirroredPixels
         for source in .sources
         {
+            result.composeMicroseconds += source.metrics.composeMicroseconds
             result.acquiredFrames += source.metrics.acquiredFrames
             result.unchangedFrames += source.metrics.unchangedFrames
             result.coalescedUpdates += source.metrics.coalescedUpdates

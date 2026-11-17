@@ -152,7 +152,7 @@ terms of the MIT license. A copy of the license can be found in the file
 // This should perhaps be disabled by default as for many workloads the block sizes above 64 KiB
 // are quite random which can lead to too many partially used large pages (but see issue #1104).
 #ifndef MI_ENABLE_LARGE_PAGES
-#define MI_ENABLE_LARGE_PAGES  1
+#define MI_ENABLE_LARGE_PAGES  0
 #endif
 
 // Place page meta info at the start of the page area or keep it separate?

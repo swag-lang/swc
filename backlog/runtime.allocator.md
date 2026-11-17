@@ -38,10 +38,10 @@ replace the allocator; a similar architecture alone does not establish comparabl
   whose one-shot OS commit had just failed, violating `allocator_os_failures.swg`'s fallback
   contract. Skipping the rescan would risk creating a segment while another thread had made a page
   available; a correct retry protocol needs to distinguish failed claims from concurrent changes.
-- `allocator.concurrent.swg` now also allocates a page on its owner thread and frees its blocks
-  concurrently from four other threads, then checks that collection retires the empty page and
-  segment. This exercises remote-free publication on Linux, where the native `CreateThread`
-  allocator stress tests are not built.
+- `allocator.concurrent.swg` now also allocates 256 blocks on a page owned by the current thread,
+  frees them concurrently from four other threads, then checks that collection retires the empty
+  page and segment. This exercises remote-free publication on Linux, where the native
+  `CreateThread` allocator stress tests are not built.
 - Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
   allocators and a default-allocator fast implementation. Preserve frees summaries and
   `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to

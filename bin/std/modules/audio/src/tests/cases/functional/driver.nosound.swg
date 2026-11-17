@@ -143,6 +143,14 @@ func audioStartNoSoundEngine()
     Swag.require(errInvalidRatioOutcome.value() is Errors.BadParameterError)
     audioAssertFloat(handle.frequencyRatio, 1.75)
 
+    let fixedVoice = expect Voice.create(&file, .None)
+    let fixedHandle = cast(*NoSoundVoice, unwrap fixedVoice.handle)
+    var errPitchControlOutcome: Swag.Error
+    discard catch fixedVoice.setFrequencyRatio(1.25) as errPitchControlOutcome
+    Swag.require(errPitchControlOutcome.value() is Errors.BadParameterError)
+    audioAssertFloat(fixedHandle.frequencyRatio, 1)
+    fixedVoice.destroy()
+
     let safeBus0 = expect Bus.create(2)
 
     let safeBus1 = expect Bus.create(2, safeBus0)

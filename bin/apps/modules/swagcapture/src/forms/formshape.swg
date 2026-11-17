@@ -5,6 +5,7 @@ enum FormShapeKind
     Rectangle
     RoundRectangle
 }
+
 const FormShapeKindValues: [3] FormShapeKind = [.Ellipse, .Rectangle, .RoundRectangle]
 
 const MinRoundSize = 10.0

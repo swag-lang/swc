@@ -78,6 +78,7 @@ public struct Voice
         routingBuses: [16] (*Bus?)
 
         requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
+        createFlags: VoiceCreateFlags
         panValue: f32              // Backend-neutral stereo pan, from -1 (left) to 1 (right).
         codec:       ICodec?       = null     // Decoder instance for a streamed source.
         packetCodec: IPacketCodec? = null     // Decoder instance for packetized media.
@@ -120,6 +121,7 @@ impl Voice
         .playbackBaseFrame = 0
         .nativeFrameOrigin = 0
         .requestedEncoding = .Unknown
+        .createFlags        = .None
         .panValue           = 0
         .destroyCodec()
         .destroyPacketCodec()
@@ -169,6 +171,7 @@ public impl Voice
         }
 
         voice.file = file
+        voice.createFlags = createFlags
         voice.seekDiscardFrames = cast(u32, file.leadingTrim)
 
         try voice.createNative(createFlags)

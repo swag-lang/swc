@@ -53,6 +53,7 @@ struct TabItem
     {
         using item:    Item      // Embedded label, icon, identifier, and user data.
         readonly view: *Wnd?     // Page view owned by the tab control, if any.
+        readonly visible: bool = true     // Whether this item appears in the bar and can be selected.
 
         // A reading after the label, such as how many things the page holds, set in the
         // fixed-width face in the faint ink. Write it with [[Gui.Tab.setItemCount]].
@@ -120,8 +121,8 @@ impl IWnd for Tab
         var width = 0'f32
         switch .layout
         {
-        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32, .items.count)
-        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32, .items.count)
+        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32, .visibleItemCount())
+        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32, .visibleItemCount())
         case .Content: width = .contentWidth()
         }
 
@@ -351,21 +352,26 @@ impl IWnd for Tab
         theme.drawSubRect(painter, clientRect, subRect, colorBk)
 
         // Paint all except selected one, which will be painted last
-        if not .items.isEmpty()
+        if .selectedIndex < .items.count
         {
+            let selected = unwrap .items[.selectedIndex]
+            if not selected.visible do
+                return
             clientRect = .itemBarRect()
             for idx in .firstVisibleIndex until cast(u32, .items.count)
             {
                 if idx == .selectedIndex do
                     continue
                 let v = unwrap .items[idx]
+                if not v.visible do
+                    continue
                 if v.pos + v.width > clientRect.right() do
                     break
                 .paintItem(painter, v, cast(u32, idx))
             }
 
             // Paint selected item
-            .paintItem(painter, unwrap .items[.selectedIndex], .selectedIndex)
+            .paintItem(painter, selected, .selectedIndex)
 
             // Tabs made of words select with one moving Arc underline. Shaped tabs carry their own
             // state.
@@ -376,7 +382,7 @@ impl IWnd for Tab
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .items.isEmpty() do
+        if .visibleItemCount() == 0 do
             return
 
         .computeTabLayout()
@@ -389,7 +395,8 @@ impl IWnd for Tab
             .hasSelectionRail = true
         }
 
-        let curView = .items[.selectedIndex]!.view
+        let curItem = unwrap .items[.selectedIndex]
+        let curView = curItem.view
         if curView
         {
             var clientRect = .clientRect()
@@ -438,25 +445,23 @@ impl IWnd for Tab
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or .items.isEmpty() do
+        if evt.kind != .Pressed or .visibleItemCount() == 0 do
             return
 
         var index = .selectedIndex
         switch evt.key
         {
         case .Left, .Up:
-            if index > 0 do
-                index -= 1
+            index = .nextVisibleIndex(index, -1)
 
         case .Right, .Down:
-            if index + 1 < .items.count do
-                index += 1
+            index = .nextVisibleIndex(index, 1)
 
         case .Home:
-            index = 0
+            index = .nearestVisibleIndex(0)
 
         case .End:
-            index = cast(u32, .items.count) - 1
+            index = .nearestVisibleIndex(cast(u32, .items.count) - 1)
 
         default:
             return
@@ -473,15 +478,20 @@ private impl Tab
     {
         let popup = PopupListCtrl.create(me)
         .popup = popup
-        for item in .items do
-            popup.addItem(item!.name.text, item.id, item.icon, item.userData0)
+        for itemMaybe in .items
+        {
+            let item = unwrap itemMaybe
+            if not item.visible do
+                continue
+            popup.addItem(item.name.text, item.id, item.icon, item.userData0)
+        }
         if .selectedIndex < .items.count do
-            popup.setSelectedIndex(.selectedIndex)
+            popup.setSelectedIndex(.visibleIndexForItem(.selectedIndex))
 
         popup.sigClosed = func|tab = me|(_, idx)
         {
             if idx != Swag.U32.Max do
-                tab.setSelectedIndex(idx)
+                tab.setSelectedIndex(tab.itemIndexAtVisibleIndex(idx))
             tab.hidePopup()
         }
 
@@ -490,8 +500,93 @@ private impl Tab
 
     mtd hidePopup()
     {
-        .popup!.destroy()
+        Swag.assert(.popup != null)
+        .popup.destroy()
         .popup = null
+    }
+
+    mtd visibleItemCount()->u64
+    {
+        var count: u64
+        for itemMaybe in .items
+        {
+            let item = unwrap itemMaybe
+            if item.visible do
+                count += 1
+        }
+        return count
+    }
+
+    mtd nearestVisibleIndex(from: u32)->u32
+    {
+        if .visibleItemCount() == 0 do
+            return Swag.U32.Max
+
+        let start = Math.min(from, cast(u32, .items.count) - 1)
+        for distance in 0 until .items.count
+        {
+            let right = cast(u64, start) + distance
+            if right < .items.count
+            {
+                let item = unwrap .items[right]
+                if item.visible do
+                    return cast(u32, right)
+            }
+
+            if distance <= cast(u64, start)
+            {
+                let left = start - cast(u32, distance)
+                let item = unwrap .items[left]
+                if item.visible do
+                    return left
+            }
+        }
+        return Swag.U32.Max
+    }
+
+    mtd nextVisibleIndex(from: u32, direction: s32)->u32
+    {
+        var index = cast(s64, from) + direction
+        while index >= 0 and index < cast(s64, .items.count)
+        {
+            let item = unwrap .items[index]
+            if item.visible do
+                return cast(u32, index)
+            index += direction
+        }
+        return from
+    }
+
+    mtd visibleIndexForItem(index: u32)->u32
+    {
+        Swag.assert(index < .items.count)
+        let target = unwrap .items[index]
+        Swag.assert(target.visible)
+        var visibleIndex: u32
+        for itemMaybe, itemIndex in .items
+        {
+            let item = unwrap itemMaybe
+            if cast(u32, itemIndex) == index do
+                return visibleIndex
+            if item.visible do
+                visibleIndex += 1
+        }
+        return Swag.U32.Max
+    }
+
+    mtd itemIndexAtVisibleIndex(index: u32)->u32
+    {
+        var visibleIndex: u32
+        for itemMaybe, itemIndex in .items
+        {
+            let item = unwrap itemMaybe
+            if not item.visible do
+                continue
+            if visibleIndex == index do
+                return cast(u32, itemIndex)
+            visibleIndex += 1
+        }
+        return Swag.U32.Max
     }
 
     mtd itemBarRect()->Math.Rectangle
@@ -522,6 +617,8 @@ private impl Tab
         for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
             let v = unwrap .items[idx]
+            if not v.visible do
+                continue
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
@@ -558,8 +655,13 @@ private impl Tab
     mtd contentWidth()->f32
     {
         var result = 0'f32
-        for v in .items do
-            result += Math.max(.itemContentWidth(unwrap v), .minimumItemWidth)
+        for vMaybe in .items
+        {
+            let v = unwrap vMaybe
+            if not v.visible do
+                continue
+            result += Math.max(.itemContentWidth(v), .minimumItemWidth)
+        }
         return result
     }
 
@@ -571,26 +673,44 @@ private impl Tab
         switch .layout
         {
         case .Equal:
-            var w = cast(f32, (rect.width / .items.count))
+            var w = cast(f32, (rect.width / .visibleItemCount()))
             w = Math.max(w, .minimumItemWidth)
-            for vIt in .items
+            for vMaybe in .items
             {
-                vIt!.width    = w
+                let vIt = unwrap vMaybe
+                if not vIt.visible
+                {
+                    vIt.width = 0
+                    continue
+                }
+                vIt.width    = w
                 .mostRightPos += w
             }
 
         case .Fixed:
             let w = Math.max(.fixedItemWidth, .minimumItemWidth)
-            for vIt in .items
+            for vMaybe in .items
             {
-                vIt!.width    = w
+                let vIt = unwrap vMaybe
+                if not vIt.visible
+                {
+                    vIt.width = 0
+                    continue
+                }
+                vIt.width    = w
                 .mostRightPos += w
             }
 
         case .Content:
-            for vIt in .items
+            for vMaybe in .items
             {
-                let v = unwrap vIt
+                let vIt = unwrap vMaybe
+                let v = vIt
+                if not v.visible
+                {
+                    v.width = 0
+                    continue
+                }
                 v.width       = .itemContentWidth(v)
                 .mostRightPos += v.width
             }
@@ -605,6 +725,11 @@ private impl Tab
         for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
             let v    = unwrap .items[idx]
+            if not v.visible
+            {
+                v.pos = x
+                continue
+            }
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)
@@ -650,15 +775,23 @@ private impl Tab
     mtd ensureVisible(idx: u32)
     {
         let rect = .itemBarRect()
-        if idx < .firstVisibleIndex or .items[idx]!.pos + .items[idx]!.width >= rect.right()
+        Swag.assert(idx < .items.count)
+        let item = unwrap .items[idx]
+        Swag.assert(item.visible)
+        if idx < .firstVisibleIndex or item.pos + item.width >= rect.right()
         {
             .firstVisibleIndex = idx
-            var x = rect.right() - .items[.firstVisibleIndex]!.width
+            var x = rect.right() - item.width
             while .firstVisibleIndex
             {
-                x -= .items[.firstVisibleIndex - 1]!.width
-                if x < rect.x do
-                    break
+                let previousIndex = .firstVisibleIndex - 1
+                let previous = unwrap .items[previousIndex]
+                if previous.visible
+                {
+                    x -= previous.width
+                    if x < rect.x do
+                        break
+                }
                 .firstVisibleIndex -= 1
             }
 
@@ -751,7 +884,8 @@ impl Tab
         .pageTransitions = enabled
         if not enabled and .selectedIndex < .items.count
         {
-            let view = .items[.selectedIndex]!.view
+            let item = unwrap .items[.selectedIndex]
+            let view = item.view
             if view
             {
                 .app().animator.cancel(view, AnimationChannel.from("Gui.Page.Opacity"))
@@ -766,7 +900,7 @@ impl Tab
     #[Swag.Discardable]
     mtd addItem(name: string, icon: Icon = {}, view: *Wnd? = null)->*TabItem
     {
-        let isFirst = .items.isEmpty()
+        let isFirst = .selectedIndex == Swag.U32.Max
         if view
         {
             if isFirst do
@@ -798,7 +932,8 @@ impl Tab
     mtd setItemName(index: u32, name: string)
     {
         Swag.assert(index < .items.count)
-        .items[index]!.name = name
+        let item = unwrap .items[index]
+        item.name = name
         .sendResizeEvent()
         .invalidate()
         .invalidateLayout()
@@ -810,7 +945,49 @@ impl Tab
     mtd setItemCount(index: u32, count: string?)
     {
         Swag.assert(index < .items.count)
-        .items[index]!.count = count orelse ""
+        let item = unwrap .items[index]
+        item.count = count orelse ""
+        .sendResizeEvent()
+        .invalidate()
+    }
+
+    // Shows or hides one tab while preserving its item index and owned page.
+    //
+    // A hidden item is omitted from the bar, overflow popup, pointer hit testing, and keyboard
+    // navigation. Hiding the selected item selects the nearest visible item, or clears selection
+    // when every item is hidden.
+    mtd setItemVisible(index: u32, visible: bool)
+    {
+        Swag.assert(index < .items.count)
+        let item = unwrap .items[index]
+        if item.visible == visible do
+            return
+
+        .closePopups()
+        .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
+        .hotIndex = Swag.U32.Max
+        .hasSelectionRail = false
+        item.visible = visible
+        if not visible and .selectedIndex == index
+        {
+            item.view?.hide()
+            .selectedIndex = .nearestVisibleIndex(index)
+            if .selectedIndex < .items.count
+            {
+                let selected = unwrap .items[.selectedIndex]
+                selected.view?.show()
+                .sigSelectionChanged.call(me)
+            }
+        }
+        elif visible and .selectedIndex == Swag.U32.Max
+        {
+            .selectedIndex = index
+            item.view?.show()
+            .sigSelectionChanged.call(me)
+        }
+
+        if .selectedIndex < .items.count do
+            .ensureVisible(.selectedIndex)
         .sendResizeEvent()
         .invalidate()
     }
@@ -822,8 +999,10 @@ impl Tab
         .closePopups()
         .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
 
-        let wasSelected = .selectedIndex == index
-        .items[index]!.view?.destroy()
+        let oldSelectedIndex = .selectedIndex
+        let wasSelected = oldSelectedIndex == index
+        let item = unwrap .items[index]
+        item.view?.destroy()
         .items.deleteAt(index)
 
         if .items.isEmpty()
@@ -831,17 +1010,19 @@ impl Tab
             .selectedIndex     = Swag.U32.Max
             .firstVisibleIndex = 0
         }
-        elif .selectedIndex > index
+        elif oldSelectedIndex > index and oldSelectedIndex < Swag.U32.Max
         {
-            .selectedIndex -= 1
+            .selectedIndex = oldSelectedIndex - 1
         }
-        elif wasSelected
+        elif wasSelected or oldSelectedIndex >= .items.count
         {
-            .selectedIndex = Math.min(index, cast(u32, .items.count) - 1)
-            let selectedView = .items[.selectedIndex]!.view
-            if selectedView do
-                selectedView.wndFlags &= ~.Hidden
-            .sigSelectionChanged.call(me)
+            .selectedIndex = .nearestVisibleIndex(index)
+            if .selectedIndex < .items.count
+            {
+                let selected = unwrap .items[.selectedIndex]
+                selected.view?.show()
+                .sigSelectionChanged.call(me)
+            }
         }
 
         .sendResizeEvent()
@@ -852,8 +1033,11 @@ impl Tab
     mtd clear()
     {
         .closePopups()
-        for item in .items do
-            item!.view?.destroy()
+        for itemMaybe in .items
+        {
+            let item = unwrap itemMaybe
+            item.view?.destroy()
+        }
 
         .items.clear()
         .selectedIndex     = Swag.U32.Max
@@ -868,16 +1052,22 @@ impl Tab
     mtd setSelectedIndex(index: u32)
     {
         Swag.assert(index < .items.count)
+        let selectedItem = unwrap .items[index]
+        Swag.assert(selectedItem.visible)
         if .selectedIndex == index do
             return
 
         let oldIndex = .selectedIndex
         var oldView: *Wnd?
-        if oldIndex < .items.count do
-            oldView = .items[oldIndex]!.view
+        if oldIndex < .items.count
+        {
+            let oldItem = unwrap .items[oldIndex]
+            oldView = oldItem.view
+        }
 
         .selectedIndex = index
-        let newView = .items[.selectedIndex]!.view
+        let newItem = unwrap .items[.selectedIndex]
+        let newView = newItem.view
         if .pageTransitions and newView
         {
             let direction = oldIndex < index ? 1'f32 : -1'f32
@@ -921,7 +1111,7 @@ impl Tab
     {
         if .selectedIndex >= .items.count do
             return null
-        return .items[.selectedIndex]
+        return unwrap .items[.selectedIndex]
     }
 }
 

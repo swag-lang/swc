@@ -9,6 +9,13 @@ struct DeepError
     using base: Errors.BadParameterError     // Embedded base state.
 }
 
+// A base error embedded after unrelated state is not the leading error contract.
+struct NonLeadingBaseError
+{
+    marker: u64
+    using base: Swag.BaseError
+}
+
 func failWithMessage() fail
 {
     fail Errors.BadParameterError{"the message text"}
@@ -60,6 +67,12 @@ func failDeep() fail
     catch failDeep() as errOutcome
     let err = errOutcome.value()
     Swag.require(Errors.message(err) == "the deep text")
+}
+
+#test
+{
+    let error = NonLeadingBaseError{1, Swag.BaseError{"must not be read as the message"}}
+    Swag.require(Errors.message(error) == "NonLeadingBaseError")
 }
 
 #test

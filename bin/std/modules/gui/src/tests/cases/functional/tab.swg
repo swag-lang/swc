@@ -239,3 +239,39 @@ var TabHeadlessSelChangedCount: u32
     host.pump()
     Swag.require(tab.items[0]!.count.isEmpty() and tab.items[0]!.width == bare)
 }
+
+// Hidden tabs keep their identity and order but leave the bar, selection, and keyboard traversal.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+    let tab = Tab.create(&host.root, {0, 0, 320, 150})
+    let first = Wnd.create'Wnd(tab)
+    let second = Wnd.create'Wnd(tab)
+    let third = Wnd.create'Wnd(tab)
+    tab.addItem("First", view: first)
+    tab.addItem("Second", view: second)
+    tab.addItem("Third", view: third)
+    tab.setSelectedIndex(2)
+    tab.setItemVisible(2, false)
+
+    Swag.require(tab.selectedIndex == 1 and tab.selectedItem()!.name.text == "Second")
+    Swag.require(not third.isLocallyVisible() and second.isLocallyVisible())
+    Swag.require(not tab.items[2]!.visible and tab.items[2]!.width == 0)
+
+    tab.setItemVisible(1, false)
+    Swag.require(tab.selectedIndex == 0 and first.isLocallyVisible())
+    tab.setItemVisible(0, false)
+    Swag.require(tab.selectedIndex == Swag.U32.Max and tab.selectedItem() == null)
+    Swag.require(not first.isLocallyVisible() and not second.isLocallyVisible())
+
+    tab.setItemVisible(2, true)
+    Swag.require(tab.selectedIndex == 2 and third.isLocallyVisible())
+    tab.setItemVisible(1, true)
+    host.focus(tab)
+    host.keyPress(Input.Key.Left)
+    Swag.require(tab.selectedIndex == 1)
+    host.keyPress(Input.Key.Left)
+    Swag.require(tab.selectedIndex == 1, "keyboard navigation must skip hidden items")
+    Swag.require(tab.items[0]!.name.text == "First" and not tab.items[0]!.visible)
+}

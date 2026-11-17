@@ -465,9 +465,9 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
-    let size    = unwrap main.miniBarFontSize
+    let size    = unwrap main.miniBar.sizeButton
     host.clickWnd(size)
-    let sizePopup = unwrap main.textChoicePopover
+    let sizePopup = unwrap main.miniBar.choicePopover
     Swag.require(sizePopup.kind == .Size and sizePopup.list.lineCount() == TextChoiceSizes.count)
     sizePopup.list.selectLine(6)
     Swag.require(text.fontSize == 72)
@@ -524,9 +524,9 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     capture.selectionHasChanged()
     main.updateState()
 
-    let size = unwrap main.miniBarFontSize
+    let size = unwrap main.miniBar.sizeButton
     host.clickWnd(size)
-    let popup = unwrap main.textChoicePopover
+    let popup = unwrap main.miniBar.choicePopover
     popup.list.selectLine(7)
     host.runFrames(1)
     Swag.require(callout.fontSize == 96 and size.text() == "96")
@@ -555,8 +555,8 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     }
 
     let text = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
-    let face = unwrap main.miniBarFontFace
-    let size = unwrap main.miniBarFontSize
+    let face = unwrap main.miniBar.faceButton
+    let size = unwrap main.miniBar.sizeButton
     Swag.require(face.position.height == size.position.height and face.arrowPosition == size.arrowPosition)
     discard host.render(main)
     host.pump()
@@ -581,7 +581,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     Swag.require(text.fontName == last and face.text() == last.toString())
 
     host.clickWnd(face)
-    let popup      = unwrap main.textChoicePopover
+    let popup      = unwrap main.miniBar.choicePopover
     let filter     = unwrap popup.filter
     let fullHeight = (unwrap popup.parent).position.height
     filter.setText("__missing_font__")
@@ -594,7 +594,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     host.keyPress(.Return)
     host.runFrames(1)
     Swag.require(text.fontName.isEmpty() and face.text() == main.theme().res.defaultTypeFaceR.familyName())
-    Swag.require(main.textChoicePopover == null)
+    Swag.require(main.miniBar.choicePopover == null)
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         Swag.require(item.comboBox.selectedIndex == 0)
 }

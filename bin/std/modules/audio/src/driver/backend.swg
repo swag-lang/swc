@@ -534,6 +534,8 @@ public impl Voice
             fail BadParameterError{"voice is not valid"}
         if not Math.isFinite(ratio) or ratio <= 0 do
             fail BadParameterError{"frequency ratio must be finite and greater than zero"}
+        if not .createFlags.has(.PitchControl) do
+            fail BadParameterError{"voice was created without pitch control"}
         switch g_Driver.kind
         {
         case .NoSound:

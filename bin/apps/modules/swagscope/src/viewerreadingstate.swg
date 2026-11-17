@@ -45,7 +45,6 @@ impl ViewerReadingState
         if wnd is ScrollWnd as scroll
         {
             .scrolls.add(ViewerScrollState{path[], scroll.scrollPosition()})
-            return
         }
 
         for child, index in wnd.children

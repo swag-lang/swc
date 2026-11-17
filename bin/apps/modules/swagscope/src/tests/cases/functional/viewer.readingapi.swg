@@ -3,6 +3,31 @@
 
 using Core, Gui
 
+// A reload keeps nested scrolling viewports, not just their outermost container.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
+    outer.createView'Wnd()
+    outer.setScrollSize(900, 900)
+    let inner = Wnd.create'ScrollWnd(outer.view, "", {500, 500, 200, 140})
+    inner.createView'Wnd()
+    inner.setScrollSize(800, 800)
+    host.pump()
+    outer.setScrollPos(0, 120)
+    inner.setScrollPos(0, 240)
+
+    var session: ViewerSession
+    session.view = outer
+    var reading: ViewerReadingState
+    reading.capture(&session, "fixture", "")
+
+    Swag.require(reading.scrolls.count == 2)
+    Swag.require(reading.scrolls[0].path.count == 0 and reading.scrolls[0].position.y == outer.scrollPosition().y)
+    Swag.require(reading.scrolls[1].path.count > 0 and reading.scrolls[1].position.y == inner.scrollPosition().y)
+}
+
 // A history returns the places in the order they were left, and comes back through them.
 #test
 {

@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Core.Errors, Pixel, Win32
+using Core, Core.Errors, Pixel, Win32, Gdi32
 
 private const MaxSplitRects = 8'u32
 
@@ -176,8 +176,6 @@ impl NativeSource
 
     func open(options: SourceOptions, shared: *NativeSource? = null)->NativeSource fail
     {
-        if options.includeCursor do
-            fail UnsupportedFormatError{"DXGI screen capture does not include a separate pointer yet"}
         var result: #returntype
         result.options = options
         if let existing = shared
@@ -529,6 +527,154 @@ impl NativeSource
 
 impl Source
 {
+    private mtd closeCursorOverlay()
+    {
+        if .cursorDC and .cursorOldBitmap do
+            discard Gdi32.SelectObject(.cursorDC, .cursorOldBitmap)
+        if .cursorBitmap do
+            discard catch Gdi32.DeleteObject(cast(.cursorBitmap))
+        if .cursorDC do
+            discard catch Gdi32.DeleteDC(.cursorDC)
+        .cursorPixels = null
+        .cursorOldBitmap = null
+        .cursorBitmap = null
+        .cursorDC = null
+        .cursorRenderedPixels.clear()
+        .cursorRenderedLeft = 0
+        .cursorRenderedTop = 0
+        .cursorRenderedRight = 0
+        .cursorRenderedBottom = 0
+        .cursorTargetReady = false
+    }
+
+    private mtd ensureCursorOverlay() fail
+    {
+        if .cursorDC do
+            return
+        catch
+        {
+            var info: Gdi32.BITMAPINFO
+            info.bmiHeader.biSize = #sizeof(Gdi32.BITMAPINFOHEADER)
+            info.bmiHeader.biWidth = .options.width
+            info.bmiHeader.biHeight = .options.height
+            info.bmiHeader.biPlanes = 1
+            info.bmiHeader.biBitCount = 32
+            info.bmiHeader.biCompression = Gdi32.BI_RGB
+            .cursorDC = try Gdi32.CreateCompatibleDC(null)
+            .cursorBitmap = try Gdi32.CreateDIBSection(null, &info, Gdi32.DIB_RGB_COLORS,
+                                                       &.cursorPixels, null, 0)
+            if not .cursorPixels do
+                fail Errors.SystemError{"cannot allocate screen cursor image"}
+            .cursorOldBitmap = Gdi32.SelectObject(.cursorDC, cast(.cursorBitmap))
+            if not .cursorOldBitmap do
+                fail Errors.SystemError{"cannot select screen cursor image"}
+        }
+        {
+            .closeCursorOverlay()
+            fail Swag.err
+        }
+    }
+
+    private mtd drawCursorIcon(cursor: const *CURSORINFO)->RECT fail
+    {
+        var result: RECT
+        var iconInfo: ICONINFO
+        catch GetIconInfo(cast(HICON, cursor.hCursor), &iconInfo) do
+            return result
+        defer
+        {
+            if iconInfo.hbmMask do
+                discard catch Gdi32.DeleteObject(cast(iconInfo.hbmMask))
+            if iconInfo.hbmColor do
+                discard catch Gdi32.DeleteObject(cast(iconInfo.hbmColor))
+        }
+
+        let iconBitmap = iconInfo.hbmColor ? iconInfo.hbmColor : iconInfo.hbmMask
+        if not iconBitmap do
+            return result
+        var bitmap: Gdi32.BITMAP
+        try Gdi32.GetObjectW(cast(Win32.HANDLE, iconBitmap), #sizeof(bitmap), &bitmap)
+        let iconHeight = iconInfo.hbmColor ? bitmap.bmHeight : bitmap.bmHeight / 2
+        if bitmap.bmWidth <= 0 or iconHeight <= 0 do
+            return result
+
+        let iconLeft = cast(s64, cursor.ptScreenPos.x) - cast(s64, .options.x) - cast(s64, iconInfo.xHotspot)
+        let iconTop = cast(s64, cursor.ptScreenPos.y) - cast(s64, .options.y) - cast(s64, iconInfo.yHotspot)
+        let left = Math.max(0's64, iconLeft)
+        let top = Math.max(0's64, iconTop)
+        let right = Math.min(cast(s64, .options.width), iconLeft + cast(s64, bitmap.bmWidth))
+        let bottom = Math.min(cast(s64, .options.height), iconTop + cast(s64, iconHeight))
+        if right <= left or bottom <= top do
+            return result
+
+        if not DrawIconEx(.cursorDC, cast(s32, iconLeft), cast(s32, iconTop),
+                          cast(HICON, cursor.hCursor), 0, 0, 0, null, DI_NORMAL) do
+            fail Errors.SystemError{"cannot draw the screen cursor"}
+        if not Gdi32.GdiFlush() do
+            fail Errors.SystemError{"cannot finish drawing the screen cursor"}
+        for row in cast(u64, top) until cast(u64, bottom)
+        {
+            let offset = (cast(u64, .options.height) - row - 1) * cast(u64, .options.width) * 4 +
+                         cast(u64, left) * 4 + 3
+            for column in cast(u64, right - left) do
+                cast([*] u8, .cursorPixels)[offset + column * 4] = 255
+        }
+        result = RECT{cast(s32, left), cast(s32, top), cast(s32, right), cast(s32, bottom)}
+        return result
+    }
+
+    private mtd drawCursor()->bool fail
+    {
+        try .ensureCursorOverlay()
+        Memory.copy(.cursorPixels, .composed.pixels.storage(), .composed.byteCount)
+        let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+        defer discard SetThreadDpiAwarenessContext(awareness)
+        var cursor: CURSORINFO
+        cursor.cbSize = #sizeof(CURSORINFO)
+        var bounds: RECT
+        if GetCursorInfo(&cursor) and (cursor.flags & CURSOR_SHOWING) and cursor.hCursor do
+            bounds = try .drawCursorIcon(&cursor)
+
+        var changed = bounds.left != .cursorRenderedLeft or bounds.top != .cursorRenderedTop or
+                      bounds.right != .cursorRenderedRight or bounds.bottom != .cursorRenderedBottom
+        let rowBytes = cast(u64, bounds.right - bounds.left) * 4
+        let rows = cast(u64, bounds.bottom - bounds.top)
+        let renderedBytes = rowBytes * rows
+        if .cursorRenderedPixels.count != renderedBytes do
+            changed = true
+        if not changed
+        {
+            let source = cast([*] u8, .cursorPixels)
+            for row in rows
+            {
+                let offset = (cast(u64, .options.height) - cast(u64, bounds.top) - row - 1) *
+                             cast(u64, .options.width) * 4 + cast(u64, bounds.left) * 4
+                if Memory.compare(source + offset, .cursorRenderedPixels.storage() + row * rowBytes,
+                                  rowBytes) != 0
+                {
+                    changed = true
+                    break
+                }
+            }
+        }
+        .cursorRenderedPixels.resize(renderedBytes)
+        .cursorRenderedLeft = bounds.left
+        .cursorRenderedTop = bounds.top
+        .cursorRenderedRight = bounds.right
+        .cursorRenderedBottom = bounds.bottom
+        if renderedBytes
+        {
+            let source = cast([*] u8, .cursorPixels)
+            for row in rows
+            {
+                let offset = (cast(u64, .options.height) - cast(u64, bounds.top) - row - 1) *
+                             cast(u64, .options.width) * 4 + cast(u64, bounds.left) * 4
+                Memory.copy(.cursorRenderedPixels.storage() + row * rowBytes, source + offset, rowBytes)
+            }
+        }
+        return changed
+    }
+
     mtd mirrorRect(target: *Image, native: const *NativeSource,
                    x, bottom: u64, bounds: RECT)
     {

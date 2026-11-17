@@ -136,6 +136,12 @@ func audioStartNoSoundEngine()
     discard catch voice.setFrequencyRatio(0) as errInvalidRatioOutcome
     let errInvalidRatio = errInvalidRatioOutcome.value()
     Swag.require((errInvalidRatio is Errors.BadParameterError))
+    discard catch voice.setFrequencyRatio(Swag.F32.NaN) as errInvalidRatioOutcome
+    Swag.require(errInvalidRatioOutcome.value() is Errors.BadParameterError)
+    let infiniteRatio = Swag.F32.Max * 2
+    discard catch voice.setFrequencyRatio(infiniteRatio) as errInvalidRatioOutcome
+    Swag.require(errInvalidRatioOutcome.value() is Errors.BadParameterError)
+    audioAssertFloat(handle.frequencyRatio, 1.75)
 
     let safeBus0 = expect Bus.create(2)
 

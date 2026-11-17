@@ -216,10 +216,6 @@ struct PdfView
 
 internal impl PdfView
 {
-    // One PDF point shown at actual size covers 96/72 logical units: a point is 1/72 inch and
-    // a logical unit is 1/96 inch.
-    const ActualSizeZoom = 96.0'f32 / 72.0
-
     // The size a page whose own boxes cannot be read is laid out at, in PDF points, when no page
     // before it gave a usable one: US Letter, which is what a reader expects of a page it is
     // shown nothing about.
@@ -1268,6 +1264,13 @@ impl PdfView
     const MinZoom         = 0.05'f32     // Smallest supported scale, in logical units per PDF point.
     const MaxZoom         = 64.0'f32     // Largest supported scale, in logical units per PDF point.
     const WheelScrollStep = 60.0'f32     // Logical units scrolled per wheel notch and per arrow key.
+
+    // Scale of [[Gui.PdfView.actualSize]], in logical units per PDF point.
+    //
+    // A point is 1/72 inch and a logical unit 1/96 inch, so one point covers 96/72 units. A host
+    // that reads the zoom out as a percentage divides [[Gui.PdfView.effectiveZoom]] by this
+    // scale, so that 100 % is the size the page would have printed.
+    const ActualSizeZoom = 96.0'f32 / 72.0
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]

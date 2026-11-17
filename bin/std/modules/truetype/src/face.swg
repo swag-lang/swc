@@ -23,6 +23,7 @@ public enum StyleFlag
 // the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
 // The fixed-pitch flag comes from `post` and defaults to false when that table is absent.
 // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees.
+// Underline metrics are in font design units and default to zero without `post`.
 public struct FaceMetadata
 {
     public
@@ -37,6 +38,8 @@ public struct FaceMetadata
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
         isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
         italicAngle:           s32 = 0       // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
+        underlinePosition:     s16 = 0       // Underline center relative to the baseline, in design units.
+        underlineThickness:    s16 = 0       // Recommended underline thickness in design units.
     }
 }
 
@@ -368,7 +371,8 @@ public impl Face
     // The fixed-pitch flag is true for any nonzero `post.isFixedPitch` value and false when
     // the `post` table is absent.
     // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees. It is zero
-    // when the `post` table is absent.
+    // when the `post` table is absent. Underline position and thickness are in design units
+    // and default to zero when that table is absent.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
     // This inspects metadata only; it does not validate that every glyph can be loaded.
     //

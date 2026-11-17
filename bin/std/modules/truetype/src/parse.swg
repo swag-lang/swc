@@ -625,6 +625,8 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
             fault(0x9B)
         result.isFixedPitch = readU32(post, 12) != 0
         result.italicAngle = readS32(post, 4)
+        result.underlinePosition = readS16(post, 8)
+        result.underlineThickness = readS16(post, 10)
     }
 
     result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16

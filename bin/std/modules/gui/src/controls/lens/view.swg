@@ -309,6 +309,7 @@ impl IWnd for View
         {
             .input.setPlaceholder(strings().lens_Placeholder)
             .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
+            .labelPaging()
             .refresh()
         }
 
@@ -401,6 +402,7 @@ impl View
             .sigPressed += func|lens = result|(_) { lens.pageResults(1) }
         }
 
+        result.labelPaging()
         return result
     }
 
@@ -636,6 +638,7 @@ impl View
         .returnFocus = .focusedWindow()
         .input.setPlaceholder(strings().lens_Placeholder)
         .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
+        .labelPaging()
         .itf.onLayout()
         .bringToFront()
         discard .app().animator.arrive(me)
@@ -1301,6 +1304,15 @@ private impl View
         .runChosen()
     }
 
+    // Gives the paging buttons their words and fits the buttons to them. Measuring them costs more
+    // than the rest of a layout, and their width changes only with the language and the theme, so
+    // this runs when the lens is created, when it opens and when either changes, not on each layout.
+    mtd labelPaging()
+    {
+        .previousPage.setQuietText(strings().lens_PreviousResults)
+        .nextPage.setQuietText(strings().lens_MoreResults)
+    }
+
     // A named pair makes overflow reachable without a wheel or knowledge of the navigation keys.
     mtd placePaging()
     {
@@ -1315,8 +1327,6 @@ private impl View
         if not overflow do
             return
         let metrics = .themeMetrics()
-        .previousPage.setQuietText(strings().lens_PreviousResults)
-        .nextPage.setQuietText(strings().lens_MoreResults)
         .previousPage.setPosition({list.x + metrics.lens_TextInset, list.bottom(), .previousPage.position.width, metrics.quiet_Height})
         .nextPage.setPosition({list.right() - metrics.lens_TextInset - .nextPage.position.width, list.bottom(), .nextPage.position.width, metrics.quiet_Height})
         .previousPage.enable(.scroll > 0)

@@ -25,6 +25,21 @@ func variable(name: string)->String
     return String.from(cast(string, cast(cstring, value)))
 }
 
+internal func setVariableNative(name: string, value: string) fail
+{
+    let nativeName  = String.from(name)
+    let nativeValue = String.from(value)
+    if Linux.setenv(nativeName.storage(), nativeValue.storage(), 1) != 0 do
+        try Errors.failLinuxError(Linux.errno())
+}
+
+internal func removeVariableNative(name: string) fail
+{
+    let nativeName = String.from(name)
+    if Linux.unsetenv(nativeName.storage()) != 0 do
+        try Errors.failLinuxError(Linux.errno())
+}
+
 impl Process
 {
     // Returns the current operating-system process identifier.

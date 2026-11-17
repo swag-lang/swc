@@ -26,9 +26,14 @@ using Core, Gui, Gui.Testing, Viewers
     let grid   = unwrap panel.grid
     grid.selectAddress({2, 1})
     Swag.require(grid.selected.label() == "B3" and grid.selectedText() == "$1,100.00")
+
+    // The copied cell replaces what the clipboard held, a picture copied before included.
+    var picture = Pixel.Image.create(2, 2, .BGRA8)
+    picture.clear()
+    Clipboard.addImage(picture)
     var copy = KeyEvent{kind: .Pressed, key: .C, modifiers: .Control}
     grid.sendEvent(&copy)
-    Swag.require(Clipboard.getString() == "$1,100.00")
+    Swag.require(Clipboard.getString() == "$1,100.00" and not Clipboard.hasImage())
     var right = KeyEvent{kind: .Pressed, key: .Right}
     grid.sendEvent(&right)
     Swag.require(grid.selected.label() == "D3")

@@ -269,13 +269,17 @@ using Core, Pixel, Gui, Viewers
     view.revealLine(1)
     Swag.require(view.selectionText() == "\"two\nlines\"\t\"say \"\"hi\"\"\"\n")
 
+    // The copied rows replace what the clipboard held, a picture copied before included.
+    var picture = Image.create(2, 2, .BGRA8)
+    picture.clear()
+    Clipboard.addImage(picture)
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Table", host.theme)
     view.revealLine(0)
     view.describeLens(&entries)
     for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames do
         entry.run!()
-    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n")
+    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n" and not Clipboard.hasImage())
 }
 
 // The information sheet profiles each column under its name: its kind, the range and the mean of

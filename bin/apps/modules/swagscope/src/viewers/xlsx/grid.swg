@@ -242,7 +242,7 @@ impl Grid
     internal mtd copy()
     {
         if .hasSelection do
-            Clipboard.addString(.selectedText())
+            Clipboard.setString(.selectedText())
     }
 
     mtd addressAt(point: Math.Point)->{address: Address, found: bool}

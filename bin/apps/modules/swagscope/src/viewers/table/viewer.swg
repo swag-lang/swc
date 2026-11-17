@@ -564,7 +564,7 @@ private impl IWnd for Panel
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .C do
-            Clipboard.addString(.selectionText())
+            Clipboard.setString(.selectionText())
         else do
             evt.accepted = false
     }
@@ -1047,8 +1047,8 @@ impl Panel
         if entries.results.prefix != .Line
         {
             let empty = not .document.rows.count
-            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.addString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
-            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.addString(view.selectionText(withNames: true)) }, disabled: empty)
+            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.setString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.setString(view.selectionText(withNames: true)) }, disabled: empty)
 
             // The column the table is sorted on, its values one per line in the order shown.
             if .sortColumn < .document.columns.count do

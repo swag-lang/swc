@@ -139,8 +139,14 @@ is the current scorecard.
   reduce the measured wall time. Its large whole-preset gap is mainly
   `.ValueBorrow`; see compiler.safety.030 and
   [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
-- Next: prove an index against the dominating loop bound and hoist a `late` check from a
-  loop that does not assign it. Measure the affected loops with guards enabled and disabled.
+- A fixed-array index in `for index in values.count` is now proven in range when the
+  constant iteration count does not exceed the array extent and the body cannot write the
+  index. The Micro listing for a 256-element exact loop has no panic call; a dynamic-count
+  loop retains one. The safety suite still passes the overlong-count runtime fault and the
+  exact-count write. See `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks` and the
+  `cwe787_out_of_bounds_write.swg` corpus tests.
+- Next: hoist a `late` check from a loop that does not assign it. Measure the affected loops
+  with guards enabled and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
   the residual cost of runtime guards is measured on the affected loops with behavior
   preserved.

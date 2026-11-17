@@ -198,6 +198,8 @@ func expectVec4(actual, expected: Math.Vector4)
     Swag.require(vec.isFinite())
     Swag.require(not Math.Vector2{Swag.F32.Inf, 0}.isFinite())
     Swag.require(Math.Vector2{Swag.F32.NaN, 0}.isNaN())
+    Swag.require(not Math.Vector2{0, -Swag.F32.Inf}.isFinite())
+    Swag.require(Math.Vector2{0, Swag.F32.NaN}.isNaN())
     Swag.require(not vec.isNaN())
 
     var absVec = vec
@@ -415,6 +417,8 @@ func expectVec4(actual, expected: Math.Vector4)
     Swag.require(vec.isFinite())
     Swag.require(not Math.Vector3{Swag.F32.Inf, 0, 0}.isFinite())
     Swag.require(Math.Vector3{Swag.F32.NaN, 0, 0}.isNaN())
+    Swag.require(not Math.Vector3{0, 0, -Swag.F32.Inf}.isFinite())
+    Swag.require(Math.Vector3{0, 0, Swag.F32.NaN}.isNaN())
     Swag.require(not vec.isNaN())
 
     var absVec = vec
@@ -668,6 +672,8 @@ func expectVec4(actual, expected: Math.Vector4)
     Swag.require(vec.isFinite())
     Swag.require(not Math.Vector4{Swag.F32.Inf, 0, 0, 0}.isFinite())
     Swag.require(Math.Vector4{Swag.F32.NaN, 0, 0, 0}.isNaN())
+    Swag.require(not Math.Vector4{0, 0, 0, -Swag.F32.Inf}.isFinite())
+    Swag.require(Math.Vector4{0, 0, 0, Swag.F32.NaN}.isNaN())
     Swag.require(not vec.isNaN())
 
     var absVec = vec

@@ -52,6 +52,7 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 | `ffmpeg-rawvideo-bgr24.avi` | `-c:v rawvideo -pix_fmt bgr24` | Uncompressed 24-bit frames, `biCompression` zero, negative bitmap height, `00dc` chunks |
 | `ffmpeg-rawvideo-bgra.avi` | `-c:v rawvideo -pix_fmt bgra` | Uncompressed 32-bit frames, whose alpha byte is dropped |
 | `ffmpeg-rawvideo-odd.avi` | `-c:v rawvideo -pix_fmt bgr24`, 33x25 | A row of 99 bytes padded to 100, which is the bitmap rule |
+| `synthetic-rgb555-padding-bottom-up.avi` | Built in-repository; 5x2, two bottom-up RGB555 frames | BI_RGB 16-bit pixels, DWORD-padded rows, row direction, and frame seeking; no external media |
 | `ffmpeg-c422.y4m` | `-pix_fmt yuv422p` | 4:2:2 planes |
 | `ffmpeg-c444.y4m` | `-pix_fmt yuv444p` | 4:4:4 planes |
 | `ffmpeg-mono.y4m` | `-pix_fmt gray` | Luma alone, with the `XCOLORRANGE=FULL` tag |
@@ -78,6 +79,18 @@ signed 16-bit little-endian PCM.
 - `mp4-layer3-reference.pcm`: 32,256 bytes, SHA-256:
   `deff7b2483049b80e4eba31d5ad4fe49375351c04d211e991d75f9416c73d364`.
 - License: same as this repository and the std/audio MP3 fixture.
+
+`ffmpeg-h264-ac3.mp4` combines `ffmpeg-h264-baseline.mp4` with std/audio's synthetic 5.1 AC-3
+stream, `ac3-5.1-48000.ac3`, using FFmpeg 7.1.5 with
+`-map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart`. Both streams are copied without
+re-encoding. `ffmpeg-h264-ac3.pcm` is the multiplexed audio decoded by FFmpeg as signed 16-bit
+little-endian PCM.
+
+- `ffmpeg-h264-ac3.mp4`: 27,787 bytes, SHA-256:
+  `72a6f64cca5af4dfa7127700180d91b1f98db9d6959d74a38bdf5c30dd563754`.
+- `ffmpeg-h264-ac3.pcm`: 294,912 bytes, SHA-256:
+  `4da797a01c01ec38e92fef33a285ec0fb942e84cc909381307f01a62d4ec998a`.
+- License: same as this repository and the std/audio AC-3 fixture.
 
 `glint-aac-lc-stereo.packets` holds the first three AAC-LC access units of
 `std/audio`'s `aac-lc-stereo-44100.aac` fixture, with ADTS headers removed. Each unit is preceded
@@ -144,6 +157,22 @@ chunk offset where it was.
 - License: same as `glint-aac-mjpeg.mp4`.
 
 ## Generated for this repository
+
+`matroska-video-laced-{xiph,fixed,ebml}.mkv` contain two synthetic MPEG-4 Part 2 intra pictures
+generated from FFmpeg's `testsrc2` pattern and packaged as one video block with the named
+Matroska lacing mode. They exercise per-lace indexing, timestamps, and picture decode. The
+`matroska-video-laced-no-duration.mkv` variant removes the track's `DefaultDuration` to verify
+that ambiguous laced timing is refused. These files contain no third-party recordings.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `matroska-video-laced-xiph.mkv` | 4534 | `78597b554979245dc11f69ca9b6ab17096722d74723c8c45b529a568d2184056` |
+| `matroska-video-laced-fixed.mkv` | 4541 | `82071e2df5d3e51cf0c85906e6250e3832d76ebdd159e3c1cad87054b37f81dd` |
+| `matroska-video-laced-ebml.mkv` | 4528 | `5ebcb38bc5a3adbb115722d7c12008d7cd257aa424be4c96f90d52fe86dbe8a8` |
+| `matroska-video-laced-no-duration.mkv` | 4520 | `7f7879ef47cb6b732e6e77681d71c46f0b0899e4781886f68e37df3b3fd5a598` |
+
+- FFmpeg: 7.1.5; source: `testsrc2=size=96x64:rate=25`, MPEG-4 Part 2, two intra pictures.
+- License: same as this repository.
 
 `ffmpeg-h264-subtitle.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and muxes the repository's
 `subtitle-sample.srt` as a default French SubRip track through FFmpeg 7.1. It exercises Matroska

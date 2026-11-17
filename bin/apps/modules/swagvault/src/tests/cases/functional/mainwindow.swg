@@ -93,9 +93,10 @@ internal func useTestDestination(window: *MainWindow)
     window.drive.setSelectedIndex(0, notify: false)
 }
 
-const PictureMountedPath = #os == Swag.TargetOs.Windows ? "C:\\Users\\vault\\papiers.bin" : "/home/vault/papiers.bin"
-const PictureLockedPath  = #os == Swag.TargetOs.Windows ? "C:\\vault.bin" : "/vault.bin"
-const PictureArchivePath = #os == Swag.TargetOs.Windows ? "E:\\archives-2025.bin" : "/archives-2025.bin"
+// These in-memory display fixtures use the same POSIX paths on both targets.
+const PictureMountedPath = "/home/vault/papiers.bin"
+const PictureLockedPath  = "/vault.bin"
+const PictureArchivePath = "/archives-2025.bin"
 
 // Fills the list the way the charter pictures it: one vault mounted, two at rest.
 internal func fillPictureList(window: *MainWindow)
@@ -890,9 +891,9 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // In the list, the line under a name leaves out what the row already shows: the drive is the
     // large figure, the room is the thread, the state is the dot and its group.
-    Swag.require(window.vaultPlace(PictureMountedPath, 0) == (#os == Swag.TargetOs.Windows ? "C:\\Users\\vault · read and write" : "/home/vault · read and write"))
-    Swag.require(window.vaultPlace(PictureArchivePath, 0) == (#os == Swag.TargetOs.Windows ? "E:\\" : "/"))
-    Swag.require(window.vaultPlace(PictureArchivePath, 4 * 1024 * 1024 * 1024) == (#os == Swag.TargetOs.Windows ? "E:\\ · 4 GiB" : "/ · 4 GiB"))
+    Swag.require(window.vaultPlace(PictureMountedPath, 0) == "/home/vault · read and write")
+    Swag.require(window.vaultPlace(PictureArchivePath, 0) == "/")
+    Swag.require(window.vaultPlace(PictureArchivePath, 4 * 1024 * 1024 * 1024) == "/ · 4 GiB")
     Swag.require(mounted.position.height == VaultRow.MountedHeight and window.list.rows[1].position.height == VaultRow.Height)
 
     // The rows stand under the title, one under the other, in the order of the list.

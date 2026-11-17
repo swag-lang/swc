@@ -612,7 +612,7 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
     {
         case TruncateMode::End:
         {
-            Utf8 result = options.maxChars ? substrChars(s, 1, options.maxChars) : Utf8{};
+            Utf8 result = substrChars(s, 1, options.maxChars);
             result += ellipsis;
             return result;
         }
@@ -620,10 +620,7 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
         case TruncateMode::Start:
         {
             Utf8 result = ellipsis;
-            if (options.maxChars >= totalChars)
-                result += Utf8{s};
-            else if (options.maxChars)
-                result += substrChars(s, totalChars - options.maxChars + 1, totalChars);
+            result += substrChars(s, totalChars - options.maxChars + 1, totalChars);
             return result;
         }
 
@@ -642,15 +639,11 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
                 keepRightChars = std::min(keepRightChars, options.maxChars);
                 keepLeftChars  = options.maxChars - keepRightChars;
             }
-            else if (!keepRightChars)
-            {
-                keepLeftChars  = std::min(keepLeftChars, options.maxChars);
-                keepRightChars = options.maxChars - keepLeftChars;
-            }
             else
             {
                 keepLeftChars  = std::min(keepLeftChars, options.maxChars);
-                keepRightChars = std::min(keepRightChars, options.maxChars - keepLeftChars);
+                const uint32_t rightCapacity = options.maxChars - keepLeftChars;
+                keepRightChars               = keepRightChars ? std::min(keepRightChars, rightCapacity) : rightCapacity;
             }
 
             Utf8 result = keepLeftChars ? substrChars(s, 1, keepLeftChars) : Utf8{};

@@ -95,33 +95,58 @@ SWC_TEST_BEGIN(ElfSymbolTable_MergesExecutableAndSharedContributions)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ElfSymbolTable_OmitsRuntimeSymbolsAndCompactsFile)
+{
+    ByteArray bytes = makeSymbolImage(0x400000);
+    Utf8      error;
+    const size_t originalSize = bytes.size();
+    if (!ELFSymbolTable::finalizeImage(bytes, error, false) || !error.empty() || bytes.size() >= originalSize)
+        return Result::Error;
+    const uint64_t headers = bytes.readLe64(40);
+    const uint64_t table   = headers + 2 * 64;
+    if (bytes.readLe32(table) != 0 || bytes.readLe32(table + 4) != 0 || bytes.readLe64(table + 32) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ElfSymbolTable_CompactionPreservesFollowingSectionAlignment)
 {
-    ByteArray       bytes      = makeSymbolImage(0x400000);
-    const uint64_t  oldHeaders = bytes.readLe64(40);
-    const ByteArray headers(bytes.begin() + oldHeaders, bytes.end());
-    bytes.resize(oldHeaders);
-    bytes.align(16);
-    const uint64_t             trailer = bytes.size();
-    constexpr std::string_view marker  = "unaltered trailer";
-    bytes.append(marker);
-    bytes.align(8);
-    const uint64_t newHeaders = bytes.size();
-    bytes.append(headers);
-    bytes.resize(bytes.size() + 64);
-    bytes.writeLe64(40, newHeaders);
-    bytes.writeLe16(60, 4);
-    bytes.writeLe32(newHeaders + 3 * 64 + 4, 1);
-    bytes.writeLe64(newHeaders + 3 * 64 + 24, trailer);
-    bytes.writeLe64(newHeaders + 3 * 64 + 32, marker.size());
-    bytes.writeLe64(newHeaders + 3 * 64 + 48, 16);
-    const size_t originalSize = bytes.size();
-    Utf8         error;
-    if (!ELFSymbolTable::finalizeImage(bytes, error) || !error.empty() || bytes.size() >= originalSize || (originalSize - bytes.size()) % 16)
-        return Result::Error;
-    const uint64_t offset = bytes.readLe64(bytes.readLe64(40) + 3 * 64 + 24);
-    if (offset % 16 || offset >= trailer || !std::ranges::equal(bytes.span().subspan(offset, marker.size()), std::as_bytes(std::span(marker))))
-        return Result::Error;
+    for (const bool includeRuntimeSymbols : {true, false})
+    {
+        ByteArray       bytes      = makeSymbolImage(0x400000);
+        const uint64_t  oldHeaders = bytes.readLe64(40);
+        const ByteArray headers(bytes.begin() + oldHeaders, bytes.end());
+        bytes.resize(oldHeaders);
+        bytes.align(16);
+        const uint64_t             trailer = bytes.size();
+        constexpr std::string_view marker  = "unaltered trailer";
+        bytes.append(marker);
+        bytes.align(8);
+        const uint64_t newHeaders = bytes.size();
+        bytes.append(headers);
+        bytes.resize(bytes.size() + 64);
+        bytes.writeLe64(40, newHeaders);
+        bytes.writeLe16(60, 4);
+        bytes.writeLe32(newHeaders + 3 * 64 + 4, 1);
+        bytes.writeLe64(newHeaders + 3 * 64 + 24, trailer);
+        bytes.writeLe64(newHeaders + 3 * 64 + 32, marker.size());
+        bytes.writeLe64(newHeaders + 3 * 64 + 48, 16);
+        const size_t originalSize = bytes.size();
+        Utf8         error;
+        if (!ELFSymbolTable::finalizeImage(bytes, error, includeRuntimeSymbols) || !error.empty() || bytes.size() >= originalSize || (originalSize - bytes.size()) % 16)
+            return Result::Error;
+        const uint64_t finalHeaders = bytes.readLe64(40);
+        const uint64_t offset       = bytes.readLe64(finalHeaders + 3 * 64 + 24);
+        if (offset % 16 || offset >= trailer || !std::ranges::equal(bytes.span().subspan(offset, marker.size()), std::as_bytes(std::span(marker))))
+            return Result::Error;
+        if (!includeRuntimeSymbols)
+        {
+            const uint64_t table = finalHeaders + 2 * 64;
+            if (bytes.readLe32(table) || bytes.readLe32(table + 4) || bytes.readLe64(table + 32))
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

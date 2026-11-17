@@ -12,6 +12,9 @@ struct TestStrings
 
 var g_TestStrings: TestStrings
 
+// Reads a menu caption from the same live table used by the label-binding test.
+func localizedCancelMenuLabel()->string => strings().dlg_Cancel
+
 // A second table, registered only once a language is already active, the way a plugin library
 // loaded on demand registers its own.
 struct LateStrings
@@ -59,6 +62,35 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     Swag.require(strings().dlg_Ok == "OK")
     Swag.require(strings().dlg_Cancel == "Cancel")
     Swag.require(activeLanguage() == "en")
+}
+
+// A label bound to a catalog field follows application language changes until literal text replaces it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+
+    expect host.app.setLanguage(ReferenceLanguage)
+    let label = Label.create(&host.root, null, {10, 10, 180, 28})
+    label.setLocalizedText(&strings().dlg_Cancel)
+    Swag.require(label.text() == "Cancel")
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let bar = MenuCtrl.createBar(&host.root, {0, 48, 300, 0})
+    bar.addPopup(&localizedCancelMenuLabel, popup)
+    bar.computeLayoutBar()
+    Swag.require(bar.items[0]!.name.text == "Cancel")
+
+    expect host.app.setLanguage("fr")
+    Swag.require(label.text() == "Annuler")
+    Swag.require(bar.dirtyLayout)
+    bar.computeLayoutBar()
+    Swag.require(bar.items[0]!.name.text == "Annuler")
+
+    label.setText("Literal")
+    expect host.app.setLanguage(ReferenceLanguage)
+    Swag.require(label.text() == "Literal")
 }
 
 // A language switch retargets every registered table, keeps omitted keys, decodes

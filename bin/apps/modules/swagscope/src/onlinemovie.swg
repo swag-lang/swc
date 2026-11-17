@@ -523,14 +523,17 @@ impl MovieQuery
     // and all of one year; a title several films share without a year says which is ambiguous.
     mtd const chooseApple(search: const *AppleSearch)->u64
     {
-        let wanted       = normalizedMovieTitle(.title)
-        var chosen       = Swag.U64.Max
-        var bestDistance = Swag.U64.Max
+        let wanted        = normalizedMovieTitle(.title)
+        let wantedText    = wanted.toString()
+        let distanceLimit = movieTitleDistanceLimit(wantedText)
+        var chosen        = Swag.U64.Max
+        var bestDistance  = Swag.U64.Max
         var ambiguous    = false
         for &film, index in search.results
         {
-            let distance = movieTitleDistance(wanted.toString(), normalizedMovieTitle(film.trackName.toString()).toString())
-            if distance > movieTitleDistanceLimit(wanted.toString()) do
+            let candidate = normalizedMovieTitle(film.trackName.toString())
+            let distance  = movieTitleDistance(wantedText, candidate.toString())
+            if distance > distanceLimit do
                 continue
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
             if not .year.isEmpty() and filmYear != .year do
@@ -558,17 +561,19 @@ impl MovieQuery
     // Do not borrow a popular result when the filename identifies another edition or year.
     mtd const chooseTMDB(search: const *TmdbSearch)->u64
     {
-        let wanted       = normalizedMovieTitle(.title)
-        var chosen       = Swag.U64.Max
-        var bestDistance = Swag.U64.Max
+        let wanted        = normalizedMovieTitle(.title)
+        let wantedText    = wanted.toString()
+        let distanceLimit = movieTitleDistanceLimit(wantedText)
+        var chosen        = Swag.U64.Max
+        var bestDistance  = Swag.U64.Max
         var ambiguous    = false
         for &film, index in search.results
         {
             let title    = normalizedMovieTitle(film.title.toString())
             let original = normalizedMovieTitle(film.originalTitle.toString())
-            var distance = movieTitleDistance(wanted.toString(), title.toString())
-            distance = Math.min(distance, movieTitleDistance(wanted.toString(), original.toString()))
-            if distance > movieTitleDistanceLimit(wanted.toString()) do
+            var distance = movieTitleDistance(wantedText, title.toString())
+            distance = Math.min(distance, movieTitleDistance(wantedText, original.toString()))
+            if distance > distanceLimit do
                 continue
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
             if not .year.isEmpty() and filmYear != .year do

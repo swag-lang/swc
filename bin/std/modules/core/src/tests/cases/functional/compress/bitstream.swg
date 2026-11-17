@@ -198,3 +198,30 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     else do
         Swag.require(Slice.equals(converted, [0x40, 0x30, 0x20, 0x10]))
 }
+
+// Reset discards buffered bits and the old source position, including after
+// refilling an empty stream to EOF.
+#test
+{
+    let first:  [2] u8 = [0xD6, 0xA5]
+    var empty: Array'u8
+    let second: [2] u8 = [0x39, 0x72]
+
+    var stream: Compress.BitStream
+    stream.reset(first)
+    Swag.require(stream.readBits(3) == 6)
+
+    stream.reset(empty.toSlice())
+    Swag.require(stream.size() == 0 and stream.bytePosition() == 0)
+    Swag.require(not stream.isEof())
+    stream.refill()
+    Swag.require(stream.isEof())
+
+    stream.reset(second)
+    Swag.require(stream.size() == second.count and stream.bytePosition() == 0)
+    Swag.require(not stream.isEof())
+    Swag.require(stream.readBits(8) == 0x39)
+    Swag.require(stream.readBits(8) == 0x72)
+    stream.refill()
+    Swag.require(stream.isEof())
+}

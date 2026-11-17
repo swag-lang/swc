@@ -6,6 +6,11 @@
 
 namespace
 {
+    size_t normalizeAllocationSize(const size_t size) noexcept
+    {
+        return size ? size : 1;
+    }
+
     void mimallocOutputWithStack(const char* msg, void*)
     {
         // Registering this hook makes mimalloc flush its deferred buffer, which holds a lone
@@ -46,9 +51,7 @@ namespace
 
     [[nodiscard]] void* allocThrow(size_t size, const size_t align)
     {
-        if (!size)
-            size = 1;
-        void* ptr = mi_malloc_aligned(size, align);
+        void* ptr = mi_malloc_aligned(normalizeAllocationSize(size), align);
         if (!ptr)
             throw std::bad_alloc();
         return ptr;
@@ -56,9 +59,7 @@ namespace
 
     [[nodiscard]] void* allocNoThrow(size_t size, const size_t align) noexcept
     {
-        if (!size)
-            size = 1;
-        return mi_malloc_aligned(size, align);
+        return mi_malloc_aligned(normalizeAllocationSize(size), align);
     }
 
     void freeBlock(void* block) noexcept

@@ -501,7 +501,8 @@ impl IWnd for IconButton
                 sf.horzAlignment = .Left
                 if not hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
                     sf.horzAlignment = .Center
-                bc.painter.drawRichString(pos, &.name, sf)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
+                                  .surface?.accessKeysVisible orelse false)
                 pos.moveLeft(.name.boundRect.width + metrics.btnIcon_SpacingTextH)
 
                 if not icon.isValid() do
@@ -546,12 +547,14 @@ impl IWnd for IconButton
                 var posText = pos
                 if icon.sizeX > 0 do
                     posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
-                bc.painter.drawRichString(posText, &.name, sf)
+                drawAccessKeyText(bc.painter, posText, &.name, sf, me.accessKey,
+                                  .surface?.accessKeysVisible orelse false)
                 pos.width = icon.sizeX
 
             case .Top:
                 sf.vertAlignment = .Top
-                bc.painter.drawRichString(pos, &.name, sf)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
+                                  .surface?.accessKeysVisible orelse false)
                 pos.moveTop(sf.font.regular!.height + metrics.btnIcon_SpacingTextV)
 
                 if not icon.isValid() do
@@ -570,7 +573,8 @@ impl IWnd for IconButton
 
             case .Bottom:
                 sf.vertAlignment = .Bottom
-                bc.painter.drawRichString(pos, &.name, sf)
+                drawAccessKeyText(bc.painter, pos, &.name, sf, me.accessKey,
+                                  .surface?.accessKeysVisible orelse false)
 
                 pos.height -= sf.font.regular!.height + metrics.btnIcon_SpacingTextV
                 if not icon.isValid() do
@@ -811,7 +815,8 @@ impl IconButton
             format.horzAlignment = .Left
             format.vertAlignment = .Center
             format.flags         = .Clip
-            painter.drawRichString(Math.Rectangle{x, rect.y, textWidth, rect.height}, &.name, format)
+            drawAccessKeyText(painter, Math.Rectangle{x, rect.y, textWidth, rect.height}, &.name, format,
+                              me.accessKey, .surface?.accessKeysVisible orelse false)
             x += textWidth
         }
 

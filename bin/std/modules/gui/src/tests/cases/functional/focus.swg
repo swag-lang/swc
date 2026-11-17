@@ -350,6 +350,83 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(host.commandCount == previous)
 }
 
+// A label access key moves focus to its associated editor, while a button mnemonic activates once.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 180, 24})
+    let label = Label.create(&host.root, "Name", {10, 45, 80, 24})
+    label.accessKey       = 'n'
+    label.accessKeyTarget = field
+
+    var pressed: u32
+    let button = PushButton.create(&host.root, "Open", {10, 80, 100, 24})
+    button.accessKey = 'o'
+    button.sigPressed += func|&pressed|(_)
+    {
+        pressed += 1
+    }
+
+    button.setFocus()
+    Swag.require(button.hasFocus())
+    host.sendRune(.N, 'N', .Alt)
+    Swag.require(field.hasFocus())
+
+    let activated = host.surface.activateAccessKey('o')
+    Swag.require(activated)
+    Swag.require(pressed == 1)
+}
+
+// Hidden, disabled, and ambiguous access keys never activate a guess.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 180, 24})
+    var count: u32
+    let first = PushButton.create(&host.root, "First", {10, 50, 90, 24})
+    let second = PushButton.create(&host.root, "Second", {110, 50, 90, 24})
+    let spare = PushButton.create(&host.root, "Spare", {210, 50, 90, 24})
+    first.accessKey = 'x'
+    second.accessKey = 'X'
+    spare.accessKey = 'x'
+    spare.disable()
+    first.sigPressed += func|&count|(_)
+    {
+        count += 1
+    }
+    second.sigPressed += func|&count|(_)
+    {
+        count += 1
+    }
+
+    field.setFocus()
+    host.sendRune(.X, 'x', .Alt)
+    Swag.require(field.hasFocus() and count == 0)
+
+    second.hide()
+    host.sendRune(.X, 'X', .Alt)
+    Swag.require(first.hasFocus() and count == 1)
+}
+
+// Both Alt keys keep access-key underlines visible until the last one is released.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    host.setKeyState(.LMenu, true)
+    Swag.require(host.surface.accessKeysVisible)
+    host.setKeyState(.RMenu, true)
+    host.setKeyState(.LMenu, false)
+    Swag.require(host.surface.accessKeysVisible)
+    host.setKeyState(.RMenu, false)
+    Swag.require(not host.surface.accessKeysVisible)
+}
+
 // The arrows walk the group the focus stands in; Tab is what crosses the whole box.
 #test
 {

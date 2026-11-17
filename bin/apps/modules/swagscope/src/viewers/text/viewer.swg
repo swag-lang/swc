@@ -508,7 +508,8 @@ impl Panel
            not .pendingSeek and
            not (.read.started and .read.replace) and
            offset >= .residentStart and
-           offset + text.count <= .bytesRead
+           offset <= .bytesRead and
+           text.count <= .bytesRead - offset
         {
             if .encoding == .Utf8 do
                 Viewer.highlightRichEditMatch(.editor, .residentText, offset - .residentStart, text.count)

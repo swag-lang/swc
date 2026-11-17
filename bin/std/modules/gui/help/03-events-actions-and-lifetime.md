@@ -46,6 +46,19 @@ their rectangles read, because a container does not place its children in the or
 created them. Nothing has to be numbered, and nothing has to be renumbered when a
 control is inserted.
 
+## Access keys
+
+Set [[Gui.Wnd.accessKey]] on a captioned control, or [[Gui.Item.accessKey]] on a
+[[Gui.PopupMenuItem]].
+NUL means no key. Holding Alt reveals matching underlines on the focused surface; pressing
+the matching character activates a unique, enabled target, and releasing Alt hides the
+underlines. Duplicate and unavailable keys do nothing.
+
+For a descriptive [[Gui.Label]], set [[Gui.Label.accessKeyTarget]] to the field it names.
+Choosing the label's access key moves focus to that field. A button access key follows the
+button's normal keyboard activation path. Menu-item access keys choose the menu item or open
+its submenu, and closing a menu opened from a menu-bar access key restores the prior focus.
+
 Call [[Gui.Wnd.setInitialFocus]] once a surface is built so it opens ready for the
 keyboard; [[Gui.Wnd.hasVisibleFocus]] is true only while the keyboard is what moved the
 focus, and [[Gui.Wnd.showsFocusRing]] is what a widget paints its focus ring from: it

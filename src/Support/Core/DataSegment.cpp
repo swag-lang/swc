@@ -500,8 +500,9 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
 
         // Large allocations end the paged prefix, but small values that follow still share
         // storage. One OS allocation per value would round each tiny constant to a 4 KiB page.
+        const uint32_t storageAlignment = std::max(align, static_cast<uint32_t>(alignof(std::max_align_t)));
         LargeBlock block;
-        block.offset   = Math::alignUpU32(currentExtentLocked(), std::max(align, static_cast<uint32_t>(alignof(std::max_align_t))));
+        block.offset   = Math::alignUpU32(currentExtentLocked(), storageAlignment);
         block.size     = size;
         block.capacity = std::max(size, store_.pageSize());
         if (proximityStorage_)
@@ -516,9 +517,8 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         }
         if (!block.storage)
         {
-            const uint32_t alignment = std::max(align, static_cast<uint32_t>(alignof(std::max_align_t)));
-            auto*          storage   = static_cast<std::byte*>(::operator new(block.capacity, std::align_val_t(alignment)));
-            block.storage            = LargeBlockStorage(storage, {.alignment = alignment});
+            auto* storage = static_cast<std::byte*>(::operator new(block.capacity, std::align_val_t(storageAlignment)));
+            block.storage = LargeBlockStorage(storage, {.alignment = storageAlignment});
         }
         if (zeroInit)
             std::memset(block.storage.get(), 0, size);

@@ -286,8 +286,9 @@ public impl ImageReader
         if not .options.decodePixels
         {
             let frame = try multiple.readFrame(index, .options)
+            try .validateDecodedFrame(.info.frames[index], frame)
             var result: #returntype
-            result.init(.info.canvasWidth, .info.canvasHeight, frame.pixelFormat)
+            result.init(.info.canvasWidth, .info.canvasHeight, .animationCanvasFormat())
             result.metadata = frame.metadata
             return result
         }

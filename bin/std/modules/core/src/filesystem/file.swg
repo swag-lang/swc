@@ -148,6 +148,19 @@ func readAllText(fullName: string, normalizeEol = false)->String fail
     return result
 }
 
+// Reads a whole file using `encoding` and returns its UTF-8 text.
+//
+// A leading byte-order mark for `encoding` is skipped. Malformed encoded sequences become the
+// replacement character, following [[Core.Text.decode]]. File access failures are reported.
+func readAllText(fullName: string, encoding: Text.Encoding)->String fail
+{
+    let bytes = try readAllBytes(fullName)
+    let content = bytes.toSlice()
+    if Text.hasBom(content, encoding) do
+        return Text.decode(content[Text.bomLength(encoding) until content.count], encoding)
+    return Text.decode(content, encoding)
+}
+
 // Reads a whole UTF-8 file and returns its lines, without their end-of-line characters.
 //
 // A leading byte-order mark is skipped. Invalid UTF-8 fails with
@@ -217,6 +230,17 @@ func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 // Creates or replaces a file with the UTF-8 bytes of `text` and returns the number of bytes written.
 #[Swag.Discardable]
 func writeAllText(fullName: string, text: string)->u64 fail => try writeAllBytes(fullName, cast(const [..] u8, text))
+
+// Encodes `text` as `encoding`, writes the resulting bytes, and returns their count.
+//
+// `includeBom` writes the encoding's byte-order mark when it has one. The text is fully encoded
+// before the destination is opened, so an encoding failure leaves an existing file unchanged.
+#[Swag.Discardable]
+func writeAllText(fullName: string, text: string, encoding: Text.Encoding, includeBom = false)->u64 fail
+{
+    let bytes = try Text.encode(text, encoding, includeBom)
+    return try writeAllBytes(fullName, bytes.toSlice())
+}
 
 // Creates or replaces a file with `lines`, each followed by `\n`, and returns the number of bytes written.
 #[Swag.Discardable]

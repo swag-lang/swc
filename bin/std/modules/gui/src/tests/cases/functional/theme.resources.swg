@@ -3,6 +3,15 @@
 
 using Swag, Core, Pixel
 
+// Public embedded typefaces read the same compressed defaults as theme setup.
+#test
+{
+    let defaultFace = expect Gui.embeddedTypeFace(false, .Regular)
+    let fixedFace   = expect Gui.embeddedTypeFace(true, .Regular)
+    Swag.require(defaultFace.familyName() == "Inter")
+    Swag.require(fixedFace.familyName() == "Roboto Mono")
+}
+
 // Warm the embedded cache first, then open the same resource folder after two different edits.
 // The live first theme keeps its art while the next theme reads the replacement.
 #test

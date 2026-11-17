@@ -158,6 +158,21 @@ SWC_FILESYSTEM_TEST_BEGIN(Logger_ShellRedirectionKeepsPlainOutputAndExitCode)
         if (output[i] == '\r' && (i + 1 == output.size() || output[i + 1] != '\n'))
             return Result::Error;
     }
+
+    // A plain line still needs its stage and outcome: consumers distinguish successful work
+    // from errors and cached results without interpreting presentation labels.
+    bool foundSyntax = false;
+    Utf8 lastRecord;
+    for (const auto& line : Utf8Helper::splitLines(output))
+    {
+        if (line.empty())
+            continue;
+        if (line.starts_with("syntax ok: "))
+            foundSyntax = true;
+        lastRecord = line;
+    }
+    if (!foundSyntax || !lastRecord.starts_with("command ok: syntax main.swg, "))
+        return Result::Error;
 }
 SWC_TEST_END()
 

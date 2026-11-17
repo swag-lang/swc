@@ -84,6 +84,18 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     Swag.require(run.bold == .Off)
 }
 
+// Unsupported underline patterns remain legible and carry the style's simplification notice.
+#test
+{
+    var theme  = Package.OfficeTheme.defaults()
+    let single = readWordRun("<rPr><u val=\"single\"/></rPr>", &theme)
+    let double = readWordRun("<rPr><u val=\"double\"/></rPr>", &theme)
+    let none   = readWordRun("<rPr><u val=\"none\"/></rPr>", &theme)
+    Swag.require(single.underline == .On and not single.limited)
+    Swag.require(double.underline == .On and double.limited)
+    Swag.require(none.underline == .Off and not none.limited)
+}
+
 // Word theme fonts and luminance transforms match the real producer's stored fallback color.
 #test
 {

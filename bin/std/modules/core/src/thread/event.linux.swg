@@ -1,6 +1,8 @@
 #global if #os == Swag.TargetOs.Linux
 #global namespace Sync
 
+using Core.Errors, Math, Time
+
 private struct EventState
 {
     mutex:      Linux.pthread_mutex_t
@@ -28,7 +30,11 @@ private func createEventState(manual, initState: bool)->*EventState fail
     defer #fail Linux.free(state)
     try eventStatus(Linux.pthread_mutex_init(&state.mutex, null)).raise()
     defer #fail discard Linux.pthread_mutex_destroy(&state.mutex)
-    try eventStatus(Linux.pthread_cond_init(&state.changed, null)).raise()
+    var condAttributes: Linux.pthread_condattr_t
+    try eventStatus(Linux.pthread_condattr_init(&condAttributes)).raise()
+    defer #fail discard Linux.pthread_condattr_destroy(&condAttributes)
+    try eventStatus(Linux.pthread_condattr_setclock(&condAttributes, Linux.CLOCK_MONOTONIC)).raise()
+    try eventStatus(Linux.pthread_cond_init(&state.changed, cast(const *void, &condAttributes))).raise()
     state.manual   = manual
     state.signaled = initState
     return state
@@ -91,6 +97,95 @@ public impl Event
 
     // Blocks until a signal is available; an auto-reset wait consumes that signal.
     mtd wait() { expect .waitStatus().raise() }
+
+    // Waits for a signal for up to `timeout`, returning false when it expires.
+    //
+    // The timeout is measured with the monotonic clock and rounded up to whole milliseconds.
+    // It must be finite, nonnegative, and representable as a u64 millisecond count. A successful
+    // auto-reset wait consumes the signal. Native synchronization failures are raised.
+    mtd waitFor(timeout: Time.Duration)->bool fail
+    {
+        if not Math.isFinite(timeout.seconds) or
+           timeout.seconds < 0 or
+           timeout.seconds >= 18_446_744_073_709_550.0 do
+            fail Errors.BadParameterError{"event timeout is outside the supported range"}
+
+        let timeoutMilliseconds = timeout.millisecondsCeiling()
+        var deadline: Linux.timespec
+        if Linux.clock_gettime(Linux.CLOCK_MONOTONIC, &deadline) != 0 do
+            try Errors.failLinuxError(Linux.errno())
+        deadline.tv_sec  += cast(s64, timeoutMilliseconds / 1000)
+        deadline.tv_nsec += cast(s64, timeoutMilliseconds % 1000) * 1_000_000
+        if deadline.tv_nsec >= 1_000_000_000
+        {
+            deadline.tv_nsec -= 1_000_000_000
+            deadline.tv_sec  += 1
+        }
+
+        if not .state do
+            try eventStatus(Linux.EINVAL).raise()
+        let state: *EventState = unwrap .state
+        let locked = Linux.pthread_mutex_lock(&state.mutex)
+        if locked != 0 do
+            try eventStatus(locked).raise()
+
+        if state.signaled or not state.manual and state.permits != 0
+        {
+            if not state.manual
+            {
+                if state.permits != 0 do
+                    state.permits -= #wrap 1
+                else do
+                    state.signaled = false
+            }
+            let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
+            if unlocked != 0 do
+                try eventStatus(unlocked).raise()
+            return true
+        }
+
+        if not timeoutMilliseconds
+        {
+            let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
+            if unlocked != 0 do
+                try eventStatus(unlocked).raise()
+            return false
+        }
+
+        let generation = state.generation
+        state.waiters += #wrap 1
+        var waited: s32
+        while state.manual ? not state.signaled and state.generation == generation : state.permits == 0 and not state.signaled
+        {
+            waited = Linux.pthread_cond_timedwait(&state.changed, &state.mutex, &deadline)
+            if waited != 0 do
+                break
+        }
+
+        if waited != 0 and waited != Linux.ETIMEDOUT
+        {
+            state.waiters -= #wrap 1
+            let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
+            if unlocked != 0 do
+                try eventStatus(unlocked).raise()
+            try eventStatus(waited).raise()
+        }
+
+        let signaled = state.manual ? state.signaled or state.generation != generation : state.permits != 0 or state.signaled
+        if signaled and not state.manual
+        {
+            if state.permits != 0 do
+                state.permits -= #wrap 1
+            else do
+                state.signaled = false
+        }
+        state.waiters -= #wrap 1
+        let unlocked = Linux.pthread_mutex_unlock(&state.mutex)
+
+        if unlocked != 0 do
+            try eventStatus(unlocked).raise()
+        return signaled
+    }
 
     // Signals without allocating error storage or invoking error hooks.
     //

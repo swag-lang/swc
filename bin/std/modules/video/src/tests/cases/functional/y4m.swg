@@ -3,6 +3,14 @@
 
 using Core, Core.Errors, Pixel
 
+func y4mAspectBytes(aspect: string)->Array'u8
+{
+    var result: #returntype
+    result.add(cast(const [..] u8, Format.toString("YUV4MPEG2 W8 H4 F1:1 Ip A% C444\nFRAME\n", aspect).toString()))
+    result.resize(result.count + 96)
+    return result
+}
+
 // A production Y4M fixture exercises the common 4:2:0 JPEG chroma layout through the
 // streaming reader.
 #test
@@ -19,6 +27,35 @@ using Core, Core.Errors, Pixel
     videoAssertColor(first.pixelColor(0, 0), 36, 41, 53, tolerance: 0)
     videoAssertColor(first.pixelColor(32, 32), 173, 218, 253, tolerance: 0)
     Swag.require(last.pixelColor(0, 0) != last.pixelColor(32, 32))
+}
+
+// YUV4MPEG2 sample aspect tags affect display geometry without changing frame storage.
+#test
+{
+    var nonSquareBytes = y4mAspectBytes("2:1")
+    var nonSquare = expect Reader.openMemory("aspect.y4m", nonSquareBytes.toSlice())
+    Swag.require(nonSquare.width() == 8 and nonSquare.height() == 4)
+    Swag.require(nonSquare.displayWidth() == 16 and nonSquare.displayHeight() == 4)
+
+    var squareBytes = y4mAspectBytes("1:1")
+    var square = expect Reader.openMemory("square.y4m", squareBytes.toSlice())
+    Swag.require(square.displayWidth() == 8 and square.displayHeight() == 4)
+    var absentBytes = y4mAspectBytes("0:0")
+    var absent = expect Reader.openMemory("absent.y4m", absentBytes.toSlice())
+    Swag.require(absent.displayWidth() == 8 and absent.displayHeight() == 4)
+
+    var overflowBytes = y4mAspectBytes("4294967295:1")
+    var overflow = expect Reader.openMemory("overflow.y4m", overflowBytes.toSlice())
+    Swag.require(overflow.streamInfo().displayWidth == 0 and overflow.streamInfo().displayHeight == 0)
+
+    const Invalid = ["A", "A2", "A2:1:1", "A0:1", "A1:0"]
+    for aspect in Invalid
+    {
+        let text = Format.toString("YUV4MPEG2 W8 H4 F1:1 Ip % C444\n", aspect)
+        var error: Swag.Error
+        discard catch Reader.openMemory("invalid.y4m", text.toSlice()) as error
+        Swag.require(error.value() is InvalidFormatError)
+    }
 }
 
 // The plane layouts a real encoder writes, read from streams ffmpeg produced.
@@ -126,6 +163,18 @@ using Core, Core.Errors, Pixel
     var reader = expect Reader.openMemory("full-range.y4m", bytes.toSlice())
     let frame  = expect reader.decodeFrame(0)
     videoAssertColor(frame.pixelColor(0, 0), 255, 0, 0)
+}
+
+// C411 stores one chroma pair for each four horizontal luma samples.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "YUV4MPEG2 W8 H1 F1:1 Ip C411\nFRAME\n"))
+    bytes.add([81'u8, 81, 81, 81, 41, 41, 41, 41, 90, 240, 240, 110])
+    var reader = expect Reader.openMemory("4:1:1.y4m", bytes.toSlice())
+    let frame  = expect reader.decodeFrame(0)
+    videoAssertColor(frame.pixelColor(1, 0), 255, 0, 0, tolerance: 0)
+    videoAssertColor(frame.pixelColor(6, 0), 0, 0, 255, tolerance: 0)
 }
 
 // A frame marker may carry per-frame parameters. They move every payload that follows, so the
@@ -272,6 +321,84 @@ using Core, Core.Errors, Pixel
     videoAssertColor(frame0.pixelColor(0, 1), 0, 0, 255)
     videoAssertColor(frame0.pixelColor(1, 1), 255, 255, 255)
     videoAssertColor(frame1.pixelColor(1, 0), 16, 24, 32)
+}
+
+// The writer can select standard 4:1:1, 4:2:0, and 4:2:2 output layouts and advertises their sampling.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    var source = expect Clip.create(2, 2, rate)
+    expect source.addFrame(videoTestImage(2, 2, [255'u8, 0, 0, 0, 255, 0,
+                                                0, 0, 255, 255, 255, 255]))
+
+    let full = expect source.encodeToBytes("full.y4m")
+    let fullHeader = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(full.buffer, fullHeader.count) == fullHeader)
+    let fullPayload = full.toSlice()[fullHeader.count until full.count]
+
+    let options420 = Y4m.EncodeOptions{chroma: .Yuv420}
+    let subsampled420 = expect source.encodeToBytes("420.y4m", options420)
+    let header420 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C420jpeg XYSCSS=420JPEG XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(subsampled420.buffer, header420.count) == header420)
+    Swag.require(subsampled420.count == header420.count + 6)
+    let payload420 = subsampled420.toSlice()[header420.count until subsampled420.count]
+    for index in 4'u64 do
+        Swag.require(payload420[index] == fullPayload[index])
+    let meanU = (cast(u32, fullPayload[4]) + fullPayload[5] + fullPayload[6] + fullPayload[7] + 2) / 4
+    let meanV = (cast(u32, fullPayload[8]) + fullPayload[9] + fullPayload[10] + fullPayload[11] + 2) / 4
+    Swag.require(payload420[4] == meanU and payload420[5] == meanV)
+    var reader420 = expect Reader.openMemory("420.y4m", subsampled420.toSlice())
+    Swag.require(reader420.frameCount() == 1 and expect reader420.decodeFrame(0).isValid())
+
+    let options422 = Y4m.EncodeOptions{chroma: .Yuv422}
+    let subsampled422 = expect source.encodeToBytes("422.y4m", options422)
+    let header422 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C422 XYSCSS=422 XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(subsampled422.buffer, header422.count) == header422)
+    Swag.require(subsampled422.count == header422.count + 8)
+    let payload422 = subsampled422.toSlice()[header422.count until subsampled422.count]
+    for row in 2'u64
+    {
+        let fullChroma = row * 2
+        let reducedChroma = 4 + row
+        let meanRowU = (cast(u32, fullPayload[4 + fullChroma]) + fullPayload[5 + fullChroma] + 1) / 2
+        let meanRowV = (cast(u32, fullPayload[8 + fullChroma]) + fullPayload[9 + fullChroma] + 1) / 2
+        Swag.require(payload422[reducedChroma] == meanRowU and
+                     payload422[reducedChroma + 2] == meanRowV)
+    }
+    var reader422 = expect Reader.openMemory("422.y4m", subsampled422.toSlice())
+    Swag.require(reader422.frameCount() == 1 and expect reader422.decodeFrame(0).isValid())
+
+    var source411 = expect Clip.create(8, 1, rate)
+    expect source411.addFrame(videoTestImage(8, 1, [255'u8, 0, 0, 255, 0, 0, 255, 0, 0,
+                                                    255, 0, 0, 0, 0, 255, 0, 0, 255,
+                                                    0, 0, 255, 0, 0, 255]))
+    let options411 = Y4m.EncodeOptions{chroma: .Yuv411}
+    let subsampled411 = expect source411.encodeToBytes("411.y4m", options411)
+    let header411 = "YUV4MPEG2 W8 H1 F25:1 Ip A0:0 C411 XYSCSS=411 XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(subsampled411.buffer, header411.count) == header411)
+    Swag.require(subsampled411.count == header411.count + 12)
+    let payload411 = subsampled411.toSlice()[header411.count until subsampled411.count]
+    Swag.require(payload411[0] == 82 and payload411[4] == 41)
+    Swag.require(payload411[8] == 90 and payload411[9] == 240)
+    Swag.require(payload411[10] == 240 and payload411[11] == 110)
+    var reader411 = expect Reader.openMemory("411.y4m", subsampled411.toSlice())
+    let decoded411 = expect reader411.decodeFrame(0)
+    videoAssertColor(decoded411.pixelColor(1, 0), 255, 0, 0, tolerance: 2)
+    videoAssertColor(decoded411.pixelColor(6, 0), 0, 0, 255, tolerance: 0)
+
+    var oddWidth = expect Clip.create(1, 2, rate)
+    expect oddWidth.addFrame(videoTestImage(1, 2, [0'u8, 0, 0, 255, 255, 255]))
+    var invalidOutcome: Swag.Error
+    discard catch oddWidth.encodeToBytes("invalid.y4m", options422) as invalidOutcome
+    Swag.require((invalidOutcome.value() is BadParameterError))
+
+    var invalid411Width = expect Clip.create(6, 1, rate)
+    expect invalid411Width.addFrame(videoTestImage(6, 1, [0'u8, 0, 0, 255, 255, 255,
+                                                          0, 0, 0, 255, 255, 255,
+                                                          0, 0, 0, 255, 255, 255]))
+    var invalid411Outcome: Swag.Error
+    discard catch invalid411Width.encodeToBytes("invalid-411.y4m", options411) as invalid411Outcome
+    Swag.require((invalid411Outcome.value() is BadParameterError))
 }
 
 #test

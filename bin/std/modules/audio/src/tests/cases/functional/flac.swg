@@ -303,6 +303,23 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     Swag.require(err != null)
 }
 
+// A final frame with its CRC16 trailer truncated is rejected while the file is indexed.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("flac-stereo-44100.flac").toString())
+    var bytes: Array'u8
+    bytes.add(source.toSlice()[until source.count - 1])
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-flac-truncated-frame-%.flac", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(path.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // The codec is reachable through the registry a container uses, and what a voice plays back is
 // the start of the same reference stream.
 #test

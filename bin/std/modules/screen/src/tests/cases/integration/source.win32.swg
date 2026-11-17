@@ -169,6 +169,7 @@ using Core, Pixel
     Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
                  resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
                  resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.changeDetectionMicroseconds == 0 and
                  resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
     Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     for 12

@@ -71,6 +71,7 @@ impl Image
         else do
             result = create(.height, .width, .pixelFormat, alphaMode: me.alphaMode)
         .doTurn(&result, angle)
+        result.metadata = .metadata
         return result
     }
 }

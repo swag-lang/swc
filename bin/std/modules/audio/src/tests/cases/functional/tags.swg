@@ -29,6 +29,21 @@ func appendId3v22Frame(tag: *Array'u8, id: string, body: const [..] u8)
         tag.add(byte)
 }
 
+// Appends one ID3v2.4 frame: its identifier, syncsafe size, and two flag bytes.
+func appendId3v24Frame(tag: *Array'u8, id: string, body: const [..] u8)
+{
+    for byte in id do
+        tag.add(byte)
+    tag.add(cast(u8, (body.count >> 21) & 0x7F))
+    tag.add(cast(u8, (body.count >> 14) & 0x7F))
+    tag.add(cast(u8, (body.count >> 7) & 0x7F))
+    tag.add(cast(u8, body.count & 0x7F))
+    tag.add(0'u8)
+    tag.add(0'u8)
+    for byte in body do
+        tag.add(byte)
+}
+
 // Appends a little-endian 32-bit length, as a Vorbis comment block spells every count.
 func appendLittle32(block: *Array'u8, value: u64)
 {
@@ -151,6 +166,102 @@ func appendLittle32(block: *Array'u8, value: u64)
 
     let tags = SoundTags.read(fileName)
     Swag.require(tags.title == "Aria" and tags.artist == "Bach")
+}
+
+// ID3v2.4 frame sizes are syncsafe, unlike the big-endian sizes in v2.3.
+#test
+{
+    var body: Array'u8
+    body.add(3'u8)
+    for byte in "2024-" do
+        body.add(byte)
+    for 124 do
+        body.add('x')
+    Swag.require(body.count == 130)
+
+    var frames: Array'u8
+    appendId3v24Frame(&frames, "TDRC", body.toSlice())
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(4'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    file.add(frames.toSlice())
+
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_audio_tags_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, file.toSlice())
+
+    let tags = SoundTags.read(fileName)
+    Swag.require(tags.year == "2024", tags.year)
+}
+
+// ID3v2.4 syncsafe size bytes with their high bit set do not decode as a tag.
+#test
+{
+    var body: Array'u8
+    body.add(3'u8)
+    for byte in "2024" do
+        body.add(byte)
+
+    var frames: Array'u8
+    appendId3v24Frame(&frames, "TDRC", body.toSlice())
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(4'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    file.add(frames.toSlice())
+
+    var invalidHeader = file
+    invalidHeader[6] |= 0x80
+    let headerPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                  Format.toString("swag_audio_tags_bad_header_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(headerPath)
+    discard expect File.writeAllBytes(headerPath, invalidHeader.toSlice())
+    Swag.require(SoundTags.read(headerPath).isEmpty())
+
+    var invalidFrame = file
+    invalidFrame[14] |= 0x80 // Frame size, after the ten-byte ID3 header and four-byte frame id.
+    let framePath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                 Format.toString("swag_audio_tags_bad_frame_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(framePath)
+    discard expect File.writeAllBytes(framePath, invalidFrame.toSlice())
+    Swag.require(SoundTags.read(framePath).isEmpty())
+
+    var invalidExtended: Array'u8
+    for byte in "ID3" do
+        invalidExtended.add(byte)
+    invalidExtended.add(4'u8)
+    invalidExtended.add(0'u8)
+    invalidExtended.add(0x40'u8) // Extended header.
+    let extendedTagSize = frames.count + 6
+    invalidExtended.add(cast(u8, (extendedTagSize >> 21) & 0x7F))
+    invalidExtended.add(cast(u8, (extendedTagSize >> 14) & 0x7F))
+    invalidExtended.add(cast(u8, (extendedTagSize >> 7) & 0x7F))
+    invalidExtended.add(cast(u8, extendedTagSize & 0x7F))
+    for byte in [0x80'u8, 0, 0, 6, 1, 0] do // Extended size has a forbidden high bit.
+        invalidExtended.add(byte)
+    invalidExtended.add(frames.toSlice())
+    let extendedPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                    Format.toString("swag_audio_tags_bad_extended_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(extendedPath)
+    discard expect File.writeAllBytes(extendedPath, invalidExtended.toSlice())
+    Swag.require(SoundTags.read(extendedPath).isEmpty())
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.

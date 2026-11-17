@@ -340,6 +340,10 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     let channels = cast(const [*] u16, image.pixels.storage())
     Swag.require(image.pixelFormat == .RGBA16)
     Swag.require(channels[0] == 0x1234 and channels[1] == 0x5678 and channels[2] == 0x9ABC and channels[3] == 0xFFFF)
+
+    var probeReader = expect ImageReader.decode("image.mixeddepthanimation", "input", {decodePixels: false})
+    let probe = expect probeReader.read(0)
+    Swag.require(probe.width == 1 and probe.height == 1 and probe.pixelFormat == .RGBA16 and probe.pixels.isEmpty())
 }
 
 // Closing a reader uses the allocator that created its persistent decoder.

@@ -624,6 +624,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetEnvironmentStringsW()->[*] WCHAR?
     func FreeEnvironmentStringsW(penv: [*] WCHAR?)->BOOL
     func GetEnvironmentVariableW(lpName: LPCWSTR, lpBuffer: LPWSTR?, nSize: DWORD)->DWORD
+    func SetEnvironmentVariableW(lpName: LPCWSTR, lpValue: LPCWSTR?)->BOOL
 
     func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->const *void?
     func GetCurrentProcess()->HANDLE

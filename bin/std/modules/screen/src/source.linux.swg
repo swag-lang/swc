@@ -42,12 +42,15 @@ impl NativeSource
     mtd grabInto(target: *Image, preserveOnTimeout: bool = false)->bool fail
     {
         discard preserveOnTimeout
-        let start = Time.monotonicMicroseconds()
-        try .capture.imageInto(target, .options.includeCursor, .options.x, .options.y, .options.width, .options.height)
-        let readbackDuration = Time.monotonicMicroseconds() - start
-        .metrics.readbackMicroseconds    += readbackDuration
-        .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
-        .metrics.acquiredFrames          += 1
+        let imageMetrics = try .capture.imageInto(target, .options.includeCursor, .options.x, .options.y,
+                                                  .options.width, .options.height)
+        .metrics.readbackMicroseconds += imageMetrics.readbackMicroseconds
+        .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds,
+                                                    imageMetrics.readbackMicroseconds)
+        .metrics.copyMicroseconds += imageMetrics.copyMicroseconds
+        .metrics.composeMicroseconds += imageMetrics.composeMicroseconds
+        .metrics.copiedPixels += imageMetrics.copiedPixels
+        .metrics.acquiredFrames += 1
         return true
     }
 

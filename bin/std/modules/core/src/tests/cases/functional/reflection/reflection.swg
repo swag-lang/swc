@@ -158,6 +158,20 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
+    let type = #typeof(ReflectionProbe)
+    let name = unwrap type.fullname
+    Reflection.registerType(type)
+    let found = Reflection.typeFromName(name)
+    Swag.require(found != null and found.fullname == name)
+    Swag.require(Reflection.typeFromName("Reflection.TypeThatDoesNotExist") == null)
+
+    let field = unwrap Reflection.findField(type, "x")
+    Swag.require(Reflection.fieldCrc(type, "x") == field.crc)
+    Swag.require(Reflection.fieldCrc(type, "missing") == 0)
+}
+
+#test
+{
     let type         = #typeof(ReflectionProbe)
     let fieldX       = Reflection.findField(type, "x")
     let fieldEnabled = Reflection.findField(type, "enabled")
@@ -257,6 +271,35 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
     let hashType = #typeof(HashSet's32)
     Swag.require(not Reflection.isDynamicArray(hashType))
+}
+
+#test
+{
+    let pointerType = #typeof(*s32)
+    let arrayType   = #typeof([2] s32)
+    var values: Array's32
+    let sliceType = #typeof(values.toSlice())
+
+    Swag.require(Reflection.isNative(#typeof(s32)))
+    Swag.require(Reflection.isInteger(#typeof(s32)))
+    Swag.require(Reflection.isSimpleNative(#typeof(s32)))
+    Swag.require(Reflection.isFloat(#typeof(f64)))
+    Swag.require(not Reflection.isInteger(#typeof(f64)))
+    Swag.require(Reflection.isBool(#typeof(bool)))
+    Swag.require(Reflection.isString(#typeof(string)))
+    Swag.require(Reflection.isRune(#typeof(rune)))
+    Swag.require(Reflection.isAny(#typeof(any)))
+    Swag.require(Reflection.isSimpleNative(#typeof(bool)))
+    Swag.require(not Reflection.isSimpleNative(#typeof(string)))
+    Swag.require(not Reflection.isSimpleNative(#typeof(any)))
+    Swag.require(Reflection.isPointer(pointerType))
+    Swag.require(Reflection.isStaticArray(arrayType))
+    Swag.require(Reflection.isSlice(sliceType))
+    Swag.require(Reflection.isEnum(#typeof(ProbeState)))
+    Swag.require(Reflection.isStruct(#typeof(ReflectionProbe)))
+    Swag.require(Reflection.isInterface(#typeof(IReflectionScore)))
+    Swag.require(not Reflection.isNative(null))
+    Swag.require(not Reflection.isPointer(null))
 }
 
 #test

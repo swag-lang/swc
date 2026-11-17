@@ -22,6 +22,88 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     eventStatusObservedBorrow = eventStatusObservedBorrow or eventStatusBorrowLive
 }
 
+func signalEventAfterDelay(thread: const *Threading.Thread)
+{
+    Threading.Thread.sleep(Time.Duration.fromMilliseconds(5))
+    let event = cast(*Sync.Event, unwrap thread.userParam)
+    event.signal()
+}
+
+// Waiting on an event without native state fails instead of reporting a timeout.
+#test
+{
+    var event: Sync.Event
+    var waitFailure: Swag.Error
+    discard catch event.waitFor(Time.Duration.fromMilliseconds(0)) as waitFailure
+    Swag.require(waitFailure.value() is SystemError)
+}
+
+// Timeout validation runs before native-state access and rejects durations beyond the wait range.
+#test
+{
+    var event: Sync.Event
+    var error: Swag.Error
+    discard catch event.waitFor(Time.Duration.fromSeconds(Swag.F64.Max)) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}
+
+// A pre-signaled auto-reset event can be consumed once, and release is safe to repeat.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: false, initState: true)
+    Swag.require(event.isValid())
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+
+    event.release()
+    event.release()
+    Swag.require(not event.isValid())
+}
+
+// Repeated signals coalesce while an auto-reset event is already signaled.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: false)
+    event.signal()
+    event.signal()
+
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+}
+
+// A timed event wait distinguishes an expiration, an already-pending signal and a later signal.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: true)
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(1))))
+
+    event.signal()
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    event.reset()
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+}
+
+// Timed waits wake when another thread signals before the deadline.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: false)
+    var worker: Threading.Thread
+    discard expect worker.init(&signalEventAfterDelay, &event)
+    discard expect worker.start()
+    defer if worker.isValid() do
+        worker.wait()
+
+    let signaled = expect event.waitFor(Time.Duration.fromSeconds(1))
+    worker.wait()
+    Swag.require(signaled)
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+}
+
 // Status operations retain the ordinary event's manual-reset and synchronous wait behavior.
 #test
 {

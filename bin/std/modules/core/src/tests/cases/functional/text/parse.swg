@@ -130,6 +130,21 @@ using Swag
     Swag.require(huge.value == Swag.F32.Max and huge.ovf)
 }
 
+// The invariant float parsers keep the dot decimal separator under a comma culture.
+#test
+{
+    let culture           = Globalization.currentCulture()
+    let previousNumberFmt = culture.numberFormat
+    defer culture.numberFormat = previousNumberFmt
+    culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
+
+    let single = expect StrConv.parseF32Invariant("1.5tail")
+    Swag.require(single.value == 1.5 and single.eat == 3 and not single.ovf)
+
+    let double = expect StrConv.parseF64Invariant("-2.25tail")
+    Swag.require(double.value == -2.25 and double.eat == 5 and not double.ovf)
+}
+
 func(T) checkCompleteNumberConversion(overflowText: string)
 {
     let value = expect StrConv.toNum'T("12")

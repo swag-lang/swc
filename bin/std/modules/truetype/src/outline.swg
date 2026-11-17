@@ -79,6 +79,17 @@ public impl Outline
         .flags        = 0
     }
 
+    // Returns the control box of the outline's stored points.
+    //
+    // Coordinates use 26.6 fixed-point pixels. The box includes Bézier control
+    // points, so it may be larger than the exact ink bounds. An empty outline
+    // returns a box whose coordinates are all zero.
+    mtd const bounds()->BBox
+    {
+        let raw = computeOutlineBounds(me)
+        return BBox{raw.minX, raw.minY, raw.maxX, raw.maxY}
+    }
+
     // Translates every point by a 26.6 fixed-point offset.
     mtd translate(xOffset, yOffset: s32)
     {

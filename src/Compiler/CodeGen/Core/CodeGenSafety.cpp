@@ -16,6 +16,7 @@
 #include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -176,6 +177,36 @@ namespace
         }
 
         SWC_UNREACHABLE();
+    }
+
+    bool isProvenArrayLoopIndex(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType)
+    {
+        if (!indexedType.isArray() || indexedType.payloadArrayDims().empty())
+            return false;
+
+        const CodeGenFrame::BreakContext& breakContext = codeGen.frame().currentBreakContext();
+        if (breakContext.kind != CodeGenFrame::BreakContextKind::Loop || breakContext.nodeRef.isInvalid() ||
+            codeGen.node(breakContext.nodeRef).isNot(AstNodeId::ForStmt))
+            return false;
+
+        const auto* loop = codeGen.sema().semaPayload<LoopSemaPayload>(breakContext.nodeRef);
+        if (!loop || loop->isRangeLoop || loop->indexCanBeWritten || !loop->countCstRef.isValid())
+            return false;
+
+        const Symbol* loopIndex = codeGen.viewSymbol(breakContext.nodeRef).sym();
+        const Symbol* index     = codeGen.viewSymbol(indexRef).sym();
+        if (!loopIndex || !index || loopIndex != index)
+            return false;
+
+        const ConstantValue& bound = codeGen.cstMgr().get(loop->countCstRef);
+        if (!bound.isInt())
+            return false;
+
+        const ApsInt& count = bound.getInt();
+        if (!count.fits64() || (!count.isUnsigned() && count.isNegative()))
+            return false;
+
+        return count.as64() <= indexedType.payloadArrayDims()[0];
     }
 
     MicroReg emitFloatImmediateReg(CodeGen& codeGen, const MicroOpBits opBits, const uint64_t bits)
@@ -751,6 +782,9 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
 
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
+        return Result::Continue;
+
+    if (isProvenArrayLoopIndex(codeGen, indexRef, indexedType))
         return Result::Continue;
 
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);

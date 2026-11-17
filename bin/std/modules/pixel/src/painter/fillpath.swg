@@ -243,7 +243,7 @@ public impl Painter
             var so = 0'f32
             let aa = .aaHalfPathSpace()
             if .curState.paintParams & .Antialiased do
-                so = -aa
+                so = polygon.isClockwise ? -aa : aa
 
             // Convex shape : 1 triangle
             if count == 3
@@ -273,8 +273,11 @@ public impl Painter
                 }
             }
 
-            if .curState.paintParams & .Antialiased do
-                .fillContourAA(path, brush.color, -aa, aa)
+            if .curState.paintParams & .Antialiased
+            {
+                let inner = polygon.isClockwise ? -aa : aa
+                .fillContourAA(path, brush.color, inner, -inner)
+            }
         }
         // Non convex shape: complex painting (triangulation)
         else
@@ -288,7 +291,7 @@ public impl Painter
                 let build    = path.triangles.vertices.isEmpty()
                 if build do
                     .tess.addPolyLine(path.polygon)
-                .fillPathTriangulated(build ? &.tess : null, path, path.minBounds, path.maxBounds, brush, paths, contours, false)
+                .fillPathTriangulated(build ? &.tess : null, path, path.minBounds, path.maxBounds, brush, paths, contours, true)
             }
             else
             {
@@ -400,8 +403,9 @@ public impl Painter
         }
         else
         {
-            path.polygon.assumeClockwise(true)
-            let res = path.polygon.cleanedPaths()
+            var clockwiseContour = path.polygon
+            clockwiseContour.assumeClockwise(true)
+            let res = clockwiseContour.cleanedPaths()
             for p in res.paths do
                 .fillPath(p, brush)
         }

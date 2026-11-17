@@ -13,20 +13,28 @@ using Swag, Core
     Swag.require(glyphA > 0)
     Swag.require(glyphV > 0)
 
+    // The design-unit API works before a size is selected.
+    let designUnits = face.getKerningDesignUnits(glyphA, glyphV)
+    Swag.require(designUnits == -152)
+
     discard expect face.setPixelSize(0, 100)
 
     // 'AV' is a classic negative kerning pair (glyphs tucked closer together).
     let kern100 = face.getKerning(glyphA, glyphV)
     Swag.require(kern100.x < 0)
+    Swag.require(face.getKerningDesignUnits(glyphA, glyphV) == designUnits)
 
     // Kerning is scaled to the pixel size, so it grows with the size.
     discard catch face.setPixelSize(0, 200)
     let kern200 = face.getKerning(glyphA, glyphV)
     Swag.require(kern200.x < kern100.x)
+    Swag.require(face.getKerningDesignUnits(glyphA, glyphV) == designUnits)
 
     // A missing glyph yields no kerning.
     let none = face.getKerning(glyphA, 0)
     Swag.require(none.x == 0)
+    Swag.require(face.getKerningDesignUnits(glyphA, 0) == 0)
+    Swag.require(face.getKerningDesignUnits(face.glyphCount, glyphV) == 0)
 }
 
 // Arial declares its kerning in the GPOS 'kern' feature, so that is what answers.
@@ -88,15 +96,24 @@ using Swag, Core
     Swag.require(not faceData.gposPairSubtables.isEmpty())
     Swag.require(not faceData.kernPairs.isEmpty())
 
-    discard expect face.setPixelSize(0, 100)
-
     // A comma tucked under a 'P' is one of 191 ASCII pairs the legacy table states
     // outright and the pair-adjustment lookups leave at zero.
     let glyphP     = face.glyphIndex('P')
     let glyphComma = face.glyphIndex(',')
     let fromGpos   = lookupGposKerning(faceData, cast(u16, glyphP), cast(u16, glyphComma))
     Swag.require(fromGpos == 0)
-    Swag.require(face.getKerning(glyphP, glyphComma).x < 0)
+    let legacyUnits = faceData.kernPairs.tryFind((glyphP << 16) | glyphComma)?.value orelse 0
+    let designUnits = face.getKerningDesignUnits(glyphP, glyphComma)
+    Swag.require(legacyUnits < 0 and designUnits == legacyUnits)
+
+    discard expect face.setPixelSize(0, 100)
+    let legacy100 = face.getKerning(glyphP, glyphComma)
+    Swag.require(legacy100.x < 0)
+    Swag.require(face.getKerningDesignUnits(glyphP, glyphComma) == designUnits)
+    discard expect face.setPixelSize(0, 200)
+    let legacy200 = face.getKerning(glyphP, glyphComma)
+    Swag.require(legacy200.x < legacy100.x)
+    Swag.require(face.getKerningDesignUnits(glyphP, glyphComma) == designUnits)
 
     // Where both state a pair, GPOS is the one that answers.
     let glyphA   = face.glyphIndex('A')
@@ -115,4 +132,5 @@ using Swag, Core
     discard expect face.setPixelSize(0, 100)
     let beyondU16 = face.getKerning(0x1_0024, face.glyphIndex('V'))
     Swag.require(beyondU16.x == 0)
+    Swag.require(face.getKerningDesignUnits(0x1_0024, face.glyphIndex('V')) == 0)
 }

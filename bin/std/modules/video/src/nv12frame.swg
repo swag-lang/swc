@@ -34,14 +34,31 @@ private const Nv12GreenBytes = cast(Math.Simd.U8x16, [1'u8, 5, 9, 13, 128, 128, 
 private const Nv12RedBytes   = cast(Math.Simd.U8x16, [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
 
 #[Swag.Inline]
-private func nv12BgraLuma4(pixels: const [*] u8)->Math.Simd.U8x16
+private func nv12BgraLuma4(packed: Math.Simd.U8x16)->Math.Simd.U8x16
 {
-    let packed = Math.Simd.load(pixels)
     let blue   = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12BlueBytes))))
     let green  = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12GreenBytes))))
     let red    = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12RedBytes))))
     let luma   = 16 + ((red * 11_966 + green * 40_254 + blue * 4_064 + 32_768) >> 16)
     return Math.Simd.packUnsigned(Math.Simd.packSigned(luma, Math.Simd.splat(0's32)), Math.Simd.splat(0's16))
+}
+
+#[Swag.Inline]
+private func nv12BgraChroma2(top, bottom: Math.Simd.U8x16, uv: [*] u8)
+{
+    let ones: Math.Simd.S16x8 = Math.Simd.splat(1's16)
+    let red   = Math.Simd.mulAddPairs(cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(top, Nv12RedBytes))) +
+                                     cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(bottom, Nv12RedBytes))), ones)
+    let green = Math.Simd.mulAddPairs(cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(top, Nv12GreenBytes))) +
+                                     cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(bottom, Nv12GreenBytes))), ones)
+    let blue  = Math.Simd.mulAddPairs(cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(top, Nv12BlueBytes))) +
+                                     cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(bottom, Nv12BlueBytes))), ones)
+    let u = -6_596 * red - 22_189 * green + 28_785 * blue
+    let v = 28_784 * red - 26_145 * green - 2_639 * blue
+    uv[0] = nv12Chroma(u[0])
+    uv[1] = nv12Chroma(v[0])
+    uv[2] = nv12Chroma(u[1])
+    uv[3] = nv12Chroma(v[1])
 }
 
 #[Swag.Inline]
@@ -67,10 +84,11 @@ private func convertBgraNv12Band(source: const [*] u8, target: [*] u8, width, he
         let top    = topRow + group * 16
         let bottom = bottomRow + group * 16
         let x      = group * 4
-        Math.Simd.storeLow4(topY + x, nv12BgraLuma4(top))
-        Math.Simd.storeLow4(bottomY + x, nv12BgraLuma4(bottom))
-        nv12BgraChroma(top, bottom, uvRow + x)
-        nv12BgraChroma(top + 8, bottom + 8, uvRow + x + 2)
+        let topPixels    = Math.Simd.load(top)
+        let bottomPixels = Math.Simd.load(bottom)
+        Math.Simd.storeLow4(topY + x, nv12BgraLuma4(topPixels))
+        Math.Simd.storeLow4(bottomY + x, nv12BgraLuma4(bottomPixels))
+        nv12BgraChroma2(topPixels, bottomPixels, uvRow + x)
     }
 
     if width % 4

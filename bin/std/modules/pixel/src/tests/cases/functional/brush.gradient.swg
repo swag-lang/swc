@@ -50,6 +50,14 @@ using Swag, Core
     Swag.require(not hidden.hasVisibleAlpha())
 }
 
+// Hatch tiles have transparent background samples even when their foreground tint is opaque.
+#test
+{
+    let hatch = Brush.createHatch(.Dot, Color.fromArgb(Argb.White))
+    Swag.require(hatch.hasVisibleAlpha())
+    Swag.require(not hatch.isOpaque())
+}
+
 // Gradient storage grows with authored content and preserves every sorted stop.
 #test
 {

@@ -68,6 +68,26 @@ impl Size
     {
         try .metrics.set(.face, pixelWidth, pixelHeight)
     }
+
+    // Converts a horizontal font-space distance to 26.6 fixed-point pixels.
+    // The active horizontal scale must be established with Face.setPixelSize or
+    // Face.setCharSize first. Values outside the signed 32-bit pixel range fail.
+    mtd const scaleHorizontal(designUnits: s32)->s32 fail
+    {
+        if not .metrics.xScale do
+            try fault(0x17)
+        return try checkedRoundDiv(cast(s64, designUnits) * .metrics.xScale, 65536)
+    }
+
+    // Converts a vertical font-space distance to 26.6 fixed-point pixels.
+    // The active vertical scale must be established with Face.setPixelSize or
+    // Face.setCharSize first. Values outside the signed 32-bit pixel range fail.
+    mtd const scaleVertical(designUnits: s32)->s32 fail
+    {
+        if not .metrics.yScale do
+            try fault(0x17)
+        return try checkedRoundDiv(cast(s64, designUnits) * .metrics.yScale, 65536)
+    }
 }
 
 private func checkedRoundDiv(value, divisor: s64)->s32 fail

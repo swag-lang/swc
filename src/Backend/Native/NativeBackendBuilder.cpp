@@ -281,11 +281,7 @@ namespace
             }
         }
 
-        std::vector<std::pair<uint32_t, uint32_t>> forbiddenRegs;
-        for (const auto& [virtualReg, physicalRegs] : microBuilder->virtualRegForbiddenPhysRegs())
-            for (const MicroReg physicalReg : physicalRegs)
-                forbiddenRegs.emplace_back(virtualReg.packed, physicalReg.packed);
-        std::ranges::sort(forbiddenRegs);
+        const auto forbiddenRegs = microBuilder->sortedVirtualRegForbiddenPhysRegPairs();
         identity.appendLe32(static_cast<uint32_t>(forbiddenRegs.size()));
         for (const auto& [virtualReg, physicalReg] : forbiddenRegs)
         {

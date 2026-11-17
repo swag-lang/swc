@@ -126,15 +126,14 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
   fonts produce expected outlines and metrics across supported axes, with invalid variation
   tables rejected.
 
-### std.truetype.016 — No COLR/CPAL layered color glyphs
+### std.truetype.016 — Color glyph rendering is opt-in
 
-- Evidence: the `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves
-  the emoji and text presentation selectors. What is missing is a glyph to draw for the emoji
-  one.
-- Next: implement `COLR` version 0, the cheapest useful subset: layered glyph references with a
-  palette, which the existing outline pipeline can already draw.
-- Done when: a COLR version-0 fixture paints the expected ordered glyph layers in the selected
-  CPAL palette, including text and emoji presentation selection.
+- Evidence: `Face.loadColorGlyph` composites ordered `COLR` version-0 layers with `CPAL` version-0
+  colors into an RGBA bitmap. `loadChar` and `loadGlyph(..., .Render)` remain grayscale operations,
+  so a caller must choose the color path and palette explicitly.
+- Next: integrate palette and color-glyph selection into a higher-level text or emoji drawing path.
+- Done when: the chosen text or emoji presentation is rendered in color automatically by that path,
+  while ordinary monochrome glyph rendering remains available.
 - Related: std.truetype.017, std.truetype.018, std.truetype.019
 
 ### std.truetype.017 — No `sbix` color bitmap strikes
@@ -158,16 +157,6 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
 - Done when: an OpenType SVG glyph renders through Pixel with the expected bounds and colors,
   while external resources, recursive references, and oversized data are bounded or rejected.
 - Related: std.truetype.016, std.pixel.image.008
-
-### std.truetype.020 — Vertical writing has no metrics
-
-- Evidence: no `vhea` or `vmtx`, so vertical CJK layout has no metrics to work from. The two
-  tables mirror `hhea` and `hmtx`, which `parseFace` and `buildGlyphMetrics` already read,
-  run-length compression included.
-- Next: parse `vhea`/`vmtx` beside the horizontal metrics and expose vertical advances and
-  bearings on Face.
-- Done when: vertical fonts expose vhea/vmtx advances and bearings for short and long metric
-  runs, and a vertical CJK fixture uses those values rather than horizontal metrics.
 
 ### std.truetype.021 — TrueType bytecode hinting
 

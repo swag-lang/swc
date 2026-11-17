@@ -17,6 +17,11 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     return result
 }
 
+func encodeText(text: string, encoding: Text.Encoding) fail
+{
+    discard try Text.encode(text, encoding)
+}
+
 // A byte-order mark answers on its own, and UTF-32 LE is not read as UTF-16 LE even though it
 // opens with the same two bytes.
 #test
@@ -38,6 +43,68 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     Swag.require(Text.unitSize(.Utf16Be) == 2 and
                  Text.unitSize(.Utf32Le) == 4 and
                  Text.unitSize(.Windows1252) == 1)
+}
+
+// Each Unicode encoding round-trips supplementary characters, with BOM output only when requested.
+#test
+{
+    let text = "A€😀"
+    let cases: [5] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be]
+    for encoding in cases
+    {
+        let bytes = expect Text.encode(text, encoding, includeBom: true)
+        let length = Text.bomLength(encoding)
+        Swag.require(Text.hasBom(bytes.toSlice(), encoding))
+        Swag.require(Text.decode(bytes.toSlice()[length until bytes.count], encoding) == text)
+
+        let withoutBom = expect Text.encode(text, encoding)
+        Swag.require(not Text.hasBom(withoutBom.toSlice(), encoding))
+        Swag.require(Text.decode(withoutBom.toSlice(), encoding) == text)
+    }
+}
+
+// Endian encoders spell BMP values and supplementary scalars in the documented byte order.
+#test
+{
+    const Utf16Le: [8] u8 = [0x41, 0, 0xAC, 0x20, 0x3D, 0xD8, 0, 0xDE]
+    const Utf16Be: [8] u8 = [0, 0x41, 0x20, 0xAC, 0xD8, 0x3D, 0xDE, 0]
+    const Utf32Le: [12] u8 = [0x41, 0, 0, 0, 0xAC, 0x20, 0, 0, 0, 0xF6, 1, 0]
+    const Utf32Be: [12] u8 = [0, 0, 0, 0x41, 0, 0, 0x20, 0xAC, 0, 1, 0xF6, 0]
+
+    let utf16Le = expect Text.encode("A€😀", .Utf16Le)
+    let utf16Be = expect Text.encode("A€😀", .Utf16Be)
+    let utf32Le = expect Text.encode("A€😀", .Utf32Le)
+    let utf32Be = expect Text.encode("A€😀", .Utf32Be)
+
+    Swag.require(Slice.equals(utf16Le.toSlice(), Utf16Le))
+    Swag.require(Slice.equals(utf16Be.toSlice(), Utf16Be))
+    Swag.require(Slice.equals(utf32Le.toSlice(), Utf32Le))
+    Swag.require(Slice.equals(utf32Be.toSlice(), Utf32Be))
+}
+
+// Windows-1252 maps its punctuation extensions and has no BOM.
+#test
+{
+    let bytes = expect Text.encode("café €", .Windows1252, includeBom: true)
+    let expected: [6] u8 = ['c', 'a', 'f', 0xE9, ' ', 0x80]
+    Swag.require(bytes.count == 6)
+    for index in bytes.count do
+        Swag.require(bytes[index] == expected[index])
+    Swag.require(not Text.hasBom(bytes.toSlice(), .Windows1252))
+    Swag.require(Text.decode(bytes.toSlice(), .Windows1252) == "café €")
+}
+
+// Encoding rejects malformed UTF-8 and runes that the selected single-byte page cannot represent.
+#test
+{
+    let invalidBytes: [2] u8 = [0xC0, 0x80]
+    var utf8Outcome: Swag.Error
+    catch encodeText(Swag.makeString(&invalidBytes[0], invalidBytes.count), .Utf8) as utf8Outcome
+    Swag.require(utf8Outcome.value() is Errors.InvalidFormatError)
+
+    var windowsOutcome: Swag.Error
+    catch encodeText("😀", .Windows1252) as windowsOutcome
+    Swag.require(windowsOutcome.value() is Errors.InvalidFormatError)
 }
 
 // Compare the vector mask split with the original scalar definition for every tail and for

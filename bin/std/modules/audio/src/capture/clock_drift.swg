@@ -86,7 +86,10 @@ impl CaptureClockDrift
             let frames = sourceFrame - .windowStartFrame
             let rate   = cast(f64, frames) * .clockFrequency / elapsed
             let offset = (rate / .sampleRate - 1.0) * 1_000_000.0
-            if offset < -1_000.0 or offset > 1_000.0 do
+            // Keep f64 roundoff at an exact bound from turning +/-1000 ppm into a rejected jump.
+            // This sub-micro-ppm allowance is far below the estimator's practical resolution.
+            const BoundaryEpsilon = 0.000_001'f64
+            if offset < -1_000.0 - BoundaryEpsilon or offset > 1_000.0 + BoundaryEpsilon do
                 fail BadParameterError{"capture clock jump exceeds the supported drift range"}
             measured = cast(s32, Math.round(offset))
         }

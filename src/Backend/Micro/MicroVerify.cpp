@@ -120,6 +120,37 @@ namespace
         return false;
     }
 
+    using ForbiddenRegisterMap   = std::unordered_map<MicroReg, SmallVector<MicroReg>>;
+    using ForbiddenRegisterEntry = ForbiddenRegisterMap::value_type;
+
+    SWC_FORCE_INLINE std::vector<const ForbiddenRegisterEntry*> sortedForbiddenRegisterEntries(const ForbiddenRegisterMap& forbiddenRegisters)
+    {
+        std::vector<const ForbiddenRegisterEntry*> entries;
+        entries.reserve(forbiddenRegisters.size());
+        for (const auto& entry : forbiddenRegisters)
+            entries.push_back(&entry);
+
+        std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
+        return entries;
+    }
+
+    SWC_FORCE_INLINE void sortRegisterPacks(std::vector<uint32_t>& packedRegisters)
+    {
+        std::ranges::sort(packedRegisters);
+    }
+
+    template<typename RegisterList>
+    SWC_FORCE_INLINE std::vector<uint32_t> sortedRegisterPacks(const RegisterList& registers)
+    {
+        std::vector<uint32_t> packedRegisters;
+        packedRegisters.reserve(registers.size());
+        for (const MicroReg reg : registers)
+            packedRegisters.push_back(reg.packed);
+
+        sortRegisterPacks(packedRegisters);
+        return packedRegisters;
+    }
+
     bool isValidNonMemoryOperandRegister(const MicroReg reg)
     {
         if (!isValidAnyRegister(reg))
@@ -540,12 +571,7 @@ namespace
         if (!context.builder)
             return Result::Continue;
 
-        std::vector<const std::pair<const MicroReg, SmallVector<MicroReg>>*> entries;
-        entries.reserve(context.builder->virtualRegForbiddenPhysRegs().size());
-        for (const auto& entry : context.builder->virtualRegForbiddenPhysRegs())
-            entries.push_back(&entry);
-
-        std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
+        const auto entries = sortedForbiddenRegisterEntries(context.builder->virtualRegForbiddenPhysRegs());
 
         for (const auto* entry : entries)
         {
@@ -567,7 +593,7 @@ namespace
                 regs.push_back(reg.packed);
             }
 
-            std::ranges::sort(regs);
+            sortRegisterPacks(regs);
             if (std::ranges::adjacent_find(regs) != regs.end())
             {
                 return reportError(context, phase, std::format("forbidden-register map for {} contains duplicate concrete registers", virtualReg.packed));
@@ -700,24 +726,14 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
             }
         }
 
-        std::vector<const std::pair<const MicroReg, SmallVector<MicroReg>>*> entries;
-        entries.reserve(context.builder->virtualRegForbiddenPhysRegs().size());
-        for (const auto& entry : context.builder->virtualRegForbiddenPhysRegs())
-            entries.push_back(&entry);
-
-        std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
+        const auto entries = sortedForbiddenRegisterEntries(context.builder->virtualRegForbiddenPhysRegs());
         mixHash(hash, entries.size());
 
         for (const auto* entry : entries)
         {
             mixHash(hash, entry->first.packed);
 
-            std::vector<uint32_t> regs;
-            regs.reserve(entry->second.size());
-            for (const MicroReg reg : entry->second)
-                regs.push_back(reg.packed);
-
-            std::ranges::sort(regs);
+            const auto regs = sortedRegisterPacks(entry->second);
             mixHash(hash, regs.size());
             for (const uint32_t regPacked : regs)
                 mixHash(hash, regPacked);
@@ -906,23 +922,13 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
         if (outStructuralHash)
         {
-            std::vector<const std::pair<const MicroReg, SmallVector<MicroReg>>*> entries;
-            entries.reserve(context.builder->virtualRegForbiddenPhysRegs().size());
-            for (const auto& entry : context.builder->virtualRegForbiddenPhysRegs())
-                entries.push_back(&entry);
-
-            std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
+            const auto entries = sortedForbiddenRegisterEntries(context.builder->virtualRegForbiddenPhysRegs());
             mixHash(*outStructuralHash, entries.size());
             for (const auto* entry : entries)
             {
                 mixHash(*outStructuralHash, entry->first.packed);
 
-                std::vector<uint32_t> regs;
-                regs.reserve(entry->second.size());
-                for (const MicroReg reg : entry->second)
-                    regs.push_back(reg.packed);
-
-                std::ranges::sort(regs);
+                const auto regs = sortedRegisterPacks(entry->second);
                 mixHash(*outStructuralHash, regs.size());
                 for (const uint32_t regPacked : regs)
                     mixHash(*outStructuralHash, regPacked);

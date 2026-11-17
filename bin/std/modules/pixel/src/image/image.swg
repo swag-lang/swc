@@ -24,7 +24,7 @@ struct Image
         pixels: Array'u8     // Owned pixel bytes, bottom row first.
 
         #[Core.Serialization.Key("metadata")]
-        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
+        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs and image-copying transforms.
 
         // Geometry and encoding of the pixel buffer. They are established together by 'create' and
         // the decoders, and every one of them is derived from the others: writing one on its own
@@ -65,6 +65,7 @@ struct Image
     #[Core.Serialization.NoSerialize]
     workingBuffer: *Image?
 }
+
 
 // One logical pixel in the representation used between storage formats.
 // Integer formats map their full range to zero through one; floating-point formats retain
@@ -498,13 +499,32 @@ impl Image
     // - `index`, the ordinal of the pixel in the buffer;
     // - `x` and `y`, its column and buffer row, where row zero is the bottom of the picture;
     // - `userData`, the `pixelUserData` passed to the macro.
+    // Panics if the image storage is invalid or `stride` is not positive.
     #[Swag.Macro]
     mtd visitPixels(pixelUserData: *void? = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
-        Swag.assert(stride > 0)
+        if stride <= 0 do
+            Swag.panic("pixel visit stride must be positive", #curlocation)
+        // This validation is expanded at the call site with the macro, so keep the checks here
+        // instead of calling an internal helper that would not be visible to the caller module.
+        let checked: const *Image = me
+        if not checked.pixels.buffer or
+           checked.width <= 0 or
+           checked.height <= 0 or
+           not checked.bytesPerPixel or
+           not checked.pixelFormat.isPacked() do
+            Swag.panic("cannot visit pixels of an invalid image", #curlocation)
+
+        let rowBytes = cast(u64, checked.width) * cast(u64, checked.bytesPerPixel)
+        if rowBytes > Swag.S32.Max or
+           checked.rowStride != cast(s32, rowBytes) or
+           checked.byteCount != rowBytes * cast(u64, checked.height) or
+           checked.pixels.count != checked.byteCount or
+           checked.bytesPerPixel != checked.pixelFormat.bitsPerPixel() / 8 do
+            Swag.panic("image pixel storage does not match its geometry", #curlocation)
 
         let self: const *Image = me
-        let step   = cast(u64, (.bytesPerPixel * stride))
+        let step   = cast(u64, .bytesPerPixel) * cast(u64, stride)
         let base   = cast([*] u8, self.pixels.storage())
         let visit  = self.pixels.count / step
         let opaque = pixelUserData
@@ -512,13 +532,15 @@ impl Image
         {
             let pixPtr   = base + parIndex * step
             let pixIndex = cast(u64, (pixPtr - cast([*] u8, self.pixels.storage()))) / self.bytesPerPixel
+            let x        = cast(s32, (pixIndex % cast(u64, self.width)))
+            let y        = cast(s32, (pixIndex / cast(u64, self.width)))
 
             #inject(stmt,
                     pix = pixPtr,
                     image = self,
                     index = pixIndex,
-                    x = cast(s32, pixIndex) % self.width,
-                    y = cast(s32, pixIndex) / self.width,
+                    x = x,
+                    y = y,
                     userData = opaque)
         }
     }

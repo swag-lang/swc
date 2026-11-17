@@ -977,7 +977,7 @@ namespace
     Utf8 workspaceArtifactConfiguration(const CompilerInstance& compiler)
     {
         const Runtime::BuildCfgBackend& backend = compiler.buildCfg().backend;
-        return std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
+        return std::format("debug-info:{};no-runtime-symbols:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, compiler.cmdLine().noRuntimeSymbols ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
     }
 
     // A shared library whose public API did not change can be replaced without rebuilding an

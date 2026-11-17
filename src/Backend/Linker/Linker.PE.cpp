@@ -22,7 +22,6 @@
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Support/Math/Hash.h"
-#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 
@@ -1069,7 +1068,8 @@ Result PELinker::buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
     SWC_RESULT(resolveSymbols(image, debugInfo, symbols, archives));
-    appendSymbolTable(image, symbols);
+    if (!builder_->compiler().cmdLine().noRuntimeSymbols)
+        appendSymbolTable(image, symbols);
 
     LinkWin32ApplicationConfig win32Config;
     SWC_RESULT(collectWin32ApplicationConfig(win32Config));
@@ -1167,7 +1167,8 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
 
     collectDebugInfo(outJob);
     SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
-    appendSymbolTable(outJob.image, symbols);
+    if (!builder_->compiler().cmdLine().noRuntimeSymbols)
+        appendSymbolTable(outJob.image, symbols);
     finishImage(outJob.image, std::move(win32Config));
     return Result::Continue;
 }
@@ -1583,7 +1584,8 @@ Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, c
     std::vector<Archive> archives;
     SWC_RESULT(loadArchivesFromSearch(archives, searchNames, searchDirs));
     SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
-    appendSymbolTable(outJob.image, symbols);
+    if (!builder_->compiler().cmdLine().noRuntimeSymbols)
+        appendSymbolTable(outJob.image, symbols);
 
     LinkWin32ApplicationConfig win32Config;
     SWC_RESULT(collectWin32ApplicationConfig(win32Config));

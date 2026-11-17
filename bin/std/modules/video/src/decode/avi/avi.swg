@@ -1,5 +1,5 @@
 //! Format: Audio Video Interleave (AVI/RIFF) decoder component.
-//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
+//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
 //! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB.
 //! Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.
 //
@@ -398,6 +398,7 @@ struct Decoder
         soundTracks:   Array'SoundFile      // PCM tracks streamed from the AVI file.
         bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
         rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
+        isRgb555:      bool                 // Whether 16-bit BI_RGB pixels use the default 5-5-5 masks.
         nextIndex:     u64                  // Index of the frame the decoder is positioned on.
         pictures:      PictureStream        // Coded pictures, when frames are a coded stream.
         isTopDown:     bool                 // Whether uncompressed rows start with the top one.
@@ -624,7 +625,8 @@ private impl Decoder
 
         let bitCount = layout.format.biBitCount
         .info.codecName = "Uncompressed RGB"
-        if bitCount != 24 and bitCount != 32 do
+        .isRgb555 = bitCount == 16 and compression == Bmp.BI_RGB
+        if bitCount != 24 and bitCount != 32 and not .isRgb555 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support uncompressed AVI frames of % bits per pixel", bitCount))}
 
         // Uncompressed frames follow the bitmap rules: rows are padded to a multiple of four
@@ -830,9 +832,22 @@ private impl Decoder
             {
                 let source      = payload + sourceRow + cast(u64, x) * .bytesPerPixel
                 let destination = target.pixels.storage() + targetRow + cast(u64, x) * 3
-                destination[0] = source[2]
-                destination[1] = source[1]
-                destination[2] = source[0]
+                if .isRgb555
+                {
+                    let pixel = cast(u32, source[0]) | (cast(u32, source[1]) << 8)
+                    let blue  = pixel & 0x1F
+                    let green = (pixel >> 5) & 0x1F
+                    let red   = (pixel >> 10) & 0x1F
+                    destination[0] = cast(u8, (red << 3) | (red >> 2))
+                    destination[1] = cast(u8, (green << 3) | (green >> 2))
+                    destination[2] = cast(u8, (blue << 3) | (blue >> 2))
+                }
+                else
+                {
+                    destination[0] = source[2]
+                    destination[1] = source[1]
+                    destination[2] = source[0]
+                }
             }
         }
     }

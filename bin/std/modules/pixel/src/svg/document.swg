@@ -127,8 +127,13 @@ impl Document
         else do
             result.appendFormat(" role=\"img\" aria-label=\"%\">\n", escapeXml(.title.toString()))
 
-        if .hasBackground do
-            result.appendFormat("<rect width=\"%\" height=\"%\" fill=\"%\"/>\n", num(.width), num(.height), hex(.background))
+        if .hasBackground
+        {
+            result.appendFormat("<rect width=\"%\" height=\"%\" fill=\"%\"", num(.width), num(.height), hex(.background))
+            if .background.a != 255 do
+                result.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, .background.a) / 255.0)
+            result += "/>\n"
+        }
 
         result += .body.toString()
         result += "</svg>\n"

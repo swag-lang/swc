@@ -352,6 +352,15 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     {c, eat} = Utf8.decodeLastRune(text[0 until 6])
     Swag.require(c == '\u20AC'rune)
     Swag.require(eat == 3)
+
+    let emptyText = cast(const [..] u8, "")
+    {c, eat} = Utf8.decodeRune(emptyText)
+    Swag.require(c == Utf8.RuneError)
+    Swag.require(eat == 0)
+
+    {c, eat} = Utf8.decodeLastRune(emptyText)
+    Swag.require(c == Utf8.RuneError)
+    Swag.require(eat == 0)
 }
 
 #test
@@ -502,6 +511,13 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     Swag.require(Utf8.endsWith(text, "fish"))
     Swag.require(Utf8.endsWith(text, "FISH", Utf8.ComparisonType.Latin1NoCase))
     Swag.require(not Utf8.endsWith(text, "one"))
+}
+
+// An empty last-match needle selects the end of a non-empty byte string.
+#test
+{
+    Swag.require(Utf8.lastIndexOf("abc", "") == 3)
+    Swag.require(Utf8.lastIndexOf("", "") == Swag.U64.Max)
 }
 
 #test

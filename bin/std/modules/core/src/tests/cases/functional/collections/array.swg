@@ -169,6 +169,36 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     Swag.require(values.count == 0)
 }
 
+// Borrowed add-once handles duplicates and copies new values; pair views visit adjacent elements.
+#test
+{
+    var values: Array's32
+    values.add(1)
+    values.add(2)
+    var candidate = 3
+    values.addOnceBorrowed(&candidate)
+    values.addOnceBorrowed(&candidate)
+    values.addOnceBorrowed(&values[0])
+
+    Swag.require(Slice.equals(values.toSlice(), [1, 2, 3]))
+
+    var pairCount = 0'u64
+    var pairCode  = 0
+    for left, right, index in values.pairs()
+    {
+        Swag.require(index == pairCount)
+        pairCount += 1
+        pairCode = pairCode * 100 + left * 10 + right
+    }
+    Swag.require(pairCount == 2 and pairCode == 1223)
+
+    var singleton: Array's32
+    singleton.add(9)
+    for _, _, _ in singleton.pairs()
+        do pairCount += 1
+    Swag.require(pairCount == 2)
+}
+
 #test
 {
     var values: Array's32

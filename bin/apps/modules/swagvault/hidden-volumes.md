@@ -1,5 +1,9 @@
 # Hidden volumes
 
+The production container layout, encryption records, and recovery rules are in the
+[Swag Vault container format](format.md). This page specifies the hidden-volume extension and its
+workflow.
+
 ## Workflow and capacity
 
 Create an ordinary container first and put its ordinary files in it. In **Open**, select that

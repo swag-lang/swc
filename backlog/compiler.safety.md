@@ -139,8 +139,23 @@ is the current scorecard.
   reduce the measured wall time. Its large whole-preset gap is mainly
   `.ValueBorrow`; see compiler.safety.030 and
   [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
-- Next: prove an index against the dominating loop bound and hoist a `late` check from a
-  loop that does not assign it. Measure the affected loops with guards enabled and disabled.
+- A fixed-array index in `for index in values.count` is now proven in range when the
+  constant iteration count does not exceed the array extent and the body cannot write the
+  index. The Micro listing for a 256-element exact loop has no panic call; a dynamic-count
+  loop retains one. The safety suite still passes the overlong-count runtime fault and the
+  exact-count write. See `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks` and the
+  `cwe787_out_of_bounds_write.swg` corpus tests.
+- Constant range loops over a fixed array also keep the exact exclusive range guard-free and
+  retain a guard for an inclusive endpoint equal to the array extent. Both cases are covered
+  by `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks`.
+- A first guarded `late` read inside a loop still leaves the check at the body read site on
+  every trip: `SemaInitFlow::walkLoopBody` analyzes the body once and does not carry that
+  fact across a loop that may execute zero times. A safe hoist must run only after the first
+  iteration is known to enter, then let the back-edge skip the check. Cover initialized and
+  unset values with nonzero counts, plus an unset value with a zero count that must not panic.
+- Next: implement that entry check for a narrow unconditional read with no writes, calls, or
+  escaping aliases that could change it, then measure the affected loops with guards enabled
+  and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
   the residual cost of runtime guards is measured on the affected loops with behavior
   preserved.

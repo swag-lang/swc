@@ -4,7 +4,6 @@
 #include "Backend/Linker/SymbolTable.ELF.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeImageBuilder.h"
-#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 

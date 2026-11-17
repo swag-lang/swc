@@ -45,11 +45,10 @@ private const ProbeImageExtensions    = [".png", ".jpg", ".jpeg", ".gif", ".bmp"
 private const ProbeMarkdownExtensions = [".md", ".markdown"]
 private const ProbeFontExtensions     = [".ttf", ".otf"]
 
-// Reports whether the extension of `name` is one of `list`, without case.
-private func probeKind(name: string, list: const [..] string)->bool
+// Reports whether the lowercased extension is one of `list`.
+private func probeKind(extension: string, list: const [..] string)->bool
 {
-    let ext = Path.lowercaseExtension(name)
-    for one in list where ext == one do
+    for one in list where extension == one do
         return true
     return false
 }
@@ -68,15 +67,16 @@ private func readHead(path: string, limit: u64)->Array'u8 fail
 // was one it reads.
 func probeEntry(entry: *ExplorerEntry)->bool
 {
-    let name = entry.name.toString()
-    if Path.hasExtension(name, ".mp3") or Path.hasExtension(name, ".flac")
+    let name      = entry.name.toString()
+    let extension = Path.lowercaseExtension(name)
+    if extension == ".mp3" or extension == ".flac"
     {
         let tags = SoundTags.read(entry.path)
         entry.music = localMusicSummary(&tags)
         return true
     }
 
-    if probeKind(name, ProbeImageExtensions)
+    if probeKind(extension, ProbeImageExtensions)
     {
         // The size of a picture is in its head; the pixels are not decoded.
         catch
@@ -90,7 +90,7 @@ func probeEntry(entry: *ExplorerEntry)->bool
         return true
     }
 
-    if Path.lowercaseExtension(name) == ".pdf"
+    if extension == ".pdf"
     {
         if entry.size <= 64 * 1024 * 1024
         {
@@ -104,8 +104,8 @@ func probeEntry(entry: *ExplorerEntry)->bool
         return true
     }
 
-    let markdown = probeKind(name, ProbeMarkdownExtensions)
-    if markdown or probeKind(name, ProbeCodeExtensions)
+    let markdown = probeKind(extension, ProbeMarkdownExtensions)
+    if markdown or probeKind(extension, ProbeCodeExtensions)
     {
         catch
         {
@@ -144,7 +144,7 @@ func probeEntry(entry: *ExplorerEntry)->bool
     }
 
     // An archive holds files; its directory says how many without unpacking any.
-    if Path.lowercaseExtension(name) == ".zip"
+    if extension == ".zip"
     {
         catch
         {
@@ -156,7 +156,7 @@ func probeEntry(entry: *ExplorerEntry)->bool
         return true
     }
 
-    if probeKind(name, ProbeFontExtensions)
+    if probeKind(extension, ProbeFontExtensions)
     {
         catch
         {

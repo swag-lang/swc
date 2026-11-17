@@ -261,12 +261,34 @@ private struct HeaderEnd
 private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
 {
     var completed = 0'u32
+    var sequence = 0'u32
+    var hasSequence = false
+    var expectedContinued = false
     var header: PageHeader
     while try walker.next(&header)
     {
         let pageOffset = walker.offset
         if header.serial == info.serial
         {
+            if hasSequence
+            {
+                let expectedSequence = sequence == Swag.U32.Max ? 0 : sequence + 1
+                if header.sequence != expectedSequence do
+                    fail InvalidFormatError{"Ogg header page sequence has a gap"}
+                if ((header.flags & ContinuedPacket) != 0) != expectedContinued do
+                    fail InvalidFormatError{"Ogg header continued-packet flag disagrees with the preceding page lacing"}
+            }
+            elif header.sequence != 0 or (header.flags & ContinuedPacket) != 0
+            {
+                fail InvalidFormatError{"Ogg first header page has an invalid sequence or continuation flag"}
+            }
+
+            sequence = header.sequence
+            hasSequence = true
+            expectedContinued = false
+            if header.segments do
+                expectedContinued = header.lacing[header.segments - 1] == 255
+
             var completedOnPage = 0'u32
             for index in header.segments
             {

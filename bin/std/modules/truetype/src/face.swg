@@ -23,6 +23,7 @@ public enum StyleFlag
 // the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
 // The fixed-pitch flag comes from `post` and defaults to false when that table is absent.
 // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees.
+// Underline metrics are in font design units and default to zero without `post`.
 public struct FaceMetadata
 {
     public
@@ -37,6 +38,8 @@ public struct FaceMetadata
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
         isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
         italicAngle:           s32 = 0       // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
+        underlinePosition:     s16 = 0       // Underline center relative to the baseline, in design units.
+        underlineThickness:    s16 = 0       // Recommended underline thickness in design units.
     }
 }
 
@@ -368,7 +371,8 @@ public impl Face
     // The fixed-pitch flag is true for any nonzero `post.isFixedPitch` value and false when
     // the `post` table is absent.
     // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees. It is zero
-    // when the `post` table is absent.
+    // when the `post` table is absent. Underline position and thickness are in design units
+    // and default to zero when that table is absent.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
     // This inspects metadata only; it does not validate that every glyph can be loaded.
     //
@@ -478,6 +482,45 @@ public impl Face
         return &faceData.verticalGlyphMetrics[glyphIndex]
     }
 
+    // Returns a glyph's horizontal advance in font design units without loading its outline.
+    //
+    // Glyf faces use `hmtx`; CFF and Type 1 faces use the width prepared from their charstrings.
+    // The result is independent of the selected pixel size. An index outside
+    // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
+    mtd const getAdvanceWidth(glyphIndex: u32)->u16 fail
+    {
+        if glyphIndex >= .glyphCount do
+            try fault(0x10)
+
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return faceData.glyphMetrics[glyphIndex].advanceWidth
+    }
+
+    // Returns the ordered color layers declared for a glyph by COLR version 0.
+    //
+    // `paletteIndex` selects a CPAL palette. Each returned layer identifies its glyph,
+    // CPAL entry, and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb`
+    // is zero for the special COLR foreground entry (0xFFFF). The returned array is
+    // owned by the caller. An absent COLR table or base glyph returns an empty array;
+    // invalid glyph or palette indices and malformed or unsupported tables fail.
+    mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array'ColorGlyphLayer fail
+    {
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
+    }
+
+    // Returns horizontal kerning between two glyph indices in font design units.
+    //
+    // The result does not depend on pixel size and can be queried before setting one.
+    // GPOS pair adjustment takes priority, with the legacy `kern` table filling pairs
+    // for which the supported GPOS pair lookups return zero. Missing pairs and invalid
+    // glyph indices return zero.
+    mtd const getKerningDesignUnits(leftGlyph, rightGlyph: u32)->s16
+    {
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
+    }
+
     // Returns horizontal kerning between two glyph indices.
     //
     // The x component uses 26.6 fixed-point pixels at the active size. Both
@@ -494,18 +537,7 @@ public impl Face
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         var result: #returntype
-        if not leftGlyph or not rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
-            return result
-
-        var units = 0's16
-        if not faceData.gposPairSubtables.isEmpty()
-        {
-            units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
-        }
-
-        if not units do
-            units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
-
+        let units = lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
         if not units do
             return result
 
@@ -639,6 +671,21 @@ public impl Face
         try .loadGlyph(idx, loadFlags)
     }
 
+    // Loads and composites a COLR v0 glyph into an RGBA color bitmap.
+    //
+    // Layers are rasterized in their declared order using the active pixel size and
+    // source-over alpha composition. CPAL colors use `paletteIndex`; COLR's foreground
+    // entries use `foregroundArgb`, defaulting to opaque black. The slot's outline and
+    // metrics describe `baseGlyph`, while its bitmap uses [[TrueType.PixelMode.ColorRgba]]
+    // with bytes in red, green, blue, alpha order. This replaces the slot's current
+    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has no
+    // color layers.
+    mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0,
+                       foregroundArgb: u32 = 0xFF000000) fail
+    {
+        try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)
+    }
+
     // Rasterizes the current outline into an 8-bit grayscale bitmap.
     //
     // The result is stored in [[TrueType.GlyphSlot.bitmap]] and replaces any
@@ -696,6 +743,23 @@ public impl Face
     // the multi-channel field in RGB and a true signed distance in alpha; the
     // bitmap reports [[TrueType.PixelMode.Rgba]].
     mtd renderGlyphMsdf(spread: u32 = 8) fail => try renderCurrentOutlineMsdf(&.glyph, spread)
+}
+
+func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: u32)->s16
+{
+    if not leftGlyph or not rightGlyph or leftGlyph >= faceData.face.glyphCount or rightGlyph >= faceData.face.glyphCount or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
+        return 0
+
+    var units = 0's16
+    if not faceData.gposPairSubtables.isEmpty()
+    {
+        units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
+    }
+
+    if not units do
+        units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
+
+    return units
 }
 
 // Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,

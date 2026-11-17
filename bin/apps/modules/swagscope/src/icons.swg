@@ -32,11 +32,13 @@ enum ViewerIcons
     Odt          // OpenDocument text reading page.
     Ods          // OpenDocument workbook reading grid.
     Odp          // OpenDocument presentation reading canvas.
+    Scene3d      // Three-dimensional scene viewer.
 }
-
-const ViewerIconValues: [24] ViewerIcons = [
+const ViewerIconValues: [25] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt, .Ods, .Odp]
+    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt, .Ods, .Odp,
+    .Scene3d,
+]
 
 private const IconsSvg = #include("../datas/icons.svg")
 

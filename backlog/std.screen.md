@@ -8,18 +8,23 @@ continues to own media frames and codecs, not desktop access.
 ### std.screen.001 — Define one live-screen source contract
 
 - Evidence: `Screen.Source` now owns native resources and writes reusable bottom-up BGRA8 for a
-  physical desktop area. `SourceMetrics` separates acquisition, readback, copying and composition;
+  physical desktop area. `SourceMetrics` separates acquisition, change detection, readback, copying
+  and composition;
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
-  cached-frame copy for a recorder that will emit a held picture. `Source` now exposes the
-  monotonic capture-completion time of its latest fresh frame, opens a monitor by enumeration index
-  or `Env.Monitor` physical-bounds snapshot, and opens the virtual-desktop bounds including gaps.
+  cached-frame copy for a recorder that will emit a held picture. `Source` exposes the monotonic
+  capture-completion time and age of its latest fresh frame (zero before the first frame, after a
+  successful reopen, or for a frame less than one microsecond old), opens a monitor by enumeration index
+  or `Env.Monitor` physical-bounds snapshot,
+  and opens the virtual-desktop bounds including gaps.
   It also exposes DXGI presentation time in the monotonic clock (zero on backends without that
   timestamp), supports cursor composition on X11 and Windows, and can reset cumulative metrics
   without reopening. `captureOptions()` returns the selected physical rectangle and cursor policy.
   `openMonitorAt()` selects the containing or nearest physical monitor for a desktop point. Monitor
   values are only snapshots; borrowed GPU frames, persistent monitor IDs, and window targets remain
-  unavailable.
+  unavailable. X11 compares each cursor-composited BGRA8 image against its prior cached frame and
+  reports pixel-identical reads as unchanged while preserving a reused target when requested. Its
+  readback wait, pixel conversion/copy, and XFixes cursor composition timings are reported separately.
 - Next: add a bounded borrowed-frame contract, persistent monitor/window targets, permission and
   source-loss results. Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while
@@ -88,8 +93,10 @@ continues to own media frames and codecs, not desktop access.
   separate run copied roughly four times as many pixels under higher desktop load, so those
   timings do not isolate the device-sharing benefit. A 60-second shared run still had a 319 ms
   readback spike and missed 42 slots; long-tail GPU waits remain open.
-- Next: preserve pointer shape and position as metadata; handle rotation, adapters beyond the
-  default adapter and access loss. Add Windows Graphics Capture
+- Next: preserve pointer shape and position as metadata; detect selected-pixel changes for Windows
+  crops smaller than three quarters of an output, where the backend currently performs full reads
+  without filtering DXGI dirty rectangles. Handle rotation, adapters beyond the default adapter and
+  access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous
   outputs after profiling GPU readback stalls, and measure sustained cadence under desktop motion
   and machine load. A one-staging-texture deferred-map prototype acquired only 450 fresh frames

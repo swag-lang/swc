@@ -114,15 +114,20 @@ impl Reader
         if frame == .pictureIndex do
             return &.picture
 
-        // Replay from the key record at or before the frame, unless the frame follows the
-        // picture already decoded after that key.
-        var key = frame
-        while key > 0 and .entryAt(key).kind != .Key do
-            key -= 1
-        if .entryAt(key).kind != .Key do
-            fail Errors.InvalidFormatError{}
-
-        let start = .pictureIndex != Swag.U64.Max and .pictureIndex >= key and .pictureIndex < frame ? .pictureIndex + 1 : key
+        // Any later key record resets the picture, so a forward read can always continue from
+        // the image already decoded. Only a backward read needs to find its key record.
+        var start: u64
+        if .pictureIndex != Swag.U64.Max and .pictureIndex < frame
+        do
+            start = .pictureIndex + 1
+        else
+        {
+            start = frame
+            while start > 0 and .entryAt(start).kind != .Key do
+                start -= 1
+            if .entryAt(start).kind != .Key do
+                fail Errors.InvalidFormatError{}
+        }
         for record in start to frame do
             try .apply(record)
 

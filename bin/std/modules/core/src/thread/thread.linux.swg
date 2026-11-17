@@ -1,6 +1,8 @@
 #global if #os == Swag.TargetOs.Linux
 #global namespace Threading
 
+using Core.Errors, Math, Time
+
 internal func sleepNative(milliseconds: u32)
 {
     var deadline: Linux.timespec
@@ -69,6 +71,7 @@ private func nativeThreadEntry(param: *void?)->*void?
     // Retire the kernel identity before pthread exit can make it available to another thread.
     state.mutex.lock()
     state.finished = true
+    state.changed.wakeAll()
     state.mutex.unlock()
     return null
 }
@@ -155,6 +158,37 @@ internal func waitOneNative(handle: ThreadHandle)
     if error != 0 do
         Swag.panic("cannot join the thread", #curlocation)
     state.joined = true
+}
+
+internal func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
+{
+    let state = nativeThread(handle)
+    if state.joined do
+        return true
+
+    var stopwatch: Time.Stopwatch
+    stopwatch.start()
+    state.mutex.lock()
+    while not state.finished
+    {
+        let elapsed = stopwatch.elapsedMilliseconds()
+        if elapsed >= milliseconds
+        {
+            state.mutex.unlock()
+            return false
+        }
+
+        let remaining = milliseconds - elapsed
+        let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+        discard state.changed.waitFor(&state.mutex, cast(u32, chunk))
+    }
+    state.mutex.unlock()
+
+    let error = Linux.pthread_join(state.thread, null)
+    if error != 0 do
+        try Errors.failLinuxError(error)
+    state.joined = true
+    return true
 }
 
 internal func waitManyNative(handles: const [..] ThreadHandle)

@@ -12,6 +12,44 @@ struct PageCommitShared
     errors:    u32
 }
 
+struct RemoteFreeShared
+{
+    allocator: IAllocator
+    addresses: [256] u64
+    ready:     u32
+    start:     u32
+    nextWorker: u32
+    done:      u32
+    errors:    u32
+}
+
+func remoteFreeWorker(thread: const *Threading.Thread)
+{
+    let shared = cast(*RemoteFreeShared, unwrap thread.userParam)
+    discard Swag.atomicAdd(&shared.ready, 1)
+    while Swag.atomicLoad(&shared.start) == 0 do
+        Threading.Thread.yield()
+
+    let first  = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
+    for offset in shared.addresses.count / 4
+    {
+        let i       = first + offset
+        let address = shared.addresses[i]
+        let bytes   = cast([*] u8, address)
+        if bytes[0] != cast(u8, i) or bytes[63] != cast(u8, i ^ 0xA5) do
+            discard Swag.atomicAdd(&shared.errors, 1)
+
+        var request: AllocatorRequest
+        request.address = cast(*void, address)
+        request.size    = 64
+        shared.allocator.free(&request)
+        if (offset & 7) == 7 do
+            Threading.Thread.yield()
+    }
+
+    discard Swag.atomicAdd(&shared.done, 1)
+}
+
 func pageCommitWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*PageCommitShared, unwrap thread.userParam)
@@ -83,6 +121,58 @@ func pageCommitWorker(thread: const *Threading.Thread)
     for &thread in threads do
         thread.wait()
 
+    allocator.trim()
+    let stats = allocator.stats()
+    Swag.require(shared.errors == 0)
+    Swag.require(stats.countAlloc == 0)
+    Swag.require(stats.countPage == 0)
+    Swag.require(stats.countSegment == 0)
+}
+
+// A page owned by this thread must accept concurrent frees from other threads and retire after
+// collection.
+#test
+{
+    var allocator: Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+
+    var shared = RemoteFreeShared{allocator: &allocator}
+    for i in shared.addresses.count
+    {
+        var request: AllocatorRequest
+        request.size = 64
+        shared.allocator.alloc(&request)
+        Swag.require(request.address != null)
+        let bytes = cast([*] u8, request.address)
+        bytes[0]                = cast(u8, i)
+        bytes[63]               = cast(u8, i ^ 0xA5)
+        shared.addresses[i]     = cast(u64, request.address)
+    }
+
+    var threads: [4] Threading.Thread
+    for i in threads.count
+    {
+        discard expect threads[i].init(&remoteFreeWorker, &shared)
+        discard expect threads[i].start()
+    }
+
+    while Swag.atomicLoad(&shared.ready) != threads.count do
+        Threading.Thread.yield()
+    discard Swag.atomicExchange(&shared.start, 1)
+
+    while Swag.atomicLoad(&shared.done) != threads.count
+    {
+        allocator.trim()
+        let snapshot = allocator.stats()
+        Swag.require(snapshot.countAlloc <= shared.addresses.count)
+        Threading.Thread.yield()
+    }
+
+    for &thread in threads do
+        thread.wait()
+
+    Swag.releaseAllocatorThreadCache()
     allocator.trim()
     let stats = allocator.stats()
     Swag.require(shared.errors == 0)

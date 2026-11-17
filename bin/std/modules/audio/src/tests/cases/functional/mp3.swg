@@ -33,6 +33,43 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     return result
 }
 
+// A frame header needs all four bytes before the reader can classify it.
+#test
+{
+    const Truncated: [3] u8 = [0xFF, 0xFB, 0x90]
+    var error: Swag.Error
+    discard catch Mp3.readHeader(Swag.makeSlice(&Truncated[0], Truncated.count)) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
+// MPEG-1 side information cannot claim more than 288 spectral value pairs per granule.
+#test
+{
+    let sourcePath = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    var bytes      = expect File.readAllBytes(sourcePath.toString())
+    var sound      = expect SoundFile.load(sourcePath.toString())
+    let packet     = expect sound.packet(0)
+    let offset     = packet.sourceOffset
+    let header     = expect Mp3.readHeader(bytes.toSlice()[offset to])
+    Swag.require(header.isMpeg1 and header.channels == 2)
+
+    // MPEG-1 stereo side information starts with 20 bits before the first part2_3_length;
+    // big_values follows its 12 bits, so its nine bits begin at side-information bit 32.
+    let bigValuesOffset = offset + 4 + (header.hasCrc ? 2 : 0) + 4
+    bytes[bigValuesOffset]     = 0xFF
+    bytes[bigValuesOffset + 1] |= 0x80
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-mp3-big-values-%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var broken = expect SoundFile.load(temporary.toString())
+    var error: Swag.Error
+    discard catch mp3DecodeAll(&broken) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // Device-independent decoding follows the same audible timeline as playback, including the MP3
 // encoder delay that must be removed before frame zero reaches analysis consumers.
 #test

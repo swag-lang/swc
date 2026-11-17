@@ -113,18 +113,6 @@ making clipboard completion depend on drag interaction.
   independently of drag interaction.
 - Done when: A clipboard owner publishes virtual-file names, metadata, and deferred contents through the typed-value API, and another GUI consumer retrieves them after the copy action without initiating a drag.
 
-### std.gui.010 — No keyboard access keys
-
-
-Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
-one keyboard access-key contract.
-
-- Related: platform.portability.048
-
-- Next: add caption mnemonics, surface Alt handling, menu activation, and underline visibility as
-  one access-key contract.
-- Done when: Alt reveals mnemonic underlines, activates a unique caption or menu target from the keyboard, and restores focus correctly; tests cover duplicate and unavailable keys.
-
 ### std.gui.013 — Gesture recognizers have no claim arbitration
 
 
@@ -316,20 +304,6 @@ pagination path that can disagree with paper.
 - Done when: A bounded compile-time resource prototype either generates typed window members
   consumed without runtime string lookup, or demonstrates why that route fails and retires the
   resource proposal before editor work.
-
-### std.gui.003 — Construction-time text does not automatically retranslate
-
-
-`Application.setLanguage` already broadcasts `LanguageChanged`, and its documented contract asks
-windows with construction-time text to handle that notification. Command-driven surfaces and
-explicitly rebuilt grids already refresh. Define an automatic binding for text resolved once at
-construction so static labels do not depend on each application remembering a manual handler.
-
-- Related: std.gui.004
-
-- Next: define automatic bindings for construction-time catalog text and test language changes
-  without application-specific handlers.
-- Done when: A label initialized from the GUI string catalog updates after Application.setLanguage without an application-specific notification handler, while command-driven controls retain their existing behavior in a localization test.
 
 ### std.gui.004 — French is the only shipped GUI translation
 

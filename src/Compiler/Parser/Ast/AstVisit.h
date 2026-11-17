@@ -7,7 +7,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class Ast;
-class SourceView;
 struct AstNode;
 
 enum class AstVisitResult

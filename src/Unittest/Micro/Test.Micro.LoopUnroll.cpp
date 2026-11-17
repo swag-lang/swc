@@ -61,6 +61,125 @@ SWC_TEST_BEGIN(MicroLoopUnroll_UsesConfiguredTripBudget)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_NewlineScanVectorizesExactShapeAndKeepsScalarFallback)
+{
+    const auto build = [](MicroBuilder& builder, const MicroCond boundCond, const MicroCond byteCond,
+                          const MicroReg byteBase, const MicroReg byteIndex, const uint64_t byteValue,
+                          const uint64_t scale, const bool badIncrementCopy) {
+        constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+        constexpr MicroReg counter = MicroReg::virtualIntReg(2);
+        constexpr MicroReg bound   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg temp    = MicroReg::virtualIntReg(4);
+        const auto header = builder.createLabel();
+        const auto exit   = builder.createLabel();
+        builder.emitLoadRegImm(base, ApInt(0x1000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(bound, ApInt(40, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
+        builder.emitJumpToLabel(boundCond, MicroOpBits::B32, exit);
+        builder.emitCmpRegImm(temp, ApInt(0, 8), MicroOpBits::B8);
+        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
+        MicroInstrOperand indexedCompare[7] = {};
+        indexedCompare[0].reg = byteBase;
+        indexedCompare[1].reg = byteIndex;
+        indexedCompare[2].opBits = MicroOpBits::B8;
+        indexedCompare[3].opBits = MicroOpBits::B64;
+        indexedCompare[4].valueU64 = scale;
+        indexedCompare[5].valueU64 = 0;
+        indexedCompare[6].setImmediateValue(ApInt(byteValue, 8));
+        builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
+        builder.instructions().erase(oldCompare);
+        builder.emitJumpToLabel(byteCond, MicroOpBits::B32, exit);
+        builder.emitLoadAddressRegMem(temp, counter, 1, MicroOpBits::B64);
+        builder.emitLoadRegReg(badIncrementCopy ? bound : counter, temp, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+        builder.placeLabel(exit);
+        builder.emitRet();
+        return header.get();
+    };
+
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg counter = MicroReg::virtualIntReg(2);
+    for (const auto& [boundCond, byteCond, cmpBase, cmpIndex, byte, scale, badCopy] : {
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{1}, false},
+             std::tuple{MicroCond::Below, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{1}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::NotEqual, base, counter, uint64_t{'\n'}, uint64_t{1}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, counter, counter, uint64_t{'\n'}, uint64_t{1}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, MicroReg::virtualIntReg(5), uint64_t{'\n'}, uint64_t{1}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{','}, uint64_t{1}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{2}, false},
+             std::tuple{MicroCond::AboveOrEqual, MicroCond::Equal, base, counter, uint64_t{'\n'}, uint64_t{1}, true}})
+    {
+        MicroBuilder builder(ctx);
+        const uint64_t originalHeaderId = build(builder, boundCond, byteCond, cmpBase, cmpIndex, byte, scale, badCopy);
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
+        const bool accepted = boundCond == MicroCond::AboveOrEqual && byteCond == MicroCond::Equal &&
+                              cmpBase == base && cmpIndex == counter && byte == '\n' && scale == 1 && !badCopy;
+        const MicroInstr* vectorCompare = nullptr;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (ops && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecCmpEq8)
+                vectorCompare = &inst;
+        }
+        const uint32_t indexedCompares = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcImm);
+        if ((vectorCompare != nullptr) != accepted ||
+            (accepted ? indexedCompares < 1 : indexedCompares != 1))
+        {
+            return Result::Error;
+        }
+        if (accepted)
+        {
+            bool sawMask = false, sawFirstMatch = false, saw16Guard = false;
+            uint32_t jumpsToScalarHeader = 0;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const auto* ops = inst.ops(builder.operands());
+                if (!ops)
+                    continue;
+                sawMask |= inst.op == MicroInstrOpcode::VecUnaryRegReg && ops[3].microOp == MicroOp::VecMoveMaskB;
+                sawFirstMatch |= inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == MicroOp::BitScanForward;
+                saw16Guard |= inst.op == MicroInstrOpcode::LoadRegImm && ops[1].opBits == MicroOpBits::B64 && ops[2].valueU64 == 16;
+                if (inst.op == MicroInstrOpcode::JumpCond && ops[0].cpuCond == MicroCond::Unconditional &&
+                    ops[2].valueU64 == originalHeaderId)
+                    ++jumpsToScalarHeader;
+            }
+            if (!sawMask || !sawFirstMatch || !saw16Guard || jumpsToScalarHeader < 2)
+            {
+                return Result::Error;
+            }
+        }
+    }
+
+    // A movemask's least significant set bit is the first matching byte. The
+    // scalar fallback covers every span shorter than one complete vector.
+    for (const auto& [mask, expected] : {std::pair{uint32_t{1}, uint32_t{0}},
+                                         std::pair{uint32_t{1} << 15, uint32_t{15}},
+                                         std::pair{(uint32_t{1} << 15) | 1u, uint32_t{0}},
+                                         std::pair{(uint32_t{1} << 4) | (uint32_t{1} << 11), uint32_t{4}},
+                                         std::pair{uint32_t{0}, uint32_t{16}}})
+    {
+        const uint32_t actual = mask ? std::countr_zero(mask) : 16;
+        if (actual != expected)
+        {
+            return Result::Error;
+        }
+    }
+    for (uint32_t length = 0; length <= 32; ++length)
+    {
+        const uint64_t remaining = length;
+        const bool vectorGuard = remaining >= 16;
+        const bool scalarTail = remaining < 16;
+        if (vectorGuard == scalarTail)
+        {
+            return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_TripDistanceRespectsCounterDomain)
 {
     struct Case

@@ -401,6 +401,7 @@ private impl Application
                 {
                     evt.kind = .Pressed
 
+                    targetWnd.surface?.setAccessKeysVisible(false)
                     .focusPointerTarget(targetWnd)
                 }
 
@@ -514,6 +515,7 @@ private impl Application
             if not lastP and curP
             {
                 let key = Input.keyFromStorageIndex(i)
+                .updateAccessKeyVisibility(key, true)
                 var evt = KeyEvent{kind: .Pressed}
                 evt.key       = key
                 evt.modifiers = modifiers
@@ -524,6 +526,7 @@ private impl Application
             elif lastP and not curP
             {
                 let key = Input.keyFromStorageIndex(i)
+                .updateAccessKeyVisibility(key, false)
                 var evt = KeyEvent{kind: .Released}
                 evt.key       = key
                 evt.modifiers = modifiers
@@ -534,6 +537,11 @@ private impl Application
 
     internal mtd sendRuneEvent(key: Input.Key, r: rune)
     {
+        .sendRuneEvent(key, r, .keyboard.pressedModifiers())
+    }
+
+    internal mtd sendRuneEvent(key: Input.Key, r: rune, modifiers: Input.KeyModifiers)
+    {
         var targetWnd = .keyboardFocusWnd
         targetWnd = skipDisabled(targetWnd)
         if not targetWnd do
@@ -542,7 +550,31 @@ private impl Application
         var evt = KeyEvent{kind: .Character}
         evt.character = r
         evt.key       = key
-        evt.modifiers = .keyboard.pressedModifiers()
+        evt.modifiers = modifiers
+
+        if modifiers.has(.Alt) and not modifiers.has(.Control)
+        {
+            var menu: *Wnd? = targetWnd
+            while menu and not (menu is MenuCtrl) do
+                menu = menu.parent
+
+            if menu
+            {
+                targetWnd.sendEvent(&evt)
+                if not evt.accepted
+                {
+                    if let surface = targetWnd.surface do
+                        discard surface.activateAccessKey(r)
+                }
+            }
+            else
+            {
+                if let surface = targetWnd.surface do
+                    discard surface.activateAccessKey(r)
+            }
+            return
+        }
+
         targetWnd.sendEvent(&evt)
     }
 
@@ -975,6 +1007,30 @@ private impl Application
 
 internal impl Application
 {
+    // Reveals access keys while either Alt key is held and hides them after both are released.
+    mtd updateAccessKeyVisibility(key: Input.Key, pressed: bool)
+    {
+        if key != .LMenu and key != .RMenu and key != .MenuCtrl do
+            return
+
+        if pressed
+        {
+            if .keyboard.pressedModifiers().has(.Alt)
+            {
+                if not .keyboardFocusWnd do
+                    .seedKeyboardFocus()
+                .keyboardFocusWnd?.surface?.setAccessKeysVisible(true)
+            }
+            return
+        }
+
+        if .keyboard.isKeyPressed(.LMenu) or .keyboard.isKeyPressed(.RMenu) or .keyboard.isKeyPressed(.MenuCtrl) do
+            return
+
+        for surface in .surfaces do
+            surface.setAccessKeysVisible(false)
+    }
+
     // Registers a surface with initialized renderer state; its creator owns its lifetime.
     mtd registerSurface(surface: *Surface)
     {
@@ -1374,10 +1430,11 @@ impl Application
     // for that tag keeps its reference strings. Fails when the tag is not registered
     // through [[Gui.registerLanguage]] or has no language file for any registered table,
     // so a mistyped tag cannot silently present itself as applied. Menus and
-    // command-driven controls pick the new strings up on their next update; text set once
-    // at construction keeps its wording until the window is created again, so a window
-    // that must follow the switch listens for the
-    // [[Gui.NotifyEvent.Kind.LanguageChanged]] notification.
+    // command-driven controls pick the new strings up on their next update. A [[Gui.Label]]
+    // bound with [[Gui.Label.setLocalizedText]] refreshes itself when notified; other text set
+    // once at construction keeps its wording until the window is created again, so a window
+    // that must follow the switch listens for the [[Gui.NotifyEvent.Kind.LanguageChanged]]
+    // notification or rebuilds itself.
     mtd setLanguage(tag: string) fail
     {
         try applyLanguage(&.resources, tag)
@@ -1485,8 +1542,12 @@ impl Application
             app.sendBroadcastNotifyEvent(wnd, .LanguageChanged)
         }
 
-        for s in .surfaces do
+        for s in .surfaces
+        {
             updateLanguage(me, s.wnd)
+            if not s.wnd.children.contains(s.wnd.view) do
+                updateLanguage(me, s.wnd.view)
+        }
     }
 
     // Sharpens the shared theme atlas for a surface at `scale`, and resolves every style again when it changed.

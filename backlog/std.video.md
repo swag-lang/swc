@@ -3,8 +3,9 @@
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
-and MPEG-4 Part 2 in AVI or Matroska. File-backed AVI exposes integer PCM tracks; ISO-BMFF
-exposes AAC-LC and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed RGB555 16-bit and RGB 24-/32-bit
+frames and exposes integer PCM tracks; ISO-BMFF
+sample-table tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
 Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 
@@ -315,6 +316,22 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   it scans chroma across a luma-unchanged region before falling back to per-macroblock checks.
   The gain therefore applies to regions unchanged in all three planes; it does not establish a
   general throughput gain for changing scenes. Focused Release H.264 tests passed 8/8.
+  Motion search now stops accumulating a candidate SAD once its partial score reaches the
+  strict winner bound; losing candidates cannot change the selected vector or output. Focused
+  Release H.264 tests passed 9/9 with this change. On a
+  1080p30 code-window scroll clip at QP 28/four slices, alternating baseline/candidate runs
+  averaged 364 to 325 ms (10.7% faster). Packet and MP4 sizes, decoded hashes, PSNR and SSIM
+  matched exactly. On a scaled-up 4K screen-content clip the candidate was effectively even
+  (503 vs 502 ms); on a changing full-screen 4K control it was 2.8% slower, within run
+  variation. These results are workload-dependent and the encode-only benchmark does not
+  establish a capture-cadence gain for a physical display.
+  BGRA-to-NV12 conversion now reuses its two packed SIMD loads to calculate adjacent 2×2
+  chroma blocks together. Two idle paired Release runs reduced conversion time per frame by
+  a median 15.5% at 1080p (1,247/1,071 to 1,047/912 µs) and 23.6% at 4K
+  (5,836/4,613 to 4,521/3,466 µs). The existing integer coefficients, rounding and clamp
+  are unchanged; 4K BGRA/BGR output parity and edge cases pass byte-for-byte checks. Focused
+  NV12 Release tests passed 10/10, including the 1080p and 4K conversion stresses. These are
+  conversion-only gains, not complete-recording cadence measurements.
   On the same virtual root with a changing full-screen background, two QP 28 runs per slice
   count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
   7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,
@@ -333,6 +350,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   Baseline/ultrafast at CRF 28 emitted 3.40 MB at 40.52 dB. Swag's encode-only timer was
   552 ms and x264's process took 317 ms, but those timings include different stages and are
   not directly comparable.
+  On a scaled 1080p30 desktop-code scroll at QP 28, Swag emitted 224 KB at 43.90 dB luma
+  PSNR and 0.9949 luma SSIM. x264 Baseline/veryfast at fixed QP 28 emitted 245 KB at
+  43.27 dB/0.9948; Baseline/ultrafast at CRF 28 emitted 392 KB at 43.72 dB/0.9941.
+  High/veryfast CRF 28 emitted 129 KB at 39.32 dB/0.9924. QP and CRF are not equivalent,
+  and x264 process time includes startup and muxing while Swag reports encode-only time.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
   A deterministic four-slice stress case now measures 100 alternating 4K P pictures at
@@ -388,8 +410,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   readback; codec-only timing does not choose the end-to-end slice count.
   `Mp4.SoftwareRecording` now accepts an optional `SoftwareVideoRateControl` with a target rate,
   reservoir capacity and bounded QP range. It feeds each completed packet's byte count and exact
-  frame-slot duration back into the controller, exposes the chosen QP, and prevalidates budget
-  arithmetic before encoding. Focused tests cover QP adaptation and bounds, repeated capture
+  frame-slot duration back into the controller, exposes the chosen QP and cumulative H.264 packet
+  bytes, and prevalidates budget arithmetic before encoding. Focused tests cover QP adaptation and
+  bounds, repeated capture
   slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
   guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
   detection. Treat a failed MP4 packet submission as terminal or make submission transactional.

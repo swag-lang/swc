@@ -1,6 +1,6 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264, H.265, MPEG-4 Part 2 and RealVideo 4 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding.
-//! Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
+//! Supported: H.264, H.265, MPEG-4 Part 2 and RealVideo 4 picture tracks, including Xiph, fixed, and EBML lacing with declared timestamps; AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio; and UTF-8 or ASS/SSA subtitle tracks, with cues, codec delay, and discard padding.
+//! Not supported: Other picture codecs, laced video without declared timing, bitmap subtitles, invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
 #global namespace Matroska
@@ -1590,8 +1590,6 @@ private impl Layout
             return
 
         let lacing = (flags >> 1) & 3
-        if isVideo and lacing do
-            fail UnsupportedFormatError{"video decoder does not support laced Matroska picture blocks"}
         if isVideo and flags & 0x08 do
             fail UnsupportedFormatError{"video decoder does not support invisible Matroska pictures"}
 
@@ -1599,15 +1597,59 @@ private impl Layout
         let track   = &.tracks[trackIndex]
         if isVideo
         {
-            var timestamp = try .timestampNanoseconds(clusterTimestamp, relative)
-            if track.codecId == RealVideoCodecId do
-                timestamp = try track.realVideoClock.presentationTime(cursor.bytes[payload until payload + .laceSizes[0]], track.headerStrip.toSlice(), timestamp)
             let isSync = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
-            track.videoSamples.add(SampleEntry{payload, .laceSizes[0], timestamp, isSync})
-            if track.videoSamples.count == 1 and track.needsInlineSetup()
+            let firstTimestamp = try .timestampNanoseconds(clusterTimestamp, relative)
+            var totalDuration = 0'u64
+            if blockDurationTicks
             {
-                let end = Math.min(payload + .laceSizes[0], cursor.bytes.count)
-                track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
+                if blockDurationTicks > Swag.U64.Max / .timestampScale do
+                    fail InvalidFormatError{"Matroska laced video block duration exceeds the supported range"}
+                totalDuration = blockDurationTicks * .timestampScale
+            }
+            elif track.defaultDuration
+            {
+                if track.defaultDuration > Swag.U64.Max / cast(u64, .laceSizes.count) do
+                    fail InvalidFormatError{"Matroska laced video default duration exceeds the supported range"}
+                totalDuration = track.defaultDuration * cast(u64, .laceSizes.count)
+            }
+            elif .laceSizes.count > 1 do
+                fail UnsupportedFormatError{"laced Matroska video needs DefaultDuration or BlockDuration timestamps"}
+
+            if .laceSizes.count > 1 and totalDuration < .laceSizes.count do
+                fail InvalidFormatError{"Matroska laced video block duration is too short for its frames"}
+
+            var frameOffset = payload
+            for size, index in .laceSizes
+            {
+                var timestamp = firstTimestamp
+                if index
+                {
+                    var offset: u64
+                    if blockDurationTicks
+                    {
+                        // Divide the whole block duration cumulatively so rounding cannot
+                        // accumulate across the laced frames.
+                        let count = cast(u64, .laceSizes.count)
+                        offset = totalDuration / count * index + totalDuration % count * index / count
+                    }
+                    else do
+                        offset = track.defaultDuration * index
+                    if offset > cast(u64, Swag.S64.Max) or timestamp > Swag.S64.Max - cast(s64, offset) do
+                        fail InvalidFormatError{"Matroska laced video timestamp exceeds the supported range"}
+                    timestamp += cast(s64, offset)
+                }
+
+                if track.codecId == RealVideoCodecId do
+                    timestamp = try track.realVideoClock.presentationTime(cursor.bytes[frameOffset until frameOffset + size], track.headerStrip.toSlice(), timestamp)
+                // The SimpleBlock/BlockGroup random-access flag describes the first
+                // lace; later payloads still need their own codec dependencies.
+                track.videoSamples.add(SampleEntry{frameOffset, size, timestamp, isSync and index == 0})
+                if track.videoSamples.count == 1 and track.needsInlineSetup()
+                {
+                    let end = Math.min(frameOffset + size, cursor.bytes.count)
+                    track.setup.add(Video.inlineSetupHeaders(cursor.bytes[frameOffset until end]))
+                }
+                frameOffset += size
             }
 
             return

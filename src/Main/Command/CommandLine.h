@@ -201,6 +201,7 @@ struct CommandLine
     bool output                  = true;
     bool outputDoc               = true;
     bool debugInfo               = false;
+    bool noRuntimeSymbols        = false;
     bool devStopDiagnostics      = true;
 
     bool devFull = false;

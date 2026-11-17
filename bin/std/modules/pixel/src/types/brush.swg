@@ -104,8 +104,11 @@ impl Brush
     {
         switch #complete .type
         {
-        case .SolidColor, .Hatch:
+        case .SolidColor:
             return .color.a == 255
+
+        case .Hatch:
+            return false
 
         case .Texture:
             return .color.a == 255 and not .texture.pixelFormat.hasAlpha()

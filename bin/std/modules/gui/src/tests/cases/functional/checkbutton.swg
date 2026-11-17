@@ -37,7 +37,12 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     Swag.require(not check.isChecked())
     Swag.require(check.state == .Unchecked)
     Swag.require(CheckButtonHeadlessChangedCount == 2)
-    Swag.require(host.commandCount == 2)
+
+    // The right edge of the original control rectangle remains clickable after the paint adjustment.
+    host.click({139, 35})
+    Swag.require(check.isChecked())
+    Swag.require(CheckButtonHeadlessChangedCount == 3)
+    Swag.require(host.commandCount == 3)
 }
 
 // The TriState flag adds the Indeterminate state to the standard toggle cycle.

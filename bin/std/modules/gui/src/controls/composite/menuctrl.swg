@@ -97,6 +97,7 @@ public struct MenuCtrl
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
     popupAnchorButton:       *IconButton?           // Icon button identified while its popup is open.
     popupButtonOpensUp:      bool                   // Whether an anchored menu opens above its button.
+    accessKeyRestoreFocus:   *Wnd? = null           // Focus to restore when an access-key-opened bar menu closes.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
     widgetUnderPointer:      *Wnd?                  // Hosted child currently receiving pointer movement.
@@ -185,7 +186,8 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            painter.drawRichString(labelPos, &it.name, format)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
+                              .surface?.accessKeysVisible orelse false)
         }
     }
 
@@ -295,7 +297,8 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            painter.drawRichString(labelPos, &it.name, format)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
+                              .surface?.accessKeysVisible orelse false)
 
             // Everything standing on the entry's line — the check mark, the glyph, the
             // submenu arrow — is levelled with the wording, not with the row.
@@ -759,7 +762,8 @@ impl MenuCtrl
             icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
-        painter.drawRichString(labelPos, &i.name, format)
+        drawAccessKeyText(painter, labelPos, &i.name, format, i.accessKey,
+                          .surface?.accessKeysVisible orelse false)
     }
 
     mtd setEndModal(result: WndId?)
@@ -791,7 +795,18 @@ impl MenuCtrl
         {
             .hideSubVisible()
             .postCommandEvent(result)
-            .setFocus()
+            let restore = .accessKeyRestoreFocus
+            let surface = .surface
+            .accessKeyRestoreFocus = null
+            if restore and surface and surface.containsWindow(restore) and
+               restore.focusPolicy != .None and restore.isEnabled() and restore.isVisible()
+            {
+                restore.setFocus()
+            }
+            else
+            {
+                .setFocus()
+            }
         }
 
         if p.bar
@@ -1225,19 +1240,26 @@ public impl MenuCtrl
 
     // Handles popup navigation when the menu or an enclosing panel owns keyboard focus.
     //
-    // Arrows skip headings, separators, notes, hidden and disabled entries. A hosted widget
-    // receives Left, Right, Enter and Space while its row is selected. The caller observes a
-    // completed choice through [[Gui.MenuCtrl.isModalEnded]] and [[Gui.MenuCtrl.modalResult]].
+    // Up and Down skip headings, separators, notes, hidden and disabled entries. Left and Right
+    // open a selected submenu toward its resolved side and return from a child toward its parent.
+    // A hosted widget receives those arrows, Enter and Space while its row is selected. The caller
+    // observes a completed choice through [[Gui.MenuCtrl.isModalEnded]] and [[Gui.MenuCtrl.modalResult]].
     mtd handleKeyboard(evt: *KeyEvent)
     {
         evt.accepted = false
-        if .bar or .endModal do
+        if .endModal do
             return
 
-        if evt.kind == .Character and
-           evt.character >= ' 'rune and
-           not evt.modifiers.has(.Control) and
-           not evt.modifiers.has(.Alt)
+        if evt.kind == .Character and evt.modifiers.has(.Alt) and not evt.modifiers.has(.Control)
+        {
+            evt.accepted = .activateAccessKey(evt.character)
+            return
+        }
+
+        if .bar do
+            return
+        if evt.kind == .Character and evt.character >= ' 'rune and
+           not evt.modifiers.has(.Control) and not evt.modifiers.has(.Alt)
         {
             let letter = Format.toString("%", evt.character)
             .selectKeyboardLetter(letter.toString())
@@ -1259,6 +1281,47 @@ public impl MenuCtrl
             evt.target = target
             if evt.accepted do
                 return
+        }
+
+        if evt.key == .Left or evt.key == .Right
+        {
+            // The arrow opposite the side a child opened on returns to its parent. Preserve
+            // the owning row as the parent's keyboard selection while hiding nested popups.
+            if .ownerMenu and .ownerMenu.subVisible == me
+            {
+                let owner = .ownerMenu
+                let index = owner.hotIdx
+                if index < owner.items.count and owner.items[index]!.popup == me
+                {
+                    let item = unwrap owner.items[index]
+                    let returnKey = item.submenuOpensLeft ? Input.Key.Right : Input.Key.Left
+                    if evt.key == returnKey
+                    {
+                        owner.hideSubVisible()
+                        owner.hotIdx      = Swag.U32.Max
+                        owner.selectedIdx = index
+                        evt.accepted = true
+                        return
+                    }
+                }
+            }
+
+            // Open the selected child in the direction it is shown. The layout pass resolves
+            // submenuOpensLeft from the configured direction and available room.
+            if not .bar and .selectedIdx < .items.count
+            {
+                let item = unwrap .items[.selectedIdx]
+                let openKey = item.submenuOpensLeft ? Input.Key.Left : Input.Key.Right
+                if item.popup != null and evt.key == openKey
+                {
+                    .hotIdx = .selectedIdx
+                    .showHotPopup()
+                    evt.accepted = .subVisible != null
+                    return
+                }
+            }
+
+            return
         }
 
         switch evt.key
@@ -1300,6 +1363,46 @@ public impl MenuCtrl
         }
 
         evt.accepted = true
+    }
+
+    // Activates the sole enabled menu item whose explicit access key matches `key`.
+    internal mtd activateAccessKey(key: rune)->bool
+    {
+        var match = Swag.U64.Max
+        for item, index in .items
+        {
+            let entry = unwrap item
+            if entry.hidden or entry.disabled or entry.separator or entry.note or entry.accessKey == 0 do
+                continue
+            if Unicode.toLower(entry.accessKey) != Unicode.toLower(key) do
+                continue
+            if match != Swag.U64.Max do
+                return false
+            match = index
+        }
+        if match == Swag.U64.Max do
+            return false
+
+        let entry = unwrap .items[match]
+        .hotIdx = cast(u32, match)
+        if entry.popup != null
+        {
+            if .bar do
+                .accessKeyRestoreFocus = .app().keyboardFocusWnd
+            .showHotPopup()
+            return true
+        }
+        if entry.widget
+        {
+            entry.widget.setFocus()
+            return true
+        }
+        if entry.id
+        {
+            .setEndModal(entry.id)
+            return true
+        }
+        return false
     }
 
     private mtd canSelectKeyboard(index: u64)->bool

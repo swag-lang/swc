@@ -52,6 +52,31 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     }
 }
 
+// Bit iteration keeps its logical index across continue and exits across word boundaries on break.
+#test
+{
+    var values: BitArray
+    values.resize(40)
+    for index in values.count do
+        values[index] = index % 2 != 0
+
+    var visited = 0'u64
+    var indexSum = 0'u64
+    for value, index in values
+    {
+        if index % 2 == 0 do
+            continue
+
+        Swag.require(value)
+        visited += 1
+        indexSum += index
+        if index == 35 do
+            break
+    }
+
+    Swag.require(visited == 18 and indexSum == 324)
+}
+
 #test
 {
     var values: BitArray
@@ -123,6 +148,32 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     values.setAll(false)
     for index in values.count do
         Swag.require(not values[index])
+}
+
+#test
+{
+    let lengths: [7] u64 = [0, 1, 31, 32, 33, 65, 129]
+    for length in lengths
+    {
+        var values: BitArray
+        values.resize(length)
+        Swag.require(values.countSetBits() == 0)
+
+        values.setAll(true)
+        Swag.require(values.countSetBits() == length)
+
+        values.setAll(false)
+        var expected = 0'u64
+        for index in length
+        {
+            let isSet = index % 3 == 0
+            values[index] = isSet
+            if isSet do
+                expected += 1
+        }
+
+        Swag.require(values.countSetBits() == expected)
+    }
 }
 
 // Logic operations cross four-word SIMD batches and preserve the unused bits

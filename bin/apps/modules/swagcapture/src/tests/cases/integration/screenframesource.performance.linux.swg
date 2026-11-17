@@ -95,9 +95,9 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
     fallback.disableSharedMemory()
     var shared = expect X11Capture.create()
     var expected: Image
-    var actual:   Image
-    expect fallback.imageInto(&expected, false, 0, 0, width, height)
-    expect shared.imageInto(&actual, false, 0, 0, width, height)
+    var actual: Image
+    discard expect fallback.imageInto(&expected, false, 0, 0, width, height)
+    discard expect shared.imageInto(&actual, false, 0, 0, width, height)
     Swag.require(expected.byteCount == actual.byteCount)
     Swag.require(Memory.compare(expected.pixels.storage(), actual.pixels.storage(), expected.byteCount) == 0)
     Swag.require(actual.pixelColor(14, 16).argb == Argb.Red)
@@ -111,9 +111,9 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
 {
     var capture = expect X11Capture.create()
     var frame: Image
-    expect capture.imageInto(&frame, false, 0, 0, 32, 16)
+    discard expect capture.imageInto(&frame, false, 0, 0, 32, 16)
     let firstSize = capture.sharedMemorySize()
-    expect capture.imageInto(&frame, false, 0, 0, 64, 32)
+    discard expect capture.imageInto(&frame, false, 0, 0, 64, 32)
     Swag.require(frame.width == 64 and frame.height == 32)
     if capture.usesSharedMemory() do
         Swag.require(firstSize == 32 * 16 * 4 and capture.sharedMemorySize() == 64 * 32 * 4)

@@ -34,6 +34,7 @@ struct Label
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted with the target of the link the user activates.
+        accessKeyTarget: *Wnd? = null     // Same-surface window focused when this label's access key is chosen.
 
         readonly
         {
@@ -54,6 +55,7 @@ struct Label
     }
 
     letterSpacing: f32
+    localizedTextSource: const *string? = null     // Borrowed catalog field refreshed on language changes.
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
     hotChunk:   *RichChunk?
@@ -62,6 +64,13 @@ struct Label
 
 impl IWnd for Label
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        .wnd.IWnd.onNotifyEvent(evt)
+        if evt.kind == .LanguageChanged do
+            .refreshLocalizedText()
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let pos = .surfaceToLocal(evt.surfacePos)
@@ -211,7 +220,8 @@ impl IWnd for Label
                                      (.activeLink < .name.chunks.count and chunk.urlStart == .name.chunks[.activeLink].urlStart and .hasVisibleFocus())
             }
 
-            painter.drawRichString(posText, &.name, sf)
+            drawAccessKeyText(painter, posText, &.name, sf, me.accessKey,
+                              .surface?.accessKeysVisible orelse false)
         }
     }
 
@@ -353,15 +363,28 @@ impl Label
         return lbl
     }
 
-    // Replaces the displayed text with the literal `text` and reapplies automatic sizing.
+    // Replaces the displayed text with the literal `text`, detaches any catalog binding, and reapplies automatic sizing.
     //
     // No character of `text` is interpreted, so outside text is safe as it is.
     mtd setText(text: string?)
     {
+        .localizedTextSource = null
         if .name.isPlain() and .name == (text orelse "") do
             return
         .name.set(text)
         .textChanged()
+    }
+
+    // Binds the label to a string-table field that the active language retargets.
+    //
+    // `source` is borrowed for the label's lifetime and must point to a field in a table that
+    // remains alive that long. A later call to [[Gui.Label.setText]], [[Gui.Label.setMarkup]],
+    // or [[Gui.Label.setRichText]] detaches the binding.
+    mtd setLocalizedText(source: const *string)
+    {
+        Swag.assert(source != null, "localized text source is required")
+        .localizedTextSource = source
+        .refreshLocalizedText()
     }
 
     // Replaces the displayed text with a sentence written in inline markup.
@@ -370,6 +393,7 @@ impl Label
     // [[Pixel.RichString.escape]] before formatting it into the sentence.
     mtd setMarkup(markup: string?)
     {
+        .localizedTextSource = null
         .name.setMarkup(markup)
         .textChanged()
     }
@@ -377,7 +401,17 @@ impl Label
     // Replaces the displayed text with a copy of the styled runs of `text`.
     mtd setRichText(text: RichString)
     {
+        .localizedTextSource = null
         .name = text
+        .textChanged()
+    }
+
+    // Copies the current string-table value into the label and refreshes its presentation.
+    private mtd refreshLocalizedText()
+    {
+        if not .localizedTextSource do
+            return
+        .name.set(.localizedTextSource[])
         .textChanged()
     }
 

@@ -335,13 +335,12 @@ impl MainWindow
     // Runs one command of the window, and reports whether it was one.
     mtd runCommand(id: WndId)->bool
     {
-        let path = String.from(.chosenPath)
         switch id
         {
         case VaultCommands.ShowWindow:       .resident.showWindow()
         case VaultCommands.UnmountAll:       .resident.unmountAll(quit: false)
         case VaultCommands.Quit:             .resident.unmountAll(quit: true)
-        case VaultCommands.ForceUnmount:     .forceUnmountVault(path)
+        case VaultCommands.ForceUnmount:     .forceUnmountVault(String.from(.chosenPath))
         case VaultCommands.Resident:         .resident.setEnabled(not .resident.settings.enabled)
         case VaultCommands.SessionStartup:   .resident.setSessionStartup(not .resident.settings.startWithSession)
         case VaultCommands.Lens:             .lens.open()
@@ -350,16 +349,16 @@ impl MainWindow
         case VaultCommands.Vaults:           .goBack()
         case VaultCommands.Options:          .showPage(.Options)
         case VaultCommands.Mount:            .mountContainer()
-        case VaultCommands.Unmount:          .unmountVault(path)
-        case VaultCommands.OpenDrive:        .openDrive(path)
+        case VaultCommands.Unmount:          .unmountVault(String.from(.chosenPath))
+        case VaultCommands.OpenDrive:        .openDrive(String.from(.chosenPath))
         case VaultCommands.ReadOnly:         .toggleReadOnly()
         case VaultCommands.ProtectHidden:    .toggleProtectHidden()
-        case VaultCommands.AtStartup:        .toggleStartup(path)
+        case VaultCommands.AtStartup:        .toggleStartup(String.from(.chosenPath))
         case VaultCommands.ChangePassword:   .changeVaultPassword()
         case VaultCommands.ChangeKeyFiles:   .changeVaultKeyFiles()
         case VaultCommands.Resize:           .resizeVault()
         case VaultCommands.CreateHidden:     .createHiddenContainer()
-        case VaultCommands.Forget:           .forgetVault(path)
+        case VaultCommands.Forget:           .forgetVault(String.from(.chosenPath))
         case VaultCommands.Stop:             .stopLongOperation()
         case VaultCommands.PrivacyMode:      .privacyModeControl.toggle()
         case VaultCommands.UnmountOnLock:    .unmountOnLock.toggle()

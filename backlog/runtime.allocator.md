@@ -27,10 +27,25 @@ replace the allocator; a similar architecture alone does not establish comparabl
   instructions, but still reserves a 112-byte request frame and copies the caller location,
   hint, address, and size before the interface call. The compiler emits its `SanityRelease`
   marker at `IAllocator.free(&request)`, using `request.address`.
-- A `Allocator.freeAddress` prototype cut the emitted free path, but failed the inline lifecycle
-  sanity test: the released pointer was not marked as released after the helper call. The prototype
-  was removed rather than weakening the diagnostic. Before retrying this route, trace how the
-  compiler propagates freed-parameter summaries through concrete allocator methods and inline calls.
+- A concrete `Allocator.free(address, size)` prototype with a value-form `SanityRelease` marker
+  passed the inline alias, parameter, owning-field, null, and double-free lifecycle checks, and
+  custom allocators still received the full request. The type test needed to select that overload
+  made `Core.Memory.free` grow from 98 to 158 final Micro instructions, so the route was removed.
+  An exploratory 12-task Micro run kept all checksums, but those tasks do not exercise
+  `Core.Memory.free`; that result does not offset the measured function growth. The accompanying
+  compiler-summary extension was reverted after it caused unrelated core ownership errors.
+- A shared-lock scan of existing segments was also removed. Its exclusive recheck retried a page
+  whose one-shot OS commit had just failed, violating `allocator_os_failures.swg`'s fallback
+  contract. Skipping the rescan would risk creating a segment while another thread had made a page
+  available; a correct retry protocol needs to distinguish failed claims from concurrent changes.
+- `allocator.concurrent.swg` now also allocates 256 blocks on a page owned by the current thread,
+  starts four remote-free workers behind a shared gate to free them in parallel, then checks that
+  `trim()` can collect remote frees while they are arriving and later retire the empty page and
+  segment. This exercises remote-free publication on Linux, where the native `CreateThread`
+  allocator stress tests are not built.
+- Validation on Linux: the full `core` suite passed 1,130 tests in devmode/native and 1,129 in
+  release-safe/native. The native allocator suite passed 73 tests in devmode and 49 in
+  release-safe; the targeted concurrency case also passes JIT and native execution.
 - Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
   allocators and a default-allocator fast implementation. Preserve frees summaries and
   `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to

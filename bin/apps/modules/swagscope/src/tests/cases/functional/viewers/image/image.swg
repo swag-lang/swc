@@ -78,6 +78,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     let image = expect Picture.loadViewerImage(fileName)
     Swag.require(image.width == 20 and image.height == 40)
+    let thumbnail = expect Picture.loadThumbnail(fileName, 16)
+    Swag.require(thumbnail.width == 8 and thumbnail.height == 16)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)

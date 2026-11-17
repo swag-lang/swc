@@ -29,6 +29,8 @@ using Core, Pixel, Gui, Viewers
     Swag.require(Table.quantityOf("1,234.5", &value) and value == 1234.5)
     Swag.require(Table.quantityOf("12 %", &value) and value == 12)
     Swag.require(not Table.quantityOf("-", &value) and not Table.quantityOf("1.2.3", &value))
+    Swag.require(not Table.quantityOf("1,12,345", &value) and
+                 not Table.quantityOf("1,234.5,678", &value))
 }
 
 #test

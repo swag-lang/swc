@@ -19,6 +19,13 @@ internal func qpcTicksToMicroseconds(ticks, frequency: u64)->u64
     return frequency ? scaled : 0
 }
 
+internal func frameAgeAt(now, capturedAt: u64)->u64
+{
+    if not capturedAt do
+        return 0
+    return now - capturedAt
+}
+
 #[Swag.Inline]
 internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
 {
@@ -51,20 +58,21 @@ struct SourceOptions
 // Cumulative acquisition costs for one [[Screen.Source]], in microseconds.
 struct SourceMetrics
 {
-    public acquiredFrames:       u64 // Desktop frames returned by the native source.
-    public unchangedFrames:      u64 // Polls with no newer desktop pixels.
+    public acquiredFrames:       u64 // Frames read from the native source, including pixel-identical images.
+    public unchangedFrames:      u64 // Polls where a backend detected no pixel change in the selected image; may overlap acquisitions.
     public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
+    public changeDetectionMicroseconds: u64 // CPU time checking pixels or metadata for selected-image changes.
     public readbackMicroseconds: u64 // CPU time submitting and waiting for native pixel readbacks.
     public maxReadbackMicroseconds: u64 // Longest single readback, including deferred CPU waits.
     public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
-    public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
+    public composeMicroseconds:  u64 // Time composing output images, cursor overlays and copies into the caller's image.
     public partialFrames:        u64 // Frames read through a region smaller than the selected output.
     public multiRectFrames:      u64 // Frames read through several bounded desktop update regions.
-    public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
+    public copiedPixels:         u64 // Pixels converted from native readback storage, including full frames.
     public mirroredPixels:       u64 // Pixels incrementally copied from the native cache into a stable caller image.
 }
 
@@ -101,6 +109,12 @@ struct Source
             cursorTargetImage:   u64
             cursorTargetStorage: u64
             cursorTargetReady:   bool
+        }
+        #static if #os == Swag.TargetOs.Linux
+        {
+            x11TargetImage:   u64
+            x11TargetStorage: u64
+            x11TargetReady:   bool
         }
     }
 }
@@ -172,6 +186,7 @@ impl Source
 
     // Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.
     // Selection follows [[Core.Env.monitorForPoint]]'s physical-coordinate policy.
+    // `includeCursor` requests pointer composition and defaults to false.
     func openMonitorAt(point: Math.Point, includeCursor: bool = false)->Source fail
     {
         let monitor = Env.monitorForPoint(point)
@@ -226,9 +241,9 @@ impl Source
         .pictures.add({})
     }
 
-    // Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.
+    // Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.
     //
-    // False means no new image is available yet, either because the desktop and cursor did not
+    // False means the backend reports no new image yet, either because the selected image and cursor did not
     // change or because a video readback is still pending. It is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
     // when the caller will reuse its previous encoded picture instead. A reusable target stays
@@ -249,10 +264,53 @@ impl Source
                 if native.options.x == .options.x and native.options.y == .options.y and
                    native.options.width == .options.width and native.options.height == .options.height
                 {
-                    let captured = try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
-                    if captured do
+                    let captured = try native.grabInto(&.composed, preserveOnTimeout: not copyUnchanged)
+                    let cached = &.pictures[0]
+                    let hasCachedFrame = cached.width == .options.width and
+                                         cached.height == .options.height and
+                                         cached.pixelFormat == .BGRA8
+                    var frameFresh = false
+                    if captured
+                    {
+                        if hasCachedFrame
+                        {
+                            let detectionStart = Time.monotonicMicroseconds()
+                            frameFresh = Memory.compare(cached.pixels.storage(), .composed.pixels.storage(),
+                                                        .composed.byteCount) != 0
+                            native.metrics.changeDetectionMicroseconds +=
+                                Time.monotonicMicroseconds() - detectionStart
+                        }
+                        else do
+                            frameFresh = true
+                        if frameFresh
+                        {
+                            Core.swap(cached, &.composed)
+                        }
+                        else
+                        {
+                            native.metrics.unchangedFrames += 1
+                        }
+                    }
+                    let targetReusable = .x11TargetReady and
+                                         target.width == .options.width and
+                                         target.height == .options.height and
+                                         target.pixelFormat == .BGRA8 and
+                                         cast(u64, target) == .x11TargetImage and
+                                         cast(u64, target.pixels.storage()) == .x11TargetStorage
+                    if (frameFresh or hasCachedFrame) and
+                       (frameFresh or copyUnchanged or not targetReusable)
+                    {
+                        if target.width != .options.width or target.height != .options.height or
+                           target.pixelFormat != .BGRA8 do
+                            target[] = Image.create(.options.width, .options.height, .BGRA8)
+                        copyFrameBytes(target.pixels.storage(), cached.pixels.storage(), target.byteCount)
+                        .x11TargetImage = cast(u64, target)
+                        .x11TargetStorage = cast(u64, target.pixels.storage())
+                        .x11TargetReady = true
+                    }
+                    if frameFresh do
                         .lastFrameCaptureTime = Time.monotonicMicroseconds()
-                    return captured
+                    return frameFresh
                 }
             }
         }
@@ -366,6 +424,11 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
+    // Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.
+    // Check lastFrameCaptureMicroseconds() to distinguish those cases.
+    // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
+    mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
+
     // Returns the display presentation time for the latest acquired frame, when the backend reports it.
     // The value shares the monotonic microsecond clock; zero means the backend has no presentation time.
     mtd const lastFramePresentationMicroseconds()->u64 => .lastFramePresentationTime
@@ -378,10 +441,12 @@ impl Source
         result.mirroredPixels = .mirroredPixels
         for source in .sources
         {
+            result.composeMicroseconds += source.metrics.composeMicroseconds
             result.acquiredFrames += source.metrics.acquiredFrames
             result.unchangedFrames += source.metrics.unchangedFrames
             result.coalescedUpdates += source.metrics.coalescedUpdates
             result.acquireMicroseconds += source.metrics.acquireMicroseconds
+            result.changeDetectionMicroseconds += source.metrics.changeDetectionMicroseconds
             result.maxAcquireMicroseconds = Math.max(result.maxAcquireMicroseconds,
                                                      source.metrics.maxAcquireMicroseconds)
             result.readbackMicroseconds += source.metrics.readbackMicroseconds
@@ -397,7 +462,7 @@ impl Source
         return result
     }
 
-    // Resets cumulative acquisition and composition counters without reopening the source.
+    // Resets cumulative SourceMetrics counters without reopening the source.
     // The native capture handles, cached frame and last frame capture time are preserved.
     mtd resetMetrics()
     {
@@ -422,6 +487,11 @@ impl Source
         {
             for source in .sources do
                 try source[].reopen()
+        }
+#static if #os == Swag.TargetOs.Linux
+        {
+            for index in .pictures.count do
+                .pictures[index] = {}
         }
         .lastFrameCaptureTime = 0
         .lastFramePresentationTime = 0

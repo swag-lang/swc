@@ -44,6 +44,8 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(entry.path == "OPS/chapters/part one.xhtml" and entry.fragment == "café")
     let same = Epub.NavigationEntry.resolve("OPS/part.xhtml", "#end")
     Swag.require(same.path == "OPS/part.xhtml" and same.fragment == "end")
+    let punctuated = Epub.NavigationEntry.resolve("OPS/part.xhtml", "#section:part")
+    Swag.require(punctuated.path == "OPS/part.xhtml" and punctuated.fragment == "section:part")
     for reference in ["https://example.org/a", "file:///tmp/private", "//host/a", "../../../secret",
                       "../%2e%2e/../secret", "%2fetc/passwd", "%5csecret", "%66ile:secret", "bad%QQ"]
     {

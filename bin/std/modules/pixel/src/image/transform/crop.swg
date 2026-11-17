@@ -51,6 +51,7 @@ impl Image
 
         var result: #returntype = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doCrop(&result, cx, cy, cw, ch)
+        result.metadata = .metadata
         return result
     }
 

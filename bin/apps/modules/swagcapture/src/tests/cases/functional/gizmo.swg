@@ -3,6 +3,26 @@
 
 using Swag, Core
 
+// Leaving a hovered point handle clears its hit target, while a captured drag keeps its point.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    var gizmo: GizmoPoints
+    gizmo.hotAnchor = 1
+    var leave = testMouse(.Leave)
+    Swag.require(gizmo.mouse(f.editView, {}, &leave))
+    Swag.require(gizmo.hotAnchor == Swag.U32.Max)
+
+    gizmo.moving = true
+    gizmo.hotAnchor = 2
+    leave = testMouse(.Leave)
+    Swag.require(gizmo.mouse(f.editView, {}, &leave))
+    Swag.require(gizmo.hotAnchor == 2)
+}
+
 // Gizmo rotation math stays stable without painting.
 #test
 {

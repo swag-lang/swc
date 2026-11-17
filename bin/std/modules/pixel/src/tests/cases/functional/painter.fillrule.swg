@@ -61,6 +61,111 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
     return renderCpu(40, 40, &painter)
 }
 
+private func renderConvexPolygon(clockwise: bool, usePolygonApi: bool)->Image
+{
+    var path: LinePath
+    path.start(5.25, 6.75)
+    if clockwise
+    {
+        path.lineTo(30.5, 8.25)
+        path.lineTo(19.75, 31.5)
+    }
+    else
+    {
+        path.lineTo(19.75, 31.5)
+        path.lineTo(30.5, 8.25)
+    }
+    path.close()
+
+    var painter: Painter
+    painter.begin()
+    painter.setAntialiased(true)
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    if usePolygonApi do
+        painter.fillPolygon(&path, Argb.Red)
+    else do
+        painter.fillPath(&path, Argb.Red)
+    painter.end()
+    return renderCpu(36, 38, &painter)
+}
+
+private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
+{
+    var path: LinePath
+    path.start(5, 5)
+    if clockwise
+    {
+        path.lineTo(31, 5)
+        path.lineTo(31, 13)
+        path.lineTo(15, 13)
+        path.lineTo(15, 31)
+        path.lineTo(5, 31)
+    }
+    else
+    {
+        path.lineTo(5, 31)
+        path.lineTo(15, 31)
+        path.lineTo(15, 13)
+        path.lineTo(31, 13)
+        path.lineTo(31, 5)
+    }
+    path.close()
+
+    var painter: Painter
+    painter.begin()
+    painter.setAntialiased(true)
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    if usePolygonApi do
+        painter.fillPolygon(&path, Argb.Red)
+    else do
+        painter.fillPath(&path, Argb.Red)
+    painter.end()
+    return renderCpu(36, 36, &painter)
+}
+
+// Convex path fills produce the same antialiased silhouette regardless of contour winding.
+#test
+{
+    for usePolygonApi in [false, true]
+    {
+        let clockwise    = renderConvexPolygon(true, usePolygonApi)
+        let anticlockwise = renderConvexPolygon(false, usePolygonApi)
+        Testing.assertImagesNear(&clockwise, &anticlockwise, "fill.convex.winding", {maxChannelDelta: 1})
+
+        let concaveClockwise     = renderConcavePolygon(true, usePolygonApi)
+        let concaveAnticlockwise = renderConcavePolygon(false, usePolygonApi)
+        Testing.assertImagesNear(&concaveClockwise, &concaveAnticlockwise, "fill.concave.winding", {maxChannelDelta: 1})
+    }
+}
+
+// Cleaning a counterclockwise concave contour for fill does not rewrite its cached winding.
+#test
+{
+    var path: LinePath
+    path.start(4, 4)
+    path.lineTo(4, 28)
+    path.lineTo(12, 28)
+    path.lineTo(12, 12)
+    path.lineTo(28, 12)
+    path.lineTo(28, 4)
+    path.close()
+    Swag.require(not path.polygon.isClockwise and not path.polygon.isConvex)
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Argb.Zero)
+    painter.fillPolygon(&path, Argb.Red)
+    painter.end()
+
+    Swag.require(not path.polygon.isClockwise)
+    let image = renderCpu(40, 40, &painter)
+    assertPixel(image, 8, 20, Argb.Red)
+    assertPixel(image, 20, 20, Argb.Zero)
+}
+
 // A simple concave contour is borrowed only while recording. Its cached tessellation survives
 // repeated fills, and the recorded vertices remain valid after the source contour is dropped.
 #test

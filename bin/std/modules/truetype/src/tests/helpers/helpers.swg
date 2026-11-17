@@ -321,33 +321,6 @@ func getFaceData(face: *Face?)->*FaceImpl
     return cast(*FaceImpl, cast(*void, safeFace))
 }
 
-func getOutlineBounds(outline: const *Outline)->BBox
-{
-    var result: #returntype
-    result.xMin = Swag.S32.Max
-    result.yMin = Swag.S32.Max
-    result.xMax = Swag.S32.Min
-    result.yMax = Swag.S32.Min
-
-    if outline.pointCount <= 0
-    {
-        result = {}
-        return result
-    }
-
-    let pts = unwrap outline.points
-    for index in cast(u32, outline.pointCount)
-    {
-        let pt = pts[index]
-        result.xMin = Math.min(result.xMin, pt.x)
-        result.yMin = Math.min(result.yMin, pt.y)
-        result.xMax = Math.max(result.xMax, pt.x)
-        result.yMax = Math.max(result.yMax, pt.y)
-    }
-
-    return result
-}
-
 func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
     if not bitmap.buffer do

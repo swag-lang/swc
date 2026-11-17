@@ -145,6 +145,100 @@ private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
     fail InvalidFormatError{"Ogg fixture has no eligible page for a continuation flag mutation"}
 }
 
+// Skips a page sequence number between the first two pages of the sound stream.
+private func oggSetHeaderSequenceGap(source: const [..] u8)->Array'u8 fail
+{
+    var serial        = 0'u32
+    var hasStream     = false
+    var offset        = 0'u64
+    for
+    {
+        if offset >= source.count do
+            break
+        let header = try Ogg.readPageHeader(source, offset)
+        let bytes  = header.totalBytes()
+        if bytes > source.count - offset do
+            fail InvalidFormatError{"Ogg test page runs past its fixture"}
+
+        if not hasStream and (header.flags & Ogg.FirstPage) != 0
+        {
+            serial = header.serial
+            hasStream = true
+        }
+        elif hasStream and header.serial == serial
+        {
+            if header.sequence > Swag.U32.Max - 2 do
+                fail InvalidFormatError{"Ogg test page sequence cannot carry a gap"}
+
+            var changedPage: Array'u8
+            changedPage.add(source[offset until offset + bytes])
+            let sequence = header.sequence + 2
+            for part in 4 do
+                changedPage[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF'u32)
+            oggRefreshTestChecksum(&changedPage)
+
+            var result: #returntype
+            result.add(source[until offset])
+            result.add(changedPage.toSlice())
+            result.add(source[offset + bytes to])
+            return result
+        }
+
+        offset += bytes
+    }
+
+    fail InvalidFormatError{"Ogg fixture has no second page of its sound stream"}
+}
+
+// Claims a header packet continues even though the preceding header page completed it.
+private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8 fail
+{
+    var serial    = 0'u32
+    var hasStream = false
+    var previous: OggTestPage
+    var offset = 0'u64
+    for
+    {
+        if offset >= source.count do
+            break
+        let header = try Ogg.readPageHeader(source, offset)
+        let bytes  = header.totalBytes()
+        if bytes > source.count - offset do
+            fail InvalidFormatError{"Ogg test page runs past its fixture"}
+
+        if not hasStream and (header.flags & Ogg.FirstPage) != 0
+        {
+            serial = header.serial
+            hasStream = true
+            previous = OggTestPage{offset, bytes, header}
+        }
+        elif hasStream and header.serial == serial
+        {
+            if not previous.header.segments or previous.header.lacing[previous.header.segments - 1] == 255 do
+                fail InvalidFormatError{"Ogg first header page does not complete its last packet"}
+            if (header.flags & Ogg.ContinuedPacket) != 0 do
+                fail InvalidFormatError{"Ogg second header page already continues a packet"}
+
+            var changedPage: Array'u8
+            changedPage.add(source[offset until offset + bytes])
+            changedPage[5] |= Ogg.ContinuedPacket
+            oggRefreshTestChecksum(&changedPage)
+
+            var result: #returntype
+            result.add(source[until offset])
+            result.add(changedPage.toSlice())
+            result.add(source[offset + bytes to])
+            return result
+        }
+
+        if hasStream and header.serial == serial do
+            previous = OggTestPage{offset, bytes, header}
+        offset += bytes
+    }
+
+    fail InvalidFormatError{"Ogg fixture has no second page of its sound stream"}
+}
+
 private func oggDecodePcm16(sound: const *SoundFile)->Array's16 fail
 {
     var result: #returntype
@@ -211,6 +305,36 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     let broken = expect oggSetUnexpectedContinuation(source.toSlice())
     let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                               Format.toString("audio-ogg-continuation-%.opus", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), broken.toSlice())
+
+    var rejected: Swag.Error
+    discard catch SoundFile.load(path.toString()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
+// Header pages of one Ogg stream must have consecutive sequence numbers too.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
+    let broken = expect oggSetHeaderSequenceGap(source.toSlice())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-ogg-header-sequence-%.ogg", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), broken.toSlice())
+
+    var rejected: Swag.Error
+    discard catch SoundFile.load(path.toString()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
+// Header pages must carry the continuation flag only when the previous page ends mid-packet.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
+    let broken = expect oggSetUnexpectedHeaderContinuation(source.toSlice())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-ogg-header-continuation-%.opus", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
     expect File.writeAllBytes(path.toString(), broken.toSlice())
 

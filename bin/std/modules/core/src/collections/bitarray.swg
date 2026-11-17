@@ -72,6 +72,19 @@ public impl BitArray
     // Returns the number of bits in the array.
     mtd const opCount()->u64 => .count
 
+    // Returns the number of bits set to `true`.
+    mtd const countSetBits()->u64
+    {
+        if not .count do
+            return 0
+
+        let buffer = .constDataPtr()
+        var result = 0'u64
+        for index in .wordCount() do
+            result += Math.countOnes(buffer[index])
+        return result
+    }
+
     // Releases the storage.
     mtd opDrop()
     {

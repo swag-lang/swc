@@ -147,9 +147,9 @@ JobResult CodeGenJob::execImpl()
 
     // Lifecycle intrinsics select operators after conditional impls have settled. A
     // rejected candidate means there is no hook; it is not a failed ordinary call.
-    SmallVector<SymbolFunction*> lifecycleDependencies;
-    symbolFunc_->appendLifecycleDependencies(lifecycleDependencies);
-    for (const SymbolFunction* dependency : lifecycleDependencies)
+    SmallVector<SymbolFunction*> dependencies;
+    symbolFunc_->appendLifecycleDependencies(dependencies);
+    for (const SymbolFunction* dependency : dependencies)
     {
         if (dependency->isExcludedByCondition())
             continue;
@@ -165,18 +165,19 @@ JobResult CodeGenJob::execImpl()
             return abortCodeGen(ctx(), *symbolFunc_, waitResult);
     }
 
-    for (const SymbolFunction* dependency : lifecycleDependencies)
+    for (const SymbolFunction* dependency : dependencies)
     {
         if (!dependency->isExcludedByCondition())
             symbolFunc_->addCallDependency(dependency);
     }
 
-    SmallVector<SymbolFunction*> deps;
-    symbolFunc_->appendCallDependencies(deps);
+    // Reuse the lifecycle buffer for the call graph snapshot.
+    dependencies.clear();
+    symbolFunc_->appendCallDependencies(dependencies);
 
     // Sema can grow the call graph until completion. Codegen can discover more
     // helpers, so refresh dependencies again before declaring completion.
-    for (const SymbolFunction* dep : deps)
+    for (const SymbolFunction* dep : dependencies)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
@@ -187,7 +188,7 @@ JobResult CodeGenJob::execImpl()
     }
 
     // Schedule dependencies before generating this body.
-    for (SymbolFunction* dep : deps)
+    for (SymbolFunction* dep : dependencies)
     {
         sema().compiler().tryEnqueueCodeGenJob(sema(), *dep, dep->declNodeRef());
     }
@@ -203,7 +204,7 @@ JobResult CodeGenJob::execImpl()
         {
             if (sema().compiler().buildCfg().backend.runsCostlyOptimizations())
             {
-                const JobResult waitResult = waitLeafCalleesLowered(deps.span());
+                const JobResult waitResult = waitLeafCalleesLowered(dependencies.span());
                 if (waitResult != JobResult::Done)
                     return waitResult;
             }
@@ -238,12 +239,13 @@ JobResult CodeGenJob::execImpl()
         bodyEmitted_ = true;
     }
 
-    SmallVector<SymbolFunction*> finalDeps;
-    symbolFunc_->appendCallDependencies(finalDeps);
+    // The pre-codegen snapshot is no longer used; reuse its storage for the final graph.
+    dependencies.clear();
+    symbolFunc_->appendCallDependencies(dependencies);
 
     // Join every dependency seen after codegen, including newly discovered
     // helpers. Each must be lowered before this function is complete.
-    for (SymbolFunction* dep : finalDeps)
+    for (SymbolFunction* dep : dependencies)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)

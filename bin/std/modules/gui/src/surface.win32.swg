@@ -232,7 +232,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             discard RemovePropW(hWnd, Surface.identityProperty(surface.surfaceId).buffer)
             break
 
-        case WM_SYSKEYDOWN, WM_SYSKEYUP, WM_SYSCHAR:
+        case WM_SYSKEYDOWN, WM_SYSKEYUP:
+            return 0
+
+        case WM_SYSCHAR:
+            let scanCode = cast(UINT, (lParam & 0xFF0000)) >> 16
+            let x        = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX)
+            let key      = Input.Keyboard.virtualKeyToKey(x)
+            let modifiers = surface.app.keyboard.pressedModifiers() | Input.KeyModifiers.Alt
+            surface.app.sendRuneEvent(key, cast(rune, wParam), modifiers)
             return 0
 
         case WM_KEYDOWN, WM_KEYUP:

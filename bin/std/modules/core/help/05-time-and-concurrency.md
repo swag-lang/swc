@@ -16,6 +16,10 @@ Core's: tasks and parallel loops belong to the runtime.
 | Mutual exclusion, events, and read/write locking | [[Core.Sync]] |
 | Lock-free counters and values | [[Core.Atomic]] |
 
+Use [[Core.Threading.Thread.waitFor]] to join a thread within a deadline; timeout retains its
+handle so it can be waited on again. Use [[Core.Sync.Event.waitFor]] for a bounded wait that
+distinguishes a signal from timeout without polling.
+
 Prefer a runtime task for independent CPU work: one process has one worker
 budget, whichever module submits to it. Use a dedicated thread for a long-lived
 blocking activity or a subsystem that requires thread affinity. Keep critical

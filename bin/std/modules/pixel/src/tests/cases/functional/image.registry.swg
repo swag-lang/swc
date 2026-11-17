@@ -64,6 +64,25 @@ struct RegistryDecoder
     marker: u32 = 0x1234
 }
 
+struct TruncatedPixelDecoder {}
+
+impl IImageDecoder for TruncatedPixelDecoder
+{
+    mtd impl format()->ImageFormat => {"Truncated pixel output", ".truncatedpixels"}
+
+    mtd impl decode(_: const [..] u8, options: DecodeOptions)->Image fail
+    {
+        var result: Image
+        result.init(1, 1, .RGBA8)
+        if options.decodePixels
+        {
+            result.allocPixels()
+            result.pixels.resize(3)
+        }
+        return result
+    }
+}
+
 impl RegistryDecoder
 {
     mtd opDrop()
@@ -154,4 +173,18 @@ internal impl Image
     let backing: IAllocator = &registryAllocator
     var request: AllocatorRequest
     backing.freeAll(&request)
+}
+
+// Direct decoding rejects incomplete pixels but permits metadata-only results.
+#test
+{
+    Image.registerDecoder'(TruncatedPixelDecoder)()
+
+    var errorOutcome: Swag.Error
+    var image: #decltype(expect Image.decode("image.truncatedpixels", "input"))
+    catch { image = try Image.decode("image.truncatedpixels", "input") } as errorOutcome
+    Swag.require((errorOutcome.value() is InvalidFormatError))
+
+    let probe = expect Image.decode("image.truncatedpixels", "input", {decodePixels: false})
+    Swag.require(probe.width == 1 and probe.height == 1 and probe.byteCount == 4 and probe.pixels.count == 0)
 }

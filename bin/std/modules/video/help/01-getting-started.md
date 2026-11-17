@@ -42,17 +42,20 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 
 | Extension | Reads | Writes | Costs |
 | --- | --- | --- | --- |
-| `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values. |
-| `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture. |
-| `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC or Layer III audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
+| `.y4m` | 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:1:1, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values. |
+| `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit, RGB 24-bit, or RGB 32-bit frames; integer PCM audio | Motion JPEG | BI_RGB 16-bit frames use the default RGB555 layout. The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture. |
+| `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC, AC-3, or Layer III audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
+| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks, including Xiph, fixed, and EBML video lacing; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
 
 YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the
-stream. AVI reads offsets from the container index, and ISO-BMFF expands its chunk and sample
-tables once when the stream opens.
+stream. Its `Awidth:height` tag sets sample aspect ratio for `Reader.displayWidth` and
+`Reader.displayHeight`; `A0:0` leaves stored geometry unchanged. AVI reads offsets from the
+container index, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
 H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode
 prediction dependencies forward, so a distant random seek costs the group of pictures it enters
 rather than one frame.
+Laced Matroska video pictures use `DefaultDuration`, or share a declared `BlockDuration`; the
+reader rejects a multi-picture block when neither supplies a reliable timestamp step.
 
 ## Reading sound tracks
 
@@ -63,8 +66,8 @@ in parallel without sharing a seek position or retaining compressed payloads. Ma
 every supported track and puts the container's default track at index zero.
 
 Memory-backed readers expose pictures but no sound track because a voice needs an independently
-owned streaming cursor. AVI exposes integer PCM tracks; ISO-BMFF exposes AAC-LC mono/stereo and
-Layer III tracks. Matroska exposes AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core,
+owned streaming cursor. AVI exposes integer PCM tracks; ISO-BMFF exposes AAC-LC mono/stereo, AC-3,
+and Layer III tracks. Matroska exposes AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core,
 FLAC, Layer III, Vorbis, and Opus
 tracks within the channel counts their decoders support, preserves their speaker order, and
 subtracts `CodecDelay` priming from playback and seeking. Unsupported
@@ -81,12 +84,18 @@ try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
 ```
 
 [[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]] both select the JPEG quality of their Motion JPEG
-frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.
+frames. MP4 options can also set `pixelAspectWidth` and `pixelAspectHeight` to write a `pasp` pixel
+aspect ratio; leave both zero to omit it. It preserves coded frame dimensions while readers report
+the corresponding display geometry. [[Y4m.EncodeOptions]] selects 4:1:1, 4:2:0, 4:2:2, or 4:4:4
+planar chroma output; the default is 4:4:4. Subsampled output averages chroma over its sampling
+group. 4:1:1 needs width divisible by four; 4:2:0 and 4:2:2 need even width, and 4:2:0 also needs
+even height.
 
 The fragmented software H.264 recorder accepts [[Mp4.SoftwareVideoRateControl]] to steer its
 per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does
 not guarantee a per-frame bitrate or final file size; query
-`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot.
+`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot,
+and `SoftwareRecording.videoPacketByteCount` for the cumulative H.264 packet payload bytes accepted.
 
 ## Adding a format
 

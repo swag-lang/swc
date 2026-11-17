@@ -190,6 +190,25 @@ using Swag, Core
     Swag.require(Slice.equals(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
 }
 
+// WAVEFORMATEXTENSIBLE cannot claim more significant sample bits than its container holds.
+#test
+{
+    let source    = expect File.readAllBytes(audioGetTestDataPath("pcm24_extensible_stereo.wav"))
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-valid-bits-%.wav", Guid128.random()))
+    defer discard catch File.delete(temporary)
+
+    var bytes  = source
+    var writer = ByteStream.openWrite(&bytes)
+    writer.setPosition(38) // fmt payload offset 18: valid bits in WAVEFORMATEXTENSIBLE.
+    writer.writeLittleEndian(25'u16)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary) as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 #test
 {
     let path = audioGetTestDataPath("float32_extensible_mono.wav")

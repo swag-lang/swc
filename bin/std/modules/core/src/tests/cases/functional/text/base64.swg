@@ -96,6 +96,14 @@ func base64Reference(bytes: const [..] u8)->String
     discard catch Base64.decode("Z=g=") as misplacedPaddingOutcome
     let misplacedPadding = misplacedPaddingOutcome.value()
     Swag.require(misplacedPadding != null)
+
+    var lowTailBitsOutcome: Swag.Error
+    discard catch Base64.decode("Zh") as lowTailBitsOutcome
+    Swag.require(lowTailBitsOutcome.value() is Errors.InvalidFormatError)
+
+    var lowFinalBitsOutcome: Swag.Error
+    discard catch Base64.decode("Zm9") as lowFinalBitsOutcome
+    Swag.require(lowFinalBitsOutcome.value() is Errors.InvalidFormatError)
 }
 
 // Output limits cap reserve and every scalar/vector append while preserving whitespace support.

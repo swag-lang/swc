@@ -174,7 +174,8 @@ Result NativeRDataCollector::emitReachableAllocations()
         const DataSegment&           segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
         const DataSegmentAllocation& allocation = entry.allocation->source;
 
-        const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_->mergedRData.bytes.size()), std::max(allocation.align, 1u));
+        const uint32_t alignment     = std::max(allocation.align, 1u);
+        const uint32_t emittedOffset = Math::alignUpU32(static_cast<uint32_t>(builder_->mergedRData.bytes.size()), alignment);
         builder_->mergedRData.bytes.resize(emittedOffset + allocation.size);
 
         const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
@@ -190,7 +191,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         mapEntry.shardIndex    = entry.shardIndex;
         mapEntry.sourceOffset  = allocation.offset;
         mapEntry.size          = allocation.size;
-        mapEntry.align         = std::max(allocation.align, 1u);
+        mapEntry.align         = alignment;
         mapEntry.emittedOffset = emittedOffset;
         mapEntry.zeroFilled    = zeroFilled;
         builder_->mergedRData.requireAlignment(mapEntry.align);

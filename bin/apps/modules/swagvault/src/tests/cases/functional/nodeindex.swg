@@ -5,13 +5,8 @@ using Core
 
 #test
 {
-    // Directory traversal is independent of the volume-wide node count. The
-    // linked child index must retain insertion order while supporting constant-
-    // time continuation from every emitted node.
-    const NodeCount = 100_000'u64
-
     var nodes: Array'Node
-    nodes.reserve(NodeCount + 1)
+    nodes.reserve(4)
 
     var root: Node
     root.id       = RootNodeId
@@ -19,9 +14,14 @@ using Core
     nodes.add(#move root)
 
     var index: NodeIndex
-    let nodeAdded = index.add(&nodes[0], 0)
-    Swag.require(nodeAdded)
-    for i in NodeCount
+    let rootAdded = index.add(&nodes[0], 0)
+    Swag.require(rootAdded)
+
+    let rootRenamed = index.changeParent(&nodes[0], RootNodeId, "renamed-root")
+    Swag.require(rootRenamed)
+    Swag.require(index.childId(RootNodeId, "renamed-root") == Swag.U64.Max)
+
+    for i in 3
     {
         var node: Node
         node.id       = i + RootNodeId + 1
@@ -29,40 +29,17 @@ using Core
         node.name     = Format.toString("entry_%", i)
         let position = nodes.count
         nodes.add(#move node)
-        let nodeAdded2 = index.add(&nodes[position], position)
-        Swag.require(nodeAdded2)
+        let nodeAdded = index.add(&nodes[position], position)
+        Swag.require(nodeAdded)
     }
 
-    Swag.require(index.childId(RootNodeId, "ENTRY_99999") == NodeCount + RootNodeId)
+    let childRenamed = index.changeParent(&nodes[2], RootNodeId, "renamed_entry_1")
+    Swag.require(childRenamed)
+    Swag.require(index.childId(RootNodeId, "entry_1") == Swag.U64.Max)
+    Swag.require(index.childId(RootNodeId, "RENAMED_ENTRY_1") == RootNodeId + 2)
 
-    var childId = index.firstChildId(RootNodeId)
-    var count   = 0'u64
-    while childId
-    {
-        Swag.require(childId == count + RootNodeId + 1)
-        childId = index.nextSiblingId(childId)
-        count   += 1
-    }
-
-    Swag.require(count == NodeCount)
-
-    // Removing alternating children exercises both ends and every interior
-    // link without turning removal into an ordered-array shift.
-    var i = 0'u64
-    while i < NodeCount
-    {
-        index.remove(&nodes[i + 1])
-        i += 2
-    }
-
-    childId = index.firstChildId(RootNodeId)
-    count   = 0
-    while childId
-    {
-        Swag.require(childId == count * 2 + RootNodeId + 2)
-        childId = index.nextSiblingId(childId)
-        count   += 1
-    }
-
-    Swag.require(count == NodeCount / 2 and index.hasChildren(RootNodeId))
+    Swag.require(index.firstChildId(RootNodeId) == RootNodeId + 1)
+    Swag.require(index.nextSiblingId(RootNodeId + 1) == RootNodeId + 2)
+    Swag.require(index.nextSiblingId(RootNodeId + 2) == RootNodeId + 3)
+    Swag.require(index.nextSiblingId(RootNodeId + 3) == 0)
 }

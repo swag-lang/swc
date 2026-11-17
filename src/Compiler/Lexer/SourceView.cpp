@@ -8,19 +8,8 @@
 SWC_BEGIN_NAMESPACE();
 
 SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
-    ref_(ref)
+    SourceView(ref, file, file ? file->sourceView() : std::string_view{})
 {
-    if (file)
-    {
-        file_         = file;
-        fileRef_      = file->ref();
-        ownerFileRef_ = fileRef_;
-        stringView_   = file->sourceView();
-    }
-
-#if SWC_HAS_REF_DEBUG_INFO
-    ref_.dbgPtr = this;
-#endif
 }
 
 SourceView::SourceView(SourceViewRef ref, const SourceFile* file, const std::string_view content) :

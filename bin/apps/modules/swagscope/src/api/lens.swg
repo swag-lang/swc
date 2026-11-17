@@ -21,8 +21,9 @@ struct LensEntries
 
     theme:        *Theme
     section:      *Lens.Section?
-    labelQuery:   String     // Query the label was last matched against.
-    labelAnswers: bool       // Whether that query names the viewer, which brings every row.
+    labelQuery:   String         // Query the label was last matched against.
+    folded:       Lens.Query     // That query folded once, to match every row against.
+    labelAnswers: bool           // Whether that query names the viewer, which brings every row.
 }
 
 impl LensEntries
@@ -40,14 +41,16 @@ impl LensEntries
     mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
     {
         // A viewer adds dozens of rows for each keystroke, and the label is the same for all of
-        // them, so it is matched once per query rather than once per row.
+        // them, so it is matched once per query rather than once per row, and the query is
+        // folded once for every row.
         if .labelQuery != .query
         {
             .labelQuery   = .query
-            .labelAnswers = Lens.match(.query, .label).matched
+            .folded       = Lens.Query.create(.query)
+            .labelAnswers = Lens.match(.folded, .label).matched
         }
 
-        if not .labelAnswers and not Lens.match(.query, title).matched do
+        if not .labelAnswers and not Lens.match(.folded, title).matched do
             return null
         if not .section do
             .section = .results.addSection(.label)

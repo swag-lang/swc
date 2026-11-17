@@ -190,7 +190,7 @@ using Core, Gui, Gui.Testing, Viewers
     window.lens.open(":2")
     host.finishAnimations()
     let section = unwrap window.lens.results.sections[0]
-    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2))
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2) and section.entries[0].lead == "2")
     section.entries[0].run!()
     window.lens.close()
     host.finishAnimations()

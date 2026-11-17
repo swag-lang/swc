@@ -192,6 +192,26 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
     Swag.require(view.playModeButton.position.right() <= view.actions.clientRect().right())
+
+    // The lens reads the zoom in force: the fit first, then the actual size chosen from its row.
+    func zoomRow(view: *Picture.Panel, host: *Gui.Testing.HeadlessHost, title: string, results: *Lens.Results)->*Lens.Entry?
+    {
+        var entries = Viewer.LensEntries.create(results, "Image", host.theme)
+        view.describeLens(&entries)
+        for &entry in results.sections[0]!.entries where entry.title == title do
+            return entry
+        Swag.require(false, title)
+        return null
+    }
+
+    var fitted: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, Picture.texts().ui_TipFit, &fitted)).checked)
+    var actualSize: Lens.Results
+    (unwrap zoomRow(view, &host, appStrings().cmd_ZoomReset, &actualSize)).run!()
+    var actual: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomReset, &actual)).checked)
+    var unfitted: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, Picture.texts().ui_TipFit, &unfitted)).checked)
 }
 
 // A decoder refusal crosses the viewer boundary as data; the viewer creates no competing error UI.

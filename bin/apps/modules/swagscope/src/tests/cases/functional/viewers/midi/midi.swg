@@ -98,7 +98,20 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
     Swag.require(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
-    viewer.roll.zoomToFit()
+
+    // The lens fits the score back, as `F` does.
+    var zoomed: Lens.Results
+    var zoomedEntries = Viewer.LensEntries.create(&zoomed, "MIDI", host.theme)
+    viewer.describeLens(&zoomedEntries)
+    var fitRows = 0
+    for &entry in zoomed.sections[0]!.entries where entry.title == Midi.texts().ui_Fit
+    {
+        Swag.require(not entry.checked and not entry.disabled)
+        entry.run!()
+        fitRows += 1
+    }
+
+    Swag.require(fitRows == 1 and viewer.roll.fit)
 
     host.root.applyLayout()
     Swag.require(viewer.optionsButton.parent == viewer.info and viewer.zoomLabel.parent == viewer.info)

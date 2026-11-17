@@ -5185,7 +5185,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(success)
 }</span></div>
 <h3 id="_005_005_switch_swg_Using_the__where__Clause_in__switch_">Using the <span class="code-inline">where</span> Clause in <span class="code-inline">switch</span></h3>
-<p>Add a <span class="code-inline">where</span> clause to a <span class="code-inline">case</span> to refine matching conditions based on additional logic.</p>
+<p>Add a <span class="code-inline">where</span> clause to a <span class="code-inline">case</span> to refine matching conditions based on additional logic. The case values are tested first, and the guard is evaluated only when one of them matched, so a guard with a cost or a side effect runs only for the values its case selects. A <span class="code-inline">fallthrough</span> into a value case enters its body without testing its values or its guard.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x = <span class="SNum">6</span>

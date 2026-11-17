@@ -157,6 +157,17 @@ const EmbeddedOther = [111'u8, 107]
     Swag.require(names[0] == "lang/fr.tweak")
 }
 
+// Listing skips a missing optional folder and still returns embedded resources.
+#test
+{
+    var bundle: Resources.Bundle
+    bundle.addFolder(CoreTests.makeFilesystemTestPath("core_bundle_missing_list").toString())
+    bundle.addEmbedded("fallback.bin", EmbeddedOther)
+
+    let names = bundle.list("")
+    Swag.require(names.count == 1 and names[0] == "fallback.bin")
+}
+
 // Disk resource names cannot escape their registered folder through parent segments.
 #test
 {

@@ -69,6 +69,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(not view.failureReason.isEmpty())
+
+    // A file that is no font has no specimen to redraw when the sample or the language changes.
+    view.sampleEdit.setText("Sample")
+    host.notify(.LanguageChanged)
 }
 
 // A character typed into the lens, or its `U+` code point, is a row that shows its cell marked

@@ -215,7 +215,7 @@ private impl Panel
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
         .previousButton.toolTip = appStrings().ui_PreviousPage
         .nextButton.toolTip     = appStrings().ui_NextPage
-        if not .load.isPending() do
+        if .document != null do
             .document.invalidate()
     }
 
@@ -437,7 +437,7 @@ impl Panel
             .setPlaceholder(texts().ui_SamplePlaceholder)
             .sigTextChanged += func|view = me|(_)
             {
-                if not view.load.isPending() do
+                if view.document != null do
                     view.document.invalidate()
             }
         }

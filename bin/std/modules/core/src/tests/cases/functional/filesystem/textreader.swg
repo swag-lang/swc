@@ -122,6 +122,22 @@ using Swag
     Swag.require(textError.value() is Errors.InvalidFormatError)
 }
 
+// Reading to the end after one line preserves the remaining line endings and text.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textreader_line_then_end.tmp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "first\r\nsecond\nthird")
+
+    var reader: File.TextReader
+    expect reader.open(fileName)
+    defer reader.close()
+
+    var line: String
+    Swag.require(expect reader.readLine(&line) and line == "first")
+    Swag.require(expect reader.readToEnd() == "second\nthird")
+}
+
 // A CR at the end of the 64 KiB read window consumes a following LF from the next refill.
 #test
 {

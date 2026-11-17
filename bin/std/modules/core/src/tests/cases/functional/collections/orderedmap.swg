@@ -129,3 +129,23 @@ struct OrderedMapEquivalentKey
     Swag.require(map.count == 1 and map.capacity() == capacity)
     Swag.require(map.find(42).value == "kept")
 }
+
+// Clearing retains ordered-map capacity; freeing releases it while keeping the comparator.
+#test
+{
+    var map = OrderedMap'(s32, s32).create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    map.reserve(8)
+    map.add(2, 20)
+    map.add(1, 10)
+    let capacity = map.capacity()
+
+    map.clear()
+    Swag.require(map.isEmpty() and map.capacity() == capacity)
+    map.add(3, 30)
+    Swag.require(map.find(3).value == 30)
+
+    map.free()
+    Swag.require(map.isEmpty() and map.capacity() == 0)
+    map.add(4, 40)
+    Swag.require(map.count == 1 and map.find(4).value == 40)
+}

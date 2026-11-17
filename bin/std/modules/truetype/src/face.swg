@@ -496,6 +496,18 @@ public impl Face
         return faceData.glyphMetrics[glyphIndex].advanceWidth
     }
 
+    // Returns horizontal kerning between two glyph indices in font design units.
+    //
+    // The result does not depend on pixel size and can be queried before setting one.
+    // GPOS pair adjustment takes priority, with the legacy `kern` table filling pairs
+    // for which the supported GPOS pair lookups return zero. Missing pairs and invalid
+    // glyph indices return zero.
+    mtd const getKerningDesignUnits(leftGlyph, rightGlyph: u32)->s16
+    {
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
+    }
+
     // Returns horizontal kerning between two glyph indices.
     //
     // The x component uses 26.6 fixed-point pixels at the active size. Both
@@ -512,18 +524,7 @@ public impl Face
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         var result: #returntype
-        if not leftGlyph or not rightGlyph or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
-            return result
-
-        var units = 0's16
-        if not faceData.gposPairSubtables.isEmpty()
-        {
-            units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
-        }
-
-        if not units do
-            units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
-
+        let units = lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
         if not units do
             return result
 
@@ -714,6 +715,23 @@ public impl Face
     // the multi-channel field in RGB and a true signed distance in alpha; the
     // bitmap reports [[TrueType.PixelMode.Rgba]].
     mtd renderGlyphMsdf(spread: u32 = 8) fail => try renderCurrentOutlineMsdf(&.glyph, spread)
+}
+
+func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: u32)->s16
+{
+    if not leftGlyph or not rightGlyph or leftGlyph >= faceData.face.glyphCount or rightGlyph >= faceData.face.glyphCount or leftGlyph > Swag.U16.Max or rightGlyph > Swag.U16.Max do
+        return 0
+
+    var units = 0's16
+    if not faceData.gposPairSubtables.isEmpty()
+    {
+        units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
+    }
+
+    if not units do
+        units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
+
+    return units
 }
 
 // Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,

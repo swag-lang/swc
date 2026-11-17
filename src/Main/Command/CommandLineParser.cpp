@@ -26,6 +26,15 @@ namespace
     constexpr std::string_view CONFIG_FILE_LONG_FORM  = "--config-file";
     constexpr std::string_view CONFIG_FILE_SHORT_FORM = "-cf";
 
+    bool isSafeWorkspaceModuleName(const std::string_view name)
+    {
+        if (name.empty() || name == "." || name == ".." || name.find_first_of("/\\") != std::string_view::npos || name.find('\0') != std::string_view::npos)
+            return false;
+
+        const fs::path path(name);
+        return !path.has_root_path() && !path.has_parent_path() && path.filename() == path;
+    }
+
     void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path)
     {
         if (baseDir.empty() || !path.is_relative())
@@ -1172,6 +1181,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_requires_workspace);
         diag.addArgument(Diagnostic::ARG_ARG, "--workspace-module");
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    if (!cmdLine_->workspaceModuleFilter.empty() && !isSafeWorkspaceModuleName(cmdLine_->workspaceModuleFilter.view()))
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_module_name_invalid);
+        diag.addArgument(Diagnostic::ARG_VALUE, cmdLine_->workspaceModuleFilter);
         diag.report(ctx);
         return Result::Error;
     }

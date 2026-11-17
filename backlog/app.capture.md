@@ -237,6 +237,9 @@ whole recording loaded at once.
   missed 23. The source reports acquisition, readback and copy costs. These short runs do not
   establish sustained throughput; storage use, source losses and performance under sustained
   machine load still need measurement.
+  On a 3840×2160 Xorg dummy root, the warmed MIT-SHM `ScreenFrameSource` path captured 16
+  BGRA8 frames in 90.6 ms (5.66 ms/frame); its pixels matched the ordinary GetImage path
+  exactly. This isolates virtual-display readback, not DXGI acquisition or physical-display cost.
   Explicitly missed slots now use the encoder's fast held-picture path. The editor also decodes
   video directly into its reusable canvas image, avoiding a full-resolution RGB copy per shown
   frame. A subsequent three-second virtual-desktop run decoded its 85-frame MP4, missed five

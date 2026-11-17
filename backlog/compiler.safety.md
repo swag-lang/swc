@@ -66,7 +66,9 @@ is the current scorecard.
   escape analysis diagnosed a concrete retaining call but missed the same call through an interface.
   Concrete implementation summaries now cover statically known local and imported interface targets;
   focused sanity and workspace consumer tests keep non-retaining calls silent and reject retained
-  local views.
+  local views. Mutable frame-local interface bindings also use the concrete summary while their
+  storage remains unaddressed; assignments, address-taking and by-reference captures invalidate
+  that proof.
 - Next: reproduce the original fourteen-byte failure on Windows with a regression that preserves
   the exact `StringBuilder` and writer call path. Then trace borrow/liveness analysis and generated
   code, and ensure an actual escaping view still receives its existing diagnostic.

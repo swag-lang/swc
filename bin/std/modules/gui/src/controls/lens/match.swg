@@ -24,6 +24,118 @@ struct Match
     }
 }
 
+// A query folded once, to be matched against many texts.
+//
+// A lens matches one query against every row it may show, on every keystroke. Folding the
+// query's case and accents once, and handing the result to [[Gui.Lens.match]] for each text,
+// leaves only the texts to read. A default query is empty and answers every text.
+struct Query
+{
+    runes:    Array'FoldedRune     // Characters of the query, folded as those of a text are.
+    oneWord:  bool     // Whether the query holds no space between its characters.
+    required: u64      // Positions of the characters other than spaces, among the first 64.
+}
+
+impl Query
+{
+    // Folds `query` once for [[Gui.Lens.match]], with the same rules as matching the string itself.
+    func create(query: string)->Query
+    {
+        var result: #returntype
+        result.runes   = foldRunes(query)
+        result.oneWord = true
+        for r, i in result.runes
+        {
+            if r.folded == ' '
+            {
+                result.oneWord = false
+                continue
+            }
+
+            if i < 64 do
+                result.required |= 1'u64 << i
+        }
+
+        return result
+    }
+
+    // Returns how much of the query `text` holds, as every answer needs: a whole occurrence, the
+    // initials and scattered letters take a single word's characters in order, words given in any
+    // order each take their own somewhere, and a typo of a single word leaves out one character at
+    // most. With `tolerateTypos`, a text that holds less than the whole query may still answer.
+    //
+    // The text is decoded without being stored. Its spaces and combining accents are compared
+    // too, which can only let more texts through, never fewer.
+    private mtd const holding(text: string, tolerateTypos: bool)->Holding
+    {
+        let needle = .runes.toSlice()
+        if not .oneWord and needle.count > 64 do
+            return .All
+
+        var held    = 0'u64     // Characters of a single word found in order.
+        var spare   = 0'u64     // Characters of a single word found in order, but for one left out.
+        var missing = .required
+        var offset  = 0'u64
+        while offset < text.count
+        {
+            var folded: rune
+            let byte = text[offset]
+            if byte < 0x80
+            {
+                folded = cast(rune, Latin1.toLower(byte))
+                offset += 1
+            }
+            else
+            {
+                let rest    = Swag.makeSlice(text.buffer + offset, text.count - offset)
+                let decoded = Utf8.decodeRune(rest)
+                folded = foldAccent(Unicode.toLower(decoded.c))
+                offset += Math.max(decoded.eat, 1)
+            }
+
+            if .oneWord
+            {
+                if tolerateTypos
+                {
+                    spare = Math.max(spare, held + 1)
+                    if spare < needle.count and needle[spare].folded == folded do
+                        spare += 1
+                }
+
+                if folded != needle[held].folded do
+                    continue
+                held += 1
+                if held == needle.count do
+                    return .All
+                continue
+            }
+
+            for i in needle.count where needle[i].folded == folded do
+                missing &= ~(1'u64 << i)
+            if missing == 0 do
+                return .All
+        }
+
+        // Only a word of four letters or more is corrected, and words given in any order are not
+        // followed here, so a query of several words may hold a typo whatever this text lacks.
+        if not tolerateTypos do
+            return .Nothing
+        if not .oneWord do
+            return .AllButOne
+        if needle.count >= 4 and Math.max(spare, held + 1) >= needle.count do
+            return .AllButOne
+        return .Nothing
+    }
+}
+
+// How much of a query a text holds, in the order an answer takes it.
+private enum Holding
+{
+    Nothing       // Too little for any answer.
+    AllButOne     // Enough for a typo only.
+    All           // Enough for any answer.
+}
+
 // Matches `query` against `text`, ignoring case and common Latin accents, with original UTF-8 spans.
 //
 // A query found whole in the text answers best, and better still where a word starts — at the
@@ -43,23 +155,37 @@ struct Match
 // ```
 func match(query: string, text: string, tolerateTypos = false)->Match
 {
-    var result: #returntype
-    if query.count == 0
-    {
-        result.matched = true
-        return result
-    }
+    return match(Query.create(query), text, tolerateTypos)
+}
 
-    let needle   = foldRunes(query)
-    let haystack = foldRunes(text)
+// Matches the folded `query` against `text`, exactly as matching its original string would.
+//
+// A caller that matches one query against many texts folds it once with
+// [[Gui.Lens.Query.create]] and passes it here for each text.
+//
+// ```swag
+// let query = Lens.Query.create("cgr")
+// Swag.assert(Lens.match(query, "centerGroup").matched and not Lens.match(query, "close").matched)
+// ```
+func match(query: Query, text: string, tolerateTypos = false)->Match
+{
+    var result: #returntype
+    let needle = query.runes.toSlice()
     if needle.count == 0
     {
         result.matched = true
         return result
     }
 
-    if needle.count > haystack.count do
-        return tolerateTypos ? typoMatch(needle.toSlice(), haystack.toSlice()) : result
+    // Most texts lack the query's characters, so they are turned down before their characters are
+    // folded, and one that holds enough for a typo alone is only tried for a typo.
+    let held = query.holding(text, tolerateTypos)
+    if held == .Nothing do
+        return result
+
+    let haystack = foldRunes(text)
+    if held != .All or needle.count > haystack.count do
+        return tolerateTypos ? typoMatch(needle, haystack.toSlice()) : result
 
     // A whole occurrence: the first one that starts a word, else the first one at all.
     var found = Swag.U64.Max
@@ -95,7 +221,7 @@ func match(query: string, text: string, tolerateTypos = false)->Match
         return result
     }
 
-    let words = wordMatch(needle.toSlice(), haystack.toSlice())
+    let words = wordMatch(needle, haystack.toSlice())
     if words.matched do
         return words
 
@@ -128,7 +254,7 @@ func match(query: string, text: string, tolerateTypos = false)->Match
         while next < haystack.count and haystack[next].folded != r.folded do
             next += 1
         if next == haystack.count do
-            return tolerateTypos ? typoMatch(needle.toSlice(), haystack.toSlice()) : Match{}
+            return tolerateTypos ? typoMatch(needle, haystack.toSlice()) : Match{}
 
         let at = haystack[next]
         if not result.spans.isEmpty() and result.spans.back().start + result.spans.back().count == at.offset
@@ -304,6 +430,9 @@ private func foldRunes(text: string)->Array'FoldedRune
     var result:   #returntype
     var previous: rune
     var offset = 0'u32
+
+    // A text holds at most one character per byte, so one allocation holds them all.
+    result.reserve(text.count)
     while offset < text.count
     {
         let decoded = Utf8.decodeRune(Swag.makeSlice(text.buffer + offset, text.count - offset))

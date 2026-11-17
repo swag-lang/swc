@@ -99,6 +99,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var found = false
     for &entry in window.lens.results.sections[0]!.entries where entry.title == Format.toString(Captions.texts().ui_GoToCueNumber, 1)
     {
+        Swag.require(entry.lead == "1")
         entry.run!()
         found = true
     }

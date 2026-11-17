@@ -9,6 +9,9 @@ class TaskContext;
 class FormatOptionsLoader
 {
 public:
+    // The file each directory may hold to layer formatter options over its parent's.
+    static constexpr std::string_view CONFIG_FILE_NAME = ".swc-format";
+
     FormatOptionsLoader(TaskContext& ctx, FormatNamedStyle baseStyle);
     Result resolve(const fs::path& sourcePath, FormatOptions& outOptions);
     Result resolveDirectory(const fs::path& directory, FormatOptions& outOptions);

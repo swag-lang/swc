@@ -2,8 +2,10 @@
 """Package a built Linux GUI application for a chosen install prefix."""
 
 import argparse
+import os
 from pathlib import Path, PurePosixPath
 import re
+import secrets
 import shutil
 import tarfile
 import tempfile
@@ -67,9 +69,27 @@ def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, chec
         package_icon.parent.mkdir(parents=True)
         shutil.copy2(icon, package_icon)
         output.parent.mkdir(parents=True, exist_ok=True)
-        with tarfile.open(output, 'w:gz') as archive:
-            for item in sorted(stage.rglob('*')):
-                archive.add(item, arcname=item.relative_to(stage), recursive=False)
+        temporary_archive = None
+        try:
+            for _ in range(100):
+                candidate = output.parent / f'.{output.name}.{secrets.token_hex(8)}.tmp'
+                try:
+                    descriptor = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+                except FileExistsError:
+                    continue
+                temporary_archive = candidate
+                os.close(descriptor)
+                break
+            else:
+                raise FileExistsError(f'Could not create a temporary archive beside {output}')
+            with tarfile.open(temporary_archive, 'w:gz') as archive:
+                for item in sorted(stage.rglob('*')):
+                    archive.add(item, arcname=item.relative_to(stage), recursive=False)
+            # Link into place atomically without replacing an archive created concurrently.
+            os.link(temporary_archive, output)
+        finally:
+            if temporary_archive is not None:
+                temporary_archive.unlink(missing_ok=True)
 
     print(f'Packaged {app}: {output}')
     print(f'Install prefix: {prefix}; launcher: {desktop_path}')

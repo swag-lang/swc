@@ -287,11 +287,13 @@ impl Panel
         .information.describe(sheet)
     }
 
+    // Returns the scale the picture is painted at, in percent, as the zoom readout shows it.
+    mtd zoomPercent()->u32 => cast(u32, Math.round(.imageView.effectiveZoom() * 100))
+
     // Keeps the zoom readout numeric and reports orientation at the transform menu.
     mtd refreshZoom()
     {
-        let zoom = cast(u32, Math.round(.imageView.effectiveZoom() * 100))
-        .zoomLabel.setText(Viewer.zoomText(zoom))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent()))
         .transformButton.setIconColor(.imageView.rotationQuarterTurns != 0 or .imageView.isMirrored ? .themeColors().arc : .themeColors().softText)
         .transformButton.toolTip = texts().ui_TipTransform
         if .imageView.rotationQuarterTurns or .imageView.isMirrored
@@ -527,10 +529,13 @@ impl Panel
         let color = .probedColorText()
         if color.count do
             entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, shortcut: Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .C))
-        entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, shortcut: Input.formatKeyShortcut(.None, .F))
+
+        // The picture zooms by factors, far past the shared bounds, so only actual size, the 100 %
+        // of the readout, is the shared row; it reads as chosen while the picture shows at it.
+        entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, checked: .imageView.isFitted, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        entries.add(lens.cmd_ZoomReset, .ActualSize, func|view = me|() { view.imageView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.imageView.actualSize() })
         if .imageView.movie.frameCount > 1
         {
             // An animation steps by frames, an image set by pages.

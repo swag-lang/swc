@@ -318,6 +318,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   and luma PSNR (49.89 and 47.64 dB). The timer includes X11 root readback, conversion,
   H.264 and MP4; painting and AAC are reported separately. This validates the software
   capture path on a virtual display, not a physical Windows desktop.
+  On the same virtual root with a changing full-screen background, two QP 28 runs per slice
+  count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
+  7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,
+  against 2.98 MB at 43.75 dB with four; both passed with no repeated slots. This unpaced
+  synthetic run is below 60 fps and does not establish physical-display cadence.
   On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
   PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
   x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,

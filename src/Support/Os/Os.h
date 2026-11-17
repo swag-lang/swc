@@ -89,6 +89,10 @@ namespace Os
     void terminate();
 
     fs::path            getTemporaryPath();
+#ifdef __linux__
+    // A per-user compiler cache directory with verified private ownership.
+    fs::path            compilerCacheRoot();
+#endif
     fs::path            getExeFullName();
     std::optional<Utf8> readEnvironmentVariable(std::string_view name);
     Utf8                formatProcessExitCode(uint32_t exitCode);

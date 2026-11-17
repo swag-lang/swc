@@ -17,6 +17,13 @@ private func assertInvalidMonitorIndex(monitorIndex: u64)
     Swag.require(failure.value() is BadParameterError)
 }
 
+private func assertInvalidMonitor(monitor: Env.Monitor)
+{
+    var failure: Swag.Error
+    discard catch Source.openMonitor(monitor) as failure
+    Swag.require(failure.value() is BadParameterError)
+}
+
 // Shared dimension validation rejects invalid values before opening a display or allocating a frame.
 #test
 {
@@ -28,4 +35,5 @@ private func assertInvalidMonitorIndex(monitorIndex: u64)
     expect validateSourceOptions({0, 0, Swag.S32.Max / 4, 1, false})
 
     assertInvalidMonitorIndex(Swag.U64.Max)
+    assertInvalidMonitor({})
 }

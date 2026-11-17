@@ -4,10 +4,91 @@
 #include "Support/Os/Os.h"
 
 #ifdef __linux__
+#include <fcntl.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    fs::path createPrivateCompilerCacheRoot()
+    {
+        const uid_t uid = geteuid();
+        for (const fs::path& temporaryRoot : {fs::path("/tmp"), fs::path("/var/tmp")})
+        {
+            const int parent = open(temporaryRoot.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+            if (parent < 0)
+                continue;
+
+            struct stat parentInfo{};
+            if (fstat(parent, &parentInfo) != 0 || !S_ISDIR(parentInfo.st_mode) || parentInfo.st_uid != 0 || !(parentInfo.st_mode & S_ISVTX))
+            {
+                close(parent);
+                continue;
+            }
+
+            const std::string name = std::format("swag-{}", static_cast<uint64_t>(uid));
+            bool               created = mkdirat(parent, name.c_str(), S_IRWXU) == 0;
+            int                createError = created ? 0 : errno;
+            if (!created && createError != EEXIST)
+            {
+                close(parent);
+                continue;
+            }
+
+            const int directory = openat(parent, name.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+            if (directory >= 0)
+            {
+                struct stat info{};
+                bool        safe = fstat(directory, &info) == 0 && S_ISDIR(info.st_mode) && info.st_uid == uid;
+                if (safe && created)
+                    safe = fchmod(directory, S_IRWXU) == 0 && fstat(directory, &info) == 0;
+                safe = safe && (info.st_mode & 07777) == S_IRWXU;
+                close(directory);
+                if (safe)
+                {
+                    close(parent);
+                    return temporaryRoot / name;
+                }
+            }
+
+            // A pre-existing path may be a symlink, belong to another user, or have
+            // permissions that let other users seed cache entries. Isolate this process
+            // in a fresh directory instead of adopting any contents from that path.
+            std::string pattern = (temporaryRoot / std::format("swag-{}-XXXXXX", static_cast<uint64_t>(uid))).string();
+            std::vector<char> writablePattern(pattern.begin(), pattern.end());
+            writablePattern.push_back('\0');
+            char* unique = mkdtemp(writablePattern.data());
+            if (unique)
+            {
+                struct stat info{};
+                const int   directory = open(unique, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+                const bool  safe = directory >= 0 && fstat(directory, &info) == 0 && S_ISDIR(info.st_mode) && info.st_uid == uid && (info.st_mode & 07777) == S_IRWXU;
+                if (directory >= 0)
+                    close(directory);
+                if (safe)
+                {
+                    close(parent);
+                    return unique;
+                }
+                rmdir(unique);
+            }
+            close(parent);
+        }
+
+        // Fail closed: this path cannot be created beneath the /dev/null device, so
+        // cache writes fail without falling back to a shared or attacker-controlled root.
+        return "/dev/null/swc-cache-disabled";
+    }
+}
+
+fs::path Os::compilerCacheRoot()
+{
+    static const fs::path root = createPrivateCompilerCacheRoot();
+    return root;
+}
 
 Utf8 Os::systemError()
 {

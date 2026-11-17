@@ -263,13 +263,12 @@ impl AppearanceButton
     internal mtd describeLens(results: *Lens.Results)
     {
         let texts = strings()
-        let query = results.query.toString()
 
         var themes: *Lens.Section?
         for theme in [AppearanceTheme.Dark, .Light, .System]
         {
             let name = appearanceThemeName(theme)
-            if not lensAnswers(query, name, texts.appearance_Theme) do
+            if not lensAnswers(results.folded, name, texts.appearance_Theme) do
                 continue
             if not themes
             {
@@ -285,7 +284,7 @@ impl AppearanceButton
         }
 
         var choices: *Lens.Section?
-        if lensAnswers(query, texts.appearance_SystemLanguage, texts.appearance_Language)
+        if lensAnswers(results.folded, texts.appearance_SystemLanguage, texts.appearance_Language)
         {
             choices        = results.addSection(texts.appearance_Language)
             choices.inline = true
@@ -299,7 +298,7 @@ impl AppearanceButton
         for &one in languages()
         {
             let name = one.nativeName.toString()
-            if not lensAnswers(query, name, texts.appearance_Language) do
+            if not lensAnswers(results.folded, name, texts.appearance_Language) do
                 continue
             if not choices
             {
@@ -315,7 +314,7 @@ impl AppearanceButton
             }
         }
 
-        if not .sigAboutRequested.isEmpty() and lensAnswers(query, texts.appearance_About, texts.lens_Application)
+        if not .sigAboutRequested.isEmpty() and lensAnswers(results.folded, texts.appearance_About, texts.lens_Application)
         {
             with let entry = results.addSection(texts.lens_Application).addEntry(texts.appearance_About)
             {
@@ -327,7 +326,7 @@ impl AppearanceButton
 }
 
 // Reports whether `query` answers a row titled `title` or the group `group` it belongs to.
-private func lensAnswers(query, title, group: string)->bool => Lens.match(query, title).matched or Lens.match(query, group).matched
+private func lensAnswers(query: Lens.Query, title, group: string)->bool => Lens.match(query, title).matched or Lens.match(query, group).matched
 
 // Names one appearance in the language of the interface.
 private func appearanceThemeName(theme: AppearanceTheme)->string

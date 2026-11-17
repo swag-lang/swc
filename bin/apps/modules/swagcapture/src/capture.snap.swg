@@ -1,3 +1,12 @@
+// What a snapped move measures against: the box being moved, in capture pixels, and the
+// coordinates a moved point can snap to on each axis.
+struct SnapTargets
+{
+    bound: Math.Rectangle
+    xs:    Array's32
+    ys:    Array's32
+}
+
 impl Capture
 {
     // Returns the point that snapping tests once moved by `nx, ny`: the edited polygon
@@ -59,11 +68,20 @@ impl Capture
         return result
     }
 
-    // The coordinates a moved point can snap to: the canvas edges and middle, and the edges or
-    // points of every form, except the parts of the forms being moved.
-    mtd snapLines(idxPt: u32, editForm: IForm?)->{xs: Array's32, ys: Array's32}
+    // Gathers what snapping measures against: the box being moved, and the coordinates a moved
+    // point can snap to — the canvas edges and middle, and the edges or points of every form,
+    // except the parts of the forms being moved.
+    mtd snapTargets(idxPt: u32, editForm: IForm?)->SnapTargets
     {
         var result: #returntype
+        result.bound = .getSelectionBoundRect(editForm)
+
+        // Whether each form is being moved, looked up per form rather than searched for in the
+        // selection.
+        var moving: Array'bool
+        moving.resize(.forms.count)
+        for s in .selection do
+            moving[s] = true
 
         result.xs.add(0)
         result.xs.add(.width)
@@ -74,7 +92,7 @@ impl Capture
 
         for f, i in .forms
         {
-            let autoSel         = .selection.contains(i) or f.buffer == editForm.buffer
+            let autoSel         = moving[i] or f.buffer == editForm.buffer
             let form: *BaseForm = f
 
             switch f
@@ -141,10 +159,30 @@ impl Capture
         return result
     }
 
+    // Whether moves snap: when snapping is on, or while Control is held.
+    mtd isSnapping()->bool
+    {
+        let editView = unwrap .editView
+        return editView.main.snap or editView.app().keyboard.isKeyPressed(.Control)
+    }
+
     // Adjusts the move in `x` and `y` so the dragged point lands on the nearest edge or
     // center of another form within reach, and records the guide lines to show. Snapping
     // applies when it is on or while Control is held; a null axis is left alone.
     mtd snap(x, y: *s32?, right, bottom: bool, idxPt: u32 = 0, editForm: IForm? = null)
+    {
+        if x do
+            .snapX = -1
+        if y do
+            .snapY = -1
+        if .isSnapping() do
+            .snapTo(.snapTargets(idxPt, editForm), x, y, right, bottom, idxPt, editForm)
+    }
+
+    // Snaps the move in `x` and `y` against `targets`, gathered for the same `idxPt` and
+    // `editForm`, as [[Capture.snap]] does; a caller testing several corners of one move gathers
+    // the targets once.
+    mtd snapTo(targets: SnapTargets, x, y: *s32?, right, bottom: bool, idxPt: u32 = 0, editForm: IForm? = null)
     {
         const SnapToler = 10
 
@@ -153,23 +191,14 @@ impl Capture
         if y do
             .snapY = -1
 
-        let editView    = unwrap .editView
-        let keyboard    = &editView.app().keyboard
-        let ctrlPressed = keyboard.isKeyPressed(.Control)
-        if not editView.main.snap and not ctrlPressed do
-            return
-
         var nx = x ? x[] : 0
         var ny = y ? y[] : 0
 
-        let bound = .getSelectionBoundRect(editForm)
-
-        let pMoved = .getSnapPoint(bound, right, bottom, nx, ny, idxPt, editForm)
-        let pOrg   = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
-        let lines  = .snapLines(idxPt, editForm)
+        let pMoved = .getSnapPoint(targets.bound, right, bottom, nx, ny, idxPt, editForm)
+        let pOrg   = .getSnapPoint(targets.bound, right, bottom, 0, 0, idxPt, editForm)
         if x
         {
-            let near = nearestSnap(pMoved.x, lines.xs.toSlice())
+            let near = nearestSnap(pMoved.x, targets.xs.toSlice())
             if near.distance < SnapToler
             {
                 .snapX = near.coord
@@ -179,7 +208,7 @@ impl Capture
 
         if y
         {
-            let near = nearestSnap(pMoved.y, lines.ys.toSlice())
+            let near = nearestSnap(pMoved.y, targets.ys.toSlice())
             if near.distance < SnapToler
             {
                 .snapY = near.coord

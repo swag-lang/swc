@@ -37,7 +37,7 @@ private func sharedSegmentCount()->u64 fail
     if not monitors.count do
         return
     let bounds = monitors[0].physicalBounds
-    var source = expect Source.openMonitor(0)
+    var source = expect Source.openMonitor(monitors[0])
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
@@ -88,6 +88,16 @@ private func sharedSegmentCount()->u64 fail
     let firstMetrics = source.metrics()
     Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0)
 
+    let capture = source.sources[0].capture.nativeConnection()
+    source.resetMetrics()
+    let resetMetrics = source.metrics()
+    Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
+                 resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
+                 resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
+    Swag.require(source.sources[0].capture.nativeConnection() == capture and
+                 source.lastFrameCaptureMicroseconds() == firstCaptureTime)
+
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     let secondFresh = expect source.grabInto(&image, copyUnchanged: false)
@@ -96,7 +106,7 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixels.storage() == storage)
     let secondMetrics = source.metrics()
-    Swag.require(secondMetrics.acquiredFrames == 2 and secondMetrics.readbackMicroseconds > 0)
+    Swag.require(secondMetrics.acquiredFrames == 1 and secondMetrics.readbackMicroseconds > 0)
 }
 
 // A failed reopen after a geometry change preserves the current connection and last delivered frame time.

@@ -116,12 +116,36 @@ impl Query
                 return .All
         }
 
-        // Only a word of four letters or more is corrected, and words given in any order are not
-        // followed here, so a query of several words may hold a typo whatever this text lacks.
+        // Words given in any order are not followed here, but a typo is corrected in one word of
+        // the query alone: every character of every other word is somewhere in the text, and the
+        // corrected word has four letters or more, of which one at most is missing.
+        func typoWordsHeld(needle: const [..] FoldedRune, missing: u64)->bool
+        {
+            var corrected = false
+            var begin     = 0'u64
+            for i in needle.count + 1
+            {
+                if i < needle.count and needle[i].folded != ' ' do
+                    continue
+                let lacking = missing & (((1'u64 << (i - begin)) - 1) << begin)
+                if lacking != 0
+                {
+                    if corrected or i - begin < 4 or (lacking & (lacking - 1)) != 0 do
+                        return false
+                    corrected = true
+                }
+
+                begin = i + 1
+            }
+
+            return true
+        }
+
+        // Only a word of four letters or more is corrected.
         if not tolerateTypos do
             return .Nothing
         if not .oneWord do
-            return .AllButOne
+            return typoWordsHeld(needle, missing) ? .AllButOne : .Nothing
         if needle.count >= 4 and Math.max(spare, held + 1) >= needle.count do
             return .AllButOne
         return .Nothing

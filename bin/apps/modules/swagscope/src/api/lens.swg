@@ -50,13 +50,15 @@ impl LensEntries
             .labelAnswers = Lens.match(.folded, .label).matched
         }
 
-        if not .labelAnswers and not Lens.match(.folded, title).matched do
+        // The row takes the answer of its title along, so the lens does not match it again.
+        var found = Lens.match(.folded, title)
+        if not .labelAnswers and not found.matched do
             return null
         if not .section do
             .section = .results.addSection(.label)
 
         let glyph      = .theme.icon(icon, .theme.metrics.menuPopup_IconSize)
-        with let entry = .section.addEntry(title)
+        with let entry = .section.addEntry(title, #move found)
         {
             .glyph      = glyph
             .run        = run

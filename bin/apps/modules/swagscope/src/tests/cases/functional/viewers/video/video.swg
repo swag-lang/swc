@@ -66,6 +66,39 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.require(Utf8.contains(information, " Hz · ") and not Utf8.contains(information, "Subtitle tracks"))
 }
 
+// A container can misstate its rate. The reader corrects it from the times its first pictures
+// carry, long before it knows how many there are, and the footer and the sheet follow it.
+#test
+{
+    // The picture track's DefaultDuration declares 40 ms; one millisecond reads as 1000 fps.
+    var bytes = expect File.readAllBytes(videoMatroskaFixturePath().toString())
+    const Declared: [8] u8 = [0x23, 0xE3, 0x83, 0x84, 0x02, 0x62, 0x5A, 0x00]
+    Swag.require(Slice.equals(bytes.toSlice()[356 until 364], Declared))
+    bytes[360] = 0x00
+    bytes[361] = 0x0F
+    bytes[362] = 0x42
+    bytes[363] = 0x40
+    let fileName = Testing.tempFilePath("scope-video-misstated-", ".mkv")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName)
+    Swag.require(result.view != null)
+    let view = assume cast(*Film.Panel, result.view)
+
+    // A parked film decodes the picture it stands on and nothing more, so the count stays unknown.
+    view.autoPlayPending = false
+    waitForVideoFrame(view)
+    Swag.require(view.video.frameCount() == 0 and Math.isEqualEpsilon(view.video.frameRate().framesPerSecond(), 25, 0.01))
+    Swag.require(Utf8.contains(view.details, " · 25.00 fps · "), view.details)
+    let information = videoInformationText(view, &host.root)
+    Swag.require(Utf8.contains(information, "Frame rate\n25") and not Utf8.contains(information, "1000"), information)
+}
+
 // The first lively picture is kept without decoding the other positions: contrast decides, a flat
 // colour or a mostly dark frame does not qualify.
 #test
@@ -286,6 +319,22 @@ func videoAudioFixturePath()->String => scopeTestDataPath("glint-aac-mjpeg.mp4")
 func videoAvcFixturePath()->String   => scopeTestDataPath("ffmpeg-h264-baseline.mp4")
 internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h264-two-aac.mkv")
 
+// Times a film told its host that its contribution to the information sheet changed.
+var g_VideoInformationChanges: u32
+
+func countVideoInformationChange(_: *Wnd)
+{
+    g_VideoInformationChanges += 1
+}
+
+// Describes the film's contribution to the information sheet and returns what it reads.
+func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
+{
+    let sheet = InfoSheet.create(parent)
+    view.information.describe(sheet)
+    return sheet.text()
+}
+
 // A same-stem sidecar is discovered, selected, and presented on the movie clock. Rendering
 // preferences and manual synchronization are available from the same track menu.
 #test
@@ -294,9 +343,13 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     let folder   = unwrap Path.directoryName(fileName)
     let stem     = unwrap Path.fileNameWithoutExtension(fileName)
     let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem))
+    let attached = Path.combine(folder, Format.toString("scope-attached-%.srt", Guid64.random()))
+    let replaced = Path.combine(folder, Format.toString("scope-attached-%.vtt", Guid64.random()))
     defer
     {
         discard catch File.delete(sidecar)
+        discard catch File.delete(attached)
+        discard catch File.delete(replaced)
         discard catch File.delete(fileName)
     }
 
@@ -314,8 +367,10 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
+    var services: Viewer.HostServices
+    services.reportInformationChanged = &countVideoInformationChange
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
-    var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
+    var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: services)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
@@ -326,6 +381,28 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.refreshSubtitle()
     Swag.require(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
     Swag.require(view.subtitleReady)
+
+    // The sheet lists the subtitle files beside the film after its own tracks, and follows a file
+    // the reader attaches, then replaces.
+    var information = videoInformationText(view, &host.root)
+    let listed      = Format.toString("Subtitle tracks · 1\n1 %.fr\nSubRip · External File", stem)
+    Swag.require(Utf8.contains(information, listed.toString()), information)
+    expect File.writeAllBytes(attached, "1\n00:00:00,000 --> 00:00:00,400\nAttached caption\n")
+    expect File.writeAllBytes(replaced, "WEBVTT\n\n00:00:00.000 --> 00:00:00.400\nReplacing caption\n")
+    for file in [attached, replaced]
+    {
+        let changes = g_VideoInformationChanges
+        view.loadSubtitle(file.toString())
+        view.subtitleLoad.task.wait()
+        view.finishSubtitleLoad()
+        Swag.require(g_VideoInformationChanges > changes)
+    }
+
+    information = videoInformationText(view, &host.root)
+    Swag.require(Utf8.contains(information, "Subtitle tracks · 2\n"), information)
+    let replacement = Format.toString("\n2 %\nWebVTT · External File", unwrap Path.fileNameWithoutExtension(replaced))
+    Swag.require(Utf8.contains(information, replacement.toString()), information)
+    view.selectSubtitle(.Sidecar, 0)
     let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
     let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
     Swag.require(languageText == "(fr)")

@@ -135,10 +135,7 @@ impl ImageReader
 
     mtd composite(frame: ImageFrameInfo, image: Image) fail
     {
-        if image.width != frame.width or
-           image.height != frame.height or
-           image.pixels.count != image.byteCount do
-            fail InvalidFormatError{"decoded frame does not match its image index"}
+        try .validateDecodedFrame(frame, image)
         for y in frame.height
         {
             let sourceRow = image.height - y - 1
@@ -167,6 +164,15 @@ impl ImageReader
                 writePixelValue(target, .canvas.pixelFormat, value)
             }
         }
+    }
+
+    mtd validateDecodedFrame(frame: ImageFrameInfo, image: Image) fail
+    {
+        if image.width != frame.width or
+           image.height != frame.height or
+           image.pixelFormat != frame.pixelFormat or
+           (.options.decodePixels and (image.byteCount == 0 or image.pixels.count != image.byteCount)) do
+            fail InvalidFormatError{"decoded frame does not match its image index"}
     }
 }
 
@@ -257,11 +263,17 @@ public impl ImageReader
         if not multiple
         {
             let single = unwrap Swag.makeInterface(.decoder, .decoderType, IImageDecoder)
-            return try single.decode(.bytes.toSlice(), .options)
+            let image = try single.decode(.bytes.toSlice(), .options)
+            try .validateDecodedFrame(.info.frames[index], image)
+            return image
         }
 
-        if .info.frames[index].kind != .Animation do
-            return try multiple.readFrame(index, .options)
+        if .info.frames[index].kind != .Animation
+        {
+            let image = try multiple.readFrame(index, .options)
+            try .validateDecodedFrame(.info.frames[index], image)
+            return image
+        }
         if not .options.decodePixels
         {
             let frame = try multiple.readFrame(index, .options)

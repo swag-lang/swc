@@ -131,7 +131,17 @@ impl Source
         let monitors = Env.getMonitors()
         if monitorIndex >= monitors.count do
             fail BadParameterError{"screen monitor index is unavailable"}
-        let bounds = monitors[monitorIndex].physicalBounds
+        return try .openMonitor(monitors[monitorIndex], includeCursor)
+    }
+
+    // Opens a source for a monitor value returned by [[Core.Env.getMonitors]].
+    //
+    // The value is a snapshot of physical bounds, not a persistent display identifier. The source can fail
+    // if those bounds are no longer available. `includeCursor` requests pointer composition where supported
+    // and defaults to false.
+    func openMonitor(monitor: Env.Monitor, includeCursor: bool = false)->Source fail
+    {
+        let bounds = monitor.physicalBounds
         return try .open({cast(s32, bounds.x), cast(s32, bounds.y), cast(s32, bounds.width),
                           cast(s32, bounds.height), includeCursor})
     }
@@ -317,6 +327,16 @@ impl Source
             result.copiedPixels += source.metrics.copiedPixels
         }
         return result
+    }
+
+    // Resets cumulative acquisition and composition counters without reopening the source.
+    // The native capture handles, cached frame and last frame capture time are preserved.
+    mtd resetMetrics()
+    {
+        .composeMicroseconds = 0
+        .mirroredPixels = 0
+        for source in .sources do
+            source.metrics = SourceMetrics{}
     }
 
     // Reopens a source after a display change or native access loss.

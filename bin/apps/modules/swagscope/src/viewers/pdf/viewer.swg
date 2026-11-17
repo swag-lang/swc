@@ -224,7 +224,7 @@ private impl IWnd for Panel
         {
         case .Add, .OemPlus where evt.modifiers == .Control:       .pdfView.zoomIn()
         case .Subtract, .OemMinus where evt.modifiers == .Control: .pdfView.zoomOut()
-        case .D0 where evt.modifiers.has(.Control):                .pdfView.actualSize()
+        case .D0 where evt.modifiers == .Control:                  .pdfView.actualSize()
         case .F where evt.modifiers == .None:                      .pdfView.zoomToFit()
         case .W where evt.modifiers == .None:                      .pdfView.zoomToFitWidth()
         default: evt.accepted = false
@@ -536,7 +536,8 @@ private impl Panel
     }
 
     // Offers the zoom presets, fit to page or width, and the continuous or single-page layout, with
-    // the level in use, the fit and the layout checked.
+    // the level in use, the fit and the layout checked. A page is read near its actual size, so the
+    // levels stay around 100 % as the text viewers' do rather than reaching down as a picture's do.
     mtd showZoomMenu()
     {
         let menu    = MenuCtrl.createPopup(me, owner: me)

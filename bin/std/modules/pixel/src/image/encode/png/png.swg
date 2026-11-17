@@ -301,7 +301,8 @@ internal impl IImageEncoder for Encoder
         .userOptions = defaultOptions
         if options.buffer != null
         {
-            Swag.assert(Swag.kindOf(options) == EncodeOptions)
+            if Swag.kindOf(options) != EncodeOptions do
+                fail BadParameterError{"PNG encoder options must be Png.EncodeOptions"}
             .userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 

@@ -132,7 +132,8 @@ internal impl IImageEncoder for Encoder
         var userOptions: EncodeOptions
         if options.buffer != null
         {
-            Swag.assert(Swag.kindOf(options) == EncodeOptions)
+            if Swag.kindOf(options) != EncodeOptions do
+                fail BadParameterError{"TGA encoder options must be Tga.EncodeOptions"}
             userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 

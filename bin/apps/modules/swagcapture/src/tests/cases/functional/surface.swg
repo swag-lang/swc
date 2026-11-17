@@ -1370,7 +1370,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         main.editMode = mode
         main.updateState()
         let active = unwrap main.dock.activeTool()
-        Swag.require(active.id == MainWnd.toolCommand(mode))
+        Swag.require(active.id == mode.command())
         Swag.require(main.inspector.title == appStrings().act_Text)
     }
 }

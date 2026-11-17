@@ -275,6 +275,7 @@ struct Panel
     load:               Viewer.BackgroundLoad'ViewerContent
     failureReason:      String
     shownItem:          String         // What the summary last said of the item in view.
+    reported:           String         // The details line the host was last given.
     probed:             Math.Point     // Pixel of the stored picture the pointer last read.
     hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
 }
@@ -349,6 +350,17 @@ impl Panel
         return item.isEmpty() ? String.from(.details) : Format.toString("% · %", .details, item)
     }
 
+    // Gives the host `details` unless they are what it shows already. The pointer sends many moves
+    // over one pixel, or beside the picture, and each report lays the footer out again and
+    // refreshes an open information sheet.
+    mtd reportDetails(details: String)
+    {
+        if details == .reported do
+            return
+        .reported = details
+        .services.showDetails(me, details)
+    }
+
     // Updates the frame controls of an animation, and ends the cycle the first time the movie
     // completes a loop. Over a set of independent images, the summary follows the item in view.
     mtd refreshFrame()
@@ -360,7 +372,7 @@ impl Panel
         if item != .shownItem
         {
             .shownItem = item
-            .services.showDetails(me, .shownDetails())
+            .reportDetails(.shownDetails())
         }
 
         .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
@@ -595,7 +607,7 @@ private impl IWnd for Panel
             if not .facts.width.isEmpty()
             {
                 .details = .facts.text()
-                .services.showDetails(me, .shownDetails())
+                .reportDetails(.shownDetails())
             }
         }
 
@@ -645,7 +657,7 @@ private impl IWnd for Panel
         .information = #move content.information
         .refreshZoom()
         .applyLayout()
-        .services.showDetails(me, .shownDetails())
+        .reportDetails(.shownDetails())
         .services.loadingChanged(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
@@ -919,7 +931,7 @@ private impl Panel
     {
         let probe = .probeText(local)
         let shown = .shownDetails()
-        .services.showDetails(me, probe.isEmpty() ? shown : Format.toString("% · %", shown, probe))
+        .reportDetails(probe.isEmpty() ? shown : Format.toString("% · %", shown, probe))
     }
 
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
@@ -935,7 +947,7 @@ private impl Panel
                     if mouse.kind == .Move do
                         view.showProbe(imageView.surfaceToLocal(mouse.surfacePos))
                     elif mouse.kind == .Leave do
-                        view.services.showDetails(view, view.shownDetails())
+                        view.reportDetails(view.shownDetails())
                 }
 
                 return false

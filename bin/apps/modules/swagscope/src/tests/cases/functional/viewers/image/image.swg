@@ -366,6 +366,20 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(found)
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
+
+    // The pointer moving beside the picture tells the host nothing new, so it is not told again.
+    let corner = view.imageView.surfaceRect()
+    let first  = Math.Point{corner.x + 1, corner.y + 1}
+    let second = Math.Point{corner.x + 3, corner.y + 2}
+    Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(first)).inside)
+    Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(second)).inside)
+    var reports = 0'u32
+    view.userData = &reports
+    view.services.reportDetails = func(wnd, _) { cast(*u32, unwrap wnd.userData)[] += 1 }
+    host.moveMouse(center)
+    host.moveMouse(first)
+    host.moveMouse(second)
+    Swag.require(reports == 2, Format.toString("%", reports))
 }
 
 // The information sheet says how much of a picture its alpha hides: wholly transparent pixels,

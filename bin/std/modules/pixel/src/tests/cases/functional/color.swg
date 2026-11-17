@@ -38,6 +38,8 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
     Swag.require(Math.abs(black.contrastRatio(white) - 21) < 0.0001)
     Swag.require(Math.abs(white.contrastRatio(black) - 21) < 0.0001)
     Swag.require(Math.abs(red.contrastRatio(black) - 5.252) < 0.001)
+    Swag.require(red.contrasting() == black)
+    Swag.require(blue.contrasting() == white)
 }
 
 // Contrast correction preserves colors that already pass and alpha while improving weak contrast.

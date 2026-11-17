@@ -71,6 +71,12 @@ using Swag, Core, Core.Errors
     discard catch Wav.Writer.create(path.toString(), 0, 44_100) as rejected
     Swag.require(rejected.value() is BadParameterError)
     Swag.require(not File.exists(path))
+    discard catch Wav.Writer.create(path.toString(), 2, 0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(not File.exists(path))
+    discard catch Wav.Writer.create(path.toString(), 2, 1_073_741_824) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(not File.exists(path))
     var writer = expect Wav.Writer.create(path.toString(), 2, 48_000)
     const Partial: [3] s16 = [1, 2, 3]
     discard catch writer.addFrames(Swag.makeSlice(&Partial[0], 3)) as rejected

@@ -162,11 +162,11 @@ namespace Command
             const ScopedTimedLog::StatsSnapshot deltaSnapshot = stage->delta();
             std::vector<Utf8>                   statParts;
             if (deltaSnapshot.numFiles)
-                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+                statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numFiles, "file"));
             if (deltaSnapshot.numTokens)
-                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
+                statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numTokens, "token"));
 
-            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
+            stage->setStat(ScopedTimedLog::joinStatItems(statParts));
         }
     }
 }

@@ -26,10 +26,10 @@ namespace Command
         {
             std::vector<Utf8> statParts;
             if (deltaSnapshot.numFiles)
-                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+                statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numFiles, "file"));
             if (!compiler.lastArtifactLabel().empty())
-                statParts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
-            return ScopedTimedLog::joinStatItems(ctx, statParts);
+                statParts.push_back(Utf8{compiler.lastArtifactLabel()});
+            return ScopedTimedLog::joinStatItems(statParts);
         }
 
         Result finishNonArtifactBackend(CompilerInstance& compiler)
@@ -233,12 +233,6 @@ namespace Command
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return SymbolFunction::jitBatch(ctx, allFunctions); }));
 
-            // From here on the script's own code runs and owns the console: it prints directly
-            // and spawns children with inherited streams, none of which this process's logger can
-            // coordinate with. An animated line would fight them for the last row.
-            if (stage)
-                stage->stopProgress();
-
             SWC_RESULT(runScriptRuntimeSetup(ctx));
             std::vector<uint8_t> initializedDependencies(runtimeDependencies.size());
             Result               executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init, initializedDependencies);
@@ -262,7 +256,7 @@ namespace Command
                 return Result::Error;
 
             if (stage)
-                stage->setStat(ScopedTimedLog::formatStatCount(ctx, mainFunctions.size(), "main"));
+                stage->setStat(ScopedTimedLog::formatStatCount(mainFunctions.size(), "main"));
             return Result::Continue;
         }
     }

@@ -461,7 +461,7 @@ namespace
                 // had matched this very pair moments before it asked for the copy, and neither
                 // answer can be replayed post-mortem. So the trace is written now, where the
                 // race actually happened.
-                Logger::printDim(ctx, std::format("[sync] '{}' was mirrored while it already matched its source; the copy fired because {}; the replace answered '{}'\n", Utf8(dstPath).c_str(), copyReason.c_str(), FileSystem::normalizeSystemMessage(ec).c_str()));
+                Logger::print(ctx, std::format("[sync] '{}' was mirrored while it already matched its source; the copy fired because {}; the replace answered '{}'\n", Utf8(dstPath).c_str(), copyReason.c_str(), FileSystem::normalizeSystemMessage(ec).c_str()));
                 return Result::Continue;
             }
 
@@ -875,39 +875,39 @@ namespace
         if (ctx.cmdLine().workspaceDependencyBuild && workspaceLogState.builtModules == workspaceLogState.activeModules)
         {
             if (workspaceLogState.compiledModules)
-                parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.compiledModules, "module"));
-            return ScopedTimedLog::joinStatItems(ctx, parts);
+                parts.push_back(ScopedTimedLog::formatStatCount(workspaceLogState.compiledModules, "module"));
+            return ScopedTimedLog::joinStatItems(parts);
         }
 
         if (workspaceLogState.activeModules)
         {
             if (workspaceLogState.builtModules < workspaceLogState.activeModules)
-                parts.push_back(ScopedTimedLog::formatStatRatio(ctx, workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
+                parts.push_back(ScopedTimedLog::formatStatRatio(workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
             else
-                parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.activeModules, "module"));
+                parts.push_back(ScopedTimedLog::formatStatCount(workspaceLogState.activeModules, "module"));
         }
         else if (workspaceLogState.discoveredModules)
         {
-            parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.discoveredModules, "module"));
+            parts.push_back(ScopedTimedLog::formatStatCount(workspaceLogState.discoveredModules, "module"));
         }
 
-        return ScopedTimedLog::joinStatItems(ctx, parts);
+        return ScopedTimedLog::joinStatItems(parts);
     }
 
     Utf8 formatWorkspaceModuleStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> parts;
         if (deltaSnapshot.numFiles)
-            parts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+            parts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numFiles, "file"));
 
         if (ctx.cmdLine().command == CommandKind::Test)
-            ScopedTimedLog::appendTestStats(ctx, parts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
+            ScopedTimedLog::appendTestStats(parts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
 
         const Utf8& artifactLabel = compiler.lastArtifactLabel();
         if (!artifactLabel.empty())
-            parts.push_back(ScopedTimedLog::formatStatName(ctx, artifactLabel));
+            parts.push_back(Utf8{artifactLabel});
 
-        return ScopedTimedLog::joinStatItems(ctx, parts);
+        return ScopedTimedLog::joinStatItems(parts);
     }
 
     void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, const bool canFilter = true)
@@ -2044,13 +2044,14 @@ namespace
         return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_clean_remove_failed, failedPath, FileSystem::normalizeSystemMessage(ec));
     }
 
-    Utf8 formatWorkspaceArtifactStat(const TaskContext& ctx, const CompilerInstance& compiler, std::string_view state)
+    // An empty state adds nothing: the stage line already says a module is up to date.
+    Utf8 formatWorkspaceArtifactStat(const CompilerInstance& compiler, const std::string_view state = {})
     {
         std::vector<Utf8> parts;
-        parts.push_back(ScopedTimedLog::formatStatName(ctx, state));
+        parts.push_back(Utf8{state});
         if (!compiler.lastArtifactLabel().empty())
-            parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
-        return ScopedTimedLog::joinStatItems(ctx, parts);
+            parts.push_back(Utf8{compiler.lastArtifactLabel()});
+        return ScopedTimedLog::joinStatItems(parts);
     }
 
     // Where a dependency directory sits inside the root it was found through. A copy keeps that
@@ -3924,7 +3925,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             else
             {
                 moduleStage.markUpToDate();
-                moduleStage.setStat(formatWorkspaceArtifactStat(probeCtx, probeCompiler, "up-to-date"));
+                moduleStage.setStat(formatWorkspaceArtifactStat(probeCompiler));
             }
             return Result::Continue;
         }
@@ -3956,7 +3957,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
                 if (writeWorkspaceArtifactManifest(probeCtx, manifest, manifestPath) != Result::Continue)
                     return Result::Error;
 
-                moduleStage.setStat(formatWorkspaceArtifactStat(probeCtx, probeCompiler, "relinked"));
+                moduleStage.setStat(formatWorkspaceArtifactStat(probeCompiler, "relinked"));
                 return Result::Continue;
             }
         }

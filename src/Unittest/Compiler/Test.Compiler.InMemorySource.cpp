@@ -178,10 +178,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
 {
-    for (const bool oneLine : {false, true})
     {
         CommandLine cmdLine;
-        cmdLine.diagOneLine = oneLine;
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);
@@ -388,11 +386,8 @@ SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
         {"\tfoo", 1, 8},
         {"// \xC3\xA9", 1, 5},
     };
-    for (const bool oneLine : {false, true})
     {
         CommandLine cmdLine;
-        cmdLine.logColor        = false;
-        cmdLine.diagOneLine     = oneLine;
         cmdLine.tabSize         = 4;
         cmdLine.filePathDisplay = FileSystem::FilePathDisplayMode::AsIs;
         CompilerInstance compiler(ctx.global(), cmdLine);
@@ -443,11 +438,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_DuplicateDisplayStillVerifiesEachOwner)
 {
-    for (const bool oneLine : {false, true})
     {
         CommandLine cmdLine;
         cmdLine.sourceDrivenTest = true;
-        cmdLine.diagOneLine      = oneLine;
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);

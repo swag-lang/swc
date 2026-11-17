@@ -211,32 +211,22 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   native or GUI example.
 - Related: compiler.distribution.005, compiler.distribution.006, compiler.command.doc.001.
 
-### compiler.distribution.008 — The command line has no authoritative machine interface
+### compiler.distribution.008 — The output line grammar is not a versioned contract
 
-- Evidence: current help and diagnostics are high-quality terminal text, with options for one-line
-  diagnostics and suppressed colors, but no stable structured schema for commands, options, docs,
-  examples, capability checks, progress, or source diagnostics. An AI must scrape prose, infer
-  option arity and side effects, and can easily use documentation from a different compiler build.
-- Intent: make `swc` self-describing to both people and programs. Text remains the concise human
-  interface; a versioned JSON/JSONL interface is the authoritative machine contract and is generated
-  from the same command, diagnostic, documentation, example, and capability definitions.
-- Required structured surfaces:
-  - `help`: command hierarchy, aliases, positional grammar, option value types, defaults, choices,
-    repeatability, applicability, incompatibilities, deprecations, examples, and side effects.
-  - `doctor`, documentation/API lookup, example catalogue, project inspection, and dry-run plans.
-  - Compilation and test diagnostics: stable id, severity, message, primary and related spans,
-    notes, actionable help, phase, affected artifact, and normalized paths.
-  - Command lifecycle: schema version, compiler/language/build/payload versions, requested and
-    resolved configuration, ordered stage events, summary, and documented exit category.
-- Constraints: machine mode has no ANSI sequences, animation, localized alignment padding, or
-  human log interleaved with data. Define stdout/stderr ownership and one record framing; never
-  require a consumer to parse a sentence. Preserve existing exit-code meanings and version any
-  extension explicitly.
-- Next: generate a versioned JSON/JSONL interface from the existing command, diagnostic,
-  documentation, example, and capability definitions.
-- Done when: a small independent client can discover a command, create a project, run a safe
-  plan, interpret an intentional compiler error, locate the matching local reference entry, and
-  distinguish a source error from an unavailable host capability without hard-coded Swag knowledge.
+- Evidence: `swc` prints one plain-ASCII form for the agent that launches it: one line per
+  diagnostic element with its identifier, one line per finished stage, one closing `command` line,
+  and titled `label: value` groups for help, `info`, `--show-config` and `--dry-run`. The grammar
+  is stated in the `write-swag-compiler-messages` skill and held by a few C++ tests; the compiler
+  reports no grammar version, a duration is a sentence (`3 s 86 ms`), and help gives an option's
+  value type, default and choices as prose fields. A program the JIT runs writes to the same
+  stdout, unframed.
+- Next: give the grammar a version the compiler reports (`swc info`), and hold each record shape
+  with a test at the command boundary: a located diagnostic with a labeled secondary span, a note,
+  a help, a stage line of each outcome, and the closing line.
+- Done when: a small independent client can discover a command and its option types, run a safe
+  plan, read an intentional compiler error and its help, and tell a source error from an
+  unavailable host capability, relying only on the versioned grammar; and the output of an executed
+  program can be told apart from the compiler's own records.
 - Related: compiler.command.doc.003, compiler.distribution.004, compiler.distribution.006,
   compiler.distribution.009, compiler.distribution.010.
 

@@ -9,8 +9,8 @@ SWC_BEGIN_NAMESPACE();
 // configuration, and the '#[Swag.Warning]' attributes in scope where a warning is raised.
 // A layer holds at most one blanket decision and at most one decision per named warning.
 //
-// A warning is named by its diagnostic identifier, the same string '--diagnostic-id'
-// prints and a 'swc-expected-warning' directive matches on.
+// A warning is named by its diagnostic identifier, the string printed in brackets after its
+// severity and matched by a 'swc-expected-warning' directive.
 class WarningPolicy
 {
 public:

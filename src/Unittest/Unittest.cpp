@@ -9,7 +9,6 @@
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 #ifdef __linux__
@@ -135,7 +134,7 @@ namespace Unittest
         {
             const std::string header = std::format("Test-{}", name);
             const Utf8        status = formatUnittestStatus(ok, durationNs);
-            Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, ok ? LogColor::BrightGreen : LogColor::BrightRed, status);
+            Logger::printField(ctx, {.label = Utf8(header), .value = Utf8(status)});
         }
 
         bool hasLongerDuration(const TimedTestResult& lhs, const TimedTestResult& rhs)
@@ -155,20 +154,20 @@ namespace Unittest
         {
             const uint64_t totalTestDurationNs = totalTestDuration(timedTests);
             const Utf8     testsSummary        = std::format("{} tests ({})", Utf8Helper::toNiceBigNumber(timedTests.size()), formatDuration(totalTestDurationNs));
-            Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Tests", LogColor::White, testsSummary);
+            Logger::printField(ctx, {.label = Utf8("Tests"), .value = Utf8(testsSummary)});
 
             // Every test that ran compiled code through a fresh compiler instance; a count that
             // grows with them is a thread-local slot an instance did not give back.
             const Utf8 tlsSummary = std::format("{} thread-local slots in use before the tests, {} after", tlsSlotsBefore, tlsSlotsAfter);
-            Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Tls", LogColor::White, tlsSummary);
+            Logger::printField(ctx, {.label = Utf8("Tls"), .value = Utf8(tlsSummary)});
 
             if (setupDurationNs)
-                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Setup", LogColor::White, formatDuration(setupDurationNs));
+                Logger::printField(ctx, {.label = Utf8("Setup"), .value = Utf8(formatDuration(setupDurationNs))});
 
             if (skippedFilesystemTests)
             {
                 const Utf8 skippedSummary = std::format("{} filesystem tests (run with --dev-full)", Utf8Helper::toNiceBigNumber(skippedFilesystemTests));
-                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Skipped", LogColor::White, skippedSummary);
+                Logger::printField(ctx, {.label = Utf8("Skipped"), .value = Utf8(skippedSummary)});
             }
 
             std::vector<TimedTestResult> slowTests = timedTests;
@@ -179,7 +178,7 @@ namespace Unittest
                 const TimedTestResult& slowTest = slowTests[i];
                 const std::string      header   = std::format("Slow-{:02}", i + 1);
                 const Utf8             message  = std::format("{} ({})", slowTest.name, formatDuration(slowTest.durationNs));
-                Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, LogColor::White, message);
+                Logger::printField(ctx, {.label = Utf8(header), .value = Utf8(message)});
             }
         }
     }
@@ -251,7 +250,6 @@ namespace Unittest
                 continue;
             }
 
-            stage.setProgressStat(ScopedTimedLog::formatTestProgress(testCtx, executedTestCount, selectedTestCount, failedTestCount, test.name));
             // Each fixture owns its compiler jobs. A diagnostic from an earlier
             // fixture must not abort this one's sema or native preparation, but it
             // still contributes to the campaign's final error count and failure.
@@ -265,7 +263,6 @@ namespace Unittest
             executedTestCount++;
             if (!ok)
                 failedTestCount++;
-            stage.setProgressStat(ScopedTimedLog::formatTestProgress(testCtx, executedTestCount, selectedTestCount, failedTestCount, test.name));
 
             timedTests.push_back({test.name, durationNs});
             if (ok)
@@ -287,8 +284,8 @@ namespace Unittest
             logUnittestSummary(testCtx, timedTests, setupDurationNs, skippedFilesystemTests, tlsSlotsBefore, Os::tlsSlotsInUse());
 
         std::vector<Utf8> statParts;
-        ScopedTimedLog::appendTestStats(testCtx, statParts, executedTestCount, failedTestCount);
-        stage.setStat(ScopedTimedLog::joinStatItems(testCtx, statParts));
+        ScopedTimedLog::appendTestStats(statParts, executedTestCount, failedTestCount);
+        stage.setStat(ScopedTimedLog::joinStatItems(statParts));
 
         return hasFailure ? Result::Error : Result::Continue;
     }

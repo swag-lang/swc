@@ -7,192 +7,86 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
-#include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t getSyntaxColorRgb(SyntaxColor color, uint32_t lum)
+    Utf8 syntaxColorSpan(const SyntaxColor color)
     {
-        RgbColor rgb;
+        std::string_view colorName;
         switch (color)
         {
+            case SyntaxColor::Default:
+                return "</span>";
             case SyntaxColor::Code:
-                rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
+                colorName = SYN_CODE;
                 break;
             case SyntaxColor::InstructionIndex:
-                rgb = {.r = 0x00, .g = 0xE6, .b = 0xFF};
+                colorName = SYN_INST_INDEX;
                 break;
             case SyntaxColor::MicroInstruction:
-                rgb = {.r = 0xFF, .g = 0xA5, .b = 0x00};
+                colorName = SYN_MICRO_INST;
                 break;
             case SyntaxColor::Comment:
-                rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
+                colorName = SYN_COMMENT;
                 break;
             case SyntaxColor::Compiler:
-                rgb = {.r = 0xAA, .g = 0xAA, .b = 0xAA};
+                colorName = SYN_COMPILER;
                 break;
             case SyntaxColor::Function:
-                rgb = {.r = 0xFF, .g = 0x74, .b = 0x11};
+                colorName = SYN_FUNCTION;
                 break;
             case SyntaxColor::Constant:
-                rgb = {.r = 0x4E, .g = 0xC9, .b = 0xB0};
+                colorName = SYN_CONSTANT;
                 break;
             case SyntaxColor::Intrinsic:
-                rgb = {.r = 0xdc, .g = 0xdc, .b = 0xaa};
+                colorName = SYN_INTRINSIC;
                 break;
             case SyntaxColor::Namespace:
-                rgb = {.r = 0x94, .g = 0xA3, .b = 0xB8};
+                colorName = SYN_NAMESPACE;
                 break;
             case SyntaxColor::Type:
-                rgb = {.r = 0xf6, .g = 0xcc, .b = 0x86};
+                colorName = SYN_TYPE;
                 break;
             case SyntaxColor::Keyword:
-                rgb = {.r = 0x56, .g = 0x9c, .b = 0xd6};
+                colorName = SYN_KEYWORD;
                 break;
             case SyntaxColor::Logic:
-                rgb = {.r = 0xd8, .g = 0xa0, .b = 0xdf};
+                colorName = SYN_LOGIC;
                 break;
             case SyntaxColor::Number:
-                rgb = {.r = 0xb5, .g = 0xce, .b = 0xa8};
-                break;
-            case SyntaxColor::String:
-                rgb = {.r = 0xce, .g = 0x91, .b = 0x78};
-                break;
-            case SyntaxColor::Attribute:
-                rgb = {.r = 0xaa, .g = 0xaa, .b = 0xaa};
+                colorName = SYN_NUMBER;
                 break;
             case SyntaxColor::Register:
-                rgb = {.r = 0xBC, .g = 0xB6, .b = 0x58};
+                colorName = SYN_REGISTER;
                 break;
             case SyntaxColor::RegisterVirtual:
-                rgb = {.r = 0x5A, .g = 0xB4, .b = 0xFF};
+                colorName = SYN_REGISTER_V;
                 break;
             case SyntaxColor::Relocation:
-                rgb = {.r = 0xE5, .g = 0xC0, .b = 0x7B};
+                colorName = SYN_RELOCATION;
                 break;
-
+            case SyntaxColor::String:
+                colorName = SYN_STRING;
+                break;
+            case SyntaxColor::Attribute:
+                colorName = SYN_ATTRIBUTE;
+                break;
             case SyntaxColor::Invalid:
-                rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
+                colorName = SYN_INVALID;
                 break;
-            default:
-                SWC_UNREACHABLE();
         }
 
-        if (lum != 0)
-        {
-            float h, s, l;
-            LogColorHelper::rgbToHsl(rgb, &h, &s, &l);
-            rgb = LogColorHelper::hslToRgb(h, s, static_cast<float>(lum) / 100.0f);
-        }
-
-        return rgb.r << 16 | rgb.g << 8 | rgb.b;
-    }
-
-    Utf8 syntaxColorToAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode)
-    {
-        switch (mode)
-        {
-            case SyntaxColorMode::ForLog:
-            {
-                if (color == SyntaxColor::Default)
-                    return LogColorHelper::toAnsi(ctx, LogColor::Reset);
-
-                const uint32_t rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
-                return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
-            }
-
-            case SyntaxColorMode::ForDoc:
-            {
-                std::string_view colorName;
-                switch (color)
-                {
-                    case SyntaxColor::Default:
-                        return "</span>";
-                    case SyntaxColor::Code:
-                        colorName = SYN_CODE;
-                        break;
-                    case SyntaxColor::InstructionIndex:
-                        colorName = SYN_INST_INDEX;
-                        break;
-                    case SyntaxColor::MicroInstruction:
-                        colorName = SYN_MICRO_INST;
-                        break;
-                    case SyntaxColor::Comment:
-                        colorName = SYN_COMMENT;
-                        break;
-                    case SyntaxColor::Compiler:
-                        colorName = SYN_COMPILER;
-                        break;
-                    case SyntaxColor::Function:
-                        colorName = SYN_FUNCTION;
-                        break;
-                    case SyntaxColor::Constant:
-                        colorName = SYN_CONSTANT;
-                        break;
-                    case SyntaxColor::Intrinsic:
-                        colorName = SYN_INTRINSIC;
-                        break;
-                    case SyntaxColor::Namespace:
-                        colorName = SYN_NAMESPACE;
-                        break;
-                    case SyntaxColor::Type:
-                        colorName = SYN_TYPE;
-                        break;
-                    case SyntaxColor::Keyword:
-                        colorName = SYN_KEYWORD;
-                        break;
-                    case SyntaxColor::Logic:
-                        colorName = SYN_LOGIC;
-                        break;
-                    case SyntaxColor::Number:
-                        colorName = SYN_NUMBER;
-                        break;
-                    case SyntaxColor::Register:
-                        colorName = SYN_REGISTER;
-                        break;
-                    case SyntaxColor::RegisterVirtual:
-                        colorName = SYN_REGISTER_V;
-                        break;
-                    case SyntaxColor::Relocation:
-                        colorName = SYN_RELOCATION;
-                        break;
-                    case SyntaxColor::String:
-                        colorName = SYN_STRING;
-                        break;
-                    case SyntaxColor::Attribute:
-                        colorName = SYN_ATTRIBUTE;
-                        break;
-                    case SyntaxColor::Invalid:
-                        colorName = SYN_INVALID;
-                        break;
-                }
-
-                if (!colorName.empty())
-                    return std::format("<span class=\"{}\">", colorName);
-
-                break;
-            }
-        }
+        if (!colorName.empty())
+            return std::format("<span class=\"{}\">", colorName);
 
         SWC_UNREACHABLE();
     }
 }
 
-Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force)
+Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, const std::string_view& line)
 {
-    const CommandLine& cmdLine = ctx.cmdLine();
-
-    if (!force)
-    {
-        if (!cmdLine.syntaxColor)
-            return line;
-
-        if (!cmdLine.logColor)
-            return line;
-    }
-
     const LangSpec& langSpec = ctx.global().langSpec();
     const auto*     cur      = reinterpret_cast<const char8_t*>(line.data());
     const auto*     end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
@@ -210,7 +104,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
         // Multi-line comment
         if (multiLineCommentLevel || (c == '/' && (cur < end && cur[0] == '*')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Comment, mode);
+            result += syntaxColorSpan(SyntaxColor::Comment);
 
             result += c;
             if (!multiLineCommentLevel)
@@ -247,27 +141,27 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // Line comment
         if (c == '/' && (cur < end && cur[0] == '/'))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Comment, mode);
+            result += syntaxColorSpan(SyntaxColor::Comment);
             result += c;
             while (cur < end && !langSpec.isEol(*cur))
                 result += *cur++;
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // Attribute
         if (c == '#' && (cur < end && *cur == '['))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
+            result += syntaxColorSpan(SyntaxColor::Attribute);
             result += c;
             result += *cur++;
 
@@ -279,13 +173,13 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 if ((end - cur) >= 5 && cur[0] == 'S' && cur[1] == 'w' && cur[2] == 'a' && cur[3] == 'g' && cur[4] == '.' &&
                     (cur == attributeBegin || !langSpec.isIdentifierPart(cur[-1])))
                 {
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::Namespace, mode);
+                    result += syntaxColorSpan(SyntaxColor::Default);
+                    result += syntaxColorSpan(SyntaxColor::Namespace);
                     result += "Swag";
                     cur += 4;
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                    result += syntaxColorSpan(SyntaxColor::Default);
                     result += *cur++;
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
+                    result += syntaxColorSpan(SyntaxColor::Attribute);
                     continue;
                 }
 
@@ -320,14 +214,14 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // Raw string  #"... "#
         if (c == '#' && (cur < end && *cur == '"'))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
+            result += syntaxColorSpan(SyntaxColor::String);
             result += c;
             while (cur < end && !(cur[0] == '"' && (cur + 1) < end && cur[1] == '#'))
                 result += *cur++;
@@ -339,14 +233,14 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // String
         if (c == '"')
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
+            result += syntaxColorSpan(SyntaxColor::String);
             result += c;
             while (cur < end && *cur != '"')
             {
@@ -361,7 +255,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 result += *cur++;
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
@@ -377,7 +271,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
 
             if (pz1 < end && *pz1 == '\'')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
+                result += syntaxColorSpan(SyntaxColor::String);
                 result += c;
                 while (cur < end && *cur != '\'')
                 {
@@ -392,7 +286,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                     result += *cur++;
 
                 cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                result += syntaxColorSpan(SyntaxColor::Default);
                 continue;
             }
         }
@@ -400,35 +294,35 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
         // Binary literal
         if (c == '0' && (cur < end && (*cur == 'b' || *cur == 'B')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
+            result += syntaxColorSpan(SyntaxColor::Number);
             result += c;
             result += *cur++;
             while (cur < end && (*cur == '0' || *cur == '1' || *cur == '_'))
                 result += *cur++;
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // Hexadecimal literal
         if (c == '0' && (cur < end && (*cur == 'x' || *cur == 'X')))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
+            result += syntaxColorSpan(SyntaxColor::Number);
             result += c;
             result += *cur++;
             while (cur < end && (langSpec.isHexNumber(*cur) || *cur == '_'))
                 result += *cur++;
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
         // Number
         if (langSpec.isDigit(c))
         {
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Number, mode);
+            result += syntaxColorSpan(SyntaxColor::Number);
             result += c;
 
             while (cur < end && (langSpec.isDigit(*cur) || *cur == '_'))
@@ -452,7 +346,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             }
 
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
-            result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+            result += syntaxColorSpan(SyntaxColor::Default);
             continue;
         }
 
@@ -498,9 +392,9 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
 
                 if (tokColor != SyntaxColor::Code)
                 {
-                    result += syntaxColorToAnsi(ctx, tokColor, mode);
+                    result += syntaxColorSpan(tokColor);
                     result += identifier;
-                    result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                    result += syntaxColorSpan(SyntaxColor::Default);
                 }
                 else
                 {
@@ -512,33 +406,33 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
 
             if (identifier[0] == '@' || identifier[0] == '#')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Invalid, mode);
+                result += syntaxColorSpan(SyntaxColor::Invalid);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                result += syntaxColorSpan(SyntaxColor::Default);
                 continue;
             }
 
             if (identifier == "Swag" && c == '.')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Namespace, mode);
+                result += syntaxColorSpan(SyntaxColor::Namespace);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                result += syntaxColorSpan(SyntaxColor::Default);
                 continue;
             }
 
             if (langSpec.isLetter(identifier[0]) && (c == '(' || c == '\''))
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Function, mode);
+                result += syntaxColorSpan(SyntaxColor::Function);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                result += syntaxColorSpan(SyntaxColor::Default);
                 continue;
             }
 
             if (identifier[0] >= 'A' and identifier[0] <= 'Z')
             {
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Constant, mode);
+                result += syntaxColorSpan(SyntaxColor::Constant);
                 result += identifier;
-                result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+                result += syntaxColorSpan(SyntaxColor::Default);
                 continue;
             }
 
@@ -554,19 +448,11 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
 
     if (hasCode)
     {
-        result.insert(0, syntaxColorToAnsi(ctx, SyntaxColor::Code, mode));
-        result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
+        result.insert(0, syntaxColorSpan(SyntaxColor::Code));
+        result += syntaxColorSpan(SyntaxColor::Default);
     }
 
     return result;
-}
-
-Utf8 SyntaxColorHelper::toAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode)
-{
-    if (mode == SyntaxColorMode::ForLog && !ctx.cmdLine().logColor)
-        return "";
-
-    return syntaxColorToAnsi(ctx, color, mode);
 }
 
 SWC_END_NAMESPACE();

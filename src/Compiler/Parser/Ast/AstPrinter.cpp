@@ -9,7 +9,6 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -65,33 +64,33 @@ namespace
                                       : sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
 
         out += " ";
-        SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, "[");
+        out += "[";
 
         bool first = true;
         if (view.hasType())
         {
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "type = ");
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Type, sanitizeSemaText(view.type()->toName(ctx)));
+            out += "type = ";
+            out += sanitizeSemaText(view.type()->toName(ctx));
             first = false;
         }
 
         if (view.hasConstant())
         {
             if (!first)
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+                out += ", ";
 
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "const = ");
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Constant, sanitizeSemaText(view.cst()->toString(ctx)));
+            out += "const = ";
+            out += sanitizeSemaText(view.cst()->toString(ctx));
             first = false;
         }
 
         if (view.hasSymbol())
         {
             if (!first)
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+                out += ", ";
 
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "sym = ");
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Function, view.sym()->name(ctx));
+            out += "sym = ";
+            out += view.sym()->name(ctx);
             first = false;
         }
 
@@ -99,9 +98,9 @@ namespace
         if (isValue)
         {
             if (!first)
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+                out += ", ";
 
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "value");
+            out += "value";
             first = false;
         }
 
@@ -109,9 +108,9 @@ namespace
         if (isLValue)
         {
             if (!first)
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+                out += ", ";
 
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "lvalue");
+            out += "lvalue";
             first = false;
         }
 
@@ -119,12 +118,12 @@ namespace
         if (isFolded)
         {
             if (!first)
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+                out += ", ";
 
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "folded");
+            out += "folded";
         }
 
-        SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, "]");
+        out += "]";
     }
 
     void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, const AstPrintNodeEntry& entry, Sema* sema)
@@ -133,24 +132,23 @@ namespace
         const AstNodeIdInfo nodeInfo = Ast::nodeIdInfos(node.id());
 
         out += entry.prefix;
-        SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, entry.isLastChild ? "+- " : "|- ");
+        out += entry.isLastChild ? "+- " : "|- ";
 
-        const SyntaxColor nodeColor = ast.isAdditionalNode(nodeRef) ? SyntaxColor::Intrinsic : SyntaxColor::Function;
-        SyntaxColorHelper::append(out, ctx, nodeColor, nodeInfo.name);
+        out += nodeInfo.name;
 
         if (node.tokRef().isValid())
         {
             out += " ";
             const SourceView& sourceView = ctx.compiler().srcView(node.srcViewRef());
             const auto        codeRange  = node.codeRange(ctx);
-            SyntaxColorHelper::append(out, ctx, SyntaxColor::Number, std::format("@{}:{}", codeRange.line, codeRange.column));
+            out += std::format("@{}:{}", codeRange.line, codeRange.column);
 
             const Token& tok       = sourceView.token(node.tokRef());
             const Utf8   tokenText = sanitizeTokenText(tok.string(sourceView));
             if (!tokenText.empty())
             {
                 out += " ";
-                SyntaxColorHelper::append(out, ctx, SyntaxColor::String, std::format("\"{}\"", tokenText));
+                out += std::format("\"{}\"", tokenText);
             }
         }
 
@@ -303,7 +301,6 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
 void AstPrinter::print(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema* sema)
 {
     Logger::print(ctx, format(ctx, ast, root, sema));
-    Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
 }
 
 SWC_END_NAMESPACE();

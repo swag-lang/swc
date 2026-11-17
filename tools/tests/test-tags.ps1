@@ -36,7 +36,7 @@ try {
     $env:SWAG_RUNTIME_THREADS = '3'
     foreach ($mode in @('native', 'jit')) {
         foreach ($case in $cases) {
-            $arguments = @('test', '--workspace', $scratch, '--workspace-module', 'tags', '--num-cores', '3', '--log-ascii')
+            $arguments = @('test', '--workspace', $scratch, '--workspace-module', 'tags', '--num-cores', '3')
             $arguments += if ($mode -eq 'native') { @('--no-test-jit') } else { @('--test-jit', '--no-test-native', '--no-output') }
             foreach ($tag in $case.Filters) { $arguments += @('--test-tag', $tag) }
             $ErrorActionPreference = 'Continue'

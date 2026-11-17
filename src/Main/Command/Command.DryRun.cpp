@@ -16,7 +16,6 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
 
@@ -25,17 +24,11 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using CommandPrint::addInfoEntry;
-    using CommandPrint::addInfoEntryParts;
     using CommandPrint::addSetEntries;
-    using CommandPrint::nextInfoGroupStyle;
 
-    void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const LogColor statusColor, Utf8 detail)
+    void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const Utf8& detail)
     {
-        std::vector<Logger::FieldValuePart> valueParts;
-        valueParts.push_back({Utf8(status), statusColor});
-        valueParts.push_back({Utf8(" "), LogColor::White});
-        valueParts.push_back({std::move(detail), LogColor::White});
-        addInfoEntryParts(entries, std::format("[{}]", index), std::move(valueParts));
+        addInfoEntry(entries, std::format("[{}]", index), Utf8(status) + " " + detail);
     }
 
     struct DryRunInputSummary
@@ -185,32 +178,32 @@ namespace
         return result;
     }
 
-    void printDryRunOverview(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunOverview(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunNativePreview& nativePreview)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Command", commandName(cmdLine.command), LogColor::BrightYellow);
+        addInfoEntry(entries, "Command", commandName(cmdLine.command));
         addInfoEntry(entries, "Build config", cmdLine.buildCfg);
-        addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
+        addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"));
         if (nativePreview.enabled || nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
             addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind));
 
-        addInfoEntry(entries, "Compile-time execution", "suppressed", LogColor::BrightGreen);
-        addInfoEntry(entries, "Filesystem mutation", "suppressed", LogColor::BrightGreen);
-        addInfoEntry(entries, "External processes", "suppressed", LogColor::BrightGreen);
+        addInfoEntry(entries, "Compile-time execution", "suppressed");
+        addInfoEntry(entries, "Filesystem mutation", "suppressed");
+        addInfoEntry(entries, "External processes", "suppressed");
         if (nativePreview.enabled)
-            addInfoEntry(entries, "Native command detail", "stable flags are exact; source-driven inputs are shown as placeholders", LogColor::BrightYellow);
+            addInfoEntry(entries, "Native command detail", "stable flags are exact; source-driven inputs are shown as placeholders");
 
-        Logger::printFieldGroup(ctx, "Dry Run", entries, nextInfoGroupStyle(hasPrintedGroup, 28));
+        Logger::printFieldGroup(ctx, "Dry Run", entries);
     }
 
-    void printDryRunInputs(const TaskContext& ctx, const DryRunInputSummary& inputSummary, bool& hasPrintedGroup)
+    void printDryRunInputs(const TaskContext& ctx, const DryRunInputSummary& inputSummary)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Total files", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
+        addInfoEntry(entries, "Total files", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"));
         addInfoEntry(entries, "Custom source files", Utf8Helper::countWithLabel(inputSummary.customFiles, "file"));
         addInfoEntry(entries, "Module files", Utf8Helper::countWithLabel(inputSummary.moduleFiles, "file"));
         addInfoEntry(entries, "Module source files", Utf8Helper::countWithLabel(inputSummary.moduleSrc, "file"));
@@ -230,10 +223,10 @@ namespace
         addSetEntries(entries, "Import API directories", cmdLine.importApiDirs);
         addSetEntries(entries, "Import API files", cmdLine.importApiFiles);
 
-        Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
+        Logger::printFieldGroup(ctx, "Resolved Inputs", entries);
     }
 
-    void printDryRunPlan(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunFormatPreview& formatPreview, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunPlan(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunFormatPreview& formatPreview, const DryRunNativePreview& nativePreview)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
@@ -241,16 +234,16 @@ namespace
         const Utf8                      inputCount = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
 
         if (cmdLine.command != CommandKind::Unittest)
-            addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
+            addPlanEntry(entries, index++, "Would", std::format("collect and classify {}", inputCount));
 
         switch (cmdLine.command)
         {
             case CommandKind::Unittest:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run fast internal C++ unit tests");
+                addPlanEntry(entries, index++, "Would", "run fast internal C++ unit tests");
                 if (cmdLine.devFull)
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "also run filesystem-heavy internal C++ unit tests");
+                    addPlanEntry(entries, index, "Would", "also run filesystem-heavy internal C++ unit tests");
                 else
-                    addPlanEntry(entries, index, "Skip", LogColor::Gray, "filesystem-heavy internal C++ unit tests unless --dev-full is set");
+                    addPlanEntry(entries, index, "Skip", "filesystem-heavy internal C++ unit tests unless --dev-full is set");
                 break;
 
             case CommandKind::Format:
@@ -259,106 +252,104 @@ namespace
                     // The preview counts come from the real command's selection, which excludes
                     // implicit runtime inputs and generated caches; say so when inputs were dropped.
                     if (inputSummary.totalFiles > formatPreview.totalFiles)
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(inputSummary.totalFiles - formatPreview.totalFiles, " outside the format selection (runtime or generated)")));
+                        addPlanEntry(entries, index++, "Would", std::format("ignore {}", formatFileCountWithSuffix(inputSummary.totalFiles - formatPreview.totalFiles, " outside the format selection (runtime or generated)")));
 
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", formatFileCountWithSuffix(formatPreview.totalFiles, "")));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked format-skipped")));
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedInvalidFiles, " after parse errors")));
+                    addPlanEntry(entries, index++, "Would", std::format("parse and format {}", formatFileCountWithSuffix(formatPreview.totalFiles, "")));
+                    addPlanEntry(entries, index++, "Would", std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
+                    addPlanEntry(entries, index++, "Would", std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
+                    addPlanEntry(entries, index++, "Would", std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked format-skipped")));
+                    addPlanEntry(entries, index, "Would", std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedInvalidFiles, " after parse errors")));
                 }
                 else
                 {
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", inputCount));
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "rewrite only files whose formatted output differs");
+                    addPlanEntry(entries, index++, "Would", std::format("parse and format {}", inputCount));
+                    addPlanEntry(entries, index, "Would", "rewrite only files whose formatted output differs");
                 }
                 break;
 
             case CommandKind::Syntax:
-                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
+                addPlanEntry(entries, index, "Would", std::format("parse {} and stop after syntax", inputCount));
                 break;
 
             case CommandKind::Sema:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+                    addPlanEntry(entries, index, "Would", std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
                 break;
 
             case CommandKind::Doc:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
-                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("write documentation under {}", Utf8(DocGenerator::outputDirectory(ctx.compiler()))));
+                addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index, "Would", std::format("write documentation under {}", Utf8(DocGenerator::outputDirectory(ctx.compiler()))));
                 break;
 
             case CommandKind::Build:
             case CommandKind::Run:
             case CommandKind::Smoke:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+                    addPlanEntry(entries, index++, "Would", std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
 
                 if (nativePreview.enabled)
                 {
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+                    addPlanEntry(entries, index++, "Would", std::format("generate native {}", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "Would", "prepare native link inputs in memory");
+                    addPlanEntry(entries, index++, "Would", std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
 
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
+                        addPlanEntry(entries, index++, "May", std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
 
                     if (isRunLikeCommand(cmdLine.command) && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                        addPlanEntry(entries, index, "Would", std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
                 else
                 {
-                    addPlanEntry(entries, index, "Skip", LogColor::Gray, std::format("native artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index, "Skip", std::format("native artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
                 }
                 break;
 
             case CommandKind::Test:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
                 if (cmdLine.testJit)
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
+                    addPlanEntry(entries, index++, "May", "compile and execute eligible JIT #test functions discovered during semantic analysis");
 
                 if (nativePreview.enabled)
                 {
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+                    addPlanEntry(entries, index++, "May", std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "May", "prepare native link inputs in memory");
+                    addPlanEntry(entries, index++, "May", std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
 
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
+                        addPlanEntry(entries, index++, "May", std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
 
                     if (nativePreview.mayRunArtifact)
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                        addPlanEntry(entries, index++, "May", std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
                 else if (cmdLine.testNative && !cmdLine.output)
-                    addPlanEntry(entries, index++, "Skip", LogColor::Gray, "native test artifact generation because output is disabled");
+                    addPlanEntry(entries, index++, "Skip", "native test artifact generation because output is disabled");
                 else if (cmdLine.testNative && nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
-                    addPlanEntry(entries, index++, "Skip", LogColor::Gray, std::format("native test artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "Skip", std::format("native test artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
 
-                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
+                addPlanEntry(entries, index, "Would", "verify expected diagnostics and untouched markers");
                 break;
 
             default:
                 SWC_UNREACHABLE();
         }
 
-        Logger::FieldGroupStyle style = nextInfoGroupStyle(hasPrintedGroup, 10);
-        style.minLabelWidth           = 4;
-        Logger::printFieldGroup(ctx, "Plan", entries, style);
+        Logger::printFieldGroup(ctx, "Plan", entries);
     }
 
-    void printDryRunNativeOutputs(const TaskContext& ctx, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunNativeOutputs(const TaskContext& ctx, const DryRunNativePreview& nativePreview)
     {
         if (!nativePreview.enabled)
             return;
 
         std::vector<Logger::FieldEntry> entries;
-        addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind), LogColor::BrightYellow);
+        addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind));
         addInfoEntry(entries, "Work directory", nativePreview.paths.workDir);
         addInfoEntry(entries, "Build directory", nativePreview.paths.buildDir);
         addInfoEntry(entries, "Output directory", nativePreview.paths.outDir);
@@ -367,10 +358,10 @@ namespace
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
         addInfoEntry(entries, "Link inputs", ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? "ELF objects in a temporary link directory" : "in memory");
 
-        Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
+        Logger::printFieldGroup(ctx, "Native Outputs", entries);
     }
 
-    void printDryRunNativeCommands(const TaskContext& ctx, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunNativeCommands(const TaskContext& ctx, const DryRunNativePreview& nativePreview)
     {
         if (!nativePreview.enabled)
             return;
@@ -392,10 +383,10 @@ namespace
         if (entries.empty())
             return;
 
-        Logger::printFieldGroup(ctx, "External Commands", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
+        Logger::printFieldGroup(ctx, "External Commands", entries);
     }
 
-    void printDryRunNativeToolchain(const TaskContext& ctx, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunNativeToolchain(const TaskContext& ctx, const DryRunNativePreview& nativePreview)
     {
         if (!nativePreview.enabled)
             return;
@@ -409,7 +400,7 @@ namespace
         else
             CommandPrint::addNativeToolchainEntries(entries, nativePreview.toolchainResult, nativePreview.toolchain);
 
-        Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
+        Logger::printFieldGroup(ctx, "Native Toolchain", entries);
     }
 }
 
@@ -430,14 +421,13 @@ namespace Command
 
         const DryRunNativePreview nativePreview = buildDryRunNativePreview(compiler);
         const Logger::ScopedLock  loggerLock{ctx.global().logger()};
-        bool                      hasPrintedGroup = false;
 
-        printDryRunOverview(ctx, inputSummary, nativePreview, hasPrintedGroup);
-        printDryRunInputs(ctx, inputSummary, hasPrintedGroup);
-        printDryRunPlan(ctx, inputSummary, formatPreview, nativePreview, hasPrintedGroup);
-        printDryRunNativeOutputs(ctx, nativePreview, hasPrintedGroup);
-        printDryRunNativeCommands(ctx, nativePreview, hasPrintedGroup);
-        printDryRunNativeToolchain(ctx, nativePreview, hasPrintedGroup);
+        printDryRunOverview(ctx, inputSummary, nativePreview);
+        printDryRunInputs(ctx, inputSummary);
+        printDryRunPlan(ctx, inputSummary, formatPreview, nativePreview);
+        printDryRunNativeOutputs(ctx, nativePreview);
+        printDryRunNativeCommands(ctx, nativePreview);
+        printDryRunNativeToolchain(ctx, nativePreview);
     }
 }
 

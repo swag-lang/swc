@@ -13,7 +13,6 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -23,15 +22,14 @@ namespace
     using CommandPrint::addBoolEntry;
     using CommandPrint::addInfoEntry;
     using CommandPrint::addSetEntries;
-    using CommandPrint::nextInfoGroupStyle;
 
-    void printCommandLineOptions(const TaskContext& ctx, bool& hasPrintedGroup)
+    void printCommandLineOptions(const TaskContext& ctx)
     {
         const CommandLine&              cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg&        buildCfg = cmdLine.defaultBuildCfg;
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Command", commandName(cmdLine.command), LogColor::BrightYellow);
+        addInfoEntry(entries, "Command", commandName(cmdLine.command));
         addInfoEntry(entries, "Target OS", targetOsName(cmdLine.targetOs));
         addInfoEntry(entries, "Target architecture", targetArchName(cmdLine.targetArch));
         addInfoEntry(entries, "Target CPU", cmdLine.targetCpu);
@@ -44,15 +42,9 @@ namespace
         addBoolEntry(entries, "Debug information", buildCfg.backend.debugInfo);
         addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
         addBoolEntry(entries, "Vectorization", buildCfg.backend.vectorize);
-        Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Command Line", entries);
 
         entries.clear();
-        addBoolEntry(entries, "Log colors", cmdLine.logColor);
-        addBoolEntry(entries, "ASCII logs", cmdLine.logAscii);
-        addBoolEntry(entries, "Log progress", cmdLine.logProgress);
-        addBoolEntry(entries, "Syntax colors", cmdLine.syntaxColor);
-        addBoolEntry(entries, "One-line diagnostics", cmdLine.diagOneLine);
-        addBoolEntry(entries, "Diagnostic IDs", cmdLine.errorId);
         addInfoEntry(entries, "Warnings as errors", Utf8Helper::join(cmdLine.warnAsErrors, "|"));
         addInfoEntry(entries, "Warnings as warnings", Utf8Helper::join(cmdLine.warnAsWarnings, "|"));
         addInfoEntry(entries, "Warnings disabled", Utf8Helper::join(cmdLine.warnDisabled, "|"));
@@ -90,13 +82,11 @@ namespace
         addInfoEntry(entries, "Random seed", std::to_string(cmdLine.randSeed));
 #endif
 
-        addInfoEntry(entries, "Syntax color luminance", std::to_string(cmdLine.syntaxColorLum));
         addInfoEntry(entries, "Core count", std::to_string(cmdLine.numCores));
         addInfoEntry(entries, "Tab size", std::to_string(cmdLine.tabSize));
-        addInfoEntry(entries, "Diagnostic max column", std::to_string(cmdLine.diagMaxColumn));
         addInfoEntry(entries, "File path display", FileSystem::filePathDisplayModeName(cmdLine.filePathDisplay));
         addInfoEntry(entries, "Verify filter", cmdLine.verboseVerifyFilter);
-        Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
+        Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries);
 
         entries.clear();
         addInfoEntry(entries, "Config file", cmdLine.configFile);
@@ -118,10 +108,10 @@ namespace
         addSetEntries(entries, "File filters", cmdLine.fileFilter);
         addSetEntries(entries, "Test file filters", cmdLine.testFileFilter);
         addSetEntries(entries, "Test tag filters", cmdLine.testTagFilter);
-        Logger::printFieldGroup(ctx, "Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
+        Logger::printFieldGroup(ctx, "Inputs", entries);
     }
 
-    void printProcessConfig(const TaskContext& ctx, bool& hasPrintedGroup)
+    void printProcessConfig(const TaskContext& ctx)
     {
         std::error_code                 ec;
         const fs::path                  currentDir = fs::current_path(ec);
@@ -134,10 +124,10 @@ namespace
         addInfoEntry(entries, "Temporary path", tempPath);
         if (!ec)
             addInfoEntry(entries, "Current directory", currentDir);
-        Logger::printFieldGroup(ctx, "Process", entries, nextInfoGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Process", entries);
     }
 
-    void printNativeConfig(const TaskContext& ctx, CompilerInstance& compiler, bool& hasPrintedGroup)
+    void printNativeConfig(const TaskContext& ctx, CompilerInstance& compiler)
     {
         if (ctx.cmdLine().command == CommandKind::Doc)
             return;
@@ -151,7 +141,7 @@ namespace
 
         artifactBuilder.queryPaths(nativePaths);
 
-        addInfoEntry(entries, "Name", nativePaths.name, LogColor::BrightYellow);
+        addInfoEntry(entries, "Name", nativePaths.name);
         addInfoEntry(entries, "Work directory", nativePaths.workDir);
         if (!nativePaths.buildDir.empty())
             addInfoEntry(entries, "Build directory", nativePaths.buildDir);
@@ -159,7 +149,7 @@ namespace
         addInfoEntry(entries, "Artifact path", nativePaths.artifactPath);
         if (!nativePaths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePaths.pdbPath);
-        Logger::printFieldGroup(ctx, "Native Paths", entries, nextInfoGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Native Paths", entries);
 
         entries.clear();
         if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
@@ -173,7 +163,7 @@ namespace
             CommandPrint::addNativeToolchainEntries(entries, toolchainResult, toolchain);
         }
 
-        Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
+        Logger::printFieldGroup(ctx, "Native Toolchain", entries);
     }
 }
 
@@ -183,11 +173,10 @@ namespace Command
     {
         const TaskContext        ctx(compiler);
         const Logger::ScopedLock loggerLock{ctx.global().logger()};
-        bool                     hasPrintedGroup = false;
 
-        printCommandLineOptions(ctx, hasPrintedGroup);
-        printProcessConfig(ctx, hasPrintedGroup);
-        printNativeConfig(ctx, compiler, hasPrintedGroup);
+        printCommandLineOptions(ctx);
+        printProcessConfig(ctx);
+        printNativeConfig(ctx, compiler);
     }
 }
 

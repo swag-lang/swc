@@ -257,8 +257,6 @@ int main(const int argc, char* argv[])
         std::puts("PASS thread-local storage isolation and accounting");
         testModuleLoading();
         std::puts("PASS shared-library search, exports and C calls");
-        testTerminal();
-        std::puts("PASS terminal capabilities, redirection and cursor restoration");
         testCallStacks();
         std::puts("PASS native stack capture, frame skipping and ELF symbols");
         testGeneratedUnwind();

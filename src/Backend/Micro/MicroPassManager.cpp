@@ -45,7 +45,6 @@
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -108,43 +107,29 @@ namespace
         const uint32_t         sourceLine    = builder.printSourceLine();
         const std::string      optimize      = backendOptimizeWithInstructionStats(context, builder);
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[micro]");
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  stage");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, "    : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Attribute));
         Logger::print(ctx, stageName);
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  function");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, " : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Function));
         Logger::print(ctx, symbolName);
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  location");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, " : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::String));
         Logger::print(ctx, std::format("{}:{}", filePath, sourceLine));
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  optimize");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, " : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Number));
         Logger::print(ctx, optimize);
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
     }
 
     void printPassInstructions(const MicroPassContext& context, const MicroPass& pass, bool before)

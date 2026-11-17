@@ -171,16 +171,16 @@ namespace Command
         if (jobs.empty())
             statItems.emplace_back("no source files selected");
         else
-            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, jobs.size(), "file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(jobs.size(), "file"));
         if (rewrittenFiles)
-            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, rewrittenFiles, "rewritten file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(rewrittenFiles, "rewritten file"));
         if (skippedFmtFiles)
-            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, skippedFmtFiles, "format-skipped file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(skippedFmtFiles, "format-skipped file"));
         if (skippedInvalidFiles)
-            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, skippedInvalidFiles, "parse-error file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(skippedInvalidFiles, "parse-error file"));
 
         if (stage)
-            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statItems));
+            stage->setStat(ScopedTimedLog::joinStatItems(statItems));
     }
 }
 

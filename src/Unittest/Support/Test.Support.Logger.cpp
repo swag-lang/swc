@@ -48,27 +48,19 @@ namespace
 
 SWC_TEST_BEGIN(Logger_TestTalliesNameSuccessfulWork)
 {
-    CommandLine cmdLine;
-    cmdLine.logAscii = true;
-    cmdLine.logColor = false;
-    TaskContext testCtx(ctx.global(), cmdLine);
-
     std::vector<Utf8> parts;
-    ScopedTimedLog::appendTestStats(testCtx, parts, 10, 0);
-    if (ScopedTimedLog::joinStatItems(testCtx, parts) != "10 passed")
+    ScopedTimedLog::appendTestStats(parts, 10, 0);
+    if (ScopedTimedLog::joinStatItems(parts) != "10 passed")
         return Result::Error;
 
     parts.clear();
-    ScopedTimedLog::appendTestStats(testCtx, parts, 10, 2);
-    if (ScopedTimedLog::joinStatItems(testCtx, parts) != "8 passed * 2 did not pass")
-        return Result::Error;
-
-    if (ScopedTimedLog::formatTestProgress(testCtx, 8, 10, 2, "Core.Map") != "6/10 passed * 2 did not pass * Core.Map")
+    ScopedTimedLog::appendTestStats(parts, 10, 2);
+    if (ScopedTimedLog::joinStatItems(parts) != "8 passed, 2 did not pass")
         return Result::Error;
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Logger_CommandHelpWrapsAndAlignsDescriptions)
+SWC_TEST_BEGIN(Logger_CommandHelpIsPlainAsciiLines)
 {
     std::string           output;
     Os::ProcessRunOptions options;
@@ -79,23 +71,22 @@ SWC_TEST_BEGIN(Logger_CommandHelpWrapsAndAlignsDescriptions)
     const std::vector<Utf8> args     = {"help", "build"};
     if (Os::runProcess(exitCode, Os::getExeFullName(), args, Os::getTemporaryPath(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         return Result::Error;
-    if (output.find('\x1b') != std::string::npos)
-        return Result::Error;
 
-    const auto lines               = Utf8Helper::splitLines(output);
-    bool       checkedContinuation = false;
-    for (size_t i = 0; i < lines.size(); i++)
+    // Help is read by programs: no escape sequence, no glyph outside ASCII, and an option keeps
+    // its description on its own line.
+    for (const char ch : output)
     {
-        if (Utf8Helper::countChars(lines[i]) > 100)
+        if (ch == '\x1b' || static_cast<unsigned char>(ch) >= 0x80)
             return Result::Error;
-        const size_t descriptionColumn = lines[i].find("Read options from a config file");
-        if (descriptionColumn == Utf8::npos)
-            continue;
-        if (i + 1 == lines.size() || lines[i + 1].find_first_not_of(' ') != descriptionColumn)
-            return Result::Error;
-        checkedContinuation = true;
     }
-    if (!checkedContinuation)
+
+    bool foundOption = false;
+    for (const auto& line : Utf8Helper::splitLines(output))
+    {
+        if (line.find("--config-file") != Utf8::npos && line.find("Read options from a config file") != Utf8::npos)
+            foundOption = true;
+    }
+    if (!foundOption)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -118,22 +109,6 @@ SWC_TEST_BEGIN(Logger_NestedStagesDetailedChoiceDoesNotLeak)
     const bool restored = logger.stagesDetailed();
     logger.setStagesDetailed(saved);
     if (!restored)
-        return Result::Error;
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(Logger_ProgressCanBeDisabledFromCommandLine)
-{
-    CommandLine cmdLine;
-    char        arg0[] = "swc.dm";
-    char        arg1[] = "syntax";
-    char        arg2[] = "--no-log-progress";
-    char*       argv[] = {arg0, arg1, arg2};
-
-    CommandLineParser parser(const_cast<Global&>(ctx.global()), cmdLine);
-    if (parser.parse(std::size(argv), argv) != Result::Continue)
-        return Result::Error;
-    if (cmdLine.logProgress)
         return Result::Error;
 }
 SWC_TEST_END()

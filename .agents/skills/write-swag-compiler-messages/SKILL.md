@@ -184,18 +184,47 @@ For macros, mixins, `#ast`, and generated source:
 
 For internal compiler failures, name the phase and precise unavailable artifact or broken invariant. Reserve `internal compiler error` for compiler defects.
 
-## Review Source Presentation
+## Write For The Program That Reads It
 
-Underline the smallest expression or token that proves the primary statement. Do not underline punctuation or an entire declaration when one operand, argument, name, or delimiter is decisive.
+`swc` is launched by an AI agent. Its output has one form, read line by line, and no option changes
+it: no ANSI sequence, no glyph outside ASCII, no animation, no alignment padding, no wrapping.
+Never add a presentation mode, a color, or a decorative line.
 
-Add a secondary span only when it answers a separate question, such as where a type was fixed, a symbol was declared, or generated code originated.
+A line that starts in column one is a record. An indented line belongs to the record above it.
+
+```text
+<path>:<line>:<column>-<end>: error[<id>]: <message>
+    <source line of the first span, without its indentation>
+    <line>:<column>-<end>: <span label>
+<path>:<line>:<column>-<end>: note: <message>
+help: <message>
+<stage> <outcome>: <part>, <part>
+command <outcome>: <command> <target>, <part>, <duration>
+<Title>:
+  <label>: <value>
+```
+
+- A diagnostic is its elements in order: the `error` or `warning`, then its `note` and `help`
+  elements. Every element keeps its whole message; an `error` or a `warning` always carries its
+  identifier in brackets.
+- A located element starts with the location of its first span. Each further span, and each span
+  that carries a label, has its own indented `line:column-end` line.
+- A stage line ends each compilation stage; `<outcome>` is `ok`, `up-to-date`, `warning` or
+  `error`. The `command` line is the last line of a run.
+- Help, `info`, `--show-config` and `--dry-run` print titled groups of `label: value` fields.
+
+## Review Source Spans
+
+Point the first span at the smallest expression or token that proves the primary statement. Do not span punctuation or an entire declaration when one operand, argument, name, or delimiter is decisive.
+
+Add a secondary span only when it answers a separate question, such as where a type was fixed, a symbol was declared, or generated code originated. Label it: an unlabeled extra span is only a position.
 
 Add cases under `bin/unittests/errors` for meaningful source-diagnostic variants such as end-of-line recovery, alternate syntax contexts, ambiguous spans, generic deduction conflicts, overload stopping points, and generated expansion provenance. Test command-line, linker, backend, runtime, and internal-only diagnostics at their real boundaries.
 
 ## Verify The Result
 
 1. Compare old and new messages for identifiers, severities, placeholders, constraints, values, side effects, provenance, and recovery paths.
-2. Exercise representative diagnostics and inspect labels, ordering, underlines, notes, help, wrapping, and generated-source frames.
+2. Exercise representative diagnostics and inspect identifiers, ordering, spans and their labels, notes, help, and generated-source frames.
 3. Inspect affected command and configuration help directly.
 4. Complete the smallest sufficient validation selected by
    [validate-swag-changes](../validate-swag-changes/SKILL.md).
@@ -210,6 +239,6 @@ Do not finish while a user-facing surface remains unreviewed or a required valid
 - Are both sides of every disagreement visible?
 - Does each note add provenance or a distinct fact?
 - Is every help line executable advice?
-- Are spans minimal and sufficient?
+- Are spans minimal and sufficient, and is every secondary span labeled?
 - Can any clause be removed without losing information?
 - Did every placeholder, constraint, and recovery path survive the edit?

@@ -326,7 +326,7 @@ Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view
     Utf8       rendered;
     if (swagSyntax)
     {
-        rendered = SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForDoc, escaped.view(), true);
+        rendered = SyntaxColorHelper::colorize(ctx, escaped.view());
         if (renderCtx)
         {
             if (references)

@@ -11,9 +11,6 @@
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticElement.h"
-#include "Support/Report/LogColor.h"
-#include "Support/Report/LogSymbol.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -111,23 +108,28 @@ namespace
     }
 
     // Generic digit counter (no hard cap)
-    uint32_t digits(uint32_t n)
-    {
-        return static_cast<uint32_t>(std::to_string(n).size());
-    }
+    // A source excerpt is a recognition aid, not a listing: one line, cut at this many bytes.
+    constexpr size_t EXCERPT_MAX_BYTES = 200;
 
-    uint32_t countLeadingBlanks(std::string_view s, uint32_t upto)
+    // The source line a span starts on, without its indentation. A line longer than the limit
+    // is cut on a character boundary and marked.
+    Utf8 sourceExcerpt(const Utf8& codeLine)
     {
-        uint32_t       i = 0;
-        const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(s.length()), upto);
-        while (i < n)
-        {
-            if (s[i] != ' ' && s[i] != '\t')
-                break;
-            ++i;
-        }
+        const std::string_view blanks = " \t\r\n";
+        const std::string_view line   = codeLine.view();
+        const size_t           first  = line.find_first_not_of(blanks);
+        if (first == std::string_view::npos)
+            return {};
 
-        return i;
+        std::string_view text = line.substr(first, line.find_last_not_of(blanks) - first + 1);
+        if (text.size() <= EXCERPT_MAX_BYTES)
+            return Utf8{text};
+
+        size_t cutAt = EXCERPT_MAX_BYTES;
+        while (cutAt && (static_cast<unsigned char>(text[cutAt]) & 0xc0) == 0x80)
+            cutAt--;
+
+        return Utf8{text.substr(0, cutAt)} + " ...";
     }
 
     bool isAsciiIdentifierHead(const char ch)
@@ -281,50 +283,9 @@ Utf8 DiagnosticBuilder::build()
     // Add elements by splitting messages parts
     expandMessageParts(elements);
 
-    // Compute a unified gutter width based on the maximum line number among all located elements
-    uint32_t maxLine = 0;
     for (const std::unique_ptr<DiagnosticElement>& e : elements)
-    {
-        if (e->hasSpans())
-        {
-            for (uint32_t i = 0; i < e->spans().size(); ++i)
-                maxLine = std::max(e->codeRange(i, *ctx_).line, maxLine);
-        }
-    }
+        writeElement(*e);
 
-    gutterW_ = maxLine ? digits(maxLine) : 0;
-
-    // Primary element: the first one
-    const DiagnosticElement& primary = *elements.front();
-
-    if (ctx_->cmdLine().diagOneLine)
-    {
-        if (primary.hasSpans())
-        {
-            writeLocation(primary);
-            out_ += ": ";
-        }
-        writeLabelMsg(primary);
-        return out_;
-    }
-
-    // Render primary element body (location/code) if any
-    writeLabelMsg(primary);
-    if (primary.hasSpans())
-        writeCodeBlock(primary);
-
-    // Now render all secondary elements as part of the same diagnostic
-    for (size_t i = 1; i < elements.size(); ++i)
-    {
-        const DiagnosticElement& el = *elements[i];
-        out_.append(gutterW_, ' ');
-        writeLabelMsg(el);
-        if (el.hasSpans())
-            writeCodeBlock(el);
-    }
-
-    // single blank line after the whole diagnostic
-    out_ += "\n";
     return out_;
 }
 
@@ -391,179 +352,60 @@ SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_v
     return out;
 }
 
-// Centralized palette for all diagnostic colors
-DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optional<DiagnosticSeverity> sev)
+// Copies a message, resolving the escapes a quoted argument carries: inside quotes, '\\' is a
+// backslash and '\'' is a quote that does not close the segment.
+void DiagnosticBuilder::writeMessage(const std::string_view msg)
 {
-    using enum LogColor;
-    switch (p)
-    {
-        case DiagPart::FileLocationArrow:
-        case DiagPart::FileLocationPath:
-            return {Gray};
-        case DiagPart::GutterBar:
-            return {BrightCyan};
-        case DiagPart::LineNumber:
-            return {Gray};
-        case DiagPart::CodeText:
-            return {White};
-        case DiagPart::Ellipsis:
-            return {Gray};
-
-        case DiagPart::LabelMsgText:
-            if (!sev)
-                return {White};
-
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                case DiagnosticSeverity::Warning:
-                    return {LogColorHelper::diagnosticSeverityColor(*sev)};
-                case DiagnosticSeverity::Note:
-                case DiagnosticSeverity::Help:
-                    return {White};
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-        case DiagPart::LabelMsgPrefix:
-        case DiagPart::Severity:
-            if (!sev)
-                return {White};
-            return {LogColorHelper::diagnosticSeverityColor(*sev)};
-
-        case DiagPart::QuoteText:
-            if (!sev)
-                return {White};
-
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                    return {BrightMagenta};
-                case DiagnosticSeverity::Warning:
-                    return {BrightBlue};
-                case DiagnosticSeverity::Note:
-                    return {Gray};
-                case DiagnosticSeverity::Help:
-                    return {Gray};
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-        case DiagPart::Reset:
-            return {Reset};
-    }
-
-    return {White};
-}
-
-Utf8 DiagnosticBuilder::toAnsiSeq(const AnsiSeq& s) const
-{
-    Utf8 result;
-    for (const LogColor c : s.seq)
-        result += LogColorHelper::toAnsi(*ctx_, c);
-    return result;
-}
-
-Utf8 DiagnosticBuilder::partStyle(DiagPart p) const
-{
-    return toAnsiSeq(diagPalette(p, std::nullopt));
-}
-
-Utf8 DiagnosticBuilder::partStyle(DiagPart p, DiagnosticSeverity sev) const
-{
-    return toAnsiSeq(diagPalette(p, sev));
-}
-
-void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::string_view msg, const Utf8& reset)
-{
-    const Utf8 qColor  = partStyle(DiagPart::QuoteText, sev);
-    bool       inQuote = false;
-    Utf8       quotedBuf;
+    bool inQuote = false;
+    Utf8 quotedBuf;
     quotedBuf.reserve(32);
 
-    out_ += reset;
     for (size_t i = 0; i < msg.size(); ++i)
     {
         const char ch = msg[i];
 
         if (!inQuote)
         {
-            if (ch == '\'')
+            if (ch == '\'' && !isLiteralSuffixQuote(msg, i))
             {
-                if (isLiteralSuffixQuote(msg, i))
-                {
-                    out_ += qColor;
-                    out_ += '\'';
-                    while (i + 1 < msg.size() && isAsciiIdentifierTail(msg[i + 1]))
-                        out_ += msg[++i];
-                    out_ += reset;
-                }
-                else
-                {
-                    inQuote   = true;
-                    quotedBuf = '\'';
-                }
+                inQuote   = true;
+                quotedBuf = '\'';
             }
             else
             {
                 out_ += ch;
             }
         }
-
-        // Inside quotes
+        else if (ch == '\\')
+        {
+            // Handling '\\' first is essential, otherwise '\\'' would be misparsed as a backslash
+            // followed by an escaped quote instead of an escaped backslash followed by the closing
+            // delimiter.
+            if (i + 1 < msg.size() && (msg[i + 1] == '\\' || msg[i + 1] == '\''))
+                quotedBuf += msg[++i];
+            else
+                quotedBuf += '\\';
+        }
+        else if (ch == '\'' && quotedBuf.size() == 1)
+        {
+            quotedBuf += ch;
+        }
+        else if (ch == '\'')
+        {
+            quotedBuf += '\'';
+            out_ += quotedBuf;
+            inQuote = false;
+            quotedBuf.clear();
+        }
         else
         {
-            // Watch for escaped '\'' and closing '\''
-            if (ch == '\\')
-            {
-                // Lookahead: '\\' is a literal backslash; '\'' is a literal single quote.
-                // Handling '\\' first is essential, otherwise '\\'' would be misparsed as
-                // a backslash followed by an escaped quote instead of an escaped backslash
-                // followed by the closing delimiter.
-                if (i + 1 < msg.size() && msg[i + 1] == '\\')
-                {
-                    quotedBuf += '\\';
-                    ++i;
-                }
-                else if (i + 1 < msg.size() && msg[i + 1] == '\'')
-                {
-                    quotedBuf += '\'';
-                    ++i;
-                }
-                else
-                {
-                    // Preserve other escapes/backslashes verbatim inside the content
-                    quotedBuf += '\\';
-                }
-            }
-            else if (ch == '\'' && quotedBuf.back() == '\'' && quotedBuf.size() == 1)
-            {
-                quotedBuf += ch;
-            }
-            else if (ch == '\'')
-            {
-                quotedBuf += '\'';
-                out_ += qColor;
-                out_ += quotedBuf;
-                out_ += reset;
-
-                inQuote = false;
-                quotedBuf.clear();
-            }
-            else
-            {
-                quotedBuf += ch;
-            }
+            quotedBuf += ch;
         }
     }
 
-    // If the message ended while still "inQuote", emit what we have plainly with the opening quote.
+    // A message that ends inside a quoted segment keeps what was read.
     if (inQuote)
-    {
-        out_ += qColor;
-        out_ += quotedBuf; // inside without a closing quote — still highlighted
-        out_ += reset;
-    }
+        out_ += quotedBuf;
 }
 
 void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
@@ -571,307 +413,79 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     const SourceCodeRange codeRange = el.codeRange(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
-    Utf8 fileLocation;
     if (el.srcView()->fileRef().isValid())
     {
         const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        fileLocation           = file.formatFileLocation(ctx_, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        out_ += file.formatFileLocation(ctx_, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
     else
     {
-        fileLocation = FileSystem::formatFileLocation(ctx_, fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        out_ += FileSystem::formatFileLocation(ctx_, fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+    }
+}
+
+// The indented lines under a located element: the source line its first span starts on, then one
+// 'line:column-end' line per span that carries a label or is not the first one.
+void DiagnosticBuilder::writeSpans(const DiagnosticElement& el)
+{
+    constexpr std::string_view indent = "    ";
+
+    const Utf8 excerpt = sourceExcerpt(el.srcView()->codeLine(*ctx_, el.codeRange(0, *ctx_).line));
+    if (!excerpt.empty())
+    {
+        out_ += indent;
+        out_ += excerpt;
+        out_ += "\n";
     }
 
-    out_ += partStyle(DiagPart::FileLocationPath);
-    out_ += fileLocation;
-    out_ += partStyle(DiagPart::Reset);
-}
-
-void DiagnosticBuilder::writeGutter(uint32_t gutter)
-{
-    out_.append(gutter, ' ');
-    out_ += partStyle(DiagPart::GutterBar);
-    out_ += " ";
-    out_ += LogSymbolHelper::toString(*ctx_, LogSymbol::VerticalLine);
-    out_ += partStyle(DiagPart::Reset);
-    out_ += " ";
-}
-
-void DiagnosticBuilder::writeCodeLine(uint32_t lineNo, std::string_view startEllipsis, std::string_view code, std::string_view endEllipsis)
-{
-    out_.append(gutterW_ - digits(lineNo), ' ');
-    out_ += partStyle(DiagPart::LineNumber);
-    out_ += std::to_string(lineNo);
-    out_ += partStyle(DiagPart::Reset);
-    writeGutter(0);
-
-    if (!startEllipsis.empty())
+    for (uint32_t i = 0; i < el.spans().size(); ++i)
     {
-        out_ += partStyle(DiagPart::Ellipsis);
-        out_ += startEllipsis;
-        out_ += partStyle(DiagPart::Reset);
-        out_ += " ";
-    }
+        const DiagnosticSpan& span = el.span(i);
 
-    out_ += partStyle(DiagPart::CodeText);
-    out_ += SyntaxColorHelper::colorize(*ctx_, SyntaxColorMode::ForLog, code);
-    out_ += partStyle(DiagPart::Reset);
+        Utf8 label = span.message;
+        if (label.empty() && span.messageId != DiagnosticId::None)
+            label = Utf8(resolveMessageTemplate(span.messageId, &el));
+        if (!label.empty())
+            label = buildMessage(label, &el);
+        if (label.empty() && i == 0)
+            continue;
 
-    if (!endEllipsis.empty())
-    {
-        out_ += " ";
-        out_ += partStyle(DiagPart::Ellipsis);
-        out_ += endEllipsis;
-        out_ += partStyle(DiagPart::Reset);
-    }
-
-    out_ += "\n";
-}
-
-void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
-{
-    out_ += partStyle(DiagPart::LabelMsgPrefix, el.severity());
-    out_ += severityStr(el.severity());
-
-    // Error/Warning id
-    if (ctx_->cmdLine().errorId && !el.isNoteOrHelp())
-        out_ += std::format("[{}]", Diagnostic::diagIdName(el.id()));
-
-    out_ += ": ";
-    out_ += partStyle(DiagPart::Reset);
-
-    // Message
-    out_ += partStyle(DiagPart::LabelMsgText, el.severity());
-    Utf8 msg = el.message();
-    if (msg.empty())
-        msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
-    writeHighlightedMessage(el.severity(), msg, partStyle(DiagPart::LabelMsgText, el.severity()));
-    out_ += partStyle(DiagPart::Reset);
-    out_ += "\n";
-}
-
-void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const SmallVector<ColSpan>& underlines)
-{
-    writeGutter(gutterW_);
-
-    // Track that underlines needs continuation lines
-    std::vector<std::tuple<uint32_t, std::string, DiagnosticSeverity>> continuations;
-
-    uint32_t currentPos = 1; // Current position in the output line
-    for (const auto& [col, len, span] : underlines)
-    {
-        const uint32_t column       = std::max<uint32_t>(1, col);
-        const uint32_t underlineLen = len == 0 ? 1 : len;
-
-        // Add spaces from current position to start of underline
-        for (uint32_t i = currentPos; i < column; ++i)
-            out_ += ' ';
-
-        // Determine the color for this underline
-        const DiagnosticSeverity effectiveSeverity = (span.severity == DiagnosticSeverity::Zero) ? el.severity() : span.severity;
-
-        // Apply color for this specific underline
-        out_ += partStyle(DiagPart::Severity, effectiveSeverity);
-
-        // Add underline characters
-        for (uint32_t i = 0; i < underlineLen; ++i)
-            out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
-
-        // Get message
-        Utf8 msg = span.message;
-        if (msg.empty() && span.messageId != DiagnosticId::None)
-            msg = Utf8(resolveMessageTemplate(span.messageId, &el));
-
-        if (!msg.empty())
+        const SourceCodeRange codeRange = el.codeRange(span, *ctx_);
+        out_ += indent;
+        out_ += std::format("{}:{}-{}", codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        if (!label.empty())
         {
-            msg                        = buildMessage(msg, &el);
-            const uint32_t msgStartPos = column + underlineLen + 1; // +1 for space before a message
-            const auto     msgLength   = static_cast<uint32_t>(msg.length());
-
-            // Check if a message fits on this line (consider next underline position if exists)
-            bool fits = true;
-            for (const auto& [nextCol, nextLen, nextSpan] : underlines)
-            {
-                // +2 to avoid being too close to the following one
-                if (nextCol > col && msgStartPos + msgLength + 2 > nextCol)
-                {
-                    fits = false;
-                    break;
-                }
-            }
-
-            if (fits)
-            {
-                // Message fits on the same line
-                out_ += " ";
-                writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
-                currentPos = msgStartPos + msgLength;
-            }
-            else
-            {
-                // Message doesn't fit, schedule for continuation line
-                continuations.emplace_back(column, msg, effectiveSeverity);
-                currentPos = column + underlineLen;
-            }
+            out_ += ": ";
+            writeMessage(label);
         }
-        else
-        {
-            currentPos = column + underlineLen;
-        }
-    }
 
-    out_ += partStyle(DiagPart::Reset);
-    out_ += "\n";
-
-    // Write continuation lines for messages that didn't fit
-    for (const auto& [col, msg, severity] : continuations)
-    {
-        writeGutter(gutterW_);
-
-        // Add spaces up to the column position
-        for (uint32_t i = 1; i < col; ++i)
-            out_ += ' ';
-
-        // Add vertical bar in the underline color
-        out_ += partStyle(DiagPart::Severity, severity);
-        out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::VerticalLine));
-        out_ += " ";
-
-        // Write the message
-        writeHighlightedMessage(DiagnosticSeverity::Note, msg, partStyle(DiagPart::LabelMsgText, DiagnosticSeverity::Note));
-
-        out_ += partStyle(DiagPart::Reset);
         out_ += "\n";
     }
 }
 
-void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeRange& codeRange, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount)
+// One element is one line, '<location>: <severity>[<id>]: <message>', followed by its indented
+// span lines. An element without a source location starts at its severity.
+void DiagnosticBuilder::writeElement(const DiagnosticElement& el)
 {
-    constexpr std::string_view ellipsis    = "...";
-    constexpr uint32_t         lenEllipsis = static_cast<uint32_t>(ellipsis.length()) + 1; // keep your "+1"
-    constexpr uint32_t         leftContext = 8;
-
-    const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
-
-    // The initial window anchored with a small left context.
-    const uint32_t rawStart    = (codeRange.column > leftContext) ? (codeRange.column - leftContext) : 0u;
-    uint32_t       windowStart = rawStart;
-
-    uint32_t   visibleWidth = diagMax;
-    const bool addPrefix    = (windowStart > 0);
-    if (addPrefix && visibleWidth >= lenEllipsis)
-        visibleWidth -= lenEllipsis;
-
-    uint32_t windowEnd = std::min(windowStart + visibleWidth, currentFullCharCount);
-
-    bool addSuffix = (windowEnd < currentFullCharCount);
-    if (addSuffix && visibleWidth >= lenEllipsis)
+    if (el.hasSpans())
     {
-        if (windowEnd > windowStart + lenEllipsis)
-            windowEnd -= lenEllipsis;
+        writeLocation(el);
+        out_ += ": ";
     }
 
-    // We compute on the provisional slice first
-    const Utf8 provisional = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
+    out_ += severityStr(el.severity());
+    if (!el.isNoteOrHelp())
+        out_ += std::format("[{}]", Diagnostic::diagIdName(el.id()));
+    out_ += ": ";
 
-    // Underline start relative to provisional slice
-    const uint32_t underlineStart0 = (codeRange.column > windowStart) ? (codeRange.column - windowStart) : 0u;
-
-    uint32_t ltrim = 0;
-    if (addPrefix && underlineStart0 > 0)
-    {
-        // Only trim blanks strictly before the underline, so we never shift the token itself.
-        ltrim = countLeadingBlanks(provisional, underlineStart0);
-        if (ltrim > 0)
-        {
-            windowStart += ltrim;
-
-            // Try to keep the visible width constant by extending rightwards if possible.
-            const uint32_t canExtend = std::min<uint32_t>(ltrim, currentFullCharCount - windowEnd);
-            windowEnd += canExtend;
-
-            // Re-evaluate suffix after extension
-            addSuffix = (windowEnd < currentFullCharCount);
-        }
-    }
-
-    const Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
-    writeCodeLine(codeRange.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");
-
-    const uint32_t prefixCols            = addPrefix ? lenEllipsis : 0;
-    const uint32_t sliceVisible          = (windowEnd - windowStart);
-    const uint32_t underlineStartInSlice = (codeRange.column > windowStart) ? (codeRange.column - windowStart) : 0u;
-    const uint32_t rightAvail            = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
-    const uint32_t adjustedLen           = std::min(tokenLenChars, rightAvail);
-    const uint32_t adjustedCol           = prefixCols + underlineStartInSlice;
-
-    SmallVector<ColSpan> one;
-    one.emplace_back(adjustedCol, adjustedLen, span);
-    writeCodeUnderline(elToUse, one);
-}
-
-void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
-{
-    // Loc
-    out_.append(gutterW_, ' ');
-    out_ += partStyle(DiagPart::FileLocationArrow);
-    out_ += "--> ";
-    writeLocation(el);
+    Utf8 msg = el.message();
+    if (msg.empty())
+        msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
+    writeMessage(msg);
     out_ += "\n";
 
-    // Sort underlines by column to process them in order
-    std::vector<DiagnosticSpan> sortedSpans = el.spans();
-    std::ranges::sort(sortedSpans, DiagnosticSpanColumnLess{.element = &el, .ctx = ctx_});
-
-    const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
-
-    SmallVector<ColSpan> underlinesOnCurrentLine;
-
-    uint32_t currentLine = std::numeric_limits<uint32_t>::max();
-    Utf8     currentFullCodeLine;
-    uint32_t currentFullCharCount   = 0;
-    bool     currentLineIsTruncated = false;
-
-    for (const DiagnosticSpan& span : sortedSpans)
-    {
-        const SourceCodeRange codeRange = el.codeRange(span, *ctx_);
-
-        if (codeRange.line != currentLine)
-        {
-            // Flush the previous underline row if needed
-            if (!currentLineIsTruncated)
-            {
-                if (!underlinesOnCurrentLine.empty())
-                {
-                    writeCodeUnderline(el, underlinesOnCurrentLine);
-                    underlinesOnCurrentLine.clear();
-                }
-            }
-
-            // Prepare a new line
-            currentFullCodeLine    = el.srcView()->codeLine(*ctx_, codeRange.line);
-            currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
-            currentLineIsTruncated = (currentFullCharCount > diagMax);
-
-            if (!currentLineIsTruncated)
-                writeCodeLine(codeRange.line, "", currentFullCodeLine, "");
-
-            currentLine = codeRange.line;
-        }
-
-        const std::string_view tokenView     = el.srcView()->codeView(codeRange.offset, codeRange.len);
-        const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
-
-        if (currentLineIsTruncated)
-            writeCodeTrunc(el, codeRange, span, tokenLenChars, currentFullCodeLine, currentFullCharCount);
-        else
-            underlinesOnCurrentLine.emplace_back(codeRange.column, tokenLenChars, span);
-    }
-
-    if (!underlinesOnCurrentLine.empty())
-        writeCodeUnderline(el, underlinesOnCurrentLine);
-
-    out_ += partStyle(DiagPart::Reset);
+    if (el.hasSpans())
+        writeSpans(el);
 }
 
 // Two different types that print the same short name ('Foo' declared in two namespaces) would make

@@ -73,21 +73,16 @@ SWC_TEST_BEGIN(Compiler_InfoReportsPathsWithoutCompilation)
     options.forwardOutput  = false;
 
     uint32_t                exitCode = UINT32_MAX;
-    const std::vector<Utf8> args     = {"info", "--no-log-color", "--log-ascii", "--num-cores", "1"};
+    const std::vector<Utf8> args     = {"info", "--num-cores", "1"};
     if (Os::runProcess(exitCode, Os::getExeFullName(), args, Os::getTemporaryPath(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         return Result::Error;
     const auto lines = Utf8Helper::splitLines(output);
-    if (output.find('\x1b') != std::string::npos || std::ranges::find(lines, "Caches") == lines.end() || std::ranges::find(lines, "Native toolchain") == lines.end())
+    if (output.find('\x1b') != std::string::npos || std::ranges::find(lines, "Caches:") == lines.end() || std::ranges::find(lines, "Native toolchain:") == lines.end())
         return Result::Error;
 
-    // Compare paths independently of spaces and line breaks inserted by the report layout.
-    Utf8 compact(output);
-    std::erase_if(compact, [](const char c) { return c == ' ' || c == '\r' || c == '\n'; });
     for (const fs::path& path : {WorkspaceLayout::dependencyCacheRoot(), WorkspaceLayout::machineCacheRoot()})
     {
-        std::string expected = path.string();
-        std::erase(expected, ' ');
-        if (compact.find(expected) == Utf8::npos)
+        if (output.find(path.string()) == std::string::npos)
             return Result::Error;
     }
 }

@@ -25,7 +25,7 @@ namespace Command
         parseSourceFiles(ctx, compiler.files());
 
         if (stage)
-            stage->setStat(ScopedTimedLog::formatStatCount(ctx, compiler.files().size(), "file"));
+            stage->setStat(ScopedTimedLog::formatStatCount(compiler.files().size(), "file"));
 
         if (!Stats::hasError())
         {

@@ -4,7 +4,6 @@
 #include "Main/Version.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/LogSymbol.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -13,87 +12,35 @@ namespace CommandPrint
 {
     inline void printCompilerHeader(const TaskContext& ctx)
     {
-        Logger::print(ctx, std::format("{}{}{} Swag compiler {}.{}.{}\n", LogColorHelper::toAnsi(ctx, LogColor::BrandVoltage), LogSymbolHelper::toString(ctx, LogSymbol::CommandMark), LogColorHelper::toAnsi(ctx, LogColor::Reset), SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+        Logger::print(ctx, std::format("Swag compiler {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     }
 
-    constexpr LogColor helpArgumentLabelColor()
-    {
-        return LogColor::BrandArc;
-    }
-
-    inline Logger::FieldGroupStyle infoGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 24)
-    {
-        Logger::FieldGroupStyle style;
-        style.blankLineBefore = blankLineBefore;
-        style.maxLabelWidth   = maxLabelWidth;
-        return style;
-    }
-
-    inline Logger::FieldGroupStyle nextInfoGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 24)
-    {
-        const Logger::FieldGroupStyle style = infoGroupStyle(hasPrintedGroup, maxLabelWidth);
-        hasPrintedGroup                     = true;
-        return style;
-    }
-
-    inline Logger::FieldGroupStyle helpGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 34)
-    {
-        Logger::FieldGroupStyle style = infoGroupStyle(blankLineBefore, maxLabelWidth);
-        style.titleColor              = LogColor::BrandVoltage;
-        style.defaultValueColor       = LogColor::Reset;
-        style.wrapValues              = true;
-        const size_t columns          = Os::stdoutColumnCount();
-        style.maxLineWidth            = columns ? std::min<size_t>(columns, 100) : 100;
-        style.minLabelWidth           = std::min(style.minLabelWidth, style.maxLineWidth / 3);
-        style.maxLabelWidth           = std::min(style.maxLabelWidth, style.maxLineWidth / 3);
-        style.maxLabelWidth           = std::max(style.maxLabelWidth, style.minLabelWidth);
-        style.minLabelWidth           = style.maxLabelWidth;
-        return style;
-    }
-
-    inline Logger::FieldGroupStyle nextHelpGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 34)
-    {
-        const Logger::FieldGroupStyle style = helpGroupStyle(hasPrintedGroup, maxLabelWidth);
-        hasPrintedGroup                     = true;
-        return style;
-    }
-
-    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
+    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, const uint32_t indentLevel = 0)
     {
         if (value.empty())
-        {
             value = "<empty>";
-            if (valueColor == LogColor::White)
-                valueColor = LogColor::Gray;
-        }
 
-        Logger::FieldEntry entry;
-        entry.label       = Utf8(label);
-        entry.value       = std::move(value);
-        entry.labelColor  = labelColor;
-        entry.valueColor  = valueColor;
-        entry.indentLevel = indentLevel;
-        entries.push_back(std::move(entry));
+        entries.push_back({.label = Utf8(label), .value = std::move(value), .indentLevel = indentLevel});
     }
 
-    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const char* value, const LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
+    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const char* value, const uint32_t indentLevel = 0)
     {
-        addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
+        addInfoEntry(entries, label, Utf8(value), indentLevel);
     }
 
-    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string& value, const LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
+    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string& value, const uint32_t indentLevel = 0)
     {
-        addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
+        addInfoEntry(entries, label, Utf8(value), indentLevel);
     }
 
-    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string_view value, const LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
+    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string_view value, const uint32_t indentLevel = 0)
     {
-        addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
+        addInfoEntry(entries, label, Utf8(value), indentLevel);
     }
 
-    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& value, const LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
+    inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& value, const uint32_t indentLevel = 0)
     {
-        addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
+        addInfoEntry(entries, label, Utf8(value), indentLevel);
     }
 
     inline void addLinuxNativeToolchainEntries(std::vector<Logger::FieldEntry>& entries)
@@ -108,7 +55,7 @@ namespace CommandPrint
         switch (toolchainResult)
         {
             case Os::WindowsToolchainDiscoveryResult::Ok:
-                addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
+                addInfoEntry(entries, "Status", "ready");
                 addInfoEntry(entries, "Linker", "integrated (swc)");
                 addInfoEntry(entries, "MSVC library path", toolchain.vcLibPath);
                 addInfoEntry(entries, "Windows SDK UM libs", toolchain.sdkUmLibPath);
@@ -116,34 +63,18 @@ namespace CommandPrint
                 break;
 
             case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-                addInfoEntry(entries, "Status", "missing MSVC toolchain", LogColor::BrightRed);
+                addInfoEntry(entries, "Status", "missing MSVC toolchain");
                 break;
 
             case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-                addInfoEntry(entries, "Status", "missing Windows SDK", LogColor::BrightRed);
+                addInfoEntry(entries, "Status", "missing Windows SDK");
                 break;
         }
-    }
-
-    inline void addInfoEntryParts(std::vector<Logger::FieldEntry>& entries, const std::string_view label, std::vector<Logger::FieldValuePart> valueParts, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
-    {
-        if (valueParts.empty())
-        {
-            addInfoEntry(entries, label, "<empty>", LogColor::Gray, indentLevel, labelColor);
-            return;
-        }
-
-        Logger::FieldEntry entry;
-        entry.label       = Utf8(label);
-        entry.labelColor  = labelColor;
-        entry.indentLevel = indentLevel;
-        entry.valueParts  = std::move(valueParts);
-        entries.push_back(std::move(entry));
     }
 
     inline void addBoolEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const bool enabled)
     {
-        addInfoEntry(entries, label, enabled ? "on" : "off", enabled ? LogColor::BrightGreen : LogColor::Gray);
+        addInfoEntry(entries, label, enabled ? "on" : "off");
     }
 
     template<typename T>
@@ -151,14 +82,14 @@ namespace CommandPrint
     {
         if (values.empty())
         {
-            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
+            addInfoEntry(entries, label, "<empty>");
             return;
         }
 
         addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
         uint32_t index = 0;
         for (const T& value : values)
-            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
+            addInfoEntry(entries, std::format("[{}]", index++), value, 1);
     }
 
 }

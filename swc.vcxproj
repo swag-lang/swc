@@ -529,11 +529,9 @@
         <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp"/>
         <ClCompile Include="src\Support\Report\HardwareException.cpp"/>
         <ClCompile Include="src\Support\Report\HardwareException.Fields.cpp"/>
-        <ClCompile Include="src\Support\Report\LogColor.cpp"/>
         <ClCompile Include="src\Support\Report\Diagnostic.cpp"/>
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Support\Report\Logger.cpp"/>
-        <ClCompile Include="src\Support\Report\LogSymbol.cpp"/>
         <ClCompile Include="src\Support\Report\ScopedTimedLog.cpp"/>
         <ClCompile Include="src\Support\Report\WarningPolicy.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp"/>
@@ -883,11 +881,9 @@
         <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticDef.h"/>
         <ClInclude Include="src\Support\Report\HardwareException.h"/>
-        <ClInclude Include="src\Support\Report\LogColor.h"/>
         <ClInclude Include="src\Support\Report\Diagnostic.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Support\Report\Logger.h"/>
-        <ClInclude Include="src\Support\Report\LogSymbol.h"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc"/>

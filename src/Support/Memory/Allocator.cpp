@@ -8,6 +8,16 @@ namespace
 {
     void mimallocOutputWithStack(const char* msg, void*)
     {
+        // Registering this hook makes mimalloc flush its deferred buffer, which holds a lone
+        // newline: until a real message arrives, a blank one is not output.
+        static std::atomic<bool> hasReported = false;
+        if (msg && !hasReported.load(std::memory_order_relaxed))
+        {
+            if (!msg[strspn(msg, "\r\n")])
+                return;
+            hasReported.store(true, std::memory_order_relaxed);
+        }
+
         if (msg)
             (void) fputs(msg, stderr);
 

@@ -18,7 +18,6 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -100,39 +99,26 @@ namespace
 
         const Logger::ScopedLock lock(ctx.global().logger());
         Logger::print(ctx, "\n");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[ast]");
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  stage");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, "    : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Attribute));
         Logger::print(ctx, stageName);
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  node");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, "     : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Type));
         Logger::print(ctx, Ast::nodeIdName(node.id()));
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, " #");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::InstructionIndex));
         Logger::print(ctx, std::format("{}", nodeRef.get()));
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
         Logger::print(ctx, "  location");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
         Logger::print(ctx, " : ");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::String));
         Logger::print(ctx, filePath);
         Logger::print(ctx, "\n");
 
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
         AstPrinter::print(ctx, sema.ast(), nodeRef, &sema);
     }
 

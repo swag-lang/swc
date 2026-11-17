@@ -7,7 +7,6 @@
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Support/Os/ProcessOutput.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include <dbghelp.h>
 #include <psapi.h>
@@ -22,90 +21,25 @@ namespace
 {
     constexpr uint32_t K_OS_FIELD_WIDTH = 24;
 
-    struct TerminalSupportState
+    // A program the compiler runs shares its console: UTF-8 text and escape sequences it prints
+    // have to reach a terminal that interprets them.
+    void enableVirtualTerminal(const DWORD stdHandleId)
     {
-        std::once_flag   once;
-        std::once_flag   cursorHandlerOnce;
-        std::atomic_bool stdoutCursorHidden      = false;
-        bool             stdoutSupportsAnsi      = false;
-        bool             stdoutSupportsAnimation = false;
-        bool             stderrSupportsAnsi      = false;
-    };
-
-    TerminalSupportState& terminalSupportState()
-    {
-        static TerminalSupportState state;
-        return state;
-    }
-
-    void setConsoleCursorVisible(const bool visible)
-    {
-        const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (!handle || handle == INVALID_HANDLE_VALUE)
-            return;
-
-        CONSOLE_CURSOR_INFO cursorInfo{};
-        if (!GetConsoleCursorInfo(handle, &cursorInfo))
-            return;
-        cursorInfo.bVisible = visible;
-        SetConsoleCursorInfo(handle, &cursorInfo);
-    }
-
-    BOOL WINAPI restoreCursorOnConsoleControl(const DWORD controlType)
-    {
-        if (controlType != CTRL_C_EVENT && controlType != CTRL_BREAK_EVENT && controlType != CTRL_CLOSE_EVENT && controlType != CTRL_LOGOFF_EVENT && controlType != CTRL_SHUTDOWN_EVENT)
-            return FALSE;
-
-        auto& state = terminalSupportState();
-        if (state.stdoutCursorHidden.exchange(false, std::memory_order_acq_rel))
-            setConsoleCursorVisible(true);
-        return FALSE;
-    }
-
-    bool tryEnableAnsiOnHandle(const DWORD stdHandleId, bool* outIsConsole = nullptr)
-    {
-        if (outIsConsole)
-            *outIsConsole = false;
-
         const HANDLE handle = GetStdHandle(stdHandleId);
         if (!handle || handle == INVALID_HANDLE_VALUE)
-            return false;
+            return;
 
         DWORD mode = 0;
-        if (!GetConsoleMode(handle, &mode))
-            return false;
-
-        if (outIsConsole)
-            *outIsConsole = true;
-
-        if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-            return true;
-
-        const DWORD desiredMode = mode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        return SetConsoleMode(handle, desiredMode) == TRUE;
+        if (GetConsoleMode(handle, &mode) && !(mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+            SetConsoleMode(handle, mode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
 
     void initializeTerminalSupport()
     {
         SetConsoleCP(CP_UTF8);
         SetConsoleOutputCP(CP_UTF8);
-
-        auto& state = terminalSupportState();
-
-        bool stdoutIsConsole     = false;
-        state.stdoutSupportsAnsi = tryEnableAnsiOnHandle(STD_OUTPUT_HANDLE, &stdoutIsConsole);
-        state.stderrSupportsAnsi = tryEnableAnsiOnHandle(STD_ERROR_HANDLE);
-
-        // Cursor-driven animations only behave correctly on an interactive console.
-        state.stdoutSupportsAnimation = stdoutIsConsole && state.stdoutSupportsAnsi;
-    }
-
-    void ensureTerminalSupportInitialized()
-    {
-        auto& state = terminalSupportState();
-        std::call_once(state.once, [] {
-            initializeTerminalSupport();
-        });
+        enableVirtualTerminal(STD_OUTPUT_HANDLE);
+        enableVirtualTerminal(STD_ERROR_HANDLE);
     }
 
     void appendOsField(Utf8& outMsg, const std::string_view label, const std::string_view value, const uint32_t leftPadding = 0)
@@ -952,57 +886,14 @@ namespace Os
 
     void initialize()
     {
-        ensureTerminalSupportInitialized();
-    }
-
-    bool stdoutSupportsAnsi()
-    {
-        ensureTerminalSupportInitialized();
-        return terminalSupportState().stdoutSupportsAnsi;
-    }
-
-    bool stderrSupportsAnsi()
-    {
-        ensureTerminalSupportInitialized();
-        return terminalSupportState().stderrSupportsAnsi;
-    }
-
-    bool stdoutSupportsAnimation()
-    {
-        ensureTerminalSupportInitialized();
-        return terminalSupportState().stdoutSupportsAnimation;
-    }
-
-    uint32_t stdoutColumnCount()
-    {
-        const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (!handle || handle == INVALID_HANDLE_VALUE)
-            return 0;
-
-        CONSOLE_SCREEN_BUFFER_INFO info{};
-        if (!GetConsoleScreenBufferInfo(handle, &info))
-            return 0;
-        return static_cast<uint32_t>(info.srWindow.Right - info.srWindow.Left + 1);
-    }
-
-    void setStdoutCursorVisible(const bool visible)
-    {
-        ensureTerminalSupportInitialized();
-        auto& state = terminalSupportState();
-        if (!state.stdoutSupportsAnimation)
-            return;
-
-        std::call_once(state.cursorHandlerOnce, [] {
-            SetConsoleCtrlHandler(restoreCursorOnConsoleControl, TRUE);
-        });
-        state.stdoutCursorHidden.store(!visible, std::memory_order_release);
-        setConsoleCursorVisible(visible);
+        static std::once_flag once;
+        std::call_once(once, initializeTerminalSupport);
     }
 
     void panicBox(const std::string_view expr)
     {
         const Utf8 logMsg = std::format("panic: {}\n", expr.empty() ? "<null>" : expr);
-        Logger::printStdErr(LogColor::Red, logMsg);
+        Logger::printStdErr(logMsg);
 
 #if SWC_DEV_MODE
         if (!CompilerInstance::dbgDevStop || CompilerInstance::headlessTestRun)

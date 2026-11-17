@@ -16,6 +16,12 @@ handles JIT/native execution and artifacts, and `src/Main/`, `src/Doc/`, and `sr
 orchestration, documentation, and formatting. The consumer workspaces live in [bin/](bin):
 runtime, standard modules, examples, applications, and language-reference tests.
 
+`swc` is a compiler launched by an AI agent, and everything it prints is written for the program
+that reads it: plain ASCII lines, no color, no animation, no layout. Its output has one form and
+no presentation option; the line grammar is stated in
+[write-swag-compiler-messages](.agents/skills/write-swag-compiler-messages/SKILL.md). Colors exist
+only in the generated documentation.
+
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
 Build/test guidance and local-machine load admission rules are in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.bat`.

@@ -71,12 +71,7 @@ namespace Os
         uint32_t processId = 0;
     };
 
-    void     initialize();
-    bool     stdoutSupportsAnsi();
-    bool     stderrSupportsAnsi();
-    bool     stdoutSupportsAnimation();
-    uint32_t stdoutColumnCount();
-    void     setStdoutCursorVisible(bool visible);
+    void initialize();
 
     void panicBox(std::string_view expr);
     Utf8 systemError();

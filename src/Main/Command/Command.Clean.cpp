@@ -7,7 +7,6 @@
 #include "Main/WorkspaceLayout.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -182,24 +181,17 @@ namespace
     void printCleanReport(const TaskContext& ctx, std::span<const CleanTarget> targets, const size_t totalFiles, const size_t totalBytes)
     {
         using CommandPrint::addInfoEntry;
-        using CommandPrint::addInfoEntryParts;
 
         std::vector<Logger::FieldEntry> entries;
         for (const CleanTarget& target : targets)
-        {
-            std::vector<Logger::FieldValuePart> parts;
-            parts.push_back({.text = Utf8(target.path), .color = LogColor::BrightGreen});
-            parts.push_back({.text = std::format(" ({})", formatCleanAmount(target.files, target.bytes).c_str()), .color = LogColor::Gray});
-            addInfoEntryParts(entries, target.label.view(), std::move(parts));
-        }
+            addInfoEntry(entries, target.label.view(), std::format("{} ({})", Utf8(target.path).c_str(), formatCleanAmount(target.files, target.bytes).c_str()));
 
         if (entries.empty())
-            addInfoEntry(entries, "Nothing", "no generated directory is left to remove", LogColor::Gray);
+            addInfoEntry(entries, "Nothing", "no generated directory is left to remove");
         else if (targets.size() > 1)
             addInfoEntry(entries, "Total", formatCleanAmount(totalFiles, totalBytes));
 
-        const Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
-        Logger::printFieldGroup(ctx, ctx.cmdLine().dryRun ? "Would remove" : "Removed", entries, style);
+        Logger::printFieldGroup(ctx, ctx.cmdLine().dryRun ? "Would remove" : "Removed", entries);
     }
 }
 

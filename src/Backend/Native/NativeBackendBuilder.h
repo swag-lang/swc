@@ -118,13 +118,6 @@ public:
     // call clobbers, which an optimized caller of a reused leaf reads.
     static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 3;
 
-    struct NativeTestProgressEvent
-    {
-        Utf8     name;
-        uint32_t executed = 0;
-        uint32_t failed   = 0;
-    };
-
     struct ArtifactRunReport
     {
         bool        completed = false;
@@ -259,8 +252,6 @@ public:
     uint32_t nativeTestsExecuted  = 0;
     uint32_t nativeTestsFailed    = 0;
 
-    static bool parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, std::string_view line);
-
     // Section bases and allocation-name scope depend only on the artifact.
     // Cache them once to avoid formatting them for every data relocation.
     struct ScopedSymbolNames
@@ -274,12 +265,8 @@ public:
     const ScopedSymbolNames& scopedSymbolNames() const;
 
 private:
-    struct NativeTestProgressContext;
-
-    static void forwardNativeTestProgress(void* userData, std::string_view line);
-    void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
-    size_t      selectedNativeTestCount() const;
-    void        parseNativeTestSummary(const std::string& output);
+    size_t selectedNativeTestCount() const;
+    void   parseNativeTestSummary(const std::string& output);
     Result      validateTarget();
     void        prepareFunctionCache();
     Result      buildObjects();

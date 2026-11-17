@@ -420,7 +420,7 @@ namespace Swag
 
     // Sets how one warning, a list of warnings, or every warning is reported in a declaration, a block, or a file.
     //
-    // A warning is named by its diagnostic identifier, the string `--diagnostic-id` prints;
+    // A warning is named by its diagnostic identifier, the string printed in brackets after its severity;
     // `"all"` names every warning at once.
     // ```swag
     // #[Swag.Warning("sema_warn_unreachable_code", .Disable)]

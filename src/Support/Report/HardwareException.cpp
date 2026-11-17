@@ -6,7 +6,6 @@
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -88,27 +87,12 @@ namespace
         Os::appendHostHandlerStack(outMsg, platformExceptionPointers, ctx);
     }
 
-    void appendTitle(Utf8& outMsg, const TaskContext* ctx, const std::string_view title)
-    {
-        constexpr std::string_view kAnsiBrightRed = "\x1b[91m";
-        constexpr std::string_view kAnsiReset     = "\x1b[0m";
-
-        if (ctx)
-            outMsg += LogColorHelper::toAnsi(*ctx, LogColor::BrightRed);
-        else
-            outMsg += kAnsiBrightRed;
-        outMsg += title;
-        if (ctx)
-            outMsg += LogColorHelper::toAnsi(*ctx, LogColor::Reset);
-        else
-            outMsg += kAnsiReset;
-    }
 }
 
 Utf8 HardwareException::format(const TaskContext* ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
     Utf8 msg;
-    appendTitle(msg, ctx, title);
+    msg += title;
 
     appendContextGroup(msg, extraInfo);
     appendTaskStateGroup(msg, ctx);
@@ -120,7 +104,7 @@ Utf8 HardwareException::format(const TaskContext* ctx, const std::string_view ti
 void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
     const Utf8 msg = format(&ctx, title, platformExceptionPointers, extraInfo);
-    Logger::printStdErr(LogColor::Reset, msg, false);
+    Logger::printStdErr(msg);
 }
 
 void HardwareException::print(const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)

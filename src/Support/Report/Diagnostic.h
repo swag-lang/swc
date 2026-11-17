@@ -7,7 +7,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
-enum class LogColor;
 enum class DiagnosticId;
 enum class TokenId : uint16_t;
 

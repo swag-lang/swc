@@ -488,7 +488,7 @@ var gCallback = &reflect
 }
 )";
     SWC_RESULT(testDir.write("main.swg", source));
-    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "RetainedReflectionPayload"));
 
     ByteArray               bytes;
@@ -624,7 +624,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeStartupPreservesArguments)
 }
 )";
     SWC_RESULT(testDir.write("main.swg", source));
-    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "arguments", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "a\"b", "--run-arg", "tail\\", "--run-arg", "\t", "--run-arg", "caf\xc3\xa9"};
+    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "arguments", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3", "--run-arg", "", "--run-arg", "two words", "--run-arg", "a\"b", "--run-arg", "tail\\", "--run-arg", "\t", "--run-arg", "caf\xc3\xa9"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "native arguments passed"));
 }
 SWC_TEST_END()
@@ -634,7 +634,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
     const LinkerTestDirectory testDir("rejected_callee");
     const fs::path            source = Os::getExeFullName().parent_path() / "unittests" / "sanity" / "expected_error_native_roots.swg";
     // Running the JIT first would already filter the failed functions and hide this boundary.
-    const std::vector<Utf8> args = {"test", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    const std::vector<Utf8> args = {"test", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));
 }
 SWC_TEST_END()
@@ -646,7 +646,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDependencyUsesPublishedArtifactName)
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_name_provider", "artifact_name_consumer"}));
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_name_consumer",
-        "--num-cores", "3", "--no-log-color"};
+        "--num-cores", "3"};
     return runCompiler(arguments, ExitCode::Success, "artifact provider dropped");
 }
 SWC_TEST_END()
@@ -657,7 +657,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesUseChildLibraryPaths)
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
-        "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
+        "--num-cores", "3", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
     return runCompiler(arguments, ExitCode::Success, "shared provider dropped");
 }
 SWC_TEST_END()
@@ -668,7 +668,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesExecuteDuringCompilation)
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_jit_consumer"}));
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_jit_consumer",
-        "--num-cores", "3", "--no-log-color", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
+        "--num-cores", "3", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
     return runCompiler(arguments, ExitCode::Success, "compile-time shared artifact passed");
 }
 SWC_TEST_END()
@@ -682,11 +682,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSharedModulesExecuteDuringCompilation
     // Build providers in a separate process so their earlier compilation cannot preload them.
     const std::vector<Utf8> dependencies = {
         "build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_middle",
-        "--num-cores", "3", "--no-log-color"};
+        "--num-cores", "3"};
     SWC_RESULT(runCompiler(dependencies, ExitCode::Success, ""));
     const std::vector<Utf8> arguments = {
         "run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
-        "--num-cores", "3", "--no-log-color"};
+        "--num-cores", "3"};
     SWC_RESULT(runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed"));
     return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
 }
@@ -712,7 +712,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxCompanionArchivesKeepRuntimeHooksDistinct)
     }
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
-        "--num-cores", "3", "--no-log-color"};
+        "--num-cores", "3"};
     return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
 }
 SWC_TEST_END()
@@ -734,7 +734,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
     SWC_RESULT(directory.write("modules/artifact_shared_consumer/module.swg", publishedSetup));
     const std::vector<Utf8> arguments = {
         "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
-        "--num-cores", "3", "--no-log-color"};
+        "--num-cores", "3"};
     SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared provider dropped"));
     const fs::path  artifactDirectory = directory.path() / ".output" / "artifact_shared_consumer" / "executable" / "devmode" / "x86_64";
     const fs::path  publishedLibrary  = artifactDirectory / "artifact_shared_provider.so";
@@ -787,7 +787,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_CompilerConfigurationUsesHostContextForForeignT
 )";
     SWC_RESULT(testDir.write("main.swg", source));
     const Utf8              target = hostTargetOs() == Runtime::TargetOs::Windows ? "linux" : "windows";
-    const std::vector<Utf8> args   = {"sema", "--os", target, "--artifact-kind", "executable", "-f", Utf8(testDir.path() / "main.swg"), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args   = {"sema", "--os", target, "--artifact-kind", "executable", "-f", Utf8(testDir.path() / "main.swg"), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--num-cores", "3"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
 }
 SWC_TEST_END()
@@ -797,7 +797,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
     const LinkerTestDirectory testDir("missing_resource");
     SWC_RESULT(testDir.write("module.swg", "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.resAppIcoFileName = \"missing.ico\"\n}\n"));
     SWC_RESULT(testDir.write("src/main.swg", "#main {}\n"));
-    const std::vector<Utf8> args = {"build", "--os", "windows", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    const std::vector<Utf8> args = {"build", "--os", "windows", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     SWC_RESULT(runCompiler(args, ExitCode::CompileError, "cannot read resource"));
 }
 SWC_TEST_END()
@@ -861,7 +861,7 @@ func(T) accumulate(value: T)
         for (uint32_t round = 0; round < 3; ++round)
         {
             const fs::path          roundDir = testDir.path() / kind.name / std::to_string(round);
-            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
             SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
 
             ByteArray               bytes;
@@ -1931,7 +1931,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRelinksChangedStaticDependenciesAndRecover
         main += std::format("    case {}: Swag.print(\"value-{}\\n\")\n", phase, phase);
     main += "    default: Swag.panic(\"unexpected provider value\", #curlocation)\n    }\n}\n";
     SWC_RESULT(directory.write("modules/consumer/src/main.swg", main));
-    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     fs::path                cachePath;
     for (uint32_t phase = 1; phase <= 7; ++phase)
     {
@@ -2007,7 +2007,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
         return directory.write("program.swg", source);
     };
     const std::vector<Utf8> arguments = {
-        "run", "--file", Utf8(directory.path() / "program.swg"), "--artifact-name", "cache-probe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "run", "--file", Utf8(directory.path() / "program.swg"), "--artifact-name", "cache-probe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     const auto run = [&](const bool reused, const uint32_t marker) -> Result {
         std::string                 output;
@@ -2111,7 +2111,7 @@ func caller()
 }
 #main { caller() }
 )"));
-        const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", "3", "--rebuild", "--no-log-color"};
+        const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", "3", "--rebuild"};
         SWC_RESULT(runCompiler(arguments, ExitCode::Success, ""));
         const fs::path              artifacts  = directory.path() / ".output/consumer/executable/devmode/x86_64";
         const fs::path              executable = artifacts / "consumer";
@@ -2171,7 +2171,7 @@ public func second(value: s64)->s64
     for (const bool shared : {false, true})
     {
         const Utf8        outputDirectory = Utf8(directory.path() / (shared ? "shared" : "executable"));
-        std::vector<Utf8> args            = {"build", "--os", "linux", "--artifact-kind", shared ? "shared-library" : "executable", "--debug", "-f", Utf8(directory.path() / "first.swg"), "-f", Utf8(directory.path() / "second.swg"), "-n", "dwarf", "--out-dir", outputDirectory, "--work-dir", Utf8(directory.path() / (shared ? "work-shared" : "work-executable")), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild", "--no-log-color"};
+        std::vector<Utf8> args            = {"build", "--os", "linux", "--artifact-kind", shared ? "shared-library" : "executable", "--debug", "-f", Utf8(directory.path() / "first.swg"), "-f", Utf8(directory.path() / "second.swg"), "-n", "dwarf", "--out-dir", outputDirectory, "--work-dir", Utf8(directory.path() / (shared ? "work-shared" : "work-executable")), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild"};
         if (!shared)
         {
             args.emplace_back("-f");
@@ -2252,7 +2252,7 @@ public func foreignPointer()->AbsFunction => &foreignAbs
     Swag.assert(foreign == foreignPointer() and foreign(-17) == 17)
 }
 )"));
-    const std::vector<Utf8> common = {"--os", "linux", "-f", Utf8(directory.path() / "functions.swg"), "-n", "pic", "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work"), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild", "--no-log-color"};
+    const std::vector<Utf8> common = {"--os", "linux", "-f", Utf8(directory.path() / "functions.swg"), "-n", "pic", "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work"), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild"};
     std::vector<Utf8>       args   = {"test", "--artifact-kind", "executable", "--no-test-native"};
     args.insert(args.end(), common.begin(), common.end());
     SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));

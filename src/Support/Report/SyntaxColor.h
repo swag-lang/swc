@@ -50,24 +50,11 @@ static constexpr std::string_view SYN_REGISTER   = "SBcR";
 static constexpr std::string_view SYN_REGISTER_V = "SBvR";
 static constexpr std::string_view SYN_RELOCATION = "SRel";
 
-enum class SyntaxColorMode
-{
-    ForDoc,
-    ForLog,
-};
-
+// Wraps the tokens of one line of Swag source in the '<span class="S...">' elements the generated
+// documentation styles. The line is already HTML-escaped.
 namespace SyntaxColorHelper
 {
-    Utf8 toAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode = SyntaxColorMode::ForLog);
-
-    inline void append(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
-    {
-        out += toAnsi(ctx, color);
-        out += value;
-        out += toAnsi(ctx, SyntaxColor::Default);
-    }
-
-    Utf8 colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force = false);
+    Utf8 colorize(const TaskContext& ctx, const std::string_view& line);
 }
 
 SWC_END_NAMESPACE();

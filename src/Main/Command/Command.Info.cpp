@@ -14,13 +14,12 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using CommandPrint::addInfoEntry;
-    using CommandPrint::nextHelpGroupStyle;
 
     void addFolderEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& path)
     {
         if (path.empty())
         {
-            addInfoEntry(entries, label, "(not found)", LogColor::Reset);
+            addInfoEntry(entries, label, "(not found)");
             return;
         }
 
@@ -30,10 +29,10 @@ namespace
         const char*     state   = present ? " [present]" : " [absent]";
         if (ec && ec != std::errc::no_such_file_or_directory)
             state = " [cannot inspect]";
-        CommandPrint::addInfoEntryParts(entries, label, {{Utf8(absolute.string()), LogColor::Reset}, {state, LogColor::Dim}});
+        addInfoEntry(entries, label, Utf8(absolute.string()) + state);
     }
 
-    void printInstallation(const TaskContext& ctx, const fs::path& resources, const fs::path& stdRoot, bool& hasPrintedGroup)
+    void printInstallation(const TaskContext& ctx, const fs::path& resources, const fs::path& stdRoot)
     {
         std::vector<Logger::FieldEntry> entries;
         addFolderEntry(entries, "Resources", resources);
@@ -44,8 +43,8 @@ namespace
         addFolderEntry(entries, "Documentation", resources / "help");
         addFolderEntry(entries, "Examples", resources / "examples");
         addFolderEntry(entries, "Applications", resources / "apps");
-        addInfoEntry(entries, "Library lookup", "Use std beside the compiler first, then SWAG_PATH/std", LogColor::Reset);
-        Logger::printFieldGroup(ctx, "Installation", entries, nextHelpGroupStyle(hasPrintedGroup));
+        addInfoEntry(entries, "Library lookup", "Use std beside the compiler first, then SWAG_PATH/std");
+        Logger::printFieldGroup(ctx, "Installation", entries);
 
         std::vector<Utf8> modules;
         std::error_code   ec;
@@ -60,14 +59,14 @@ namespace
         }
         std::ranges::sort(modules);
         entries.clear();
-        addInfoEntry(entries, "Source modules", modules.empty() ? Utf8("(none found)") : Utf8Helper::join(modules, ", "), LogColor::Reset);
+        addInfoEntry(entries, "Source modules", modules.empty() ? Utf8("(none found)") : Utf8Helper::join(modules, ", "));
         if (ec)
-            addInfoEntry(entries, "Module scan", FileSystem::normalizeSystemMessage(ec), LogColor::Reset);
-        addInfoEntry(entries, "Availability", "List source modules; generated artifacts depend on the build configuration", LogColor::Reset);
-        Logger::printFieldGroup(ctx, "Standard modules", entries, nextHelpGroupStyle(hasPrintedGroup));
+            addInfoEntry(entries, "Module scan", FileSystem::normalizeSystemMessage(ec));
+        addInfoEntry(entries, "Availability", "List source modules; generated artifacts depend on the build configuration");
+        Logger::printFieldGroup(ctx, "Standard modules", entries);
     }
 
-    void printCaches(const TaskContext& ctx, bool& hasPrintedGroup)
+    void printCaches(const TaskContext& ctx)
     {
         std::vector<Logger::FieldEntry> entries;
         addFolderEntry(entries, "Cache root", WorkspaceLayout::cacheRoot());
@@ -75,11 +74,11 @@ namespace
         addFolderEntry(entries, "Dependency staging", WorkspaceLayout::dependencyCacheStagingRoot());
         addFolderEntry(entries, "Machine code", WorkspaceLayout::machineCacheRoot());
         addFolderEntry(entries, "Legacy scripts", WorkspaceLayout::legacyScriptCacheRoot());
-        addInfoEntry(entries, "Preview cleanup", "swc clean --cache --dry-run", LogColor::Reset);
-        Logger::printFieldGroup(ctx, "Caches", entries, nextHelpGroupStyle(hasPrintedGroup));
+        addInfoEntry(entries, "Preview cleanup", "swc clean --cache --dry-run");
+        Logger::printFieldGroup(ctx, "Caches", entries);
     }
 
-    void printProjectFolders(const TaskContext& ctx, bool& hasPrintedGroup)
+    void printProjectFolders(const TaskContext& ctx)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
@@ -99,26 +98,26 @@ namespace
             addFolderEntry(entries, "Intermediate files", WorkspaceLayout::workspaceWorkDirectory(cmdLine.modulePath));
         }
         else
-            addInfoEntry(entries, "Project folders", "Use swc info --workspace <path> or swc info --module <path>", LogColor::Reset);
-        Logger::printFieldGroup(ctx, "Project", entries, nextHelpGroupStyle(hasPrintedGroup));
+            addInfoEntry(entries, "Project folders", "Use swc info --workspace <path> or swc info --module <path>");
+        Logger::printFieldGroup(ctx, "Project", entries);
     }
 
-    void printNativeToolchain(const TaskContext& ctx, bool& hasPrintedGroup)
+    void printNativeToolchain(const TaskContext& ctx)
     {
         Os::WindowsToolchainPaths       toolchain;
         const auto                      result = Os::discoverWindowsToolchainPaths(toolchain);
         std::vector<Logger::FieldEntry> entries;
         const bool                      ready = result == Os::WindowsToolchainDiscoveryResult::Ok;
-        addInfoEntry(entries, "Native build", ready ? "ready" : "missing build tools", ready ? LogColor::BrightGreen : LogColor::BrightRed);
-        addInfoEntry(entries, "Linker", "Integrated in swc", LogColor::Reset);
+        addInfoEntry(entries, "Native build", ready ? "ready" : "missing build tools");
+        addInfoEntry(entries, "Linker", "Integrated in swc");
         addFolderEntry(entries, "MSVC x64 libraries", toolchain.vcLibPath);
         addFolderEntry(entries, "Windows SDK UM", toolchain.sdkUmLibPath);
         addFolderEntry(entries, "Windows SDK UCRT", toolchain.sdkUcrtLibPath);
         if (toolchain.vcLibPath.empty())
-            addInfoEntry(entries, "MSVC setup", "Install the MSVC x64 build tools from Visual Studio Build Tools", LogColor::Reset);
+            addInfoEntry(entries, "MSVC setup", "Install the MSVC x64 build tools from Visual Studio Build Tools");
         if (toolchain.sdkUmLibPath.empty())
-            addInfoEntry(entries, "SDK setup", "Install the Windows SDK with UM and UCRT x64 libraries", LogColor::Reset);
-        Logger::printFieldGroup(ctx, "Native toolchain", entries, nextHelpGroupStyle(hasPrintedGroup));
+            addInfoEntry(entries, "SDK setup", "Install the Windows SDK with UM and UCRT x64 libraries");
+        Logger::printFieldGroup(ctx, "Native toolchain", entries);
     }
 }
 
@@ -128,27 +127,26 @@ void Command::info(const TaskContext& ctx)
     const fs::path           executable      = Os::getExeFullName();
     const fs::path           resources       = FileSystem::compilerResourceRoot(executable);
     const fs::path           stdRoot         = FileSystem::standardLibraryWorkspaceRoot(executable);
-    bool                     hasPrintedGroup = true;
 
     CommandPrint::printCompilerHeader(ctx);
     std::vector<Logger::FieldEntry> entries;
-    addInfoEntry(entries, "Executable", executable, LogColor::Reset);
+    addInfoEntry(entries, "Executable", executable);
 #if SWC_DEV_MODE
-    addInfoEntry(entries, "Compiler build", "devmode", LogColor::Reset);
+    addInfoEntry(entries, "Compiler build", "devmode");
 #else
-    addInfoEntry(entries, "Compiler build", "release", LogColor::Reset);
+    addInfoEntry(entries, "Compiler build", "release");
 #endif
-    addInfoEntry(entries, "Host OS", Os::hostOsName(), LogColor::Reset);
-    addInfoEntry(entries, "Host CPU", Os::hostCpuName(), LogColor::Reset);
-    addInfoEntry(entries, "Native target", std::format("{} / {}", targetOsName(ctx.cmdLine().targetOs), targetArchName(ctx.cmdLine().targetArch)), LogColor::Reset);
-    addInfoEntry(entries, "Build configurations", Utf8(ctx.cmdLine().defaultBuildCfg.registeredConfigs), LogColor::Reset);
-    addInfoEntry(entries, "Source files", ".swg (module source), .swgs (runnable script)", LogColor::Reset);
-    Logger::printFieldGroup(ctx, "Compiler", entries, nextHelpGroupStyle(hasPrintedGroup));
+    addInfoEntry(entries, "Host OS", Os::hostOsName());
+    addInfoEntry(entries, "Host CPU", Os::hostCpuName());
+    addInfoEntry(entries, "Native target", std::format("{} / {}", targetOsName(ctx.cmdLine().targetOs), targetArchName(ctx.cmdLine().targetArch)));
+    addInfoEntry(entries, "Build configurations", Utf8(ctx.cmdLine().defaultBuildCfg.registeredConfigs));
+    addInfoEntry(entries, "Source files", ".swg (module source), .swgs (runnable script)");
+    Logger::printFieldGroup(ctx, "Compiler", entries);
 
-    printInstallation(ctx, resources, stdRoot, hasPrintedGroup);
-    printCaches(ctx, hasPrintedGroup);
-    printProjectFolders(ctx, hasPrintedGroup);
-    printNativeToolchain(ctx, hasPrintedGroup);
+    printInstallation(ctx, resources, stdRoot);
+    printCaches(ctx);
+    printProjectFolders(ctx);
+    printNativeToolchain(ctx);
 
     entries.clear();
     addFolderEntry(entries, "Current directory", FileSystem::currentPathNoThrow());
@@ -156,9 +154,9 @@ void Command::info(const TaskContext& ctx)
     for (const char* name : {"SWAG_PATH", "VCToolsInstallDir", "WindowsSdkDir", "WindowsSDKVersion", "TEMP", "TMP"})
     {
         const std::optional<Utf8> value = Os::readEnvironmentVariable(name);
-        addInfoEntry(entries, name, value && !value->empty() ? *value : Utf8("(not set)"), LogColor::Reset);
+        addInfoEntry(entries, name, value && !value->empty() ? *value : Utf8("(not set)"));
     }
-    Logger::printFieldGroup(ctx, "Environment", entries, nextHelpGroupStyle(hasPrintedGroup));
+    Logger::printFieldGroup(ctx, "Environment", entries);
 }
 
 SWC_END_NAMESPACE();

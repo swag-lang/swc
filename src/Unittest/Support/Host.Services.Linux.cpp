@@ -4,7 +4,6 @@
 #include "Unittest/Support/Host.Tests.Linux.h"
 #include <fcntl.h>
 #include <pthread.h>
-#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -66,59 +65,5 @@ namespace swc::LinuxHostTests
         require(Os::getExternalSymbolAddress(address, absoluteHandle, "getpid"), "cannot resolve a system-library export");
         const auto processId = reinterpret_cast<pid_t (*)()>(address);
         require(processId() == getpid(), "system-library call returned another process");
-    }
-
-    void testTerminal()
-    {
-        // Each child owns its terminal descriptors and environment; never change the user's tty.
-        std::fflush(nullptr);
-        const int master = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
-        require(master >= 0 && grantpt(master) == 0 && unlockpt(master) == 0, "cannot create pseudo-terminal");
-        const char* slaveName = ptsname(master);
-        require(slaveName != nullptr, "cannot resolve pseudo-terminal slave");
-        const int slave = open(slaveName, O_RDWR | O_NOCTTY | O_CLOEXEC);
-        require(slave >= 0, "cannot open pseudo-terminal slave");
-        winsize size{};
-        size.ws_col = 123;
-        require(ioctl(slave, TIOCSWINSZ, &size) == 0, "cannot set pseudo-terminal width");
-        const pid_t child = fork();
-        if (child == 0)
-        {
-            close(master);
-            if (dup2(slave, STDOUT_FILENO) < 0 || dup2(slave, STDERR_FILENO) < 0 || setenv("TERM", "xterm-256color", 1) != 0)
-                _exit(1);
-            close(slave);
-            if (!Os::stdoutSupportsAnsi() || !Os::stderrSupportsAnsi() || !Os::stdoutSupportsAnimation() || Os::stdoutColumnCount() != 123)
-                _exit(2);
-            if (setenv("TERM", "dumb", 1) != 0 || Os::stdoutSupportsAnsi() || Os::stdoutSupportsAnimation())
-                _exit(3);
-            if (setenv("TERM", "xterm", 1) != 0)
-                _exit(4);
-            Os::setStdoutCursorVisible(false);
-            Os::exit(ExitCode::Success);
-        }
-        close(slave);
-        const int status = waitForChild(child);
-        require(WIFEXITED(status) && WEXITSTATUS(status) == 0, "terminal capability child failed");
-        char       buffer[64];
-        const auto length = read(master, buffer, sizeof(buffer));
-        close(master);
-        require(length == 12 && std::string_view(buffer, static_cast<size_t>(length)) == "\x1b[?25l\x1b[?25h", "cursor was not restored on normal exit");
-
-        const pid_t redirected = fork();
-        if (redirected == 0)
-        {
-            const int output = open("terminal-output.txt", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
-            if (output < 0 || dup2(output, STDOUT_FILENO) < 0 || dup2(output, STDERR_FILENO) < 0)
-                _exit(1);
-            close(output);
-            if (Os::stdoutSupportsAnsi() || Os::stderrSupportsAnsi() || Os::stdoutSupportsAnimation() || Os::stdoutColumnCount())
-                _exit(2);
-            Os::setStdoutCursorVisible(false);
-            _exit(0);
-        }
-        const int redirectStatus = waitForChild(redirected);
-        require(WIFEXITED(redirectStatus) && WEXITSTATUS(redirectStatus) == 0, "redirected terminal reported interactive capabilities");
-        require(fs::file_size("terminal-output.txt") == 0, "cursor sequence leaked into redirected output");
     }
 }

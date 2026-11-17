@@ -174,12 +174,6 @@ struct CommandLine
 
     Runtime::BuildCfgBackendOptimLevel optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
 
-    bool logColor                = true;
-    bool logAscii                = false;
-    bool logProgress             = true;
-    bool syntaxColor             = true;
-    bool diagOneLine             = false;
-    bool errorId                 = false;
     bool silent                  = false;
     bool cleanCache              = false;
     bool rebuild                 = false;
@@ -239,10 +233,8 @@ struct CommandLine
     // Days a dependency copy may go unused before 'clean --cache' takes it; zero removes them all.
     uint32_t cleanCacheDays = 0;
 
-    uint32_t                        syntaxColorLum  = 0;
     uint32_t                        numCores        = 0;
     uint32_t                        tabSize         = 4;
-    uint32_t                        diagMaxColumn   = 120;
     FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
     Utf8              verboseVerifyFilter;

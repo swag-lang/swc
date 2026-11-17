@@ -114,7 +114,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
 )"));
         // No #main: semantic checking must not attempt to link the selected leaf.
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "use.swg", "#run { Swag.assert(Provider.answer() == 42) }\n"));
-        std::vector<Utf8> arguments = {"sema", "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        std::vector<Utf8> arguments = {"sema", "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         if (filtered)
         {
             arguments.emplace_back("--workspace-module");
@@ -1131,7 +1131,7 @@ func length(value: const [*] u8)->u64
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
-        const std::vector<Utf8> arguments = {"test", "--os", "linux", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", "3", "--no-log-color"};
+        const std::vector<Utf8> arguments = {"test", "--os", "linux", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", "3"};
         Os::ProcessRunOptions   options;
         std::string             output;
         options.capturedOutput = &output;
@@ -1199,7 +1199,7 @@ func directProcessId()->u32
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
-        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         Os::ProcessRunOptions   options;
         std::string             output;
         options.capturedOutput = &output;
@@ -1249,7 +1249,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_RebuildModulePreservesCurrentDependencies)
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "value.swg", "#global public\nfunc value()->s32 => Provider.value()\n"));
 
     auto build = [&](const std::string_view rebuildOption) -> Result {
-        std::vector<Utf8> arguments = {"build", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        std::vector<Utf8> arguments = {"build", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         if (!rebuildOption.empty())
             arguments.emplace_back(rebuildOption);
         std::string           output;
@@ -1314,7 +1314,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
     SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "main.swg", "#test { Swag.require(Provider.answer() == 42) }\n#main { Swag.require(Provider.answer() == 42) }\n"));
 
     auto test = [&](std::string& output) -> Result {
-        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         Os::ProcessRunOptions   options;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
@@ -1332,7 +1332,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
     SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if #command == Swag.CompilerCommand.Test\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
     output.clear();
     SWC_RESULT(test(output));
-    if (output.find("provider • up-to-date") == std::string::npos || output.find("consumer • up-to-date") == std::string::npos || output.find("CACHE_TEST_TWO") == std::string::npos || output.find("CACHE_TEST_ONE") != std::string::npos || output.find("forged") == std::string::npos)
+    if (output.find("module up-to-date: provider") == std::string::npos || output.find("module up-to-date: consumer") == std::string::npos || output.find("CACHE_TEST_TWO") == std::string::npos || output.find("CACHE_TEST_ONE") != std::string::npos || output.find("build ok:") == std::string::npos)
     {
         std::println(stderr, "guarded test edit rebuilt production or missed the edited native test:\n{}", output);
         return Result::Error;
@@ -1341,7 +1341,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
     SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if true\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
     output.clear();
     SWC_RESULT(test(output));
-    if (output.find("consumer • up-to-date") != std::string::npos)
+    if (output.find("module up-to-date: consumer") != std::string::npos)
     {
         std::println(stderr, "changing the file guard failed to invalidate the production module:\n{}", output);
         return Result::Error;
@@ -1350,7 +1350,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
     SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#global public\nfunc answer()->s32 => 40 + 2\n"));
     output.clear();
     SWC_RESULT(test(output));
-    if (output.find("provider • up-to-date") != std::string::npos || output.find("consumer • up-to-date") != std::string::npos)
+    if (output.find("module up-to-date: provider") != std::string::npos || output.find("module up-to-date: consumer") != std::string::npos)
     {
         std::println(stderr, "production source edit failed to invalidate a dependent module:\n{}", output);
         return Result::Error;

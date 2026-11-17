@@ -202,12 +202,6 @@ void CommandLineParser::registerCommands()
             {"absolute", FileSystem::FilePathDisplayMode::Absolute},
         },
         "Choose how diagnostics, stack traces, and source locations display file paths");
-    add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-id", "-di",
-        &cmdLine_->errorId,
-        "Show diagnostic identifiers");
-    add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-one-line", "-dl",
-        &cmdLine_->diagOneLine,
-        "Render each diagnostic on one line");
     add(HelpOptionGroup::Diagnostics, "all", "--warn-as-error", "-we",
         &cmdLine_->warnAsErrors,
         "Report the named warnings as errors; repeat the option, or separate names with '|', and use 'all' for every warning");
@@ -218,25 +212,9 @@ void CommandLineParser::registerCommands()
         &cmdLine_->warnDisabled,
         "Do not report the named warnings at all");
 
-    add(HelpOptionGroup::Logging, "all", "--log-ascii", "-la",
-        &cmdLine_->logAscii,
-        "Restrict console output to ASCII and disable Unicode glyphs");
-    add(HelpOptionGroup::Logging, "all", "--log-color", "-lc",
-        &cmdLine_->logColor,
-        "Colorize log output");
-    add(HelpOptionGroup::Logging, "all", "--log-progress", "-lp",
-        &cmdLine_->logProgress,
-        "Animate active work when standard output is an interactive terminal");
     add(HelpOptionGroup::Logging, "all", "--silent", "-s",
         &cmdLine_->silent,
         "Suppress all log output");
-    add(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc",
-        &cmdLine_->syntaxColor,
-        "Colorize source code in compiler output");
-    add(HelpOptionGroup::Logging, "all", "--syntax-color-lum", "-scl",
-        &cmdLine_->syntaxColorLum,
-        "Set syntax-color luminosity from 0 to 100");
-
     add(HelpOptionGroup::Testing, "test", "--test-native", "-tn",
         &cmdLine_->testNative,
         "Run #test sources through the native backend");

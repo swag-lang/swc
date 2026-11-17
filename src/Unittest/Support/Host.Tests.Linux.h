@@ -11,7 +11,6 @@ namespace swc::LinuxHostTests
     void testDirectoryLocks();
     void testThreadStorage();
     void testModuleLoading();
-    void testTerminal();
     void testCallStacks();
     void testFaultHandlerStacks();
     void testGeneratedUnwind();

@@ -1671,9 +1671,9 @@ Result NativeBackendBuilder::buildArtifactObjects(std::optional<ScopedTimedLog>&
     SWC_RESULT(prepare());
     if (outStage)
     {
-        Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
+        Utf8 buildStat = ScopedTimedLog::formatStatCount(compiler_->nativeCodeSegment().size(), "function");
         if (!compiler_->lastArtifactLabel().empty())
-            buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+            buildStat = ScopedTimedLog::joinStatItems({buildStat, Utf8{compiler_->lastArtifactLabel()}});
         outStage->setStat(std::move(buildStat));
     }
     {
@@ -1973,7 +1973,7 @@ Result NativeBackendBuilder::prepare()
             if (microStage)
             {
                 std::vector<Utf8> stats;
-                stats.push_back(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
+                stats.push_back(ScopedTimedLog::formatStatCount(functionInfos.size(), "function"));
                 // Two sources, reported apart so a reader can tell them apart: machine code the
                 // shared machine-code archive supplied, and functions this output's
                 // previous build already produced from the same input.
@@ -1982,10 +1982,10 @@ Result NativeBackendBuilder::prepare()
                 });
                 const size_t unchanged = std::ranges::count_if(functionInfos, &NativeFunctionInfo::cacheHit);
                 if (reused)
-                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, reused, "reused function"));
+                    stats.push_back(ScopedTimedLog::formatStatCount(reused, "reused function"));
                 if (unchanged)
-                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, unchanged, "unchanged function"));
-                microStage->setStat(ScopedTimedLog::joinStatItems(ctx_, stats));
+                    stats.push_back(ScopedTimedLog::formatStatCount(unchanged, "unchanged function"));
+                microStage->setStat(ScopedTimedLog::joinStatItems(stats));
             }
             return Result::Continue;
         }
@@ -2197,12 +2197,6 @@ Result NativeBackendBuilder::buildObjectBytes()
     return objBuildFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 
-struct NativeBackendBuilder::NativeTestProgressContext
-{
-    NativeBackendBuilder* builder = nullptr;
-    ScopedTimedLog*       stage   = nullptr;
-};
-
 Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
 {
     std::optional<ScopedTimedLog> stage;
@@ -2235,14 +2229,11 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
     const bool     bounded   = compiler_->cmdLine().command == CommandKind::Smoke || compiler_->cmdLine().command == CommandKind::Test;
     const uint32_t timeoutMs = bounded ? compiler_->cmdLine().runTimeoutSeconds * 1000 : 0;
 
-    NativeTestProgressContext   progressContext{.builder = this, .stage = stage ? &*stage : nullptr};
     const Os::ProcessRunOptions options{
         .capturedOutput            = &artifactOutput,
         .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::print(*static_cast<const TaskContext*>(context), line); },
         .forwardLineUserData       = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
-        .outputLineCallback        = progressContext.stage ? &NativeBackendBuilder::forwardNativeTestProgress : nullptr,
-        .outputLineUserData        = &progressContext,
         .suppressForwardLinePrefix = "[swag.test]",
         .timeoutMs                 = timeoutMs,
     };
@@ -2290,62 +2281,11 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
     return Result::Continue;
 }
 
-void NativeBackendBuilder::forwardNativeTestProgress(void* userData, const std::string_view line)
-{
-    auto* progress = static_cast<NativeTestProgressContext*>(userData);
-    if (!progress || !progress->builder || !progress->stage)
-        return;
-    progress->builder->updateNativeTestProgress(*progress->stage, line);
-}
-
-void NativeBackendBuilder::updateNativeTestProgress(ScopedTimedLog& stage, const std::string_view line)
-{
-    NativeTestProgressEvent event;
-    if (!parseNativeTestProgressEvent(event, line))
-        return;
-
-    const size_t selectedTestCount = selectedNativeTestCount();
-    const size_t progressTotal     = selectedTestCount ? selectedTestCount : event.executed;
-    stage.setProgressStat(ScopedTimedLog::formatTestProgress(ctx_, event.executed, progressTotal, event.failed, event.name));
-}
-
 size_t NativeBackendBuilder::selectedNativeTestCount() const
 {
     return std::ranges::count_if(testFunctions, [this](const SymbolFunction* symbol) {
         return symbol && compiler_->matchesTestFilter(*symbol);
     });
-}
-
-bool NativeBackendBuilder::parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, const std::string_view line)
-{
-    outEvent                          = {};
-    constexpr std::string_view PREFIX = "[swag.test] event=";
-    if (!line.starts_with(PREFIX))
-        return false;
-
-    const size_t executedPos = line.find(" executed=", PREFIX.size());
-    const size_t failedPos   = line.find(" failed=", executedPos == std::string_view::npos ? PREFIX.size() : executedPos + 1);
-    const size_t namePos     = line.find(" name=", failedPos == std::string_view::npos ? PREFIX.size() : failedPos + 1);
-    if (executedPos == std::string_view::npos || failedPos == std::string_view::npos || namePos == std::string_view::npos)
-        return false;
-
-    const std::string_view event = line.substr(PREFIX.size(), executedPos - PREFIX.size());
-    if (event != "start" && event != "pass" && event != "fail")
-        return false;
-
-    const std::string_view executedText   = line.substr(executedPos + 10, failedPos - executedPos - 10);
-    const std::string_view failedText     = line.substr(failedPos + 8, namePos - failedPos - 8);
-    const auto             executedResult = std::from_chars(executedText.data(), executedText.data() + executedText.size(), outEvent.executed);
-    const auto             failedResult   = std::from_chars(failedText.data(), failedText.data() + failedText.size(), outEvent.failed);
-    if (executedResult.ec != std::errc{} || executedResult.ptr != executedText.data() + executedText.size() ||
-        failedResult.ec != std::errc{} || failedResult.ptr != failedText.data() + failedText.size())
-        return false;
-
-    std::string_view name = line.substr(namePos + 6);
-    while (!name.empty() && (name.back() == '\r' || name.back() == '\n'))
-        name.remove_suffix(1);
-    outEvent.name = name;
-    return !outEvent.name.empty();
 }
 
 // Extract the executed/failed tally printed by the runtime's __testsDone on its

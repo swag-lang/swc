@@ -347,12 +347,13 @@ Papier. When the intrinsic catalogue changes, compare both lexers against `Token
 
 ## Keep The Voice
 
-The identity is recognizable in a terminal too, and by the same means:
+The compiler's output carries no identity mark: it is read by the agent that launches `swc`, as
+plain ASCII records. What remains of the voice there is its discipline:
 
-- **The style comes from invariance, not variation.** One mark, `◆`. One sign-off: `clean`,
-  `passed` or `stopped`. One closed table of step verbs. No random line and no rotating emoji.
-- **Swag never talks over an error.** Character is allowed only where the reader has no problem
-  to solve. From the first diagnostic on, the voice is dry, dense and useful.
+- **The style comes from invariance, not variation.** One line grammar, one closed set of
+  outcomes: `ok`, `up-to-date`, `warning`, `error`. No decorative line, no glyph, no color.
+- **Swag never talks over an error.** From the first diagnostic on, the voice is dry, dense and
+  useful.
 - **One grammar for every failure.**
 
 Console output, diagnostics and documentation prose follow

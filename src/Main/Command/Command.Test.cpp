@@ -26,8 +26,8 @@ namespace
     Utf8 formatTestStageStat(const TaskContext& ctx, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> statParts;
-        ScopedTimedLog::appendTestStats(ctx, statParts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
-        return ScopedTimedLog::joinStatItems(ctx, statParts);
+        ScopedTimedLog::appendTestStats(statParts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
+        return ScopedTimedLog::joinStatItems(statParts);
     }
 
     bool hasJitEligibleInputs(const CompilerInstance& compiler)
@@ -677,9 +677,6 @@ namespace
         for (const SymbolFunction* function : testFunctions)
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
-            if (stage)
-                stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
-
             const bool testPassed = runJitTestFunction(ctx, *function, &abandoned);
             if (!testPassed)
             {
@@ -693,8 +690,6 @@ namespace
             }
 
             executedTestCount++;
-            if (stage)
-                stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
             if (abandoned)
                 break;
         }
@@ -702,8 +697,8 @@ namespace
         if (stage)
         {
             std::vector<Utf8> statParts;
-            ScopedTimedLog::appendTestStats(ctx, statParts, executedTestCount, failedTestCount);
-            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
+            ScopedTimedLog::appendTestStats(statParts, executedTestCount, failedTestCount);
+            stage->setStat(ScopedTimedLog::joinStatItems(statParts));
         }
 
         if (abandoned)

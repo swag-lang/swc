@@ -12,7 +12,6 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticBuilder.h"
-#include "Support/Report/LogColor.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -101,13 +100,6 @@ SWC_TEST_BEGIN(Compiler_MessageAliasPayloadUsesUnderlyingType)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_DiagnosticWarningSeverityColorIsMagenta)
-{
-    if (LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning) != LogColor::BrightMagenta)
-        return Result::Error;
-}
-SWC_TEST_END()
-
 SWC_TEST_BEGIN(Compiler_DiagnosticCatalogFollowsSwagMessageStyle)
 {
     constexpr std::string_view vagueWords[] = {
@@ -160,8 +152,6 @@ SWC_TEST_BEGIN(Compiler_InvalidCharacterHelpCoversAsciiAndUnicode)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     for (const char* value : {"0024", "0060", "20AC"})
@@ -182,8 +172,6 @@ SWC_TEST_BEGIN(Compiler_DiagnosticSimdOperatorReportsOnlyCurrentContract)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     struct OperatorCase
@@ -216,8 +204,6 @@ SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed);
@@ -235,8 +221,6 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);
@@ -254,8 +238,6 @@ SWC_TEST_BEGIN(Compiler_DiagnosticArgumentCountDoesNotRepeatUnit)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     for (const DiagnosticId id : {DiagnosticId::parser_err_too_many_arguments, DiagnosticId::parser_err_too_few_arguments,
@@ -288,8 +270,6 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_ExpectedTokenBeforeEofNamesTheBoundary)
 {
     CommandLine cmdLine;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
     const TaskContext localCtx(ctx.global(), cmdLine);
     for (const DiagnosticId id : {DiagnosticId::parser_err_expected_token_before, DiagnosticId::parser_err_expected_token_fam_before})
     {
@@ -313,8 +293,6 @@ SWC_TEST_BEGIN(Compiler_DiagnosticRemovesUnexpandedWordPlaceholders)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_enum);
@@ -332,8 +310,6 @@ SWC_TEST_BEGIN(Compiler_NativeExitCodeDiagnosticShowsDecimalAndHex)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_native_artifact_failed);
@@ -351,8 +327,6 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentWithoutBreakingHelpSplit)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.logColor    = false;
-    cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);

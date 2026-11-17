@@ -7,8 +7,8 @@ A warning reports code that compiles but is very likely a mistake. Unlike an
 error it does not stop the build, so it needs a way to be silenced where it is
 wrong and a way to be promoted where it must not be ignored.
 
-Every warning is named by its diagnostic identifier — the same string
-'--diagnostic-id' prints next to it, for instance 'sema_warn_unreachable_code'.
+Every warning is named by its diagnostic identifier — the string printed in
+brackets after its severity, for instance 'sema_warn_unreachable_code'.
 The name '"all"' stands for every warning wherever a warning list is accepted.
 
 Three layers decide how a warning is reported. From the outermost in:

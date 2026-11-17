@@ -33,7 +33,7 @@ namespace Command
         if (!result.primaryOutput.empty())
             compiler.setLastArtifactLabel(Utf8(result.primaryOutput.filename()));
         if (stage)
-            stage->setStat(ScopedTimedLog::formatStatCount(ctx, result.numFiles, "page"));
+            stage->setStat(ScopedTimedLog::formatStatCount(result.numFiles, "page"));
     }
 }
 

@@ -76,7 +76,6 @@ namespace
         command.buildCfg          = Utf8(configuration);
         command.buildCfgExplicit  = true;
         command.silent            = true;
-        command.logColor          = false;
         command.testJit           = false;
         command.testNative        = false;
         command.numCores          = 1;
@@ -271,7 +270,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxAllocatorBorrowGuardUsesSwagAbi)
     SWC_RESULT(CompilerTestFile::readText(sourceText, source));
     const fs::path sourcePath = directory.path() / "borrow.swg";
     SWC_RESULT(CompilerTestFile::writeText(sourcePath, sourceText));
-    const std::vector<Utf8> args     = {"test", "--os", "linux", "--sema-only", "--tag", "Swag.AllocatorSafety", "--num-cores", "3", "--no-log-color", "--file", Utf8(sourcePath)};
+    const std::vector<Utf8> args     = {"test", "--os", "linux", "--sema-only", "--tag", "Swag.AllocatorSafety", "--num-cores", "3", "--file", Utf8(sourcePath)};
     uint32_t                exitCode = UINT32_MAX;
     std::string             output;
     Os::ProcessRunOptions   options;
@@ -298,7 +297,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_GlobalIfRetiresInactiveDeclarationsAndImpls)
     const fs::path          source    = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_platform";
     const Utf8              targetOs  = hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows";
     const std::vector<Utf8> arguments = {
-        "test", "--os", targetOs, "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "test", "--os", targetOs, "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -323,7 +322,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
     const fs::path          source    = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_pending_type";
     const Utf8              targetOs  = hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows";
     const std::vector<Utf8> arguments = {
-        "test", "--os", targetOs, "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "test", "--os", targetOs, "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -354,7 +353,7 @@ struct State { value: s32 }
     SWC_RESULT(CompilerTestFile::writeText(source / "condition.swg", "#global namespace Probe\nconst Disabled = #run false\n"));
     const Utf8              targetOs  = hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows";
     const std::vector<Utf8> arguments = {
-        "sema", "--os", targetOs, "--directory", Utf8(source), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "sema", "--os", targetOs, "--directory", Utf8(source), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -422,7 +421,7 @@ func worker(current: const *Threading.Thread)
 )";
         SWC_RESULT(CompilerTestFile::writeText(module / "src" / "lifecycle.swg", source));
         const std::vector<Utf8> arguments = {
-            "test", "--module", Utf8(module), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+            "test", "--module", Utf8(module), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         std::string                               output;
         uint32_t                                  exitCode = 0;
         const Os::ProcessRunOptions               options{.capturedOutput = &output, .forwardOutput = false};
@@ -458,7 +457,7 @@ var initialized: bool
     SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
     const Utf8              targetOs  = hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows";
     const std::vector<Utf8> arguments = {
-        "test", "--os", targetOs, "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "test", "--os", targetOs, "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -483,7 +482,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxCVariadicCallsUseIndividualArguments)
         return Result::Error;
     const fs::path          source    = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "functions" / "foreign_variadic_linux.swg";
     const std::vector<Utf8> arguments = {
-        "test", "--os", "linux", "--file", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "test", "--os", "linux", "--file", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -507,7 +506,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxThreadLocalGlobalsReleaseBeforeWorkerExi
         return Result::Error;
     const fs::path          source    = Os::getExeFullName().parent_path() / "unittests" / "jit" / "runtime" / "linux_thread_storage_lifetime.swg";
     const std::vector<Utf8> arguments = {
-        "sema", "--os", "linux", "--file", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "sema", "--os", "linux", "--file", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
@@ -544,7 +543,7 @@ func {}(status: s32)
                                                        function, call);
             SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
             const std::vector<Utf8> arguments = {
-                "sema", "--os", "linux", "--file", Utf8(sourcePath), "--num-cores", "3", "--no-log-color",
+                "sema", "--os", "linux", "--file", Utf8(sourcePath), "--num-cores", "3",
                 "--out-dir", Utf8(directory.path() / "output" / name), "--work-dir", Utf8(directory.path() / "work" / name)};
             std::string                 output;
             uint32_t                    exitCode = 0;

@@ -7,7 +7,6 @@
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -77,12 +76,11 @@ namespace
 
         const Utf8                      scriptArg = quoteCommandArgument(scriptPath);
         std::vector<Logger::FieldEntry> entries;
-        addInfoEntry(entries, "Script", displayPath(scriptPath), LogColor::BrightGreen);
-        addInfoEntry(entries, "Run", "swc " + scriptArg, LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
-        addInfoEntry(entries, "Learn", "swc help", LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
+        addInfoEntry(entries, "Script", displayPath(scriptPath));
+        addInfoEntry(entries, "Run", "swc " + scriptArg);
+        addInfoEntry(entries, "Learn", "swc help");
 
-        const Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
-        Logger::printFieldGroup(ctx, "Created", entries, style);
+        Logger::printFieldGroup(ctx, "Created", entries);
     }
 
     void printCreatedModule(const TaskContext& ctx, const fs::path& workspacePath, const fs::path& modulePath, const Utf8& moduleName)
@@ -91,13 +89,12 @@ namespace
 
         const Utf8                      workspaceArg = quoteCommandArgument(workspacePath);
         std::vector<Logger::FieldEntry> entries;
-        addInfoEntry(entries, "Workspace", displayPath(workspacePath), LogColor::BrightGreen);
-        addInfoEntry(entries, "Module", displayPath(modulePath), LogColor::BrightGreen);
-        addInfoEntry(entries, "Run", "swc run --workspace " + workspaceArg + " --workspace-module " + moduleName, LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
-        addInfoEntry(entries, "Learn", "swc help", LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
+        addInfoEntry(entries, "Workspace", displayPath(workspacePath));
+        addInfoEntry(entries, "Module", displayPath(modulePath));
+        addInfoEntry(entries, "Run", "swc run --workspace " + workspaceArg + " --workspace-module " + moduleName);
+        addInfoEntry(entries, "Learn", "swc help");
 
-        const Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
-        Logger::printFieldGroup(ctx, "Created", entries, style);
+        Logger::printFieldGroup(ctx, "Created", entries);
     }
 
     bool isModuleName(const TaskContext& ctx, const Utf8& name)

@@ -10226,7 +10226,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <h3 id="_013_005_warnings_swg">Warnings</h3>
 <h3 id="_013_005_warnings_swg_Warnings">Warnings</h3>
 <p>A warning reports code that compiles but is very likely a mistake. Unlike an error it does not stop the build, so it needs a way to be silenced where it is wrong and a way to be promoted where it must not be ignored.</p>
-<p>Every warning is named by its diagnostic identifier — the same string <span class="code-inline">--diagnostic-id</span> prints next to it, for instance <span class="code-inline">sema_warn_unreachable_code</span>. The name <span class="code-inline">"all"</span> stands for every warning wherever a warning list is accepted.</p>
+<p>Every warning is named by its diagnostic identifier — the string printed in brackets after its severity, for instance <span class="code-inline">sema_warn_unreachable_code</span>. The name <span class="code-inline">"all"</span> stands for every warning wherever a warning list is accepted.</p>
 <p>Three layers decide how a warning is reported. From the outermost in:</p>
 <table class="table-markdown">
 <thead>

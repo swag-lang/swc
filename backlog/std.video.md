@@ -347,10 +347,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   region estimate, the 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
   partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
   zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
-  Swag Capture now caps recording at four slices: eight slices improved isolated 4K P-picture
-  throughput, but a scaled two-screen recording lost 363 slots in one 60-second run, while four
-  slices lost none in a subsequent run with varying desktop load. Remeasure 1080p60 and 4K60
-  capture with concurrent readback before considering a higher cap.
+  The app allows eight slices up to 4096 pixels and four above that, where downscaled desktop
+  readback also needs CPU. In a 10-picture 4K testsrc Release benchmark, eight slices encoded
+  17–30% faster than four, with under 0.5% file-size and 0.01 dB luma-PSNR differences. A scaled
+  two-screen live recording instead lost 363 slots with eight slices in one run and none with
+  four in a later run under varying load. Remeasure 1080p60 and 4K60 capture with concurrent
+  readback; codec-only timing does not choose the end-to-end slice count.
   Connect the pure-Swag rate controller only after the encoder can change QP per picture;
   refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
   or make packet submission transactional. Use each H.264 packet's bytes and duration for

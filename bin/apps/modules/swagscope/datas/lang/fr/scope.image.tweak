@@ -25,3 +25,4 @@ ui_ItemLevel     niveau %
 ui_ItemLayer     couche %
 ui_ItemFace      face %
 ui_ProbeAlpha    opacité %%
+ui_FrameDelay    délai % ms

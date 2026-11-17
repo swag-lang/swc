@@ -214,6 +214,7 @@ struct Panel
     handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:               Viewer.BackgroundLoad'ViewerContent
     failureReason:      String
+    shownItem:          String         // What the summary last said of the item in view.
     probed:             Math.Point     // Pixel of the stored picture the pointer last read.
     hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
 }
@@ -253,8 +254,17 @@ impl Panel
         if movie.frameCount <= 1 do
             return result
         let info = movie.frameInfo()
-        if not info or info.kind == .Animation do
+        if not info do
             return result
+
+        // A paused animation says how long its frame stays on screen; a playing one says nothing,
+        // the frames passing too quickly to be read.
+        if info.kind == .Animation
+        {
+            if movie.isPaused do
+                result = Format.toString(texts().ui_FrameDelay, cast(u32, Math.round(movie.currentFrameDuration() * 1000)))
+            return result
+        }
 
         result = Format.toString("% × %", info.width, info.height)
         if info.kind == .Texture
@@ -286,8 +296,13 @@ impl Panel
         let movie = &.imageView.movie
         if movie.frameCount <= 1 do
             return
-        if not .itemText().isEmpty() do
+        let item = .itemText()
+        if item != .shownItem
+        {
+            .shownItem = item
             .services.showDetails(me, .shownDetails())
+        }
+
         .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
         .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
         .previousPage.enable(movie.frameIndex > 0)
@@ -446,8 +461,11 @@ impl Panel
         entries.add(lens.cmd_ZoomReset, .ActualSize, func|view = me|() { view.imageView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
         if .imageView.movie.frameCount > 1
         {
-            entries.add(lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-            entries.add(lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+            // An animation steps by frames, an image set by pages.
+            let info      = .imageView.movie.frameInfo()
+            let animation = info and info.kind == .Animation
+            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         }
 
         entries.add(lens.cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })

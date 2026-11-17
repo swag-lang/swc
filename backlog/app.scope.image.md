@@ -50,9 +50,11 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. The
   shared playback mode now stops after a cycle, repeats, or continues through the folder, with
-  manual seeking kept separate from cycle completion. Previous/next-frame commands, exact frame
-  delay, playback speed, disposal/blend metadata, composited-versus-raw frame view, and dropped-frame
-  indicators remain absent.
+  manual seeking kept separate from cycle completion. Ctrl+Page Up and Page Down step one frame,
+  named Previous and Next Frame in the lens for an animation, and a paused animation's summary
+  gives the delay of the frame in view, the encoded one or the default the movie plays it at.
+  Timestamps, playback speed, disposal/blend metadata, composited-versus-raw frame view, and
+  dropped-frame indicators remain absent.
 - Next: expose animation frame metadata and complete the transport around the existing cached movie.
 - Done when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x rates
   are covered together with the existing loop policy, raw and composited frames can be compared,

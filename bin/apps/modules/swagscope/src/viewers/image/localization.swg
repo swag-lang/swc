@@ -39,6 +39,7 @@ struct Texts
     ui_ItemLevel:  string = "level %"        // Mipmap level of the texture item in view.
     ui_ItemLayer:  string = "layer %"        // Array layer of the texture item in view.
     ui_ItemFace:   string = "face %"         // Cube face of the texture item in view.
+    ui_FrameDelay: string = "delay % ms"     // How long the frame of a paused animation stays on screen.
     ui_ProbeAlpha: string = "opacity %%"     // The value, then the percent sign.
 }
 

@@ -32,7 +32,7 @@ using Core, Pixel, Gui, Viewers
 }
 
 // Over a set of independent images the summary names the item in view, its size and its place in
-// a texture; an animation keeps the summary of the whole.
+// a texture; a paused animation names the delay of its frame.
 #test
 {
     for name in ["imageset-icons.ico", "imageset-array.dds", "imageset-animation.gif"]
@@ -50,7 +50,20 @@ using Core, Pixel, Gui, Viewers
         let shown = view.shownDetails()
         if info.kind == .Animation
         {
-            Swag.require(view.itemText().isEmpty() and shown == view.details, name)
+            // Paused, an animation gives how long its frame stays on screen, and the lens steps it
+            // by frames; playing, it keeps the summary of the whole.
+            let delay = Format.toString(Picture.texts().ui_FrameDelay, cast(u32, Math.round(movie.currentFrameDuration() * 1000)))
+            Swag.require(view.itemText() == delay and shown == Format.toString("% · %", view.details, delay), shown.toString())
+            var results: Lens.Results
+            var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
+            view.describeLens(&entries)
+            var frames = 0
+            for &entry in results.sections[0]!.entries where entry.title == appStrings().cmd_PreviousFrame or entry.title == appStrings().cmd_NextFrame do
+                frames += 1
+            Swag.require(frames == 2)
+            view.imageView.setPaused(false)
+            view.refreshFrame()
+            Swag.require(view.itemText().isEmpty() and view.shownDetails() == view.details, name)
             continue
         }
 

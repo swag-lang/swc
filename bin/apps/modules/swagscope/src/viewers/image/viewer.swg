@@ -77,8 +77,21 @@ func loadViewerImage(fileName: string)->Image fail
 // softer picture than sampling twice per axis at the size that is kept.
 func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
-    if Path.lowercaseExtension(fileName) != ".svg" do
-        return try loadViewerImage(fileName)
+    if Path.lowercaseExtension(fileName) != ".svg"
+    {
+        var image   = try loadViewerImage(fileName)
+        let largest = Math.max(image.width, image.height)
+        let side    = Math.max(maxSide, 1'u32)
+        if largest > side
+        {
+            let scale = cast(f32, side) / cast(f32, largest)
+            image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
+                         Math.max(1, cast(s32, cast(f32, image.height) * scale)),
+                         .Bilinear)
+        }
+
+        return image
+    }
 
     let drawing = try loadViewerDrawing(fileName)
     let largest = Math.max(drawing.width, drawing.height, 1)

@@ -193,3 +193,20 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     Swag.require(sheet.rows.count == 40 and top + sheet.clientRect().height < view.scroll.scrollSize.y)
     Swag.require(groundAt(&host, view, 20, top, point) != groundAt(&host, view, 21, top, point))
 }
+
+// The Go to Time box offers the start of the current cue as the clocks spell it, so accepting it
+// as offered keeps the reader on that cue.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-cues-goto-", ".srt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "1\n00:00:01,000 --> 00:00:02,000\nOne\n\n2\n00:00:05,000 --> 00:00:07,000\nTwo\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.revealCue(1))
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    view.promptGoToTime()
+    Swag.require(host.autoHandled and view.currentCue == 1)
+}

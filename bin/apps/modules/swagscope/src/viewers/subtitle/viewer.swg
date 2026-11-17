@@ -684,13 +684,16 @@ impl Panel
     // Asks for a time and reveals the first cue that has not ended by then, or the last cue.
     //
     // The time is read as the lens reads one, but from the start of the track and without an end:
-    // an instant past the last cue shows the last cue.
+    // an instant past the last cue shows the last cue. Like the Go to Time of a film, the box
+    // offers where the reader stands as the clocks spell it: the start of the current cue, or zero
+    // before any cue is current, since the track reads zero as the start of a cue it lacks.
     mtd promptGoToTime()
     {
         let count = .track!.cueCount()
         if not count do
             return
-        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00"})
+        let current = Viewer.timeText(.track.cueStartTime(.currentCue))
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: current})
         if dialog.doModal() != Dialog.BtnOk do
             return
 

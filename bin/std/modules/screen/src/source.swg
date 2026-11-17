@@ -142,13 +142,23 @@ impl Source
     // `includeCursor` requests pointer composition where supported and defaults to false.
     func openDesktop(includeCursor: bool = false)->Source fail
     {
-        let x = Env.getSystemMetric(.DesktopX)
-        let y = Env.getSystemMetric(.DesktopY)
-        let width = Env.getSystemMetric(.DesktopWidth)
-        let height = Env.getSystemMetric(.DesktopHeight)
-        if width <= 0 or height <= 0 do
+        let monitors = Env.getMonitors()
+        if monitors.isEmpty() do
             fail UnsupportedFormatError{"screen virtual desktop is unavailable"}
-        return try .open({x, y, width, height, includeCursor})
+        var left = monitors[0].physicalBounds.x
+        var top = monitors[0].physicalBounds.y
+        var right = monitors[0].physicalBounds.right()
+        var bottom = monitors[0].physicalBounds.bottom()
+        for monitor in monitors
+        {
+            let bounds = monitor.physicalBounds
+            left = Math.min(left, bounds.x)
+            top = Math.min(top, bounds.y)
+            right = Math.max(right, bounds.right())
+            bottom = Math.max(bottom, bounds.bottom())
+        }
+        return try .open({cast(s32, left), cast(s32, top), cast(s32, right - left),
+                          cast(s32, bottom - top), includeCursor})
     }
 
     private mtd addPart(options: SourceOptions) fail

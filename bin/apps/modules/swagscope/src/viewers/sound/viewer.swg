@@ -180,6 +180,31 @@ func durationText(seconds: f32)->String
     return Format.toString("%{f2} s", seconds)
 }
 
+// Returns the established technical name of an audio payload encoding, the way the information
+// sheets of a recording and of the sound tracks of a film write it.
+func encodingText(encoding: SoundFileEncoding)->string
+{
+    switch encoding
+    {
+    case .Pcm8:     return "PCM 8-bit"
+    case .Pcm16:    return "PCM 16-bit"
+    case .Pcm24:    return "PCM 24-bit"
+    case .Pcm32:    return "PCM 32-bit"
+    case .Float32:  return "PCM float32"
+    case .AacLc:    return "AAC-LC"
+    case .Ac3:      return "AC-3"
+    case .Eac3:     return "E-AC-3"
+    case .Dts:      return "DTS"
+    case .Flac:     return "FLAC"
+    case .Mp3:      return "MP3"
+    case .Vorbis:   return "Vorbis"
+    case .Opus:     return "Opus"
+    case .AdpcmMs:  return "ADPCM"
+    case .AdpcmIma: return "IMA ADPCM"
+    default:        return "Audio"
+    }
+}
+
 // Plots the waveform of a sound as a row of bars, the played part apart from the rest.
 struct WaveformView
 {
@@ -1294,7 +1319,7 @@ impl Panel
         data.add(.Sound, group: true)
 
         // How the samples are stored, then the throughput of that payload over the length.
-        data.add(.Format, Film.audioEncodingText(.sound.sampleEncoding()))
+        data.add(.Format, encodingText(.sound.sampleEncoding()))
         let bitrate = videoBitrate(.sound.payloadSize(), cast(f64, .duration))
         if bitrate.count do
             data.add(.Bitrate, bitrate)

@@ -122,30 +122,6 @@ func audioTrackLanguage(sound: const *Audio.SoundFile)->String
     return result
 }
 
-// Returns the established technical name of an audio payload encoding.
-func audioEncodingText(encoding: Audio.SoundFileEncoding)->string
-{
-    switch encoding
-    {
-    case .Pcm8:     return "PCM 8-bit"
-    case .Pcm16:    return "PCM 16-bit"
-    case .Pcm24:    return "PCM 24-bit"
-    case .Pcm32:    return "PCM 32-bit"
-    case .Float32:  return "PCM float32"
-    case .AacLc:    return "AAC-LC"
-    case .Ac3:      return "AC-3"
-    case .Eac3:     return "E-AC-3"
-    case .Dts:      return "DTS"
-    case .Flac:     return "FLAC"
-    case .Mp3:      return "MP3"
-    case .Vorbis:   return "Vorbis"
-    case .Opus:     return "Opus"
-    case .AdpcmMs:  return "ADPCM"
-    case .AdpcmIma: return "IMA ADPCM"
-    default:        return "Audio"
-    }
-}
-
 // Names a subtitle syntax the way its specification spells it.
 func subtitleFormatText(format: Video.Subtitle.Format)->string
 {
@@ -161,7 +137,7 @@ func subtitleFormatText(format: Video.Subtitle.Format)->string
 }
 
 // Formats the active sound track for the information bar.
-func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
+func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, Sound.encodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 
 // Names one embedded or sidecar subtitle track, with its language when it declares one.
 func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String

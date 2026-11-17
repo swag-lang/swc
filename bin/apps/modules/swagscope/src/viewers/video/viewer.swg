@@ -871,7 +871,7 @@ private impl Panel
                 name = language.isEmpty() ? trackText(index + 1) : language
             elif not language.isEmpty() do
                 measures.add(language)
-            measures.add(String.from(audioEncodingText(track.sampleEncoding())))
+            measures.add(String.from(Sound.encodingText(track.sampleEncoding())))
             measures.add(Format.toString("% Hz", track.sampleRateHz()))
             measures.add(channelsText(cast(u32, track.numChannels())))
             data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))

@@ -1116,13 +1116,6 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "(fre)")
     Swag.require(view.muteButton.isEnabled() and view.volumeSlider.isEnabled() and view.tracksButton.isEnabled())
     Swag.require(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
-    Swag.require(Film.audioEncodingText(.Ac3) == "AC-3" and Film.audioEncodingText(.Eac3) == "E-AC-3")
-    Swag.require(Film.audioEncodingText(.Dts) == "DTS" and
-                 Film.audioEncodingText(.Flac) == "FLAC" and
-                 Film.audioEncodingText(.Mp3) == "MP3")
-    Swag.require(Film.audioEncodingText(.Vorbis) == "Vorbis" and
-                 Film.audioEncodingText(.Opus) == "Opus" and
-                 Film.audioEncodingText(.AdpcmIma) == "IMA ADPCM")
     view.setVolume(0.4)
     view.setMuted(true)
     Swag.require(not view.volumeSlider.isEnabled())

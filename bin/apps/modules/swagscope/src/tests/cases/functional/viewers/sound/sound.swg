@@ -253,6 +253,20 @@ func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Ar
     return result
 }
 
+// A payload is named the way its specification spells it, in the sheet of a recording as in the
+// sound tracks of a film.
+#test
+{
+    Swag.require(Sound.encodingText(.Pcm16) == "PCM 16-bit" and Sound.encodingText(.Float32) == "PCM float32")
+    Swag.require(Sound.encodingText(.Ac3) == "AC-3" and Sound.encodingText(.Eac3) == "E-AC-3")
+    Swag.require(Sound.encodingText(.Dts) == "DTS" and
+                 Sound.encodingText(.Flac) == "FLAC" and
+                 Sound.encodingText(.Mp3) == "MP3")
+    Swag.require(Sound.encodingText(.Vorbis) == "Vorbis" and
+                 Sound.encodingText(.Opus) == "Opus" and
+                 Sound.encodingText(.AdpcmIma) == "IMA ADPCM")
+}
+
 // One point per frame reads the level of that frame, whatever its sign.
 #test
 {

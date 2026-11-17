@@ -28,6 +28,31 @@ using Swag
     Swag.require(matrix.m[2, 0] == 0)
     Swag.require(matrix.m[2, 1] == 0)
     Swag.require(matrix.m[2, 2] == 1)
+
+    var value: Math.Matrix3x3
+    value.m[0, 0] = 1
+    value.m[1, 0] = 2
+    value.m[2, 0] = 3
+    value.m[0, 1] = 0
+    value.m[1, 1] = 1
+    value.m[2, 1] = 4
+    value.m[0, 2] = 5
+    value.m[1, 2] = 6
+    value.m[2, 2] = 0
+    Swag.require(value.determinant() == 1)
+    let inverse = value.inverted()
+    let product = value.multiplied(inverse)
+    for y in 3
+    {
+        for x in 3
+        {
+            if x == y do
+                Swag.require(Math.isEqualEpsilon(product.m[x, y], 1'f32, 0.0001))
+            else do
+                Swag.require(Math.isZeroEpsilon(product.m[x, y], 0.0001))
+        }
+    }
+    Swag.require(value.transposed().m[0, 1] == value.m[1, 0])
 }
 
 #test
@@ -127,4 +152,46 @@ using Swag
     Swag.require(matrix.m[3, 1] == 0)
     Swag.require(matrix.m[3, 2] == 0)
     Swag.require(matrix.m[3, 3] == 1)
+
+    let translation = Math.Matrix4x4.createTranslation({3, -4, 5})
+    let moved = translation.transformPoint({1, 2, 3})
+    Swag.require(moved.x == 4 and moved.y == -2 and moved.z == 8)
+    let direction = translation.transformDirection({1, 2, 3})
+    Swag.require(direction.x == 1 and direction.y == 2 and direction.z == 3)
+
+    let scale = Math.Matrix4x4.createScale({2, 3, 4})
+    Swag.require(scale.m[0, 0] == 2 and scale.m[1, 1] == 3 and scale.m[2, 2] == 4 and scale.m[3, 3] == 1)
+    Swag.require(scale.m[0, 3] == 0 and scale.m[1, 3] == 0 and scale.m[2, 3] == 0)
+    let scaledOrigin = scale.transformPoint(Math.Vector3.Zero)
+    Swag.require(scaledOrigin.isZero())
+    let scaledPoint = scale.transformPoint({1, 1, 1})
+    Swag.require(scaledPoint.z == 4)
+    let composed = Math.Matrix4x4.multiply(scale, translation)
+    Swag.require(composed.m[2, 2] == 4 and composed.m[3, 2] == 5)
+    Swag.require(composed.m[0, 1] == 0)
+    Swag.require(composed.m[1, 1] == 3)
+    Swag.require(composed.m[2, 1] == 0)
+    Swag.require(composed.m[3, 1] == -4)
+    Swag.require(Math.isEqualEpsilon(composed.determinant(), 24'f32, 0.001))
+    let transformed = composed.transformPoint({1, 1, 1})
+    Swag.require(transformed.x == 5)
+    Swag.require(transformed.y == -1)
+    Swag.require(transformed.z == 9)
+    let restored = composed.inverted().transformPoint(transformed)
+    Swag.require(restored.isEqualEpsilon({1, 1, 1}, 0.001))
+    Swag.require(Math.isEqualEpsilon(
+        Math.Matrix4x4.createPerspective(Math.ConstF32.PiBy2, 1, 1, 10).m[1, 1], 1, 0.0001))
+
+    let view = Math.Matrix4x4.createLookAt({0, 0, 1}, {0, 0, 0}, Math.Vector3.UnitY)
+    Swag.require(view.transformPoint({0, 0, 1}).isEqualEpsilon(Math.Vector3.Zero, 0.001))
+    Swag.require(view.transformPoint(Math.Vector3.Zero).isEqualEpsilon({0, 0, -1}, 0.001))
+    let orthographic = Math.Matrix4x4.createOrthographic(-1, 1, -1, 1, 1, 10)
+    let nearPoint = orthographic.transformPoint({0, 0, -1})
+    let farPoint = orthographic.transformPoint({0, 0, -10})
+    Swag.require(Math.isZeroEpsilon(nearPoint.x, 0.001))
+    Swag.require(Math.isZeroEpsilon(nearPoint.y, 0.001))
+    Swag.require(Math.isEqualEpsilon(nearPoint.z, -1'f32, 0.001))
+    Swag.require(Math.isZeroEpsilon(farPoint.x, 0.001))
+    Swag.require(Math.isZeroEpsilon(farPoint.y, 0.001))
+    Swag.require(Math.isEqualEpsilon(farPoint.z, 1'f32, 0.001))
 }

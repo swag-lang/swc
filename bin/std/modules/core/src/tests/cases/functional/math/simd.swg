@@ -255,6 +255,38 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     Swag.require(Math.lerp(Simd.splat(1'f64), Simd.splat(3'f64), Simd.splat(0.5'f64))[1] == 2)
 }
 
+// Float rounding and interpolation helpers match the scalar math contracts lane by lane.
+#test
+{
+    let f32Values = cast(Simd.F32x4, [-1.5'f32, -0.25, 0.5, 1.75])
+    let rounded32 = Math.round(f32Values)
+    let fractions = Math.fract(f32Values)
+    Swag.require(rounded32[0] == -2 and rounded32[1] == 0 and rounded32[2] == 1 and rounded32[3] == 2)
+    Swag.require(fractions[0] == 0.5 and fractions[1] == 0.75 and fractions[2] == 0.5 and fractions[3] == 0.75)
+
+    let f64Values = cast(Simd.F64x2, [-2.5'f64, 1.5])
+    let rounded64 = Math.round(f64Values)
+    Swag.require(rounded64[0] == -3 and rounded64[1] == 2)
+    let fractions64 = Math.fract(f64Values)
+    Swag.require(fractions64[0] == 0.5 and fractions64[1] == 0.5)
+
+    let a = Simd.splat(0'f32)
+    let b = Simd.splat(1'f32)
+    let c = Simd.splat(2'f32)
+    let d = Simd.splat(3'f32)
+    let factors = cast(Simd.F32x4, [0'f32, 0.25, 0.5, 1])
+    let cubic = Math.cubicLerp(a, b, c, d, factors)
+    Swag.require(cubic[0] == 1 and cubic[3] == 2)
+    let hermite = Math.interpHermite(factors)
+    let quintic = Math.interpQuintic(factors)
+    Swag.require(hermite[0] == 0 and hermite[3] == 1)
+    Swag.require(quintic[0] == 0 and quintic[3] == 1)
+
+    let factors64 = cast(Simd.F64x2, [0'f64, 1])
+    let cubic64 = Math.cubicLerp(Simd.splat(0'f64), Simd.splat(1'f64), Simd.splat(2'f64), Simd.splat(3'f64), factors64)
+    Swag.require(cubic64[0] == 1 and cubic64[1] == 2)
+}
+
 // The horizontal reductions and their widening forms.
 #test
 {
@@ -397,4 +429,28 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let uh = Simd.mulHigh(ux, uy)
     for i in 8 do
         Swag.require(uh[i] == cast(u16, ((cast(u32, ux[i]) * cast(u32, uy[i])) >> 16)))
+}
+
+// Range mapping and angular interpolation keep the scalar contracts in every lane.
+#test
+{
+    let start  = cast(Simd.F32x4, [0'f32, 10, 0, 170])
+    let end    = cast(Simd.F32x4, [10'f32, 0, 10, -170])
+    let values = cast(Simd.F32x4, [2'f32, 2, -2, 0])
+    let inverse = Math.inverseLerp(start, end, values)
+    Swag.require(Math.isEqualEpsilon(inverse[0], 0.2'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(inverse[1], 0.8'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(inverse[2], -0.2'f32, 0.001))
+
+    let wrapped = Math.wrap(
+        cast(Simd.F32x4, [2.25'f32, -0.25, 5, 12]),
+        Simd.splat(0'f32),
+        Simd.splat(1'f32))
+    Swag.require(wrapped[0] == 0.25'f32 and wrapped[1] == 0.75'f32)
+    Swag.require(wrapped[2] == 0'f32 and wrapped[3] == 0'f32)
+
+    let radiansStart = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(170'f32)])
+    let radiansEnd = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(-170'f32)])
+    let halfway = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5'f32))
+    Swag.require(Math.isEqualEpsilon(halfway[3], Math.toRadians(180'f32), 0.001))
 }

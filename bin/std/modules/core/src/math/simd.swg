@@ -552,6 +552,10 @@ namespace Simd
     func trunc(x: Simd.F32x4)->Simd.F32x4 => Swag.trunc(x)
     func trunc(x: Simd.F64x2)->Simd.F64x2 => Swag.trunc(x)
 
+    // Rounds each lane to the nearest integer, with halfway cases away from zero.
+    func round(x: Simd.F32x4)->Simd.F32x4 => copysign(floor(abs(x) + Swag.vecSplat(0.5'f32)), x)
+    func round(x: Simd.F64x2)->Simd.F64x2 => copysign(floor(abs(x) + Swag.vecSplat(0.5'f64)), x)
+
     // Rotates the bits of every lane left by `y`, taken modulo the lane width.
     func rol(x: Simd.U8x16, y: u8)->Simd.U8x16 => Swag.rol(x, y)
     func rol(x: Simd.U16x8, y: u8)->Simd.U16x8 => Swag.rol(x, y)
@@ -638,4 +642,70 @@ namespace Simd
     // Interpolates linearly between `x` and `y`, per lane.
     func lerp(x, y, factor: Simd.F32x4)->Simd.F32x4 => x + factor * (y - x)
     func lerp(x, y, factor: Simd.F64x2)->Simd.F64x2 => x + factor * (y - x)
+
+    // Returns the fractional part of each lane, in [0, 1) for finite values.
+    func fract(x: Simd.F32x4)->Simd.F32x4 => x - floor(x)
+    func fract(x: Simd.F64x2)->Simd.F64x2 => x - floor(x)
+
+    // Interpolates each lane between `b` and `c`, shaped by the outer samples `a` and `d`.
+    //
+    // A `t` of zero gives `b` and one gives `c`; `a` precedes `b` and `d` follows `c` in the
+    // sampled sequence.
+    func cubicLerp(a, b, c, d, t: Simd.F32x4)->Simd.F32x4
+    {
+        let p = (d - c) - (a - b)
+        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b
+    }
+
+    func cubicLerp(a, b, c, d, t: Simd.F64x2)->Simd.F64x2
+    {
+        let p = (d - c) - (a - b)
+        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b
+    }
+
+    // Returns the smooth Hermite easing `3t² - 2t³` per lane; the factor is not clamped.
+    func interpHermite(t: Simd.F32x4)->Simd.F32x4 => t * t * (3 - 2 * t)
+    func interpHermite(t: Simd.F64x2)->Simd.F64x2 => t * t * (3 - 2 * t)
+
+    // Returns the quintic easing `6t⁵ - 15t⁴ + 10t³` per lane; the factor is not clamped.
+    func interpQuintic(t: Simd.F32x4)->Simd.F32x4 => t * t * t * (t * (t * 6 - 15) + 10)
+    func interpQuintic(t: Simd.F64x2)->Simd.F64x2 => t * t * t * (t * (t * 6 - 15) + 10)
+
+    // Returns the normalized position of each value between matching endpoints.
+    func inverseLerp(start, end, value: Simd.F32x4)->Simd.F32x4 => (value - start) / (end - start)
+    func inverseLerp(start, end, value: Simd.F64x2)->Simd.F64x2 => (value - start) / (end - start)
+
+    // Wraps each lane into its matching half-open interval.
+    //
+    // Every interval must have positive width.
+    func wrap(value, minimum, maximum: Simd.F32x4)->Simd.F32x4
+    {
+        let width = maximum - minimum
+        return value - floor((value - minimum) / width) * width
+    }
+
+    func wrap(value, minimum, maximum: Simd.F64x2)->Simd.F64x2
+    {
+        let width = maximum - minimum
+        return value - floor((value - minimum) / width) * width
+    }
+
+    // Returns the signed shortest turn between matching angles, per lane, in [-π, π).
+    func deltaAngle(start, end: Simd.F32x4)->Simd.F32x4
+    {
+        let pi = Swag.vecSplat(ConstF32.Pi)
+        let twoPi = Swag.vecSplat(ConstF32.TwoPi)
+        return wrap(end - start + pi, Swag.vecSplat(0'f32), twoPi) - pi
+    }
+
+    func deltaAngle(start, end: Simd.F64x2)->Simd.F64x2
+    {
+        let pi = Swag.vecSplat(ConstF64.Pi)
+        let twoPi = Swag.vecSplat(ConstF64.TwoPi)
+        return wrap(end - start + pi, Swag.vecSplat(0'f64), twoPi) - pi
+    }
+
+    // Interpolates angles along their shortest path, per lane, in radians.
+    func lerpAngle(start, end, factor: Simd.F32x4)->Simd.F32x4 => start + deltaAngle(start, end) * factor
+    func lerpAngle(start, end, factor: Simd.F64x2)->Simd.F64x2 => start + deltaAngle(start, end) * factor
 }

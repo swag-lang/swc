@@ -36,6 +36,83 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
     return cmap
 }
 
+func addCmap13Subtable(cmap: *Array'u8, firstGlyph, secondGlyph: u32)
+{
+    let base = cmap.count
+    cmap.add([
+        0x00, 0x0D, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x34,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x03,
+        0x00, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00, 0x43,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x00, 0x46,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x47, 0x00, 0x00, 0x00, 0x47,
+        0x00, 0x00, 0x00, 0x00])
+    writeBigU32(cmap, base + 24, firstGlyph)
+    writeBigU32(cmap, base + 36, secondGlyph)
+}
+
+func makeCmap13Fixture()->Array'u8
+{
+    var cmap: #returntype
+    cmap.add([
+        0x00, 0x00, 0x00, 0x02,
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x48])
+    addCmap13Subtable(&cmap, 3, 20)
+    addCmap13Subtable(&cmap, 9, 20)
+    return cmap
+}
+
+func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
+{
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(32)
+    discard try parseCMap(faceData, false)
+}
+
+// Format-12 group records must name existing glyphs and leave the reserved word zero.
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap12Fixture)
+    cmap[15] = 1
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(8)
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap12Fixture)
+    writeBigU32(&cmap, 12 + 24, 8)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(8)
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 #test
 {
     let glyphA = lookupCMap4(Cmap4Fixture, 'A'u32)
@@ -72,6 +149,7 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
     var faceData: FaceImpl
     faceData.fontData.add(cmap)
     faceData.tables.add({tag: TAG_CMAP, length: cmap.count})
+    faceData.face.setGlyphCount(8)
 
     discard expect parseCMap(&faceData, false)
     Swag.require(faceData.face.charMap.platformID == 0)
@@ -111,9 +189,11 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
     var faceData: FaceImpl
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(8)
 
-    discard expect parseCMap(&faceData, false)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 0)
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
 }
 
 // A format-12 subtable shorter than its fixed header is rejected.
@@ -248,6 +328,91 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
 
     let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'u32)
     Swag.require(glyphOutside == 0)
+}
+
+// A Unicode format-13 map folds each group onto one glyph and leaves gaps unmapped.
+#test
+{
+    var faceData: FaceImpl
+    expect parseTestCmap13(&faceData, makeCmap13Fixture())
+
+    Swag.require(faceData.cmapFormat == 13)
+    Swag.require(faceData.face.charMap.platformID == 0)
+    Swag.require(faceData.face.charMap.encodingID == 4)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 9)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'C'u32) == 9)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'E'u32) == 20)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'F'u32) == 20)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'G'u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'D'u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'Z'u32) == 0)
+}
+
+// Format-13 groups must fit their extent, be sorted and non-overlapping, and name
+// either glyph zero (missing) or an existing glyph.
+#test
+{
+    var malformed = makeCmap13Fixture()
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(32)
+
+    // The declared groups exceed the Unicode subtable's available records.
+    writeBigU32(&malformed, 72 + 12, 4)
+    faceData.fontData.add(malformed.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = makeCmap13Fixture()
+    malformed[72 + 3] = 1
+    var reserved: FaceImpl
+    reserved.face.setGlyphCount(32)
+    reserved.fontData.add(malformed.toSlice())
+    reserved.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&reserved, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = makeCmap13Fixture()
+    writeBigU32(&malformed, 72 + 28, 0x43)
+    var overlapping: FaceImpl
+    overlapping.face.setGlyphCount(32)
+    overlapping.fontData.add(malformed.toSlice())
+    overlapping.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&overlapping, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = makeCmap13Fixture()
+    writeBigU32(&malformed, 72 + 32, 0x110000)
+    var invalidUnicode: FaceImpl
+    invalidUnicode.face.setGlyphCount(32)
+    invalidUnicode.fontData.add(malformed.toSlice())
+    invalidUnicode.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&invalidUnicode, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = makeCmap13Fixture()
+    writeBigU32(&malformed, 72 + 36, 32)
+    var invalidGlyph: FaceImpl
+    invalidGlyph.face.setGlyphCount(32)
+    invalidGlyph.fontData.add(malformed.toSlice())
+    invalidGlyph.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&invalidGlyph, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = makeCmap13Fixture()
+    writeBigU32(&malformed, 72 + 4, 56)
+    var truncated: FaceImpl
+    truncated.face.setGlyphCount(32)
+    truncated.fontData.add(malformed.toSlice())
+    truncated.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&truncated, false) as rejected
+    Swag.require(rejected.value() != null)
 }
 
 // Format 10 maps a trimmed range in the supplementary planes through a glyph array.

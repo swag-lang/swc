@@ -253,6 +253,8 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             minimumLength  = 20
 
         case 12, 13:
+            if try readU16(remaining, 2) != 0 do
+                try fault(0x03)
             subTableLength = try readU32(remaining, 4)
             minimumLength  = 16
 
@@ -280,6 +282,40 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             let groupCount = try readU32(subTable, 8204)
             if cast(u64, groupCount) > (subTable.count - 8208) / 12 do
                 try fault(0x03)
+        }
+
+        if format == 12 or format == 13
+        {
+            let groupCount = try readU32(subTable, 12)
+            if cast(u64, groupCount) > (subTable.count - 16) / 12 do
+                try fault(0x03)
+
+            var previousEndCode = 0'u32
+            var hasPrevious     = false
+            for index in groupCount
+            {
+                let base          = 16'u64 + cast(u64, index) * 12
+                let startCode     = try readU32(subTable, base)
+                let endCode       = try readU32(subTable, base + 4)
+                let startGlyph    = try readU32(subTable, base + 8)
+                if startCode > endCode or endCode > 0x10FFFF or
+                   (hasPrevious and startCode <= previousEndCode) do
+                    try fault(0x03)
+
+                if format == 12
+                {
+                    let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
+                    if lastGlyph >= faceData.face.glyphCount do
+                        try fault(0x03)
+                }
+                elif startGlyph and startGlyph >= faceData.face.glyphCount
+                {
+                    try fault(0x03)
+                }
+
+                previousEndCode = endCode
+                hasPrevious     = true
+            }
         }
 
         // Variation sequences supplement the selected map rather than compete with

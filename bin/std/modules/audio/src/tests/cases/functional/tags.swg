@@ -29,6 +29,21 @@ func appendId3v22Frame(tag: *Array'u8, id: string, body: const [..] u8)
         tag.add(byte)
 }
 
+// Appends one ID3v2.4 frame: its identifier, syncsafe size, and two flag bytes.
+func appendId3v24Frame(tag: *Array'u8, id: string, body: const [..] u8)
+{
+    for byte in id do
+        tag.add(byte)
+    tag.add(cast(u8, (body.count >> 21) & 0x7F))
+    tag.add(cast(u8, (body.count >> 14) & 0x7F))
+    tag.add(cast(u8, (body.count >> 7) & 0x7F))
+    tag.add(cast(u8, body.count & 0x7F))
+    tag.add(0'u8)
+    tag.add(0'u8)
+    for byte in body do
+        tag.add(byte)
+}
+
 // Appends a little-endian 32-bit length, as a Vorbis comment block spells every count.
 func appendLittle32(block: *Array'u8, value: u64)
 {
@@ -151,6 +166,41 @@ func appendLittle32(block: *Array'u8, value: u64)
 
     let tags = SoundTags.read(fileName)
     Swag.require(tags.title == "Aria" and tags.artist == "Bach")
+}
+
+// ID3v2.4 frame sizes are syncsafe, unlike the big-endian sizes in v2.3.
+#test
+{
+    var body: Array'u8
+    body.add(3'u8)
+    for byte in "2024-" do
+        body.add(byte)
+    for 124 do
+        body.add('x')
+    Swag.require(body.count == 130)
+
+    var frames: Array'u8
+    appendId3v24Frame(&frames, "TDRC", body.toSlice())
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(4'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    file.add(frames.toSlice())
+
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_audio_tags_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, file.toSlice())
+
+    let tags = SoundTags.read(fileName)
+    Swag.require(tags.year == "2024", tags.year)
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.

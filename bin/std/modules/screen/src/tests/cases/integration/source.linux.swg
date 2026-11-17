@@ -130,7 +130,7 @@ private func sharedSegmentCount()->u64 fail
         Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
     Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     let repeatedMetrics = source.metrics()
-    Swag.require(repeatedMetrics.acquiredFrames == 1 and repeatedMetrics.unchangedFrames == 1)
+    Swag.require(repeatedMetrics.acquiredFrames == 2 and repeatedMetrics.unchangedFrames == 1)
 
     image = Image.create(8, 8, .RGBA8)
     let replacementFresh = expect source.grabInto(&image, copyUnchanged: false)
@@ -210,6 +210,9 @@ private func sharedSegmentCount()->u64 fail
                  native.capture.nativeConnection() == connection)
 
     native.options.x = originalX
+    let staleAfterFailure = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(not staleAfterFailure and source.lastFrameCaptureMicroseconds() == captureTime,
+                 "a failed reopen should preserve the cached Linux frame")
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     let freshAfterReopen = expect source.grabInto(&image)

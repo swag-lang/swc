@@ -58,8 +58,8 @@ struct SourceOptions
 // Cumulative acquisition costs for one [[Screen.Source]], in microseconds.
 struct SourceMetrics
 {
-    public acquiredFrames:       u64 // Desktop frames returned by the native source.
-    public unchangedFrames:      u64 // Polls where a backend detected no newer desktop pixels.
+    public acquiredFrames:       u64 // Frames read from the native source, including pixel-identical images.
+    public unchangedFrames:      u64 // Polls where a backend detected no pixel change in the selected image; may overlap acquisitions.
     public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
@@ -277,7 +277,6 @@ impl Source
                         if frameFresh
                         {
                             Core.swap(cached, &.composed)
-                            native.metrics.acquiredFrames += 1
                         }
                         else
                         {

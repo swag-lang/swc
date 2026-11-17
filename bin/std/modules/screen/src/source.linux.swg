@@ -47,6 +47,7 @@ impl NativeSource
         .metrics.copyMicroseconds += imageMetrics.copyMicroseconds
         .metrics.composeMicroseconds += imageMetrics.composeMicroseconds
         .metrics.copiedPixels += imageMetrics.copiedPixels
+        .metrics.acquiredFrames += 1
         return true
     }
 

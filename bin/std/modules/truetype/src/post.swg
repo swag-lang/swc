@@ -43,9 +43,10 @@ private func addPostGlyphName(faceData: *FaceImpl, name: string, glyphIndex: u32
 {
     if name.count == 0 do
         return
-    let owned = String.from(name)
-    if not faceData.postNameToGid.contains(owned) do
-        faceData.postNameToGid.add(owned, glyphIndex)
+    faceData.postGlyphNames[glyphIndex] = String.from(name)
+    let key = String.from(name)
+    if not faceData.postNameToGid.contains(key) do
+        faceData.postNameToGid.add(key, glyphIndex)
 }
 
 func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: u32) fail
@@ -55,6 +56,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
     {
         if glyphCount > MacStandardGlyphNames.count do
             try fault(0x9B)
+        faceData.postGlyphNames.resize(glyphCount)
         for glyphIndex in glyphCount do
             addPostGlyphName(faceData, MacStandardGlyphNames[glyphIndex], glyphIndex)
         return
@@ -66,6 +68,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         if count != glyphCount do
             try fault(0x9B)
         try assertRange(postTable, 34, cast(u64, count) * 2)
+        faceData.postGlyphNames.resize(glyphCount)
 
         var indices: Array'u16
         indices.resize(count)
@@ -111,6 +114,7 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         if count != glyphCount do
             try fault(0x9B)
         try assertRange(postTable, 34, count)
+        faceData.postGlyphNames.resize(glyphCount)
         for glyphIndex in glyphCount
         {
             let offset = cast(s8, try readU8(postTable, 34 + glyphIndex))

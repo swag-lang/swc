@@ -524,6 +524,23 @@ public impl Face
         return faceData.glyphIndexByName(name)
     }
 
+    // Returns the name assigned to a glyph index, or null when the font has no name for it.
+    //
+    // CFF and Type 1 use their charstring glyph names. TrueType outlines use names from
+    // `post` formats 1, 2, or 2.5. Format 3 has no names. The returned string borrows storage
+    // owned by this face and remains valid until [[TrueType.Face.destroy]]. Invalid glyph
+    // indices and empty or unavailable names return null.
+    //
+    // ```swag
+    // if let name = face.glyphName(glyphIndex) do
+    //     Swag.print("glyph name: ", name)
+    // ```
+    mtd glyphName(glyphIndex: u32)->string?
+    {
+        let faceData = cast(*FaceImpl, cast(*void, me))
+        return faceData.glyphName(glyphIndex)
+    }
+
     // Resolves a code through the font program's own built-in encoding.
     //
     // This is the encoding the font file declares, not a Unicode map: a CFF states one in

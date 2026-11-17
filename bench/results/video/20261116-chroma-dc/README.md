@@ -117,3 +117,31 @@ filter. Concurrent compilation makes timing results unsuitable for comparison; t
 The workload generator records the explicit font hash and optional camera hash. The street
 sequence uses OpenCV's public `samples/data/vtest.avi`, starting at two seconds, resized to
 640x360. No media, generated build output or external encoder library is added to production.
+
+## Rejected motion-search trial, 2026-11-17
+
+An isolated variant repriced the centre and four quarter-sample candidates with SATD, keeping
+integer and half-sample search on SAD. It restored SAD for the existing intra/inter gate and
+kept the visible-edge fallback. The exact [experimental patch](rejected-quarter-satd.patch)
+is evidence only; it is not applied to production. The same eight inputs/settings as the
+published encoder were checked at the shipped QPs 22 and 28, with identical source samples and
+successful Swag Reader/FFmpeg byte comparisons for each resulting file.
+The patch uses zero context; validate it with `git apply --check --unidiff-zero`.
+
+| Scene | QP | File size change | YUV PSNR change, dB | SSIM change |
+| --- | ---: | ---: | ---: | ---: |
+| Editor | 22 | +0.3234% | +0.001962 | -0.000026 |
+| Editor | 28 | +0.2832% | -0.005063 | -0.000012 |
+| Tiles | 22 | +1.6271% | -0.012426 | -0.000004 |
+| Tiles | 28 | -1.4515% | -0.074005 | -0.000098 |
+| Testsrc2 | 22 | -0.1755% | -0.008039 | -0.000124 |
+| Testsrc2 | 28 | -0.4049% | +0.046246 | +0.000169 |
+| Street | 22 | +0.2090% | -0.000553 | +0.000036 |
+| Street | 28 | +0.2536% | +0.012543 | +0.000218 |
+
+This variant is rejected: editor QP 28 and tiles QP 22 are both larger and less accurate. The
+improvement on testsrc2 QP 28 does not justify those regressions. Full samples, hashes and metric
+checks are retained in [rejected-quarter-satd.json](rejected-quarter-satd.json). Timing comparisons
+are omitted because the baseline was collected during the Capture Release build. A future search
+change needs an explicit rate/distortion decision rather than assuming SATD always improves the
+final encoded picture. The published DC optimization remains unchanged.

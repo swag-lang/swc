@@ -168,6 +168,11 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   including section-length boundaries 1, 30, 31, 32 and 49. A 10-second stereo capture
   through 96→48 kHz resampling and AAC takes about 2.1 seconds in Release and produces
   about 113 kb/s on the measured wide-band sample.
+  A retained-signal A/B against FFmpeg AAC-LC with two-loop search matched packet sizes
+  within 0.23% on three 3-second synthetic 48 kHz stereo clips. SNR was near-tied for
+  speech-like and mixed signals; a highly tonal music/transient signal favored Swag by SNR,
+  while a crude spectral-magnitude error favored FFmpeg on all three. These analytic signals
+  are not a perceptual test or real speech/music, so no additional encoder tuning was adopted.
   A separate 48 kHz mono transient probe encodes 12 AAC packets with a +20,000 impulse
   at input frame 6,400. SoundFile and FFmpeg find its decoded peak at frame 7,424,
   exactly the 1,024-frame priming delay, with at most one PCM LSB of difference.

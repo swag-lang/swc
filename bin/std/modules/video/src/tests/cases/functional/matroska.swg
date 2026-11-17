@@ -47,6 +47,10 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     track.displayWidth = 640
     let anamorphic = track.displaySize(720, 480)
     Swag.require(anamorphic.width == 720 and anamorphic.height == 540)
+
+    track.displayWidth = Swag.U64.Max
+    let unrepresentable = track.displaySize(720, 480)
+    Swag.require(unrepresentable.width == 0 and unrepresentable.height == 0)
 }
 
 // A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel

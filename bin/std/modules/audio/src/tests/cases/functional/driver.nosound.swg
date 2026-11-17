@@ -260,6 +260,8 @@ func audioStartNoSoundEngine()
     var nonFiniteOutcome: Swag.Error
     discard catch stereoVoice.setPan(Swag.F32.NaN) as nonFiniteOutcome
     Swag.require(nonFiniteOutcome.value() is Errors.BadParameterError)
+    discard catch stereoVoice.setPan(Swag.F32.Max * 2) as nonFiniteOutcome
+    Swag.require(nonFiniteOutcome.value() is Errors.BadParameterError)
     Swag.require((expect stereoVoice.pan()) == 0.25 and stereoHandle.pan == 0.25)
 
     expect monoVoice.setRouting([])

@@ -170,6 +170,15 @@ impl Source
                           cast(s32, bounds.height), includeCursor})
     }
 
+    // Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.
+    func openMonitorAt(point: Math.Point, includeCursor: bool = false)->Source fail
+    {
+        let monitor = Env.monitorForPoint(point)
+        if monitor.physicalBounds.width <= 0 or monitor.physicalBounds.height <= 0 do
+            fail UnsupportedFormatError{"screen monitors are unavailable"}
+        return try .openMonitor(monitor, includeCursor)
+    }
+
     // Opens a source for the current virtual desktop bounds.
     //
     // The rectangle includes gaps between monitors. It can fail when no desktop bounds are available.

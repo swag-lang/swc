@@ -286,6 +286,10 @@ struct Panel
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
     timelinePixel: s32 = -1
+
+    // Whole second and length the clock was last written with, for the same reason.
+    clockSecond: s64 = -1
+    clockLength: f64 = -1
 }
 
 private impl Panel
@@ -511,10 +515,17 @@ impl Panel
         .clock.restart()
     }
 
+    // Shows the state of the transport, then where playback stands. Every presented picture
+    // calls this, so the play icon, whose change lays the veil out again, follows only the state.
     mtd refreshTransport()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        let icon = .playing ? ThemeIcons.Pause : ThemeIcons.Play
+        if .playButton.icon.index != cast(s32, icon)
+        {
+            .playButton.setIcon(.theme().icon(icon, themeActionIconSize(.themeMetrics())))
+            .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        }
+
         .playButton.enable(.hasFrame)
         .refreshControls()
         .refreshTime()
@@ -552,7 +563,14 @@ impl Panel
             }
         }
 
-        .bottomVeil.setTime(Viewer.timeText(seconds), Viewer.durationText(duration))
+        // The clock reads whole seconds, so it is written again only when one of them changes.
+        let second = cast(s64, Math.floor(seconds))
+        if second != .clockSecond or duration != .clockLength
+        {
+            .clockSecond = second
+            .clockLength = duration
+            .bottomVeil.setTime(Viewer.timeText(seconds), Viewer.durationText(duration))
+        }
 
         // What the index has reached is what the timeline shows as read.
         let known = .video.frameCount()

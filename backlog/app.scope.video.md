@@ -9,7 +9,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 - Evidence: the transport's playback-speed menu and Shift+Left/Right offer 0.25x–2x pitch-following
   rates through `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
-  based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
+  based, and the footer declares a non-1x rate, as it does under a recording. 2x is the XAudio2 default frequency-ratio
   ceiling. There is still no rate above 2x, no pitch-preserving mode, and no indication of the
   frame-drop/duplication policy.
 - Next: decide the above-2x path — a voice created with a larger

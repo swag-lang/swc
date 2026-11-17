@@ -274,7 +274,7 @@ struct Panel
     playbackRate:     f64  = 1
     optionsOpen:      bool
     volume:           f32  = 1
-    details:          String
+    details:          String     // What the footer reads under the film.
     metadataReady:    bool
     audioReady:       bool
     timelineReady:    bool
@@ -898,23 +898,17 @@ private impl Panel
         .information = #move data
     }
 
-    // Rebuilds the host summary in the active language and reports it.
+    // Rebuilds the footer in the active language and reports it: the facts of the film, then what
+    // the reader has changed of its playback. An adjusted rate and a looped passage are part of
+    // what the reader is watching, so the footer declares them, as it does under a recording.
     mtd refreshDetails()
     {
-        .details = Format.toString(texts().ui_Details, .video.width(), .video.height(), frameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
-        if .audio do
-            .details = Format.toString("% · %", .details, audioDetailsText(.audio))
-
-        // An adjusted rate is part of what the reader is watching, so the summary declares it.
+        .details = .facts()
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
-
-        // Technical facts use the host footer; the title only identifies the file. A looped
-        // passage is part of what the reader is watching, so the footer names it.
-        var facts = .facts()
         if .loopStart >= 0 and .loopEnd > .loopStart do
-            facts = Format.toString("% · %", facts, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
-        .services.showDetails(me, facts)
+            .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        .services.showDetails(me, .details)
     }
 
     // Returns the facts for the shared bottom reading line: the picture, its rate and its length.

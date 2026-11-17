@@ -43,7 +43,7 @@ struct Texts
     ui_OptionSubtitles:        string = "Subtitles"                // Option choosing and styling the subtitles.
     ui_AudioTrackNumber:       string = "Audio %"                  // Fallback name for an unnamed sound track.
     ui_AudioTrackLang:         string = "(%)"                      // A sound-track language, written after its name.
-    ui_AudioDetails:           string = "% · % ch · %{f1} kHz"     // Encoding, channel count, and sample rate in the host summary.
+    ui_AudioDetails:           string = "% · % ch · %{f1} kHz"     // Encoding, channel count, and sample rate of a sound track among the choices.
     ui_SubtitleOff:            string = "Off"                      // Disables subtitle presentation.
     ui_SubtitleTrackNumber:    string = "Subtitle %"               // Fallback name for an unnamed subtitle track.
     ui_SubtitleTrackLang:      string = "(%)"                      // A subtitle-track language, written after its name.
@@ -73,13 +73,8 @@ struct Texts
     ui_SubtitleColorYellow:    string = "Yellow"
     ui_SubtitleDelay:          string = "Earlier (+)"
     ui_SubtitleDelayReset:     string = "Reset Delay"
-    word_Frame:                string = "frame"      // One video frame.
-    word_Frames:               string = "frames"     // Several video frames.
-
-    // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
-    ui_Details:      string = "% × % px · % · %{f2} fps · % · Swag CPU"
-    err_AudioTrack:  string = "video audio-track index exceeds the track count"     // Diagnostics of a video that cannot play.
-    err_AudioEngine: string = "cannot create the audio engine for video playback"
+    err_AudioTrack:            string = "video audio-track index exceeds the track count"     // Diagnostics of a video that cannot play.
+    err_AudioEngine:           string = "cannot create the audio engine for video playback"
 }
 
 private const FrenchStringsName = "lang/fr/scope.video.tweak"
@@ -89,9 +84,6 @@ private var g_Texts: Texts
 
 // Returns the visible strings of the video viewer in the active language.
 func texts()->const *Texts => &g_Texts
-
-// Returns `count` followed by the frame noun in the form that count calls for.
-func frameCountText(count: u64)->String => Format.toString("% %", count, count == 1 ? texts().word_Frame : texts().word_Frames)
 
 // Names one sound track, with its language when the file declares one.
 func audioTrackName(index: u32, sound: const *Audio.SoundFile)->String
@@ -136,7 +128,7 @@ func subtitleFormatText(format: Video.Subtitle.Format)->string
     }
 }
 
-// Formats the active sound track for the information bar.
+// Describes a sound track on its row among the choices: its encoding, channels and rate.
 func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, Sound.encodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 
 // Names one embedded or sidecar subtitle track, with its language when it declares one.

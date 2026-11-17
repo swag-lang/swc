@@ -512,9 +512,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
 
     // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
     Swag.require(not view.planar)
-    Swag.require(view.details.indexOf("160") != Swag.U64.Max)
-    Swag.require(view.details.indexOf("4 frames") != Swag.U64.Max)
-    Swag.require(view.details.indexOf("Swag CPU") != Swag.U64.Max)
+    Swag.require(view.details.indexOf("160 × ") != Swag.U64.Max and view.details.indexOf(" fps · 0:01") != Swag.U64.Max)
     Swag.require(view.timeText() == "0:00 / 0:01")
 
     view.seekFrame(2)
@@ -800,7 +798,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 }
 
 // The playback speed menu changes how fast the movie plays: an adjusted rate scales the silent
-// clock and the sound together, and stays declared by the host summary until reset.
+// clock and the sound together, and stays declared in the footer until reset.
 #test
 {
     Swag.require(Sound.acquireEngine(.NoSound))
@@ -829,7 +827,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(changedOptions.rows[1].value == "1.25×")
     view.setPlaybackRate(1)
 
-    // The speed entry rescales the voice with the clock, and the summary declares the rate.
+    // The speed entry rescales the voice with the clock, and the footer declares the rate.
     host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
     host.thenActivateOptionRow("2×")
     view.showOptions()
@@ -1115,7 +1113,6 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(Film.audioDetailsText(unwrap view.video.audioTrack(1)) == "AAC-LC · 2 ch · 44.1 kHz")
     Swag.require(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "(fre)")
     Swag.require(view.muteButton.isEnabled() and view.volumeSlider.isEnabled() and view.tracksButton.isEnabled())
-    Swag.require(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
     view.setVolume(0.4)
     view.setMuted(true)
     Swag.require(not view.volumeSlider.isEnabled())
@@ -1165,7 +1162,6 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.optionsButton.toolTip == "Options de lecture")
     Swag.require(Film.texts().ui_OptionAudio == "Piste audio")
     Swag.require(Film.audioDetailsText(unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
-    Swag.require(view.details.indexOf("2 can.") != Swag.U64.Max)
 }
 
 // A progressive sound prefix must not become the master clock for a seek beyond that prefix.

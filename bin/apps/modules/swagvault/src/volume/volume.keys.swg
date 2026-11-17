@@ -188,17 +188,21 @@ impl Volume
         fail volumeError(.DiskFull)
     }
 
-    // Removes the password that opens a slot.
+    // Removes the password that opens one slot, keeping another verified password.
     //
-    // The last remaining password cannot be removed: a container no password
-    // opens is unrecoverable, and there is no reason to offer that.
-    mtd removePassword(password: const [..] u8) fail
+    // Slot-mask bits may be reserved before their payload is written. Requiring
+    // another password that opens a different active slot prevents an interrupted
+    // add from being mistaken for a usable way into the container.
+    mtd removePassword(password, retainedPassword: const [..] u8) fail
     {
         try .requireWritable()
         let index = try .findKeySlot(password)
         if index == Swag.U64.Max do
             fail volumeError(.NotFound)
-        if .keySlotCount() <= 1 do
+        let retainedIndex = try .findKeySlot(retainedPassword)
+        if retainedIndex == Swag.U64.Max or retainedIndex == index do
+            fail volumeError(.AccessDenied)
+        if (.keySlotMask & keySlotBit(retainedIndex)) == 0 do
             fail volumeError(.AccessDenied)
 
         try .eraseKeySlot(index)

@@ -302,10 +302,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
   `regionMotion` now compares each luma region with the preceding source picture before
   building row/column motion profiles. On a deterministic 1080p30 QP 28 clip with a moving
-  384-pixel tile over an unchanged textured background, five paired Release runs improved
-  median encode time by 8.3% (303 to 282 ms); a 12-picture 3840×2160 localized-motion run improved from
-  718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes, decoded hashes, PSNR and SSIM
-  matched exactly. Six paired all-changing 1080p30 controls had a 2.0% median slowdown;
+  384-pixel tile over an unchanged textured background, five paired Release runs had a median
+  8.3% encode-time reduction (group medians were 303 and 282 ms); a 12-picture 3840×2160
+  localized-motion run fell from 718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes,
+  decoded hashes, PSNR and SSIM all matched. Six paired all-changing 1080p30 controls had a
+  2.0% median slowdown;
   one pair was 23.6% slower, while the other five ranged from essentially equal to 13.1%
   slower. These codec-only synthetic results have substantial run variation and do not claim
   a live capture throughput gain.

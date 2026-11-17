@@ -361,6 +361,9 @@ public:
     bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
     bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
     bool isFallible() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Fallible); }
+    // Body flow publishes this before SemaCompleted. Imported/opaque bodies stay conservative.
+    bool neverReturnsSuccess() const noexcept { return inferredNeverReturnsSuccess_; }
+    void setInferredNeverReturnsSuccess(bool value) const noexcept { inferredNeverReturnsSuccess_ = value; }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool isEmptyNonForeign() const noexcept { return isEmpty() && !isForeign(); }
@@ -683,9 +686,10 @@ private:
     SmallVector4<ParamField> reallocatedParamFields_;
     SmallVector4<ParamField> returnedPayloadParamFields_;
 
-    TypeRef      returnType_                 = TypeRef::invalid();
-    uint8_t      rtAttributeBitIndex_        = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
-    mutable bool inferredFullInitialization_ = false;
+    TypeRef      returnType_                  = TypeRef::invalid();
+    uint8_t      rtAttributeBitIndex_         = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    mutable bool inferredFullInitialization_  = false;
+    mutable bool inferredNeverReturnsSuccess_ = false;
 
     SpecOpKind   specOpKind_   = SpecOpKind::None;
     CallConvKind callConvKind_ = CallConvKind::Swag;

@@ -109,6 +109,7 @@ namespace
         out.appendLe32(ctx.typeMgr().get(function.typeRef()).runtimeHash(ctx));
         out.appendLe32(static_cast<uint32_t>(function.callConvKind()));
         out.appendLe32(function.attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly));
+        out.appendLe32(function.neverReturnsSuccess());
         // The sanitizer consumes release summaries even when the call's IR and
         // signature are unchanged after a callee body edit.
         out.appendLe64(function.freesParamsMask());

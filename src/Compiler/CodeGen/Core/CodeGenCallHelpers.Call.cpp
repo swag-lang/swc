@@ -1746,7 +1746,12 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
 
     if (calledFunction->isFallible())
-        SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
+    {
+        if (!callTargetReg.isValid() && calledFunction->neverReturnsSuccess())
+            SWC_RESULT(emitFallibleFailureJump(codeGen));
+        else
+            SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
+    }
 
     // Only the success edge owns a result that can be destroyed.
     const bool ownsTemporaryResult = needsResultStorage && directVarInitStorageSym == nullptr && !usesDirectReturnStorage;

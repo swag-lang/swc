@@ -448,6 +448,11 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeEffectsAndNullability)
     if (before.empty() || readOnly.empty() || before == readOnly)
         return Result::Error;
 
+    target->setInferredNeverReturnsSuccess(true);
+    const Utf8 noSuccess = cacheKey(ctx, *caller, builder);
+    if (noSuccess.empty() || noSuccess == readOnly)
+        return Result::Error;
+
     const TypeRef pointer          = ctx.typeMgr().addType(TypeInfo::makeValuePointer(ctx.typeMgr().typeS32()));
     const TypeRef nullable         = ctx.typeMgr().addType(TypeInfo::makeValuePointer(ctx.typeMgr().typeS32(), TypeInfoFlagsE::Nullable));
     auto*         nonNullFunction  = makeCacheFunction(ctx, "cachePointerTarget", pointer);

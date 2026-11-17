@@ -10,7 +10,7 @@ class SymbolFunction;
 namespace SemaInitFlow
 {
     // Needed for default elision, definite initialization, inferring complete
-    // opSet initialization, or nullable parameter contracts.
+    // opSet initialization, nullable parameter contracts, or the absence of a successful return.
     bool wantsCheck(Sema& sema, const SymbolFunction& sym);
 
     // Run once on a completed function's resolved body. Elide safe defaults

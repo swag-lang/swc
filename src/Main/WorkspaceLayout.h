@@ -23,7 +23,7 @@ SWC_BEGIN_NAMESPACE();
 //                                 A module asks for it with `publishDependencies`, because
 //                                 whether a program has to stand on its own is a fact about the
 //                                 program and not about the command that happened to build it.
-//   `<temp>/swag/dep/<hash>/`     the same copy as `.dep`, for a script, which owns no directory
+//   `<cache>/dep/<hash>/`         the same copy as `.dep`, for a script, which owns no directory
 //                                 to keep one in. Named after the bytes it holds, so scripts that
 //                                 import the same build share one.
 //
@@ -49,11 +49,16 @@ namespace WorkspaceLayout
         return (workspacePath / ".dep").lexically_normal();
     }
 
-    // Root of everything the compiler caches outside any workspace. It is shared with whatever
-    // else a user keeps there, so only the subdirectories below are ever removed wholesale.
+    // Root of compiler-owned caches outside a workspace. Linux uses a verified private directory
+    // for the current user; other hosts keep it under the system temporary directory. Only the
+    // subdirectories below this root are removed wholesale.
     inline fs::path cacheRoot()
     {
+#ifdef __linux__
+        return Os::compilerCacheRoot();
+#else
         return (Os::getTemporaryPath() / "swag").lexically_normal();
+#endif
     }
 
     // One directory per build of a dependency, holding a copy of it. An entry is named after the

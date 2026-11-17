@@ -10,29 +10,41 @@ Utf8 Os::formatProcessExitCode(const uint32_t exitCode)
 
 bool Os::ProcessOutput::needsPipe() const
 {
-    return options_ && (options_->capturedOutput || !options_->forwardOutput || options_->outputLineCallback || options_->forwardLineCallback || !options_->suppressForwardLinePrefix.empty());
+    if (!options_)
+        return false;
+
+    return options_->capturedOutput || !options_->forwardOutput || options_->outputLineCallback || options_->forwardLineCallback || !options_->suppressForwardLinePrefix.empty();
 }
 
 void Os::ProcessOutput::emit(const std::string_view line) const
 {
-    if (options_ && options_->outputLineCallback)
-        options_->outputLineCallback(options_->outputLineUserData, line);
-    if (options_ && (!options_->forwardOutput || (!options_->suppressForwardLinePrefix.empty() && line.starts_with(options_->suppressForwardLinePrefix))))
-        return;
-    if (options_ && options_->forwardLineCallback)
-        options_->forwardLineCallback(options_->forwardLineUserData, line);
-    else
+    if (!options_)
     {
         std::fwrite(line.data(), 1, line.size(), stdout);
         std::fflush(stdout);
+        return;
     }
+
+    if (options_->outputLineCallback)
+        options_->outputLineCallback(options_->outputLineUserData, line);
+    if (!options_->forwardOutput || (!options_->suppressForwardLinePrefix.empty() && line.starts_with(options_->suppressForwardLinePrefix)))
+        return;
+    if (options_->forwardLineCallback)
+    {
+        options_->forwardLineCallback(options_->forwardLineUserData, line);
+        return;
+    }
+
+    std::fwrite(line.data(), 1, line.size(), stdout);
+    std::fflush(stdout);
 }
 
 void Os::ProcessOutput::append(const std::string_view bytes)
 {
-    if (options_ && options_->capturedOutput)
-        options_->capturedOutput->append(bytes);
-    if (options_ && !options_->forwardOutput && !options_->outputLineCallback)
+    const ProcessRunOptions* options = options_;
+    if (options && options->capturedOutput)
+        options->capturedOutput->append(bytes);
+    if (options && !options->forwardOutput && !options->outputLineCallback)
         return;
 
     pendingLine_.append(bytes);

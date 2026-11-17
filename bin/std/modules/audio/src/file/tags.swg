@@ -19,6 +19,9 @@ struct SoundTags
         album:       String     // Collection the recording belongs to.
         year:        String     // Year of the recording or its release, as the file spells it.
         albumArtist: String     // Performer credited to the album, when the tag names one.
+        track:       String     // Position of the recording on its album, as the file spells it (`3` or `3/12`).
+        disc:        String     // Disc of a set the recording is on, as the file spells it (`1/2`).
+        genre:       String     // Genre named in words; a bare numeric ID3v1 reference is left out.
 
         // Encoded bytes of the picture the file embeds, its front cover when it names one, and
         // the extension of their format (`.jpg`, `.png`, `.gif`, `.bmp` or `.webp`). Read only
@@ -40,7 +43,10 @@ impl SoundTags
                                  .artist.isEmpty() and
                                  .album.isEmpty() and
                                  .year.isEmpty() and
-                                 .albumArtist.isEmpty()
+                                 .albumArtist.isEmpty() and
+                                 .track.isEmpty() and
+                                 .disc.isEmpty() and
+                                 .genre.isEmpty()
 
     // Reads the tags of `fileName`: the ID3v2 tag that opens an MP3 file, or the Vorbis comment
     // block of a FLAC file. With `withPicture`, the picture the file embeds is read too; a
@@ -185,6 +191,15 @@ internal impl SoundTags
             case "TYER", "TDRC", "TYE":
                 .year = yearOf(textFrame(text))
 
+            case "TRCK", "TRK":
+                .track = textFrame(text)
+
+            case "TPOS", "TPA":
+                .disc = textFrame(text)
+
+            case "TCON", "TCO":
+                .genre = genreOf(textFrame(text))
+
             case "APIC", "PIC":
                 if withPicture do
                     .decodeId3Picture(text, version == 2)
@@ -325,6 +340,12 @@ internal impl SoundTags
                 .album = String.from(value)
             elif Utf8.compare(key, "DATE", .Latin1NoCase) == 0 do
                 .year = yearOf(String.from(value))
+            elif Utf8.compare(key, "TRACKNUMBER", .Latin1NoCase) == 0 do
+                .track = String.from(value)
+            elif Utf8.compare(key, "DISCNUMBER", .Latin1NoCase) == 0 do
+                .disc = String.from(value)
+            elif Utf8.compare(key, "GENRE", .Latin1NoCase) == 0 do
+                .genre = String.from(value)
         }
     }
 }
@@ -415,6 +436,30 @@ private func pictureExtensionOf(bytes: const [..] u8)->string
 }
 
 // Returns the year a date field starts with, or the whole field when it does not start with one.
+// Returns a genre the way a reader names it. ID3v2.3 may lead the name with a numeric ID3v1
+// reference in parentheses, `(17)Rock`; the reference goes, and a reference alone, which only a
+// table would name, says nothing.
+private func genreOf(value: String)->String
+{
+    let text = value.toString()
+    var at   = 0'u64
+    while at < text.count and text[at] == '('
+    {
+        let close = Utf8.indexOf(text[at to], ")")
+        if close == Swag.U64.Max do
+            break
+        at += close + 1
+    }
+
+    let rest    = Latin1.trim(text[at to])
+    var numeric = rest.count != 0
+    for c in rest where not Latin1.isDigit(c) do
+        numeric = false
+    if numeric do
+        return {}
+    return String.from(rest)
+}
+
 private func yearOf(date: String)->String
 {
     if date.count >= 4

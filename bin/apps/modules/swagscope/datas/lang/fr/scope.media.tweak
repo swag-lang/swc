@@ -55,6 +55,14 @@ published   Publication
 created     Création
 application Application
 description Description
+tags        Tags
+artist      Artiste
+album       Album
+albumArtist Artiste de l'album
+year        Année
+trackNumber Piste
+disc        Disque
+genre       Genre
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

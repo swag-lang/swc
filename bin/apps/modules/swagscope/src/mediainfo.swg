@@ -54,6 +54,14 @@ enum MediaInfoField
     Created
     Application
     Description
+    Tags
+    Artist
+    Album
+    AlbumArtist
+    Year
+    TrackNumber
+    Disc
+    Genre
     Bookmarks
     TextLayer
     Style
@@ -124,6 +132,14 @@ struct MediaInfoStrings
     created:        string = "Created"
     application:    string = "Application"
     description:    string = "Description"
+    tags:           string = "Tags"
+    artist:         string = "Artist"
+    album:          string = "Album"
+    albumArtist:    string = "Album artist"
+    year:           string = "Year"
+    trackNumber:    string = "Track"
+    disc:           string = "Disc"
+    genre:          string = "Genre"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -254,6 +270,14 @@ impl MediaInfoRow
         case .Created:        return s.created
         case .Application:    return s.application
         case .Description:    return s.description
+        case .Tags:           return s.tags
+        case .Artist:         return s.artist
+        case .Album:          return s.album
+        case .AlbumArtist:    return s.albumArtist
+        case .Year:           return s.year
+        case .TrackNumber:    return s.trackNumber
+        case .Disc:           return s.disc
+        case .Genre:          return s.genre
         case .Bookmarks:      return s.bookmarks
         case .TextLayer:      return s.textLayer
         case .Style:          return s.style

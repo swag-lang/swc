@@ -1236,6 +1236,17 @@ impl Panel
         data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
         data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))
 
+        // What the tags of the file say of the recording, as they spell it.
+        if .openFinished and not .tags.isEmpty()
+        {
+            data.add(.Tags, group: true)
+            for row in [{field: MediaInfoField.Title, value: .tags.title.toString()}, {field: MediaInfoField.Artist, value: .tags.artist.toString()},
+                        {field: MediaInfoField.Album, value: .tags.album.toString()}, {field: MediaInfoField.AlbumArtist, value: .tags.albumArtist.toString()},
+                        {field: MediaInfoField.Year, value: .tags.year.toString()}, {field: MediaInfoField.TrackNumber, value: .tags.track.toString()},
+                        {field: MediaInfoField.Disc, value: .tags.disc.toString()}, {field: MediaInfoField.Genre, value: .tags.genre.toString()}] where row.value.count do
+                data.add(row.field, row.value)
+        }
+
         // The levels are known once the waveform worker has read every sample.
         if .levelsShown and .levelsRead
         {

@@ -180,6 +180,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     view.tags.year        = "1999"
     view.refreshDetails()
     Swag.require(view.credits() == "Various Artists · 1999" and not Utf8.contains(view.details.toString(), "Various Artists"))
+
+    // The information sheet gives every tag the file names, the track and the genre among them.
+    view.tags.track = "4/12"
+    view.tags.genre = "Ambient"
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let information = sheet.text()
+    Swag.require(Utf8.contains(information, "Tags\nAlbum artist\nVarious Artists\nYear\n1999\nTrack\n4/12\nGenre\nAmbient"), information)
     view.tags = {}
     view.refreshDetails()
     Swag.require(view.credits().isEmpty())

@@ -85,9 +85,11 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 - Evidence: the summary carries sample rate, channels, storage bits, and duration only. The page
   writes the title, artist, album and year of ID3v2 and FLAC tags, and shows the picture they
-  embed (the front cover first) as the sleeve, ahead of one stored beside the file. Track/disc,
-  comments, Ogg and MP4 tags, codec profile/bitrate, container, delay, padding, ReplayGain/R128,
-  and custom tags are not inspectable. The explorer thumbnail shows the embedded picture too,
+  embed (the front cover first) as the sleeve, ahead of one stored beside the file. The
+  information sheet lists those tags with the track, the disc and a genre named in words (a bare
+  numeric ID3v1 genre is left out rather than looked up). Comments, Ogg and MP4 tags, codec
+  profile/bitrate, container, delay, padding, ReplayGain/R128, and custom tags are not
+  inspectable. The explorer thumbnail shows the embedded picture too,
   after a sleeve stored in the folder.
 - Next: define an audio metadata model separate from decoded samples and surface it through app.scope.viewers.006.
 - Done when: original tag keys/values and normalized common fields coexist, artwork is bounded

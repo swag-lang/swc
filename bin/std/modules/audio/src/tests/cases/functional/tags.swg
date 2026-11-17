@@ -66,6 +66,14 @@ func appendLittle32(block: *Array'u8, value: u64)
     for byte in "1888" do
         year.add(byte)
     appendId3Frame(&frames, "TYER", year.toSlice())
+    for frame in [{id: "TRCK", text: "1/3"}, {id: "TPOS", text: "1/1"}, {id: "TCON", text: "(32)Classical"}]
+    {
+        var body: Array'u8
+        body.add(0'u8)
+        for byte in frame.text do
+            body.add(byte)
+        appendId3Frame(&frames, frame.id, body.toSlice())
+    }
 
     var file: Array'u8
     for byte in "ID3" do
@@ -91,6 +99,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.title == "Gymnopédie No. 1" and tags.artist == "Satie" and tags.year == "1888")
     Swag.require(tags.album == "Trois Gymnopédies")
     Swag.require(tags.albumArtist == "Various Artists")
+    Swag.require(tags.track == "1/3" and tags.disc == "1/1" and tags.genre == "Classical", tags.genre)
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.
@@ -100,7 +109,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     appendLittle32(&comment, 4)
     for byte in "swag" do
         comment.add(byte)
-    let fields = ["title=Clair de lune", "ARTIST=Debussy", "Album=Suite bergamasque", "DATE=1905-01-01", "albumartist=Various Artists"]
+    let fields = ["title=Clair de lune", "ARTIST=Debussy", "Album=Suite bergamasque", "DATE=1905-01-01", "albumartist=Various Artists", "TRACKNUMBER=3", "genre=Impressionism"]
     appendLittle32(&comment, fields.count)
     for field in fields
     {
@@ -135,6 +144,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.title == "Clair de lune" and tags.artist == "Debussy")
     Swag.require(tags.album == "Suite bergamasque" and tags.year == "1905")
     Swag.require(tags.albumArtist == "Various Artists")
+    Swag.require(tags.track == "3" and tags.genre == "Impressionism" and tags.disc.isEmpty())
 }
 
 // A file without tags, or one this reader does not know, simply names nothing.

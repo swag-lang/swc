@@ -636,16 +636,13 @@ impl InPlaceEditWnd
     // Aligns the kind button with the size reading in the same chip above the captured zone.
     mtd placeKindButton()
     {
-        let view = .editWnd.editView
-        let capture = unwrap view.capture
+        let view    = .editWnd.editView
         let metrics = .themeMetrics()
-        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        let pad     = metrics.hintLine_KeyGap
-        let text    = Format.toString("% × %", capture.width, capture.height)
-        let chip    = view.inPlaceSizeChipRect(view.getCaptureRect(), Painter.measureString(text, font).width, font.height, pad)
+        let sizeChip = view.inPlaceSizeChip(view.getCaptureRect())
+        let chip    = sizeChip.rect
         let height  = Math.min(chip.height, metrics.quiet_Height)
-        let button = unwrap .kindButton
-        button.setPosition(Math.Rectangle{chip.x + pad * 0.5,
+        let button  = unwrap .kindButton
+        button.setPosition(Math.Rectangle{chip.x + sizeChip.pad * 0.5,
                                           chip.y + (chip.height - height) * 0.5,
                                           .kindButtonWidth, height})
         if let link = .linkButton

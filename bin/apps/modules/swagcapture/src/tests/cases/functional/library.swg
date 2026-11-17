@@ -834,6 +834,34 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(lib.view.items[0] == slack)
 }
 
+// A loaded preview only refreshes what the captures hold: a new tag becomes a chip, while the
+// dates and the folder tabs, which follow the files and list the folders from disk, wait for a
+// forced refresh.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+    defer g_Library.files.clear()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+
+    let item = testAddLibraryItem(lib.view, "tagged.scc", 10, 1)
+    item.capture!.tags.add("docs")
+    g_Library.files.add(item.fi)
+
+    lib.refreshAutomaticFilters()
+    Swag.require(lib.sidebarTags.count == 1)
+    Swag.require(lib.tagChips.children.count == 1)
+    Swag.require(lib.dateFilters.isEmpty())
+
+    lib.refreshAutomaticFilters(force: true)
+    Swag.require(lib.dateFilters.count == 3)
+}
+
 // At rest the lens offers what can be done with the chosen captures — open, export, tags,
 // favourite, move, delete — and their rating as one row of segments, then what the page shows;
 // with none chosen, what the page shows only.

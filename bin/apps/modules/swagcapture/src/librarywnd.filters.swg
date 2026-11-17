@@ -106,18 +106,26 @@ impl LibraryWnd
         .updateFolderTabs()
     }
 
+    // Counts the applications and the tags of the loaded captures again, which change as the
+    // previews stream in. Only the tag chips show them: the dates and the folder tabs follow the
+    // files, not what they hold, and listing the folders reads every one of them from disk, so
+    // they are rebuilt only when `force` says the files changed.
     mtd refreshAutomaticFilters(force = false)
     {
         let applications = .collectNamedFilters(true)
         let tags         = .collectNamedFilters(false)
+        let tagsChanged  = not Slice.equals(.sidebarTags.toSlice(), tags.toSlice())
         if not force and
-           Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) and
-           Slice.equals(.sidebarTags.toSlice(), tags.toSlice()) do
+           not tagsChanged and
+           Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) do
             return
 
         .sidebarApplications = applications
         .sidebarTags         = tags
-        .rebuildSidebar()
+        if force do
+            .rebuildSidebar()
+        elif tagsChanged do
+            .updateTagChips()
     }
 
     // Narrows the library to the captures of a date, or shows every date with a zero year.

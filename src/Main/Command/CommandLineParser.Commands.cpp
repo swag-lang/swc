@@ -157,6 +157,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Target, "test build run smoke", "--debug", nullptr,
         &cmdLine_->debugInfo,
         "Emit debug information for native artifacts and every dependency they take in, kept under '<config>-debug' output directories");
+    add(HelpOptionGroup::Target, "test build run smoke", "--no-runtime-symbols", nullptr,
+        &cmdLine_->noRuntimeSymbols,
+        "Omit the runtime function-name and source-location table used by native stack traces");
 
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
         &cmdLine_->docOutputDir,

@@ -272,7 +272,7 @@ void ELFSymbolTable::appendObject(LinkImage& image, const std::span<const Symbol
     image.sections.push_back(std::move(section));
 }
 
-bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError)
+bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError, const bool includeRuntimeSymbols)
 {
     outError.clear();
     TableSection section;
@@ -287,6 +287,21 @@ bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError)
     std::vector<uint32_t>           addresses;
     if (!readContributions(entries, addresses, outError, image, section, base))
         return false;
+    if (!includeRuntimeSymbols)
+    {
+        image.writeLe32(section.header, 0);      // No section name.
+        image.writeLe32(section.header + 4, 0);  // SHT_NULL.
+        image.writeLe64(section.header + 8, 0);  // No flags.
+        image.writeLe64(section.header + 16, 0); // No address.
+        image.writeLe64(section.header + 24, 0); // No file offset.
+        image.writeLe64(section.header + 32, 0); // No contents.
+        image.writeLe32(section.header + 40, 0); // No link.
+        image.writeLe32(section.header + 44, 0); // No info.
+        image.writeLe64(section.header + 48, 0); // No alignment for an empty section.
+        image.writeLe64(section.header + 56, 0); // No entries.
+        compactTable(image, section, 0);
+        return true;
+    }
     ByteArray table;
     SymbolTable::build(table, entries);
     if (table.size() > section.size)

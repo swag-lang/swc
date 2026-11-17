@@ -39,7 +39,8 @@ struct LinkJob
     std::vector<fs::path>          elfLibraries;   // Ordered static/shared ELF library inputs
     std::vector<fs::path>          elfSearchDirs;  // Module dependency and foreign-library search
     Utf8                           elfRuntimeHook; // Scoped definition exported by a shared module
-    bool                           elfStripSymbols = false; // Omit non-loaded static symbols; keep dynamic symbols and runtime traces.
+    bool                           elfStripSymbols = false; // Omit non-loaded static symbols; dynamic symbols stay available.
+    bool                           elfRuntimeSymbols = true; // Emit the non-loaded .swagdbg runtime trace table.
     LinkDebugInfo                  debugInfo;      // self-contained debug records lowered by prepareLink
 
     // The archive a shared library publishes beside its DLL, holding the very same code one

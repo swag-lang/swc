@@ -1023,7 +1023,10 @@ private impl Panel
         .refreshDetails()
     }
 
-    // Enables the track choices once the film offers a sound or subtitle choice.
+    // Enables the track choices and the time once a picture is on screen.
+    //
+    // Every presented picture comes through here, and enabling a control moves nothing, so the
+    // veil is not laid out again: its size and the width of the time arrange it.
     mtd refreshControls()
     {
         if .optionsOpen do
@@ -1031,7 +1034,6 @@ private impl Panel
 
         .tracksButton.enable(.hasFrame)
         .bottomVeil.timeButton.enable(.hasFrame)
-        .bottomVeil.arrange()
     }
 
     // Gives the lens the transport, the frame steps, the sound and the options of the film.

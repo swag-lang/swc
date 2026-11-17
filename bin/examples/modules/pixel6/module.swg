@@ -1,5 +1,8 @@
 #import("pixel", location: "swag@std")
-#import("gdiplus", location: "swag@std")
+#static if #os == Swag.TargetOs.Windows
+{
+    #import("gdiplus", location: "swag@std")
+}
 
 #run
 {

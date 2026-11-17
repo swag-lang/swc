@@ -304,7 +304,6 @@ func updateTestMode()
     if g_Page + 1 >= MaxPages
     {
         Env.exit(0)
-        return
     }
 
     nextPage()

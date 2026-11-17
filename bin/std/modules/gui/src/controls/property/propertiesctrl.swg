@@ -117,7 +117,12 @@ impl PropertiesCtrl
                 .margin.w  = 12
                 .dockStyle = .Top
                 .setForm(.PushButton)
-                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32, cast(u64, tab.selectedItem()!.userData0))) }
+                .sigSelectionChanged += func|ed|(tab)
+                {
+                    let item = tab.selectedItem()
+                    if item do
+                        ed.properties.setCurrentSection(cast(u32, cast(u64, item.userData0)))
+                }
             }
         }
 

@@ -2298,8 +2298,19 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     ctrl.addStruct(data, "General")
     ctrl.setSectionIcon("General", host.theme.icon(.Options, 16))
     Swag.require(ctrl.tab.items[1]!.icon.isValid())
+    ctrl.tab.setSelectedIndex(1)
+    Swag.require(ctrl.properties.currentSectionIndex == 0)
     ctrl.setKind(.Grid)
     Swag.require(ctrl.tab.items[1]!.icon.isValid())
+    Swag.require(ctrl.tab.selectedIndex == 0 and
+                 ctrl.properties.currentSectionIndex >= ctrl.properties.sections.count)
+
+    // Clearing the tab bar emits an empty selection while the sections are rebuilt.
+    ctrl.clear()
+    Swag.require(ctrl.properties.sections.isEmpty() and ctrl.tab.items.count == 1)
+    ctrl.addStruct(data, "General")
+    ctrl.tab.setSelectedIndex(1)
+    Swag.require(ctrl.properties.currentSectionIndex == 0)
 }
 
 // The marks of a row in each presentation: a slider reads its value as a figure with no box

@@ -26,6 +26,33 @@ using Swag, Core
 
 #test
 {
+    var points:   [4] Vector = [Vector{0, 0}, Vector{64, 128}, Vector{128, 128}, Vector{192, 0}]
+    var tags:     [4] u8     = [CURVE_TAG_ON, CURVE_TAG_CUBIC, CURVE_TAG_CUBIC, CURVE_TAG_ON]
+    var contours: [1] s16    = [3]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 4, 1)
+
+    let commands = outline.decompose()
+    Swag.require(commands.count == 3)
+    Swag.require(commands[0].op is .MoveTo)
+    Swag.require(commands[1].op is .CubicTo)
+    Swag.require(commands[2].op is .LineTo)
+}
+
+#test
+{
+    var points:   [3] Vector = [Vector{0, 0}, Vector{64, 128}, Vector{128, 128}]
+    var tags:     [3] u8     = [CURVE_TAG_ON, CURVE_TAG_CUBIC, CURVE_TAG_CUBIC]
+    var contours: [1] s16    = [2]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 3, 1)
+
+    let commands = outline.decompose()
+    Swag.require(commands.count == 2)
+    Swag.require(commands[0].op is .MoveTo)
+    Swag.require(commands[1].op is .CubicTo)
+}
+
+#test
+{
     var faceScope: FaceScope
     faceScope.init()
     let face = unwrap faceScope.face

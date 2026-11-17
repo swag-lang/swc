@@ -105,6 +105,8 @@ impl Recorder
         secondMenu.surface!.surfaceToScreen(&point)
         f.gui.click(point)
         Swag.require(secondMenu.isModalEnded())
+        f.gui.fireTimer(hud.screenChoices.watch)
+        Swag.require(hud.screenChoices == null)
     }
     else
     {
@@ -118,6 +120,8 @@ impl Recorder
 
     f.gui.clickWnd(chooser)
     let keyboardChoices = hud.screenChoices
+    Swag.require(keyboardChoices != null and not keyboardChoices.menu.isModalEnded(),
+                 "the keyboard interaction needs a newly opened screen menu")
     var home = KeyEvent{kind: .Pressed, key: .Home}
     keyboardChoices.sendEvent(&home)
     var enter = KeyEvent{kind: .Pressed, key: .Return}

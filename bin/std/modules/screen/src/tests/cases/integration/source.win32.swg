@@ -43,14 +43,14 @@ using Core, Pixel
     Swag.require(fresh, "cursor movement should make the captured image fresh")
     Swag.require(Memory.compare(previous.pixels.storage(), image.pixels.storage(), image.byteCount) != 0,
                  "moving the cursor should change the captured image")
-    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, unwrap source.cursorPixels),
                                 image.byteCount) == 0,
                  "moving the cursor should redraw from cursorless desktop pixels")
 
     image = Image.create(1, 1, .BGRA8)
     discard expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(image.width == captureWidth and image.height == captureHeight)
-    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, unwrap source.cursorPixels),
                                 image.byteCount) == 0,
                  "a replacement target should receive the current cursor-composited frame")
 }

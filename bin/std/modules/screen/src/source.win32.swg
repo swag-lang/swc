@@ -570,10 +570,10 @@ impl Source
             .cursorBitmap = try Gdi32.CreateDIBSection(null, &info, Gdi32.DIB_RGB_COLORS,
                                                        &.cursorPixels, null, 0)
             if not .cursorPixels do
-                fail Errors.SystemError{"cannot allocate screen cursor image"}
+                fail Swag.SystemError{"cannot allocate screen cursor image"}
             .cursorOldBitmap = Gdi32.SelectObject(.cursorDC, cast(.cursorBitmap))
             if not .cursorOldBitmap do
-                fail Errors.SystemError{"cannot select screen cursor image"}
+                fail Swag.SystemError{"cannot select screen cursor image"}
         }
         {
             .closeCursorOverlay()
@@ -615,15 +615,15 @@ impl Source
 
         if not DrawIconEx(.cursorDC, cast(s32, iconLeft), cast(s32, iconTop),
                           cast(HICON, cursor.hCursor), 0, 0, 0, null, DI_NORMAL) do
-            fail Errors.SystemError{"cannot draw the screen cursor"}
+            fail Swag.SystemError{"cannot draw the screen cursor"}
         if not Gdi32.GdiFlush() do
-            fail Errors.SystemError{"cannot finish drawing the screen cursor"}
+            fail Swag.SystemError{"cannot finish drawing the screen cursor"}
         for row in cast(u64, top) until cast(u64, bottom)
         {
             let offset = (cast(u64, .options.height) - row - 1) * cast(u64, .options.width) * 4 +
                          cast(u64, left) * 4 + 3
             for column in cast(u64, right - left) do
-                cast([*] u8, .cursorPixels)[offset + column * 4] = 255
+                cast([*] u8, unwrap .cursorPixels)[offset + column * 4] = 255
         }
         result = RECT{cast(s32, left), cast(s32, top), cast(s32, right), cast(s32, bottom)}
         return result
@@ -632,7 +632,7 @@ impl Source
     private mtd drawCursor()->bool fail
     {
         try .ensureCursorOverlay()
-        Memory.copy(.cursorPixels, .composed.pixels.storage(), .composed.byteCount)
+        Memory.copy(unwrap .cursorPixels, .composed.pixels.storage(), .composed.byteCount)
         let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
         defer discard SetThreadDpiAwarenessContext(awareness)
         var cursor: CURSORINFO

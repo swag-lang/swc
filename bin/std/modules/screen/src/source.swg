@@ -380,7 +380,7 @@ impl Source
                 if target.width != .options.width or target.height != .options.height or target.pixelFormat != .BGRA8 do
                     target[] = Image.create(.options.width, .options.height, .BGRA8)
                 let outputStart = Time.monotonicMicroseconds()
-                copyFrameBytes(target.pixels.storage(), cast(const [*] u8, .cursorPixels), target.byteCount)
+                copyFrameBytes(target.pixels.storage(), cast(const [*] u8, unwrap .cursorPixels), target.byteCount)
                 .composeMicroseconds += Time.monotonicMicroseconds() - outputStart
                 .cursorTargetImage = cast(u64, target)
                 .cursorTargetStorage = cast(u64, target.pixels.storage())

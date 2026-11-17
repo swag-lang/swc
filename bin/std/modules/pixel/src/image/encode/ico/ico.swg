@@ -52,7 +52,7 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 
     for &image in images
     {
-        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.isValid() or image.pixels.count != image.byteCount do
             fail InvalidFormatError{"invalid image"}
         if image.width > 256 or image.height > 256 do
             fail UnsupportedFormatError{"icon dimensions must be <= 256"}
@@ -93,8 +93,16 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
         offset += cast(u32, dibBytes)
     }
 
-    for &image in images do
-        appendDib(result, image)
+    for &image in images
+    {
+        if image.alphaMode == .Premultiplied
+        {
+            let straight = image.convertedAlphaTo(.Straight)
+            appendDib(result, straight)
+        }
+        else do
+            appendDib(result, image)
+    }
 }
 
 // Writes an icon file holding every image, in the order given.

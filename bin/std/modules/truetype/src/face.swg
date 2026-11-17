@@ -496,6 +496,19 @@ public impl Face
         return faceData.glyphMetrics[glyphIndex].advanceWidth
     }
 
+    // Returns the ordered color layers declared for a glyph by COLR version 0.
+    //
+    // `paletteIndex` selects a CPAL palette. Each returned layer identifies its glyph,
+    // CPAL entry, and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb`
+    // is zero for the special COLR foreground entry (0xFFFF). The returned array is
+    // owned by the caller. An absent COLR table or base glyph returns an empty array;
+    // invalid glyph or palette indices and malformed or unsupported tables fail.
+    mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array'ColorGlyphLayer fail
+    {
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        return try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
+    }
+
     // Returns horizontal kerning between two glyph indices in font design units.
     //
     // The result does not depend on pixel size and can be queried before setting one.

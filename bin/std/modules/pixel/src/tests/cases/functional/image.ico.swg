@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Swag, Core
+using Swag, Core, Core.Errors
 
 // Test-only mirrors of the private ICO on-disk structures.
 
@@ -679,6 +679,34 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var setError: Swag.Error
     discard catch Ico.encodeAll(entries) as setError
     Swag.require(setError.value() != null)
+}
+
+// The multi-image encoder accepts only complete buffers, just like Image.encode.
+#test
+{
+    var truncated = Image.create(1, 1, .BGRA8)
+    truncated.pixels.resize(3)
+    let entries: [1] Image = [truncated]
+
+    var errorOutcome: Swag.Error
+    discard catch Ico.encodeAll(entries) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+}
+
+// ICO DIB pixels carry straight alpha, including when the source image is premultiplied.
+#test
+{
+    var source = Image.create(1, 1, .RGBA8, alphaMode: .Premultiplied)
+    source.pixels.storage()[0] = 64'u8
+    source.pixels.storage()[1] = 0'u8
+    source.pixels.storage()[2] = 0'u8
+    source.pixels.storage()[3] = 128'u8
+    let entries: [1] Image = [source]
+
+    let encoded = expect Ico.encodeAll(entries)
+    let bytes = nnBytes(encoded.toSlice())
+    Swag.require(bytes[64] == 128'u8)     // Red, un-premultiplied.
+    Swag.require(bytes[65] == 128'u8)     // Alpha.
 }
 
 // The whole set reaches a file through the namespace entry point.

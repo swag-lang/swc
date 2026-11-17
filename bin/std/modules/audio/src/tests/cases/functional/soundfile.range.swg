@@ -24,6 +24,18 @@ using Swag, Core
     }
 }
 
+// A compressed packet index may not expose bytes past the backing source file.
+#test
+{
+    const Config: [2] u8 = [0x11, 0x90]
+    const Packet: [1] SoundPacket = [SoundPacket{51, 2, 1}]
+    let path = audioGetTestDataPath("pcm16_stereo.wav")
+
+    var outcome: Swag.Error
+    discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 1, 1, Packet, Config) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
 // A voice that has played the last frame of a long packet stream stands exactly at its duration,
 // once its position is rounded to single precision like the duration. Past 2^24 frames, a
 // duration divided in single precision lands a step beyond, where no position ever reaches.

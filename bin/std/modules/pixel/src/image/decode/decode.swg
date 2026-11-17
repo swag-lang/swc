@@ -211,7 +211,7 @@ public impl Image
     // `UnsupportedFormatError`; a malformed payload reports the codec's own failure.
     func fromDataUri(uri: string, options: DecodeOptions = {})->Image fail
     {
-        if not Utf8.startsWith(uri, "data:image/") do
+        if not Utf8.startsWith(uri, "data:image/", .Latin1NoCase) do
             fail UnsupportedFormatError{"not an image data URI"}
 
         let marker = Utf8.indexOf(uri, ";base64,")

@@ -16,6 +16,16 @@ using Swag, Core
     Swag.require(decoded.width == 4 and decoded.height == 3)
     Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 
+    var uppercaseUri: String = "DATA:IMAGE/PNG;base64,"
+    uppercaseUri += Base64.encode(bytes.toSlice())
+    let uppercase = expect Image.fromDataUri(uppercaseUri.toString())
+    Swag.require(Memory.compare(source.pixels.storage(), uppercase.pixels.storage(), source.byteCount) == 0)
+
+    var mixedCaseUri: String = "data:IMAGE/PNG;base64,"
+    mixedCaseUri += Base64.encode(bytes.toSlice())
+    let mixedCase = expect Image.fromDataUri(mixedCaseUri.toString())
+    Swag.require(Memory.compare(source.pixels.storage(), mixedCase.pixels.storage(), source.byteCount) == 0)
+
     var limitOutcome: Swag.Error
     discard catch Image.fromDataUri(plain.toString(), {maxInputBytes: 1}) as limitOutcome
     Swag.require(limitOutcome.value() is Errors.UnsupportedFormatError)

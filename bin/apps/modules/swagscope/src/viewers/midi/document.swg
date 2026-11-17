@@ -72,6 +72,7 @@ struct Document
     keySignatures:   Array'KeySignature
     durationTicks:   u64
     durationSeconds: f64
+    longestNote:     u64     // Length in ticks of the longest note.
     minKey:          u8 = 127
     maxKey:          u8
 }
@@ -491,6 +492,8 @@ func loadDocument(fileName: string)->Document fail
     if result.title.isEmpty() do
         result.title = Path.fileNameWithoutExtension(fileName) orelse ""
     result.notes.sort(func(a, b) => a.startTick <=> b.startTick)
+    for note in result.notes do
+        result.longestNote = Math.max(result.longestNote, note.endTick - note.startTick)
 
     // Each track of a type 1 file may carry its own changes; the timeline orders them all.
     result.tempos.sort(func(a, b) => a.tick <=> b.tick)

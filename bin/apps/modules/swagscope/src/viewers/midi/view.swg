@@ -406,17 +406,21 @@ impl RollView
             bar += BarStride
         }
 
-        // The notes are sorted by start, so one pass over them all, whatever their lane, stops at
-        // the first one past the right edge. The lanes stand apart, so the order they are painted
-        // in does not show.
-        let right = .scrollPos.x + .clientRect().width
-        for note in .document.notes where note.track < .laneOfTrack.count
+        // The notes are sorted by start, so one pass over them all, whatever their lane, begins at
+        // the first one that can reach the left edge and stops at the first one past the right
+        // edge. The lanes stand apart, so the order they are painted in does not show.
+        let leftEdge = .scrollPos.x + left
+        let right    = .scrollPos.x + .clientRect().width
+        for noteIndex in .firstNoteReaching(left, leftEdge, NoteHeight) until .document.notes.count
         {
+            let note = &.document.notes[noteIndex]
+            if note.track >= .laneOfTrack.count do
+                continue
             let x = left + cast(f32, note.startTick) * .pixelsPerTick
             if x > right do
                 break
             let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < .scrollPos.x + left do
+            if x + width < leftEdge do
                 continue
 
             let index  = cast(u64, .laneOfTrack[note.track])
@@ -513,23 +517,48 @@ impl RollView
         painter.drawString(.scrollPos.x + ContentInset, top + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
     }
 
+    // Returns the index of the first note that can reach `edge` when the notes start at `left` and
+    // a hit is drawn `hitWidth` wide. The notes are sorted by start, and none is wider than the
+    // longest one or a hit, so a note that starts that far left of the edge ends before it, as
+    // does every note before it.
+    mtd firstNoteReaching(left, edge, hitWidth: f32)->u64
+    {
+        let widest = Math.max(cast(f32, .document.longestNote) * .pixelsPerTick, 2, hitWidth)
+        var first  = 0'u64
+        var last   = .document.notes.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            if left + cast(f32, .document.notes[middle].startTick) * .pixelsPerTick + widest < edge do
+                first = middle + 1
+            else do
+                last = middle
+        }
+
+        return first
+    }
+
     // Paints the visible notes of the selected track, or of every track, shading each track
-    // differently. Notes are sorted by start, so painting stops at the first one past the right
-    // edge.
+    // differently. Notes are sorted by start, so painting begins at the first one that can reach
+    // the left edge and stops at the first one past the right edge.
     mtd paintNotes(painter: *Painter)
     {
         let colors    = .themeColors()
         let plotLeft  = .keyboardWidth + ContentInset
         let alternate = .theme().palette.alternate.mark
+        let height    = Math.max(.rowHeight - 2, 1)
+        let leftEdge  = .scrollPos.x + .keyboardWidth
 
-        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
+        for index in .firstNoteReaching(plotLeft, leftEdge, height) until .document.notes.count
         {
+            let note = &.document.notes[index]
+            if .selectedTrack != Swag.U32.Max and note.track != .selectedTrack do
+                continue
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break
-            let height = Math.max(.rowHeight - 2, 1)
-            let width  = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < .scrollPos.x + .keyboardWidth do
+            let width = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            if x + width < leftEdge do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09

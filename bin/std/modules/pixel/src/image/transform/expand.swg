@@ -63,6 +63,7 @@ impl Image
         let {w: cw, h: ch}      = .getWH(l, t, r, b)
         var result: #returntype = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doExpand(&result, l, t, r, b, color)
+        result.metadata = .metadata
         return result
     }
 }

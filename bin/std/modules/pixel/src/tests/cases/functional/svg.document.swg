@@ -68,12 +68,12 @@ func makeTrianglePath()->LinePath
 {
     var doc = Svg.Document.create(10, 10)
     doc.setTitle("Swag & <co>")
-    doc.setBackground(Color.fromRgb(0x0B, 0x0B, 0x0D))
+    doc.setBackground(Color.fromArgb(128'u8, 0x0B'u8, 0x0B'u8, 0x0D'u8))
     doc.addPath(makeTrianglePath(), Color.fromRgb(255, 255, 255))
 
     let text = doc.toString()
     Swag.require(text.contains("aria-label=\"Swag &amp; &lt;co&gt;\""))
-    Swag.require(text.contains("<rect width=\"10\" height=\"10\" fill=\"#0B0B0D\"/>"))
+    Swag.require(text.contains("<rect width=\"10\" height=\"10\" fill=\"#0B0B0D\" fill-opacity=\"0.502\"/>"))
     Swag.require(text.indexOf("<rect") < text.indexOf("<path"))
 }
 

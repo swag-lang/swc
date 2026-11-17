@@ -24,7 +24,7 @@ struct Image
         pixels: Array'u8     // Owned pixel bytes, bottom row first.
 
         #[Core.Serialization.Key("metadata")]
-        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
+        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs and image-copying transforms.
 
         // Geometry and encoding of the pixel buffer. They are established together by 'create' and
         // the decoders, and every one of them is derived from the others: writing one on its own

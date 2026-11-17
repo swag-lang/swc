@@ -136,7 +136,7 @@ impl Image
 
     // Returns a copy converted to another packed pixel representation.
     //
-    // Conversion semantics match [[Pixel.Image.convertTo]].
+    // Conversion semantics match [[Pixel.Image.convertTo]], and opaque image metadata is copied.
     public mtd const convertedTo(newPf: PixelFormat)->Image
     {
         Swag.assert(.pixels.buffer != null)
@@ -147,6 +147,7 @@ impl Image
         let targetAlphaMode     = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
         var result: #returntype = create(.width, .height, newPf, alphaMode: targetAlphaMode)
         .doChangePf(&result)
+        result.metadata = .metadata
         return result
     }
 }

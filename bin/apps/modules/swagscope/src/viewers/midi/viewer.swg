@@ -312,10 +312,6 @@ impl Panel
     {
         let services = host.services()
         let info     = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
-
-        // The settings come back from the saved window state as written there, so they are
-        // brought within range before they index anything.
-        g_ViewerSettings.sanitize()
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View

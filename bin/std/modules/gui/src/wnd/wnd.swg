@@ -1791,12 +1791,16 @@ impl Wnd
     // Moves the window to `x`, `y` in parent coordinates, rounded to whole logical units.
     mtd move(x, y: f32)
     {
-        if .position.x == x and .position.y == y do
+        // The stored position is rounded, so the request is compared once rounded too: a
+        // fractional position that rounds to where the window stands moves nothing.
+        let newX = Math.round(x)
+        let newY = Math.round(y)
+        if .position.x == newX and .position.y == newY do
             return
         var evt = MoveEvent{}
         evt.oldPos  = Math.Point{.position.x, .position.y}
-        .position.x = Math.round(x)
-        .position.y = Math.round(y)
+        .position.x = newX
+        .position.y = newY
         .sendEvent(&evt)
     }
 

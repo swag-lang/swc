@@ -78,3 +78,41 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     Swag.require(view.cuePosition() == Format.toString(Captions.texts().ui_CuePosition, 2, 2).toString())
     Swag.require(view.timeButton.toolTip == Captions.texts().ui_GoToTime)
 }
+
+// A colon in the lens goes to the cue on screen at an instant, or to a cue by its number; the lens
+// copies the current cue or the whole dialogue without its times.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, subtitleViewerFixturePath(), false)
+    let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+
+    window.lens.open(":0:03")
+    host.finishAnimations()
+    let times = unwrap window.lens.results.sections[0]
+    Swag.require(times.entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:03"), times.entries[0].title)
+    times.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.currentCue == 1)
+
+    window.lens.open(":1")
+    host.finishAnimations()
+    var found = false
+    for &entry in window.lens.results.sections[0]!.entries where entry.title == Format.toString(Captions.texts().ui_GoToCueNumber, 1)
+    {
+        entry.run!()
+        found = true
+    }
+
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(found and view.currentCue == 0)
+
+    Swag.require(view.dialogueText() == "The first caption.\n\nA second caption\non two lines.", view.dialogueText())
+    if Clipboard.isFake()
+    {
+        view.copyCurrentCue()
+        Swag.require(Clipboard.getString() == "The first caption.", Clipboard.getString())
+    }
+}

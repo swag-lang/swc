@@ -26,9 +26,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 - Evidence: SubRip and related files become a searchable timestamped transcript. The information
   bar exposes validated Go To Cue and Go To Time dialogs; Ctrl+Page Up/Down navigates adjacent cues,
-  Ctrl+Home/End jumps to the first or last cue,
-  and the editor caret, direct jumps, and host search update the highlighted cue and its position
-  counter. There is no
+  Ctrl+Home/End jumps to the first or last cue, `:` and an instant or a cue number go there from
+  the lens, and the editor caret, direct jumps, and host search update the highlighted cue and its
+  position counter. There is no
   duration filter or timeline.
 - Next: add a compact time ruler with overlap markers and a duration filter.
 - Done when: cue and time jumps are keyboard accessible, overlapping cues are grouped, the
@@ -428,8 +428,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.014 — Subtitle text has no focused interchange commands
 
-- Evidence: generic selection can copy transcript text, but there is no copy-current-cue, copy
-  plain dialogue, export normalized transcript, or report of cues omitted because of parser damage.
+- Evidence: generic selection can copy transcript text; Ctrl+C or the lens copies the current
+  cue, and the lens copies the whole dialogue without its times, a blank line between two cues.
+  There is no export of a normalized transcript or report of cues omitted because of parser damage.
 - Next: add cue-aware copy commands and bounded exports that preserve explicit timing policy.
 - Done when: one cue, selected cues, dialogue-only text, and a normalized transcript can be
   copied or exported, and lossy normalization is summarized before writing.

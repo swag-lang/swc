@@ -512,6 +512,35 @@ impl Panel
             Clipboard.setString(.track!.cueContent(.currentCue))
     }
 
+    // Returns the words of every cue in order, without their times, a blank line between two cues.
+    mtd dialogueText()->String
+    {
+        var result: String
+        for index in .track!.cueCount()
+        {
+            if index do
+                result += "\n\n"
+            result += .track.cueContent(index)
+        }
+
+        return result
+    }
+
+    // Shows the first cue still on screen at `seconds`, or the last cue when the track has ended.
+    mtd revealTime(seconds: f64)
+    {
+        let count = .track!.cueCount()
+        if not count do
+            return
+        for index in count where .track.cueEndTime(index) >= seconds
+        {
+            discard .revealCue(index)
+            return
+        }
+
+        discard .revealCue(count - 1)
+    }
+
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for index in .track!.cueCount() do
@@ -584,6 +613,24 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        let count   = .track!.cueCount()
+
+        // `:` and an instant goes to the cue on screen then; a whole number is also a cue.
+        if entries.results.prefix == .Line
+        {
+            let query  = entries.query.toString()
+            let now    = .currentCue < count ? .track.cueStartTime(.currentCue) : 0
+            let target = count ? Viewer.parseTimeAddress(query, now, .duration) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, query), .GoTo, func|view = me, target|() { view.revealTime(target) })
+            let cue = catch StrConv.toU64(Latin1.trim(query)) { return; }
+            if cue >= 1 and cue <= count do
+                entries.add(Format.toString(strings.ui_GoToCueNumber, cue), .GoTo, func|view = me, cue|() { discard view.revealCue(cue - 1) })
+            return
+        }
+
+        entries.add(strings.ui_CopyCue, .Copy, func|view = me|() { view.copyCurrentCue() }, disabled: .currentCue >= count, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.ui_CopyDialogue, .Copy, func|view = me|() { Clipboard.setString(view.dialogueText()) }, disabled: not count)
         entries.add(strings.ui_GoToCue, .GoTo, func|view = me|() { view.promptGoToCue() })
         entries.add(strings.ui_GoToTime, .History, func|view = me|() { view.promptGoToTime() })
         entries.add(strings.ui_PreviousCue, .ChevronLeft, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
@@ -622,13 +669,7 @@ impl Panel
         var seconds: f64
         if not timeSeconds(dialog.text(), &seconds) do
             return
-        for index in count where .track.cueEndTime(index) >= seconds
-        {
-            discard .revealCue(index)
-            return
-        }
-
-        discard .revealCue(count - 1)
+        .revealTime(seconds)
     }
 
     // Builds the reading list, the rhythm under it, and the time at the foot that asks for a time

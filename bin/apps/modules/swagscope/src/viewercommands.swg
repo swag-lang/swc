@@ -92,7 +92,7 @@ const LensLinesShown = 8'u64
 
 // The viewers whose own lens source answers `:`, each with the positions it reads: rows, cells,
 // pages, instants, offsets or chapters. Text, code and Markdown are answered here, by their lines.
-const ViewersAnsweringPositions: [10] string = ["table", "xlsx", "ods", "pdf", "comic", "video", "sound", "hex", "binary", "epub"]
+const ViewersAnsweringPositions: [11] string = ["table", "xlsx", "ods", "pdf", "comic", "video", "sound", "hex", "binary", "epub", "subtitle"]
 const LensFileLimit = 8 * 1024 * 1024'u64
 
 impl ViewerWindow
@@ -349,8 +349,9 @@ impl ViewerWindow
     // Answers the lens with the lines of the open document that hold the query, under "In This
     // File", in the order of the file, each led by its number in mono; `:` and a number go to that
     // line, and a second number after another colon to that column of it. Code, text and Markdown
-    // answer, as documents read line by line; a table, a workbook, a PDF, a comic, a film and a
-    // recording answer `:` themselves, with their rows, cells, pages and instants.
+    // answer, as documents read line by line; a table, a workbook, a PDF, a comic, a film, a
+    // recording and a subtitle track answer `:` themselves, with their rows, cells, pages, instants
+    // and cues.
     private mtd describeFileLines(results: *Lens.Results)
     {
         if .isExploring() or .currentFile.isEmpty() do

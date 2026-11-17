@@ -7,7 +7,6 @@
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/RuntimeBackendConfig.h"
-#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"

@@ -41,8 +41,9 @@ selected by filename extension; both read and write through [[Core.ByteSource]] 
 [[Core.ByteSink]], which are what make a codec independent of files and memory alike.
 Four codecs ship in the box:
 
-- YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4
-  YCbCr frames and writes 4:2:0, 4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
+- YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4
+  YCbCr frames, reports display geometry from valid sample aspect tags, and writes 4:1:1, 4:2:0,
+  4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed frames, exposes integer PCM sound
   tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
@@ -52,7 +53,8 @@ Four codecs ship in the box:
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
   through the requested frame.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
-  Motion JPEG, and exposes AAC-LC and MPEG Layer III audio. [[Video.Mp4.FragmentedWriter]] separately
+  Motion JPEG, and exposes AAC-LC, AC-3, and MPEG Layer III audio from classic sample tables.
+  Motion JPEG output can write a pixel aspect ratio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
   AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
   The writer reports submitted video and audio packet counts, track end times, and completed byte

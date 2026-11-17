@@ -227,6 +227,38 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(coarse.count < fine.count)
 }
 
+// MP4 sample aspect ratio is written as container metadata and does not alter coded dimensions.
+#test
+{
+    let rate = expect FrameRate.create(24, 1)
+    var clip = expect Clip.create(16, 16, rate)
+    expect clip.addFrame(videoGrayImage(16, 16, 96))
+
+    var defaults: Mp4.EncodeOptions
+    let square = expect clip.encodeToBytes("square-pixels.mp4", defaults)
+    Swag.require(mp4FindTag(square.toSlice(), "pasp") == square.count)
+
+    var options: Mp4.EncodeOptions
+    options.pixelAspectWidth = 16
+    options.pixelAspectHeight = 15
+    let bytes = expect clip.encodeToBytes("anamorphic.mp4", options)
+    let raw = bytes.toSlice()
+    let tag = mp4FindTag(raw, "pasp")
+    Swag.require(tag < bytes.count and mp4ReadU32(raw, tag - 4) == 16)
+    Swag.require(mp4ReadU32(raw, tag + 4) == 16 and mp4ReadU32(raw, tag + 8) == 15)
+
+    var reader = expect Reader.openMemory("anamorphic.mp4", raw)
+    Swag.require(reader.width() == 16 and reader.height() == 16 and reader.frameCount() == 1)
+    Swag.require(reader.displayWidth() == 17 and reader.displayHeight() == 16)
+    videoAssertGray((expect reader.decodeFrame(0)).pixelColor(8, 8), 96, tolerance: 8)
+
+    var invalid = options
+    invalid.pixelAspectHeight = 0
+    var invalidOutcome: Swag.Error
+    discard catch clip.encodeToBytes("invalid-aspect.mp4", invalid) as invalidOutcome
+    Swag.require((invalidOutcome.value() is BadParameterError))
+}
+
 // File-backed patching produces the same seekable stream as memory-backed patching.
 #test
 {

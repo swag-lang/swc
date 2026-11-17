@@ -79,6 +79,18 @@ signed 16-bit little-endian PCM.
   `deff7b2483049b80e4eba31d5ad4fe49375351c04d211e991d75f9416c73d364`.
 - License: same as this repository and the std/audio MP3 fixture.
 
+`ffmpeg-h264-ac3.mp4` combines `ffmpeg-h264-baseline.mp4` with std/audio's synthetic 5.1 AC-3
+stream, `ac3-5.1-48000.ac3`, using FFmpeg 7.1.5 with
+`-map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart`. Both streams are copied without
+re-encoding. `ffmpeg-h264-ac3.pcm` is the multiplexed audio decoded by FFmpeg as signed 16-bit
+little-endian PCM.
+
+- `ffmpeg-h264-ac3.mp4`: 27,787 bytes, SHA-256:
+  `72a6f64cca5af4dfa7127700180d91b1f98db9d6959d74a38bdf5c30dd563754`.
+- `ffmpeg-h264-ac3.pcm`: 294,912 bytes, SHA-256:
+  `4da797a01c01ec38e92fef33a285ec0fb942e84cc909381307f01a62d4ec998a`.
+- License: same as this repository and the std/audio AC-3 fixture.
+
 `glint-aac-lc-stereo.packets` holds the first three AAC-LC access units of
 `std/audio`'s `aac-lc-stereo-44100.aac` fixture, with ADTS headers removed. Each unit is preceded
 by its 32-bit big-endian byte length. The source contains generated 440 Hz and 660 Hz tones.

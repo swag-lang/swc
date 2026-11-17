@@ -4,7 +4,7 @@ The module reads and writes video as a stream: a codec registered against `Video
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
 and MPEG-4 Part 2 in AVI or Matroska. File-backed AVI exposes integer PCM tracks; ISO-BMFF
-exposes AAC-LC and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+sample-table tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
 Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 

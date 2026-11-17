@@ -36,6 +36,8 @@ const ElementaryStreamId   = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
 const PixelAspectRatioId   = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
 const Mpeg4VisualId        = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
 const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
+const Ac3AudioId           = fourCc('a'u32, 'c'u32, '-'u32, '3'u32)
+const Ac3ConfigId          = fourCc('d'u32, 'a'u32, 'c'u32, '3'u32)
 const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
 const Mpeg4AudioObjectType = 0x40'u8
 
@@ -73,6 +75,40 @@ const NoFrameIndex    = Swag.U64.Max
 const AacFrameSamples = 1024'u32
 // Bound classic sample-table expansion before allocating per-sample metadata.
 const MaxClassicSampleCount = 1_048_576'u32
+
+private func ac3PacketBits(packet: const [..] u8, bitPosition, count: u32)->u32
+{
+    var result: u32
+    for bit in count
+    {
+        let position = bitPosition + bit
+        result = (result << 1) |
+                 ((cast(u32, packet[position >> 3]) >> cast(u32, (7 - (position & 7)))) & 1)
+    }
+
+    return result
+}
+
+// AC-3 packet BSI carries the speaker layout even when the container only says how many channels.
+private func ac3SpeakerMask(packet: const [..] u8)->u32 fail
+{
+    if packet.count < 7 do
+        fail InvalidFormatError{"MP4 AC-3 packet header is truncated"}
+    if packet[0] != 0x0B or packet[1] != 0x77 do
+        fail InvalidFormatError{"MP4 AC-3 packet has no sync word"}
+
+    let acmod = (cast(u32, packet[6]) >> 5) & 7
+    var lfePosition = 51'u32
+    if acmod & 1 and acmod != 1 do
+        lfePosition += 2
+    if acmod & 4 do
+        lfePosition += 2
+    if acmod == 2 do
+        lfePosition += 2
+    let lfe = ac3PacketBits(packet, lfePosition, 1) != 0
+    const Masks: [8] u32 = [0x0003, 0x0004, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
+    return Masks[acmod] | (lfe ? 0x0008 : 0)
+}
 
 // One bounded box in the stream.
 struct Box
@@ -178,6 +214,7 @@ struct Track
     isHevc:         bool
     isAac:          bool
     isMp3:          bool
+    isAc3:          bool
     editMediaTime: s64
     editDuration:  u64
     hasSingleEdit: bool
@@ -302,9 +339,9 @@ impl Layout
         return false
     }
 
-    mtd const hasMp3AudioTrack()->bool
+    mtd const hasUnsupportedFragmentAudioTrack()->bool
     {
-        for &track in .audioTracks where track.isMp3 do
+        for &track in .audioTracks where track.isMp3 or track.isAc3 do
             return true
         return false
     }
@@ -373,7 +410,7 @@ impl Layout
                     fail InvalidFormatError{"MP4 movie fragment is out of order"}
                 if not .track.isAvc or
                    .audioTracks.count > 4 or
-                   .hasMp3AudioTrack() or
+                   .hasUnsupportedFragmentAudioTrack() or
                    (not .hasFragments and .track.sizes.count) or
                    .hasClassicAudioSamples() do
                     fail UnsupportedFormatError{"MP4 fragments need H.264 and at most four AAC tracks without classic samples"}
@@ -476,7 +513,7 @@ impl Layout
                     elif not .unsupportedCodec do
                         .unsupportedCodec = candidate.codec
                 }
-                elif candidate.handler == AudioHandlerId and candidate.hasDescription and (candidate.isAac or candidate.isMp3)
+                elif candidate.handler == AudioHandlerId and candidate.hasDescription and (candidate.isAac or candidate.isMp3 or candidate.isAc3)
                 {
                     .audioTracks.add(#move candidate)
                     var fragments: AudioFragmentSamples
@@ -824,12 +861,40 @@ impl Track
             fail InvalidFormatError{"MP4 video track needs positive frame dimensions"}
 
         .isJpeg = Slice.contains(JpegCodecIds, .codec)
-        if .codec == Mpeg4VisualId do
+        if .isJpeg do
+            try .parsePixelAspectRatio(source, entry)
+        if .codec == Mpeg4VisualId
+        {
             .isJpeg = try .parseMpeg4VisualDescription(source, entry)
+            if .isJpeg do
+                try .parsePixelAspectRatio(source, entry)
+        }
         if Slice.contains(AvcCodecIds, .codec) do
             .isAvc = try .parseCodecConfiguration(source, entry, AvcConfigId)
         if Slice.contains(HevcCodecIds, .codec) do
             .isHevc = try .parseCodecConfiguration(source, entry, HevcConfigId)
+    }
+
+    // A Motion JPEG sample entry has no decoder-configuration box to carry its optional `pasp`.
+    mtd parsePixelAspectRatio(source: *ByteSource, entry: Box) fail
+    {
+        const VisualSampleEntrySize = 78'u64
+        var position = entry.data + VisualSampleEntrySize
+        while position + BoxHeaderSize <= entry.end
+        {
+            try source.seek(position)
+            let child = try readBox(source, entry.end)
+            if child.kind == PixelAspectRatioId
+            {
+                if child.end - child.data < 8 do
+                    fail InvalidFormatError{"MP4 pixel-aspect-ratio box is truncated"}
+                .pixelAspectWidth  = try source.readBigEndian'u32()
+                .pixelAspectHeight = try source.readBigEndian'u32()
+                if not .pixelAspectWidth or not .pixelAspectHeight do
+                    fail InvalidFormatError{"MP4 pixel-aspect-ratio box has a zero dimension"}
+            }
+            position = child.end
+        }
     }
 
     // Reads an MPEG-4 audio sample entry and locates its AudioSpecificConfig.
@@ -857,6 +922,29 @@ impl Track
             fail InvalidFormatError{"MP4 audio sample entry is truncated"}
         if .codec == Mpeg4AudioId do
             try .parseAudioChildren(source, childStart, entry.end)
+        elif .codec == Ac3AudioId do
+            try .parseAc3AudioDescription(source, childStart, entry.end)
+    }
+
+    // AC-3 sync frames carry their own decoder state; `dac3` establishes the MP4 sample entry.
+    mtd parseAc3AudioDescription(source: *ByteSource, start, end: u64) fail
+    {
+        var position = start
+        while position + BoxHeaderSize <= end
+        {
+            try source.seek(position)
+            let child = try readBox(source, end)
+            if child.kind == Ac3ConfigId
+            {
+                if child.end - child.data != 3 do
+                    fail InvalidFormatError{"MP4 AC-3 decoder configuration must contain three bytes"}
+                .isAc3 = true
+                return
+            }
+            position = child.end
+        }
+
+        fail InvalidFormatError{"MP4 AC-3 sample entry has no decoder configuration"}
     }
 
     // Recursively searches the sample entry and its QuickTime `wave` wrapper for `esds`.
@@ -1322,6 +1410,16 @@ impl Track
                 try source.readExact(headerSlice)
                 frameSamples = try Audio.packetFrameCount(.Mp3, headerSlice)
             }
+            elif .isAc3
+            {
+                if frame.size < 7 do
+                    fail InvalidFormatError{"MP4 AC-3 packet is shorter than its frame header"}
+                var header: [7] u8
+                try source.seek(frame.offset)
+                let headerSlice = Swag.makeSlice(&header[0], header.count)
+                try source.readExact(headerSlice)
+                frameSamples = try Audio.packetFrameCount(.Ac3, headerSlice)
+            }
             result.packets.add(SoundPacket{frame.offset, cast(u32, frame.size), frameSamples})
             result.frameCount += frameSamples
             result.maxPacketFrames = Math.max(result.maxPacketFrames, frameSamples)
@@ -1497,7 +1595,7 @@ impl IDecoder for Decoder
                 {
                     let packetLayout = try audioTrack.buildSoundPackets(source)
                     var options: PacketStreamOptions
-                    if audioTrack.isMp3
+                    if audioTrack.isMp3 or audioTrack.isAc3
                     {
                         let audioTimes = try audioTrack.sampleTimes()
                         if audioTimes.count and audioTrack.timescale
@@ -1505,6 +1603,17 @@ impl IDecoder for Decoder
                             options.timelineStartSeconds = cast(f64, audioTimes[0]) / audioTrack.timescale -
                                                            cast(f64, videoOrigin) / layout.track.timescale
                         }
+                    }
+                    if audioTrack.isAc3
+                    {
+                        let firstPacket = packetLayout.packets[0]
+                        var header: [7] u8
+                        try source.seek(firstPacket.sourceOffset)
+                        let headerSlice = Swag.makeSlice(&header[0], header.count)
+                        try source.readExact(headerSlice)
+                        options.speakerMask = try ac3SpeakerMask(headerSlice)
+                        if Swag.countOnes(options.speakerMask) != audioTrack.channelCount do
+                            fail InvalidFormatError{"MP4 AC-3 packet layout does not match its channel count"}
                     }
                     if audioTrack.hasSingleEdit and layout.movieTimescale and audioTrack.timescale and
                        audioTrack.editMediaTime >= 0 and
@@ -1531,7 +1640,8 @@ impl IDecoder for Decoder
                         }
                     }
 
-                    let encoding = audioTrack.isMp3 ? Audio.SoundFileEncoding.Mp3 : Audio.SoundFileEncoding.AacLc
+                    let encoding = audioTrack.isAc3 ? Audio.SoundFileEncoding.Ac3 :
+                                   (audioTrack.isMp3 ? Audio.SoundFileEncoding.Mp3 : Audio.SoundFileEncoding.AacLc)
                     if audioTrack.isMp3 and audioTrack.timescale != audioTrack.sampleRate do
                         fail UnsupportedFormatError{"MP4 Layer III tracks with a non-sample-rate clock are unsupported"}
                     let sound = try SoundFile.openPacketStream(path, encoding, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
@@ -1583,6 +1693,11 @@ impl IDecoder for Decoder
             .frames      = #move frames
             .info.width  = layout.track.width
             .info.height = layout.track.height
+            let display = pictureDisplaySize(.info.width, .info.height,
+                                             layout.track.pixelAspectWidth,
+                                             layout.track.pixelAspectHeight)
+            .info.displayWidth  = display.width
+            .info.displayHeight = display.height
         }
 
         return .info

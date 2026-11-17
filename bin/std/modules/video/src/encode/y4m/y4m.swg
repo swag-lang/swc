@@ -1,25 +1,11 @@
 //! Format: YUV4MPEG2 (Y4M) encoder component.
-//! Supported: Progressive 8-bit 4:4:4, 4:2:2, and 4:2:0 limited-range planar output from 8-bit RGB/BGR images.
+//! Supported: Progressive 8-bit 4:4:4, 4:2:2, 4:2:0, and 4:1:1 limited-range planar output from 8-bit RGB/BGR images.
 //! Not supported: Audio, alpha preservation, interlacing, monochrome output, full-range output, and compression.
 //! Role: This file owns stream headers, frame markers, RGB-to-planar conversion, and top-level encoding.
 //
 #global namespace Y4m
 
 using Core, Core.Errors, Pixel
-
-// Chroma sampling used for YUV4MPEG2 output.
-enum EncodeChromaMode
-{
-    Yuv420     // Average each aligned 2x2 group for each chroma plane.
-    Yuv422     // Average each aligned horizontal pair for each chroma plane.
-    Yuv444     // Preserve one chroma sample per pixel; this is the default.
-}
-
-// Configures the planar chroma layout written by the Y4M encoder.
-struct EncodeOptions
-{
-    public chroma = EncodeChromaMode.Yuv444
-}
 
 private func luma(r, g, b: s32)->u8 => clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
 private func cb(r, g, b: s32)->u8 => clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
@@ -66,14 +52,17 @@ impl IEncoder for Encoder
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
-        if .options.chroma != .Yuv444 and info.width & 1 do
+        if (.options.chroma == .Yuv420 or .options.chroma == .Yuv422) and info.width & 1 do
             fail BadParameterError{"Y4M 4:2:2 and 4:2:0 output needs an even frame width"}
         if .options.chroma == .Yuv420 and info.height & 1 do
             fail BadParameterError{"Y4M 4:2:0 output needs an even frame height"}
+        if .options.chroma == .Yuv411 and info.width & 3 do
+            fail BadParameterError{"Y4M 4:1:1 output needs a frame width divisible by four"}
 
         var chromaTag = "C444 XYSCSS=444"
         switch .options.chroma
         {
+            case .Yuv411: chromaTag = "C411 XYSCSS=411"
             case .Yuv420: chromaTag = "C420jpeg XYSCSS=420JPEG"
             case .Yuv422: chromaTag = "C422 XYSCSS=422"
             case .Yuv444: chromaTag = "C444 XYSCSS=444"
@@ -101,7 +90,8 @@ impl IEncoder for Encoder
         let width = cast(u64, .info.width)
         let height = cast(u64, .info.height)
         let lumaSize = width * height
-        let chromaWidth = .options.chroma == .Yuv444 ? width : width / 2
+        let chromaWidth = .options.chroma == .Yuv444 ? width :
+                          (.options.chroma == .Yuv411 ? width / 4 : width / 2)
         let chromaHeight = .options.chroma == .Yuv420 ? height / 2 : height
         let chromaSize = chromaWidth * chromaHeight
         if .payload.count != lumaSize + chromaSize * 2 do
@@ -121,7 +111,8 @@ impl IEncoder for Encoder
             }
         }
 
-        let stepX = .options.chroma == .Yuv444 ? 1'u64 : 2'u64
+        let stepX = .options.chroma == .Yuv444 ? 1'u64 :
+                    (.options.chroma == .Yuv411 ? 4'u64 : 2'u64)
         let stepY = .options.chroma == .Yuv420 ? 2'u64 : 1'u64
         for cy in chromaHeight
         {

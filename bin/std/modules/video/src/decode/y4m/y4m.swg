@@ -1,6 +1,6 @@
 //! Format: YUV4MPEG2 (Y4M) decoder component.
-//! Supported: Progressive 8-bit mono, 4:2:0, 4:2:2, and 4:4:4 planar frames with limited or full range.
-//! Not supported: Interlaced streams, bit depths above 8, alpha, 4:1:1, and other chroma modes.
+//! Supported: Progressive 8-bit mono, 4:1:1, 4:2:0, 4:2:2, and 4:4:4 planar frames with limited or full range and display geometry from aspect tags.
+//! Not supported: Interlaced streams, bit depths above 8, alpha, and other chroma modes.
 //! Role: This file owns stream headers, frame markers, planar decoding, seeking, and top-level decoding.
 //
 #global namespace Y4m
@@ -36,6 +36,7 @@ enum ColorRange
 // Plane layout of the frames of a stream.
 enum ChromaMode
 {
+    Yuv411     // Chroma at one-quarter the width.
     Yuv420     // Chroma at half the width and half the height.
     Yuv422     // Chroma at half the width.
     Yuv444     // Chroma at the full frame size.
@@ -48,6 +49,8 @@ private struct Header
     info:       StreamInfo
     colorRange: ColorRange
     chromaMode: ChromaMode
+    aspectWidth:  u32
+    aspectHeight: u32
 }
 
 // Clamps one converted channel into the byte range.
@@ -75,8 +78,12 @@ private func parseHeader(line: string)->Header fail
     var hasWidth, hasHeight, hasRate, hasInterlace: bool
     for token in tokens[1 until tokens.count]
     {
-        if token.count < 2 do
+        if token.count < 2
+        {
+            if token.count and token[0] == 'A' do
+                fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
             continue
+        }
 
         let value = token[1 until token.count]
         switch token[0]
@@ -112,11 +119,27 @@ private func parseHeader(line: string)->Header fail
         case 'C':
             switch value
             {
+            case "411":    result.chromaMode = .Yuv411
             case "420", "420jpeg", "420mpeg2", "420paldv": result.chromaMode = .Yuv420
             case "422":  result.chromaMode = .Yuv422
             case "444":  result.chromaMode = .Yuv444
             case "mono": result.chromaMode = .Mono
             default:     fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support YUV4MPEG2 C% chroma", value))}
+            }
+
+        case 'A':
+            let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
+            if parts.count != 2 do
+                fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
+            if parts[0] == "0" and parts[1] == "0"
+            {
+                result.aspectWidth = 0
+                result.aspectHeight = 0
+            }
+            else
+            {
+                result.aspectWidth = try parsePositiveU32(parts[0], "aspect width")
+                result.aspectHeight = try parsePositiveU32(parts[1], "aspect height")
             }
 
         case 'X':
@@ -138,6 +161,13 @@ private func parseHeader(line: string)->Header fail
         fail InvalidFormatError{"YUV4MPEG2 stream needs a frame rate"}
     if not hasInterlace do
         fail InvalidFormatError{"YUV4MPEG2 stream needs an interlacing mode"}
+    if result.aspectWidth and result.aspectHeight
+    {
+        let display = pictureDisplaySize(result.info.width, result.info.height,
+                                         result.aspectWidth, result.aspectHeight)
+        result.info.displayWidth = display.width
+        result.info.displayHeight = display.height
+    }
     return result
 }
 
@@ -146,6 +176,10 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
     let lumaSize = cast(u64, width) * cast(u64, height)
     switch #complete chromaMode
     {
+    case .Yuv411:
+        let chromaSize = (cast(u64, width) + 3) / 4 * cast(u64, height)
+        return lumaSize + chromaSize * 2
+
     case .Yuv420:
         let chromaSize = (cast(u64, width) + 1) / 2 * ((cast(u64, height) + 1) / 2)
         return lumaSize + chromaSize * 2
@@ -168,11 +202,13 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
     let height         = header.info.height
     let chromaMode     = header.chromaMode
     let lumaSize       = cast(u64, width) * cast(u64, height)
-    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64, width) : (cast(u64, width) + 1) / 2
+    let chromaWidth    = chromaMode == .Yuv444 ? cast(u64, width) :
+                         (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
+                          (cast(u64, width) + 1) / 2)
     let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
     let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
     let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
-    let chromaColShift = chromaMode == .Yuv444 ? 0 : 1
+    let chromaColShift = chromaMode == .Yuv444 ? 0 : (chromaMode == .Yuv411 ? 2 : 1)
 
     // Reusing the frame the caller already has is what keeps a whole stream at the memory cost
     // of one frame; a fresh image is created only when it cannot hold this one.

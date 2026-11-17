@@ -15,6 +15,7 @@ const DataEntryUrlId     = fourCc('u'u32, 'r'u32, 'l'u32, ' 'u32)
 const IsomBrandId        = fourCc('i'u32, 's'u32, 'o'u32, 'm'u32)
 const Iso2BrandId        = fourCc('i'u32, 's'u32, 'o'u32, '2'u32)
 const Mp41BrandId        = fourCc('m'u32, 'p'u32, '4'u32, '1'u32)
+const EncodePixelAspectRatioId = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
 
 private const MaxFrameSide = 65_535's32
 private const UndLanguage  = 0x55C4'u16
@@ -121,6 +122,8 @@ impl IEncoder for Encoder
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
+        if (.options.pixelAspectWidth == 0) != (.options.pixelAspectHeight == 0) do
+            fail BadParameterError{"MP4 pixel aspect ratio needs both numerator and denominator"}
 
         try .writeFileType(sink)
         .mediaData = sink.position()
@@ -357,8 +360,20 @@ private impl Encoder
         writeU16(sink, 24)
         writeU16(sink, 0xFFFF)
         .writeElementaryStreamDescriptor(sink)
+        if .options.pixelAspectWidth do
+            .writePixelAspectRatio(sink)
         endBox(sink, entry)
         endBox(sink, stsd)
+    }
+
+    // Writes the optional sample aspect ratio without changing coded or display dimensions.
+    #[Swag.Propagate]
+    mtd const writePixelAspectRatio(sink: *ByteSink) fail
+    {
+        let box = beginBox(sink, EncodePixelAspectRatioId)
+        writeU32(sink, .options.pixelAspectWidth)
+        writeU32(sink, .options.pixelAspectHeight)
+        endBox(sink, box)
     }
 
     // Identifies the generic `mp4v` sample entry as ISO/IEC 10918-1 JPEG.

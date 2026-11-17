@@ -724,7 +724,7 @@ impl View
         {
             for &entry in section!.entries where entry.spans.isEmpty() and not entry.matchedAlias and .results.query.count > 0
             {
-                var found = match(.results.query, entry.title)
+                var found = match(.results.folded, entry.title)
                 if found.matched do
                     entry.spans = #move found.spans
             }
@@ -976,10 +976,10 @@ private impl View
                 if title.isEmpty() do
                     continue
 
-                var found = command.find(.results.query, title)
+                var found = command.find(.results.folded, title)
                 if not found.matched
                 {
-                    let familyMatch = match(.results.query, family[])
+                    let familyMatch = match(.results.folded, family[])
                     if not familyMatch.matched or familyMatch.spans.count != 1 do
                         continue
                     let span = familyMatch.spans[0]
@@ -1760,7 +1760,7 @@ private impl View
                     continue
                 }
 
-                var found = match(query, entry.title, tolerateTypos: section.ranked)
+                var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
                 entry.score = Math.max(entry.score, found.matched ? found.score : 0)
                 if entry.spans.isEmpty() and not entry.matchedAlias and found.matched do
                     entry.spans = #move found.spans
@@ -1825,10 +1825,10 @@ private const MaxRankScore = 1000000's32
 
 private impl Command
 {
-    mtd const find(query, title: string)->Match
+    mtd const find(query: Query, title: string)->Match
     {
         var best = match(query, title, tolerateTypos: true)
-        if query.count == 0 or not .aliases do
+        if query.runes.isEmpty() or not .aliases do
             return best
         for phrase in Tokenize.split(.aliases(), ';'rune) where phrase.count > 0
         {

@@ -64,6 +64,14 @@ using Swag
 
 #test
 {
+    Swag.require(Time.Duration.fromSeconds(0.0004).milliseconds() == 0)
+    Swag.require(Time.Duration.fromSeconds(0.0006).milliseconds() == 1)
+    Swag.require(Time.Duration.fromSeconds(1.0004).milliseconds() == 1000)
+    Swag.require(Time.Duration.fromSeconds(1.0006).milliseconds() == 1001)
+}
+
+#test
+{
     Swag.require(Time.Duration.fromSeconds(0).millisecondsCeiling() == 0)
     Swag.require(Time.Duration.fromSeconds(1).millisecondsCeiling() == 1000)
     Swag.require(Time.Duration.fromSeconds(0.0005).millisecondsCeiling() == 1)

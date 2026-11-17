@@ -184,6 +184,9 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addFolder(root.toString())
     Swag.require(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
 
+    for invalidName in ["", ".", "../outside.txt", "nested/../outside.txt", "nested//file.txt", "nested/", "nested\\file.txt"]
+        do Swag.require(not bundle.isOverridden(invalidName))
+
     var errorOutcome: Swag.Error
     discard catch bundle.load(name.toString()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.FileNotFoundError)

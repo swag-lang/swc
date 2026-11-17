@@ -158,6 +158,20 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
+    let type = #typeof(ReflectionProbe)
+    let name = unwrap type.fullname
+    Reflection.registerType(type)
+    let found = Reflection.typeFromName(name)
+    Swag.require(found != null and found.fullname == name)
+    Swag.require(Reflection.typeFromName("Reflection.TypeThatDoesNotExist") == null)
+
+    let field = unwrap Reflection.findField(type, "x")
+    Swag.require(Reflection.fieldCrc(type, "x") == field.crc)
+    Swag.require(Reflection.fieldCrc(type, "missing") == 0)
+}
+
+#test
+{
     let type         = #typeof(ReflectionProbe)
     let fieldX       = Reflection.findField(type, "x")
     let fieldEnabled = Reflection.findField(type, "enabled")

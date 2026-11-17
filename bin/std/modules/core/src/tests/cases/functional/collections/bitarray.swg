@@ -52,6 +52,31 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     }
 }
 
+// Bit iteration keeps its logical index across continue and exits across word boundaries on break.
+#test
+{
+    var values: BitArray
+    values.resize(40)
+    for index in values.count do
+        values[index] = index % 2 != 0
+
+    var visited = 0'u64
+    var indexSum = 0'u64
+    for value, index in values
+    {
+        if index % 2 == 0 do
+            continue
+
+        Swag.require(value)
+        visited += 1
+        indexSum += index
+        if index == 35 do
+            break
+    }
+
+    Swag.require(visited == 18 and indexSum == 324)
+}
+
 #test
 {
     var values: BitArray

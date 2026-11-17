@@ -1,6 +1,6 @@
 //! Format: H.264 software rate-control preparation.
 //! Supported: Fractional per-picture budgets, a bounded virtual reservoir, and bounded QP changes.
-//! Not supported: A hard output-size guarantee, lookahead, or automatic encoder integration.
+//! Not supported: A hard output-size guarantee or lookahead.
 //! Role: This private helper estimates the next quantizer from observed picture sizes.
 //
 #global namespace H264
@@ -44,6 +44,23 @@ impl RateControl
                 nextQp: minQp + (maxQp - minQp) / 2}
     }
 
+    // Checks the budget arithmetic before a frame is encoded, preserving retryable encoder state.
+    internal mtd validateDuration(durationTicks: u32) fail
+    {
+        if not durationTicks do
+            fail BadParameterError{"H.264 rate-control feedback needs a positive duration"}
+
+        let ticks = cast(u64, durationTicks)
+        let timebase = cast(u64, .ticksPerSecond)
+        let wholeRate = .targetBitsPerSecond / timebase
+        if wholeRate > Swag.U64.Max / ticks do
+            fail OverflowError{"H.264 rate-control budget overflows"}
+        let wholeBudget = wholeRate * ticks
+        let fractional = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
+        if fractional / timebase > Swag.U64.Max - wholeBudget do
+            fail OverflowError{"H.264 rate-control budget overflows"}
+    }
+
     // A query has no side effects. Repeated queries before feedback return the same QP.
     // Key pictures and scene cuts request up to two more QP steps, but never bypass
     // the two-step limit relative to the last picture actually encoded.
@@ -71,18 +88,16 @@ impl RateControl
         if packetBytes > Swag.U64.Max / 8 do
             fail OverflowError{"H.264 rate-control picture size overflows bits"}
 
+        try .validateDuration(durationTicks)
+
         let ticks = cast(u64, durationTicks)
         let timebase = cast(u64, .ticksPerSecond)
         let wholeRate = .targetBitsPerSecond / timebase
-        if wholeRate > Swag.U64.Max / ticks do
-            fail OverflowError{"H.264 rate-control budget overflows"}
         let wholeBudget = wholeRate * ticks
         // Both remainders are smaller than a u32 timebase. Their product plus the
         // carried remainder fits u64 even when durationTicks is U32.Max.
         let fractional = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
         let extraBudget = fractional / timebase
-        if extraBudget > Swag.U64.Max - wholeBudget do
-            fail OverflowError{"H.264 rate-control budget overflows"}
         let budget = wholeBudget + extraBudget
         let encodedBits = packetBytes * 8
 

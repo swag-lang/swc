@@ -376,15 +376,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   two-screen live recording instead lost 363 slots with eight slices in one run and none with
   four in a later run under varying load. Remeasure 1080p60 and 4K60 capture with concurrent
   readback; codec-only timing does not choose the end-to-end slice count.
-  Connect the pure-Swag rate controller only after the encoder can change QP per picture;
-  refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
-  or make packet submission transactional. Use each H.264 packet's bytes and duration for
-  feedback rather than `writtenByteCount`, which can lag unflushed fragments. Expose per-frame
-  bytes, QP, encode latency and dropped frames to the recorder. A virtual reservoir controls
-  an average, not a strict packet bound when even QP 51 falls back to PCM. Verify changing
-  screens and scene cuts through Reader and FFmpeg. Use a platform encoder only if the software path
-  cannot meet the required capture profile; do not add an external codec library for a capability
-  that can be implemented in Swag.
+  `Mp4.SoftwareRecording` now accepts an optional `SoftwareVideoRateControl` with a target rate,
+  reservoir capacity and bounded QP range. It feeds each completed packet's byte count and exact
+  frame-slot duration back into the controller, exposes the chosen QP, and prevalidates budget
+  arithmetic before encoding. Focused tests cover QP adaptation and bounds, repeated capture
+  slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
+  guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
+  detection. Treat a failed MP4 packet submission as terminal or make submission transactional.
+  Remaining work is measuring changing screens and scene cuts through Reader and FFmpeg, exposing
+  per-frame encode latency and dropped-frame counters, and meeting the 1080p60/4K60 capture target.
+  Use a platform encoder only if the software path cannot meet the required profile; do not add an
+  external codec library for a capability that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful
   bitrates, the module's decoder and a reference player both read them, and the recorder reports
   rate control, encode latency and dropped frames.

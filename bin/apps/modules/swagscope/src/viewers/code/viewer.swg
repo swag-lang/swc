@@ -295,19 +295,19 @@ impl Panel
     }
 
     // Gives the line numbers of the resident window the count of the lines before it. A window too
-    // deep in the file to count without a visible pause is shown without numbers rather than wrong.
+    // deep in the file to count without a visible pause is shown without numbers rather than wrong,
+    // and the numbers come back with the next window that can be counted, as the text viewer does.
     mtd numberWindow()
     {
-        if not .editor.flags.has(.LineNumbers) do
-            return
         let line = .lines.lineAt(.fileName, .residentStart)
-        if line
-        {
+        if line do
             .editor.setFirstLineNumber(line)
+        if (line != 0) == .editor.flags.has(.LineNumbers) do
             return
-        }
-
-        .editor.flags.remove(.LineNumbers)
+        if line do
+            .editor.flags.add(.LineNumbers)
+        else do
+            .editor.flags.remove(.LineNumbers)
         .editor.setFlags(.editor.flags)
     }
 

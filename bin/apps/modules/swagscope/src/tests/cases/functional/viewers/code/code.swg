@@ -50,6 +50,14 @@ struct CodeLanguageSample
     Swag.require(view.lines.lineAt(fileName, line30000) == 30_001)
     Swag.require(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)
     Swag.require(view.lines.lineAt(fileName, 0) == 1)
+
+    // A window too far from any counted line goes without numbers, and they come back with the
+    // next window that can be counted.
+    view.residentStart = Swag.U64.Max / 2
+    view.numberWindow()
+    Swag.require(not view.editor.flags.has(.LineNumbers))
+    Swag.require(view.revealOffset(0, ""))
+    Swag.require(view.editor.flags.has(.LineNumbers))
 }
 
 // The whole file is counted in the background apart from the streamed window, so the sheet gives

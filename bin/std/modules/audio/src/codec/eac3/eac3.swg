@@ -741,7 +741,7 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 
     var result: #returntype
     result.frameBytes = 2 * (((cast(u64, packet[2]) & 7) << 8) | cast(u64, packet[3])) + 2
-    if result.frameBytes < 6 do
+    if result.frameBytes < 7 do
         fail InvalidFormatError{"E-AC-3 frame is shorter than its sync header"}
 
     let fscod = cast(u32, (packet[4] >> 6)) & 3

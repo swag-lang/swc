@@ -149,22 +149,25 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     Swag.require(eac3.numChannels() == 3 and eac3.speakerChannelMask() == 0x0103)
 }
 
-// E-AC-3 rejects frames too short to contain their six-byte sync header.
+// E-AC-3 rejects frames too short to contain the seven-byte mandatory BSI header.
 #test
 {
-    var frame: [8] u8
-    frame[0] = 0x0B
-    frame[1] = 0x77
-    frame[3] = 0 // frame size code zero declares only two bytes.
+    for frameSizeCode in [0'u8, 2] // Declare two bytes, then six bytes.
+    {
+        var frame: [8] u8
+        frame[0] = 0x0B
+        frame[1] = 0x77
+        frame[3] = frameSizeCode
 
-    let path = Path.combine(Env.getSpecialDirectory(.Temp),
-                            Format.toString("dolby-short-eac3-%.eac3", Guid128.random()))
-    defer discard catch File.delete(path)
-    discard expect File.writeAllBytes(path, frame)
+        let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                                Format.toString("dolby-short-eac3-%.eac3", Guid128.random()))
+        defer discard catch File.delete(path)
+        discard expect File.writeAllBytes(path, frame)
 
-    var error: Swag.Error
-    discard catch SoundFile.load(path.toString()) as error
-    Swag.require(error.value() is InvalidFormatError)
+        var error: Swag.Error
+        discard catch SoundFile.load(path.toString()) as error
+        Swag.require(error.value() is InvalidFormatError)
+    }
 }
 
 // The reserved reduced E-AC-3 sample-rate index is rejected by the reader.

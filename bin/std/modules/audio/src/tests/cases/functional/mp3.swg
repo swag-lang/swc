@@ -33,6 +33,15 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     return result
 }
 
+// A frame header needs all four bytes before the reader can classify it.
+#test
+{
+    const Truncated: [3] u8 = [0xFF, 0xFB, 0x90]
+    var error: Swag.Error
+    discard catch Mp3.readHeader(Swag.makeSlice(&Truncated[0], Truncated.count)) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // Device-independent decoding follows the same audible timeline as playback, including the MP3
 // encoder delay that must be removed before frame zero reaches analysis consumers.
 #test

@@ -27,6 +27,28 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(reader.subtitleTrackCount() == count)
 }
 
+// Explicit track display geometry, including an explicit square-pixel size, takes priority over
+// the codec's sample aspect ratio.
+#test
+{
+    var track: Matroska.Track
+    track.displayUnit = 0
+    track.displayWidth = 720
+    track.displayHeight = 480
+    Swag.require(track.hasDisplaySize())
+    let explicit = track.displaySize(720, 480)
+    Swag.require(explicit.width == 0 and explicit.height == 0)
+
+    let codecRatio = pictureDisplaySize(720, 480, 16, 15)
+    Swag.require(codecRatio.width == 768 and codecRatio.height == 480)
+    let selected = track.hasDisplaySize() ? explicit : codecRatio
+    Swag.require(selected.width == 0 and selected.height == 0)
+
+    track.displayWidth = 640
+    let anamorphic = track.displaySize(720, 480)
+    Swag.require(anamorphic.width == 720 and anamorphic.height == 540)
+}
+
 // A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel
 // count alone cannot express.
 #test

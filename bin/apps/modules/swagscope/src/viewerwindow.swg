@@ -751,7 +751,7 @@ impl ViewerWindow
     {
         .privacy.refreshIndicator()
         let text = appStrings()
-        .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
+        .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
         .explorer?.address.show(.isExploring())

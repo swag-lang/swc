@@ -710,11 +710,15 @@ impl Panel
         let storage = .sound.sampleStorageBits()
         reducer.levels.ceiling = storage < 16 ? cast(s16, 32767 - ((1 << (16 - storage)) - 1)) : 32767
         var decoded = true
-        catch .sound.decodePcm16(func|reducer = &reducer, view = me|(samples: const [..] s16)->bool
+        var published: u64
+        catch .sound.decodePcm16(func|reducer = &reducer, published = &published, view = me|(samples: const [..] s16)->bool
         {
             reducer.consume(samples)
-            if reducer.readyCount do
+            if reducer.readyCount > published[]
+            {
                 view.publishWaveform(reducer.readyCount)
+                published[] = reducer.readyCount
+            }
             return not Swag.isCancelled()
         })
         {

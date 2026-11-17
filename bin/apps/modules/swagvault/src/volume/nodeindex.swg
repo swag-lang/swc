@@ -166,6 +166,14 @@ impl NodeIndex
 
         if node.parentId != parentId or node.name.toString() != name
         {
+            if node.id != RootNodeId and node.parentId == parentId
+            {
+                .byParent.remove(childKey(node.parentId, node.name))
+                node.name = name
+                .byParent.add(#move key, node.id)
+                return true
+            }
+
             let position = .nodePosition(node.id)
             Swag.assert(position != Swag.U64.Max)
             .remove(node)

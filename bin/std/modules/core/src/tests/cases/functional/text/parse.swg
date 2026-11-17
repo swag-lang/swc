@@ -94,6 +94,17 @@ using Swag
     Swag.require(plain.value == "x\"y")
 }
 
+// A trailing escape byte has no character to quote and is a syntax error.
+#test
+{
+    var text = String.from("unfinished escape")
+    text.append('\\'u8)
+
+    var outcome: Swag.Error
+    discard catch StrConv.parseString(text.toString()) as outcome
+    Swag.require(outcome.value() is Errors.SyntaxError)
+}
+
 // Superscripts and fractions are Latin-1 numbers but not decimal digits.
 #test
 {

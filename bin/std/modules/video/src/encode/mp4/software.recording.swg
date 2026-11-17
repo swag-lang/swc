@@ -15,6 +15,18 @@ struct SoftwareAudioConfig
     public bandwidth:    Aac.Bandwidth = .Full     // Full or voice-band encoding.
 }
 
+// Configures adaptive H.264 quantization against a target video bitrate.
+//
+// The controller adjusts the base QP from completed packet sizes and durations; it smooths
+// average rate but cannot guarantee a bitrate or file size for individual pictures.
+struct SoftwareVideoRateControl
+{
+    public targetBitsPerSecond: u64    // Average compressed video rate in bits per second.
+    public reservoirBits:       u64    // Virtual-buffer capacity used to smooth picture-size changes.
+    public minQp:               u32 = 18    // Lowest base QP; rate-controlled encoding requires 1 through 51.
+    public maxQp:               u32 = 42    // Highest base QP; must be at most 51 and no lower than minQp.
+}
+
 private struct SoftwareAudioTrack
 {
     encoder: Aac.StreamEncoder
@@ -34,6 +46,8 @@ private struct SoftwareAudioTrack
 // A video-only recording starts at video time zero and needs no audio device.
 // Video quantization parameter 0 preserves exact samples. Values 1 through 51 may quantize
 // textured IDR and P pictures; this fixed setting does not target a bitrate.
+// An optional [[Video.Mp4.SoftwareVideoRateControl]] adapts the per-picture QP against a target
+// video rate; fixed `quantizationQp` must remain zero when it is supplied.
 // Each picture may use one through eight H.264 slices, up to its macroblock-row count.
 // One video producer and one producer per audio track may encode concurrently. Container writes
 // are serialized after encoding. Create and finish the recording with all producers stopped;
@@ -53,6 +67,9 @@ struct SoftwareRecording
         nextVideoTime:  u64
         frameCount:     u64
         repeatedFrames: u64
+        rateControl:    H264.RateControl
+        hasRateControl: bool
+        videoQp:       u32
         ended:          bool
     }
 }
@@ -65,9 +82,9 @@ impl SoftwareRecording
     // duration. The resulting MP4 has one video track and no empty sound track.
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
-    // complete macroblock-row bands.
-    func createVideoOnly(path: string, width, height: s32, videoTimescale: u32, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
-        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval, options, quantizationQp, sliceCount)
+    // complete macroblock-row bands. A rate controller can replace fixed QP selection.
+    func createVideoOnly(path: string, width, height: s32, videoTimescale: u32, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1, rateControl: const *SoftwareVideoRateControl? = null)->SoftwareRecording fail
+        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval, options, quantizationQp, sliceCount, rateControl)
 
     // Creates a software audiovisual recorder and writes the MP4 initialization movie.
     //
@@ -77,11 +94,11 @@ impl SoftwareRecording
     // the output path; completed fragments stay playable after an interrupted process.
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
-    // complete macroblock-row bands.
-    func create(path: string, width, height: s32, videoTimescale: u32, audioRate: u32, audioChannels: u16, keyInterval: u32 = 60, bandwidth: Aac.Bandwidth = .Full, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
+    // complete macroblock-row bands. A rate controller can replace fixed QP selection.
+    func create(path: string, width, height: s32, videoTimescale: u32, audioRate: u32, audioChannels: u16, keyInterval: u32 = 60, bandwidth: Aac.Bandwidth = .Full, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1, rateControl: const *SoftwareVideoRateControl? = null)->SoftwareRecording fail
     {
         let configs: [1] SoftwareAudioConfig = [{audioRate, audioChannels, bandwidth}]
-        return try createWithAudioTracks(path, width, height, videoTimescale, Swag.makeSlice(&configs[0], configs.count), keyInterval, options, quantizationQp, sliceCount)
+        return try createWithAudioTracks(path, width, height, videoTimescale, Swag.makeSlice(&configs[0], configs.count), keyInterval, options, quantizationQp, sliceCount, rateControl)
     }
 
     // Creates a recorder with zero through four separately encoded AAC-LC sound tracks.
@@ -91,13 +108,33 @@ impl SoftwareRecording
     // copies decoder configurations and owns the output path.
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
-    // complete macroblock-row bands.
-    func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32, audioConfigs: const [..] SoftwareAudioConfig, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
+    // complete macroblock-row bands. A rate controller can replace fixed QP selection.
+    func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32, audioConfigs: const [..] SoftwareAudioConfig, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1, rateControl: const *SoftwareVideoRateControl? = null)->SoftwareRecording fail
     {
         if audioConfigs.count > 4 do
             fail BadParameterError{"software recording supports at most four audio tracks"}
+        if rateControl and quantizationQp do
+            fail BadParameterError{"software recording cannot combine fixed QP and bitrate control"}
         var result: #returntype
-        result.video = try H264.Encoder.create(width, height, keyInterval, quantizationQp, sliceCount)
+        if rateControl
+        {
+            let config = rateControl
+            if not config.minQp or config.minQp > config.maxQp do
+                fail BadParameterError{"software video rate control needs a QP range from 1 to 51"}
+            result.rateControl = try H264.RateControl.create(config.targetBitsPerSecond,
+                                                             config.reservoirBits,
+                                                             videoTimescale,
+                                                             config.minQp,
+                                                             config.maxQp)
+            result.hasRateControl = true
+            result.videoQp = 0
+            result.video = try H264.Encoder.create(width, height, keyInterval, config.minQp, sliceCount)
+        }
+        else
+        {
+            result.videoQp = quantizationQp
+            result.video = try H264.Encoder.create(width, height, keyInterval, quantizationQp, sliceCount)
+        }
         if not audioConfigs.count
         {
             result.writer = try FragmentedWriter.create(path, width, height, videoTimescale, result.video.decoderConfig(), options)
@@ -146,6 +183,11 @@ impl SoftwareRecording
 
     // Returns the number of frame slots filled by repeating the previous picture.
     mtd const repeatedFrameCount()->u64 => .repeatedFrames
+
+    // Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.
+    //
+    // Before the first slot, rate-controlled recordings return zero.
+    mtd const videoQuantizationQp()->u32 => .videoQp
 
     // Returns the number of independent AAC-LC sound tracks.
     mtd const audioTrackCount()->u64 => .tracks.count
@@ -196,11 +238,28 @@ impl SoftwareRecording
         if slot.decodeTime > Swag.U64.Max - .videoOffset or
            slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
             fail OverflowError{"software recording video time overflows"}
+        if .hasRateControl
+        {
+            try .rateControl.validateDuration(slot.duration)
+        }
         try .nv12.convertFrom(image)
-        let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        var packet: EncodedPacket
+        if .hasRateControl
+        {
+            .videoQp = .rateControl.chooseQp(.video.willEncodeKeyFrame(), false)
+            packet = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
+        }
+        else
+        {
+            packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        }
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .writer.addPacket(packet)
+        if .hasRateControl
+        {
+            try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
+        }
         .frameCount    += 1
         .nextVideoTime = slot.decodeTime + slot.duration
     }
@@ -218,10 +277,27 @@ impl SoftwareRecording
         if slot.decodeTime > Swag.U64.Max - .videoOffset or
            slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
             fail OverflowError{"software recording video time overflows"}
-        let packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
+        if .hasRateControl
+        {
+            try .rateControl.validateDuration(slot.duration)
+        }
+        var packet: EncodedPacket
+        if .hasRateControl and .video.willEncodeKeyFrame()
+        {
+            .videoQp = .rateControl.chooseQp(true, false)
+            packet = try .video.encodeAtQp(&.nv12, slot.decodeTime + .videoOffset, slot.duration, .videoQp)
+        }
+        else
+        {
+            packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
+        }
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .writer.addPacket(packet)
+        if .hasRateControl
+        {
+            try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
+        }
         .frameCount     += 1
         .repeatedFrames += 1
         .nextVideoTime  = slot.decodeTime + slot.duration

@@ -42,6 +42,172 @@ func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32, buffer[offset]
                                                         cast(u32, buffer[offset + 2]) << 8 |
                                                         buffer[offset + 3]
 
+// Replaces the sfnt `post` table with a small synthetic name map for parser tests.
+func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16,
+                          secondGlyph, secondNameIndex: u16, customNames: const [..] string,
+                          truncate: bool = false)->Array'u8 fail
+{
+    var glyphCount = 0'u16
+    var postRecord = 0'u64
+    let tableCount = try readU16(sfnt, 4)
+    for index in tableCount
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        let tag = try readU32(sfnt, record)
+        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
+        {
+            let offset = try readU32(sfnt, record + 8)
+            glyphCount = try readU16(sfnt, offset + 4)
+        }
+        elif tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+        {
+            postRecord = record
+        }
+    }
+    Swag.require(glyphCount > secondGlyph)
+    Swag.require(postRecord != 0)
+
+    var post: Array'u8
+    post.resize(34 + cast(u64, glyphCount) * 2)
+    writeBigU32(&post, 0, 0x00020000)
+    writeBigU16(&post, 32, glyphCount)
+    writeBigU16(&post, 34 + cast(u64, firstGlyph) * 2, firstNameIndex)
+    writeBigU16(&post, 34 + cast(u64, secondGlyph) * 2, secondNameIndex)
+    for name in customNames
+    {
+        post.add(cast(u8, name.count))
+        post.add(cast(const [..] u8, name))
+    }
+    if truncate and post.count do
+        post.resize(post.count - 1)
+
+    var result: Array'u8
+    result.add(sfnt)
+    while (result.count & 3) != 0 do
+        result.add(0)
+    let postOffset = cast(u32, result.count)
+    result.add(post.toSlice())
+    writeBigU32(&result, postRecord + 8, postOffset)
+    writeBigU32(&result, postRecord + 12, cast(u32, post.count))
+    return result
+}
+
+func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16,
+                           standardNameIndex: u8)->Array'u8 fail
+{
+    var postRecord = 0'u64
+    var maxpOffset = Swag.U32.Max
+    var hheaOffset = Swag.U32.Max
+    let tableCount = try readU16(sfnt, 4)
+    for index in tableCount
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        let tag = try readU32(sfnt, record)
+        if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+            postRecord = record
+        elif tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
+            maxpOffset = try readU32(sfnt, record + 8)
+        elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
+            hheaOffset = try readU32(sfnt, record + 8)
+    }
+    Swag.require(postRecord != 0 and maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max)
+    Swag.require(258 > glyphIndex)
+
+    var post: Array'u8
+    post.resize(34 + 258)
+    writeBigU32(&post, 0, 0x00025000)
+    writeBigU16(&post, 32, 258)
+    post[34 + glyphIndex] = cast(u8, cast(s16, standardNameIndex) - cast(s16, glyphIndex))
+
+    var result: Array'u8
+    result.add(sfnt)
+    writeBigU16(&result, maxpOffset + 4, 258)
+    writeBigU16(&result, hheaOffset + 34, 258)
+    while (result.count & 3) != 0 do
+        result.add(0)
+    let postOffset = cast(u32, result.count)
+    result.add(post.toSlice())
+    writeBigU32(&result, postRecord + 8, postOffset)
+    writeBigU32(&result, postRecord + 12, cast(u32, post.count))
+    return result
+}
+
+func buildPostFormat3Font(sfnt: const [..] u8)->Array'u8 fail
+{
+    var postRecord = 0'u64
+    let tableCount = try readU16(sfnt, 4)
+    for index in tableCount
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        if try readU32(sfnt, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+            postRecord = record
+    }
+    Swag.require(postRecord != 0)
+
+    var post: Array'u8
+    post.resize(32)
+    writeBigU32(&post, 0, 0x00030000)
+    var result: Array'u8
+    result.add(sfnt)
+    while (result.count & 3) != 0 do
+        result.add(0)
+    let postOffset = cast(u32, result.count)
+    result.add(post.toSlice())
+    writeBigU32(&result, postRecord + 8, postOffset)
+    writeBigU32(&result, postRecord + 12, cast(u32, post.count))
+    return result
+}
+
+func truncatePostTable(font: *Array'u8, length: u32)
+{
+    for index in readBigU16(font, 4)
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        if readBigU32(font, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+        {
+            writeBigU32(font, record + 12, length)
+            return
+        }
+    }
+    Swag.panic("post table missing from test font", #curlocation)
+}
+
+func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
+{
+    var maxpOffset = Swag.U32.Max
+    var hheaOffset = Swag.U32.Max
+    var postRecord = 0'u64
+    let tableCount = try readU16(sfnt, 4)
+    for index in tableCount
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        let tag = try readU32(sfnt, record)
+        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) do
+            maxpOffset = try readU32(sfnt, record + 8)
+        elif tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) do
+            hheaOffset = try readU32(sfnt, record + 8)
+        elif tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) do
+            postRecord = record
+    }
+    Swag.require(maxpOffset != Swag.U32.Max and hheaOffset != Swag.U32.Max and postRecord != 0)
+
+    var result: Array'u8
+    result.add(sfnt)
+    writeBigU16(&result, maxpOffset + 4, 258)
+    writeBigU16(&result, hheaOffset + 34, 258)
+
+    var post: Array'u8
+    post.resize(32)
+    writeBigU32(&post, 0, 0x00010000)
+    while (result.count & 3) != 0 do
+        result.add(0)
+    let postOffset = cast(u32, result.count)
+    result.add(post.toSlice())
+    writeBigU32(&result, postRecord + 8, postOffset)
+    writeBigU32(&result, postRecord + 12, cast(u32, post.count))
+    return result
+}
+
 // Wraps an sfnt font in WOFF1, compressing tables where zlib saves space.
 func buildWoffFont(sfnt: const [..] u8)->Array'u8 fail
 {

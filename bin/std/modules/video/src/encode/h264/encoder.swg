@@ -107,7 +107,7 @@ impl Encoder
     // 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size.
     // The interval is 1 to 255 pictures. A new encoder starts with an IDR picture.
     // `quantizationQp` is 0 for exact samples or 1 through 51 for quantized intra and
-    // inter residuals. This fixed QP is not a target-bitrate controller.
+    // inter residuals.
     // `sliceCount` divides each picture into 1 to 8 complete macroblock-row bands.
     // The default single slice preserves the original bitstream.
     func create(width, height: s32, keyInterval: u32 = 60,
@@ -142,6 +142,9 @@ impl Encoder
 
     // Borrows the AVC decoder configuration until this encoder is destroyed.
     mtd const decoderConfig()->const [..] u8 => .config.toSlice()
+
+    // Reports whether the next picture starts a new independently decodable GOP.
+    internal mtd const willEncodeKeyFrame()->bool => not .hasFrame or .framesSinceKey >= .keyInterval
 
     // Encodes one picture and returns its MP4-ready access unit.
     //
@@ -209,6 +212,24 @@ impl Encoder
         }
         let presentationTime = decodeTime
         return EncodedPacket{.packet.toSlice(), decodeTime, presentationTime, duration, key}
+    }
+
+    // Encodes one picture with the supplied base quantizer for the next picture only.
+    // This is used by the software rate controller; fixed-QP callers use `encode`.
+    internal mtd encodeAtQp(frame: const *Nv12Frame, decodeTime: u64, duration, qp: u32)->EncodedPacket fail
+    {
+        if not .quantizationQp or qp < 1 or qp > 51 do
+            fail BadParameterError{"H.264 per-picture quantization needs an encoder in lossy mode and QP 1 to 51"}
+        if frame.width != .width or frame.height != .height or
+           frame.bytes.count != cast(u64, .width) * cast(u64, .height) * 3 / 2 do
+            fail BadParameterError{"H.264 encoder needs one NV12 picture of its configured size"}
+        if not duration or decodeTime > Swag.U64.Max - duration or
+           (.hasFrame and decodeTime < .previousEnd) do
+            fail BadParameterError{"H.264 encoder packet timing is invalid"}
+
+        .quantizationQp = qp
+        .lossy.baseQp = qp
+        return try .encode(frame, decodeTime, duration)
     }
 
     // Holds the last encoded picture for another video slot without analyzing its pixels.

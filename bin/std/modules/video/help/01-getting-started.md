@@ -83,6 +83,11 @@ try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
 [[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]] both select the JPEG quality of their Motion JPEG
 frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.
 
+The fragmented software H.264 recorder accepts [[Mp4.SoftwareVideoRateControl]] to steer its
+per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does
+not guarantee a per-frame bitrate or final file size; query
+`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot.
+
 ## Adding a format
 
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]] and selected

@@ -11,8 +11,15 @@ SWC_BEGIN_NAMESPACE();
 void Os::decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers)
 {
     const auto* exception = static_cast<const LinuxException*>(platformExceptionPointers);
-    outExceptionCode = exception ? exception->signal : 0;
-    outExceptionAddress = exception ? reinterpret_cast<const void*>(exception->instructionAddress) : nullptr;
+    if (!exception)
+    {
+        outExceptionCode    = 0;
+        outExceptionAddress = nullptr;
+        return;
+    }
+
+    outExceptionCode    = exception->signal;
+    outExceptionAddress = reinterpret_cast<const void*>(exception->instructionAddress);
 }
 
 void Os::appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers)

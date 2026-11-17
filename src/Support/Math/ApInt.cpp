@@ -1136,28 +1136,19 @@ Utf8 ApInt::toSignedString() const
     if (isNonNegative())
         return toString();
 
-    // Simplify: detect min signed directly
+    ApInt mag(bitWidth_);
     if (same(minValueSigned(bitWidth_)))
     {
         // min signed = 1 << (bitWidth-1) in magnitude, printed as "-(1<<...)" in decimal
-        ApInt mag(bitWidth_);
         mag.setBit(bitWidth_ - 1);
-
-        std::string digits;
-        while (!mag.isZero())
-        {
-            const uint64_t rem = mag.div(10);
-            SWC_ASSERT(rem < 10);
-            digits.push_back(static_cast<char>('0' + rem));
-        }
-        std::ranges::reverse(digits);
-        return "-" + digits;
     }
-
-    ApInt mag = *this;
-    bool  ov  = false;
-    mag.abs(ov);
-    SWC_ASSERT(!ov);
+    else
+    {
+        mag = *this;
+        bool overflow = false;
+        mag.abs(overflow);
+        SWC_ASSERT(!overflow);
+    }
 
     std::string digits;
     while (!mag.isZero())

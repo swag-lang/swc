@@ -95,6 +95,12 @@ using Core, Pixel
     if not monitors.count do
         return
     var source = expect Source.openMonitor(0)
+    let selection = source.captureOptions()
+    let monitorBounds = monitors[0].physicalBounds
+    Swag.require(selection.x == cast(s32, monitorBounds.x) and
+                 selection.y == cast(s32, monitorBounds.y) and
+                 selection.width == cast(s32, monitorBounds.width) and
+                 selection.height == cast(s32, monitorBounds.height))
     let native = source.sources[0]
     Swag.require(expect native.beginGrab())
     Swag.require(native.pending)
@@ -232,6 +238,9 @@ using Core, Pixel
     let width = cast(s32, right - left)
     let height = cast(s32, bottom - top)
     var source = expect Source.openDesktop()
+    let selection = source.captureOptions()
+    Swag.require(selection.x == cast(s32, left) and selection.y == cast(s32, top) and
+                 selection.width == width and selection.height == height)
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false,
                                         updateChangedOnly: true))

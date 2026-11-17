@@ -16,8 +16,9 @@ continues to own media frames and codecs, not desktop access.
   or `Env.Monitor` physical-bounds snapshot, and opens the virtual-desktop bounds including gaps.
   It also exposes DXGI presentation time in the monotonic clock (zero on backends without that
   timestamp), supports cursor composition on X11 and Windows, and can reset cumulative metrics
-  without reopening. Monitor values are only snapshots; borrowed GPU frames, persistent monitor
-  IDs, and window targets remain unavailable.
+  without reopening. `captureOptions()` returns the selected physical rectangle and cursor policy.
+  Monitor values are only snapshots; borrowed GPU frames, persistent monitor IDs, and window
+  targets remain unavailable.
 - Next: add a bounded borrowed-frame contract, persistent monitor/window targets, permission and
   source-loss results. Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while

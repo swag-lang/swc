@@ -544,7 +544,8 @@ impl ViewerWindow
     }
 
     // Offers the find bar only while the active viewer can reveal matches, keeps it on screen
-    // while the reader asked for it, and restarts the search for the new viewer.
+    // while the reader asked for it, and restarts the search for the new viewer. An open lens asks
+    // the new viewer for its rows as well.
     mtd updateSearchAvailability()
     {
         let active         = .activeChoiceIndex < .instances.count
@@ -563,6 +564,11 @@ impl ViewerWindow
         .restartSearch()
         if not available and searchHadFocus do
             .viewerFocusTarget()?.setFocus()
+
+        // The rows a viewer gave the lens run on that viewer, which a failure, a reload or another
+        // file may have destroyed while the lens stayed open.
+        if .lens.isOpen() do
+            .lens.refresh()
     }
 
     // Cancels the search in progress and hides its highlight; `clearPresentation` also clears the

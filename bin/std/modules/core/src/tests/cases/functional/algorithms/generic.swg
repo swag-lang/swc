@@ -31,6 +31,11 @@ using Swag
     Core.orderMinMax(&sameLeft, &sameRight)
     Swag.require(sameLeft == 4)
     Swag.require(sameRight == 4)
+
+    var alreadyLow  = -5
+    var alreadyHigh = 12
+    Core.orderMinMax(&alreadyLow, &alreadyHigh)
+    Swag.require(alreadyLow == -5 and alreadyHigh == 12)
 }
 
 #test
@@ -46,4 +51,9 @@ using Swag
     Core.orderMaxMin(&sameLeft, &sameRight)
     Swag.require(sameLeft == 7)
     Swag.require(sameRight == 7)
+
+    var alreadyHigh = 15
+    var alreadyLow  = -2
+    Core.orderMaxMin(&alreadyHigh, &alreadyLow)
+    Swag.require(alreadyHigh == 15 and alreadyLow == -2)
 }

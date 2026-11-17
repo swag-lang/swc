@@ -13,6 +13,16 @@ tools/std.bat dm test gui --test-file theme.rasters.swg --test-file theme.resour
 tools/std.bat dm test gui -bc release --test-file theme.rasters.swg
 ```
 
+The ten default TrueType faces are embedded as lossless zlib streams to reduce executable size.
+Regenerate them after changing a source font, from the repository root:
+
+```text
+bin/swc.dm.exe run -f bin/std/modules/gui/tools/compress-theme-fonts.swgs
+```
+
+`Resources.Bundle.load` decodes compressed embedded resources transparently, so resource names,
+disk overrides, and the `TypeFace` input remain ordinary `.ttf` bytes.
+
 This is an asset-maintenance operation, not a compilation step. Normal builds include the
 checked-in PNG bytes directly. Keep the generated sizes and `paint/theme.rasters.swg` in
 sync, and measure executable growth before expanding the set. DevMode tests compare every

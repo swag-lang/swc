@@ -171,7 +171,7 @@ namespace
     {
         ByteArray bytes;
         Utf8 error;
-        if (!buildElfImage(bytes, error, job) || !ELFSymbolTable::finalizeImage(bytes, error))
+        if (!buildElfImage(bytes, error, job) || !ELFSymbolTable::finalizeImage(bytes, error, job.elfRuntimeSymbols))
             return linkError(job, error.view());
         FileSystem::IoErrorInfo io;
         if (FileSystem::writeBinaryFileAtomic(job.outputPath, bytes.data(), bytes.size(), io, FileSystem::FileReplacement::Ordinary) != Result::Continue)
@@ -219,6 +219,7 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
     outJob.outputPath = fs::absolute(builder_->artifactPath);
     outJob.buildDir   = fs::absolute(builder_->buildDir);
     outJob.elfStripSymbols = !builder_->compiler().buildCfg().backend.debugInfo;
+    outJob.elfRuntimeSymbols = !builder_->compiler().cmdLine().noRuntimeSymbols;
     const auto kind   = builder_->compiler().buildCfg().backendKind;
     outJob.output     = kind == Runtime::BuildCfgBackendKind::StaticLibrary ? LinkJob::Output::StaticLibrary : kind == Runtime::BuildCfgBackendKind::SharedLibrary ? LinkJob::Output::SharedLibrary
                                                                                                                                                                    : LinkJob::Output::Executable;
@@ -337,6 +338,7 @@ Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, 
     outJob.buildDir       = fs::absolute(builder_->buildDir);
     outJob.archiveMembers = std::move(objects);
     outJob.elfStripSymbols = true;
+    outJob.elfRuntimeSymbols = !compiler.cmdLine().noRuntimeSymbols;
     // The manifest owns API freshness; dependency paths are resolved again against
     // this invocation's selected artifacts, never replayed from an old command line.
     std::set<Utf8> libraries(libraryNames.begin(), libraryNames.end());

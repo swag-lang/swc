@@ -28,6 +28,10 @@ func expectInvalidProcessArguments(info: Env.StartInfo)
     expectInvalidProcessArguments({fileName: ""})
     expectInvalidProcessArguments({fileName: "/swag-missing-process", workingDirectory: ""})
     expectInvalidProcessArguments({fileName: "/swag-missing-process", workingDirectory: "embedded\0zero"})
+
+    var emptyNameEnvironment: Env.ProcessEnvironment
+    emptyNameEnvironment.set("", "value")
+    expectInvalidProcessArguments({fileName: "/swag-missing-process", environment: &emptyNameEnvironment})
 }
 
 #[Swag.TestTag("process.arguments")]

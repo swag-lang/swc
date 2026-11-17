@@ -8,8 +8,10 @@ struct EmbeddedResource
 {
     public
     {
-        name:  String             // Resource name, with `/` separators.
-        bytes: const [..] u8?     // Compile-time bytes, owned by the program image.
+        name:             String             // Resource name, with `/` separators.
+        bytes:            const [..] u8?     // Compile-time bytes, owned by the program image.
+        zlibCompressed:   bool               // Whether `bytes` is a zlib stream.
+        uncompressedSize: u64                // Decoded size, used to reserve the result buffer.
     }
 }
 
@@ -58,10 +60,29 @@ impl Bundle
         for &entry in .embedded where entry.name == name
         {
             entry.bytes = bytes
+            entry.zlibCompressed   = false
+            entry.uncompressedSize = 0
             return
         }
 
-        .embedded.add({name, bytes})
+        .embedded.add({name, bytes, false, 0})
+    }
+
+    // Registers zlib-compressed compile-time bytes as the fallback provider for `name`.
+    //
+    // `load` transparently returns the decoded resource with the same owned-byte contract as
+    // [[addEmbedded]]. Compression is useful for large, lossless resources such as bundled fonts.
+    mtd addEmbeddedZlib(name: string, bytes: const [..] u8, uncompressedSize: u64)
+    {
+        for &entry in .embedded where entry.name == name
+        {
+            entry.bytes = bytes
+            entry.zlibCompressed   = true
+            entry.uncompressedSize = uncompressedSize
+            return
+        }
+
+        .embedded.add({name, bytes, true, uncompressedSize})
     }
 
     // Returns whether `name` resolves through any provider.
@@ -88,6 +109,12 @@ impl Bundle
         let entry = .findEmbedded(name)
         if entry
         {
+            if entry.zlibCompressed
+            {
+                var zlib: Compress.ZLib
+                return try zlib.decompress(unwrap entry.bytes, entry.uncompressedSize)
+            }
+
             var result: #returntype
             result.add(entry.bytes)
             return result

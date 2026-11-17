@@ -35,3 +35,25 @@ using Swag
     })
     Swag.require(failure.raised and failure.message() == "duration is invalid")
 }
+
+#test
+{
+    var infinite = Time.Duration.fromSeconds(1)
+    let infiniteSeconds = cast(*f64, &infinite)
+    infiniteSeconds[] = Swag.F64.Inf
+    let infiniteFailure = Swag.catchPanic(func|&infinite|()
+    {
+        discard infinite.milliseconds()
+    })
+
+    var notANumber = Time.Duration.fromSeconds(1)
+    let nanSeconds = cast(*f64, &notANumber)
+    nanSeconds[] = Swag.F64.NaN
+    let nanFailure = Swag.catchPanic(func|&notANumber|()
+    {
+        discard notANumber.milliseconds()
+    })
+
+    Swag.require(infiniteFailure.raised and infiniteFailure.message() == "duration is invalid")
+    Swag.require(nanFailure.raised and nanFailure.message() == "duration is invalid")
+}

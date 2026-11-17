@@ -118,6 +118,9 @@ and recorded source locations across executables, static archives and shared lib
 executables and shared libraries omit `.symtab` and `.strtab`; dynamic symbols, unwind data and
 `.swagdbg` remain available. Finalization also removes unused file space left by merging runtime
 symbol contributions, without moving loaded bytes or virtual addresses.
+For smaller native images, `--no-runtime-symbols` omits `.swagdbg` from executable and shared-library
+outputs on Linux and Windows. Panic messages remain available, but runtime traces no longer include
+function names or source locations. The default keeps the table.
 Linux executable builds reuse eligible self-contained function objects from
 `<name>.incremental.elfcache` in the work directory. The cache
 checks compiler identity, IR/ABI fingerprints, recorded source coordinates and payload integrity;

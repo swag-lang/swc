@@ -230,3 +230,16 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Atomic.set(&value, 11)
     Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
+
+#test
+{
+    var flag: Swag.AtomicFlag
+    Swag.require(not flag.isRaised())
+    Swag.require(flag.raise())
+    Swag.require(flag.isRaised())
+    Swag.require(not flag.raise())
+
+    flag.reset()
+    Swag.require(not flag.isRaised())
+    Swag.require(flag.raise())
+}

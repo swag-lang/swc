@@ -6,6 +6,21 @@ using Swag
 const EmbeddedHello = [104'u8, 101, 108, 108, 111]
 const EmbeddedOther = [111'u8, 107]
 
+// Compressed embedded resources retain the ordinary owned-byte load contract.
+#test
+{
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(EmbeddedHello, .BestCompression)
+
+    var bundle: Resources.Bundle
+    bundle.addEmbeddedZlib("font.ttf", compressed.toSlice(), EmbeddedHello.count)
+
+    Swag.require(bundle.has("font.ttf"))
+    Swag.require(not bundle.isOverridden("font.ttf"))
+    let bytes = expect bundle.load("font.ttf")
+    Swag.require(Slice.equals(bytes.toSlice(), EmbeddedHello))
+}
+
 // Embedded-only resolution: a registered name always resolves, an unknown one fails.
 #test
 {
@@ -31,7 +46,9 @@ const EmbeddedOther = [111'u8, 107]
 #test
 {
     var bundle: Resources.Bundle
-    bundle.addEmbedded("data.bin", EmbeddedHello)
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(EmbeddedHello, .BestCompression)
+    bundle.addEmbeddedZlib("data.bin", compressed.toSlice(), EmbeddedHello.count)
     bundle.addEmbedded("data.bin", EmbeddedOther)
 
     let bytes = expect bundle.load("data.bin")
@@ -53,7 +70,9 @@ const EmbeddedOther = [111'u8, 107]
     var bundle: Resources.Bundle
     bundle.addFolder("missing_bundle_folder_that_does_not_exist")
     bundle.addFolder(root.toString())
-    bundle.addEmbedded("lang/fr.tweak", EmbeddedHello)
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(EmbeddedHello, .BestCompression)
+    bundle.addEmbeddedZlib("lang/fr.tweak", compressed.toSlice(), EmbeddedHello.count)
 
     Swag.require(bundle.isOverridden("lang/fr.tweak"))
     let bytes = expect bundle.load("lang/fr.tweak")

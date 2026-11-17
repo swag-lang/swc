@@ -15,6 +15,20 @@ func expectNear(actual, expected: f32)
 
 #test
 {
+    let view = Math.Matrix4x4.createLookAt({0, 0, 5}, {0, 0, 0}, Math.Vector3.UnitY)
+    let projection = Math.Matrix4x4.createPerspective(Math.ConstF32.PiBy2, 1, 1, 10)
+    let frustum = Math.Geometry.Frustum3.fromMatrix(view.multiplied(projection))
+    Swag.require(frustum.contains({0, 0, 0}))
+    Swag.require(not frustum.contains({0, 0, 5}))
+    Swag.require(not frustum.contains({20, 0, 0}))
+    Swag.require(not frustum.contains({0, 0, 4.5}))
+    Swag.require(not frustum.contains({0, 0, -6}))
+    Swag.require(frustum.intersects(Math.Geometry.Bounds3{{-0.5, -0.5, -0.5}, {0.5, 0.5, 0.5}}))
+    Swag.require(not frustum.intersects(Math.Geometry.Bounds3{{19, -1, -1}, {21, 1, 1}}))
+}
+
+#test
+{
     let transform = Math.Transform3{
         {1, 0, 0}, Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2), {2, 1, 1}}
     let point = transform.transformPoint({1, 0, 0})

@@ -82,6 +82,31 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     Swag.require(not Crypto.constantTimeEqual(oneShot, empty))
 }
 
+// Reset validation preserves the active one-time key state on failure, while a
+// successful reset starts a fresh message under the replacement key.
+#test
+{
+    let firstKey  = rangeBytes(32, 0x10)
+    let secondKey = rangeBytes(32, 0x80)
+    var mac       = expect Crypto.Poly1305.create(firstKey.toSlice())
+    mac.update("discarded prefix")
+
+    var shortResetOutcome: Swag.Error
+    discard catch mac.reset(secondKey.toSlice()[until 31]) as shortResetOutcome
+    Swag.require(shortResetOutcome.value() is Errors.BadParameterError)
+
+    mac.update(" + kept suffix")
+    let preserved = mac.finalize()
+    let preservedReference = expect Crypto.Poly1305.compute(firstKey.toSlice(), "discarded prefix + kept suffix")
+    Swag.require(Crypto.constantTimeEqual(preserved, preservedReference))
+
+    expect mac.reset(secondKey.toSlice())
+    mac.update("fresh message")
+    let resetTag = mac.finalize()
+    let resetReference = expect Crypto.Poly1305.compute(secondKey.toSlice(), "fresh message")
+    Swag.require(Crypto.constantTimeEqual(resetTag, resetReference))
+}
+
 #test
 {
     // RFC 8439 section 2.8.2, the full AEAD vector.

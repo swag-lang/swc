@@ -53,6 +53,8 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     let arrayType = #typeof([2] CoreAliasLifecycleStrict)
     if aliasType.kind != TypeInfoKind.Alias or arrayType.kind != TypeInfoKind.Array do
         return false
+    if not Reflection.isTypeAlias(aliasType) do
+        return false
     if not hasCoreAliasLifecycleFlags(aliasType) or not hasCoreAliasLifecycleFlags(arrayType) do
         return false
 

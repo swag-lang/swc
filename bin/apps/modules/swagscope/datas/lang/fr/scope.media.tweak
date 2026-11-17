@@ -65,6 +65,7 @@ disc        Disque
 genre       Genre
 weight      Graisse
 embedding   Incorporation
+columns     Colonnes
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

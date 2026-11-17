@@ -292,6 +292,20 @@ func detectDelimiter(fileName, text: string)->u8
 const PageMargin = 112.0
 const HeadHeight = 72.0
 
+// What the values of one column add up to: how many cells are empty and, over those reading as
+// quantities, their range and their sum.
+struct ColumnProfile
+{
+    empty:      u64
+    quantities: u64
+    minimum:    f64
+    maximum:    f64
+    sum:        f64
+}
+
+// The most columns the information sheet profiles; a wider table names how many it leaves out.
+const ProfiledColumnLimit = 48'u64
+
 // Names the kind of values of a column, as its header writes it under its name.
 func kindName(kind: ColumnKind)->string
 {
@@ -327,8 +341,10 @@ func isThousands(text: string)->bool
 // Writes `value` with its thousands grouped by a narrow space, two decimals when `decimal`.
 func groupThousands(value: f64, decimal: bool)->String
 {
+    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100.
     let negative = value < 0
-    let whole    = cast(u64, Math.abs(value))
+    let cents    = cast(u64, Math.round(Math.abs(value) * 100))
+    let whole    = decimal ? cents / 100 : cast(u64, Math.abs(value))
     var digits   = Format.toString("%", whole)
     var result: String
     for byte, at in digits.toString()
@@ -338,11 +354,8 @@ func groupThousands(value: f64, decimal: bool)->String
         result += cast(rune, byte)
     }
 
-    if decimal
-    {
-        let cents = cast(u64, Math.round((Math.abs(value) - cast(f64, whole)) * 100))
-        result += Format.toString(".%{02}", cents)
-    }
+    if decimal do
+        result += Format.toString(".%{02}", cents % 100)
 
     return negative ? Format.toString("-%", result) : result
 }
@@ -471,6 +484,7 @@ struct Panel
 
     fileName: String
     kinds:    Array'ColumnKind
+    profiles: Array'ColumnProfile     // What each column holds, counted the first time the sheet asks.
     built:    bool     // Whether the parts exist: a resize reaches the panel while it is built.
 
     document:      Document
@@ -1060,7 +1074,70 @@ impl Panel
         data.add(.Table, group: true)
         data.add(.Separator, delimiterKind(.document.delimiter))
         data.add(.Encoding, "UTF-8")
+
+        // Each column under its name: its kind, the range and mean of its quantities, its empty cells.
+        let shown = Math.min(.document.columns.count, ProfiledColumnLimit)
+        if shown and .kinds.count >= shown
+        {
+            .profileColumns()
+            data.add(.Columns, group: true)
+            for column in shown do
+                data.addText(.document.columns[column], .profileText(column))
+            if .document.columns.count > shown do
+                data.addText("…", Format.toString(texts().ui_MoreColumns, .document.columns.count - shown))
+        }
+
         data.describe(sheet)
+    }
+
+    // Counts what each profiled column holds, once.
+    mtd profileColumns()
+    {
+        let shown = Math.min(.document.columns.count, ProfiledColumnLimit)
+        if .profiles.count == shown do
+            return
+        .profiles.clear()
+        .profiles.resize(shown)
+        for &row in .document.rows
+        {
+            for column in shown
+            {
+                let profile = &.profiles[column]
+                let text    = column < row.cells.count ? Latin1.trim(row.cells[column].toString()) : ""
+                if not text.count
+                {
+                    profile.empty += 1
+                    continue
+                }
+
+                var value: f64
+                if column < .numeric.count and .numeric[column] and quantityOf(text, &value)
+                {
+                    profile.minimum    = profile.quantities ? Math.min(profile.minimum, value) : value
+                    profile.maximum    = profile.quantities ? Math.max(profile.maximum, value) : value
+                    profile.sum        += value
+                    profile.quantities += 1
+                }
+            }
+        }
+    }
+
+    // Describes one profiled column: its kind, then the range and the mean of its quantities, then
+    // its empty cells.
+    mtd profileText(column: u64)->String
+    {
+        let profile = &.profiles[column]
+        var result  = String.from(kindName(.kinds[column]))
+        if profile.quantities
+        {
+            let decimal = .kinds[column] == .Decimal
+            result += Format.toString(" · %", Format.toString(texts().ui_Range, groupThousands(profile.minimum, decimal), groupThousands(profile.maximum, decimal)))
+            result += Format.toString(" · %", Format.toString(texts().ui_Mean, groupThousands(profile.sum / cast(f64, profile.quantities), true)))
+        }
+
+        if profile.empty do
+            result += Format.toString(" · %", Format.toString(texts().ui_Empty, profile.empty))
+        return result
     }
 }
 

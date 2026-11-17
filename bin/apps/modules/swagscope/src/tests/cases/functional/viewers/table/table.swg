@@ -263,3 +263,24 @@ using Core, Pixel, Gui, Viewers
         entry.run!()
     Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n")
 }
+
+// The information sheet profiles each column under its name: its kind, the range and the mean of
+// its quantities, and its empty cells.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-table-profile-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,price,qty\nA,1.50,3\nB,,7\nC,2.25,\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Table.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "Columns\nname\ntext\nprice\ndecimal · 1.50 to 2.25 · mean 1.88 · 1 empty"), text)
+    Swag.require(Utf8.contains(text, "qty\ninteger · 3 to 7 · mean 5.00 · 1 empty"), text)
+    Swag.require(Table.groupThousands(1.999, true) == "2.00" and Table.groupThousands(1234567, false) == "1 234 567")
+}

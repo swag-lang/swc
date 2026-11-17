@@ -483,8 +483,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.020 — Table exploration has no summaries, grouping, or duplicate analysis
 
-- Evidence: the viewer reports only row and column counts. It cannot show null/error/distinct
-  counts, min/max, distributions, top values, duplicate rows, or lightweight groups.
+- Evidence: the foot sums one quantity column, and the information sheet profiles the first 48
+  columns over every row, counted once on the GUI thread the first time it asks: each column's
+  kind, its empty cells and, for quantities, their range and mean. Distinct and error counts,
+  distributions, top values, duplicate rows and lightweight groups are absent, and the profile
+  is not cancellable.
 - Next: build cancellable per-column sketches over the row stream, followed by exact calculations
   on demand for one column or filtered subset.
 - Done when: statistics state sampled versus exact scope, memory remains bounded for high

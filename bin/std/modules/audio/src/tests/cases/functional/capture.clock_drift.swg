@@ -29,6 +29,27 @@ using Swag, Core, Core.Errors
     }
 }
 
+// The estimator accepts exactly +/-1000 ppm and rejects offsets beyond the limits.
+#test
+{
+    for direction in 2
+    {
+        let acceptedFrames = direction == 0 ? 48_048_000'u64 : 47_952_000'u64
+        let rejectedFrames = direction == 0 ? 48_048_048'u64 : 47_951_952'u64
+        var clock = expect CaptureClockDrift.create(48_000, 1_000_000)
+        Swag.require(not expect clock.observe(0, 0))
+
+        var rejected: Swag.Error
+        discard catch clock.observe(1_000_000_000, rejectedFrames) as rejected
+        Swag.require(rejected.value() is BadParameterError)
+        Swag.require(not clock.estimateIsReady() and clock.inputClockDriftPpm() == 0)
+
+        Swag.require(expect clock.observe(1_000_000_000, acceptedFrames))
+        Swag.require(clock.estimateIsReady())
+        Swag.require(clock.inputClockDriftPpm() == (direction == 0 ? 1_000 : -1_000))
+    }
+}
+
 // Source restarts and jumps need an explicit new anchor; invalid input does not change an estimate.
 #test
 {

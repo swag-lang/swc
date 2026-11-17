@@ -50,12 +50,14 @@ public func activeDriverKind()->DriverKind => g_Driver.kind
 
 // Sets the mastering output gain.
 //
-// `volume` is a linear gain and is clamped to the range `0` through `1`. Fails with
-// [[Core.Errors.BadParameterError]] when no engine exists.
+// `volume` is a finite linear gain clamped to the range `0` through `1`. Non-finite values and
+// calls without an engine fail with [[Core.Errors.BadParameterError]].
 public func setOutputVolume(volume: f32) fail
 {
     if not g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
+    if not Math.isFinite(volume) do
+        fail BadParameterError{"output volume must be finite"}
     try g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
 }
 

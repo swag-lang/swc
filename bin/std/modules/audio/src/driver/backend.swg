@@ -464,12 +464,15 @@ public impl Voice
 {
     // Sets this voice's linear gain.
     //
-    // `volume` is clamped to the range `0` through `1`. `batchId` is forwarded
-    // to backends that support deferred operation sets.
+    // Finite `volume` values are clamped to the range `0` through `1`; non-finite values fail
+    // with [[Core.Errors.BadParameterError]]. `batchId` is forwarded to backends that support
+    // deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
         if not .handle do
             fail BadParameterError{"voice is not valid"}
+        if not Math.isFinite(volume) do
+            fail BadParameterError{"voice volume must be finite"}
         switch g_Driver.kind
         {
         case .NoSound:
@@ -696,12 +699,15 @@ public impl Bus
 {
     // Sets this bus's linear gain.
     //
-    // `volume` is clamped to the range `0` through `1`. `batchId` is forwarded
-    // to backends that support deferred operation sets.
+    // Finite `volume` values are clamped to the range `0` through `1`; non-finite values fail
+    // with [[Core.Errors.BadParameterError]]. `batchId` is forwarded to backends that support
+    // deferred operation sets.
     mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
         if not .handle do
             fail BadParameterError{"bus is not valid"}
+        if not Math.isFinite(volume) do
+            fail BadParameterError{"bus volume must be finite"}
         switch g_Driver.kind
         {
         case .NoSound:

@@ -235,6 +235,18 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
+    Swag.require(Reflection.canCompare(#typeof(s32)))
+    Swag.require(Reflection.canCompare(#typeof(string)))
+    Swag.require(Reflection.canCompare(#typeof(*s32)))
+    Swag.require(Reflection.canCompare(#typeof(ReflectionProbeAlias2)))
+    Swag.require(Reflection.canCompare(#typeof(ProbeState)))
+    Swag.require(not Reflection.canCompare(#typeof(bool)))
+    Swag.require(not Reflection.canCompare(#typeof(IReflectionScore)))
+    Swag.require(not Reflection.canCompare(null))
+}
+
+#test
+{
     let arrayType = #typeof(Array's32)
     let arrayInfo = assume cast(const *Swag.TypeInfoStruct, arrayType)
     Swag.require(Reflection.isDynamicArray(arrayType))

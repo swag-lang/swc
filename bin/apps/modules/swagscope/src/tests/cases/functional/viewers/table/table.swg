@@ -285,3 +285,30 @@ using Core, Pixel, Gui, Viewers
     Swag.require(Utf8.contains(text, "qty\ninteger · 3 to 7 · mean 5.00 · 1 empty"), text)
     Swag.require(Table.groupThousands(1.999, true) == "2.00" and Table.groupThousands(1234567, false) == "1 234 567")
 }
+
+// The foot sums the first column of quantities while the focus moves from row to row, and the
+// column the table is sorted on as soon as it is sorted on one that holds quantities.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-table-sum-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,count,price\na,1,2.50\nb,2,1 000.25\nc,3,\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Table.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(Utf8.contains(window.instances[window.activeChoiceIndex].details.toString(), "Σ count 6"))
+
+    view.revealLine(2)
+    let moved = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(moved, "Σ count 6") and Utf8.contains(moved, Format.toString(Table.texts().ui_RowAt, 3).toString()), moved)
+
+    // Sorting moves the focused row to the line its price gives it, and the foot follows.
+    view.revealLine(0)
+    view.sortBy(2)
+    let sorted = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(sorted, "Σ price 1 002.75") and Utf8.contains(sorted, Format.toString(Table.texts().ui_RowAt, 1).toString()), sorted)
+    view.sortBy(2)
+    let reversed = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(reversed, Format.toString(Table.texts().ui_RowAt, 2).toString()), reversed)
+}

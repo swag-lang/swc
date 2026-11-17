@@ -500,6 +500,11 @@ struct Panel
     load:          Viewer.BackgroundLoad'Document
     services:      Viewer.HostServices
     failureReason: String
+
+    // The sum the foot shows and the column it adds up. Moving the focus renames the row in the
+    // foot but leaves the sum alone, so the column is added up again only when it changes.
+    footSum:       String
+    footSumColumn: u64 = Swag.U64.Max
 }
 
 private impl IWnd for Panel
@@ -625,6 +630,7 @@ private impl Panel
 
         .order.clear()
         .rowLines.clear()
+        .footSumColumn = Swag.U64.Max
         .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
         .fitWidth()
@@ -810,6 +816,9 @@ private impl Panel
         if focused != Swag.U64.Max do
             .list.setFocusedIndex(.lineOfRow(focused))
         .list.invalidate()
+
+        // The focused row now stands on another line, and the foot sums the sorted column.
+        .refreshDetails()
     }
 
     // Reports structure, selected row and numeric summary together on the host's reading line.
@@ -831,7 +840,13 @@ private impl Panel
         let column = .sumColumn()
         if column != Swag.U64.Max and column < .document.columns.count
         {
-            let sum = Format.toString("Σ % %", .document.columns[column].toString(), .sumText(column))
+            if .footSumColumn != column
+            {
+                .footSum       = .sumText(column)
+                .footSumColumn = column
+            }
+
+            let sum = Format.toString("Σ % %", .document.columns[column].toString(), .footSum)
             foot = foot.isEmpty() ? sum : Format.toString("% · %", foot, sum)
         }
 

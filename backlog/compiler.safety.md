@@ -63,7 +63,11 @@ is the current scorecard.
   in scope, and calling `w.print(rendered.toString())` directly fixed the log test. Longer,
   heap-backed messages did not reproduce the failure. Linux native DevMode and Release tests now
   pass for both a short inline `String` view passed through a local interface callback and
-  `Core.Log.print` with a short formatted result.
+  `Core.Log.print` with a short formatted result. A direct/interface comparison also found that
+  escape analysis diagnosed a concrete retaining call but missed the same call through an interface.
+  Concrete implementation summaries now cover statically known local and imported interface targets;
+  focused sanity and workspace consumer tests keep non-retaining calls silent and reject retained
+  local views.
 - Next: reproduce the original fourteen-byte failure on Windows with a regression that preserves
   the exact `StringBuilder` and writer call path. Then trace borrow/liveness analysis and generated
   code, and ensure an actual escaping view still receives its existing diagnostic.

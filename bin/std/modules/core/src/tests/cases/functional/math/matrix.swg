@@ -41,6 +41,13 @@ using Swag
     value.m[2, 2] = 0
     Swag.require(value.determinant() == 1)
     let inverse = value.inverted()
+    var mutableInverse = value
+    mutableInverse.invert()
+    for row in 3
+    {
+        for column in 3 do
+            Swag.require(Math.isEqualEpsilon(mutableInverse.m[row, column], inverse.m[row, column], 0.0001))
+    }
     let product = value.multiplied(inverse)
     for y in 3
     {
@@ -92,6 +99,35 @@ using Swag
     let scaled = Math.Matrix3x3.createScale({2, 3}).multiplied(rotation)
     let composed = scaled.multiplied(Math.Matrix3x3.createTranslation({4, 5}))
     Swag.require(composed.transformPoint({1, 0}).isEqualEpsilon({4, 7}, 0.001))
+}
+
+#test
+{
+    let value = Math.Matrix4x4{
+        [[1, 2, 3, 4],
+         [0, 1, 4, 2],
+         [5, 6, 0, 1],
+         [1, 0, 2, 1]]}
+    Swag.require(Math.isEqualEpsilon(value.determinant(), 78'f32, 0.001))
+    let inverse = value.inverted()
+    var mutableInverse = value
+    mutableInverse.invert()
+    for row in 4
+    {
+        for column in 4 do
+            Swag.require(Math.isEqualEpsilon(mutableInverse.m[row, column], inverse.m[row, column], 0.001))
+    }
+    let identity = value.multiplied(inverse)
+    for row in 4
+    {
+        for column in 4
+        {
+            if row == column do
+                Swag.require(Math.isEqualEpsilon(identity.m[row, column], 1'f32, 0.001))
+            else do
+                Swag.require(Math.isZeroEpsilon(identity.m[row, column], 0.001))
+        }
+    }
 }
 
 #test

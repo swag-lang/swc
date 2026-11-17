@@ -363,7 +363,9 @@ impl Frustum3
                .near.signedDistanceTo(point) >= 0 and .far.signedDistanceTo(point) >= 0
     }
 
-    // Returns whether any part of `bounds` lies inside all six clip planes.
+    // Returns whether `bounds` may intersect the frustum, rejecting it when wholly outside any one plane.
+    //
+    // This conservative plane test can keep boxes that miss only at a frustum corner.
     mtd const intersects(bounds: Bounds3)->bool
     {
         if not bounds.isValid() do

@@ -43,9 +43,9 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     host.keyPress(.PageDown, .Control)
     Swag.require(view.currentCue == 0 and
                  view.cuePosition() == "Cue 1 / 2" and
-                 view.timeButton.text() == "00:00:00")
+                 view.timeButton.text() == "0:00")
     host.keyPress(.Down)
-    Swag.require(view.currentCue == 1 and view.timeButton.text() == "00:00:02")
+    Swag.require(view.currentCue == 1 and view.timeButton.text() == "0:02")
     host.keyPress(.Down)
     Swag.require(view.currentCue == 1)
     host.keyPress(.Home)

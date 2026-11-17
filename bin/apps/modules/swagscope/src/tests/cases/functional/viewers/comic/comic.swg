@@ -158,6 +158,10 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(book.pages.count == 2 and book.info.title == "The Potion of Flight")
     Swag.require(book.info.series == "Pepper & Carrot" and book.info.number == "1" and book.info.rightToLeft)
 
+    // The Explorer cover needs only the page order, and leaves the description unread.
+    let cover = expect Comic.Book.loadPages(fileName)
+    Swag.require(cover.pages.count == 2 and cover.info.isEmpty() and not cover.info.rightToLeft)
+
     var host: HeadlessHost
     let window = framedViewerWindow(&host, fileName, false)
     let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)

@@ -121,6 +121,21 @@ impl Source
         return result
     }
 
+    // Opens a source for one currently enumerated physical monitor.
+    //
+    // `monitorIndex` uses the current order from [[Core.Env.getMonitors]] and is not a persistent display identifier.
+    // The source captures that monitor's full physical bounds and can fail if the display is unavailable.
+    // `includeCursor` requests pointer composition where supported and defaults to false.
+    func openMonitor(monitorIndex: u64, includeCursor: bool = false)->Source fail
+    {
+        let monitors = Env.getMonitors()
+        if monitorIndex >= monitors.count do
+            fail BadParameterError{"screen monitor index is unavailable"}
+        let bounds = monitors[monitorIndex].physicalBounds
+        return try .open({cast(s32, bounds.x), cast(s32, bounds.y), cast(s32, bounds.width),
+                          cast(s32, bounds.height), includeCursor})
+    }
+
     private mtd addPart(options: SourceOptions) fail
     {
         let native = Memory.new'NativeSource()

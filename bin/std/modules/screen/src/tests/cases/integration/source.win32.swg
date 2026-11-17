@@ -48,9 +48,7 @@ using Core, Pixel
     let monitors = Env.getMonitors()
     if not monitors.count do
         return
-    let bounds = monitors[0].physicalBounds
-    var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
-                                     cast(s32, bounds.width), cast(s32, bounds.height), false})
+    var source = expect Source.openMonitor(0)
     let native = source.sources[0]
     Swag.require(expect native.beginGrab())
     Swag.require(native.pending)

@@ -167,7 +167,9 @@ is the current scorecard.
   The body-local release/use check is already covered; this entry is only about what the caller can
   prove after a callee returns. A focused `use_after_free.swg` probe with a global pointer and two
   known helpers (one frees it; one frees and replaces it) confirms that caller aliases used after
-  either call currently receive no use-after-free diagnostic.
+  either call currently receive no use-after-free diagnostic. Because a missing diagnostic lets
+  the test execute the invalid access, its regression must use a retaining allocator, as the
+  double-free corpus does, rather than freeing the block physically.
 - A release summary alone cannot prove the storage remains empty on return. An earlier prototype
   omitted that post-call write proof and failed the reset-safe sanity case. Establishing the proof
   requires excluding writes through aliases, so a release-only summary is insufficient.
@@ -212,7 +214,7 @@ is the current scorecard.
   single run; repeat it before treating the small timing difference as a regression.
 - Next: add an exact global-storage identity to release/write summaries and the caller's alias
   state, then consume it at known calls with the same before/after distinction used for fields.
-  Start with same-module functions and a regression proving a free marks old aliases released;
+  Start with same-module functions and a retained-allocation regression proving a free marks old aliases released;
   then add a free-and-replace case proving the new global pointee remains usable. Only after that
   works, publish/import the effect through module APIs and infer guaranteed resets where every
   return proves valid storage. Keep unknown targets and incomplete write summaries conservative.

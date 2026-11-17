@@ -1415,6 +1415,18 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     }
 }
 
+// Unsigned LEB128 uses one byte for 127 and spills to a second byte at 128.
+#test
+{
+    var writer: Serialization.Write.TagBin
+    var output: ConcatBuffer
+    writer.writeVarintTo(&output, 127)
+    writer.writeVarintTo(&output, 128)
+
+    const Expected: [3] u8 = [0x7F, 0x80, 0x01]
+    Swag.require(Slice.equals(unwrap output.toSlice(), Expected))
+}
+
 // A fat offset near U64.Max is rejected without wrapping the computed table end.
 #test
 {

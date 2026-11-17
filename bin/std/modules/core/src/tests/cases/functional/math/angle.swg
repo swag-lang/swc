@@ -68,3 +68,33 @@ using Swag
     Swag.require(Math.isEqualEpsilon(negative.angle.radians, Math.toRadians(-12.0'f32), 0.001))
     Swag.require(Math.isEqualEpsilon(negative.angle.toDegrees(), -12.0, 0.001))
 }
+
+#test
+{
+    let quarterTurn: Math.Angle = 90.0'deg
+    let halfTurn: Math.Angle = 180.0'deg
+    let fullTurn: Math.Angle = 360.0'deg
+
+    Swag.require((quarterTurn + quarterTurn).toDegrees() == 180.0)
+    Swag.require((halfTurn - quarterTurn).toDegrees() == 90.0)
+    Swag.require((-quarterTurn).toDegrees() == -90.0)
+    Swag.require((quarterTurn * 2).toDegrees() == 180.0)
+    Swag.require((halfTurn / 2).toDegrees() == 90.0)
+    var accumulated = quarterTurn
+    accumulated += quarterTurn
+    accumulated -= quarterTurn
+    accumulated *= 2
+    accumulated /= 2
+    Swag.require(accumulated.toDegrees() == 90.0)
+
+    Swag.require(Math.isEqualEpsilon(fullTurn.normalized().radians, 0'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon((-quarterTurn).normalized().toDegrees(), 270'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon((-quarterTurn).normalizedSigned().toDegrees(), -90'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(quarterTurn.deltaTo(-quarterTurn).toDegrees(), -180'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(Math.Angle.fromRadians(0.0).sin(), 0'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(Math.Angle.fromRadians(0.0).cos(), 1'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(
+        Math.Angle.fromDegrees(170).lerpTo(Math.Angle.fromDegrees(-170), 0.5).toDegrees(),
+        180'f32,
+        0.001))
+}

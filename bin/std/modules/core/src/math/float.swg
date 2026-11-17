@@ -75,6 +75,61 @@ alias ConstF64 = Const'f64
         return x + factor * (y - x)
     }
 
+    // Returns the normalized position of `value` between `start` and `end`.
+    //
+    // The result is not clamped, so values outside the interval extrapolate. The endpoints must
+    // differ; unlike `map`, this form is useful when a caller wants to reuse one range for several
+    // destination values.
+    func inverseLerp(start, end, value: f32)->f32 => (value - start) / (end - start)
+    func inverseLerp(start, end, value: f64)->f64 => (value - start) / (end - start)
+
+    // Returns `value` wrapped into [`minimum`, `maximum`).
+    //
+    // The interval must have positive width. Negative values wrap from the upper endpoint, so
+    // `wrap(-0.25, 0, 1)` is 0.75.
+    func wrap(value, minimum, maximum: f32)->f32
+    {
+        let width = maximum - minimum
+        Debug.safetyBoundCheck(width > 0, "wrap interval must have positive width")
+        return value - floor((value - minimum) / width) * width
+    }
+
+    func wrap(value, minimum, maximum: f64)->f64
+    {
+        let width = maximum - minimum
+        Debug.safetyBoundCheck(width > 0, "wrap interval must have positive width")
+        return value - floor((value - minimum) / width) * width
+    }
+
+    // Returns a triangle wave between zero and `length`.
+    //
+    // The value rises from zero to `length`, falls back to zero, and repeats for negative inputs
+    // as well. `length` must be positive.
+    func pingPong(value, length: f32)->f32
+    {
+        Debug.safetyBoundCheck(length > 0, "ping-pong length must be positive")
+        let phase = wrap(value, 0'f32, 2 * length)
+        return length - abs(phase - length)
+    }
+
+    func pingPong(value, length: f64)->f64
+    {
+        Debug.safetyBoundCheck(length > 0, "ping-pong length must be positive")
+        let phase = wrap(value, 0'f64, 2 * length)
+        return length - abs(phase - length)
+    }
+
+    // Returns the signed shortest turn from `start` to `end`, in radians within [-π, π).
+    func deltaAngle(start, end: f32)->f32 => wrap(end - start + ConstF32.Pi, 0'f32, ConstF32.TwoPi) - ConstF32.Pi
+    func deltaAngle(start, end: f64)->f64 => wrap(end - start + ConstF64.Pi, 0'f64, ConstF64.TwoPi) - ConstF64.Pi
+
+    // Interpolates from `start` to `end` along the shortest angular path, in radians.
+    //
+    // The factor is not clamped. The returned angle is not normalized, so extrapolation remains
+    // continuous across the ±π boundary.
+    func lerpAngle(start, end, factor: f32)->f32 => start + deltaAngle(start, end) * factor
+    func lerpAngle(start, end, factor: f64)->f64 => start + deltaAngle(start, end) * factor
+
     // Returns the cubic interpolation between `b` and `c` at `t`, shaped by the outer samples `a` and `d`.
     //
     // A `t` of 0 gives `b` and 1 gives `c`; `a` precedes `b` and `d` follows `c` in the sampled

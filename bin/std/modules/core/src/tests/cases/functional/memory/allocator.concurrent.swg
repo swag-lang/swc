@@ -15,7 +15,7 @@ struct PageCommitShared
 struct RemoteFreeShared
 {
     allocator: IAllocator
-    addresses: [64] u64
+    addresses: [256] u64
     nextWorker: u32
     errors:    u32
 }

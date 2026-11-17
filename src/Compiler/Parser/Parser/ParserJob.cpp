@@ -5,6 +5,7 @@
 #include "Compiler/Verify.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

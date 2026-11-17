@@ -216,6 +216,19 @@ impl ApTracked
     Swag.require(g_ApDropCount == 4)
 }
 
+// A detached allocation is not owned by the array until explicitly inserted.
+#test
+{
+    g_ApDropCount = 0
+    var values: ArrayPtr'ApTracked
+    let detached = values.allocate()
+    detached.id = 5
+
+    Swag.require(values.isEmpty() and g_ApDropCount == 0)
+    values.destroy(detached)
+    Swag.require(values.isEmpty() and g_ApDropCount == 1)
+}
+
 // Bulk deletion releases only the requested range and preserves the order around it.
 #test
 {

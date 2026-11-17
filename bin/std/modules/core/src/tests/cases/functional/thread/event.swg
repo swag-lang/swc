@@ -61,6 +61,18 @@ func signalEventAfterDelay(thread: const *Threading.Thread)
     Swag.require(not event.isValid())
 }
 
+// Repeated signals coalesce while an auto-reset event is already signaled.
+#test
+{
+    var event: Sync.Event
+    event.init(manual: false)
+    event.signal()
+    event.signal()
+
+    Swag.require(expect event.waitFor(Time.Duration.fromMilliseconds(0)))
+    Swag.require(not (expect event.waitFor(Time.Duration.fromMilliseconds(0))))
+}
+
 // A timed event wait distinguishes an expiration, an already-pending signal and a later signal.
 #test
 {

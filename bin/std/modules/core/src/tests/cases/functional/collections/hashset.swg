@@ -161,6 +161,23 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.count == 1 and values.contains(2))
 }
 
+// Free drops active and deleted string slots, releases capacity, and permits reuse.
+#test
+{
+    var values: HashSet'String
+    values.add("keep")
+    values.add("deleted")
+    values.remove("deleted")
+
+    values.free()
+    Swag.require(values.isEmpty() and values.capacity == 0)
+
+    values.add("reused")
+    Swag.require(values.count == 1 and values.contains("reused"))
+    values.free()
+    Swag.require(values.isEmpty() and values.capacity == 0)
+}
+
 #test
 {
     var moved: String = "beta"

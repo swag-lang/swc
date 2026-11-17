@@ -111,6 +111,21 @@ impl MemoryArrayDropProbe
     Swag.require(Swag.getContext().allocator != null)
 }
 
+// The temporary-allocator scope switches the context allocator and restores it afterward.
+#test
+{
+    let originalAllocator = Swag.getContext().allocator
+    var usedTemporaryAllocator = false
+
+    Memory.withTemporaryAllocator()
+    {
+        usedTemporaryAllocator = Swag.getContext().allocator != originalAllocator
+    }
+
+    Swag.require(usedTemporaryAllocator)
+    Swag.require(Swag.getContext().allocator == originalAllocator)
+}
+
 // Zero-byte operations still take valid addresses and leave their storage unchanged.
 #test
 {

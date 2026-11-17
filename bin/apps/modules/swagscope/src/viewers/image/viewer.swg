@@ -575,15 +575,18 @@ impl Panel
         }
     }
 
+    // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
+    // checks them.
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
+        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .imageView.isFitted)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.image.zoom25":  .imageView.setZoom(0.25)

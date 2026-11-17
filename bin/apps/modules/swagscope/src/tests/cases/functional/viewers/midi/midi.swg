@@ -129,6 +129,19 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
         }
     }
 
+    // Actual size reads as chosen while the roll shows at it, as the readout's 100 %.
+    viewer.roll.applyZoom(1)
+    var actual: Lens.Results
+    var actualEntries = Viewer.LensEntries.create(&actual, "MIDI", host.theme)
+    viewer.describeLens(&actualEntries)
+    var actualRows = 0
+    for &entry in actual.sections[0]!.entries where entry.title == appStrings().cmd_ZoomReset
+    {
+        Swag.require(entry.checked)
+        actualRows += 1
+    }
+
+    Swag.require(actualRows == 1 and viewer.zoomLabel.text() == Viewer.zoomText(100))
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()

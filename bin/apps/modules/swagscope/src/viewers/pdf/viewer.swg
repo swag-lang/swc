@@ -536,15 +536,16 @@ private impl Panel
     }
 
     // Offers the zoom presets, fit to page or width, and the continuous or single-page layout, with
-    // the current fit and layout checked.
+    // the level in use, the fit and the layout checked.
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 125)
+        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 150)
+        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
         menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())), rightName: "W", checked: .pdfView.zoomMode == .FitWidth)

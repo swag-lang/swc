@@ -806,7 +806,7 @@ impl IWnd for Panel
     }
 }
 
-// Creates the integrated syntax-colored source view.
+// What the information sheet says of a source file.
 impl Panel
 {
     // Describes the source in the information sheet: its lines once the whole file is counted,

@@ -705,8 +705,6 @@ private impl Panel
         return groupThousands(total, decimal)
     }
 
-    // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
-    // them: complete cell values separated by tabs, one row per line, in the order shown.
     // Returns the selected rows, or the focused one, as tab-separated text in the order on screen,
     // after the column names with `withNames`. A value holding a tab, a line break or a quote is
     // quoted, its quotes doubled, as spreadsheets read tab-separated text back.
@@ -765,7 +763,7 @@ private impl Panel
         return false
     }
 
-    // Returns the document row shown at line `index`, and the line document row `row` is shown at.
+    // Returns the document row shown at line `index`.
     mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
 
     // Returns the values of `column`, one per line in the order shown, an empty cell as an empty line.
@@ -784,6 +782,7 @@ private impl Panel
         return result
     }
 
+    // Returns the line document row `row` is shown at.
     internal mtd lineOfRow(row: u64)->u32 => .rowLines.count ? .rowLines[row] : cast(u32, row)
 
     // Orders the rows by `column`, ascending first and descending when the same column is chosen
@@ -1113,7 +1112,7 @@ private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
     assume cast(*Panel, list.parent).fillLine(line, index)
 }
 
-// Creates the integrated CSV/TSV table view.
+// What the information sheet says of a table and of each of its columns.
 impl Panel
 {
     // Describes the table in the information sheet: its rows and columns, then how they are

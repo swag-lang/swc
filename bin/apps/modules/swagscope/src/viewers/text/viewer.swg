@@ -1026,7 +1026,7 @@ impl Panel
     }
 }
 
-// Creates the streamed plain-text view.
+// What the information sheet says of a text file.
 impl Panel
 {
     // Describes the text in the information sheet: its lines, words and characters once they are

@@ -479,8 +479,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 - Evidence: search can reveal a cell and long cells use a bounded preview. Selected rows copy as
   tab-separated text, quoted where a value holds a tab, a line break or a quote, with or without
-  the column names, from Ctrl+C or the lens. There is no column, rectangle or discontiguous cell
-  selection, no copy bound, and no export of the visible rows.
+  the column names, from Ctrl+C or the lens, and the lens copies the values of the column the
+  table is sorted on, one per line in the order shown. There is no column, rectangle or
+  discontiguous cell selection, no copy bound, and no export of the visible rows.
 - Next: introduce a source-backed cell-range selection model and stream serializers for TSV, CSV,
   JSON Lines, and plain text.
 - Done when: keyboard and pointer ranges work across virtual rows, copied data uses a declared

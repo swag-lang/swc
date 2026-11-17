@@ -744,7 +744,24 @@ private impl Panel
     }
 
     // Returns the document row shown at line `index`, and the line document row `row` is shown at.
-    mtd documentRow(index: u64)->u64      => .order.count ? .order[index] : index
+    mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
+
+    // Returns the values of `column`, one per line in the order shown, an empty cell as an empty line.
+    internal mtd columnText(column: u64)->String
+    {
+        var result: String
+        for line in .document.rows.count
+        {
+            if line do
+                result += "\n"
+            let row = &.document.rows[.documentRow(line)]
+            if column < row.cells.count do
+                result += row.cells[column]
+        }
+
+        return result
+    }
+
     internal mtd lineOfRow(row: u64)->u32 => .rowLines.count ? .rowLines[row] : cast(u32, row)
 
     // Orders the rows by `column`, ascending first and descending when the same column is chosen
@@ -1002,6 +1019,10 @@ impl Panel
             let empty = not .document.rows.count
             entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.addString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
             entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.addString(view.selectionText(withNames: true)) }, disabled: empty)
+
+            // The column the table is sorted on, its values one per line in the order shown.
+            if .sortColumn < .document.columns.count do
+                entries.add(Format.toString(texts().ui_CopyColumn, .document.columns[.sortColumn]), .Copy, func|view = me|() { Clipboard.setString(view.columnText(view.sortColumn)) })
             return
         }
 

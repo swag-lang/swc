@@ -17,6 +17,7 @@ ui_KindDate        date
 ui_RowAt           ligne %
 ui_CopyRows        Copier les lignes
 ui_CopyRowsNames   Copier les lignes avec les noms de colonnes
+ui_CopyColumn      Copier la colonne %
 ui_GoToRow         Aller à la ligne %
 ui_Range           de % à %
 ui_Mean            moyenne %

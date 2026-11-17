@@ -121,6 +121,7 @@ using Core, Pixel, Gui, Viewers
 
     view.sortBy(0)
     Swag.require(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
+    Swag.require(view.columnText(0) == "File1\nfile2\nfile9\nfile10" and view.columnText(1) == "-4.5\n35\n\n1 200", view.columnText(0))
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "file10", &matches)

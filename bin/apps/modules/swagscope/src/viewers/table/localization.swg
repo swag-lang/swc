@@ -24,6 +24,7 @@ struct Texts
     ui_MoreColumns:     string = "% more columns"     // Columns the information sheet does not profile.
     ui_CopyRows:        string = "Copy Rows"          // Lens command copying the selected rows, or the focused one, as tab-separated text.
     ui_CopyRowsNames:   string = "Copy Rows with Column Names"     // The same, after a line of column names.
+    ui_CopyColumn:      string = "Copy Column %"      // Lens command copying the values of the column the table is sorted on.
     ui_GoToRow:         string = "Go to Row %"        // Lens row moving the table to the row typed after a colon, as the row readout counts it.
     err_TooLarge:       string = "the tabular viewer accepts files up to 32 MiB"
     err_TooManyColumns: string = "the tabular viewer accepts up to 256 columns"

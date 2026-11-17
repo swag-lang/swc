@@ -396,9 +396,8 @@ var g_ImageDescriptions: u32
     if stored.a != 255 do
         code += Format.toString("%{X02}", stored.a)
     Swag.require(view.probedColorText() == code, view.probedColorText())
-    var results: Lens.Results
+    var results = Testing.lensResults("color")
     var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
-    entries.query = "color"
     view.describeLens(&entries)
     let title = Format.toString(Picture.texts().ui_CopyColor, code, Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y))
     var found = false

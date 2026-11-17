@@ -1,6 +1,6 @@
 using Core, Pixel, Video
 
-const RecordCountdown          = 3_000_000'u64      // Wait before the first frame when the option asks for it, in microseconds.
+const RecordCountdown = 3_000_000'u64     // Wait before the first frame when the option asks for it, in microseconds.
 const VideoCaptureFramesPerSecond = 30'u32
 
 // Thickness of the frame drawn around the recorded area, in logical units, and the air between
@@ -16,7 +16,7 @@ enum RecorderState
     Paused
     Stopped       // Ended by the reader or by its limit: the frames become a capture.
     Cancelled     // Abandoned: nothing is kept.
-    Preparing    // The chosen area is visible on the live desktop, awaiting Record.
+    Preparing     // The chosen area is visible on the live desktop, awaiting Record.
 }
 
 // The recording in progress, ended by the command that started it.
@@ -54,38 +54,39 @@ func desktopBounds()->Math.Rectangle
 // storage falls behind.
 struct Recorder
 {
-    late main:   *MainWnd
-    target:      CaptureTarget
-    area:        Math.Rectangle     // Recorded area, in physical virtual-desktop pixels.
-    source:      ScreenFrameSource
-    storedWidth: s32
-    storedHeight: s32
-    cadence:     u64           // Microseconds between attempted frames.
-    file:        String             // Capture the frames belong to.
-    writer:      Frames.Writer
-    video:       VideoCaptureSession
-    videoProducer: VideoCaptureProducer
-    videoAudio:  *VideoRecordingAudio?
-    videoMode:   bool
-    screenSelection: bool // The preparation bar can choose a monitor or all screens.
-    screenIndex: u64      // Selected monitor, or U64.Max for all screens.
-    state:       RecorderState
-    startsAt:    u64           // Monotonic time the countdown ends.
-    clock:       RecordingClock // Session time shared by future video and audio tracks.
-    nextFrame:   u64           // Recorded time of the next frame to grab.
-    task:        Swag.Task     // Writes `pending` to the file.
-    pending:     Image
-    pendingTime: u64
-    writeFailed: bool     // Set by the task when the file could not be written.
-    recordError: Swag.Error // Retains a video or sound failure until the capture command reports it.
-    dropped:     u32      // Frames not recorded because the previous one was still being written.
-    hud:         *RecordHud?
-    limit:       u64      // Longest recording, in microseconds; zero records until stopped.
-    ownsEscape:  bool     // Escape is registered as the cancel hotkey of this recording.
-    pausedForTarget: bool // The attached window is temporarily not visible.
-    recordRequested: bool // The preparation pill has asked to start the video.
+    late main:       *MainWnd
+    target:          CaptureTarget
+    area:            Math.Rectangle     // Recorded area, in physical virtual-desktop pixels.
+    source:          ScreenFrameSource
+    storedWidth:     s32
+    storedHeight:    s32
+    cadence:         u64        // Microseconds between attempted frames.
+    file:            String     // Capture the frames belong to.
+    writer:          Frames.Writer
+    video:           VideoCaptureSession
+    videoProducer:   VideoCaptureProducer
+    videoAudio:      *VideoRecordingAudio?
+    videoMode:       bool
+    screenSelection: bool     // The preparation bar can choose a monitor or all screens.
+    screenIndex:     u64      // Selected monitor, or U64.Max for all screens.
+    state:           RecorderState
+    startsAt:        u64                // Monotonic time the countdown ends.
+    clock:           RecordingClock     // Session time shared by future video and audio tracks.
+    nextFrame:       u64                // Recorded time of the next frame to grab.
+    task:            Swag.Task          // Writes `pending` to the file.
+    pending:         Image
+    reduced:         Image     // `pending` at the stored size, when the area is larger.
+    pendingTime:     u64
+    writeFailed:     bool           // Set by the task when the file could not be written.
+    recordError:     Swag.Error     // Retains a video or sound failure until the capture command reports it.
+    dropped:         u32            // Frames not recorded because the previous one was still being written.
+    hud:             *RecordHud?
+    limit:           u64      // Longest recording, in microseconds; zero records until stopped.
+    ownsEscape:      bool     // Escape is registered as the cancel hotkey of this recording.
+    pausedForTarget: bool     // The attached window is temporarily not visible.
+    recordRequested: bool     // The preparation pill has asked to start the video.
     nextTargetCheck: u64
-    edges:       Array'(*Surface)     // The frame around the area.
+    edges:           Array'(*Surface)     // The frame around the area.
 }
 
 impl Recorder
@@ -103,12 +104,14 @@ impl Recorder
         // The recorder is reached by the command that stops it, from the frames run below.
         let recorder = Memory.new'Recorder()
         defer Memory.delete(recorder)
-        recorder.main    = main
-        recorder.target  = target
-        recorder.area    = target.area
-        recorder.source  = try ScreenFrameSource.create(main.captureOptions.captureCursor,
-                                                         cast(s32, target.area.x), cast(s32, target.area.y),
-                                                         cast(s32, target.area.width), cast(s32, target.area.height))
+        recorder.main   = main
+        recorder.target = target
+        recorder.area   = target.area
+        recorder.source = try ScreenFrameSource.create(main.captureOptions.captureCursor,
+                                                       cast(s32, target.area.x),
+                                                       cast(s32, target.area.y),
+                                                       cast(s32, target.area.width),
+                                                       cast(s32, target.area.height))
         recorder.file    = Library.newFileName()
         recorder.limit   = cast(u64, Math.clamp(main.captureOptions.recordMaxSeconds, 1, 60)) * 1_000_000
         recorder.cadence = 1_000_000 / main.captureOptions.recordRate.framesPerSecond()
@@ -117,7 +120,7 @@ impl Recorder
         let scale   = Math.min(1'f32, cast(f32, maxSide) / Math.max(target.area.width, target.area.height))
         recorder.storedWidth  = Math.max(1, cast(s32, target.area.width * scale))
         recorder.storedHeight = Math.max(1, cast(s32, target.area.height * scale))
-        recorder.writer = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), recorder.storedWidth, recorder.storedHeight, .BGRA8)
+        recorder.writer       = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), recorder.storedWidth, recorder.storedHeight, .BGRA8)
         defer #fail discard catch File.delete(Capture.mediaPathOf(recorder.file))
 
         g_Recorder = recorder
@@ -171,8 +174,7 @@ impl Recorder
     }
 
     // Records the selected area to an MP4 beside a new editable capture document.
-    func recordVideo(main: *MainWnd, target: CaptureTarget, prepare: bool = false,
-                     screenSelection = false, screenIndex: u64 = 0)->*Capture? fail
+    func recordVideo(main: *MainWnd, target: CaptureTarget, prepare: bool = false, screenSelection = false, screenIndex: u64 = 0)->*Capture? fail
     {
         Swag.assert(not g_Recorder)
         var fileToDiscard: String
@@ -181,6 +183,7 @@ impl Recorder
             if not fileToDiscard.isEmpty() do
                 discard catch File.delete(fileToDiscard)
         }
+
         let recorder = Memory.new'Recorder()
         defer Memory.delete(recorder)
         defer
@@ -192,13 +195,14 @@ impl Recorder
                 recorder.videoAudio = null
             }
         }
+
         recorder.main            = main
         recorder.target          = target
         recorder.videoMode       = true
         recorder.screenSelection = screenSelection
         recorder.screenIndex     = screenIndex
         recorder.file            = Library.newFileName()
-        fileToDiscard = Capture.mediaPathOf(recorder.file, .Video)
+        fileToDiscard            = Capture.mediaPathOf(recorder.file, .Video)
 
         // H.264 needs even dimensions. The selection stays anchored at its chosen origin.
         recorder.area = evenVideoArea(target.area, desktopBounds())
@@ -229,19 +233,16 @@ impl Recorder
 
         let options = &main.captureOptions
         let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
-        let rows = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
+        let rows    = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
         let maxSide = Math.max(cast(s32, recorder.area.width), cast(s32, recorder.area.height))
+
         // Downscaled desktops need CPU time for native readback and reduction as well.
         let sliceLimit = maxSide > 4096 ? 4'u32 : 8'u32
 
         // Nothing is predicted across a slice, so a slice keeps at least sixteen macroblock rows
         // to limit the extra cost of coding its boundaries independently.
         let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), sliceLimit, Math.max(rows / 16, 1'u32))
-        recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
-                                                        try FrameRate.create(VideoCaptureFramesPerSecond, 1),
-                                                        options.captureCursor, configs.toSlice(),
-                                                        quantizationQp: options.recordVideoQuality.quantizationQp(),
-                                                        sliceCount: slices)
+        recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area, try FrameRate.create(VideoCaptureFramesPerSecond, 1), options.captureCursor, configs.toSlice(), quantizationQp: options.recordVideoQuality.quantizationQp(), sliceCount: slices)
         try recorder.video.startEncoder()
 
         if not prepare do
@@ -283,6 +284,7 @@ impl Recorder
             catch recorder.videoAudio.finish() do
                 failedAfterFrames = true
         }
+
         if recorder.state == .Cancelled do
             return null
         if not recorder.video.frameCount()
@@ -292,10 +294,12 @@ impl Recorder
                 try recorder.recordError.raise()
                 fail Errors.InvalidFormatError{}
             }
+
             if recorder.video.stoppedForLowStorage() do
                 main.confirm(appStrings().msg_VideoStoppedForStorage)
             return null
         }
+
         catch recorder.video.end() do
             failedAfterFrames = true
 
@@ -311,6 +315,7 @@ impl Recorder
             main.reportRetainedVideo(mediaFile)
             fail Swag.err
         }
+
         result.setScreenSource(g_CaptureWindow)
         if not failedAfterFrames do
             main.confirmSaved(mediaFile)
@@ -392,7 +397,8 @@ impl Recorder
     // Changes the screen while the live recording is waiting for Record.
     mtd selectScreen(index: u64)
     {
-        if .state != .Preparing or not .screenSelection or
+        if .state != .Preparing or
+           not .screenSelection or
            (index != Swag.U64.Max and index >= .main.monitors.count) do
             return
 
@@ -401,8 +407,8 @@ impl Recorder
             return
 
         .screenIndex = index
-        .area = area
-        .target = CaptureTarget.create(.area, 0)
+        .area        = area
+        .target      = CaptureTarget.create(.area, 0)
         .moveChrome()
         .hud?.refreshScreenChoice()
     }
@@ -414,9 +420,9 @@ impl Recorder
             return main.monitors[index].physicalBounds
 
         Swag.assert(main.monitors.count > 0)
-        var left = Swag.F32.Max
-        var top = Swag.F32.Max
-        var right = -Swag.F32.Max
+        var left   = Swag.F32.Max
+        var top    = Swag.F32.Max
+        var right  = -Swag.F32.Max
         var bottom = -Swag.F32.Max
         for monitor in main.monitors
         {
@@ -426,6 +432,7 @@ impl Recorder
             right  = Math.max(right, rect.right())
             bottom = Math.max(bottom, rect.bottom())
         }
+
         return {left, top, right - left, bottom - top}
     }
 
@@ -439,6 +446,7 @@ impl Recorder
                 return String.from(appStrings().ui_AimAllScreens)
             return Format.toString(appStrings().ui_AimScreen, index + 1)
         }
+
         return String.from(captureTargetLabel())
     }
 
@@ -480,6 +488,7 @@ impl Recorder
                 .stop()
                 return
             }
+
             if not resolved.visible
             {
                 if .state == .Recording
@@ -489,8 +498,10 @@ impl Recorder
                     if .videoMode do
                         .videoProducer.setPaused(true)
                 }
+
                 return
             }
+
             if .pausedForTarget
             {
                 .pausedForTarget = false
@@ -498,13 +509,16 @@ impl Recorder
                 if .videoMode do
                     .videoProducer.setPaused(false)
             }
+
             if resolved.area.x != .area.x or resolved.area.y != .area.y
             {
                 .area = resolved.area
                 if .videoMode
                 {
-                    if .videoProducer.worker.isValid() do
+                    if .videoProducer.worker.isValid()
+                    {
                         .videoProducer.setPosition(cast(s32, .area.x), cast(s32, .area.y))
+                    }
                     else
                     {
                         .video.source.x = cast(s32, .area.x)
@@ -516,6 +530,7 @@ impl Recorder
                     .source.x = cast(s32, .area.x)
                     .source.y = cast(s32, .area.y)
                 }
+
                 .moveChrome()
             }
         }
@@ -531,6 +546,7 @@ impl Recorder
                 .recordError.capture(Swag.err)
                 .stop()
             }
+
             return
         }
 
@@ -539,7 +555,7 @@ impl Recorder
         {
             .clock.recorded = .limit
             .clock.running  = false
-            .state = .Stopped
+            .state          = .Stopped
             return
         }
 
@@ -577,9 +593,16 @@ impl Recorder
         .pendingTime = time
         .task.submit(func|recorder = me|()
         {
-            if recorder.pending.width != recorder.storedWidth or recorder.pending.height != recorder.storedHeight do
-                recorder.pending.resize(recorder.storedWidth, recorder.storedHeight, .Bilinear)
-            catch recorder.writer.add(recorder.pending, recorder.pendingTime) do
+            // The grab keeps its full-size picture and the reduction its own, so neither is
+            // reallocated from one frame to the next.
+            var frame = &recorder.pending
+            if frame.width != recorder.storedWidth or frame.height != recorder.storedHeight
+            {
+                frame.resizedInto(&recorder.reduced, recorder.storedWidth, recorder.storedHeight, .Bilinear)
+                frame = &recorder.reduced
+            }
+
+            catch recorder.writer.add(frame[], recorder.pendingTime) do
                 recorder.writeFailed = true
         })
     }
@@ -594,6 +617,7 @@ impl Recorder
             .stop()
             return
         }
+
         if not .videoProducer.hasOrigin() do
             return
         if not .clock.running do
@@ -603,9 +627,9 @@ impl Recorder
            (.main.captureOptions.recordMicrophone or .main.captureOptions.recordSystemSound)
         {
             .videoAudio = Memory.new'VideoRecordingAudio()
-            try .videoAudio.start(&.video, .main.captureOptions.recordMicrophone,
-                                   .main.captureOptions.recordSystemSound)
+            try .videoAudio.start(&.video, .main.captureOptions.recordMicrophone, .main.captureOptions.recordSystemSound)
         }
+
         if .videoAudio do
             try .videoAudio.pump()
         .hud?.refresh()
@@ -620,12 +644,11 @@ impl Recorder
             let chrome = .hud?.surface
             if chrome and chrome.position.intersects(.area)
             {
-                .pending = try captureRecordingFrame(.main.captureOptions.captureCursor, .area,
-                                                     chrome, .source.x, .source.y,
-                                                     .source.width, .source.height)
+                .pending = try captureRecordingFrame(.main.captureOptions.captureCursor, .area, chrome, .source.x, .source.y, .source.width, .source.height)
                 return
             }
         }
+
         try .source.grabInto(&.pending)
     }
 
@@ -636,8 +659,8 @@ impl Recorder
         let thick = Math.ceil(RecordFrameWidth * scale)
         if .state == .Preparing and .screenSelection do
             return {.area, thick, scale}
-        let gap   = Math.ceil(RecordFrameGap * scale)
-        let side  = gap + thick
+        let gap  = Math.ceil(RecordFrameGap * scale)
+        let side = gap + thick
         return {{.area.x - side, .area.y - side,
                  .area.width + 2 * side, .area.height + 2 * side}, thick, scale}
     }
@@ -761,7 +784,7 @@ impl IWnd for RecordEdge
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        let rect = .clientRect()
+        let rect    = .clientRect()
         painter.fillRect(rect, .themeColors().critical)
         painter.drawRect(rect, .themeColors().text, .themeMetrics().separator_HairlineSize)
     }

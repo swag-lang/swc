@@ -109,8 +109,8 @@ internal struct PdfCanvas
 // therefore a transform change, not a raster: a page's images are uploaded to the renderer once,
 // its typefaces are resolved once, and path tessellations are cached inside the decoded page.
 //
-// The wheel scrolls the document, `Ctrl` and the wheel zoom around the pointer, dragging pans, a
-// double click toggles between fitted and actual size, and the arrow, page, `Home` and `End` keys
+// The wheel scrolls the document, `Ctrl` alone and the wheel zoom around the pointer, dragging pans,
+// a double click toggles between fitted and actual size, and the arrow, page, `Home` and `End` keys
 // move through the document. [[Gui.PdfView.setPageLayout]] switches to one page at a time, and
 // [[Gui.PdfView.zoomToFit]], [[Gui.PdfView.zoomToFitWidth]] and [[Gui.PdfView.actualSize]] select
 // what a page is scaled to. Embedded actions, scripts, and forms are never executed.
@@ -1102,13 +1102,13 @@ impl IWnd for PdfView
             if .pageSizes.count do
                 .showPage(.pageSizes.count - 1)
 
-        case .D0 where evt.modifiers.has(.Control):
+        case .D0 where evt.modifiers == .Control:
             .actualSize()
 
-        case .F:
+        case .F where evt.modifiers == .None:
             .zoomToFit()
 
-        case .W:
+        case .W where evt.modifiers == .None:
             .zoomToFitWidth()
 
         case .C where evt.modifiers == .Control:
@@ -1173,8 +1173,9 @@ internal impl IWnd for PdfCanvas
         {
         case .Wheel:
 
-            // `Ctrl` and the wheel zoom around the pointer; a plain wheel moves the document.
-            if evt.modifiers.has(.Control)
+            // `Ctrl` alone and the wheel zoom around the pointer, under the chord the zoom keys
+            // take; any other wheel moves the document, sideways under `Shift`.
+            if evt.modifiers == .Control
             {
                 let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
                 owner.stepZoom(owner.effectiveZoom() * factor, &local)

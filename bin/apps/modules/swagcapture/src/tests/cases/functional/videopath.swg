@@ -20,8 +20,8 @@ using Core, Gui, Pixel, Video
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
     let document = Path.combine(folder, "interrupted.scc")
-    let media = Capture.mediaPathOf(document, .Video)
-    let source = Gui.Testing.tempFilePath("capture-source-", ".mp4")
+    let media    = Capture.mediaPathOf(document, .Video)
+    let source   = Gui.Testing.tempFilePath("capture-source-", ".mp4")
     defer discard catch File.delete(source)
 
     var picture = Image.create(32, 16, .BGRA8)
@@ -48,6 +48,7 @@ using Core, Gui, Pixel, Video
         let nextDocument = Path.combine(folder, Format.toString("extra-%.scc", index))
         expect File.duplicate(Capture.mediaPathOf(nextDocument, .Video), media)
     }
+
     let batch = expect Library.recoverOrphanVideos(folder)
     Swag.require(batch.count == VideoRecoveryBatchSize)
     let last = expect Library.recoverOrphanVideos(folder)

@@ -64,6 +64,37 @@ public impl Image
         ResizeTools.doResize(&result, me, mode)
         return result
     }
+
+    // Writes a resized copy into `target`, reusing its pixel storage when it can.
+    //
+    // The result is the image [[Pixel.Image.resized]] returns for the same arguments, including
+    // the aspect-preserving zero dimension. `target` takes this image's pixel format and alpha
+    // mode, and its previous pixels are replaced. Its storage is kept when it already has the
+    // resulting size, format and alpha mode, so resizing successive frames into one target
+    // allocates no picture after the first. `target` must not be this image; use
+    // [[Pixel.Image.resize]] to resize in place.
+    mtd const resizedInto(target: *Image, newWidth, newHeight: s32, mode = ResizeMode.Nearest)
+    {
+        Swag.assert(target != me, "resize an image in place with Image.resize")
+        Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
+        let nw = newWidth != 0 ? newWidth : resizeAspectDimension(.width, .height, newHeight)
+        let nh = newHeight != 0 ? newHeight : resizeAspectDimension(.height, .width, newWidth)
+        Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
+
+        if target.width != nw or target.height != nh or
+           target.pixelFormat != .pixelFormat or target.alphaMode != .alphaMode
+        {
+            target[] = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
+        }
+
+        if nw == .width and nh == .height
+        {
+            Memory.copy(target.pixels.storage(), .pixels.storage(), .byteCount)
+            return
+        }
+
+        ResizeTools.doResize(target, me, mode)
+    }
 }
 
 namespace ResizeTools

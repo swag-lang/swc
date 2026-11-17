@@ -4,8 +4,8 @@
 using Swag, Core, Video
 
 // Frames left before the recording in progress ends, and whether it ends by a cancel.
-var g_TestFramesLeft:  u32
-var g_TestCancelAtEnd: bool
+var g_TestFramesLeft:     u32
+var g_TestCancelAtEnd:    bool
 var g_TestSawPreparation: bool
 
 // Ends the recording in progress once `frames` frames have run. The caller clears the frame
@@ -35,16 +35,17 @@ internal func testStartAndEndVideoAfter(frames: u32)
 {
     g_TestFramesLeft     = frames
     g_TestSawPreparation = false
-    g_App.sigFrame += func(_)
+    g_App.sigFrame       += func(_)
     {
         if not g_Recorder do
             return
         if g_Recorder!.state == .Preparing
         {
-            g_TestSawPreparation = true
+            g_TestSawPreparation        = true
             g_Recorder!.recordRequested = true
             return
         }
+
         if not g_Recorder!.videoProducer.hasOrigin() do
             return
         if g_TestFramesLeft do
@@ -93,8 +94,8 @@ internal func testEndRecording()
     defer f.shutdown()
 
     f.main.captureOptions.recordRate         = .Fps20
-    f.main.captureOptions.recordMaxSeconds    = 60
-    f.main.captureOptions.recordMaxDimension  = 320
+    f.main.captureOptions.recordMaxSeconds   = 60
+    f.main.captureOptions.recordMaxDimension = 320
     testEndRecordingAfter(20, cancel: false)
     let capture = expect Recorder.record(f.main, {0, 0, 640, 480})
     testEndRecording()
@@ -122,7 +123,7 @@ internal func testEndRecording()
     Swag.require(owned.media == .Video)
     Swag.require(g_Recorder == null and f.main.savedPaths.count == before + 1)
 
-    let file = f.main.savedPaths[before]
+    let file     = f.main.savedPaths[before]
     let document = String.from(owned.file)
     defer catch Capture.deleteFiles(document)
     defer Memory.delete(owned)
@@ -137,9 +138,9 @@ internal func testEndRecording()
 
     owned.changed = true
     expect owned.save()
-    owned.title = "Unsaved video copy"
+    owned.title       = "Unsaved video copy"
     owned.linkedImage = Gui.Testing.tempFilePath("capture-linked-video-", ".png")
-    owned.changed = true
+    owned.changed     = true
     let duplicatePath = Library.newFileName()
     defer discard catch Capture.deleteFiles(duplicatePath)
     let snapshot = expect owned.snapshotDuplicate(duplicatePath)
@@ -150,7 +151,7 @@ internal func testEndRecording()
     Swag.require(duplicate.title == "Unsaved video copy" and duplicate.linkedImage.isEmpty())
     Swag.require(duplicate.media == .Video and duplicate.timeline.frameCount == owned.timeline.frameCount)
     let duplicateMedia = expect File.readAllBytes(Capture.mediaPathOf(duplicatePath, .Video))
-    let sourceMedia = expect File.readAllBytes(file)
+    let sourceMedia    = expect File.readAllBytes(file)
     Swag.require(Slice.equals(duplicateMedia.toSlice(), sourceMedia.toSlice()))
     let loaded = expect Capture.load(document)
     defer Memory.delete(loaded)
@@ -161,7 +162,7 @@ internal func testEndRecording()
 
     // The editor's save action offers the original MP4 as a playable standalone file.
     f.capture.media = .Video
-    f.capture.file = String.from(document)
+    f.capture.file  = String.from(document)
     expect f.capture.adoptVideo()
     var state = Gui.Testing.commandState(ActionFile.SaveAsImage)
     Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &state))
@@ -222,7 +223,7 @@ internal func testEndRecording()
     library.videoCopyJob.task.wait()
     f.gui.pump()
     Swag.require(not library.exporting and library.videoCopyJob == null)
-    let selectedPath = Path.combine(folder, Format.toString("%.mp4", Path.fileNameWithoutExtension(document) orelse "capture"))
+    let selectedPath  = Path.combine(folder, Format.toString("%.mp4", Path.fileNameWithoutExtension(document) orelse "capture"))
     let selectedBytes = expect File.readAllBytes(selectedPath)
     Swag.require(Slice.equals(originalBytes.toSlice(), selectedBytes.toSlice()))
 }
@@ -258,6 +259,7 @@ internal func testEndRecording()
         if g_Recorder and g_Recorder!.state == .Stopped do
             g_Recorder!.writeFailed = true
     }
+
     let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0))
     testEndRecording()
     let kept = unwrap capture
@@ -351,7 +353,7 @@ internal func testEndRecording()
 #test
 {
     let desktop = Math.Rectangle{0, 0, 1920, 1080}
-    var area = evenVideoArea({100, 50, 2664 - 2001, 1079 - 600}, desktop)
+    var area    = evenVideoArea({100, 50, 2664 - 2001, 1079 - 600}, desktop)
     Swag.require(area.x == 100 and area.y == 50 and area.width == 664 and area.height == 480)
 
     area = evenVideoArea({100, 50, 640, 360}, desktop)

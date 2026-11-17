@@ -424,6 +424,17 @@ internal func writeSampleFile()->String
     host.focus(grid)
     host.keyPress(.D0, .Control)
     Swag.require(grid.fontSize == defaultFontSize)
+
+    // The size answers Ctrl alone, as the zoom of every other viewer does.
+    host.mouseWheel(grid.surfaceRect().center(), 120, .Control | .Shift)
+    host.mouseWheel(grid.surfaceRect().center(), 120, .Control | .Alt)
+    host.keyPress(.OemPlus, .Control | .Shift)
+    host.keyPress(.OemMinus, .Control | .Alt)
+    Swag.require(grid.fontSize == defaultFontSize)
+    host.keyPress(.OemPlus, .Control)
+    host.keyPress(.D0, .Control | .Shift)
+    Swag.require(grid.fontSize == defaultFontSize + 1)
+    host.keyPress(.D0, .Control)
 }
 
 // A search hit is revealed at the offset the host found, and stays marked once the caret moves on.

@@ -56,6 +56,15 @@ using Swag
     Swag.require(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
+#test
+{
+    var values: [4] string = ["pear", "x", "fig", "ok"]
+    Slice.sort(values, func(left, right: string)->s32 => left.count <=> right.count)
+
+    let expected: [4] string = ["x", "ok", "fig", "pear"]
+    Swag.require(Slice.equals(values, expected))
+}
+
 // Number of comparisons Slice.sort needs for 'values', which the sort must leave ordered.
 func countedSortCompares(values: [..] s32)->u64
 {

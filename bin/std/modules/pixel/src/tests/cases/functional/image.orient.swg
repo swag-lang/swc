@@ -91,3 +91,48 @@ func orientRows(image: const *Image)->String
     var none: Array'ImageMetadata
     Swag.require(Exif.orientationOf(none.toSlice()) == 1)
 }
+
+// A prefixed little-endian IFD resets a SHORT value stored outside the IFD entry.
+#test
+{
+    var littleEndian: ImageMetadata
+    littleEndian.signature = 1
+    littleEndian.tag       = "Exif"
+    littleEndian.value.add(0'u8)
+    littleEndian.value.add([0x49'u8, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+                            0x01, 0x00,
+                            0x12, 0x01, 0x03, 0x00, 0x03, 0x00, 0x00, 0x00,
+                            0x1A, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00,
+                            0x06, 0x00, 0x02, 0x00, 0x03, 0x00])
+
+    var prefixed = Image.create(1, 1, .RGBA8)
+    prefixed.metadata.add(#move littleEndian)
+    prefixed.orient(6)
+    Swag.require(prefixed.metadata[0].value[27] == 1 and prefixed.metadata[0].value[28] == 0)
+    Swag.require(prefixed.metadata[0].value[29] == 2 and prefixed.metadata[0].value[30] == 0)
+    Swag.require(prefixed.metadata[0].value[31] == 3 and prefixed.metadata[0].value[32] == 0)
+}
+
+// Orientation normalization also handles a big-endian TIFF header without rewriting other fields.
+#test
+{
+    let tiff = [0x4D'u8, 0x4D'u8, 0x00'u8, 0x2A'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x08'u8,
+                0x00'u8, 0x01'u8,
+                0x01'u8, 0x12'u8, 0x00'u8, 0x03'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x01'u8,
+                0x00'u8, 0x06'u8, 0x00'u8, 0x00'u8,
+                0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    var record: ImageMetadata
+    record.signature = 1
+    record.tag       = "Exif"
+    for byte in tiff do
+        record.value.add(byte)
+
+    var image = Image.create(2, 3, .RGBA8)
+    image.metadata.add(#move record)
+    Swag.require(Exif.orientationOf(image.metadata.toSlice()) == 6)
+    image.orient(6)
+    Swag.require(Exif.orientationOf(image.metadata.toSlice()) == 1)
+    Swag.require(image.metadata[0].value.count == tiff.count)
+    Swag.require(image.metadata[0].value[18] == 0 and image.metadata[0].value[19] == 1)
+}

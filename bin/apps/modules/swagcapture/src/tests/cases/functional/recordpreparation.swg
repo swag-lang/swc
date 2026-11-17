@@ -19,13 +19,14 @@ using Swag, Core, Gui
     recorder.videoMode = true
     recorder.area      = {0, 0, 1280, 720}
 
-    let width   = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true)
-    let height  = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
-    let surface = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
+    let width    = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true)
+    let height   = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
+    let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
     {
         .dockStyle = .Center
     }
+
     defer surface.destroy()
     surface.minSize = {}
     surface.setView(hud)
@@ -34,6 +35,7 @@ using Swag, Core, Gui
 
     var preview = f.gui.renderSurface(surface)
     Swag.require(preview.isValid())
+
     // The one action of a waiting pill is Record, in words, standing against the cross.
     let record = unwrap hud.recordButton
     Swag.require(record.isEnabled() and record.isLocallyVisible() and record.name == appStrings().ui_AimRecord)
@@ -59,6 +61,7 @@ using Swag, Core, Gui
         Swag.require(options.recordVideoQuality == expected)
         Swag.require(Utf8.contains(quality.name.text.toString(), expected.label()))
     }
+
     Swag.require(VideoQuality.Maximum.quantizationQp() == 0 and VideoQuality.Balanced.quantizationQp() == 22)
     let before = [options.captureCursor, options.recordCountdown,
                   options.recordMicrophone, options.recordSystemSound]
@@ -75,6 +78,7 @@ using Swag, Core, Gui
         f.gui.click(screen)
         Swag.require(button[].isChecked != before[index])
     }
+
     Swag.require(options.captureCursor != before[0] and options.recordCountdown != before[1])
     #static if #os == Swag.TargetOs.Windows do
         Swag.require(options.recordMicrophone != before[2] and options.recordSystemSound != before[3])

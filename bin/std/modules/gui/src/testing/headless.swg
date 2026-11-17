@@ -818,6 +818,17 @@ impl HeadlessHost
     // Fires one active timer immediately and drains resulting queues.
     mtd fireTimer(timer: *Timer?)
     {
+        .tickTimer(timer)
+        .pump()
+    }
+
+    // Fires one active timer immediately without draining posted events.
+    //
+    // The timer queues are applied, but an event the tick posted, such as the completion of a
+    // task it submitted, waits for the next [[Gui.Testing.HeadlessHost.pump]]. A test uses it to
+    // observe the state between a tick and a worker it started, however fast that worker runs.
+    mtd tickTimer(timer: *Timer?)
+    {
         // A preceding callback may have destroyed this timer's target and flushed the timer
         // before a test reaches it in a snapshot. Establish ownership without dereferencing the
         // possibly stale pointer, just as Application.removeTimer does.
@@ -833,7 +844,6 @@ impl HeadlessHost
         .app.duringTimerEvents = false
 
         .pumpTimerQueues()
-        .pump()
     }
 
     // Fires every currently registered timer once.

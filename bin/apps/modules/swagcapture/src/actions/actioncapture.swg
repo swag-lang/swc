@@ -28,7 +28,7 @@ impl ActionCapture
     // first. A `WndId` is a borrowed string that a menu item and a queued command event
     // both outlive, so the ids are cached here and kept for the process lifetime; there
     // is one per monitor, so the cache stays a handful of entries.
-    private var screenIds: Array'String
+    private var screenIds:       Array'String
     private var recordScreenIds: Array'String
 
     // Returns the command id capturing the monitor at `index` in `MainWnd.monitors`.
@@ -242,7 +242,8 @@ impl IActionUI for ActionCapture
             main.sendCommandEvent(main.lastCaptureCommand())
             return true
 
-        case .Area, .Record, .RecordVideo, .RecordScreen, .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
+        case .Area, .Record, .RecordVideo, .RecordScreen,
+             .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
             if not g_Recorder do
                 main.lastCapture = cxt.id
         }
@@ -368,6 +369,7 @@ impl MainWnd
             discard ActionCapture.screenId(index)
             discard ActionCapture.recordScreenId(index)
         }
+
         let monitor = ActionCapture.screenIndex(.lastCapture)
         if monitor < .monitors.count do
             return ActionCapture.screenId(monitor)

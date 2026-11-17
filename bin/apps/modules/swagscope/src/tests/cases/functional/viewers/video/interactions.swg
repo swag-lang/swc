@@ -3,17 +3,16 @@
 
 using Core, Pixel, Gui, Video, Viewers
 
+// Collects the subtitle file the viewer is loading, however busy the machine is.
+//
+// Waiting runs the load on this thread when no worker has taken it yet, so it never depends on
+// how long the workers take. The timer that starts a dropped file may also have collected it
+// already, when the load ended before the timer did; there is nothing left to wait for then.
 func finishManualSubtitle(view: *Film.Panel)
 {
-    for 2_000
-    {
-        if view.subtitleLoad.isDone() do
-            break
-        Threading.Thread.sleep(1'ms)
-    }
-
-    Swag.require(view.subtitleLoad.isDone())
+    view.subtitleLoad.task.wait()
     view.finishSubtitleLoad()
+    Swag.require(not view.subtitleLoad.started)
 }
 
 // Absolute timestamps and relative seconds reject malformed, overflowing and out-of-range input.

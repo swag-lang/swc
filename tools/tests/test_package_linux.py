@@ -49,16 +49,17 @@ class LinuxPackageTests(unittest.TestCase):
         (self.build / 'libfixture.so.1').write_bytes(b'shared library')
         (self.build / 'nested').mkdir()
         (self.build / 'nested' / 'libnested.so.1').write_bytes(b'nested library')
-        (self.build / 'libtraversing.so').symlink_to('nested/../libfixture.so.1')
-        (self.build / 'libnested.so').symlink_to('nested/libnested.so.1')
-        (self.build / 'libmissing.so').symlink_to('libmissing.so.1')
 
-        for name in ('libtraversing.so', 'libnested.so', 'libmissing.so'):
+        for name, target in (('libtraversing.so', 'nested/../libfixture.so.1'),
+                             ('libnested.so', 'nested/libnested.so.1'),
+                             ('libmissing.so', 'libmissing.so.1')):
             with self.subTest(name=name):
+                (self.build / name).symlink_to(target)
                 output = self.root / f'{name}.tar.gz'
                 result = self.package(output)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse(output.exists())
+                (self.build / name).unlink()
 
     def test_refuses_dangling_output_symlink_without_creating_its_target(self):
         target = self.root / 'target.tar.gz'

@@ -384,6 +384,11 @@ private impl Panel
 
         .refreshDetails()
         .refreshControls()
+
+        // The sheet's snapshot holds words of the interface, such as a channel layout or where an
+        // attached subtitle file comes from, so it is written again in the new language.
+        .informationReady = false
+        .refreshInformation()
     }
 }
 

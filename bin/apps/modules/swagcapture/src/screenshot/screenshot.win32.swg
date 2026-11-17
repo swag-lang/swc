@@ -13,7 +13,7 @@ func GetWindowDisplayAffinity(hWnd: HWND, pdwAffinity: *DWORD)->BOOL
 func excludeCaptureChrome(surface: *Surface)
 {
     if surface.win32Handle() do
-        discard SetWindowDisplayAffinity(surface.win32Handle(), 0x11'u32) // WDA_EXCLUDEFROMCAPTURE
+        discard SetWindowDisplayAffinity(surface.win32Handle(), 0x11'u32)     // WDA_EXCLUDEFROMCAPTURE
 }
 
 // Windows hides owned recording controls from BitBlt through display affinity.
@@ -134,14 +134,16 @@ func getCaptureWindowBounds(id: u64)->{rect: Math.Rectangle, visible: bool, exis
     if not id do
         return result
     let window = cast(HWND, id)
-    var frame: RECT
+    var frame:     RECT
     var placement: WINDOWPLACEMENT
     placement.length = #sizeof(WINDOWPLACEMENT)
     if not GetWindowRect(window, &frame) or not GetWindowPlacement(window, &placement) do
         return result
-    result.rect = {frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top}
-    result.visible = IsWindowVisible(window) and placement.showCmd != SW_SHOWMINIMIZED and
-                     placement.showCmd != SW_SHOWMINNOACTIVE and placement.showCmd != SW_MINIMIZE
+    result.rect    = {frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top}
+    result.visible = IsWindowVisible(window) and
+                     placement.showCmd != SW_SHOWMINIMIZED and
+                     placement.showCmd != SW_SHOWMINNOACTIVE and
+                     placement.showCmd != SW_MINIMIZE
     result.exists = not result.rect.isEmpty()
     return result
 }

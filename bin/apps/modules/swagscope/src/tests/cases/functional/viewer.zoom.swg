@@ -19,6 +19,16 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     defer text.setZoom(100)
     var wheel = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.require(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
+
+    // Only Ctrl alone makes the wheel a zoom, as only Ctrl alone makes plus, minus and 0 zoom keys.
+    // Another modifier leaves the wheel to the view, which scrolls across under Shift.
+    let otherChords: [2] Input.KeyModifiers = [.Control | .Shift, .Control | .Alt]
+    for modifiers in otherChords
+    {
+        wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: modifiers}
+        Swag.require(not text.hookOnChildEvent(text.editor, &wheel) and text.zoomPercent == 125)
+    }
+
     textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     Swag.require(assume cast(*PlainText.Panel, textResult.view).zoomPercent == 125)
 
@@ -27,6 +37,8 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     defer code.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.require(code.hookOnChildEvent!(code.editor, &wheel) and code.zoomPercent == 125)
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Shift}
+    Swag.require(not code.hookOnChildEvent(code.editor, &wheel) and code.zoomPercent == 125)
     codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
     Swag.require(assume cast(*Code.Panel, codeResult.view).zoomPercent == 125)
 
@@ -35,8 +47,20 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     defer html.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.require(html.hookOnChildEvent!(html.view, &wheel) and html.zoomPercent == 125)
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Shift}
+    Swag.require(not html.hookOnChildEvent(html.view, &wheel) and html.zoomPercent == 125)
     htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
     Swag.require(assume cast(*Html.Panel, htmlResult.view).zoomPercent == 125)
+
+    let markdownResult = openTestViewer(MarkdownText.viewerPlugin(), &host.root, zoomFixturePath("viewer.md"))
+    let markdown       = unwrap markdownResult.view
+    let zoomButton     = assume cast(*MarkdownText.ZoomButton, markdownResult.info!.children[0])
+    defer zoomButton.applyZoom(100)
+    zoomButton.applyZoom(100)
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
+    Swag.require(markdown.hookOnEvent!(markdown, &wheel) and zoomButton.zoomPercent == 125)
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Shift}
+    Swag.require(not markdown.hookOnEvent(markdown, &wheel) and zoomButton.zoomPercent == 125)
 }
 
 #test

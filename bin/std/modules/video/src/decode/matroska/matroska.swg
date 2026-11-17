@@ -2029,7 +2029,7 @@ private impl Decoder
 
     mtd targetTimestamp(index: u64)->s64
     {
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return .presentationOrigin
         let offset = cast(f64, index) * cast(f64, rate.denominator()) * 1_000_000_000.0 / cast(f64, rate.numerator())
@@ -2208,31 +2208,10 @@ private impl Decoder
         .info.frameRate = catch frameRateFromDuration(observed)
     }
 
-    mtd const currentFrameCount()->u64
-    {
-        if .memoryComplete do
-            return .info.frameCount
-        return .info.frameCount
-    }
-
-    mtd const currentFrameRate()->FrameRate
-    {
-        if .memoryComplete do
-            return .info.frameRate
-        return .info.frameRate
-    }
-
-    mtd const currentDuration()->f64
-    {
-        if .memoryComplete do
-            return .durationSeconds
-        return .durationSeconds
-    }
-
     // Converts an absolute container timestamp to the first display rank not earlier than it.
     mtd const frameAtTimestamp(timestampNanoseconds: f64)->u64
     {
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return 0
         let seconds = Math.max((timestampNanoseconds - cast(f64, .presentationOrigin)) / 1_000_000_000.0, 0)
@@ -2387,7 +2366,7 @@ impl IDecoder for Decoder
             return Math.max(index, .frameAtTimestamp(cueNanoseconds))
         }
 
-        return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64, .presentationOrigin))
+        return .frameAtTimestamp(.durationSeconds * 1_000_000_000.0 + cast(f64, .presentationOrigin))
     }
 
     // Makes sure the window reaches a sample the container marks as a clean decode point.
@@ -2605,7 +2584,7 @@ impl ITimedDecoder for Decoder
     {
         if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
             return cast(f64, (.video.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin)) / 1_000_000_000.0
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         return rate.isValid() ? cast(f64, index) * cast(f64, rate.denominator()) / cast(f64, rate.numerator()) : 0
     }
 
@@ -2613,11 +2592,10 @@ impl ITimedDecoder for Decoder
     {
         if seconds < 0 do
             return 0
-        let count    = .currentFrameCount()
-        let duration = .currentDuration()
-        if count and seconds >= duration do
+        let count = .info.frameCount
+        if count and seconds >= .durationSeconds do
             return count
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return 0
         return Math.min(cast(u64, (seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator()))), count ? count : Swag.U64.Max)
@@ -2626,11 +2604,11 @@ impl ITimedDecoder for Decoder
 
 impl IDeferredDecoder for Decoder
 {
-    mtd impl frameCount()->u64 => .currentFrameCount()
+    mtd impl frameCount()->u64 => .info.frameCount
 
-    mtd impl frameRate()->FrameRate => .currentFrameRate()
+    mtd impl frameRate()->FrameRate => .info.frameRate
 
-    mtd impl durationInSeconds()->f64 => .currentDuration()
+    mtd impl durationInSeconds()->f64 => .durationSeconds
 
     mtd impl requestCancel()
     {

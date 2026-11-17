@@ -47,7 +47,7 @@ impl SelectionBar
     {
         with let result = Wnd.create'SelectionBar(parent)
         {
-            .main            = main
+            .main = main
             .backgroundStyle = .Transparent
             .wndFlags.add(.Hidden)
         }

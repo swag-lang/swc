@@ -31,6 +31,28 @@ func assertOffsetCleanPreservesPathIdentity()
     assertOffsetCleanPreservesPathIdentity()
 }
 
+// A zero offset returns an independent, closed path with the source contour's bounds and area.
+#test
+{
+    var source: Pixel.Polygon
+    source.points.add({3, 5})
+    source.points.add({23, 5})
+    source.points.add({23, 17})
+    source.points.add({3, 17})
+    source.recompute()
+
+    let paths = source.offsetPaths(0, .Round)
+    Swag.require(paths.paths.count == 1)
+    let path = paths.paths[0]
+    Swag.require(path.isClosed and path.isPolyOnly and path.isFlatten)
+    Swag.require(path.polygon.points.count == source.points.count)
+    Swag.require(path.polygon.area == source.area)
+    Swag.require(path.minBounds == source.minBounds and path.maxBounds == source.maxBounds)
+    Swag.require(paths.minBounds == source.minBounds and paths.maxBounds == source.maxBounds)
+    for i in source.points.count do
+        Swag.require(path.polygon.points[i] == source.points[i])
+}
+
 // MiterBevel keeps a miter when its extension fits Clipper's miter limit.
 #test
 {

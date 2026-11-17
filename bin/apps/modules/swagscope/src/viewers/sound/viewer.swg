@@ -477,14 +477,19 @@ struct Panel
 
 impl Panel
 {
-    // Reports whether work remains whose result has not reached the waveform yet.
+    // Reports whether work remains whose result has not reached the waveform or the sheet yet.
+    //
+    // The worker can publish its last waveform point before it ends, so the waveform may look
+    // complete while the levels it measures last are still unknown to the sheet.
     mtd isLoading()->bool
     {
         if not .openFinished do
             return true
 
         let built = .publishedWaveformCount()
-        return .waveformTask.isPending() or .waveform.readyCount < built
+        return .waveformTask.isPending() or
+               .waveform.readyCount < built or
+               (.waveform.samples.count != 0 and not .levelsShown)
     }
 
     // Reports whether the host should cover the view, which is until the sound has opened.

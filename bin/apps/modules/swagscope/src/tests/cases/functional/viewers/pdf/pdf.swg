@@ -200,7 +200,7 @@ internal func createPdfFixture()->String
     let fileName = Testing.tempFilePath("scope-pdf-labels-", ".pdf")
     defer discard catch File.delete(fileName)
     var source: String = "%PDF-1.7\n"
-    source += "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [1 << /S /r >> 3 << /S /D >> 6 << /P (Cover) >>] >> >>\nendobj\n"
+    source += "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [1 << /S /r >> 3 << /S /D >> 6 << /P (1-Cover) >>] >> >>\nendobj\n"
     source += "2 0 obj\n<< /Type /Pages /Count 7 /Kids [3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R] >>\nendobj\n"
     source += "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> >>\nendobj\n"
     source += "trailer\n<< /Root 1 0 R >>\n%%EOF\n"
@@ -219,7 +219,7 @@ internal func createPdfFixture()->String
     Swag.require(view.goToTypedPage("II"))
     Swag.require(view.pdfView.pageIndex == 2, Format.toString("page %", view.pdfView.pageIndex))
     Swag.require(view.pageReadout() == "ii (3/7)")
-    Swag.require(view.goToTypedPage("cover") and view.pdfView.pageIndex == 6)
+    Swag.require(view.goToTypedPage("1-cover") and view.pdfView.pageIndex == 6)
     Swag.require(view.goToTypedPage("4") and view.pdfView.pageIndex == 3)
     Swag.require(not view.goToTypedPage("xiv"))
 

@@ -84,6 +84,7 @@ impl Zip
             return cast(string, bytes)
 
         var result: #returntype
+        result.reserve(bytes.count)
         for value in bytes
         {
             if value < 0x80 do

@@ -16,24 +16,15 @@ must not be reimplemented locally. The roadmap keeps the product adoption and it
 security result together, while a standalone standard-library optimization belongs to the owning
 module's roadmap.
 
-### app.vault.007 — No normative container-format specification
-
-- Evidence: [hidden-volumes.md](../bin/apps/modules/swagvault/hidden-volumes.md) documents the
-  version-1 hidden-locator extension; the base layout is described only by comments in
-  `volume/format.swg`, `keyslot.swg` and `journal.swg`.
-- Next: write a format document independent of the implementation covering layout, key
-  derivation, record framing, validation order, versioning and failure indistinguishability.
-- Done when: an independent implementer can read and validate a container from the document
-  alone.
-- Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
-
 ### app.vault.003 — Additional password slots are not in the interface
 
 - Evidence: `Volume.addPassword` and `Volume.removePassword` have no interface caller, so the
   interface only ever rewrites the password a reader opened with, although a version-1 container
-  holds four key slots (`KeySlotCount`). Exposing them needs no format change.
-- Next: add a key-slot list that adds and revokes passwords and shows how many slots are
-  occupied without revealing which password maps to which slot.
+  holds four key slots (`KeySlotCount`). An interrupted add can reserve a slot-mask bit before its
+  payload is written, so revocation must verify another working password rather than trust the mask.
+- Next: add a key-slot list that adds and revokes passwords, verifies a retained password before
+  revocation, and shows how many slots are occupied without revealing which password maps to which
+  slot.
 - Done when: a user can add, use and revoke a second password from the interface, and a full
   container refuses a fifth with a clear message.
 
@@ -54,16 +45,15 @@ module's roadmap.
 - Next: add deterministic partial-write injection and process termination during checkpoint
   persistence.
 - Done when: every injected interruption point reopens to a consistent earlier or later state.
-- Related: app.vault.007
 
 ### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
-- Evidence: `nodeindex.swg` exercises 100,000 in-memory nodes and `volume.swg` crosses
-  metadata paging with 300 nodes; nothing runs a durable container at that scale.
+- Evidence: `cases/stress/nodeindex.swg` exercises 100,000 in-memory nodes and `volume.swg`
+  crosses metadata paging with 300 nodes; nothing runs a durable container at that scale.
 - Next: add a bounded end-to-end run at 100,000 files covering creation, reopen, lookup,
   enumeration, checkpointing, deletion and memory usage.
 - Done when: the run is correct and reports time and peak memory for each phase.
-- Related: app.vault.001, app.vault.007
+- Related: app.vault.001
 
 ### app.vault.001 — No block cache
 
@@ -88,7 +78,7 @@ module's roadmap.
   minimal containers.
 - Done when: the vectors ship with the format document and a test checks the implementation
   against them.
-- Related: app.vault.007, app.vault.012
+- Related: app.vault.012
 
 ### app.vault.009 — Attacker-controlled container decoders are not fuzzed
 
@@ -96,15 +86,14 @@ module's roadmap.
   with reproducible corpora and sanitizer coverage.
 - Done when: each decoder has a reproducible fuzz corpus and every crash found is fixed with a
   regression input.
-- Related: app.vault.007, app.vault.012
+- Related: app.vault.012
 
 ### app.vault.012 — External audit
 
 - Evidence: neither the format nor the implementation has had independent review, so Swag Vault
   is not a proven replacement for VeraCrypt on critical data.
-- Next: commission an external audit once app.vault.007 provides the format document.
+- Next: commission an external audit of the published format and implementation.
 - Done when: an independent audit report is published and its findings are resolved.
-- Related: app.vault.007
 
 ### app.vault.013 — WinFsp directory names include a trailing NUL
 

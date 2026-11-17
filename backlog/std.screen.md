@@ -21,10 +21,11 @@ continues to own media frames and codecs, not desktop access.
   without reopening. `captureOptions()` returns the selected physical rectangle and cursor policy.
   `openMonitorAt()` selects the containing or nearest physical monitor for a desktop point. Monitor
   values are only snapshots; borrowed GPU frames, persistent monitor IDs, and window targets remain
-  unavailable. X11 currently treats every successful image read as a fresh frame; it does not detect
-  repeated desktop pixels yet.
-- Next: detect unchanged X11 frames, add a bounded borrowed-frame contract, persistent monitor/window
-  targets, permission and source-loss results. Keep pacing and encoding outside the source.
+  unavailable. X11 compares each cursor-composited BGRA8 image against its prior cached frame and
+  reports pixel-identical reads as unchanged while preserving a reused target when requested. Its
+  readback wait, pixel conversion/copy, and XFixes cursor composition timings are reported separately.
+- Next: add a bounded borrowed-frame contract, persistent monitor/window targets, permission and
+  source-loss results. Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while
   retaining a frame safely across a consumer handoff on Windows and Linux.
 - Related: std.screen.002, std.screen.003, app.capture.011

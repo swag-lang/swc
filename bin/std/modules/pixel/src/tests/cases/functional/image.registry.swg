@@ -72,9 +72,13 @@ impl IImageDecoder for TruncatedPixelDecoder
 
     mtd impl decode(_: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var result = Image.create(1, 1, .RGBA8)
-        if options.decodePixels do
+        var result: Image
+        result.init(1, 1, .RGBA8)
+        if options.decodePixels
+        {
+            result.allocPixels()
             result.pixels.resize(3)
+        }
         return result
     }
 }
@@ -182,5 +186,5 @@ internal impl Image
     Swag.require((errorOutcome.value() is InvalidFormatError))
 
     let probe = expect Image.decode("image.truncatedpixels", "input", {decodePixels: false})
-    Swag.require(probe.width == 1 and probe.height == 1 and probe.pixels.count == probe.byteCount)
+    Swag.require(probe.width == 1 and probe.height == 1 and probe.byteCount == 4 and probe.pixels.count == 0)
 }

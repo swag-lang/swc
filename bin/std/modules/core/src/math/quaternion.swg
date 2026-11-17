@@ -112,6 +112,17 @@ impl Quaternion
         return result
     }
 
+    // Converts this rotation to an axis and angle in radians. Identity uses the X axis and zero angle.
+    mtd const toAxisAngle()->{ axis: Vector3, angle: f32 }
+    {
+        let q = .normalized()
+        let angle = 2 * Math.acos(Math.clamp(q.w, -1'f32, 1'f32))
+        let sineHalf = sqrt(Math.max(0'f32, 1 - q.w * q.w))
+        if sineHalf <= ConstF32.Epsilon do
+            return {axis: Vector3.UnitX, angle: 0}
+        return {axis: Vector3{q.x, q.y, q.z} / sineHalf, angle: angle}
+    }
+
     // Creates a rotation of `angle` radians about `axis`; a zero axis returns identity.
     func fromAxisAngle(axis: Vector3, angle: f32)->Quaternion
     {
@@ -121,6 +132,31 @@ impl Quaternion
         let halfAngle = angle * 0.5
         let sine = Math.sin(halfAngle)
         return Quaternion{unitAxis.x * sine, unitAxis.y * sine, unitAxis.z * sine, Math.cos(halfAngle)}
+    }
+
+    // Creates the shortest rotation that maps `from` onto `target`; zero inputs return identity.
+    func fromToRotation(from, target: Vector3)->Quaternion
+    {
+        let start = from.normalizedOrZero()
+        let finish = target.normalizedOrZero()
+        if start.isZero() or finish.isZero() do
+            return Identity
+        let cosine = Math.clamp(start.dot(finish), -1'f32, 1'f32)
+        if cosine < -0.999999'f32
+        {
+            let absolute = start.absolute()
+            var basis = Vector3.UnitZ
+            if absolute.x <= absolute.y and absolute.x <= absolute.z do
+                basis = Vector3.UnitX
+            else
+            {
+                if absolute.y <= absolute.z do
+                    basis = Vector3.UnitY
+            }
+            return fromAxisAngle(start.cross(basis), ConstF32.Pi)
+        }
+        let axis = start.cross(finish)
+        return Quaternion{axis.x, axis.y, axis.z, 1 + cosine}.normalized()
     }
 
     // Creates a rotation from X, Y, and Z Euler angles in radians, applied in that order.

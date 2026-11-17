@@ -41,7 +41,8 @@ synchronization fails.
 Create a hidden filesystem inside an existing container's contiguous free space, with independent
 password and key files. Choose its capacity and the minimum space to leave for ordinary files.
 Hidden-volume protection is optional at mount: without it, ordinary writes can overwrite hidden
-data. See [hidden-volume workflow, format, and limitations](hidden-volumes.md).
+data. See the [container format](format.md) and the
+[hidden-volume workflow, extension, and limitations](hidden-volumes.md).
 
 ## Mounting and runtime files
 

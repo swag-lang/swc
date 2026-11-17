@@ -769,7 +769,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var viaThird = expect Volume.open(path, thirdPassword())
     Swag.require(viaThird.keySlotCount() == 2)
     Swag.require(viaThird.resolve("\\secret.bin") != null)
-    expect viaThird.removePassword(secondPassword())
+    expect viaThird.removePassword(secondPassword(), thirdPassword())
     Swag.require(viaThird.keySlotCount() == 1)
     viaThird.close()
 
@@ -780,7 +780,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // The last remaining password cannot be removed: a container no password
     // opens is unrecoverable.
     var lastErrorOutcome: Swag.Error
-    discard catch last.removePassword(thirdPassword()) as lastErrorOutcome
+    discard catch last.removePassword(thirdPassword(), secondPassword()) as lastErrorOutcome
     let lastError = lastErrorOutcome.value()
     Swag.require(lastError != null)
 
@@ -793,6 +793,39 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let wrongCurrentError = wrongCurrentErrorOutcome.value()
     Swag.require(wrongCurrentError != null)
     last.close()
+}
+
+#test
+{
+    // A bit reserved by an interrupted password add cannot keep the current valid password from
+    // being the last usable way into the container.
+    let path = testContainerPath("reservedslot")
+    defer discard catch File.delete(path)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var reservedIndex = 0'u64
+    while (volume.keySlotMask & keySlotBit(reservedIndex)) != 0 do
+        reservedIndex += 1
+    volume.keySlotMask |= keySlotBit(reservedIndex)
+    volume.touchScalars()
+    expect volume.checkpoint()
+    volume.close()
+
+    var reopened = expect Volume.open(path, testPassword())
+    var error: Swag.Error
+    catch reopened.removePassword(testPassword(), secondPassword()) as error
+    let removalError = error.value()
+    Swag.require(removalError != null)
+    switch removalError
+    {
+    case Swagvault.Error as volumeError: Swag.require(volumeError.kind == .AccessDenied)
+    default: Swag.require(false)
+    }
+    reopened.close()
+
+    var stillOpen = expect Volume.open(path, testPassword())
+    Swag.require(stillOpen.keySlotCount() == 2)
+    stillOpen.close()
 }
 
 #test
@@ -1256,7 +1289,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let addPasswordError = addPasswordErrorOutcome.value()
     Swag.require(refuses(addPasswordError))
     var removePasswordErrorOutcome: Swag.Error
-    catch volume.removePassword(testPassword()) as removePasswordErrorOutcome
+    catch volume.removePassword(testPassword(), secondPassword()) as removePasswordErrorOutcome
     let removePasswordError = removePasswordErrorOutcome.value()
     Swag.require(refuses(removePasswordError))
 

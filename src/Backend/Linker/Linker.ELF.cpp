@@ -7,7 +7,6 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeFunctionCache.ELF.h"
 #include "Backend/Native/NativeNames.h"
-#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerCache.h"

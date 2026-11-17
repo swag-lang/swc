@@ -133,3 +133,41 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     let err = errOutcome.value()
     Swag.require((err is Errors.InvalidFormatError))
 }
+
+// IMA ADPCM step indices must address the decoder's step table; packet decoding checks this lazily.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-adpcm-step-index-%.wav", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    var bytes: Array'u8
+    var writer = ByteStream.openWrite(&bytes)
+    writer.writeBytes(cast(const [..] u8, "RIFF"))
+    writer.writeLittleEndian(48'u32) // File size minus the RIFF marker and size.
+    writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
+    writer.writeLittleEndian(20'u32)
+    writer.writeLittleEndian(0x11'u16) // IMA ADPCM.
+    writer.writeLittleEndian(1'u16) // Mono.
+    writer.writeLittleEndian(8_000'u32)
+    writer.writeLittleEndian(7_111'u32)
+    writer.writeLittleEndian(8'u16) // Block alignment.
+    writer.writeLittleEndian(4'u16) // Bits per sample.
+    writer.writeLittleEndian(2'u16) // Extension bytes.
+    writer.writeLittleEndian(9'u16) // Samples per block.
+    writer.writeBytes(cast(const [..] u8, "data"))
+    writer.writeLittleEndian(8'u32)
+    writer.writeLittleEndian(0's16) // Predictor seed.
+    writer.writeLittleEndian(89'u8) // Outside the valid IMA step-index range 0-88.
+    writer.writeLittleEndian(0'u8) // Reserved byte.
+    for 4 do
+        writer.writeLittleEndian(0'u8)
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    var sound = expect SoundFile.load(path.toString())
+    Swag.require(sound.isPacketStream() and sound.sampleFrameCount() == 9)
+
+    var errOutcome: Swag.Error
+    discard catch adpcmDecodeAll(&sound) as errOutcome
+    Swag.require(errOutcome.value() is Errors.InvalidFormatError)
+}

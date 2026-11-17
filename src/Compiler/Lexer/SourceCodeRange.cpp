@@ -4,11 +4,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
-
-class CompilerInstance;
 
 namespace
 {

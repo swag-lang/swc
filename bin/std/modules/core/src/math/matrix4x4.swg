@@ -100,6 +100,13 @@ impl Matrix4x4
         return result
     }
 
+    // Creates a transform that scales, then rotates, then translates row vectors.
+    func createTRS(translation: Vector3, rotation: Quaternion, scale: Vector3)->Matrix4x4
+    {
+        let scaled = Matrix4x4.createScale(scale).multiplied(rotation.toMatrix4x4())
+        return scaled.multiplied(Matrix4x4.createTranslation(translation))
+    }
+
     // Creates an identity matrix.
     func createIdentity()->Matrix4x4
     {
@@ -269,5 +276,13 @@ impl Matrix4x4
     {
         let transformed = .transformVector(Vector4{direction.x, direction.y, direction.z, 0})
         return Vector3{transformed.x, transformed.y, transformed.z}
+    }
+
+    // Transforms a normal with the inverse transpose of this matrix's linear part.
+    //
+    // This preserves perpendicularity under nonuniform scale; the matrix must be invertible.
+    mtd const transformNormal(normal: Vector3)->Vector3
+    {
+        return .inverted().transposed().transformDirection(normal)
     }
 }

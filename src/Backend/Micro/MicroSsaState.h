@@ -74,6 +74,8 @@ public:
     void clear(uint32_t nextFunctionSlotCount);
     void invalidate();
     bool isValid() const { return valid_; }
+    // A valid analysis belongs to one storage object; instruction queries also check the live-slot epoch.
+    bool isValidFor(const MicroStorage& storage) const { return valid_ && storage_ == &storage; }
 
     uint32_t    reachingValueId(MicroReg reg, MicroInstrRef beforeInstRef) const;
     ReachingDef reachingDef(MicroReg reg, MicroInstrRef beforeInstRef) const;

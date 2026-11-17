@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
@@ -684,6 +685,34 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) > Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LICM_UsesCurrentSsaUseDefCache)
+{
+    MicroBuilder builder(ctx);
+    buildPollingLoop(builder, [](MicroBuilder& b, MicroReg value, MicroReg base) {
+        b.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    });
+
+    MicroSsaState ssa;
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    if (!ssa.isValidFor(builder.instructions()))
+        return Result::Error;
+
+    MicroPassContext passContext;
+    passContext.builder      = &builder;
+    passContext.instructions = &builder.instructions();
+    passContext.operands     = &builder.operands();
+    passContext.ssaState     = &ssa;
+
+    MicroLoopInvariantCodeMotionPass pass;
+    SWC_RESULT(pass.run(passContext));
+    if (!passContext.passChanged || ssa.isValid())
+        return Result::Error;
     if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) > Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
     return Result::Continue;

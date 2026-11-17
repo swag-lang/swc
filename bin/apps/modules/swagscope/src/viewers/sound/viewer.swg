@@ -267,7 +267,9 @@ struct WaveformView
     samples:    Array'WaveformPoint
     readyCount: u64     // Points the builder has published so far.
     duration:   f32
-    progress:   f32     // Played fraction, from 0 to 1.
+    progress:   f32          // Played fraction, from 0 to 1.
+    loopStart:  f32 = -1     // Fraction where the looped passage starts, negative without one.
+    loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
 }
 
 // Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
@@ -391,6 +393,19 @@ private impl IWnd for WaveformView
         let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
 
         painter.setParams(.Antialiased)
+
+        // A looped passage stands as a faint band behind its bars, its start alone as a line.
+        if .loopStart >= 0
+        {
+            var band = colors.arc
+            band.a = 48
+            let left = bars.x + Math.clamp(.loopStart, 0, 1) * bars.width
+            if .loopEnd > .loopStart do
+                painter.fillRect(Math.Rectangle{left, bars.y, (Math.clamp(.loopEnd, 0, 1) - .loopStart) * bars.width, bars.height}, band)
+            else do
+                painter.fillRect(Math.Rectangle{left, bars.y, 1, bars.height}, colors.arc)
+        }
+
         if not .samples.isEmpty()
         {
             for bar in count
@@ -468,7 +483,9 @@ struct Panel
     playing:      bool
     muted:        bool
     volume:       f32 = 1
-    playbackRate: f64 = 1     // Source seconds played per second; the pitch follows it.
+    playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
+    loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
+    loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
 
     retireRequested: bool
     retired:         bool
@@ -542,9 +559,12 @@ impl Panel
                                    .sound.sampleStorageBits(),
                                    durationText(.duration))
 
-        // An adjusted rate is part of what the reader hears, so the summary declares it.
+        // An adjusted rate and a looped passage are part of what the reader hears, so the summary
+        // declares them.
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
+        if .loopEnd > .loopStart and .loopStart >= 0 do
+            .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
         .services.showDetails(me, .details)
         .invalidate()
     }
@@ -827,6 +847,12 @@ impl Panel
         let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0])
         if slower do
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
+
+        // A passage is looped between two points the reader marks while listening.
+        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
+        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
+        if .loopStart >= 0 do
+            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() })
     }
 
     // Plays the recording at `rate` source seconds per second, the pitch following it. Positions
@@ -841,6 +867,59 @@ impl Panel
             catch .voice.setFrequencyRatio(cast(f32, rate))
         .refreshDetails()
     }
+
+    // Starts the looped passage where playback stands; an end before it no longer holds.
+    mtd setLoopStart()
+    {
+        .loopStart = .playbackPosition()
+        if .loopEnd <= .loopStart do
+            .loopEnd = -1
+        .refreshLoop()
+    }
+
+    // Ends the looped passage where playback stands, from its start, or from the beginning when
+    // none was set. A point at or before the start sets nothing.
+    mtd setLoopEnd()
+    {
+        let position = .playbackPosition()
+        let start    = .loopStart >= 0 ? .loopStart : 0
+        if position <= start do
+            return
+        .loopStart = start
+        .loopEnd   = position
+        .refreshLoop()
+    }
+
+    // Plays the recording through again, without a looped passage.
+    mtd clearLoop()
+    {
+        .loopStart = -1
+        .loopEnd   = -1
+        .refreshLoop()
+    }
+
+    // Shows the looped passage on the wave and in the summary.
+    mtd refreshLoop()
+    {
+        let length = Math.max(.duration, 0.001)
+        .waveform.loopStart = .loopStart >= 0 ? .loopStart / length : -1
+        .waveform.loopEnd   = .loopEnd >= 0 ? .loopEnd / length : -1
+        .waveform.invalidate()
+        .refreshDetails()
+    }
+
+    // Plays a looped passage again from its start once playback has reached its end; reports
+    // whether it did.
+    mtd followLoop()->bool
+    {
+        if .loopStart < 0 or .loopEnd <= .loopStart or .elapsed < .loopEnd do
+            return false
+        .seekSeconds(.loopStart)
+        return true
+    }
+
+    // Returns where playback stands in the recording, in seconds.
+    mtd playbackPosition()->f32 => .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
 
     mtd seekRelative(seconds: f32)
     {
@@ -975,6 +1054,10 @@ impl IWnd for Panel
         if not .playing or not .voice do
             return
         .elapsed = cast(f32, .voice.playbackPositionSeconds())
+
+        if .followLoop() do
+            return
+
         if .elapsed >= .duration
         {
             .finishPlayback()
@@ -1070,6 +1153,8 @@ impl IWnd for Panel
         case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
         case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
         case .Home:                   .seekSeconds(0)
+        case .Oem4:                   .setLoopStart()
+        case .Oem6:                   .setLoopEnd()
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
         }

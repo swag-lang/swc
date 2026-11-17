@@ -30,8 +30,12 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.002 — Audio cannot loop a selection or mark an A/B region
 
-- Evidence: the timeline supports one playhead and fixed ten-second seeks. There is no range
-  selection, set/clear A and B, loop toggle, play-selection, or sample-accurate region readout.
+- Evidence: `[` and `]`, or the lens, mark where a looped passage starts and ends while listening
+  (an end alone loops from the beginning); playback past its end goes back to its start, the
+  wave shows the passage as a band and the summary names it, and Stop Looping in the lens clears
+  it. The points are taken from the playback position in whole timer steps, the summary writes
+  them in seconds, and there is no pointer range selection, play-once, editable boundary, or
+  sample-accurate region readout.
 - Next: add a source-frame-backed selection model to the waveform and transport.
 - Done when: pointer and keyboard set a range, loop and play-once honor exact supported frame
   boundaries, start/end/duration are editable in time or frames, and selection survives zoom but

@@ -585,3 +585,52 @@ func soundInformation(bytes: const [..] u8)->String
     let silent      = soundInformation(silentBytes.toSlice())
     Swag.require(Utf8.contains(silent, "Sample peak\n−∞ dBFS"), silent)
 }
+
+// Two points marked while listening loop the passage between them: playback past its end goes
+// back to its start, the wave and the summary show it, and stopping the loop plays through again.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var samples: Array's16
+    samples.resize(8_000 * 3)
+    let bytes    = pcm16Wav(samples.toSlice())
+    let fileName = Gui.Testing.tempFilePath("scope-sound-loop-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.engineReady and view.duration > 2.9)
+
+    // An end before any start loops from the beginning; a start after the end drops the end.
+    view.seekSeconds(1)
+    view.setLoopEnd()
+    Swag.require(view.loopStart == 0 and Math.abs(view.loopEnd - 1) < 0.01)
+    view.seekSeconds(2)
+    view.setLoopStart()
+    Swag.require(Math.abs(view.loopStart - 2) < 0.01 and view.loopEnd < 0)
+
+    view.seekSeconds(0.5)
+    view.setLoopStart()
+    view.seekSeconds(1.5)
+    view.setLoopEnd()
+    Swag.require(Math.abs(view.waveform.loopStart - 0.5 / view.duration) < 0.01 and view.waveform.loopEnd > view.waveform.loopStart)
+    Swag.require(Utf8.contains(view.details.toString(), Format.toString(Sound.texts().ui_Loop, "0:00", "0:01").toString()), view.details)
+
+    view.seekSeconds(1.6)
+    Swag.require(view.followLoop() and Math.abs(view.elapsed - 0.5) < 0.01, Format.toString("%", view.elapsed))
+    view.seekSeconds(1.2)
+    Swag.require(not view.followLoop())
+
+    view.clearLoop()
+    Swag.require(view.loopStart < 0 and
+                 view.waveform.loopStart < 0 and
+                 not Utf8.contains(view.details.toString(), "0:00–"))
+    view.seekSeconds(1.6)
+    Swag.require(not view.followLoop())
+}

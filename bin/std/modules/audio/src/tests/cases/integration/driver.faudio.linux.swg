@@ -144,6 +144,27 @@ func audioRenderDisk(path: string, routing: u32, pitch: f32)->AudioDiskMeasureme
     let path = audioMakeTestTone()
     defer discard catch File.delete(path)
     var file = expect SoundFile.load(path, preloadData: false)
+    audioStartDiskEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&file)
+    discard expect voice.setPan(0.5)
+    discard expect voice.play()
+    audioWaitForFrame(voice, 16000)
+    discard expect voice.stop()
+    destroyEngine()
+
+    // At half right pan the left input is attenuated by one half while the right input remains.
+    let captured = audioMeasureDisk()
+    audioAssertFloat(captured.peakLeft, 0.25, 0.01)
+    audioAssertFloat(captured.peakRight, 0.25, 0.01)
+}
+
+#[Swag.TestTag("integration.audio.faudio")]
+#test
+{
+    let path = audioMakeTestTone()
+    defer discard catch File.delete(path)
+    var file = expect SoundFile.load(path, preloadData: false)
     for 3
     {
         audioStartDiskEngine()

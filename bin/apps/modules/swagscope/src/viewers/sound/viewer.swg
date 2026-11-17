@@ -365,7 +365,7 @@ private impl IWnd for WaveformView
             band.a = 48
             let left = bars.x + Math.clamp(.loopStart, 0, 1) * bars.width
             if .loopEnd > .loopStart do
-                painter.fillRect(Math.Rectangle{left, bars.y, (Math.clamp(.loopEnd, 0, 1) - .loopStart) * bars.width, bars.height}, band)
+                painter.fillRect(Math.Rectangle{left, bars.y, bars.x + Math.clamp(.loopEnd, 0, 1) * bars.width - left, bars.height}, band)
             else do
                 painter.fillRect(Math.Rectangle{left, bars.y, 1, bars.height}, colors.arc)
         }

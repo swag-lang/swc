@@ -37,13 +37,13 @@ using Core, Gui, Viewers
     var ran:  bool
     var host: Testing.HeadlessHost
     host.setup(640, 480)
+    var unrelated        = Testing.lensResults("unrelated")
+    var unrelatedEntries = Viewer.LensEntries.create(&unrelated, "Text", host.theme)
+    Swag.require(unrelatedEntries.add("Wrap", .Wrap, func() {}) == null)
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Text", host.theme)
-    entries.query = "unrelated"
-    Swag.require(entries.add("Wrap", .Wrap, func() {}) == null)
-    entries.query = ""
-    let reset = unwrap entries.addZoom(.Reset, 100, func|ran = &ran|() { ran[] = true })
-    let upper = unwrap entries.addZoom(.In, Viewer.MaxZoom, func() {})
+    let reset   = unwrap entries.addZoom(.Reset, 100, func|ran = &ran|() { ran[] = true })
+    let upper   = unwrap entries.addZoom(.In, Viewer.MaxZoom, func() {})
     Swag.require(reset.glyph == host.theme.icon(.ActualSize, host.theme.metrics.menuPopup_IconSize))
     Swag.require(reset.checked and not reset.disabled and reset.detail.count != 0)
     Swag.require(upper.disabled and upper.glyph.isValid())

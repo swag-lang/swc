@@ -214,9 +214,8 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     for &entry in empty.sections[0]!.entries do
         Swag.require(not Utf8.startsWith(entry.title, PlainText.texts().ui_Encoding), "an empty lens lists no encodings")
 
-    var asked: Lens.Results
+    var asked        = Testing.lensResults("encoding")
     var askedEntries = Viewer.LensEntries.create(&asked, "Text", host.theme)
-    askedEntries.query = "encoding"
     view.describeLens(&askedEntries)
     var encodings = 0
     var checked   = 0

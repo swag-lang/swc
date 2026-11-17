@@ -389,9 +389,8 @@ struct CodeLanguageSample
     view.describeLens(&entries)
     for &entry in results.sections[0]!.entries do
         Swag.require(not Utf8.startsWith(entry.title, Code.texts().ui_TabWidth), "an empty lens lists no tab stops")
-    var tabResults: Lens.Results
-    var tabs = Viewer.LensEntries.create(&tabResults, "Code", host.theme)
-    tabs.query = "tab"
+    var tabResults = Testing.lensResults("tab")
+    var tabs       = Viewer.LensEntries.create(&tabResults, "Code", host.theme)
     view.describeLens(&tabs)
     var checked: Array'String
     var found = false
@@ -439,9 +438,8 @@ struct CodeLanguageSample
     for entry in quiet.sections[0]!.entries do
         Swag.require(not Utf8.startsWith(entry.title.toString(), "Highlight as"), entry.title.toString())
 
-    var results: Lens.Results
+    var results = Testing.lensResults("python")
     var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
-    entries.query = "python"
     view.describeLens(&entries)
     var chosen = 0
     for &entry in results.sections[0]!.entries where entry.title == Format.toString(Code.texts().ui_HighlightAs, "Python")

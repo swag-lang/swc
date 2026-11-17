@@ -14,23 +14,33 @@ struct LensEntries
 {
     public
     {
-        results: *Lens.Results     // Answer the rows join.
+        results: *Lens.Results     // Answer the rows join, holding the query they answer.
         label:   String            // Section the rows stand under: the name of the viewer.
-        query:   String            // What the reader typed, without its prefix.
+
+        // What the reader typed, without its prefix: the query of `results`.
+        readonly query: String
     }
 
     theme:        *Theme
     section:      *Lens.Section?
-    labelQuery:   String         // Query the label was last matched against.
-    folded:       Lens.Query     // That query folded once, to match every row against.
-    labelAnswers: bool           // Whether that query names the viewer, which brings every row.
+    labelAnswers: bool     // Whether the query names the viewer, which brings every row.
 }
 
 impl LensEntries
 {
     // Starts the rows of the viewer named `label` for `results`, borrowing `theme` for their glyphs.
     // The theme must outlive these entries.
-    func create(results: *Lens.Results, label: string, theme: *Theme)->LensEntries => LensEntries{results: results, label: label, query: results.query, theme: theme}
+    //
+    // A viewer adds dozens of rows for each keystroke, and the label is the same for all of them,
+    // so it is matched once here; every row is matched against the query `results` folded once.
+    func create(results: *Lens.Results, label: string, theme: *Theme)->LensEntries
+    {
+        return LensEntries{results: results,
+                           label: label,
+                           query: results.query,
+                           theme: theme,
+                           labelAnswers: Lens.match(results.folded, label).matched}
+    }
 
     // Adds a row titled `title` with the shared action `icon`, running `run` after the lens closes.
     //
@@ -40,18 +50,8 @@ impl LensEntries
     #[Swag.Discardable]
     mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
     {
-        // A viewer adds dozens of rows for each keystroke, and the label is the same for all of
-        // them, so it is matched once per query rather than once per row, and the query is
-        // folded once for every row.
-        if .labelQuery != .query
-        {
-            .labelQuery   = .query
-            .folded       = Lens.Query.create(.query)
-            .labelAnswers = Lens.match(.folded, .label).matched
-        }
-
         // The row takes the answer of its title along, so the lens does not match it again.
-        var found = Lens.match(.folded, title)
+        var found = Lens.match(.results.folded, title)
         if not .labelAnswers and not found.matched do
             return null
         if not .section do

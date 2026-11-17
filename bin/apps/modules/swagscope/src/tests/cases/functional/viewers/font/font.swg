@@ -183,9 +183,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let text = sheet.text()
     Swag.require(Utf8.contains(text, "Unicode\nU+0041 · A") and Utf8.contains(text, "Glyph index\n"), text)
 
-    var results: Lens.Results
+    var results = Testing.lensResults("copy")
     var entries = Viewer.LensEntries.create(&results, "Font", host.theme)
-    entries.query = "copy"
     view.describeLens(&entries)
     var found = false
     for &entry in results.sections[0]!.entries where entry.title == Format.toString(Typeface.texts().ui_CopyCharacter, "A") do

@@ -1554,9 +1554,8 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     waitForVideoFrame(view)
     Swag.require(view.frameIndex == 3, Format.toString("frame %", view.frameIndex))
 
-    var results: Lens.Results
+    var results = Testing.lensResults("copy")
     var entries = Viewer.LensEntries.create(&results, "Film", host.theme)
-    entries.query = "copy"
     view.describeLens(&entries)
     var found = false
     for &entry in results.sections[0]!.entries where entry.title == Film.texts().cmd_CopyFrame

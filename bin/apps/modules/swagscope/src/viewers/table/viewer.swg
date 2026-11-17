@@ -318,11 +318,19 @@ func kindName(kind: ColumnKind)->string
     }
 }
 
-// Reports whether the commas of `text` only group its thousands: each followed by three digits.
+// Reports whether commas before the decimal point group thousands in three-digit blocks.
 func isThousands(text: string)->bool
 {
-    for byte, at in text where byte == ','
+    var decimalPoint = false
+    for byte, at in text
     {
+        if byte == '.' do
+            decimalPoint = true
+        if byte != ',' do
+            continue
+        if decimalPoint do
+            return false
+
         var digits = 0'u64
         var next   = at + 1
         while next < text.count and Latin1.isDigit(text[next])
@@ -429,6 +437,9 @@ func quantityOf(text: string, result: *f64)->bool
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
+    if commas and not decimalComma and not isThousands(text) do
+        return false
+
     var clean: String
     for byte in text
     {

@@ -769,6 +769,17 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var viaThird = expect Volume.open(path, thirdPassword())
     Swag.require(viaThird.keySlotCount() == 2)
     Swag.require(viaThird.resolve("\\secret.bin") != null)
+
+    var sameSlotErrorOutcome: Swag.Error
+    discard catch viaThird.removePassword(thirdPassword(), thirdPassword()) as sameSlotErrorOutcome
+    let sameSlotError = sameSlotErrorOutcome.value()
+    Swag.require(sameSlotError != null)
+    switch sameSlotError
+    {
+    case Swagvault.Error as volumeError: Swag.require(volumeError.kind == .AccessDenied)
+    default: Swag.require(false)
+    }
+
     expect viaThird.removePassword(secondPassword(), thirdPassword())
     Swag.require(viaThird.keySlotCount() == 1)
     viaThird.close()

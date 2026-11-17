@@ -92,6 +92,8 @@ impl RunFormat
         elif token.isElement("u")
         {
             .underline = enabled and value != "none" ? .On : .Off
+            if enabled and value.count and value != "single" and value != "none" do
+                .limited = true
         }
         elif token.isElement("sz")
         {

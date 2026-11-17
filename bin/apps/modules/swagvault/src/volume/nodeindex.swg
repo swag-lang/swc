@@ -21,7 +21,7 @@ struct NodeIndexSiblingLinks
 struct NodeIndex
 {
     byId:       HashTable'(u64, u64)                       // Position of each node in the node table.
-    byParent:   HashTable'(String, u64)                    // Node of each case-folded name, per directory.
+    byParent:   HashTable'(String, u64)                    // Node of each lowercased name, per directory.
     childLists: HashTable'(u64, NodeIndexChildList)        // Children of each non-empty directory.
     siblings:   HashTable'(u64, NodeIndexSiblingLinks)     // Neighbours of each node except the root.
 }

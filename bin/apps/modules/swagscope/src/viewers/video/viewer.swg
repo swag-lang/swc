@@ -1058,8 +1058,8 @@ private impl Panel
 
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
-        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
         entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))

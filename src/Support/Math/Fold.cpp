@@ -32,15 +32,7 @@ namespace Math
 
     bool requiresNonZeroRhs(FoldBinaryOp op)
     {
-        switch (op)
-        {
-            case FoldBinaryOp::Divide:
-            case FoldBinaryOp::Modulo:
-                return true;
-
-            default:
-                return false;
-        }
+        return op == FoldBinaryOp::Divide || op == FoldBinaryOp::Modulo;
     }
 
     FoldStatus foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op)

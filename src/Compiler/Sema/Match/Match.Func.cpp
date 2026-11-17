@@ -2288,7 +2288,9 @@ namespace
             if (!explicitGenericArgNodes.empty() && !fn->isGenericRoot() && !fn->isGenericInstance())
                 continue;
 
-            if (!seenFunctions.insert(fn))
+            // A single input symbol cannot resolve to the same function twice, so avoid
+            // initializing the membership table for the common single-candidate lookup.
+            if (symbols.size() > 1 && !seenFunctions.insert(fn))
                 continue;
 
             outFunctionSymbols.push_back(fn);

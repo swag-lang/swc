@@ -30,7 +30,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(not window.viewerBar.isLocallyVisible())
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = unwrap zoom.outline
-    Swag.require(outline.load.started or outline.loaded)
+    Swag.require(not outline.load.started and not outline.loaded)
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
     if outline.load.isPending() do

@@ -55,6 +55,11 @@ using Core, Gui, Gui.Testing, Viewers
     // The bookmark in view is marked from the start, before the reader moves.
     Swag.require(outline.markedTarget() == 0 and chosen == 0)
 
+    // An open outline follows the pages as they move.
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == 0)
+
     pdf.setZoom(1)
     let section = &view.bookmarks[1]
     pdf.showPosition(section.pageIndex, section.position)
@@ -77,6 +82,15 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(outline.markedTarget() == 0)
     outline.setFilter("")
     Swag.require(outline.markedTarget() == 1 and chosen == 0)
+
+    // A closed outline does not follow the pages; it marks the bookmark in view as it opens again.
+    outline.toggle.setChecked(false)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    pdf.showPage(0)
+    Swag.require(outline.markedTarget() == 1)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == 0 and chosen == 0)
 }
 
 // A bookmark chosen at the end of the document stays marked although its point cannot rise to

@@ -8,8 +8,6 @@ struct Texts
 {
     ui_Previous:               string = "Previous Page"                                                          // Tooltip of the previous-page button.
     ui_Next:                   string = "Next Page"                                                              // Tooltip of the next-page button.
-    ui_ZoomOut:                string = "Zoom Out"                                                               // Tooltip of the zoom-out button.
-    ui_ZoomIn:                 string = "Zoom In"                                                                // Tooltip of the zoom-in button.
     ui_Fit:                    string = "Fit Page"                                                               // Zoom menu action that fits a whole page.
     ui_FitWidth:               string = "Fit Width"                                                              // Zoom menu action that fits the page width.
     ui_CopyText:               string = "Copy Selected Text"                                                     // Lens command copying the text selected on the pages.

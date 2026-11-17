@@ -608,21 +608,6 @@ namespace
         return Runtime::BuildCfgBackendKind::None;
     }
 
-    bool isSharedDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
-    {
-        return backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
-    }
-
-    bool isStaticDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
-    {
-        return backendKind == Runtime::BuildCfgBackendKind::StaticLibrary;
-    }
-
-    bool isImportOnlyDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
-    {
-        return backendKind == Runtime::BuildCfgBackendKind::Export;
-    }
-
     Utf8 joinDependencyPaths(const std::vector<fs::path>& paths)
     {
         Utf8 result;
@@ -636,14 +621,14 @@ namespace
         return result;
     }
 
-    bool selectUniqueDependencyConfigMatch(fs::path& outPath, Runtime::BuildCfgBackendKind& outBackendKind, std::span<const DependencyConfigCandidate> matches, bool (*predicate)(Runtime::BuildCfgBackendKind))
+    bool selectUniqueDependencyConfigMatch(fs::path& outPath, Runtime::BuildCfgBackendKind& outBackendKind, std::span<const DependencyConfigCandidate> matches, Runtime::BuildCfgBackendKind backendKind)
     {
         outPath.clear();
         outBackendKind = Runtime::BuildCfgBackendKind::None;
 
         for (const DependencyConfigCandidate& match : matches)
         {
-            if (!predicate(match.backendKind))
+            if (match.backendKind != backendKind)
                 continue;
 
             if (outPath.empty())
@@ -716,7 +701,7 @@ namespace
         SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
         fs::path selectedPath;
         auto     selectedBackendKind = Runtime::BuildCfgBackendKind::None;
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, isSharedDependencyBackendKind))
+        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::SharedLibrary))
         {
             if (outBackendKind)
                 *outBackendKind = selectedBackendKind;
@@ -724,7 +709,7 @@ namespace
             return Result::Continue;
         }
 
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, isImportOnlyDependencyBackendKind))
+        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::Export))
         {
             if (outBackendKind)
                 *outBackendKind = selectedBackendKind;
@@ -732,7 +717,7 @@ namespace
             return Result::Continue;
         }
 
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, isStaticDependencyBackendKind))
+        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::StaticLibrary))
         {
             if (outBackendKind)
                 *outBackendKind = selectedBackendKind;

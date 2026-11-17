@@ -189,3 +189,27 @@ using Swag, Core
     Swag.require(pa.groups[0] != origGid)
     Swag.require(a.groups[0] == origGid)
 }
+
+// The box around a selection or a group spans every member, whatever their order: a member
+// left of an earlier one widens the box instead of cutting its right side off.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    discard testAddShape(f.capture, 100, 50, 100, 20)
+    discard testAddShape(f.capture, 10, 80, 20, 40)
+    discard testAddShape(f.capture, 300, 200, 10, 10)
+
+    f.capture.selection.add(0)
+    f.capture.selection.add(1)
+    let bound = f.capture.getSelectionBoundRect()
+    Swag.require(bound.isEqualEpsilon(Math.Rectangle{10, 50, 190, 70}))
+
+    f.capture.pushUndo(f.capture.newUndo(.Group))
+    let group = f.capture.groupBoundRect(Capture.formOuterGroup(f.capture.forms[0]))
+    Swag.require(group.isEqualEpsilon(bound))
+
+    f.capture.selection.clear()
+    Swag.require(f.capture.getSelectionBoundRect().isZero())
+}

@@ -639,17 +639,7 @@ impl Capture
 
         for gid in ids
         {
-            var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
-            for f in .forms where formOuterGroup(f) == gid
-            {
-                let br = f.boundRect()
-                bound.x = Math.min(bound.x, br.x)
-                bound.y = Math.min(bound.y, br.y)
-                bound.setRight(Math.max(bound.right(), br.right()))
-                bound.setBottom(Math.max(bound.bottom(), br.bottom()))
-            }
-
-            var vr = bound * zoom
+            var vr = .groupBoundRect(gid) * zoom
             vr.offset(rect.x, rect.y)
             vr.inflate(6)
             painter.drawRect(vr, Pen.createDash(.Dash, Argb.DarkGray, 3))

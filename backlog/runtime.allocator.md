@@ -40,8 +40,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   available; a correct retry protocol needs to distinguish failed claims from concurrent changes.
 - `allocator.concurrent.swg` now also allocates 256 blocks on a page owned by the current thread,
   starts four remote-free workers behind a shared gate to free them in parallel, then checks that
-  collection retires the empty page and segment. This exercises remote-free publication on Linux,
-  where the native `CreateThread` allocator stress tests are not built.
+  `trim()` can collect remote frees while they are arriving and later retire the empty page and
+  segment. This exercises remote-free publication on Linux, where the native `CreateThread`
+  allocator stress tests are not built.
 - Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
   allocators and a default-allocator fast implementation. Preserve frees summaries and
   `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to

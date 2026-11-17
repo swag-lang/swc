@@ -105,3 +105,19 @@ using Swag, Core
     Swag.require(ImageStatistics.compareHaarCoefficients(zero, tiny) == 0)
     Swag.require(ImageStatistics.quickCompareHaarCoefficients(zero, tiny) == 0)
 }
+
+// Image-level comparison helpers agree on identical images after their respective extraction paths.
+#test
+{
+    var image = Image.create(32, 32, .Gray8)
+    for y in image.height
+    {
+        for x in image.width
+        {
+            image.pixels.storage()[y * image.width + x] = cast(u8, (x + y) & 0xFF)
+        }
+    }
+
+    Swag.require(ImageStatistics.haarCompareTo(image, image) == 1)
+    Swag.require(ImageStatistics.quickHaarCompareTo(image, image) == 1)
+}

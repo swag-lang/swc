@@ -335,6 +335,9 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
     outRelocations.clear();
     if (!size)
         return;
+    // The version starts at zero and never resets, so an untouched segment has no index to query.
+    if (!relocationVersion_.load(std::memory_order_acquire))
+        return;
 
     // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
     // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.

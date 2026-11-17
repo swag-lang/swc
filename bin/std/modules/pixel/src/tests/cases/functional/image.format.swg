@@ -34,15 +34,24 @@ const PackedFormats: [18] PixelFormat = [
     const Bits:     [18] u8   = [8, 16, 16, 32, 16, 32, 32, 64, 24, 32, 24, 32, 48, 64, 48, 64, 96, 128]
     const Channels: [18] u8   = [1, 2, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
     const Alpha:    [18] bool = [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
+    const Float:    [18] bool = [false, false, false, false, true, true, true, true, false, false, false, false, false, false, true, true, true, true]
+    const Integer:  [18] bool = [true, true, true, true, false, false, false, false, true, true, true, true, true, true, false, false, false, false]
+    const Grayscale: [18] bool = [true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false]
     for format, index in PackedFormats
     {
         Swag.require(format.isPacked())
         Swag.require(format.bitsPerPixel() == Bits[index])
         Swag.require(format.channels() == Channels[index])
         Swag.require(format.hasAlpha() == Alpha[index])
+        Swag.require(format.isFloat() == Float[index])
+        Swag.require(format.isNormalizedInteger() == Integer[index])
+        Swag.require(format.isGrayscale() == Grayscale[index])
     }
 
     Swag.require(not PixelFormat.Yuv420.isPacked())
+    Swag.require(not PixelFormat.Yuv420.isFloat() and not PixelFormat.Yuv444.isFloat())
+    Swag.require(not PixelFormat.Yuv420.isNormalizedInteger() and not PixelFormat.Yuv444.isNormalizedInteger())
+    Swag.require(not PixelFormat.Yuv420.isGrayscale() and not PixelFormat.Yuv444.isGrayscale())
 }
 
 // Conversion preserves logical 8-bit colors through integer, half, full-float, and grayscale storage.

@@ -274,3 +274,19 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     Swag.require(result.triangleCount() != 0)
     tess.clear()
 }
+
+// Registering a border point by point reaches the same public tessellation path as addPolyLine.
+#test
+{
+    var tess: Pixel.Poly2Tri.Tessellate
+    tess.startPolyLine()
+    tess.addPoint({0, 0})
+    tess.addPoint({4, 0})
+    tess.addPoint({0, 3})
+    tess.endPolyLine()
+    tess.triangulate()
+
+    let result = tess.takeResult()
+    Swag.require(result.triangleCount() == 1)
+    tess.clear()
+}

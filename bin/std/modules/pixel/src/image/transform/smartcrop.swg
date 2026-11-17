@@ -635,7 +635,7 @@ impl Image
         var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, cast(f32, opts.shrinkPrior))
 
         let minArea = opts.minCoverage * imgArea
-        let steps   = opts.maxSearchSteps
+        let steps   = Math.clamp(opts.maxSearchSteps, 5, 20)
 
         var bestX, bestY, bestW, bestH = 0
         var bestScore:    f32 = -1.0e30

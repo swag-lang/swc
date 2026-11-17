@@ -26,6 +26,20 @@ using Swag
 
 #test
 {
+    var key: [131] u8
+    Memory.set(key.buffer, 0xAA'u8, key.count)
+    let data = cast(const [..] u8, "Test Using Larger Than Block-Size Key - Hash Key First")
+    const expected: [32] u8 = [
+        0x60, 0xE4, 0x31, 0x59, 0x1E, 0xE0, 0xB6, 0x7F,
+        0x0D, 0x8A, 0x26, 0xAA, 0xCB, 0xF5, 0xB7, 0x7F,
+        0x8E, 0x0B, 0xC6, 0x21, 0x37, 0x28, 0xC5, 0x14,
+        0x05, 0x46, 0x04, 0x0F, 0x0E, 0xE3, 0x7F, 0x54]
+
+    Swag.require(Slice.equals(Crypto.HmacSha256.compute(key, data), expected))
+}
+
+#test
+{
     let password = cast(const [..] u8, "password")
     let salt     = cast(const [..] u8, "salt")
     let expected: [64] u8 = [
@@ -41,6 +55,15 @@ using Swag
     var actual: [64] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, actual)
     Swag.require(Slice.equals(actual, expected))
+
+    var overlapping: [64] u8
+    Memory.copy(overlapping.buffer, password.buffer, password.count)
+    let overlappingPassword = cast(const [..] u8, overlapping[until 8])
+    expect Crypto.pbkdf2HmacSha256(overlappingPassword, salt, 2, overlapping)
+    Swag.require(Slice.equals(overlapping, expected))
+
+    var emptyOutput: [1] u8
+    expect Crypto.pbkdf2HmacSha256(password, salt, 1, emptyOutput[until 0])
 
     var partial: [40] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, partial)

@@ -23,10 +23,16 @@ replace the allocator; a similar architecture alone does not establish comparabl
   concurrent large blocks materially slower than mimalloc. Under `spreadrep:8`, threads still
   contend on the segment mutex for pages a class acquires beyond its retained spare. Inline
   `Memory.free` builds an `AllocatorRequest` and dispatches through `IAllocator.free`.
-  Allocation and free each read the context, and the page path also reads its thread-local
-  heap slot.
-- Next: reduce the request, dispatch, and thread-local lookup work, attributing each gain from
-  the emitted common path. A cold `Memory.alloc` request helper, dense current-page pointers,
+  A current Windows x64 Release Micro listing lowers `Core.Memory.free` from 91 to 44
+  instructions, but still reserves a 112-byte request frame and copies the caller location,
+  hint, address, and size before the interface call. The compiler emits its `SanityRelease`
+  marker at `IAllocator.free(&request)`, using `request.address`.
+- Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
+  allocators and a default-allocator fast implementation. Extend `SanityRelease` to recognize its
+  address parameter before routing `Memory.free` through it; if the generated common path does not
+  remove request stores without adding more dispatch work, drop the prototype. Allocation and
+  free each read the context, and the page path also reads its thread-local heap slot. A cold
+  `Memory.alloc` request helper, dense current-page pointers,
   and a page-local Windows owner token with a direct native thread-id load did not improve
   mixed-size and concurrent workloads consistently. Attribute `Memory.free`'s request stores,
   dispatch, and code/data placement before retrying those shapes. Any owner token must live in

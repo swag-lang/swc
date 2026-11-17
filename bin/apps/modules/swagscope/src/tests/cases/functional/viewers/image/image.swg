@@ -366,6 +366,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     }
 }
 
+// Times the image sheet was described while the pointer probed the picture.
+var g_ImageDescriptions: u32
+
 // The pointer over a picture reads the pixel it stands on, and its color, after the summary;
 // leaving the picture gives the summary back.
 #test
@@ -409,19 +412,24 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
 
-    // The pointer moving beside the picture tells the host nothing new, so it is not told again.
+    // The pointer moving beside the picture tells the host nothing new, so the open sheet stays
+    // as it was described.
+    window.toggleInformation()
+    Swag.require(window.infoSheet.isLocallyVisible())
+    g_ImageDescriptions = 0
+    window.instances[window.activeChoiceIndex].describeInformation = func||(_) { g_ImageDescriptions += 1 }
     let corner = view.imageView.surfaceRect()
     let first  = Math.Point{corner.x + 1, corner.y + 1}
     let second = Math.Point{corner.x + 3, corner.y + 2}
     Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(first)).inside)
     Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(second)).inside)
-    var reports = 0'u32
-    view.userData = &reports
-    view.services.reportDetails = func(wnd, _) { cast(*u32, unwrap wnd.userData)[] += 1 }
-    host.moveMouse(center)
+    host.moveMouse(corner.center())
+    let probed = g_ImageDescriptions
     host.moveMouse(first)
+    Swag.require(g_ImageDescriptions > probed)
+    let left = g_ImageDescriptions
     host.moveMouse(second)
-    Swag.require(reports == 2, Format.toString("%", reports))
+    Swag.require(g_ImageDescriptions == left, Format.toString("%", g_ImageDescriptions))
 }
 
 // The information sheet says how much of a picture its alpha hides: wholly transparent pixels,

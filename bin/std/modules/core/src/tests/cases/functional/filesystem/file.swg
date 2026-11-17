@@ -33,6 +33,26 @@ using Swag, Core.Errors
     Swag.require((expect File.readAllText(fileName)) == "keep this content")
 }
 
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_read_encoded_text.tmp")
+    defer discard catch File.delete(fileName)
+
+    discard expect File.writeAllText(fileName, "A€", encoding: .Utf16Be, includeBom: true)
+    Swag.require((expect File.readAllText(fileName, encoding: .Utf16Be)) == "A€")
+
+    discard expect File.writeAllText(fileName, "café €", encoding: .Windows1252)
+    Swag.require((expect File.readAllText(fileName, encoding: .Windows1252)) == "café €")
+}
+
+#test
+{
+    let missing = CoreTests.makeFilesystemTestPath("core_file_read_encoded_missing.tmp")
+    var errorOutcome: Swag.Error
+    discard catch File.readAllText(missing, encoding: .Utf16Be) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.FileNotFoundError)
+}
+
 // Both backends reject empty and unknown access or sharing flags.
 #test
 {

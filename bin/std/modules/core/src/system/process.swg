@@ -74,6 +74,38 @@ impl ProcessEnvironment
     }
 }
 
+// Updates a variable in the current process environment.
+//
+// Names must be nonempty and cannot contain `=` or a zero byte. Values cannot contain a zero
+// byte. The change is visible to later environment reads and to child processes that inherit the
+// environment. An empty value remains present; use [[Core.Env.removeVariable]] to remove it.
+// Synchronize this call with other environment reads, mutations, and process starts.
+func setVariable(name: string, value: string) fail
+{
+    try validateEnvironmentVariableName(name)
+    for byte in value where byte == 0 do
+        fail Errors.BadParameterError{"environment variable values must not contain zero bytes"}
+    try setVariableNative(name, value)
+}
+
+// Removes a variable from the current process environment.
+//
+// Names must be nonempty and cannot contain `=` or a zero byte. Removing an absent variable is
+// successful. Synchronize this call with other environment reads, mutations, and process starts.
+func removeVariable(name: string) fail
+{
+    try validateEnvironmentVariableName(name)
+    try removeVariableNative(name)
+}
+
+private func validateEnvironmentVariableName(name: string) fail
+{
+    if not name.count do
+        fail Errors.BadParameterError{"environment variable names must not be empty"}
+    for byte in name where byte == 0 or byte == '=' do
+        fail Errors.BadParameterError{"environment variable names must not contain zero bytes or '='"}
+}
+
 // Describes the process to start and how it is connected to the current one.
 //
 // Only `fileName` is required. Arguments are separate values, excluding the executable name;

@@ -1,7 +1,7 @@
 #global if WINDOWS
 #global namespace Threading
 
-using Win32
+using Win32, Math, Time
 
 const MaxThreadWaitCount = MAXIMUM_WAIT_OBJECTS
 
@@ -46,6 +46,38 @@ func setPriorityNative(handle: ThreadHandle, priority: ThreadPriority) fail
 func waitOneNative(handle: ThreadHandle)
 {
     expect WaitForSingleObject(handle, INFINITE)
+}
+
+func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
+{
+    if not milliseconds
+    {
+        let status = waitForSingleObjectStatus(handle, 0)
+        if status.result == WAIT_OBJECT_0 do
+            return true
+        if status.result == WAIT_TIMEOUT do
+            return false
+        try Win32.failWinError(status.errorCode)
+    }
+
+    var stopwatch: Time.Stopwatch
+    stopwatch.start()
+    for
+    {
+        let elapsed = stopwatch.elapsedMilliseconds()
+        if elapsed >= milliseconds do
+            return false
+
+        let remaining = milliseconds - elapsed
+        let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+        let status = waitForSingleObjectStatus(handle, cast(DWORD, chunk))
+        if status.result == WAIT_OBJECT_0 do
+            return true
+        if status.result == WAIT_FAILED do
+            try Win32.failWinError(status.errorCode)
+        if status.result != WAIT_TIMEOUT do
+            try Win32.failWinError(0)
+    }
 }
 
 func waitManyNative(handles: const [..] ThreadHandle)

@@ -1236,9 +1236,10 @@ public impl MenuCtrl
 
     // Handles popup navigation when the menu or an enclosing panel owns keyboard focus.
     //
-    // Arrows skip headings, separators, notes, hidden and disabled entries. A hosted widget
-    // receives Left, Right, Enter and Space while its row is selected. The caller observes a
-    // completed choice through [[Gui.MenuCtrl.isModalEnded]] and [[Gui.MenuCtrl.modalResult]].
+    // Up and Down skip headings, separators, notes, hidden and disabled entries. Left and Right
+    // open a selected submenu toward its resolved side and return from a child toward its parent.
+    // A hosted widget receives those arrows, Enter and Space while its row is selected. The caller
+    // observes a completed choice through [[Gui.MenuCtrl.isModalEnded]] and [[Gui.MenuCtrl.modalResult]].
     mtd handleKeyboard(evt: *KeyEvent)
     {
         evt.accepted = false
@@ -1274,6 +1275,47 @@ public impl MenuCtrl
             evt.target = target
             if evt.accepted do
                 return
+        }
+
+        if evt.key == .Left or evt.key == .Right
+        {
+            // The arrow opposite the side a child opened on returns to its parent. Preserve
+            // the owning row as the parent's keyboard selection while hiding nested popups.
+            if .ownerMenu and .ownerMenu.subVisible == me
+            {
+                let owner = .ownerMenu
+                let index = owner.hotIdx
+                if index < owner.items.count and owner.items[index]!.popup == me
+                {
+                    let item = unwrap owner.items[index]
+                    let returnKey = item.submenuOpensLeft ? Input.Key.Right : Input.Key.Left
+                    if evt.key == returnKey
+                    {
+                        owner.hideSubVisible()
+                        owner.hotIdx      = Swag.U32.Max
+                        owner.selectedIdx = index
+                        evt.accepted = true
+                        return
+                    }
+                }
+            }
+
+            // Open the selected child in the direction it is shown. The layout pass resolves
+            // submenuOpensLeft from the configured direction and available room.
+            if not .bar and .selectedIdx < .items.count
+            {
+                let item = unwrap .items[.selectedIdx]
+                let openKey = item.submenuOpensLeft ? Input.Key.Left : Input.Key.Right
+                if item.popup != null and evt.key == openKey
+                {
+                    .hotIdx = .selectedIdx
+                    .showHotPopup()
+                    evt.accepted = .subVisible != null
+                    return
+                }
+            }
+
+            return
         }
 
         switch evt.key

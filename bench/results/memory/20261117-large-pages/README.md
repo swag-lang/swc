@@ -42,9 +42,9 @@ change. A separate 256 KiB threshold trial was incomplete and showed a large RSS
 one isolated pair, so it was not retained.
 
 A runtime purge trial set `MIMALLOC_ARENA_PURGE_MULT=0` for the candidate and used the same
-compiler binary for A and B. In one pair, `doc_std` RSS fell 18.5% while wall and CPU time rose
-12.4% and 11.9%; `core_rebuild` RSS fell 12.6% while wall and CPU rose 25.1% and 21.3%. This
-option also failed the compile-time constraint and was not retained.
+compiler binary for A and B. Across two pairs, `doc_std` RSS fell 15–18% while wall and CPU time rose 12–18% and 12–16%;
+`core_rebuild` RSS fell 13–14% while wall and CPU rose 8–25% and 12–21%. This option also
+failed the compile-time constraint and was not retained.
 
 ## Validation and limits
 

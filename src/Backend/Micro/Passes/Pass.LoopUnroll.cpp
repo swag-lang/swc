@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Micro/MicroStorage.h"
 
 // Full unrolling of small counted loops, pre-RA.
@@ -654,6 +655,191 @@ namespace
         return true;
     }
 
+    // Vectorize the byte-at-a-time `while (eol < n && text[eol] != '\n')`
+    // scan while retaining its original scalar loop as the short-tail path.
+    bool vectorizeNewlineScan(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder,
+                              const std::vector<MicroInstrRef>& order, const RelocationsBySlot& relocsBySlot,
+                              const uint32_t headerOrdinal, const uint32_t jumpOrdinal)
+    {
+        if (jumpOrdinal != headerOrdinal + 7 || jumpOrdinal + 1 >= order.size())
+            return false;
+        const MicroInstr* boundCmp  = storage.ptr(order[headerOrdinal + 1]);
+        const MicroInstr* boundExit = storage.ptr(order[headerOrdinal + 2]);
+        const MicroInstr* byteCmp   = storage.ptr(order[headerOrdinal + 3]);
+        const MicroInstr* byteExit  = storage.ptr(order[headerOrdinal + 4]);
+        const MicroInstr* increment = storage.ptr(order[headerOrdinal + 5]);
+        const MicroInstr* copyBack = storage.ptr(order[headerOrdinal + 6]);
+        const MicroInstr* backEdge = storage.ptr(order[jumpOrdinal]);
+        if (!boundCmp || !boundExit || !byteCmp || !byteExit || !increment || !copyBack || !backEdge ||
+            boundCmp->op != MicroInstrOpcode::CmpRegReg || boundExit->op != MicroInstrOpcode::JumpCond ||
+            byteCmp->op != MicroInstrOpcode::CmpAmcImm || byteExit->op != MicroInstrOpcode::JumpCond ||
+            increment->op != MicroInstrOpcode::LoadAddrRegMem || copyBack->op != MicroInstrOpcode::LoadRegReg ||
+            backEdge->op != MicroInstrOpcode::JumpCond)
+            return false;
+
+        for (uint32_t ordinal = headerOrdinal + 1; ordinal <= jumpOrdinal; ++ordinal)
+            if (relocsBySlot.contains(order[ordinal].get()))
+                return false;
+        const auto* boundOps  = boundCmp->ops(operands);
+        const auto* boundJmp  = boundExit->ops(operands);
+        const auto* byteOps   = byteCmp->ops(operands);
+        const auto* byteJmp   = byteExit->ops(operands);
+        const auto* incOps    = increment->ops(operands);
+        const auto* copyOps   = copyBack->ops(operands);
+        const auto* backOps   = backEdge->ops(operands);
+        if (!boundOps || !boundJmp || !byteOps || !byteJmp || !incOps || !copyOps || !backOps ||
+            boundOps[2].opBits != MicroOpBits::B64 || boundJmp[0].cpuCond != MicroCond::AboveOrEqual ||
+            boundJmp[2].valueU64 != byteJmp[2].valueU64 || byteJmp[0].cpuCond != MicroCond::Equal ||
+            byteOps[2].opBits != MicroOpBits::B8 || byteOps[3].opBits != MicroOpBits::B64 ||
+            byteOps[4].valueU64 != 1 || byteOps[5].hasWideImmediateValue() || byteOps[5].valueU64 != 0 ||
+            byteOps[6].hasWideImmediateValue() || byteOps[6].valueU64 != '\n' ||
+            incOps[1].reg != boundOps[0].reg || incOps[2].opBits != MicroOpBits::B64 ||
+            incOps[3].hasWideImmediateValue() || incOps[3].valueU64 != 1 ||
+            copyOps[0].reg != boundOps[0].reg || copyOps[2].opBits != MicroOpBits::B64 ||
+            backOps[0].cpuCond != MicroCond::Unconditional)
+            return false;
+        const auto* headerOps = storage.ptr(order[headerOrdinal])->ops(operands);
+        if (!headerOps || backOps[2].valueU64 != headerOps[0].valueU64)
+            return false;
+
+        const MicroReg counter = boundOps[0].reg;
+        const MicroReg bound   = boundOps[1].reg;
+        const MicroReg base    = byteOps[0].reg;
+        if (!counter.isVirtualInt() || !bound.isVirtualInt() || !base.isVirtualInt() ||
+            byteOps[1].reg != counter || incOps[0].reg == counter ||
+            incOps[0].reg != copyOps[1].reg ||
+            counter == bound || counter == base || bound == base || incOps[0].reg == bound || incOps[0].reg == base)
+            return false;
+
+        const auto exitId = boundJmp[2].valueU64;
+        bool foundExit = false;
+        for (uint32_t ordinal = jumpOrdinal + 1; ordinal < order.size(); ++ordinal)
+        {
+            const MicroInstr* inst = storage.ptr(order[ordinal]);
+            if (!inst || inst->op != MicroInstrOpcode::Label)
+                continue;
+            const auto* ops = inst->ops(operands);
+            if (ops && ops[0].valueU64 == exitId)
+            {
+                foundExit = true;
+                break;
+            }
+        }
+        if (!foundExit)
+            return false;
+
+        uint32_t nextInt = 0, nextFloat = 0;
+        MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+        if (nextInt > MicroReg::K_MAX_INDEX - 4 || nextFloat > MicroReg::K_MAX_INDEX - 2)
+            return false;
+        const MicroReg remaining = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg ptr       = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg mask      = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg lane      = MicroReg::virtualIntReg(nextInt);
+        const MicroReg bytes     = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg needles   = MicroReg::virtualFloatReg(nextFloat);
+        const MicroInstrRef headerRef = order[headerOrdinal];
+        const uint64_t groupId  = builder.createLabel().get();
+        const uint64_t foundId  = builder.createLabel().get();
+        const uint64_t scalarId = builder.createLabel().get();
+        struct PendingInstr { MicroInstrOpcode op; SmallVector<MicroInstrOperand, 8> args; };
+        SmallVector<PendingInstr, 32> pending;
+        const auto insert = [&](const MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
+            PendingInstr instr; instr.op = op; instr.args.append(args.data(), args.size()); pending.push_back(std::move(instr));
+        };
+        const auto emitCmp = [&](MicroReg lhs, MicroReg rhs) {
+            MicroInstrOperand args[3] = {};
+            args[0].reg = lhs; args[1].reg = rhs; args[2].opBits = MicroOpBits::B64;
+            insert(MicroInstrOpcode::CmpRegReg, args);
+        };
+        const auto emitJump = [&](MicroCond cond, uint64_t target) {
+            MicroInstrOperand args[3] = {};
+            args[0].cpuCond = cond; args[1].opBits = MicroOpBits::B32; args[2].valueU64 = target;
+            insert(MicroInstrOpcode::JumpCond, args);
+        };
+        const auto emitRegReg = [&](MicroInstrOpcode op, MicroReg dst, MicroReg src, MicroOpBits bits) {
+            MicroInstrOperand args[3] = {};
+            args[0].reg = dst; args[1].reg = src; args[2].opBits = bits;
+            insert(op, args);
+        };
+        const auto emitBinary = [&](MicroReg dst, MicroReg src, MicroOp op, MicroOpBits bits) {
+            MicroInstrOperand args[4] = {};
+            args[0].reg = dst; args[1].reg = src; args[2].opBits = bits; args[3].microOp = op;
+            insert(MicroInstrOpcode::OpBinaryRegReg, args);
+        };
+        const auto emitImm = [&](MicroReg dst, uint64_t value) {
+            MicroInstrOperand args[3] = {};
+            args[0].reg = dst; args[1].opBits = MicroOpBits::B64; args[2].setImmediateValue(ApInt(value, 64));
+            insert(MicroInstrOpcode::LoadRegImm, args);
+        };
+        const auto emitLabel = [&](uint64_t id) {
+            MicroInstrOperand args[1] = {}; args[0].valueU64 = id;
+            insert(MicroInstrOpcode::Label, args);
+        };
+
+        // Build 0x0A bytes in a vector without a task-owned constant relocation.
+        MicroInstrOperand scalarNeedle[3] = {};
+        scalarNeedle[0].reg = lane; scalarNeedle[1].opBits = MicroOpBits::B32;
+        scalarNeedle[2].setImmediateValue(ApInt(0x0A0A0A0A, 32));
+        insert(MicroInstrOpcode::LoadRegImm, scalarNeedle);
+        MicroInstrOperand needleMove[3] = {};
+        needleMove[0].reg = needles; needleMove[1].reg = lane; needleMove[2].opBits = MicroOpBits::B32;
+        insert(MicroInstrOpcode::LoadRegReg, needleMove);
+        MicroInstrOperand needleBroadcast[4] = {};
+        needleBroadcast[0].reg = needles; needleBroadcast[1].reg = needles;
+        needleBroadcast[2].opBits = MicroOpBits::B128; needleBroadcast[3].valueU64 = 0;
+        insert(MicroInstrOpcode::VecShuffleRegRegImm, needleBroadcast);
+
+        emitLabel(groupId);
+        emitCmp(counter, bound);
+        emitJump(MicroCond::AboveOrEqual, exitId);
+        emitRegReg(MicroInstrOpcode::LoadRegReg, remaining, bound, MicroOpBits::B64);
+        emitBinary(remaining, counter, MicroOp::Subtract, MicroOpBits::B64);
+        emitImm(lane, 16);
+        emitCmp(remaining, lane);
+        emitJump(MicroCond::Below, scalarId);
+        MicroInstrOperand addressOps[8] = {};
+        addressOps[0].reg = ptr; addressOps[1].reg = base; addressOps[2].reg = counter;
+        addressOps[3].opBits = MicroOpBits::B64; addressOps[4].opBits = MicroOpBits::B64;
+        addressOps[5].valueU64 = 1; addressOps[6].valueU64 = 0;
+        insert(MicroInstrOpcode::LoadAddrAmcRegMem, addressOps);
+        MicroInstrOperand loadOps[4] = {};
+        loadOps[0].reg = bytes; loadOps[1].reg = ptr; loadOps[2].opBits = MicroOpBits::B128;
+        insert(MicroInstrOpcode::LoadVecRegMem, loadOps);
+        MicroInstrOperand vectorOps[5] = {};
+        vectorOps[0].reg = bytes; vectorOps[1].reg = bytes; vectorOps[2].reg = needles;
+        vectorOps[3].opBits = MicroOpBits::B128; vectorOps[4].microOp = MicroOp::VecCmpEq8;
+        insert(MicroInstrOpcode::OpBinaryRegRegReg, vectorOps);
+        MicroInstrOperand maskOps[4] = {};
+        maskOps[0].reg = mask; maskOps[1].reg = bytes; maskOps[2].opBits = MicroOpBits::B128;
+        maskOps[3].microOp = MicroOp::VecMoveMaskB;
+        insert(MicroInstrOpcode::VecUnaryRegReg, maskOps);
+        emitImm(lane, 0);
+        emitCmp(mask, lane);
+        emitJump(MicroCond::NotEqual, foundId);
+        emitImm(lane, 16);
+        MicroInstrOperand addOps[4] = {};
+        addOps[0].reg = counter; addOps[1].reg = lane; addOps[2].opBits = MicroOpBits::B64; addOps[3].microOp = MicroOp::Add;
+        insert(MicroInstrOpcode::OpBinaryRegReg, addOps);
+        emitJump(MicroCond::Unconditional, groupId);
+        emitLabel(foundId);
+        MicroInstrOperand scanOps[4] = {};
+        scanOps[0].reg = lane; scanOps[1].reg = mask; scanOps[2].opBits = MicroOpBits::B64; scanOps[3].microOp = MicroOp::BitScanForward;
+        insert(MicroInstrOpcode::OpBinaryRegReg, scanOps);
+        MicroInstrOperand addLaneOps[4] = {};
+        addLaneOps[0].reg = counter; addLaneOps[1].reg = lane; addLaneOps[2].opBits = MicroOpBits::B64; addLaneOps[3].microOp = MicroOp::Add;
+        insert(MicroInstrOpcode::OpBinaryRegReg, addLaneOps);
+        emitJump(MicroCond::Unconditional, exitId);
+        emitLabel(scalarId);
+        emitJump(MicroCond::Unconditional, headerOps[0].valueU64);
+
+        for (auto it = pending.begin(); it != pending.end(); ++it)
+            storage.insertDerivedBefore(operands, headerRef, it->op, it->args);
+        builder.invalidateControlFlowGraph();
+        context.passChanged = true;
+        return true;
+    }
+
     // A short indexed read or copy loop can pay one bound test for four
     // elements. Keep the original loop as the scalar tail. Copy elements stay
     // in source order so overlapping ranges retain their original behavior.
@@ -1092,22 +1278,12 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!jccOps)
                 continue;
             const MicroCond cond = jccOps[0].cpuCond;
-            if (cond != MicroCond::Less && cond != MicroCond::Below)
-                continue;
 
             // The back-edge must be the header's only way in besides fall-through.
             if (label.firstJump != label.lastJump)
                 continue;
 
-            // The latch: add %i, step / cmp %i, N / jcc H.
-            const MicroInstr* cmp = storage.ptr(order[jccOrdinal - 1]);
-            const MicroInstr* add = storage.ptr(order[jccOrdinal - 2]);
-            if (!cmp || !add || add->op != MicroInstrOpcode::OpBinaryRegImm ||
-                (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
-                continue;
-
-            // Only a plausible latch can use the relocation tables. The layout
-            // and relocations are unchanged until an unroll ends this sweep.
+            // The layout and relocations stay unchanged until one candidate is rewritten.
             if (!relocationsIndexed)
             {
                 for (const MicroRelocation& reloc : builder.codeRelocations())
@@ -1126,6 +1302,23 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 relocationsIndexed = true;
             }
             if (relocLabels.contains(headerId))
+                continue;
+
+            const bool newlineMatched = cond == MicroCond::Unconditional &&
+                                        vectorizeNewlineScan(context, storage, operands, builder, order, relocsBySlot, h, jccOrdinal);
+            if (newlineMatched)
+            {
+                unrolledOne = true;
+                break;
+            }
+            if (cond != MicroCond::Less && cond != MicroCond::Below)
+                continue;
+
+            // The latch: add %i, step / cmp %i, N / jcc H.
+            const MicroInstr* cmp = storage.ptr(order[jccOrdinal - 1]);
+            const MicroInstr* add = storage.ptr(order[jccOrdinal - 2]);
+            if (!cmp || !add || add->op != MicroInstrOpcode::OpBinaryRegImm ||
+                (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
                 continue;
 
             if (cmp->op == MicroInstrOpcode::CmpRegImm &&

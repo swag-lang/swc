@@ -71,6 +71,21 @@ func variable(name: string)->String
     return Utf8.fromUtf16(buffer.toSlice()[until written])
 }
 
+internal func setVariableNative(name: string, value: string) fail
+{
+    let name16  = Utf16.toZeroTerminated(name)
+    let value16 = Utf16.toZeroTerminated(value)
+    if not SetEnvironmentVariableW(name16.buffer, value16.buffer) do
+        try failWinError(GetLastError())
+}
+
+internal func removeVariableNative(name: string) fail
+{
+    let name16 = Utf16.toZeroTerminated(name)
+    if not SetEnvironmentVariableW(name16.buffer, null) do
+        try failWinError(GetLastError())
+}
+
 // Serializes one argument using the Windows C-runtime command-line grammar.
 //
 // A value holding a space, a tab or a quote is wrapped, and the backslashes in front of a

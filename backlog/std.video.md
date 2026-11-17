@@ -324,6 +324,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   (503 vs 502 ms); on a changing full-screen 4K control it was 2.8% slower, within run
   variation. These results are workload-dependent and the encode-only benchmark does not
   establish a capture-cadence gain for a physical display.
+  BGRA-to-NV12 conversion now reuses its two packed SIMD loads to calculate adjacent 2×2
+  chroma blocks together. Two idle paired Release runs reduced conversion time per frame by
+  a median 15.5% at 1080p (1,247/1,071 to 1,047/912 µs) and 23.6% at 4K
+  (5,836/4,613 to 4,521/3,466 µs). The existing integer coefficients, rounding and clamp
+  are unchanged; 4K BGRA/BGR output parity and edge cases pass byte-for-byte checks. Focused
+  NV12 Release tests passed 10/10, including the 1080p and 4K conversion stresses. These are
+  conversion-only gains, not complete-recording cadence measurements.
   On the same virtual root with a changing full-screen background, two QP 28 runs per slice
   count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
   7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,

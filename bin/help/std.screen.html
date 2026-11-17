@@ -131,7 +131,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_reopen">Source.reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_resetMetrics">Source.resetMetrics</a></td><td><p>Resets cumulative acquisition and composition counters without reopening the source.</p>
+<tr><td class="code-type"><a href="#Screen_Source_resetMetrics">Source.resetMetrics</a></td><td><p>Resets cumulative SourceMetrics counters without reopening the source.</p>
 </td></tr>
 </tbody>
 </table>
@@ -190,7 +190,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_reopen">reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_resetMetrics">resetMetrics</a></td><td><p>Resets cumulative acquisition and composition counters without reopening the source.</p>
+<tr><td class="code-type"><a href="#Screen_Source_resetMetrics">resetMetrics</a></td><td><p>Resets cumulative SourceMetrics counters without reopening the source.</p>
 </td></tr>
 </tbody>
 </table>
@@ -330,7 +330,7 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Screen_Source_resetMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.resetMetrics</span> <a class="api-item-permalink" href="#Screen_Source_resetMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L467">src</a></div>
-<p>Resets cumulative acquisition and composition counters without reopening the source. The native capture handles, cached frame and last frame capture time are preserved.</p>
+<p>Resets cumulative SourceMetrics counters without reopening the source. The native capture handles, cached frame and last frame capture time are preserved.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetMetrics</span>()</span></div>
 </section>
 </article>
@@ -628,7 +628,7 @@
 "f|Screen.Source.openMonitor|Screen_Source_openMonitor|Opens a source for one currently enumerated physical monitor.",
 "f|Screen.Source.openMonitorAt|Screen_Source_openMonitorAt|Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.",
 "f|Screen.Source.reopen|Screen_Source_reopen|Reopens a source after a display change or native access loss.",
-"f|Screen.Source.resetMetrics|Screen_Source_resetMetrics|Resets cumulative acquisition and composition counters without reopening the source.",
+"f|Screen.Source.resetMetrics|Screen_Source_resetMetrics|Resets cumulative SourceMetrics counters without reopening the source.",
 ]);
 </script>
 </body>

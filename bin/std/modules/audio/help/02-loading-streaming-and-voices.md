@@ -36,9 +36,8 @@ voice for destruction.
 
 Volume methods without a suffix use a linear gain from `0` to `1`. The `Db`
 variants use decibels, where `0 dB` is unity gain and `-100 dB` maps to silence.
-Pitch control is expressed as a frequency ratio and requires
-[[Audio.VoiceCreateFlags.PitchControl]] on backends that need that capability
-declared when the voice is created.
+Pitch control is expressed as a finite, positive frequency ratio and requires
+[[Audio.VoiceCreateFlags.PitchControl]] when the voice is created.
 
 [[Audio.Voice.setPan]] places mono playback between the left and right speakers
 with equal-power gains. For stereo playback it balances the left and right

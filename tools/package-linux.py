@@ -106,7 +106,7 @@ def main() -> None:
     checkout = Path(__file__).resolve().parent.parent
     build_dir = args.build_dir or (checkout / 'bin' / 'apps' / '.output' / args.app / 'executable' /
                                    args.configuration / 'x86_64')
-    package(args.app, build_dir.resolve(), args.output.resolve(), args.prefix, checkout)
+    package(args.app, build_dir.resolve(), args.output.absolute(), args.prefix, checkout)
 
 
 if __name__ == '__main__':

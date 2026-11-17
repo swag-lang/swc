@@ -3,6 +3,16 @@
 
 using Swag
 
+func countFoldValue(count: u64, value: bool)->u64
+{
+    var result = count
+    if value do
+        result += 1
+    return result
+}
+
+func appendFoldDigit(value, digit: s32)->s32 => value * 10 + digit
+
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
@@ -21,6 +31,27 @@ using Swag
     Swag.require(Slice.reduce([5], func(left, right: s32)->s32 => left + right) == 5)
     Swag.require(Slice.reduce([1, 2, 3, 4], func(left, right: s32)->s32 => left + right) == 10)
     Swag.require(Slice.reduce([2, 3, 4], func(left, right: s32)->s32 => left * right) == 24)
+}
+
+#test
+{
+    var backing: [1] s32 = [42]
+    let empty = backing[until 0]
+    let seed  = 17's32
+
+    Swag.require(Slice.fold(empty, seed, func(accumulator, value: s32)->s32 => accumulator + value) == seed)
+}
+
+#test
+{
+    let values: [4] bool = [true, false, true, true]
+    Swag.require(Slice.fold(values, 0'u64, &countFoldValue) == 3)
+}
+
+#test
+{
+    let values: [3] s32 = [1, 2, 3]
+    Swag.require(Slice.fold(values, 0's32, &appendFoldDigit) == 123)
 }
 
 #test

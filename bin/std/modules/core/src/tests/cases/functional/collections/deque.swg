@@ -97,6 +97,31 @@ func assertMutableDequeBorrow(values: *Deque's32)
     Swag.require(values.isEmpty())
 }
 
+// Deque iteration continues within the logical sequence and breaks across both storage segments.
+#test
+{
+    var values: Deque's32
+    values.pushFront(1)
+    values.pushFront(0)
+    values.pushBack(2)
+    values.pushBack(3)
+
+    var visited = 0'u64
+    var valueSum = 0
+    for value, index in values
+    {
+        if index == 0 do
+            continue
+
+        visited += 1
+        valueSum += value
+        if index == 2 do
+            break
+    }
+
+    Swag.require(visited == 2 and valueSum == 3)
+}
+
 #test
 {
     var values: Deque's32

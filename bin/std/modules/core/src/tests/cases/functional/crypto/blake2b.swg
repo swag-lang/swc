@@ -131,3 +131,29 @@ func assertBlake2b(data: const [..] u8, expected: string)
     assertBlake2b(data[0 until 128], "2319e3789c47e2daa5fe807f61bec2a1a6537fa03f19ff32e87eecbfd64b7e0e8ccff439ac333b040f19b0c4ddd11a61e24ac1fe0f10a039806c5dcc0da3d115")
     assertBlake2b(data[0 until 256], "1ecc896f34d3f9cac484c73f75f6a5fb58ee6784be41b35f46067b9c65c63a6794d3d744112c653f73dd7deb6666204c5a9bfa5b46081fc10fdbe7884fa5cbf8")
 }
+
+// A failed finalize leaves the current sequence intact, and reset can reuse a
+// finalized value for either unkeyed or empty-key operation.
+#test
+{
+    var hash = expect Hash.Blake2b.create(32)
+    hash.update("discarded prefix")
+    expect hash.reset(32)
+    hash.update("abc")
+
+    var wrongLength: [16] u8
+    var mismatchOutcome: Swag.Error
+    discard catch hash.finalize(wrongLength) as mismatchOutcome
+    let mismatch = mismatchOutcome.value()
+    Swag.require(mismatch is Errors.BadParameterError)
+
+    var digest: [32] u8
+    expect hash.finalize(digest)
+    let expected = hexBytes("bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319")
+    Swag.require(Crypto.constantTimeEqual(digest, expected.toSlice()))
+
+    expect hash.resetKeyed("", 32)
+    hash.update("abc")
+    expect hash.finalize(digest)
+    Swag.require(Crypto.constantTimeEqual(digest, expected.toSlice()))
+}

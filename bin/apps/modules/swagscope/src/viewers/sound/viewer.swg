@@ -294,6 +294,7 @@ struct WaveformReducer
     sampleCount:  u64
     readyCount:   u64
     levels:       SoundLevels
+    nextBoundary: u64     // First frame past the current point; the target is only worked out again there.
 }
 
 impl WaveformReducer
@@ -305,16 +306,24 @@ impl WaveformReducer
         let frames = samples.count / .channels
         for frame in frames
         {
-            let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
-            if target != .currentPoint
+            // Frame `f` belongs to point `f * pointCount / frameCount`, which only changes at the
+            // boundary where that quotient grows, so it is worked out once per point, not per frame.
+            if .frameOffset >= .nextBoundary
             {
-                let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
-                .points[][.currentPoint] = WaveformPoint{.peak, body}
-                .readyCount   = .currentPoint + 1
-                .currentPoint = target
-                .peak         = 0
-                .sum          = 0
-                .sampleCount  = 0
+                let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
+                if target != .currentPoint
+                {
+                    let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
+                    .points[][.currentPoint] = WaveformPoint{.peak, body}
+                    .readyCount   = .currentPoint + 1
+                    .currentPoint = target
+                    .peak         = 0
+                    .sum          = 0
+                    .sampleCount  = 0
+                }
+
+                // The last point takes every frame left, however many the decoder hands over.
+                .nextBoundary = target + 1 < .pointCount ? ((target + 1) * .frameCount + .pointCount - 1) / .pointCount : Swag.U64.Max
             }
 
             var mixed = 0'f32
@@ -333,6 +342,7 @@ impl WaveformReducer
         }
     }
 
+    // Stores the point the last frames were folded into, which no later frame moved past.
     mtd finish()
     {
         if not .sampleCount or .currentPoint >= .pointCount do

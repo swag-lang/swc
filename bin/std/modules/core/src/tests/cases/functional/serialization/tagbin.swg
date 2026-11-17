@@ -1377,6 +1377,25 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     Swag.require(errln != null)
 }
 
+// Valid string lengths on both sides of the one-byte LEB128 limit round-trip unchanged.
+#test
+{
+    const Lengths: [2] u32 = [127, 128]
+    for length in Lengths
+    {
+        var payload: TagBinLongText
+        for length do
+            payload.name += "x"
+
+        let bytes = encodeTagBin(payload)
+        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        let decoded = expect decoder.readAll'TagBinLongText(bytes.toSlice())
+        defer Memory.delete(decoded)
+        Swag.require(decoded.name.count == length)
+        Swag.require(decoded.name == payload.name)
+    }
+}
+
 // A fat offset near U64.Max is rejected without wrapping the computed table end.
 #test
 {

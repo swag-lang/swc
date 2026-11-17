@@ -118,6 +118,21 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 
 #test
 {
+    let input: [3] u8 = [0x10, 0x20, 0x30]
+
+    var stream: Compress.BitStream
+    stream.reset(input)
+    stream.advanceBytes(0)
+    Swag.require(stream.bytePosition() == 0 and not stream.isEof())
+
+    stream.advanceBytes(2)
+    Swag.require(stream.bytePosition() == 2 and not stream.isEof())
+    Swag.require(stream.readBits(8) == 0x30)
+    Swag.require(stream.isEof() and stream.bytePosition() == input.count)
+}
+
+#test
+{
     let input = [0x10'u8, 0x20, 0x30, 0x40]
 
     var stream: Compress.BitStream

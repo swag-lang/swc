@@ -57,9 +57,11 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.003 — Unicode coverage and missing-glyph analysis are absent
 
-- Evidence: the current map displays only characters the face maps. It does not summarize scripts,
-  blocks, code pages, variation sequences, supplementary planes, symbol mappings, or holes in a
-  requested repertoire.
+- Evidence: the current map displays only characters the face maps. The information sheet counts
+  the characters the face maps in each block the map jumps to (Basic Latin, Latin-1 Supplement,
+  Greek and Coptic, Cyrillic, General Punctuation and Symbols), and the lens and the range menu
+  offer a block the face maps nothing of disabled. Other scripts, code pages, variation sequences,
+  supplementary planes, symbol mappings, and holes in a requested repertoire are not summarized.
 - Next: calculate coverage from cmap subtables against Unicode block/script data and user-supplied
   sample text or ranges.
 - Done when: coverage counts identify cmap/subtable provenance, mapped aliases and variation

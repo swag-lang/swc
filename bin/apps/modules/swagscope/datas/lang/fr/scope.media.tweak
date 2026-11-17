@@ -61,6 +61,7 @@ separator   Séparateur
 meter       Mesure
 glyphCount  % glyphes
 lineEnds    Fins de ligne
+coverage    Couverture
 oneLine     1 ligne
 lineCount   % lignes
 oneWord     1 mot

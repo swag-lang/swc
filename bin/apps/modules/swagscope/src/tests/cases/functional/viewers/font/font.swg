@@ -135,4 +135,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.require(Utf8.contains(text, Format.toString("Copyright\n%", face.copyright).toString()), text)
     if not face.designer.isEmpty() do
         Swag.require(Utf8.contains(text, Format.toString("Designer\n%", face.designer).toString()), text)
+
+    // The sheet counts what the face maps of each block the character map jumps to.
+    Swag.require(Utf8.contains(text, "Coverage\nBasic Latin\n95 characters"), text)
 }

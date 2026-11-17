@@ -11,6 +11,7 @@ ui_Latin1             Supplément Latin-1
 ui_Greek              Grec et copte
 ui_Cyrillic           Cyrillique
 ui_Symbols            Ponctuation et symboles
+ui_NotCovered         Aucun
 ui_Specimen           SPÉCIMEN
 ui_CharacterMap       Table des caractères
 ui_NoCharacters       Aucun caractère associé

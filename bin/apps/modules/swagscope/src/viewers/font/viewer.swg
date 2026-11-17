@@ -41,6 +41,18 @@ func viewerPlugin()->Viewer.Plugin
 
 private const CommandWidth = 512.0
 
+// The Unicode blocks the character map can jump to: their first and last code points, and their
+// names in [[blockNames]].
+const BlockFirst: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
+const BlockLast:  [5] u32 = [0x7E, 0xFF, 0x3FF, 0x4FF, 0x2BFF]
+
+// Returns the names of the blocks of [[BlockFirst]] in the active language.
+func blockNames()->[5] string
+{
+    let strings = texts()
+    return [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
+}
+
 // What loading a font file produces: its bytes, the face and typeface built on them, and the
 // details line.
 #[Swag.NoCopy]
@@ -228,16 +240,31 @@ private impl Panel
             }
         }
 
-        const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
-        let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
-        for range, index in Ranges
+        // A block the face maps nothing of cannot be shown, so it is offered disabled.
+        let names = blockNames()
+        for range, index in BlockFirst
         {
-            entries.add(names[index], .GoTo, func|view = me, range|()
-            {
-                view.document.goToCharacterPage(range)
-                view.refreshPageCommands()
-            })
+            entries.add(names[index],
+                        .GoTo,
+                        func|view = me, range|()
+                        {
+                            view.document.goToCharacterPage(range)
+                            view.refreshPageCommands()
+                        },
+                        disabled: .blockCoverage(index) == 0)
         }
+    }
+
+    // Counts the characters of block `index` of [[BlockFirst]] the face maps.
+    mtd blockCoverage(index: u64)->u32
+    {
+        let face = .document.face
+        if not face do
+            return 0
+        var result = 0'u32
+        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
+            result += 1
+        return result
     }
 
     // Offers the Unicode blocks the glyph grid can jump to, and shows the first page of the one
@@ -246,11 +273,11 @@ private impl Panel
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(0) == 0)
+            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(1) == 0)
+            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(2) == 0)
+            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(3) == 0)
+            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(4) == 0)
         }
 
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
@@ -413,6 +440,16 @@ impl Panel
             data.add(.Designer, face.designer.toString())
         if not face.copyright.isEmpty() do
             data.add(.Copyright, face.copyright.toString())
+
+        // How much of each block the character map jumps to the face maps.
+        data.add(.Coverage, group: true)
+        let names = blockNames()
+        for index in BlockFirst.count
+        {
+            let count = .blockCoverage(index)
+            data.addText(names[index], count ? characterCountText(count) : String.from(texts().ui_NotCovered))
+        }
+
         data.describe(sheet)
     }
 }

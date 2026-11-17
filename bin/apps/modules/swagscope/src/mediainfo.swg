@@ -59,6 +59,7 @@ enum MediaInfoField
     Separator
     Meter
     LineEnds
+    Coverage
     Track
     Empty
     Unavailable
@@ -120,6 +121,7 @@ struct MediaInfoStrings
     separator:      string = "Separator"
     meter:          string = "Time signature"
     lineEnds:       string = "Line ends"
+    coverage:       string = "Coverage"
     oneLine:        string = "1 line"
     lineCount:      string = "% lines"
     oneWord:        string = "1 word"
@@ -240,6 +242,7 @@ impl MediaInfoRow
         case .Separator:      return s.separator
         case .Meter:          return s.meter
         case .LineEnds:       return s.lineEnds
+        case .Coverage:       return s.coverage
         case .Track:          return .name.toString()
         case .Empty:          return s.empty
         case .Unavailable:    return s.unavailable
@@ -299,6 +302,9 @@ func joinMeasures(measures: const [..] String)->String
 
     return result
 }
+
+// Counts characters as a reading says it.
+func characterCountText(count: u64)->String => count == 1 ? String.from(g_MediaInfoStrings.oneCharacter) : Format.toString(g_MediaInfoStrings.characterCount, count)
 
 // Counts the glyphs of a font as a figure says it.
 func glyphCountText(count: u64)->String => Format.toString(g_MediaInfoStrings.glyphCount, count)

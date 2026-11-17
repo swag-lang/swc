@@ -77,3 +77,11 @@ func assertBuilderString(value: String, expected: string)->bool
     Swag.require(assertBuilderString(builder.toString(), expected.toString()))
     Swag.require(builder.count() == expected.count)
 }
+
+#test
+{
+    var builder: StrConv.StringBuilder
+    builder.appendAny(42, strFormat: "X")
+    Swag.require(assertBuilderString(builder.toString(), "2A"))
+    Swag.require(builder.count() == 2)
+}

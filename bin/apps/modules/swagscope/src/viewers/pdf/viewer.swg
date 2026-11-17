@@ -284,7 +284,7 @@ private impl Panel
     // Says why a complete search found nothing when pages hold no searchable words: pictures of
     // pages without a text layer, which reading cannot tell from text, and pages whose text could
     // not be read. A document whose every page has text leaves the plain answer.
-    mtd explainNoMatch()->String
+    mtd explainSearch()->String
     {
         var result: String
         let coverage = .pdfView.textCoverage()
@@ -703,7 +703,7 @@ func createViewer(host: Viewer.Host)
         .revealMatch    = func|view|(match, text)->bool => view.revealMatch(match, text)
         .matchBounds    = func|view|(match, bounds)->bool => view.searchBounds(match, bounds)
         .clear          = func|view|() => view.pdfView.clearSelection()
-        .explainNoMatch = func|view|(_)->String => view.explainNoMatch()
+        .explainSearch  = func|view|(_)->String => view.explainSearch()
     }
 
     host.setSearch(search)

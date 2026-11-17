@@ -161,3 +161,31 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
             Swag.require(toolTip == appStrings().ui_NoMatch, toolTip)
     }
 }
+
+// A count of matches over a document some pages of which hold no text says what it leaves out.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-partly-scanned-", ".pdf")
+    defer discard catch File.delete(fileName)
+    var document = Pdf.Document.create()
+    var written  = Pdf.Page.create(320, 220)
+    written.addText("alpha words", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move written)
+    document.addPage(Pdf.Page.create(320, 220))
+    expect document.save(fileName)
+
+    var host: HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 680)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+
+    window.showSearch()
+    window.searchBox.setText("alpha")
+    completeFind(&host, window)
+    Swag.require(window.searchComplete and window.searchMatches.count == 1)
+    let toolTip = window.searchCountLabel.toolTip.toString()
+    Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_SomeNoText, 1, 2).toString()), toolTip)
+}

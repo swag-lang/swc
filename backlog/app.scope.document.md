@@ -67,9 +67,9 @@ integration around those engines.
   nothing says so beside its `0/0`. The information sheet starts that extraction itself
   (`PdfView.extractText`) and, once `PdfView.sigTextExtracted` reports it done, says whether the
   pages carry text: on every page, none, or missing on how many, then how many could not be read.
-  A search that does find words in a partly scanned document still gives no hint that some pages
-  were not searched.
-- Next: mark the count of a successful search over a partly scanned document.
+  A search that finds words in a partly scanned document says, in the tooltip of its count, how
+  many pages were not searched (`Viewer.ExplainSearch`); the count itself carries no mark.
+- Next: mark the count itself, not only its tooltip, when pages could not be searched.
 - Done when: a reader can tell, without searching, that a document or some of its pages have no
   text layer, and a found count over such a document says which pages it could not cover.
 - Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042

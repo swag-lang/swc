@@ -16,14 +16,17 @@ struct RemoteFreeShared
 {
     allocator: IAllocator
     addresses: [64] u64
+    nextWorker: u32
     errors:    u32
 }
 
 func remoteFreeWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*RemoteFreeShared, unwrap thread.userParam)
-    for i in shared.addresses.count
+    let first  = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
+    for offset in shared.addresses.count / 4
     {
+        let i       = first + offset
         let address = shared.addresses[i]
         let bytes   = cast([*] u8, address)
         if bytes[0] != cast(u8, i) or bytes[63] != cast(u8, i ^ 0xA5) do
@@ -115,7 +118,8 @@ func pageCommitWorker(thread: const *Threading.Thread)
     Swag.require(stats.countSegment == 0)
 }
 
-// A page owned by this thread must accept frees from another thread and retire after collection.
+// A page owned by this thread must accept concurrent frees from other threads and retire after
+// collection.
 #test
 {
     var allocator: Allocator
@@ -135,10 +139,14 @@ func pageCommitWorker(thread: const *Threading.Thread)
         shared.addresses[i]     = cast(u64, request.address)
     }
 
-    var thread: Threading.Thread
-    discard expect thread.init(&remoteFreeWorker, &shared)
-    discard expect thread.start()
-    thread.wait()
+    var threads: [4] Threading.Thread
+    for i in threads.count
+    {
+        discard expect threads[i].init(&remoteFreeWorker, &shared)
+        discard expect threads[i].start()
+    }
+    for &thread in threads do
+        thread.wait()
 
     Swag.releaseAllocatorThreadCache()
     allocator.trim()

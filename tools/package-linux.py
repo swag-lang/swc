@@ -56,8 +56,12 @@ def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, chec
             if dependency.name.startswith('.') or '.so' not in dependency.name:
                 continue
             if dependency.is_symlink():
-                if dependency.readlink().is_absolute() or not dependency.resolve().is_relative_to(build_dir.resolve()):
-                    raise SystemExit(f'Dependency symlink escapes build directory: {dependency}')
+                try:
+                    target = dependency.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    raise SystemExit(f'Dependency symlink has no usable target: {dependency}') from None
+                if dependency.readlink().is_absolute() or not target.is_file() or not target.is_relative_to(build_dir.resolve()):
+                    raise SystemExit(f'Dependency symlink target is not a file inside build directory: {dependency}')
                 (destination / dependency.name).symlink_to(dependency.readlink())
             elif dependency.is_file():
                 shutil.copy2(dependency, destination / dependency.name)

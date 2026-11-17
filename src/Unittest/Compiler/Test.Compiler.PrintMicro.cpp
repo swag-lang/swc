@@ -351,10 +351,29 @@ func fillDynamic(count: u64)->u32
     return values[0]
 }
 
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func fillRangeExactly()->u32
+{
+    var values: [4] u32
+    for index in 0 until 4 do
+        values[index] = 1
+    return values[3]
+}
+
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func fillRangeOverlong()->u32
+{
+    var values: [4] u32
+    for index in 0 to 4 do
+        values[index] = 1
+    return values[0]
+}
+
 #run
 {
     Swag.assert(fillExactly() == 1)
     Swag.assert(fillDynamic(0) == 0)
+    Swag.assert(fillRangeExactly() == 1)
 }
 )";
 
@@ -363,15 +382,24 @@ func fillDynamic(count: u64)->u32
     fs::remove_all(directory, ec);
 
     PrintMicroRun          run;
-    const std::string_view requests[] = {"fillExactly:post-emit", "fillDynamic:post-emit"};
+    const std::string_view requests[] = {"fillExactly:post-emit", "fillDynamic:post-emit", "fillRangeExactly:post-emit", "fillRangeOverlong:post-emit"};
     SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
     const size_t exactCalls   = occurrencesInListing(run.output, "fillExactly", "call ");
     const size_t dynamicCalls = occurrencesInListing(run.output, "fillDynamic", "call ");
-    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || exactCalls != 0 || dynamicCalls == 0 || dynamicCalls == SIZE_MAX)
+    const size_t rangeExactCalls    = occurrencesInListing(run.output, "fillRangeExactly", "call ");
+    const size_t rangeOverlongCalls = occurrencesInListing(run.output, "fillRangeOverlong", "call ");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || exactCalls != 0 || dynamicCalls == 0 || dynamicCalls == SIZE_MAX ||
+        rangeExactCalls != 0 || rangeOverlongCalls == 0 || rangeOverlongCalls == SIZE_MAX)
     {
-        std::println(stderr, "[print micro loop bounds] exact calls {}, dynamic calls {}\n{}", exactCalls, dynamicCalls, run.output);
+        std::println(stderr,
+                     "[print micro loop bounds] exact {}, dynamic {}, exact range {}, overlong range {} calls\n{}",
+                     exactCalls,
+                     dynamicCalls,
+                     rangeExactCalls,
+                     rangeOverlongCalls,
+                     run.output);
         return Result::Error;
     }
 }

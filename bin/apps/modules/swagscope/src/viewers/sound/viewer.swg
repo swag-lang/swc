@@ -1317,6 +1317,12 @@ impl Panel
         if .duration > 0 do
             data.addFigure(.Duration, durationText(.duration))
         data.add(.Sound, group: true)
+
+        // How the samples are stored, then the throughput of that payload over the length.
+        data.add(.Format, Film.audioEncodingText(.sound.sampleEncoding()))
+        let bitrate = videoBitrate(.sound.payloadSize(), cast(f64, .duration))
+        if bitrate.count do
+            data.add(.Bitrate, bitrate)
         data.add(.SampleRate, Format.toString("% Hz", .sound.sampleRateHz()))
         data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
         data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))

@@ -572,6 +572,7 @@ func soundInformation(bytes: const [..] u8)->String
     let halfBytes = pcm16Wav([16384's16, -16384, 0, 0])
     let half      = soundInformation(halfBytes.toSlice())
     Swag.require(Utf8.contains(half, "Levels"), half)
+    Swag.require(Utf8.contains(half, "Format\n") and Utf8.contains(half, "Approx. bitrate\n128 kb/s"), half)
     Swag.require(Utf8.contains(half, "Sample peak\n-6.0 dBFS"), half)
     Swag.require(Utf8.contains(half, "RMS level\n-9.0 dBFS"), half)
     Swag.require(Utf8.contains(half, "Full scale\n0 samples"), half)

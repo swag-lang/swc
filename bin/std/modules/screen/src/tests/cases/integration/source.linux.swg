@@ -45,6 +45,21 @@ private func sharedSegmentCount()->u64 fail
                  image.height == cast(s32, bounds.height) and image.pixelFormat == .BGRA8)
 }
 
+// Opens the full virtual desktop, including any gaps between monitors.
+#[Swag.TestTag("integration.host.linux")]
+#test
+{
+    let width = Env.getSystemMetric(.DesktopWidth)
+    let height = Env.getSystemMetric(.DesktopHeight)
+    if width <= 0 or height <= 0 do
+        return
+    var source = expect Source.openDesktop()
+    var image: Image
+    let fresh = expect source.grabInto(&image)
+    Swag.require(fresh)
+    Swag.require(image.width == width and image.height == height and image.pixelFormat == .BGRA8)
+}
+
 // A region outside the connected X11 screen is rejected while opening the source.
 #[Swag.TestTag("integration.host.linux")]
 #test

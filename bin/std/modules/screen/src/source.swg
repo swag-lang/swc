@@ -136,6 +136,21 @@ impl Source
                           cast(s32, bounds.height), includeCursor})
     }
 
+    // Opens a source for the current virtual desktop bounds.
+    //
+    // The rectangle includes gaps between monitors. It can fail when no desktop bounds are available.
+    // `includeCursor` requests pointer composition where supported and defaults to false.
+    func openDesktop(includeCursor: bool = false)->Source fail
+    {
+        let x = Env.getSystemMetric(.DesktopX)
+        let y = Env.getSystemMetric(.DesktopY)
+        let width = Env.getSystemMetric(.DesktopWidth)
+        let height = Env.getSystemMetric(.DesktopHeight)
+        if width <= 0 or height <= 0 do
+            fail UnsupportedFormatError{"screen virtual desktop is unavailable"}
+        return try .open({x, y, width, height, includeCursor})
+    }
+
     private mtd addPart(options: SourceOptions) fail
     {
         let native = Memory.new'NativeSource()
@@ -264,7 +279,7 @@ impl Source
     //
     // The value uses the same microsecond clock as [[Core.Time.monotonicMicroseconds]]. It records when
     // `grabInto` received a fresh frame, not the display's presentation time, and remains unchanged when
-    // a grab returns false. Reopening the source resets it to zero.
+    // a grab returns false. A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
     // Returns cumulative native and composition timing since this source was opened.
@@ -297,7 +312,6 @@ impl Source
     // Reopens a source after a display change or native access loss.
     mtd reopen() fail
     {
-        .lastFrameCaptureTime = 0
         #static if #os == Swag.TargetOs.Windows
         {
             for index in .sources.count do
@@ -308,6 +322,7 @@ impl Source
             for source in .sources do
                 try source[].reopen()
         }
+        .lastFrameCaptureTime = 0
     }
 
     // Releases the native capture handles and cached frames on the opening thread.

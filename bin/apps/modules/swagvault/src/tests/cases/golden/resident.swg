@@ -3,14 +3,15 @@
 
 using Core, Gui, Pixel
 
-// The notification menu is a compact detached surface with direct per-drive commands.
+// The notification menu is a compact detached surface with one drive label and direct commands.
 #[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     fillPictureList(window)
-    window.privacyMode = true
+    // Keep this rendering fixture independent of the host-specific privacy label policy.
+    window.privacyMode = false
     host.theme.setDark()
     host.notify(.ThemeChanged)
     let panel = unwrap ResidentMenu.open(window)

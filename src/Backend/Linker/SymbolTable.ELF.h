@@ -13,7 +13,7 @@ namespace ELFSymbolTable
 
     // Coalesces the linked contributions into the runtime's ordinary image-relative
     // table. A missing table is valid; a malformed table leaves the image unchanged.
-    bool finalizeImage(ByteArray& image, Utf8& outError);
+    bool finalizeImage(ByteArray& image, Utf8& outError, bool includeRuntimeSymbols = true);
 }
 
 SWC_END_NAMESPACE();

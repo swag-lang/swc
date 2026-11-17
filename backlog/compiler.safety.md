@@ -145,6 +145,9 @@ is the current scorecard.
   loop retains one. The safety suite still passes the overlong-count runtime fault and the
   exact-count write. See `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks` and the
   `cwe787_out_of_bounds_write.swg` corpus tests.
+- Constant range loops over a fixed array also keep the exact exclusive range guard-free and
+  retain a guard for an inclusive endpoint equal to the array extent. Both cases are covered
+  by `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks`.
 - Next: hoist a `late` check from a loop that does not assign it. Measure the affected loops
   with guards enabled and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and

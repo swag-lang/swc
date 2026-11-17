@@ -19,17 +19,28 @@ private const DefaultFontFsItalicName     = "../theme/robotomono-italic.ttf"
 private const DefaultIconsName = "../theme/icons.svg"
 
 private const DefaultImage            = #include(DefaultImageName)
-private const DefaultFontRegular      = #include(DefaultFontRegularName)
-private const DefaultFontBold         = #include(DefaultFontBoldName)
-private const DefaultFontBoldItalic   = #include(DefaultFontBoldItalicName)
-private const DefaultFontItalic       = #include(DefaultFontItalicName)
-private const DefaultFontLight        = #include(DefaultFontLightName)
-private const DefaultFontSemiBold     = #include(DefaultFontSemiBoldName)
-private const DefaultFontFsRegular    = #include(DefaultFontFsRegularName)
-private const DefaultFontFsBold       = #include(DefaultFontFsBoldName)
-private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
-private const DefaultFontFsItalic     = #include(DefaultFontFsItalicName)
+private const DefaultFontRegular      = #include("../theme/inter-regular.ttf.zlib")
+private const DefaultFontBold         = #include("../theme/inter-bold.ttf.zlib")
+private const DefaultFontBoldItalic   = #include("../theme/inter-bolditalic.ttf.zlib")
+private const DefaultFontItalic       = #include("../theme/inter-italic.ttf.zlib")
+private const DefaultFontLight        = #include("../theme/inter-light.ttf.zlib")
+private const DefaultFontSemiBold     = #include("../theme/inter-semibold.ttf.zlib")
+private const DefaultFontFsRegular    = #include("../theme/robotomono-regular.ttf.zlib")
+private const DefaultFontFsBold       = #include("../theme/robotomono-bold.ttf.zlib")
+private const DefaultFontFsBoldItalic = #include("../theme/robotomono-bolditalic.ttf.zlib")
+private const DefaultFontFsItalic     = #include("../theme/robotomono-italic.ttf.zlib")
 private const DefaultIcons            = #include(DefaultIconsName)
+
+private const DefaultFontRegularSize:      u64 = 349252
+private const DefaultFontBoldSize:         u64 = 358040
+private const DefaultFontBoldItalicSize:   u64 = 363676
+private const DefaultFontItalicSize:       u64 = 355768
+private const DefaultFontLightSize:        u64 = 350456
+private const DefaultFontSemiBoldSize:     u64 = 357356
+private const DefaultFontFsRegularSize:    u64 = 112300
+private const DefaultFontFsBoldSize:       u64 = 113232
+private const DefaultFontFsBoldItalicSize: u64 = 122544
+private const DefaultFontFsItalicSize:     u64 = 125064
 
 // Parsed theme art and its cached rasterizations, the backing type of a [[Gui.Theme]].
 //
@@ -82,16 +93,16 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 {
     bundle.addEmbedded(ResImageName, DefaultImage)
     bundle.addEmbedded(ResIconsName, DefaultIcons)
-    bundle.addEmbedded(ResFontRegularName, DefaultFontRegular)
-    bundle.addEmbedded(ResFontBoldName, DefaultFontBold)
-    bundle.addEmbedded(ResFontBoldItalicName, DefaultFontBoldItalic)
-    bundle.addEmbedded(ResFontItalicName, DefaultFontItalic)
-    bundle.addEmbedded(ResFontLightName, DefaultFontLight)
-    bundle.addEmbedded(ResFontSemiBoldName, DefaultFontSemiBold)
-    bundle.addEmbedded(ResFontFsRegularName, DefaultFontFsRegular)
-    bundle.addEmbedded(ResFontFsBoldName, DefaultFontFsBold)
-    bundle.addEmbedded(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
-    bundle.addEmbedded(ResFontFsItalicName, DefaultFontFsItalic)
+    bundle.addEmbeddedZlib(ResFontRegularName, DefaultFontRegular, DefaultFontRegularSize)
+    bundle.addEmbeddedZlib(ResFontBoldName, DefaultFontBold, DefaultFontBoldSize)
+    bundle.addEmbeddedZlib(ResFontBoldItalicName, DefaultFontBoldItalic, DefaultFontBoldItalicSize)
+    bundle.addEmbeddedZlib(ResFontItalicName, DefaultFontItalic, DefaultFontItalicSize)
+    bundle.addEmbeddedZlib(ResFontLightName, DefaultFontLight, DefaultFontLightSize)
+    bundle.addEmbeddedZlib(ResFontSemiBoldName, DefaultFontSemiBold, DefaultFontSemiBoldSize)
+    bundle.addEmbeddedZlib(ResFontFsRegularName, DefaultFontFsRegular, DefaultFontFsRegularSize)
+    bundle.addEmbeddedZlib(ResFontFsBoldName, DefaultFontFsBold, DefaultFontFsBoldSize)
+    bundle.addEmbeddedZlib(ResFontFsBoldItalicName, DefaultFontFsBoldItalic, DefaultFontFsBoldItalicSize)
+    bundle.addEmbeddedZlib(ResFontFsItalicName, DefaultFontFsItalic, DefaultFontFsItalicSize)
 }
 
 // Creates the typeface behind one theme font resource, honoring a disk override.
@@ -99,7 +110,7 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 // The process-wide typeface cache is keyed by name. Include the override's digest so
 // distinct bundles and edits to the same file cannot reuse an older face. An override
 // that cannot be read or parsed falls back to the embedded face.
-private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->*TypeFace fail
+private func themeTypeFace(res: const *Resources.Bundle, name: string)->*TypeFace fail
 {
     if res.isOverridden(name)
     {
@@ -117,7 +128,15 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
         }
     }
 
-    return try TypeFace.create(name, embedded)
+    let embedded = try res.load(name)
+    return try TypeFace.create(name, embedded.toSlice())
+}
+
+private func embeddedFontTypeFace(name: string, compressed: const [..] u8, uncompressedSize: u64)->*TypeFace fail
+{
+    var zlib: Compress.ZLib
+    let bytes = try zlib.decompress(compressed, uncompressedSize)
+    return try TypeFace.create(name, bytes.toSlice())
 }
 
 // Returns the typeface compiled into the module that is closest to a shape.
@@ -140,21 +159,21 @@ func embeddedTypeFace(fixedPitch: bool, style: FontFamilyStyle)->*TypeFace fail
     if fixedPitch
     {
         if bold and italic do
-            return try TypeFace.create(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
+            return try embeddedFontTypeFace(ResFontFsBoldItalicName, DefaultFontFsBoldItalic, DefaultFontFsBoldItalicSize)
         if bold do
-            return try TypeFace.create(ResFontFsBoldName, DefaultFontFsBold)
+            return try embeddedFontTypeFace(ResFontFsBoldName, DefaultFontFsBold, DefaultFontFsBoldSize)
         if italic do
-            return try TypeFace.create(ResFontFsItalicName, DefaultFontFsItalic)
-        return try TypeFace.create(ResFontFsRegularName, DefaultFontFsRegular)
+            return try embeddedFontTypeFace(ResFontFsItalicName, DefaultFontFsItalic, DefaultFontFsItalicSize)
+        return try embeddedFontTypeFace(ResFontFsRegularName, DefaultFontFsRegular, DefaultFontFsRegularSize)
     }
 
     if bold and italic do
-        return try TypeFace.create(ResFontBoldItalicName, DefaultFontBoldItalic)
+        return try embeddedFontTypeFace(ResFontBoldItalicName, DefaultFontBoldItalic, DefaultFontBoldItalicSize)
     if bold do
-        return try TypeFace.create(ResFontBoldName, DefaultFontBold)
+        return try embeddedFontTypeFace(ResFontBoldName, DefaultFontBold, DefaultFontBoldSize)
     if italic do
-        return try TypeFace.create(ResFontItalicName, DefaultFontItalic)
-    return try TypeFace.create(ResFontRegularName, DefaultFontRegular)
+        return try embeddedFontTypeFace(ResFontItalicName, DefaultFontItalic, DefaultFontItalicSize)
+    return try embeddedFontTypeFace(ResFontRegularName, DefaultFontRegular, DefaultFontRegularSize)
 }
 
 private func systemCjkTypeFace()->*TypeFace? fail
@@ -507,17 +526,17 @@ impl Theme
             if .defaultTypeFaceR != null do
                 return
 
-            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)
-            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)
-            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)
-            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)
-            .defaultTypeFaceL  = expect themeTypeFace(resources, ResFontLightName, DefaultFontLight)
-            .defaultTypeFaceSB = expect themeTypeFace(resources, ResFontSemiBoldName, DefaultFontSemiBold)
+            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName)
+            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName)
+            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName)
+            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName)
+            .defaultTypeFaceL  = expect themeTypeFace(resources, ResFontLightName)
+            .defaultTypeFaceSB = expect themeTypeFace(resources, ResFontSemiBoldName)
 
-            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)
-            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)
-            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)
-            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
+            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName)
+            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName)
+            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName)
+            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName)
 
             .fontDefault.regular    = me.fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = me.fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

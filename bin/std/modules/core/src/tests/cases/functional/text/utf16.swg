@@ -115,6 +115,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
         Swag.require(zero[i] == expected[i])
     Swag.require(zero[6] == 0)
     Swag.require(Utf16.lengthZeroTerminated(zero.buffer) == 6)
+    Swag.require(Utf16.lengthZeroTerminated(null) == 0)
     Swag.require(Utf16.lengthUntilZero(zero.toSlice()) == 6)
 }
 

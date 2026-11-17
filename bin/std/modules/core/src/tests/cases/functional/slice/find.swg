@@ -22,6 +22,22 @@ using Swag
 
 #test
 {
+    var emptyNumbers: [..] s32? = null
+    var emptyBytes:   [..] u8?  = null
+    let duplicates:   [5] s32   = [1, 3, 3, 3, 7]
+
+    Swag.require(Slice.findLinear(emptyNumbers, 1) == Swag.U64.Max)
+    Swag.require(not Slice.contains(emptyNumbers, 1))
+    Swag.require(Slice.findLinear(emptyBytes, 1'u8) == Swag.U64.Max)
+    Swag.require(not Slice.contains(emptyBytes, 1'u8))
+
+    let found = Slice.findSorted(duplicates, 3)
+    Swag.require(found >= 1 and found <= 3 and duplicates[found] == 3)
+    Swag.require(Slice.containsSorted(duplicates, 3))
+}
+
+#test
+{
     let values: [4] string = ["alpha", "beta", "gamma", "beta"]
 
     Swag.require(Slice.findLinear(values, "alpha") == 0)
@@ -55,6 +71,26 @@ using Swag
     Swag.require(Slice.findSubslice(values, tooLong) == Swag.U64.Max)
     Swag.require(Slice.findSubslice(values, [4, 4]) == 0)
     Swag.require(Slice.findSubslice(overlapping, [1, 1, 2]) == 1)
+}
+
+// The byte specialization handles empty and oversized inputs and a match at the last start.
+#test
+{
+    let backing: [1] u8 = [0]
+    let empty = backing[until 0]
+    let tooLong: [1] u8 = [1]
+
+    Swag.require(Slice.findSubslice(empty, empty) == 0)
+    Swag.require(Slice.findSubslice(empty, tooLong) == Swag.U64.Max)
+
+    var values: [24] u8
+    for &value in values do
+        value[] = 0x11
+    let needle: [5] u8 = [1, 2, 3, 4, 5]
+    for i in needle.count do
+        values[19 + i] = needle[i]
+
+    Swag.require(Slice.findSubslice(values, needle) == 19)
 }
 
 #test

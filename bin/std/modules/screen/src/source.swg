@@ -462,7 +462,7 @@ impl Source
         return result
     }
 
-    // Resets cumulative acquisition and composition counters without reopening the source.
+    // Resets cumulative SourceMetrics counters without reopening the source.
     // The native capture handles, cached frame and last frame capture time are preserved.
     mtd resetMetrics()
     {

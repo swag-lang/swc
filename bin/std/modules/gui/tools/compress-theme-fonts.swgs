@@ -1,0 +1,22 @@
+// Regenerates the lossless zlib-compressed font resources beside their TTF sources.
+// Run with: bin/swc.dm.exe run -f bin/std/modules/gui/tools/compress-theme-fonts.swgs
+#import("core", location: "swag@std")
+
+using Core
+
+#main
+{
+    let folder = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "../src/theme")
+    for name in [
+        "inter-regular.ttf", "inter-bold.ttf", "inter-bolditalic.ttf", "inter-italic.ttf", "inter-light.ttf", "inter-semibold.ttf",
+        "robotomono-regular.ttf", "robotomono-bold.ttf", "robotomono-bolditalic.ttf", "robotomono-italic.ttf"]
+    {
+        let path       = Path.combine(folder.toString(), name)
+        let source     = expect File.readAllBytes(path)
+        var zlib: Compress.ZLib
+        let compressed = expect zlib.compress(source.toSlice(), .BestCompression)
+        let output     = Path.combine(folder.toString(), Format.toString("%.zlib", name).toString())
+        discard expect File.writeAllBytes(output, compressed.toSlice())
+        Console.printf("%: % -> % bytes\n", name, source.count, compressed.count)
+    }
+}

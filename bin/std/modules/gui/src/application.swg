@@ -1430,10 +1430,11 @@ impl Application
     // for that tag keeps its reference strings. Fails when the tag is not registered
     // through [[Gui.registerLanguage]] or has no language file for any registered table,
     // so a mistyped tag cannot silently present itself as applied. Menus and
-    // command-driven controls pick the new strings up on their next update; text set once
-    // at construction keeps its wording until the window is created again, so a window
-    // that must follow the switch listens for the
-    // [[Gui.NotifyEvent.Kind.LanguageChanged]] notification.
+    // command-driven controls pick the new strings up on their next update. A [[Gui.Label]]
+    // bound with [[Gui.Label.setLocalizedText]] refreshes itself when notified; other text set
+    // once at construction keeps its wording until the window is created again, so a window
+    // that must follow the switch listens for the [[Gui.NotifyEvent.Kind.LanguageChanged]]
+    // notification or rebuilds itself.
     mtd setLanguage(tag: string) fail
     {
         try applyLanguage(&.resources, tag)
@@ -1541,8 +1542,12 @@ impl Application
             app.sendBroadcastNotifyEvent(wnd, .LanguageChanged)
         }
 
-        for s in .surfaces do
+        for s in .surfaces
+        {
             updateLanguage(me, s.wnd)
+            if not s.wnd.children.contains(s.wnd.view) do
+                updateLanguage(me, s.wnd.view)
+        }
     }
 
     // Sharpens the shared theme atlas for a surface at `scale`, and resolves every style again when it changed.

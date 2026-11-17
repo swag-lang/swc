@@ -79,6 +79,14 @@ impl Plane3
     }
 }
 
+private func frustumPlane(coefficients: Vector4)->Plane3
+{
+    let normal = Vector3{coefficients.x, coefficients.y, coefficients.z}
+    let length = normal.length()
+    Swag.assert(length > 0)
+    return Plane3{normal / length, -coefficients.w / length}
+}
+
 // A sphere described by its center and nonnegative radius.
 #[Serialization.Final]
 struct Sphere3
@@ -300,6 +308,80 @@ impl Bounds3
             distance = far
         return {intersects: true, distance: distance, point: ray.pointAt(distance)}
     }
+}
+
+// A view frustum represented by six inward-facing normalized planes.
+#[Serialization.Final]
+struct Frustum3
+{
+    public left, right, bottom, top, near, far: Plane3    // Clip boundary planes; their positive side is inside.
+}
+
+impl Frustum3
+{
+    // Extracts an OpenGL depth-range frustum from a world-to-clip row-vector matrix.
+    func fromMatrix(worldToClip: Matrix4x4)->Frustum3
+    {
+        let left = frustumPlane(Vector4{
+            worldToClip.m[0, 0] + worldToClip.m[0, 3],
+            worldToClip.m[1, 0] + worldToClip.m[1, 3],
+            worldToClip.m[2, 0] + worldToClip.m[2, 3],
+            worldToClip.m[3, 0] + worldToClip.m[3, 3]})
+        let right = frustumPlane(Vector4{
+            worldToClip.m[0, 3] - worldToClip.m[0, 0],
+            worldToClip.m[1, 3] - worldToClip.m[1, 0],
+            worldToClip.m[2, 3] - worldToClip.m[2, 0],
+            worldToClip.m[3, 3] - worldToClip.m[3, 0]})
+        let bottom = frustumPlane(Vector4{
+            worldToClip.m[0, 1] + worldToClip.m[0, 3],
+            worldToClip.m[1, 1] + worldToClip.m[1, 3],
+            worldToClip.m[2, 1] + worldToClip.m[2, 3],
+            worldToClip.m[3, 1] + worldToClip.m[3, 3]})
+        let top = frustumPlane(Vector4{
+            worldToClip.m[0, 3] - worldToClip.m[0, 1],
+            worldToClip.m[1, 3] - worldToClip.m[1, 1],
+            worldToClip.m[2, 3] - worldToClip.m[2, 1],
+            worldToClip.m[3, 3] - worldToClip.m[3, 1]})
+        let near = frustumPlane(Vector4{
+            worldToClip.m[0, 2] + worldToClip.m[0, 3],
+            worldToClip.m[1, 2] + worldToClip.m[1, 3],
+            worldToClip.m[2, 2] + worldToClip.m[2, 3],
+            worldToClip.m[3, 2] + worldToClip.m[3, 3]})
+        let far = frustumPlane(Vector4{
+            worldToClip.m[0, 3] - worldToClip.m[0, 2],
+            worldToClip.m[1, 3] - worldToClip.m[1, 2],
+            worldToClip.m[2, 3] - worldToClip.m[2, 2],
+            worldToClip.m[3, 3] - worldToClip.m[3, 2]})
+        return Frustum3{left, right, bottom, top, near, far}
+    }
+
+    // Returns whether `point` lies inside or on all six clip planes.
+    mtd const contains(point: Vector3)->bool
+    {
+        return .left.signedDistanceTo(point) >= 0 and .right.signedDistanceTo(point) >= 0 and
+               .bottom.signedDistanceTo(point) >= 0 and .top.signedDistanceTo(point) >= 0 and
+               .near.signedDistanceTo(point) >= 0 and .far.signedDistanceTo(point) >= 0
+    }
+
+    // Returns whether any part of `bounds` lies inside all six clip planes.
+    mtd const intersects(bounds: Bounds3)->bool
+    {
+        if not bounds.isValid() do
+            return false
+        return boundsIntersectsPlane(bounds, .left) and boundsIntersectsPlane(bounds, .right) and
+               boundsIntersectsPlane(bounds, .bottom) and boundsIntersectsPlane(bounds, .top) and
+               boundsIntersectsPlane(bounds, .near) and boundsIntersectsPlane(bounds, .far)
+    }
+}
+
+private func boundsIntersectsPlane(bounds: Bounds3, plane: Plane3)->bool
+{
+    let center = bounds.center()
+    let extents = bounds.extents()
+    let radius = Math.abs(plane.normal.x) * extents.x +
+                 Math.abs(plane.normal.y) * extents.y +
+                 Math.abs(plane.normal.z) * extents.z
+    return plane.signedDistanceTo(center) + radius >= 0
 }
 
 // Returns the intersection of a ray and a sphere, or a miss when the ray points away.

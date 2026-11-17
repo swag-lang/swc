@@ -2112,21 +2112,51 @@ func caller()
             return Result::Error;
         }
 
-        // Runtime tables are file metadata: they must not create loaded segments or
-        // text relocations. Removing them leaves ordinary panic reporting usable.
-        for (const fs::path& artifact : shared ? std::vector<fs::path>{executable, library} : std::vector<fs::path>{executable})
+        std::vector<fs::path> artifactPaths = {executable};
+        if (shared)
+            artifactPaths.push_back(library);
+        std::vector<uint64_t> defaultSizes;
+        for (const fs::path& artifact : artifactPaths)
+            defaultSizes.push_back(fs::file_size(artifact));
+
+        std::vector<Utf8> omitSymbolsArguments = arguments;
+        std::erase(omitSymbolsArguments, Utf8("--rebuild"));
+        omitSymbolsArguments.push_back("--no-runtime-symbols");
+        SWC_RESULT(runCompiler(omitSymbolsArguments, ExitCode::Success, ""));
+
+        // Omitting the runtime table makes the images smaller, but leaves the
+        // panic message itself available to callers.
+        for (size_t index = 0; index < artifactPaths.size(); ++index)
         {
-            output.clear();
-            const std::vector<Utf8> inspect = {"-lW", "-d", Utf8(artifact)};
-            if (Os::runProcess(exitCode, "readelf", inspect, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
+            const fs::path& artifact = artifactPaths[index];
+            if (fs::file_size(artifact) >= defaultSizes[index])
                 return Result::Error;
             output.clear();
-            const std::vector<Utf8> strip = {"--remove-section=.swagdbg", Utf8(artifact)};
-            if (Os::runProcess(exitCode, "objcopy", strip, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode)
+            const std::vector<Utf8> inspect = {"-lW", "-d", "-SW", Utf8(artifact)};
+            if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
                 return Result::Error;
         }
         output.clear();
         if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("native-symbol-probe") == std::string::npos || output.find("runtime trace") != std::string::npos)
+            return Result::Error;
+
+        // Switching back without --rebuild must restore the table from cached object/archive
+        // contributions, including the dependency's static-library frames.
+        std::vector<Utf8> restoreSymbolsArguments = omitSymbolsArguments;
+        std::erase(restoreSymbolsArguments, Utf8("--no-runtime-symbols"));
+        SWC_RESULT(runCompiler(restoreSymbolsArguments, ExitCode::Success, ""));
+        for (size_t index = 0; index < artifactPaths.size(); ++index)
+        {
+            const fs::path& artifact = artifactPaths[index];
+            if (fs::file_size(artifact) != defaultSizes[index])
+                return Result::Error;
+            output.clear();
+            const std::vector<Utf8> inspect = {"-lW", "-d", "-SW", Utf8(artifact)};
+            if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(".swagdbg") == std::string::npos)
+                return Result::Error;
+        }
+        output.clear();
+        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("NativeSymbols.leaf --> ") == std::string::npos || output.find("SymbolConsumer.caller --> ") == std::string::npos)
             return Result::Error;
     }
 }

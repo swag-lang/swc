@@ -67,6 +67,38 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(times.count == 1 and times[0] == expected)
 }
 
+// Pixel aspect ratio is stored beside the codec configuration in a visual sample entry.
+#test
+{
+    var bytes: [94] u8
+    bytes[78] = 0
+    bytes[79] = 0
+    bytes[80] = 0
+    bytes[81] = 16
+    bytes[82] = 'p'
+    bytes[83] = 'a'
+    bytes[84] = 's'
+    bytes[85] = 'p'
+    bytes[89] = 8
+    bytes[93] = 9
+
+    var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
+    var track: Mp4.Track
+    let entry = Mp4.Box{kind: 0, data: 0, end: bytes.count}
+    let found = expect track.parseCodecConfiguration(&source, entry, Mp4.AvcConfigId)
+    Swag.require(not found)
+    Swag.require(track.pixelAspectWidth == 8 and track.pixelAspectHeight == 9)
+
+    // A container ratio overrides codec VUI; the display geometry remains separate from pixels.
+    var picture: PictureStream
+    picture.sampleAspectWidth = 16
+    picture.sampleAspectHeight = 15
+    let display = picture.displaySize(720, 480, track.pixelAspectWidth, track.pixelAspectHeight)
+    Swag.require(display.width == 640 and display.height == 480)
+    let codecDisplay = picture.displaySize(720, 480)
+    Swag.require(codecDisplay.width == 768 and codecDisplay.height == 480)
+}
+
 // A fixed-size `stsz` table has no per-sample payload to bound its count, so reject an
 // unreasonable count before expanding the track's sample-size array.
 #test
@@ -297,4 +329,55 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     var reader = expect Reader.open(path)
     Swag.require(reader.audioTrackCount() == 1)
     Swag.require((unwrap reader.audioTrack(0)).sampleFrameCount() == 17_640)
+}
+
+// ISO-BMFF MPEG-1/2 Audio tracks use the same packet decoder as Matroska Layer III tracks.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-mp3.mp4"))
+    Swag.require(reader.frameCount() == 8 and reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleEncoding() == Audio.SoundFileEncoding.Mp3)
+    Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == 1)
+    Swag.require(sound.packetCount() == 14 and sound.sampleFrameCount() == 14 * 1_152)
+    Swag.require(Math.isEqualEpsilon(sound.timelineStartSeconds(), 0.0, 0.000001))
+    Swag.require((expect sound.packet(7)).sampleFrameCount == 1_152)
+
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+    {
+        decoded.add(samples)
+        return true
+    })
+    let wanted = expect File.readAllBytes(videoFixturePath("mp4-layer3-reference.pcm"))
+    let wantedAt = cast(const [*] s16, wanted.storage())
+    Swag.require(decoded.count == sound.sampleFrameCount() and wanted.count / #sizeof(s16) == decoded.count)
+    var energy = 0.0'f64
+    for index in decoded.count
+    {
+        let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
+        energy += difference * difference
+    }
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
+    Swag.require(rms <= 0.001'f64)
+}
+
+// MPEG audio object types may describe Layer I or II frames; reject those through std/audio's
+// explicit Layer III-only header validation instead of opening a misleading packet stream.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-mp3.mp4"))
+    let media = mp4FindTag(bytes.toSlice(), "mdat")
+    var header = media
+    while header + 1 < bytes.count and
+          (bytes[header] != 0xFF or (bytes[header + 1] & 0xE0) != 0xE0 or (bytes[header + 1] & 0x06) != 0x02) do
+        header += 1
+    Swag.require(header + 1 < bytes.count)
+    bytes[header + 1] = (bytes[header + 1] & 0xF9) | 0x04
+    let path = videoTempPath("mp4-mpeg-layer-two", "mp4")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+    var errOutcome: Swag.Error
+    discard catch Reader.open(path) as errOutcome
+    Swag.require(errOutcome.value() is UnsupportedFormatError)
 }

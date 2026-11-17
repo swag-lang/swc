@@ -152,9 +152,9 @@ impl ColorPopover
         var bounds  = view.clientRect()
         bounds.inflate(-inset)
 
-        let x     = Math.clamp(anchor.x, bounds.x, Math.max(bounds.right() - w, bounds.x))
-        let below = Math.Rectangle{x, anchor.bottom() + gap, w, h}
-        let above = Math.Rectangle{x, anchor.y - gap - h, w, h}
+        let x         = Math.clamp(anchor.x, bounds.x, Math.max(bounds.right() - w, bounds.x))
+        let below     = Math.Rectangle{x, anchor.bottom() + gap, w, h}
+        let above     = Math.Rectangle{x, anchor.y - gap - h, w, h}
         let belowFits = below.bottom() <= bounds.bottom()
         let aboveFits = above.y >= bounds.y
 
@@ -174,7 +174,7 @@ impl ColorPopover
             place.y = anchor.y
         }
 
-        place.y = Math.clamp(place.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
+        place.y      = Math.clamp(place.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
         frame.anchor = .None
         frame.setPosition(place)
     }

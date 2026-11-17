@@ -42,3 +42,20 @@ using Core, Gui, Viewers
     Swag.require(Epub.texts().ui_CompactColumn == "Colonne de lecture étroite")
     Swag.require(Epub.texts().ui_WideColumn == "Colonne de lecture large")
 }
+
+// Ctrl and the wheel step the zoom of a book, as they step the zoom of every other reading viewer.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false, 1040, 720)
+    let panel  = assume cast(*Epub.Panel, window.currentView)
+    Swag.require(panel.view != null)
+    panel.setZoom(100)
+    host.mouseWheel(panel.view.surfaceRect().center(), 120, .Control)
+    Swag.require(panel.zoomPercent == 125)
+    host.mouseWheel(panel.view.surfaceRect().center(), -120, .Control)
+    host.mouseWheel(panel.view.surfaceRect().center(), -120, .Control)
+    Swag.require(panel.zoomPercent == 75)
+    host.mouseWheel(panel.view.surfaceRect().center(), 120, .Control | .Shift)
+    Swag.require(panel.zoomPercent == 75)
+}

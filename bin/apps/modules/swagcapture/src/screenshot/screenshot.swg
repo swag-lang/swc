@@ -13,19 +13,19 @@ enum CaptureMode
 // Best-effort identity of the window represented by a capture rectangle.
 struct CaptureWindowInfo
 {
-    application: String
-    executable:  String
-    title:       String
-    className:   String
+    application:  String
+    executable:   String
+    title:        String
+    className:    String
     nativeWindow: u64     // Live platform window, never stored with the capture.
 }
 
 // A screen rectangle and, when attached, its position inside a live window.
 struct CaptureTarget
 {
-    area:     Math.Rectangle     // Initial physical screen rectangle.
-    window:   u64                // Zero means the rectangle stays on the desktop.
-    offset:   Math.Point         // Area origin relative to the window frame.
+    area:   Math.Rectangle     // Initial physical screen rectangle.
+    window: u64                // Zero means the rectangle stays on the desktop.
+    offset: Math.Point         // Area origin relative to the window frame.
 }
 
 impl CaptureTarget
@@ -44,6 +44,7 @@ impl CaptureTarget
                 result.offset = {area.x - bounds.rect.x, area.y - bounds.rect.y}
             }
         }
+
         return result
     }
 
@@ -60,18 +61,18 @@ impl CaptureTarget
     }
 }
 
-var g_StartGrabX:     f32
-var g_StartGrabY:     f32
-var g_EndGrabX:       f32
-var g_EndGrabY:       f32
-var g_DesktopX:       s32
-var g_DesktopY:       s32
-var g_ScreenWidth:    s32
-var g_ScreenHeight:   s32
-var g_Exit:           bool
-var g_GrabDone:       bool
-var g_DesktopTexture: Texture
-var g_CaptureWindow:  CaptureWindowInfo
+var g_StartGrabX:      f32
+var g_StartGrabY:      f32
+var g_EndGrabX:        f32
+var g_EndGrabY:        f32
+var g_DesktopX:        s32
+var g_DesktopY:        s32
+var g_ScreenWidth:     s32
+var g_ScreenHeight:    s32
+var g_Exit:            bool
+var g_GrabDone:        bool
+var g_DesktopTexture:  Texture
+var g_CaptureWindow:   CaptureWindowInfo
 var g_CaptureAnchored: bool
 
 // Names the application the selected zone follows, with its window title as fallback.
@@ -79,8 +80,8 @@ func captureTargetLabel()->String
 {
     if not g_CaptureAnchored do
         return String.from(appStrings().ui_AimDetached)
-    let name = g_CaptureWindow.title.isEmpty() ? g_CaptureWindow.application : g_CaptureWindow.title
-    let font = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
+    let name   = g_CaptureWindow.title.isEmpty() ? g_CaptureWindow.application : g_CaptureWindow.title
+    let font   = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
     let fitted = Painter.elideString(name, font, 180)
     return Format.toString(appStrings().ui_AimAnchored, fitted)
 }
@@ -106,8 +107,8 @@ func beginAreaSelection()
 {
     g_StartGrabX, g_EndGrabX = 0
     g_StartGrabY, g_EndGrabY = 0
-    g_CaptureWindow = {}
-    g_CaptureAnchored = false
+    g_CaptureWindow          = {}
+    g_CaptureAnchored        = false
 }
 
 func getGrabRect()->Math.Rectangle
@@ -259,7 +260,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
     else
     {
         result.target = CaptureTarget.create(desktopToScreenRect(getGrabRect()),
-                                              g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
+                                             g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
     }
 
     return result
@@ -284,7 +285,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: C
         .backImagePos.x = -grabRect.x
         .backImagePos.y = -grabRect.y
         .inPlaceEdit    = true
-        .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+        .setScreenSource(g_CaptureWindow)
     }
 
     if main.captureOptions.captureCursor do
@@ -314,6 +315,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: C
         Memory.delete(capture)
         return null
     }
+
     if g_CaptureMedia != .Picture do
         return try recordZone(main, capture, target)
     return capture
@@ -326,12 +328,13 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
 {
     defer Memory.delete(zone)
 
-    let area   = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y, cast(f32, zone.width), cast(f32, zone.height)}
-    var target = chosen
+    let area       = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y, cast(f32, zone.width), cast(f32, zone.height)}
+    var target     = chosen
     let screenArea = desktopToScreenRect(area)
     target.offset.x += screenArea.x - target.area.x
     target.offset.y += screenArea.y - target.area.y
-    target.area = screenArea
+    target.area     = screenArea
+
     // The preparation bar can change the attachment after the rectangle was selected.
     if g_CaptureWindow.nativeWindow do
         target = CaptureTarget.create(screenArea, g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
@@ -375,12 +378,12 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         let r      = screenToDesktopRect(window.rect)
         if r.isEmpty() do
             return false
-        g_CaptureWindow = window.info
+        g_CaptureWindow   = window.info
         g_CaptureAnchored = window.info.nativeWindow != 0
-        g_StartGrabX    = r.x
-        g_StartGrabY    = r.y
-        g_EndGrabX      = r.right()
-        g_EndGrabY      = r.bottom()
+        g_StartGrabX      = r.x
+        g_StartGrabY      = r.y
+        g_EndGrabX        = r.right()
+        g_EndGrabY        = r.bottom()
 
     case .Monitor:
         if monitorIndex >= main.monitors.count do
@@ -396,7 +399,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
             return false
         let rect       = getGrabRect()
         let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
-        g_CaptureWindow = getCaptureWindowForRect(unwrap main.surface, screenRect)
+        g_CaptureWindow   = getCaptureWindowForRect(unwrap main.surface, screenRect)
         g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0
 
     case .Area:
@@ -440,11 +443,11 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     if main.captureOptions.delay do
         Threading.Thread.sleep(Time.Duration.fromSeconds(main.captureOptions.delay))
 
-    g_DesktopX      = Env.getSystemMetric(.DesktopX)
-    g_DesktopY      = Env.getSystemMetric(.DesktopY)
-    g_ScreenWidth   = Env.getSystemMetric(.DesktopWidth)
-    g_ScreenHeight  = Env.getSystemMetric(.DesktopHeight)
-    g_CaptureWindow = {}
+    g_DesktopX        = Env.getSystemMetric(.DesktopX)
+    g_DesktopY        = Env.getSystemMetric(.DesktopY)
+    g_ScreenWidth     = Env.getSystemMetric(.DesktopWidth)
+    g_ScreenHeight    = Env.getSystemMetric(.DesktopHeight)
+    g_CaptureWindow   = {}
     g_CaptureAnchored = false
 
     var capture: *Capture?
@@ -464,9 +467,8 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         if g_CaptureMedia == .Video
         {
             let screenSelection = captureMode == .Monitor or captureMode == .FullScreen
-            let screenIndex = captureMode == .FullScreen ? Swag.U64.Max : monitorIndex
-            capture = try Recorder.recordVideo(main, target, prepare: true,
-                                               screenSelection: screenSelection, screenIndex: screenIndex)
+            let screenIndex     = captureMode == .FullScreen ? Swag.U64.Max : monitorIndex
+            capture = try Recorder.recordVideo(main, target, prepare: true, screenSelection: screenSelection, screenIndex: screenIndex)
         }
         elif g_CaptureMedia == .Animation
         {
@@ -476,17 +478,19 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         {
             // Grab bounds are desktop-relative; blit only that rectangle instead of
             // capturing the whole virtual desktop and cropping.
-            let area = target.resolve().area
+            let area  = target.resolve().area
             var image = try getScreenRectImage(main.captureOptions.captureCursor,
-                                               cast(s32, area.x), cast(s32, area.y),
-                                               cast(s32, area.width), cast(s32, area.height))
+                                               cast(s32, area.x),
+                                               cast(s32, area.y),
+                                               cast(s32, area.width),
+                                               cast(s32, area.height))
 
             with capture = Memory.new'Capture()
             {
                 .width, .widthOrg   = image.width
                 .height, .heightOrg = image.height
                 .backImg = image
-                .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+                .setScreenSource(g_CaptureWindow)
             }
 
             if main.captureOptions.sendToClipboard do
@@ -509,7 +513,9 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
     // An abandoned selection or recording leaves a hidden launch behind its tray icon again.
     // A completed picture sent elsewhere also has no Capture, but is not an abandonment.
-    if not capture and wasHidden and surface.isHidden and
+    if not capture and
+       wasHidden and
+       surface.isHidden and
        (interactiveSelection or g_CaptureMedia != .Picture) do
         main.noticeResident()
 

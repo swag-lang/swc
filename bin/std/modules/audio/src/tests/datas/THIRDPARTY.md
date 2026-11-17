@@ -105,12 +105,23 @@ fixtures and is not a build or runtime dependency.
 for this repository with the FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, native
 `vorbis` encoder). The first input is a synthetic 440 Hz left and 660 Hz right sine pair at amplitude
 0.18 with a 512-sample attack; the second is seeded noise with eight clicks a second, which makes the
-encoder use every window shape. They contain no third-party recording. The `.pcm` file beside each
-one is the interleaved 16-bit PCM libvorbis 1.3.7 decodes from it, the reference implementation of
-the format; FFmpeg's own decoder disagrees with it on the coupled channel of these streams. FFmpeg
-and libvorbis generated only the fixtures and are not build or runtime dependencies.
+encoder use every window shape. `vorbis-mono-48000.ogg`, `vorbis-5.1-48000.ogg`, and
+`vorbis-8ch-48000.ogg` are half-second streams generated with FFmpeg 7.1.5 and its `libvorbis`
+encoder. The mono input is a 440 Hz sine; the multichannel inputs use distinct 300, 400, 500, 600,
+700, 800, 900, and 1000 Hz sine waves at amplitude 0.18, in WAVE speaker order for each layout.
+These files contain no third-party recording. The `.pcm` file beside each one is interleaved 16-bit
+PCM decoded by libvorbis 1.3.7, the reference implementation of the format. The 5.1 and 8-channel
+references are reordered from Vorbis channel order into WAVE order. FFmpeg's native decoder disagrees
+with libvorbis on the coupled channel of the stereo streams. FFmpeg and libvorbis generated only the
+fixtures and are not build or runtime dependencies.
 - `vorbis-stereo-44100.ogg` SHA-256: `a2c28fe27f60c5e899d269f6ff9641cb05f8d7b4e92c8f0201abd29463f9a63f`
 - `vorbis-transient-44100.ogg` SHA-256: `8605a8cdd727f53faf993add7c7f45c1d2acb499506f9186b5123ed75b422c5f`
+- `vorbis-5.1-48000.ogg` SHA-256: `1e4143ac14529a9d8fc14a82f09ef6726ef7441f63384536a6d1663cd47dfa20`
+- `vorbis-5.1-48000.pcm` SHA-256: `258a0fb4803027aca04df2e3eddb66972403fc8eebefa5303decc85895163f00`
+- `vorbis-mono-48000.ogg` SHA-256: `79c54e4841c6435c637dc2d0fa5ac02d71774da4db5963ea624edf8310abb48f`
+- `vorbis-mono-48000.pcm` SHA-256: `b13c8faa41ee4613693560aeee8f8d25b9c192ebf1d786408462a1e4a555841f`
+- `vorbis-8ch-48000.ogg` SHA-256: `43294b77936f660cf900e7602b4b44e2030e23483b7b3a6806f7546c5f567292`
+- `vorbis-8ch-48000.pcm` SHA-256: `bf5fa675368e9731efbb088b827ab0ea417ff13c45638187df72d2d369769729`
 - License: same as this repository.
 
 

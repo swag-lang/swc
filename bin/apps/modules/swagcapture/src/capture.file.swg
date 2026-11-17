@@ -273,8 +273,8 @@ impl Capture
         if .previewOnly do
             fail Core.Errors.BadParameterError{"a capture loaded as a preview cannot be saved"}
 
-        var metadata     = .libraryMetadata()
-        var model        = .fileModel()
+        var metadata = .libraryMetadata()
+        var model    = .fileModel()
         if duplicate
         {
             metadata.linkedImage.clear()
@@ -282,6 +282,7 @@ impl Capture
             model.linkedImage.clear()
             model.linkedUpToDate = true
         }
+
         var profileBytes = try encodeValue(&metadata)
         var modelBytes   = try encodeValue(&model)
 
@@ -491,8 +492,7 @@ impl Capture
         decoder.flags |= .IgnoreStructFieldError
         let model = try decoder.readAll'CaptureFileModel(modelBytes.toSlice())
         defer Memory.delete(model)
-        let diag = decoder.serializer.diag
-        if diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads != 0 do
+        if decoder.serializer.diag.lostCount() != 0 do
             fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
 
         if title != null do
@@ -517,6 +517,7 @@ impl Capture
                 fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
             writer.setIdentity(reader.id(), reader.generation() + 1)
         }
+
         writer.manifest()[] = reader.manifest()[]
         writer.manifest().modifiedAt = Time.DateTime.now()
         if duplicate
@@ -524,6 +525,7 @@ impl Capture
             for &entry in writer.manifest().entries do
                 entry.name = Path.fileName(target) orelse ""
         }
+
         if title != null do
             writer.manifest().name = title
         if tags
@@ -538,8 +540,7 @@ impl Capture
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
-            let metadataDiag = metadataDecoder.serializer.diag
-            if metadataDiag.fieldErrors + metadataDiag.droppedStreamFields + metadataDiag.unknownTypes + metadataDiag.corruptPayloads != 0 do
+            if metadataDecoder.serializer.diag.lostCount() != 0 do
                 fail Core.Errors.InvalidFormatError{"Capture metadata update would discard library fields"}
             if favorite do
                 metadata.favorite = favorite[]
@@ -550,6 +551,7 @@ impl Capture
                 metadata.linkedImage.clear()
                 metadata.linkedUpToDate = true
             }
+
             writer.manifest().profileData = try encodeValue(metadata)
         }
 
@@ -588,8 +590,7 @@ impl Capture
             var decoder: Decoder'Read.TagBin
             let image = try decoder.readAll'Image(bytes.toSlice())
             defer Memory.delete(image)
-            let diag = decoder.serializer.diag
-            issues[] += diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads
+            issues[] += decoder.serializer.diag.lostCount()
             return #move image[]
         }
 
@@ -646,11 +647,7 @@ impl Capture
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
-            let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors +
-                                 diag.droppedStreamFields +
-                                 diag.unknownTypes +
-                                 diag.corruptPayloads
+            capture.loadIssues = decoder.serializer.diag.lostCount()
         }
 
         // A chunk that cannot be read past this point leaves no capture to the caller.

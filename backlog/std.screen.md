@@ -12,13 +12,16 @@ continues to own media frames and codecs, not desktop access.
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
   cached-frame copy for a recorder that will emit a held picture. `Source` now exposes the
-  monotonic capture-completion time of its latest fresh frame, opens one monitor from the current
-  `Env.getMonitors` order, and opens the virtual-desktop bounds including gaps. Monitor indices are
-  only snapshots; native presentation timestamps, borrowed GPU frames, persistent monitor IDs, and
-  window targets remain unavailable.
-- Next: expose native presentation time with a documented cross-platform clock and add a bounded
-  borrowed-frame contract, persistent monitor/window targets, permission and source-loss results.
-  Keep pacing and encoding outside the source.
+  monotonic capture-completion time of its latest fresh frame, opens a monitor by enumeration index
+  or `Env.Monitor` physical-bounds snapshot, and opens the virtual-desktop bounds including gaps.
+  It also exposes DXGI presentation time in the monotonic clock (zero on backends without that
+  timestamp), supports cursor composition on X11 and Windows, and can reset cumulative metrics
+  without reopening. `captureOptions()` returns the selected physical rectangle and cursor policy.
+  `openMonitorAt()` selects the containing or nearest physical monitor for a desktop point. Monitor
+  values are only snapshots; borrowed GPU frames, persistent monitor IDs, and window targets remain
+  unavailable.
+- Next: add a bounded borrowed-frame contract, persistent monitor/window targets, permission and
+  source-loss results. Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while
   retaining a frame safely across a consumer handoff on Windows and Linux.
 - Related: std.screen.002, std.screen.003, app.capture.011
@@ -85,8 +88,8 @@ continues to own media frames and codecs, not desktop access.
   separate run copied roughly four times as many pixels under higher desktop load, so those
   timings do not isolate the device-sharing benefit. A 60-second shared run still had a 319 ms
   readback spike and missed 42 slots; long-tail GPU waits remain open.
-- Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
-  beyond the default adapter and access loss. Add Windows Graphics Capture
+- Next: preserve pointer shape and position as metadata; handle rotation, adapters beyond the
+  default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous
   outputs after profiling GPU readback stalls, and measure sustained cadence under desktop motion
   and machine load. A one-staging-texture deferred-map prototype acquired only 450 fresh frames

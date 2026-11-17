@@ -93,19 +93,14 @@ struct Monitor
     }
 }
 
-// Returns the monitor containing `point`, or the nearest monitor otherwise.
-//
-// `point` is in physical desktop pixels, the space of window positions and of the
-// cursor once the process is DPI aware.
-func monitorForPoint(point: Math.Point)->Env.Monitor
+// Uses half-open physical monitor bounds to choose the containing monitor or nearest one.
+internal func monitorForPointIn(monitors: Array'Monitor, point: Math.Point)->Env.Monitor
 {
-    let monitors = Env.getMonitors()
-
     // First pass: a monitor that contains the point.
     for m in monitors
     {
         let r = m.physicalBounds
-        if point.x >= r.x and point.x <= r.right() and point.y >= r.y and point.y <= r.bottom() do
+        if point.x >= r.x and point.x < r.right() and point.y >= r.y and point.y < r.bottom() do
             return m
     }
 
@@ -129,6 +124,12 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
 
     return result
 }
+
+// Returns the monitor containing `point`, or the nearest monitor otherwise.
+//
+// `point` is in physical desktop pixels, the space of window positions and of the
+// cursor once the process is DPI aware. Ties between equally near monitors use enumeration order.
+func monitorForPoint(point: Math.Point)->Env.Monitor => monitorForPointIn(Env.getMonitors(), point)
 
 // Returns the monitor with the largest intersection with `rectangle`.
 //

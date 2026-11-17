@@ -25,3 +25,20 @@ using Swag
     Swag.require(timing.frameCount == 2)
     Swag.require(timing.deltaSeconds == timing.maximumDeltaSeconds)
 }
+
+#test
+{
+    var timing = Time.FrameTiming{}
+    let initialDelta = timing.deltaSeconds
+    timing.pause()
+    timing.update()
+    Swag.require(timing.isPaused and timing.frameCount == 0 and timing.deltaSeconds == initialDelta)
+
+    timing.resume()
+    Swag.require(not timing.isPaused)
+    timing.resume()
+    timing.update()
+    Swag.require(timing.frameCount == 1)
+    Swag.require(timing.deltaSeconds >= timing.minimumDeltaSeconds)
+    Swag.require(timing.deltaSeconds <= timing.maximumDeltaSeconds)
+}

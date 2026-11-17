@@ -127,6 +127,15 @@ namespace swc::LinuxHostTests
         }
         if (mode == "descriptor")
             return argc == 4 && fcntl(std::atoi(argv[3]), F_GETFD) < 0 && errno == EBADF ? 0 : 2;
+        if (mode == "closed-stdio")
+        {
+            for (int descriptor = STDIN_FILENO; descriptor <= STDERR_FILENO; ++descriptor)
+            {
+                if (fcntl(descriptor, F_GETFD) >= 0 || errno != EBADF)
+                    return 3;
+            }
+            return 0;
+        }
         if (mode == "lines")
         {
             constexpr std::string_view first = "first\r\n[marker] secret\n";
@@ -216,6 +225,31 @@ namespace swc::LinuxHostTests
             expected += std::to_string(args[i].size()) + ':' + args[i] + '\n';
         require(captured == expected, "process quoting changed arguments");
         require(Os::formatProcessCommandLine("a b", std::array<Utf8, 2>{"", "x'y"}) == "'a b' '' 'x'\\''y'", "process display quoting differs");
+
+        int stdioResult[2];
+        require(pipe2(stdioResult, O_CLOEXEC) == 0, "cannot create closed-stdio result pipe");
+        const pid_t closedStdioCaller = fork();
+        if (closedStdioCaller == 0)
+        {
+            close(stdioResult[0]);
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+            const std::array<Utf8, 2> closedStdioArgs{"--host-child", "closed-stdio"};
+            uint32_t childExitCode = 0;
+            const auto childResult = Os::runProcess(childExitCode, executable, closedStdioArgs, {});
+            const std::array<int, 2> report{static_cast<int>(childResult), static_cast<int>(childExitCode)};
+            const ssize_t written = write(stdioResult[1], report.data(), sizeof(report));
+            _exit(written == sizeof(report) ? 0 : 1);
+        }
+        close(stdioResult[1]);
+        require(closedStdioCaller > 0, "cannot create closed-stdio caller");
+        std::array<int, 2> stdioReport{};
+        const ssize_t reportSize = read(stdioResult[0], stdioReport.data(), sizeof(stdioReport));
+        close(stdioResult[0]);
+        const int closedStdioStatus = waitForChild(closedStdioCaller);
+        require(WIFEXITED(closedStdioStatus) && WEXITSTATUS(closedStdioStatus) == 0 && reportSize == sizeof(stdioReport), "closed-stdio caller failed to report child status");
+        require(stdioReport[0] == static_cast<int>(Os::ProcessRunResult::Ok) && stdioReport[1] == 0, "process launch reopened a closed standard descriptor");
 
         Lines observed;
         Lines forwarded;

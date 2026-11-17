@@ -2,7 +2,7 @@
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Utf8.h"
-#include "Support/Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

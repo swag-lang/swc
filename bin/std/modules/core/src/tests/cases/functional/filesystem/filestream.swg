@@ -33,3 +33,28 @@ using Swag
     Swag.require(not (expect stream.readExact(partial)))
     Swag.require(expect stream.position() == #sizeof(u32))
 }
+
+// Offset reads and writes leave the cursor immediately after the transferred bytes.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_filestream_at.tmp")
+    defer discard catch File.delete(fileName)
+
+    var stream = expect File.open(fileName, .CreateNew, .ReadWrite, .Read)
+    defer stream.close()
+
+    let initial: [4] u8 = [0x10, 0x20, 0x30, 0x40]
+    expect stream.writeAll(initial)
+    expect stream.writeAllAt(1, [0xAA'u8, 0xBB])
+    Swag.require(expect stream.position() == 3)
+
+    var pair: [2] u8
+    Swag.require(expect stream.readExactAt(1, pair))
+    Swag.require(Slice.equals(pair, [0xAA'u8, 0xBB]))
+    Swag.require(expect stream.position() == 3)
+
+    var tail: [3] u8
+    Swag.require(not (expect stream.readExactAt(2, tail)))
+    Swag.require(tail[0] == 0xBB and tail[1] == 0x40)
+    Swag.require(expect stream.position() == 4)
+}

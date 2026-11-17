@@ -20,6 +20,8 @@ the caller may reopen it after a display change.
 #import("core")
 #import("pixel")
 #static if #os == Swag.TargetOs.Windows do
+    #import("gdi32")
+#static if #os == Swag.TargetOs.Windows do
     #import("win32")
 #static if #os == Swag.TargetOs.Linux do
     #import("linux")

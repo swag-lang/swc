@@ -7,7 +7,7 @@ using Swag, Core, Gui, Pixel, Video
 #test
 {
     let missing = Gui.Testing.tempFilePath("capture-missing-video-", ".mp4")
-    let target = Gui.Testing.tempFilePath("capture-existing-video-", ".mp4")
+    let target  = Gui.Testing.tempFilePath("capture-existing-video-", ".mp4")
     defer discard catch File.delete(target)
     expect File.writeAllText(target, "previous export")
     var failure: Swag.Error
@@ -126,4 +126,45 @@ using Swag, Core, Gui, Pixel, Video
     var clipboardVideo = expect Reader.open(copied[0])
     Swag.require(clipboardVideo.frameCount() == 2 and clipboardVideo.audioTrackCount() == 2)
     clipboardVideo.close()
+}
+
+// An odd-sided capture is exported in an even picture whose extra column stays white in every frame.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let document = testTempCapturePath()
+    let source   = Capture.mediaPathOf(document, .Video)
+    let exported = Gui.Testing.tempFilePath("capture-odd-video-", ".mp4")
+    defer
+    {
+        f.capture.closeMedia()
+        discard catch Capture.deleteFiles(document)
+    }
+
+    defer discard catch File.delete(exported)
+
+    let picture = Image.create(64, 48, .BGRA8)
+    picture.fill(Argb.Black)
+    var recording = expect Mp4.SoftwareRecording.createVideoOnly(source, 64, 48, 1_000_000)
+    for frame in 3'u64 do
+        expect recording.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    expect recording.end()
+
+    f.capture.file = document
+    expect f.capture.adoptVideo()
+    f.capture.width  = 63
+    f.capture.height = 47
+    expect f.capture.exportVideo(exported)
+
+    var result = expect Reader.open(exported)
+    defer result.close()
+    Swag.require(result.width() == 64 and result.height() == 48 and result.frameCount() == 3)
+    for frame in 3'u64
+    {
+        let image = expect result.decodeFrame(frame)
+        Swag.require(image.pixelColor(8, 24).g < 80 and image.pixelColor(63, 24).g > 180)
+    }
 }

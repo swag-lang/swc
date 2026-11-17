@@ -10,7 +10,7 @@
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticTypes.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/LogSymbol.h"
 #include "Support/Report/Logger.h"

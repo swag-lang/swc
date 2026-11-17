@@ -579,41 +579,15 @@ impl QuickWnd
     // defaults, and makes the first entry of each set the model of its tool.
     mtd setDefault()
     {
-        .qsArrow.sanitize()
-        .qsShape.sanitize()
-        .qsImage.sanitize()
-        .qsStep.sanitize()
-        .qsLine.sanitize()
-        .qsPolygon.sanitize()
-        .qsText.sanitize()
-        .qsFavorites.sanitize()
-        .qsDraw.sanitize()
-        .qsHighlight.sanitize()
-        .qsPixSel.sanitize()
-        .qsCallout.sanitize()
-
-        if .qsArrow.forms.isEmpty() do
-            .defaultQuickStyleArrow()
-        if .qsShape.forms.isEmpty() do
-            .defaultQuickStyleShape()
-        if .qsImage.forms.isEmpty() do
-            .defaultQuickStyleImage()
-        if .qsStep.forms.isEmpty() do
-            .defaultQuickStyleStep()
-        if .qsLine.forms.isEmpty() do
-            .defaultQuickStyleLine()
-        if .qsPolygon.forms.isEmpty() do
-            .defaultQuickStylePolygon()
-        if .qsText.forms.isEmpty() do
-            .defaultQuickStyleText()
-        if .qsDraw.forms.isEmpty() do
-            .defaultQuickStyleDraw()
-        if .qsHighlight.forms.isEmpty() do
-            .defaultQuickStyleHighlight()
-        if .qsPixSel.forms.isEmpty() do
-            .defaultQuickStylePixSel()
-        if .qsCallout.forms.isEmpty() do
-            .defaultQuickStyleCallout()
+        for mode in EditMode
+        {
+            let style = .styleOf(mode)
+            if not style do
+                continue
+            style.sanitize()
+            if style.forms.isEmpty() do
+                .addShippedPresets(mode)
+        }
 
         // The row of presets and the properties of the inspector are written from the models:
         // the models take their first entries before either is written again.
@@ -1129,7 +1103,6 @@ impl QuickWnd
             return
         }
 
-        var done  = false
         let mode  = .presetMode().mode
         let model = .main.editModeToModel(mode)
         let selectionMatches = .selectionMatches(model)
@@ -1146,8 +1119,6 @@ impl QuickWnd
             let it  = button.formItf
             let mdl = .main.modelFor(Swag.kindOf(it))
             button.setChecked(selectionMatches and mode == MainWnd.formToolMode(it) and it.isSame(mdl))
-            if button.isChecked do
-                done = true
         }
 
         .invalidate()
@@ -1166,7 +1137,15 @@ impl QuickWnd
 
         // The style set was recreated in place: the existing buttons hold pointers to
         // the freed forms, so a full rebuild is mandatory (see updateQuickStyles).
-        switch #complete .main.editMode
+        .addShippedPresets(.main.editMode)
+        .updateQuickStyles(forceRebuild: true)
+    }
+
+    // Fills the presets of the tool `mode` with the shipped set. Favorites and the selection
+    // tool ship none.
+    mtd addShippedPresets(mode: EditMode)
+    {
+        switch #complete mode
         {
         case .Arrow:     .defaultQuickStyleArrow()
         case .Shape:     .defaultQuickStyleShape()
@@ -1182,8 +1161,6 @@ impl QuickWnd
         case .Favorites: break
         case .Selection: break
         }
-
-        .updateQuickStyles(forceRebuild: true)
     }
 
     // The presets of the tool `mode`; the selection tool has none of its own.
@@ -1207,25 +1184,9 @@ impl QuickWnd
         }
     }
 
-    // A current style is transient only when it can be kept by this tool and no saved preset
-    // already carries the same properties.
-    mtd needsTransient(style: *QuickStyle, form: IForm)->bool
-    {
-        if not .offersModel(cast(*BaseForm, form)) do
-            return false
-
-        let capture = .main.getCapture()
-        if capture and not capture.selection.isEmpty()
-        {
-            for index in capture.selection where not capture.forms[index].isSame(cast(*BaseForm, form)) do
-                return false
-        }
-
-        for preset in style.forms where preset.isSame(cast(*BaseForm, form)) do
-            return false
-        return true
-    }
-
+    // Reports whether the current style can be kept as a preset: this tool keeps styles of its
+    // kind, the whole selection carries it, and no saved preset already carries the same
+    // properties.
     mtd canAddCurrentStyle()->bool
     {
         let style = .currentStyle
@@ -1233,7 +1194,11 @@ impl QuickWnd
             return false
 
         let model = .main.editModeToModel(.presetMode().mode)
-        return .offersModel(model) and .selectionMatches(model) and .needsTransient(style, model)
+        if not .offersModel(model) or not .selectionMatches(model) do
+            return false
+        for preset in style.forms where preset.isSame(cast(*BaseForm, model)) do
+            return false
+        return true
     }
 
     mtd selectionMatches(form: IForm)->bool

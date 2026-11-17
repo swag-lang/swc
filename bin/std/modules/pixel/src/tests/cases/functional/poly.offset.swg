@@ -31,6 +31,49 @@ func assertOffsetCleanPreservesPathIdentity()
     assertOffsetCleanPreservesPathIdentity()
 }
 
+// A zero offset returns an independent, closed path with the source contour's bounds and area.
+#test
+{
+    var source: Pixel.Polygon
+    source.points.add({3, 5})
+    source.points.add({23, 5})
+    source.points.add({23, 17})
+    source.points.add({3, 17})
+    source.recompute()
+
+    let paths = source.offsetPaths(0, .Round)
+    Swag.require(paths.paths.count == 1)
+    let path = paths.paths[0]
+    Swag.require(path.isClosed and path.isPolyOnly and path.isFlatten)
+    Swag.require(path.polygon.points.count == source.points.count)
+    Swag.require(path.polygon.area == source.area)
+    Swag.require(path.minBounds == source.minBounds and path.maxBounds == source.maxBounds)
+    Swag.require(paths.minBounds == source.minBounds and paths.maxBounds == source.maxBounds)
+    for i in source.points.count do
+        Swag.require(path.polygon.points[i] == source.points[i])
+}
+
+// MiterBevel keeps a miter when its extension fits Clipper's miter limit.
+#test
+{
+    var source: Pixel.Polygon
+    source.points.add({0, 0})
+    source.points.add({10, 0})
+    source.points.add({10, 10})
+    source.points.add({0, 10})
+    source.recompute()
+
+    var bevel      = source
+    var miter      = source
+    var miterBevel = source
+    bevel.offset(2, .Bevel)
+    miter.offset(2, .Miter)
+    miterBevel.offset(2, .MiterBevel)
+
+    Swag.require(miterBevel.area == miter.area)
+    Swag.require(miterBevel.area > bevel.area)
+}
+
 // A regular polygon of `sides` corners on a circle of radius `radius`, centred on the origin.
 func regularPolygon(sides: u32, radius: f64)->ClipperPath
 {

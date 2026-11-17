@@ -5,7 +5,7 @@
 //
 #global namespace Jpg
 
-using Core
+using Core, Core.Errors
 
 private
 {
@@ -322,7 +322,8 @@ internal impl IImageEncoder for Encoder
         var opt: EncodeOptions
         if options.buffer != null
         {
-            Swag.assert(Swag.kindOf(options) == EncodeOptions)
+            if Swag.kindOf(options) != EncodeOptions do
+                fail BadParameterError{"JPEG encoder options must be Jpg.EncodeOptions"}
             opt = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 

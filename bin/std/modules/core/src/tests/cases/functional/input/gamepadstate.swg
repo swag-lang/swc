@@ -47,6 +47,8 @@ using Swag
     Swag.require(not state.pressed[RightThumbstickRight])
     Swag.require(state.pressed[LeftTrigger])
     Swag.require(state.pressed[RightTrigger])
+    Swag.require(state.position[LeftTrigger].y == 1)
+    Swag.require(state.position[RightTrigger].y == 230 / 255.0'f32)
 
     raw.leftStickX   = cast(s16, (0.95 * 32767))
     raw.leftStickY   = 0
@@ -68,4 +70,83 @@ using Swag
     state.update(raw)
     Swag.require(not state.pressed[LeftThumbstickRight])
     Swag.require(not state.pressed[LeftTrigger])
+}
+
+#test
+{
+    using Input.GamepadButton
+
+    var state: Input.GamepadState
+    var raw:   Input.RawGamepadState
+    raw.buttons = .A | .B | .X | .Y | .LeftStick | .RightStick | .Start | .Back |
+                  .LeftShoulder | .RightShoulder | .DPadUp | .DPadDown | .DPadLeft | .DPadRight
+    state.update(raw)
+
+    Swag.require(state.pressed[A])
+    Swag.require(state.pressed[B])
+    Swag.require(state.pressed[X])
+    Swag.require(state.pressed[Y])
+    Swag.require(state.pressed[LeftStick])
+    Swag.require(state.pressed[RightStick])
+    Swag.require(state.pressed[Start])
+    Swag.require(state.pressed[Back])
+    Swag.require(state.pressed[LeftShoulder])
+    Swag.require(state.pressed[RightShoulder])
+    Swag.require(state.pressed[DPadUp])
+    Swag.require(state.pressed[DPadDown])
+    Swag.require(state.pressed[DPadLeft])
+    Swag.require(state.pressed[DPadRight])
+
+    raw.buttons = .None
+    state.update(raw)
+    Swag.require(not state.pressed[A])
+    Swag.require(not state.pressed[B])
+    Swag.require(not state.pressed[X])
+    Swag.require(not state.pressed[Y])
+    Swag.require(not state.pressed[LeftStick])
+    Swag.require(not state.pressed[RightStick])
+    Swag.require(not state.pressed[Start])
+    Swag.require(not state.pressed[Back])
+    Swag.require(not state.pressed[LeftShoulder])
+    Swag.require(not state.pressed[RightShoulder])
+    Swag.require(not state.pressed[DPadUp])
+    Swag.require(not state.pressed[DPadDown])
+    Swag.require(not state.pressed[DPadLeft])
+    Swag.require(not state.pressed[DPadRight])
+}
+
+#test
+{
+    using Input.GamepadButton
+
+    var state: Input.GamepadState
+    var raw:   Input.RawGamepadState
+    raw.rightStickX  = 32767
+    raw.rightStickY  = -32768
+    raw.rightTrigger = 255
+    state.update(raw)
+
+    Swag.require(state.position[RightStick] == Math.Point{1, -1})
+    Swag.require(state.position[RightTrigger].y == 1)
+    Swag.require(state.pressed[RightThumbstickRight])
+    Swag.require(state.pressed[RightThumbstickDown])
+    Swag.require(state.pressed[RightTrigger])
+    Swag.require(not state.pressed[RightThumbstickLeft])
+    Swag.require(not state.pressed[RightThumbstickUp])
+
+    raw.rightStickX  = cast(s16, (0.8 * 32767))
+    raw.rightStickY  = cast(s16, (-0.8 * 32767))
+    raw.rightTrigger = cast(u8, (0.8 * 255))
+    state.update(raw)
+    Swag.require(state.pressed[RightThumbstickRight])
+    Swag.require(state.pressed[RightThumbstickDown])
+    Swag.require(state.pressed[RightTrigger])
+
+    raw.rightStickX  = cast(s16, (0.6 * 32767))
+    raw.rightStickY  = cast(s16, (-0.6 * 32767))
+    raw.rightTrigger = cast(u8, (0.6 * 255))
+    state.update(raw)
+    Swag.require(not state.pressed[RightThumbstickRight])
+    Swag.require(not state.pressed[RightThumbstickDown])
+    Swag.require(not state.pressed[RightTrigger])
 }

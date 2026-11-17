@@ -926,20 +926,7 @@ void Lexer::lexIdentifier()
 
 bool Lexer::canPrecedeQuoteOperator() const
 {
-    switch (prevCodeTokenId_)
-    {
-        case TokenId::Identifier:
-        case TokenId::NumberHex:
-        case TokenId::NumberBin:
-        case TokenId::NumberInteger:
-        case TokenId::NumberFloat:
-        case TokenId::StringLine:
-        case TokenId::StringMultiLine:
-            return true;
-
-        default:
-            return false;
-    }
+    return Token::isQuoteOperatorPredecessor(prevCodeTokenId_);
 }
 
 void Lexer::lexSymbol()

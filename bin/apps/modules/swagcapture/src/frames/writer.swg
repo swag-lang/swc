@@ -14,12 +14,12 @@ struct Writer
     width:       s32
     height:      s32
     pixelFormat: PixelFormat
-    previous:    Image           // Last frame added, compared with the next one.
-    indexPath:   String          // Temporary index spool, removed after the trailer is written.
+    previous:    Image      // Last frame added, compared with the next one.
+    indexPath:   String     // Temporary index spool, removed after the trailer is written.
     indexSink:   ByteSink
     count:       u64
     lastTime:    u64
-    lastKey:     u64             // Time of the last key record.
+    lastKey:     u64     // Time of the last key record.
     deflate:     Compress.Deflate
     rows:        Array'u8     // Pixels of the area being written, top row first.
     payload:     Array'u8     // Compressed pixels of the area being written.
@@ -35,10 +35,10 @@ impl Writer
         Swag.assert(pixelFormat == .BGRA8 or pixelFormat == .RGBA8)
 
         var result: #returntype
-        result.sink        = try ByteSink.createFile(fileName)
+        result.sink = try ByteSink.createFile(fileName)
         defer #fail discard catch File.delete(fileName)
         result.indexPath   = String.from(fileName)
-        result.indexPath  += ".index.tmp"
+        result.indexPath   += ".index.tmp"
         result.indexSink   = try ByteSink.createFile(result.indexPath)
         result.width       = width
         result.height      = height
@@ -101,7 +101,7 @@ impl Writer
         try .indexSink.writeLittleEndian(entry.time)
         try .indexSink.writeLittleEndian(cast(u32, entry.kind))
         try .indexSink.writeLittleEndian(0'u32)
-        .count += 1
+        .count    += 1
         .lastTime = time
     }
 

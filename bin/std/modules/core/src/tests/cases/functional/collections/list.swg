@@ -84,6 +84,19 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 #test
 {
     var values: List's32
+    let oldHead = values.addBack(2)
+    let newHead = values.insertBefore(oldHead, 1)
+
+    Swag.require(values.head == newHead and values.tail == oldHead)
+    Swag.require(newHead.prev == null and newHead.next == oldHead)
+    Swag.require(oldHead.prev == newHead and oldHead.next == null)
+    let expected: [2] s32 = [1, 2]
+    Swag.require(assertIntList(&values, expected))
+}
+
+#test
+{
+    var values: List's32
     let first  = values.addBack(1)
     let middle = values.addBack(2)
     discard values.addBack(3)

@@ -105,6 +105,23 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     assertFlacWriterSamples(path.toString(), Swag.makeSlice(&Partial[0], 2), 2, 48_000)
 }
 
+// STREAMINFO's 20-bit sample-rate field accepts and stores its largest representable value.
+#test
+{
+    const MaxRate = 0xF_FFFF'u32
+    let path = flacWriterPath("max-rate")
+    defer discard catch File.delete(path)
+
+    var writer = expect Flac.Writer.create(path.toString(), 1, MaxRate)
+    expect writer.end()
+    let bytes = expect File.readAllBytes(path.toString())
+    Swag.require(bytes.count == 58)
+    let storedRate = (cast(u32, bytes[18]) << 12) |
+                     (cast(u32, bytes[19]) << 4) |
+                     (cast(u32, bytes[20]) >> 4)
+    Swag.require(storedRate == MaxRate)
+}
+
 // Streaming chunk boundaries do not change FLAC frames or the PCM checksum.
 #test
 {

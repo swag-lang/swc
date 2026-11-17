@@ -665,11 +665,8 @@ impl Panel
                 view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
                 return true
 
-            case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
-                if mouse.delta.y > 0 do
-                    view.setZoom(Viewer.zoomIn(view.zoomPercent))
-                elif mouse.delta.y < 0 do
-                    view.setZoom(Viewer.zoomOut(view.zoomPercent))
+            case MouseEvent as mouse where Viewer.isZoomWheel(mouse):
+                view.setZoom(Viewer.zoomAfterWheel(mouse, view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and

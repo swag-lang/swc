@@ -35,19 +35,19 @@ impl IWnd for CaptureRectWnd
         let r      = screenToDesktopRect(window.rect)
         if not r.isEmpty()
         {
-            g_StartGrabX    = r.x
-            g_StartGrabY    = r.y
-            g_EndGrabX      = r.right()
-            g_EndGrabY      = r.bottom()
-            g_CaptureWindow = window.info
+            g_StartGrabX      = r.x
+            g_StartGrabY      = r.y
+            g_EndGrabX        = r.right()
+            g_EndGrabY        = r.bottom()
+            g_CaptureWindow   = window.info
             g_CaptureAnchored = window.info.nativeWindow != 0 and not .detachWindow
         }
         else
         {
             g_StartGrabX, g_EndGrabX = 0
             g_StartGrabY, g_EndGrabY = 0
-            g_CaptureWindow = {}
-            g_CaptureAnchored = false
+            g_CaptureWindow          = {}
+            g_CaptureAnchored        = false
         }
     }
 
@@ -64,18 +64,18 @@ impl IWnd for CaptureRectWnd
 
         if evt.kind == .Released and evt.key == .W and evt.modifiers == .None and not .startGrab
         {
-            .autoGrab = false
+            .autoGrab                = false
             g_StartGrabX, g_EndGrabX = 0
             g_StartGrabY, g_EndGrabY = 0
-            g_CaptureWindow = {}
-            g_CaptureAnchored = false
+            g_CaptureWindow          = {}
+            g_CaptureAnchored        = false
         }
 
         if evt.kind == .Pressed and evt.key == .A and evt.modifiers == .None
         {
             if .autoGrab
             {
-                .detachWindow = not .detachWindow
+                .detachWindow     = not .detachWindow
                 g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
             }
             else
@@ -150,11 +150,12 @@ impl IWnd for CaptureRectWnd
                 // Resolve which window owns the manually selected rectangle.
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
-                g_CaptureWindow = getCaptureWindowForRect(unwrap .surface, screenRect)
+                g_CaptureWindow   = getCaptureWindowForRect(unwrap .surface, screenRect)
                 g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and .attachArea
-                g_GrabDone      = true
-                g_Exit          = true
+                g_GrabDone        = true
+                g_Exit            = true
             }
+
             .tryStartGrab = false
 
         case .Move where .tryStartGrab:
@@ -164,10 +165,10 @@ impl IWnd for CaptureRectWnd
                Math.abs(physPosY - .clickStartPos.y) > k
             {
                 // A drag selects a rectangle instead of accepting the auto-grab.
-                .tryStartGrab = false
-                .startGrab    = true
-                .autoGrab     = false
-                g_CaptureWindow = {}
+                .tryStartGrab     = false
+                .startGrab        = true
+                .autoGrab         = false
+                g_CaptureWindow   = {}
                 g_CaptureAnchored = false
 
                 // Anchor the manual rectangle at the original press location.

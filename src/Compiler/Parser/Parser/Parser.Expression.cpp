@@ -6,30 +6,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool canStartSubType(TokenId id)
-    {
-        if (Token::isType(id))
-            return true;
-
-        switch (id)
-        {
-            case TokenId::Identifier:
-            case TokenId::KwdStruct:
-            case TokenId::KwdUnion:
-            case TokenId::KwdFunc:
-            case TokenId::KwdMtd:
-            case TokenId::CompilerDeclType:
-            case TokenId::KwdConst:
-            case TokenId::SymAsterisk:
-            case TokenId::SymLeftBracket:
-            case TokenId::SymLeftParen:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     bool looksLikeArrayTypeExpression(const Token* tok, const Token* lastTok)
     {
         SWC_ASSERT(tok);
@@ -62,7 +38,7 @@ namespace
         if ((cursor + 1)->startsLine())
             return false;
 
-        return canStartSubType((cursor + 1)->id);
+        return Token::isSubTypeStart((cursor + 1)->id);
     }
 
     int getBinaryPrecedence(TokenId id)

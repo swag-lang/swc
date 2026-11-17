@@ -115,7 +115,29 @@ a notification gap. Call `cancel` from another thread to wake an unbounded
 tagged-binary readers and writers. JSON is declaration-driven and accepts reordered,
 missing, and unknown properties for forward-compatible interchange. The read side
 reports malformed input through `fail`; the write side serializes values according
-to their reflected fields and serialization attributes.
+to their reflected fields and serialization attributes. XML writes a `<root>` document
+with fields in declaration order and source field names. It writes Boolean and numeric
+sequences as space-separated text and escapes XML entities in [[Core.String]] values.
+Shapes the XML reader cannot delimit fail with `UnsupportedFormatError` instead of
+returning partial output. Carriage returns use a numeric character reference so a
+write/read round trip preserves them despite XML line-ending normalization.
+
+Write a value with the declaration-driven XML writer:
+
+```swag
+using Core
+
+struct Status
+{
+    ready: bool
+    count: u32
+}
+
+var output: ConcatBuffer
+var encoder: Serialization.Encoder'Serialization.Write.Xml
+try encoder.writeAll(&output, Status{true, 3})
+let xml = output.toString()
+```
 
 TagBin stores one readable document schema in the root header and one readable key
 for every reflected field. Declare [[Core.Serialization.Schema]] on persisted root

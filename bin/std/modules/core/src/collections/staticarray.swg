@@ -641,6 +641,16 @@ impl StaticArray
         return &.buffer[0]
     }
 
+    // Borrows the first element for reading without copying it.
+    //
+    // Asserts if the array is empty. Inserting, removing, or reordering elements can change which
+    // element occupies the first slot.
+    mtd const frontPtr()->const *T
+    {
+        Swag.assert(.count > 0, "array is empty")
+        return &.buffer[0]
+    }
+
     // Returns a copy of the last element.
     //
     // Asserts if the array is empty.
@@ -655,6 +665,16 @@ impl StaticArray
     //
     // Asserts if the array is empty.
     mtd backPtr()->*T
+    {
+        Swag.assert(.count > 0, "array is empty")
+        return &.buffer[.count - 1]
+    }
+
+    // Borrows the last element for reading without copying it.
+    //
+    // Asserts if the array is empty. Inserting, removing, or reordering elements can change which
+    // element occupies the last slot.
+    mtd const backPtr()->const *T
     {
         Swag.assert(.count > 0, "array is empty")
         return &.buffer[.count - 1]

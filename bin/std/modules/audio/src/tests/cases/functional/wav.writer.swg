@@ -71,6 +71,12 @@ using Swag, Core, Core.Errors
     discard catch Wav.Writer.create(path.toString(), 0, 44_100) as rejected
     Swag.require(rejected.value() is BadParameterError)
     Swag.require(not File.exists(path))
+    discard catch Wav.Writer.create(path.toString(), 2, 0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(not File.exists(path))
+    discard catch Wav.Writer.create(path.toString(), 2, 1_073_741_824) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(not File.exists(path))
     var writer = expect Wav.Writer.create(path.toString(), 2, 48_000)
     const Partial: [3] s16 = [1, 2, 3]
     discard catch writer.addFrames(Swag.makeSlice(&Partial[0], 3)) as rejected
@@ -79,6 +85,21 @@ using Swag, Core, Core.Errors
     expect writer.end()
     discard catch writer.addFrames(Swag.makeSlice(&Partial[0], 2)) as rejected
     Swag.require(rejected.value() is BadParameterError)
+}
+
+// The largest stereo sample rate whose PCM16 byte rate fits the RIFF header remains valid.
+#test
+{
+    const MaxStereoRate = 1_073_741_823'u32
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-writer-max-rate-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+
+    var writer = expect Wav.Writer.create(path.toString(), 2, MaxStereoRate)
+    expect writer.end()
+    let sound = expect SoundFile.load(path.toString())
+    Swag.require(sound.sampleRateHz() == MaxStereoRate and sound.numChannels() == 2)
+    Swag.require(sound.sampleFrameCount() == 0)
 }
 
 // Resume discards unflushed bytes and continues the committed sample-frame count.

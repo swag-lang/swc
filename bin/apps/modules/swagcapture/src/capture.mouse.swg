@@ -80,7 +80,7 @@ impl Capture
                 me.endInteractiveMove()
         }
 
-        var localPos = view.surfaceToLocal(evt.surfacePos)
+        var localPos    = view.surfaceToLocal(evt.surfacePos)
         let captureRect = view.getCaptureRect()
         localPos   += view.scrollPos
         localPos.x -= captureRect.x
@@ -353,17 +353,20 @@ impl Capture
 
         let u = .newUndo(.OffsetSelection)
 
-        // Snap by bottom/right
-        var nx = newPosX
-        var ny = newPosY
-        .snap(&nx, &ny, true, true)
-        let saveSnapX = .snapX
-        let saveSnapY = .snapY
-
-        // Snap by top/left
-        var nx1 = newPosX
-        var ny1 = newPosY
-        .snap(&nx1, &ny1, false, false)
+        // Snap by the bottom/right corner, then by the top/left one, and keep the corner that
+        // snapped further. Both measure against the same box and guides, gathered once.
+        var nx, nx1 = newPosX
+        var ny, ny1 = newPosY
+        .snapX, .snapY = -1
+        var saveSnapX, saveSnapY = -1'f32
+        if .isSnapping()
+        {
+            let targets = .snapTargets(0, null)
+            .snapTo(targets, &nx, &ny, true, true)
+            saveSnapX = .snapX
+            saveSnapY = .snapY
+            .snapTo(targets, &nx1, &ny1, false, false)
+        }
 
         if Math.abs(nx - newPosX) > Math.abs(nx1 - newPosX)
         {
@@ -410,6 +413,7 @@ impl Capture
                 let form: *BaseForm = itf
                 form.timeStart = .playheadTime()
             }
+
             if editView.main.editMode == .PixSel do
                 itf.subKind = .PixSel
             let undo = .newUndo(.CreateForm)
@@ -451,12 +455,10 @@ impl Capture
         return true
     }
 
+    // Returns the index of the topmost form under `localPos`, or `Swag.U64.Max` when there is
+    // none.
     mtd hitTest(localPos: Math.Point)->u64
     {
-        // Holding `O` makes the mouse ignore every form, so a click can start a
-        // lasso or create a new form on top of existing ones.
-        if .editView!.app().keyboard.isKeyPressed(Input.Key.O) do
-            return Swag.U64.Max
         let result = .hitTests(localPos, true)
         if result.isEmpty() do
             return Swag.U64.Max
@@ -465,12 +467,18 @@ impl Capture
 
     // Returns the indices of the forms under `localPos`, topmost first; only the topmost when
     // `retFirst`.
+    //
+    // Holding `O` makes the mouse ignore every form, so a click can start a lasso or create a
+    // new form on top of existing ones; a press repeated on the same spot finds none to cycle
+    // through either.
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
         var result: #returntype
         if .forms.isEmpty() do
             return result
         let editView = unwrap .editView
+        if editView.app().keyboard.isKeyPressed(Input.Key.O) do
+            return result
         for i in reversed(.forms.count)
         {
             let f = .forms[i]

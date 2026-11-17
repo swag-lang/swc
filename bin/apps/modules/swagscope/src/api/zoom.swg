@@ -58,6 +58,21 @@ func isZoomKey(key: const *KeyEvent)->bool
     }
 }
 
+// Reports whether `mouse` is a zoom gesture: the wheel turned with Ctrl alone, the chord the zoom
+// keys take. Any other modifier leaves the wheel to the view, which scrolls across under Shift.
+func isZoomWheel(mouse: const *MouseEvent)->bool => mouse.kind == .Wheel and mouse.modifiers == .Control
+
+// Returns the zoom the wheel gesture `mouse` asks for from `percent`: one notch in when the wheel
+// turns away from the reader, one notch out when it turns towards them.
+func zoomAfterWheel(mouse: const *MouseEvent, percent: u32)->u32
+{
+    if mouse.delta.y > 0 do
+        return zoomIn(percent)
+    if mouse.delta.y < 0 do
+        return zoomOut(percent)
+    return percent
+}
+
 // Returns the zoom the shortcut `key` asks for from `percent`.
 func zoomAfterKey(key: const *KeyEvent, percent: u32)->u32
 {
@@ -77,6 +92,9 @@ private struct ZoomPreset
     id:      string
 }
 
+// Text is read near its own size, so the levels stay around 100 % and inside the text zoom range.
+// A picture or a score can be far wider than the window and offers levels down to 25 % instead,
+// and a PDF page, read like text, keeps the levels near its actual size.
 private const ZoomPresets: [5] ZoomPreset = [
     ZoomPreset{75, "75 %", "scope.zoom75"},
     ZoomPreset{100, "100 %", "scope.zoom100"},

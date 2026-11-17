@@ -4,8 +4,8 @@ The module reads and writes video as a stream: a codec registered against `Video
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
 and MPEG-4 Part 2 in AVI or Matroska. File-backed AVI exposes integer PCM tracks; ISO-BMFF
-exposes AAC-LC, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis,
-and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
+exposes AAC-LC and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 
 The remaining work covers codec and container breadth, decoding cost, and the lifecycle of
@@ -13,19 +13,6 @@ bounded sound windows.
 
 Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
-
-### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
-
-- Evidence: `decode/mp4/mp4.swg` keeps an `mp4a` track only when its decoder-configuration
-  object type is `0x40` (`Mpeg4AudioObjectType`); `0x69` and `0x6B` Layer III tracks are silently
-  left out rather than rejected, although std/audio already decodes Layer III packets and the
-  Matroska reader exposes them.
-- Next: retain the object type while reading the audio descriptor and construct the existing
-  Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
-- Done when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
-  through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
-  MPEG audio layers.
-- Related: std.audio.002
 
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
@@ -302,13 +289,40 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
   `regionMotion` now compares each luma region with the preceding source picture before
   building row/column motion profiles. On a deterministic 1080p30 QP 28 clip with a moving
-  384-pixel tile over an unchanged textured background, five paired Release runs improved
-  median encode time by 8.3% (303 to 282 ms); a 12-picture 3840×2160 localized-motion run improved from
-  718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes, decoded hashes, PSNR and SSIM
-  matched exactly. Six paired all-changing 1080p30 controls had a 2.0% median slowdown;
+  384-pixel tile over an unchanged textured background, five paired Release runs had a median
+  8.3% encode-time reduction (group medians were 303 and 282 ms); a 12-picture 3840×2160
+  localized-motion run fell from 718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes,
+  decoded hashes, PSNR and SSIM all matched. Six paired all-changing 1080p30 controls had a
+  2.0% median slowdown;
   one pair was 23.6% slower, while the other five ranged from essentially equal to 13.1%
   slower. These codec-only synthetic results have substantial run variation and do not claim
-  a live capture throughput gain.
+  a physical-display capture throughput gain.
+  The X11 4K60 integration stress test now also has a fixed-background mode that moves four
+  512×512 tiles. On a 3840×2160 Xorg virtual root at QP 28, 60-frame capture/encode/MP4 time
+  fell from 3.42 to 2.64 seconds with four slices (22.8%), and from 3.15 to 2.64 seconds
+  with eight (16.2%). Within each slice count, baseline and optimized MP4 files were
+  byte-identical (401,320 and 1,001,609 bytes respectively), with identical decoded hashes
+  and luma PSNR (49.89 and 47.64 dB). The timer includes X11 root readback, conversion,
+  H.264 and MP4; painting and AAC are reported separately. This validates the software
+  capture path on a virtual display, not a physical Windows desktop.
+  An incremental exact-YUV region check now also skips the repeated per-macroblock source/reference
+  comparisons when every luma and chroma sample in a region is unchanged. In alternating
+  baseline/candidate/candidate/baseline 4K X11 static-background runs at QP 28 and four slices,
+  capture/encode/MP4 averaged 3.71 seconds before and 2.79 seconds after (24.8% faster); all four
+  output MP4s were byte-identical (401,320 bytes, SHA-256 `e760ca2c...022fd99d`) with identical
+  decoded pictures and 49.89 dB luma PSNR. A full-screen changing 4K pair was 3% slower with the
+  candidate, within observed run variation. A 1080p chroma-only control averaged 9% slower because
+  it scans chroma across a luma-unchanged region before falling back to per-macroblock checks.
+  The gain therefore applies to regions unchanged in all three planes; it does not establish a
+  general throughput gain for changing scenes. Focused Release H.264 tests passed 8/8.
+  On the same virtual root with a changing full-screen background, two QP 28 runs per slice
+  count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
+  7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,
+  against 2.98 MB at 43.75 dB with four; both passed with no repeated slots. This unpaced
+  synthetic run is below 60 fps and does not establish physical-display cadence.
+  At QP 22, one run per slice count took 8.82 seconds with four slices and 8.14 with eight
+  (7.6% faster); the four-slice output was 2.94 MB at 54.74 dB, and the eight-slice output
+  3.78 MB at 52.85 dB. Rate and quality changes with slice count are content-dependent.
   On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
   PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
   x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,
@@ -372,15 +386,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   two-screen live recording instead lost 363 slots with eight slices in one run and none with
   four in a later run under varying load. Remeasure 1080p60 and 4K60 capture with concurrent
   readback; codec-only timing does not choose the end-to-end slice count.
-  Connect the pure-Swag rate controller only after the encoder can change QP per picture;
-  refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
-  or make packet submission transactional. Use each H.264 packet's bytes and duration for
-  feedback rather than `writtenByteCount`, which can lag unflushed fragments. Expose per-frame
-  bytes, QP, encode latency and dropped frames to the recorder. A virtual reservoir controls
-  an average, not a strict packet bound when even QP 51 falls back to PCM. Verify changing
-  screens and scene cuts through Reader and FFmpeg. Use a platform encoder only if the software path
-  cannot meet the required capture profile; do not add an external codec library for a capability
-  that can be implemented in Swag.
+  `Mp4.SoftwareRecording` now accepts an optional `SoftwareVideoRateControl` with a target rate,
+  reservoir capacity and bounded QP range. It feeds each completed packet's byte count and exact
+  frame-slot duration back into the controller, exposes the chosen QP, and prevalidates budget
+  arithmetic before encoding. Focused tests cover QP adaptation and bounds, repeated capture
+  slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
+  guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
+  detection. Treat a failed MP4 packet submission as terminal or make submission transactional.
+  Remaining work is measuring changing screens and scene cuts through Reader and FFmpeg, exposing
+  per-frame encode latency and dropped-frame counters, and meeting the 1080p60/4K60 capture target.
+  Use a platform encoder only if the software path cannot meet the required profile; do not add an
+  external codec library for a capability that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful
   bitrates, the module's decoder and a reference player both read them, and the recorder reports
   rate control, encode latency and dropped frames.

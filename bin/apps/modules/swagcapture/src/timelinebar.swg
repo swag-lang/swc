@@ -3,19 +3,12 @@ using Core, Pixel, Audio, Video
 // The timeline of a timed capture, on a floating panel under the canvas: play and pause, the time
 // at the playhead against the length, and a track the playhead is dragged along. A picture has
 // none.
-const TimelineHeight    = 40.0      // Logical height of the bar.
-const TimelinePadding   = 8.0       // Air inside the bar.
-const TimelineButton    = 28.0      // Side of the play command.
-const TimelineTextWidth = 104.0     // Room for the time reading.
-const TimelineGap       = 8.0       // Air between the bar and the hint line.
-const TimelineThumbnails = 6        // Fixed decoding budget for the visible passage.
-const TimelineVideoSlots = 5         // Five 4K YUV420 pictures stay below 64 MiB.
-
-struct TimelineVideoSlot
-{
-    index:  u64
-    planes: PlanarFrame
-}
+const TimelineHeight     = 40.0      // Logical height of the bar.
+const TimelinePadding    = 8.0       // Air inside the bar.
+const TimelineButton     = 28.0      // Side of the play command.
+const TimelineTextWidth  = 104.0     // Room for the time reading.
+const TimelineGap        = 8.0       // Air between the bar and the hint line.
+const TimelineThumbnails = 6         // Fixed decoding budget for the visible passage.
 
 struct TimelineBar
 {
@@ -32,15 +25,16 @@ struct TimelineBar
     audioVoices:     [2] (*Voice?)
     audioVoiceCount: u32
     audioPath:       String
+    silentPath:      String     // The video last found to have no sound, until the audio is disposed.
     ownsAudioEngine: bool
-    audioClockLast:   f64 = -1
+    audioClockLast:  f64 = -1
     isDragging:      bool
     dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
     dragFromStart:   u64     // Selected form's span when its end is dragged.
     dragFromEnd:     u64
-    viewStart:       u64     // First time visible on the track.
-    zoom:            f32 = 1 // One shows the whole recording.
-    readingFont:     *Font?     // The font and duration `readingWidth` was measured for.
+    viewStart:       u64         // First time visible on the track.
+    zoom:            f32 = 1     // One shows the whole recording.
+    readingFont:     *Font?      // The font and duration `readingWidth` was measured for.
     readingDuration: u64
     readingWidth:    f32
     viewCapture:     *Capture?
@@ -49,32 +43,15 @@ struct TimelineBar
     thumbStart:      u64
     thumbSpan:       u64
     thumbsReady:     bool
-    videoSlots:      [TimelineVideoSlots] TimelineVideoSlot
-    videoReady:      StaticArray'(u32, TimelineVideoSlots)
-    videoFree:       StaticArray'(u32, TimelineVideoSlots)
-    videoLock:       Swag.Mutex
-    videoWake:       Sync.Event
-    videoReleased:   Sync.Event
-    videoTask:       Swag.Task
-    videoExecutor:   Swag.Executor
-    videoPath:       String
-    videoGeneration: u32
-    videoFrom:       u64
-    videoNext:       u64
-    videoCount:      u64
-    videoActive:     bool
-    videoFailed:     bool
-    videoBusy:       bool
-    videoBusySlot:   u32
-    videoReleaseRequested: bool
+    decoder:         TimelineVideoDecoder     // Decodes video pictures ahead of playback.
 }
 
 // What a press on the track drags.
 enum TimelineEdge
 {
-    None      // The playhead.
-    FormStart // The selected form's first visible time.
-    FormEnd   // The selected form's end.
+    None          // The playhead.
+    FormStart     // The selected form's first visible time.
+    FormEnd       // The selected form's end.
 }
 
 // Distance at which a press takes a selected form edge rather than the playhead.
@@ -85,15 +62,7 @@ impl IWnd for TimelineBar
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.seekTimer)
-        if .videoTask.isPending()
-        {
-            .videoTask.cancel()
-            .videoWake.signal()
-            .videoTask.wait()
-            .videoExecutor.close()
-            .videoWake.release()
-            .videoReleased.release()
-        }
+        .decoder.close()
         .disposeAudio()
         .clearThumbnails()
     }
@@ -122,19 +91,21 @@ impl IWnd for TimelineBar
 
         // The kept part sits on a compact rail. Its bounds mark the trim, while the playhead
         // shows progress through it; the recording outside it stays visibly muted.
-        let track  = .trackRect()
+        let track = .trackRect()
         if .zoom > 1 do
             .prepareThumbnails(capture)
         for texture, slot in .thumbTextures where .zoom > 1 and texture.isValid()
         {
             let width = track.width / TimelineThumbnails
             painter.drawTexture({track.x + slot * width + 2, track.y + 2,
-                                 Math.max(width - 4, 1), 12}, texture)
+                                 Math.max(width - 4, 1), 12},
+                                texture)
             painter.fillRect({track.x + (slot + 0.5) * width, track.vertCenter() - 4, 1, 8}, colors.faintText)
         }
-        let played = .trackX(time)
-        let keepL  = .trackX(capture.trimStart())
-        let keepR  = .trackX(capture.trimEnd())
+
+        let played     = .trackX(time)
+        let keepL      = .trackX(capture.trimStart())
+        let keepR      = .trackX(capture.trimEnd())
         let railHeight = track.height * 0.15
         let railRadius = railHeight * 0.5
         let railY      = track.y + track.height * 0.5
@@ -158,14 +129,19 @@ impl IWnd for TimelineBar
         {
             let boundWidth = railHeight / 3
             painter.fillRoundRect({bound - boundWidth * 0.5, railY - railHeight, boundWidth, railHeight * 2},
-                                  boundWidth * 0.5, boundWidth * 0.5, colors.arc)
+                                  boundWidth * 0.5,
+                                  boundWidth * 0.5,
+                                  colors.arc)
         }
+
         if played >= track.x and played <= track.right()
         {
             let playheadWidth = railHeight / 3
             painter.fillRoundRect({played - playheadWidth * 0.5, track.y + track.height * 0.15,
-                                   playheadWidth, track.height * 0.5}, playheadWidth * 0.5,
-                                  playheadWidth * 0.5, colors.text)
+                                   playheadWidth, track.height * 0.5},
+                                  playheadWidth * 0.5,
+                                  playheadWidth * 0.5,
+                                  colors.text)
         }
 
         // A selected form gets its own centered lane: a soft Arc segment with a fine Arc edge,
@@ -244,19 +220,22 @@ impl IWnd for TimelineBar
         if evt.timer == .seekTimer
         {
             let capture = .capture()
-            if not capture or not capture.frames or .videoDecodeFailed()
+            if not capture or not capture.frames or .decoder.hasFailed()
             {
                 .stopTimer(&.seekTimer)
                 return
             }
-            if .presentVideoFrame(capture, .videoFrom)
+
+            if .decoder.present(capture, .decoder.firstFrame)
             {
                 .stopTimer(&.seekTimer)
                 .revealTime(capture.frames.timeOf(capture.playhead))
                 .invalidate()
             }
+
             return
         }
+
         if evt.timer != .playTimer do
             return
 
@@ -271,55 +250,59 @@ impl IWnd for TimelineBar
         let frames = capture.frames
         if capture.media == .Video and not Swag.jit()
         {
-            if .videoDecodeFailed()
+            if .decoder.hasFailed()
             {
                 .stop()
                 .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(.playFrom, tenths: true))
                 return
             }
+
             if not .playStart
             {
-                if not .videoBuffered() do
+                if not .decoder.isBuffered() do
                     return
                 catch .startAudio(.playFrom)
                 .playStart = Time.monotonicMicroseconds()
             }
         }
 
-        let now = Time.monotonicMicroseconds()
+        let now  = Time.monotonicMicroseconds()
         var time = .playFrom + (now - .playStart)
         if .audioVoiceCount and .audioVoices[0] and .audioReader
         {
-            let sound = unwrap .audioReader.audioTrack(0)
-            let voice = unwrap .audioVoices[0]
+            let sound   = unwrap .audioReader.audioTrack(0)
+            let voice   = unwrap .audioVoices[0]
             let seconds = sound.timelineStartSeconds() + voice.playbackPositionSeconds()
+
             // An ended or stalled audio cursor cannot stop the video clock. Only a new,
             // audible position corrects drift; the monotonic clock advances between buffers.
-            if seconds >= 0 and seconds != .audioClockLast and
+            if seconds >= 0 and
+               seconds != .audioClockLast and
                voice.playbackSampleFrame() < sound.sampleFrameCount()
             {
                 .audioClockLast = seconds
                 let audioTime = cast(u64, seconds * 1_000_000)
                 if Math.abs(cast(f64, audioTime) - cast(f64, time)) > 80_000
                 {
-                    .playFrom = audioTime
+                    .playFrom  = audioTime
                     .playStart = now
-                    time = audioTime
+                    time       = audioTime
                 }
             }
         }
 
         if time >= capture.trimEnd() or time < capture.trimStart()
         {
-            .playFrom  = capture.trimStart()
-            time       = .playFrom
+            .playFrom = capture.trimStart()
+            time      = .playFrom
             if capture.media == .Video and not Swag.jit()
             {
                 .stopAudio()
-                .requestVideoFrames(capture, frames.frameAt(time))
+                .decoder.request(capture, frames.frameAt(time))
                 .playStart = 0
                 return
             }
+
             catch .startAudio(time)
             .playStart = Time.monotonicMicroseconds()
         }
@@ -327,13 +310,15 @@ impl IWnd for TimelineBar
         let frame = frames.frameAt(time)
         if capture.media == .Video and not Swag.jit()
         {
-            if .presentVideoFrame(capture, frame)
+            if .decoder.present(capture, frame)
             {
                 .revealTime(frames.timeOf(capture.playhead))
                 .invalidate()
             }
+
             return
         }
+
         if frame != capture.playhead
         {
             catch capture.showPlaybackFrame(frame)
@@ -342,6 +327,7 @@ impl IWnd for TimelineBar
                 .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(time, tenths: true))
                 return
             }
+
             .revealTime(frames.timeOf(frame))
             .invalidate()
         }
@@ -372,14 +358,8 @@ impl TimelineBar
             .sigPressed += func|bar = result|(_) { bar.togglePlay() }
         }
 
-        if not Swag.jit()
-        {
-            result.videoWake.init()
-            result.videoReleased.init()
-            result.videoExecutor.start()
-            result.videoTask.submit(func|bar = result|() { runTimelineVideoDecoder(bar) },
-                                    result.taskNotifier(&result.videoTask), executor: &result.videoExecutor)
-        }
+        if not Swag.jit() do
+            result.decoder.start(result.taskNotifier(&result.decoder.task))
 
         return result
     }
@@ -387,7 +367,7 @@ impl TimelineBar
     // Opens the timeline commands at the pointer that requested its context menu.
     mtd showActions(surfacePos: Math.Point)
     {
-        let main = .main
+        let main      = .main
         with let menu = MenuCtrl.createPopup(main, owner: main)
         {
             .addItem(ActionTimeline.Play)
@@ -418,12 +398,30 @@ impl TimelineBar
                 .stop(materialize: false)
                 .disposeAudio()
             }
+
             .clearThumbnails()
             .viewCapture = current
             .viewStart   = 0
             .zoom        = 1
         }
+
         return current
+    }
+
+    // Closes every reader of a capture before the library moves its media to the trash.
+    mtd releaseCaptureMedia(file: string)
+    {
+        let media     = Capture.mediaPathOf(file, .Video)
+        let displayed = .viewCapture and .viewCapture.isStoredIn(file)
+        if not displayed and not .decoder.isDecoding(media) and not Path.equals(.audioPath, media) do
+            return
+
+        .stop(materialize: false)
+        .disposeAudio()
+        .clearThumbnails()
+        .decoder.releaseReader()
+        if displayed do
+            .viewCapture = null
     }
 
     // Disposes the six visible thumbnails and their independent decoder.
@@ -434,6 +432,7 @@ impl TimelineBar
             if texture[].isValid() do
                 .app().renderer.removeTexture(texture)
         }
+
         if .thumbReader do
             Memory.delete(.thumbReader)
         .thumbReader = null
@@ -450,25 +449,28 @@ impl TimelineBar
         if not .thumbReader
         {
             let reader = catch TimedReader.open(Capture.mediaPathOf(capture.file, capture.media), capture.media) { return; }
-            .thumbReader = Memory.new'TimedReader()
+            .thumbReader   = Memory.new'TimedReader()
             .thumbReader[] = #move reader
         }
+
         for &texture in .thumbTextures
         {
             if texture[].isValid() do
                 .app().renderer.removeTexture(texture)
         }
+
         let frames = .thumbReader
         for slot in TimelineThumbnails
         {
-            let at = .viewStart + span * (2 * slot + 1) / (2 * TimelineThumbnails)
-            let frame = frames.frameAt(Math.min(at, capture.timeline.duration - 1))
+            let at      = .viewStart + span * (2 * slot + 1) / (2 * TimelineThumbnails)
+            let frame   = frames.frameAt(Math.min(at, capture.timeline.duration - 1))
             let picture = catch frames.read(frame) { continue; }
-            let image = picture[].resized(48, 12, .Bilinear)
+            let image   = picture[].resized(48, 12, .Bilinear)
             .thumbTextures[slot] = .app().renderer.addImage(image)
         }
-        .thumbStart = .viewStart
-        .thumbSpan = span
+
+        .thumbStart  = .viewStart
+        .thumbSpan   = span
         .thumbsReady = true
     }
 
@@ -488,12 +490,12 @@ impl TimelineBar
         if not capture or not capture.frames do
             return
 
-        let frame = .seekTimer ? .videoFrom : capture.playhead
+        let frame = .seekTimer ? .decoder.firstFrame : capture.playhead
         .playFrom = capture.frames.timeOf(frame)
         if capture.media == .Video and not Swag.jit()
         {
             .stopTimer(&.seekTimer)
-            .requestVideoFrames(capture, frame)
+            .decoder.request(capture, frame)
             .playStart = 0
         }
         else
@@ -501,6 +503,7 @@ impl TimelineBar
             catch .startAudio(.playFrom)
             .playStart = Time.monotonicMicroseconds()
         }
+
         .playTimer = .addTimer(Time.Duration.fromSeconds(1.0 / 60))
         .playButton.setIcon(.theme().icon(.Pause))
         .playButton.toolTip = appStrings().tip_PauseAnimation
@@ -512,7 +515,7 @@ impl TimelineBar
         .stopTimer(&.playTimer)
         .stopTimer(&.seekTimer)
         .stopAudio()
-        .stopVideoFrames()
+        .decoder.stop()
         let capture = .main.getCapture()
         if materialize and capture and capture == .viewCapture and capture.playbackPlanar do
             catch capture.showFrame(capture.playhead)
@@ -533,21 +536,25 @@ impl TimelineBar
         if .audioReader and not Path.equals(.audioPath, path) do
             .disposeAudio()
 
+        // A video without sound is opened once: each later play or loop knows it has nothing to play.
         if not .audioReader
         {
-            var reader = try Video.Reader.open(path)
-            if not reader.audioTrackCount() do
+            if Path.equals(.silentPath, path) do
                 return
+            var reader = try Video.Reader.open(path)
+            if not reader.audioTrackCount()
+            {
+                .silentPath = path
+                return
+            }
 
             let stored = Memory.new'Video.Reader()
-            stored[] = #move reader
+            stored[]     = #move reader
             .audioReader = stored
-            .audioPath = path
+            .audioPath   = path
         }
 
         let reader = .audioReader
-        if not reader or not reader.audioTrackCount() do
-            return
 
         if not Audio.isEngineCreated()
         {
@@ -567,10 +574,10 @@ impl TimelineBar
 
         for index in .audioVoiceCount
         {
-            let sound = unwrap reader.audioTrack(index)
+            let sound   = unwrap reader.audioTrack(index)
             let seconds = cast(f64, time) / 1_000_000 - sound.timelineStartSeconds()
-            let sample = seconds > 0 ? cast(u64, seconds * cast(f64, sound.sampleRateHz())) : 0
-            let voice = .audioVoices[index]
+            let sample  = seconds > 0 ? cast(u64, seconds * cast(f64, sound.sampleRateHz())) : 0
+            let voice   = .audioVoices[index]
             if voice
             {
                 try voice.seekSampleFrame(sample)
@@ -603,6 +610,7 @@ impl TimelineBar
                 .audioVoices[index] = null
             }
         }
+
         .audioVoiceCount = 0
 
         // Destroying an engine drains voices that borrow the reader's sound before the reader closes.
@@ -615,6 +623,7 @@ impl TimelineBar
             .audioReader = null
         }
 
+        .silentPath.clear()
         .ownsAudioEngine = false
     }
 
@@ -628,16 +637,16 @@ impl TimelineBar
     // Returns where `time`, in microseconds, lies on the track, in local coordinates.
     mtd trackX(time: u64)->f32
     {
-        let track   = .trackRect()
-        let offset  = cast(f64, time) - cast(f64, .viewStart)
+        let track  = .trackRect()
+        let offset = cast(f64, time) - cast(f64, .viewStart)
         return track.x + track.width * cast(f32, offset / cast(f64, .visibleDuration()))
     }
 
     // Returns the time at `x`, in local coordinates on the track, in microseconds.
     mtd timeAt(x: f32)->u64
     {
-        let track   = .trackRect()
-        let ratio   = Math.clamp((x - track.x) / Math.max(track.width, 1), 0, 1)
+        let track = .trackRect()
+        let ratio = Math.clamp((x - track.x) / Math.max(track.width, 1), 0, 1)
         return .viewStart + cast(u64, cast(f64, ratio) * cast(f64, .visibleDuration()))
     }
 
@@ -666,8 +675,10 @@ impl TimelineBar
             return
         let span   = .visibleDuration()
         let change = cast(s64, cast(f64, span) * fraction)
-        .viewStart = cast(u64, Math.clamp(cast(s64, .viewStart) + change,
-                                          0, cast(s64, capture.timeline.duration - span)))
+        .viewStart = cast(u64,
+                          Math.clamp(cast(s64, .viewStart) + change,
+                                     0,
+                                     cast(s64, capture.timeline.duration - span)))
         .invalidate()
     }
 
@@ -689,7 +700,7 @@ impl TimelineBar
     mtd edgeAt(x, y: f32)->TimelineEdge
     {
         let capture = unwrap .capture()
-        let track = .trackRect()
+        let track   = .trackRect()
         if capture.selection.count == 1 and y >= track.y + track.height * 0.7
         {
             let form: *BaseForm = capture.forms[capture.selection[0]]
@@ -701,6 +712,7 @@ impl TimelineBar
             if right >= track.x and right <= track.right() and Math.abs(x - right) <= TimelineEdgeReach do
                 return .FormEnd
         }
+
         return .None
     }
 
@@ -729,7 +741,7 @@ impl TimelineBar
             let start  = Math.min(form.timeStart, capture.timeline.duration - 1)
             let finish = Math.min(Math.max(.timeAt(x), start + 1), capture.timeline.duration)
             form.timeStart = start
-            form.timeEnd = finish >= capture.timeline.duration ? 0 : finish
+            form.timeEnd   = finish >= capture.timeline.duration ? 0 : finish
         }
 
         .invalidate()
@@ -741,25 +753,19 @@ impl TimelineBar
         let edge = .dragEdge
         .dragEdge = .None
         let capture = .capture()
-        if edge == .None or not capture do
+        if edge == .None or not capture or capture.selection.count != 1 do
             return
 
-        if edge == .FormStart or edge == .FormEnd
-        {
-            if capture.selection.count != 1 do
-                return
-            let form: *BaseForm = capture.forms[capture.selection[0]]
-            let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
-            let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
-            if chosen == old do
-                return
-            form.timeStart = .dragFromStart
-            form.timeEnd   = .dragFromEnd
-            capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
-            .invalidate()
+        // The drag moved the form live; put its span back so the edit is recorded from it.
+        let form: *BaseForm = capture.forms[capture.selection[0]]
+        let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
+        let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
+        if chosen == old do
             return
-        }
-
+        form.timeStart = .dragFromStart
+        form.timeEnd   = .dragFromEnd
+        capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
+        .invalidate()
     }
 
     // Moves the playhead to the frame shown at `x`, in local coordinates on the track.
@@ -773,33 +779,28 @@ impl TimelineBar
         let frame  = frames.frameAt(.timeAt(x))
         if capture.media == .Video and not Swag.jit()
         {
-            .requestVideoFrames(capture, frame)
+            .decoder.request(capture, frame)
             if .isPlaying()
             {
                 .stopAudio()
                 .playFrom  = frames.timeOf(frame)
                 .playStart = 0
             }
-            elif not .seekTimer do
+            elif not .seekTimer
+            {
                 .seekTimer = .addTimer(10'ms)
+            }
+
             .invalidate()
             return
         }
+
         catch capture.showFrame(frame)
         if .isPlaying()
         {
             .playFrom = frames.timeOf(frame)
-            if capture.media == .Video and not Swag.jit()
-            {
-                .stopAudio()
-                .requestVideoFrames(capture, frame)
-                .playStart = 0
-            }
-            else
-            {
-                catch .startAudio(.playFrom)
-                .playStart = Time.monotonicMicroseconds()
-            }
+            catch .startAudio(.playFrom)
+            .playStart = Time.monotonicMicroseconds()
         }
 
         .invalidate()
@@ -808,9 +809,9 @@ impl TimelineBar
     // Returns where the track lies, in local coordinates.
     mtd trackRect()->Math.Rectangle
     {
-        let client = .clientRect()
+        let client    = .clientRect()
         var textWidth = TimelineTextWidth
-        let capture = .capture()
+        let capture   = .capture()
         if capture and capture.frames
         {
             // The longest reading changes only with the duration and the font. The track is
@@ -820,8 +821,8 @@ impl TimelineBar
             if font != .readingFont or duration != .readingDuration
             {
                 var longest = Capture.clockText(duration, tenths: true)
-                longest += " / "
-                longest += Capture.clockText(duration)
+                longest          += " / "
+                longest          += Capture.clockText(duration)
                 .readingWidth    = Painter.measureString(longest, font).width + TimelinePadding
                 .readingFont     = font
                 .readingDuration = duration
@@ -829,6 +830,7 @@ impl TimelineBar
 
             textWidth = Math.max(textWidth, .readingWidth)
         }
+
         let left = TimelinePadding + TimelineButton + TimelinePadding + textWidth
         return {left, client.y, Math.max(client.width - left - TimelinePadding - 6, 0), client.height}
     }

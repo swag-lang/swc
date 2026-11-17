@@ -20,8 +20,8 @@ const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
 const TAG_CFF  = imageTag('C'u32, 'F'u32, 'F'u32, ' 'u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
-// carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF
-// containers are recognized so the parser can report that they are unsupported.
+// carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
+// rebuilt as sfnt; WOFF2 is recognized so the parser can report it unsupported.
 const TAG_SFNT = 0x0001_0000'u32
 const TAG_TRUE = imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32)
 const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)
@@ -110,6 +110,10 @@ struct FaceImpl
     // answer before 'kernPairs', which covers the pairs they leave at zero.
     gposTable:         const [..] u8?
     gposPairSubtables: Array'u32
+
+    // Names declared by an sfnt `post` table. Keys are owned by this face.
+    postNameToGid: HashTable'(String, u32)
+    postGlyphNames: Array'String
 }
 
 impl FaceImpl
@@ -129,6 +133,8 @@ impl FaceImpl
         .bitmapPixels.free()
         .kernPairs.free()
         .gposPairSubtables.free()
+        .postNameToGid.free()
+        .postGlyphNames.free()
         .syntheticCMap.free()
 
         // A custom drop owns nested cleanup, so release each string and parser
@@ -141,7 +147,11 @@ impl FaceImpl
         Swag.init(&.type1, 1)
     }
 
-    // Returns the glyph a name selects, or zero when the face cannot be addressed by name.
+    // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
+    //
+    // CFF and Type 1 names come from their charstring programs. TrueType outlines use the
+    // names in `post` formats 1, 2, or 2.5; format 3 carries no names, so it answers zero.
+    // When a name occurs more than once, the lowest glyph index is returned.
     mtd glyphIndexByName(name: string)->u32
     {
         let key = String.from(name)
@@ -149,7 +159,36 @@ impl FaceImpl
         {
         case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
         case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
-        case .Glyf:  return 0
+        case .Glyf:  return .postNameToGid.getOrDefault(key, 0)
+        }
+    }
+
+    // Returns the glyph name held at an index, or null when unavailable.
+    mtd const glyphName(glyphIndex: u32)->string?
+    {
+        if glyphIndex >= .face.glyphCount do
+            return null
+
+        switch #complete .outlineSource
+        {
+        case .Cff:
+            if glyphIndex >= .cff.glyphNames.count do
+                return null
+            if not .cff.glyphNames[glyphIndex].length do
+                return null
+            return .cff.glyphNames[glyphIndex].toString()
+        case .Type1:
+            if glyphIndex >= .type1.glyphNames.count do
+                return null
+            if not .type1.glyphNames[glyphIndex].length do
+                return null
+            return .type1.glyphNames[glyphIndex].toString()
+        case .Glyf:
+            if glyphIndex >= .postGlyphNames.count do
+                return null
+            if not .postGlyphNames[glyphIndex].length do
+                return null
+            return .postGlyphNames[glyphIndex].toString()
         }
     }
 

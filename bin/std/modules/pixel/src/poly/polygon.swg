@@ -505,7 +505,7 @@ impl Polygon
         {
         case .Round: joinType = .Round
         case .Bevel: joinType = .Square
-        case .Miter: joinType = .Miter
+        case .Miter, .MiterBevel: joinType = .Miter
         }
 
         var off: Clipper.Offset
@@ -536,6 +536,23 @@ impl Polygon
     mtd offsetPaths(value: f32, joinStyle: JoinStyle, tolerance: f32 = 0.5)->LinePathList
     {
         var result: #returntype
+
+        // A zero offset has no Clipper solution because offsetInto intentionally short-circuits.
+        // This API returns contours, so preserve the source as a generated closed path instead
+        // of turning an identity operation into an empty list.
+        if Math.isZeroEpsilon(value)
+        {
+            if .points.isEmpty() do
+                return result
+
+            let np = result.newPath()
+            for point in .points do
+                np.polygon.add(point)
+            np.polygon.recompute(knownSimple: .isSimple)
+            setupGeneratedPath(np)
+            result.setBounds(np.minBounds, np.maxBounds)
+            return result
+        }
 
         var res: Clipper.ClipperPaths
         .offsetInto(&res, value, joinStyle, tolerance)

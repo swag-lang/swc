@@ -71,8 +71,8 @@ struct Entry
         spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.
     }
 
-    matchedAlias: bool     // The query matched an alternative phrase, not title bytes.
-    score:        s32      // How well the query answered the title; the lens ranks the rows by it.
+    answered: bool     // The row was matched as it was added, and `score` and `spans` hold that answer.
+    score:    s32      // How well the query answered the title; the lens ranks the rows by it.
 }
 
 // A picture in the strip of a section: a recent document, a page.
@@ -124,6 +124,27 @@ impl Section
     {
         let result = .entries.emplaceInitAddress()
         result.title = title
+        return result
+    }
+
+    // Appends a row titled `title` that the query answered as `found`, and returns it, to be
+    // filled further.
+    //
+    // `found` is what [[Gui.Lens.match]] answered for the folded query of the results and
+    // `title`. A source that matches the title to decide whether to add the row hands that answer
+    // over, and the lens ranks and marks the row from it instead of matching the title again. The
+    // pointer stays valid until the next row is added to this section.
+    #[Swag.Discardable]
+    mtd addEntry(title: string, found: #move Match)->*Entry
+    {
+        let result = .addEntry(title)
+        result.answered = true
+        if found.matched
+        {
+            result.score = Math.max(found.score, 0)
+            result.spans = #move found.spans
+        }
+
         return result
     }
 

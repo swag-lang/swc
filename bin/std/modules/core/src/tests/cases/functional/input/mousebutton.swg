@@ -20,3 +20,16 @@ func assertMouseButton(button: Input.MouseButton, index: u32)
     assertMouseButton(XButton1, 3)
     assertMouseButton(XButton2, 4)
 }
+
+#test
+{
+    for index in Input.MouseButton.count do
+        Swag.require(cast(u64, Input.mouseButtonFromStorageIndex(index)) == index)
+
+    let failure = Swag.catchPanic(func||()
+    {
+        discard Input.mouseButtonFromStorageIndex(Input.MouseButton.count)
+    })
+    Swag.require(failure.raised)
+    Swag.require(failure.message() == "invalid mouse button storage index")
+}

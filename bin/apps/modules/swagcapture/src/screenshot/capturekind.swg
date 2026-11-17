@@ -42,9 +42,8 @@ func kindMenuId(media: CaptureMedia)->string
 // The widget owns painting, pointer capture, keyboard activation and checked state.
 func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, enabled = true, toggle = true)->*IconButton
 {
-    let metrics = parent.themeMetrics()
-    with let result = IconButton.create(parent, icon, {0, 0, 0, metrics.miniBar_ButtonSize},
-                                        flags: toggle ? .Toggle : .None)
+    let metrics     = parent.themeMetrics()
+    with let result = IconButton.create(parent, icon, {0, 0, 0, metrics.miniBar_ButtonSize}, flags: toggle ? .Toggle : .None)
     {
         .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
         .setTextPosition(.Right)
@@ -54,6 +53,7 @@ func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, 
         .enable(enabled)
         .resize(Math.ceil(.itf.measureContent({}).x), metrics.miniBar_ButtonSize)
     }
+
     return result
 }
 
@@ -70,7 +70,7 @@ func qualityOptionWidth(theme: *Theme)->f32
 // quality, and the button always names the one the recording will use.
 func createQualityOption(parent: *Wnd, options: *CaptureOptions)->*IconButton
 {
-    let label = Format.toString(appStrings().ui_AimQuality, options.recordVideoQuality.label())
+    let label       = Format.toString(appStrings().ui_AimQuality, options.recordVideoQuality.label())
     with let result = createRecordOption(parent, parent.theme().icon(.Settings), label, false, toggle: false)
     {
         .toolTip = appStrings().tip_AimQuality
@@ -100,8 +100,8 @@ func recordButtonWidth(theme: *Theme)->f32
 // Creates the one primary action of a recording about to start: Record, in words, after its dot.
 func createRecordButton(parent: *Wnd)->*PushButton
 {
-    let metrics = parent.themeMetrics()
-    let size    = Math.Rectangle{0, 0, recordButtonWidth(parent.theme()), metrics.miniBar_ButtonSize}
+    let metrics     = parent.themeMetrics()
+    let size        = Math.Rectangle{0, 0, recordButtonWidth(parent.theme()), metrics.miniBar_ButtonSize}
     with let result = PushButton.create(parent, appStrings().ui_AimRecord, size, form: .Strong)
     {
         .setIcon(parent.theme().icon(.Dot, RecordDotSize))

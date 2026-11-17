@@ -1,7 +1,7 @@
 // A decoded picture is owned by the recent window while it is away from the editor.
 struct RecentCachedCapture
 {
-    capture: *Capture?
+    capture:  *Capture?
     revision: File.FileInfo
     bytes:    u64
 }
@@ -20,23 +20,26 @@ struct RecentCaptureCache
 {
     const MaxBytes = 128 * 1024 * 1024
 
-    entries: ArrayPtr'RecentCachedCapture
-    bytes:   u64
+    entries:  ArrayPtr'RecentCachedCapture
+    bytes:    u64
     maxBytes: u64 = MaxBytes
 }
 
 impl RecentCaptureCache
 {
     func sameRevision(a, b: File.FileInfo)->bool =>
-        not a.fullName.isEmpty() and not b.fullName.isEmpty() and
-        a.size == b.size and a.creationTime == b.creationTime and a.lastWriteTime == b.lastWriteTime
+        not a.fullName.isEmpty() and
+        not b.fullName.isEmpty() and
+        a.size == b.size and
+        a.creationTime == b.creationTime and
+        a.lastWriteTime == b.lastWriteTime
 
     // Returns ownership only while the on-disk file still has the version that was decoded.
     mtd take(file: string, revision: *File.FileInfo)->*Capture?
     {
         for item, i in .entries
         {
-            let entry   = unwrap item
+            let entry = unwrap item
             if not entry.capture do
                 continue
             if entry.capture.file != file do
@@ -49,6 +52,7 @@ impl RecentCaptureCache
                 entry.capture = null
                 revision[]    = current
             }
+
             .bytes -= entry.bytes
             .entries.deleteAt(i)
             return result
@@ -61,7 +65,9 @@ impl RecentCaptureCache
     mtd put(capture: *Capture, revision: File.FileInfo)
     {
         let current = catch File.info(capture.file)
-        if capture.changed or capture.isTimed() or g_CaptureSaves.writing(capture.file) or
+        if capture.changed or
+           capture.isTimed() or
+           g_CaptureSaves.writing(capture.file) or
            not sameRevision(revision, current)
         {
             Memory.delete(capture)
@@ -85,6 +91,7 @@ impl RecentCaptureCache
             .revision = current
             .bytes    = size
         }
+
         .bytes += size
         while .bytes > .maxBytes
         {
@@ -103,6 +110,7 @@ impl RecentCaptureCache
                 i += 1
                 continue
             }
+
             .bytes -= .entries[i]!.bytes
             .entries.deleteAt(i)
         }

@@ -24,7 +24,7 @@ struct Image
         pixels: Array'u8     // Owned pixel bytes, bottom row first.
 
         #[Core.Serialization.Key("metadata")]
-        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
+        metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs and image-copying transforms.
 
         // Geometry and encoding of the pixel buffer. They are established together by 'create' and
         // the decoders, and every one of them is derived from the others: writing one on its own
@@ -322,6 +322,7 @@ impl Image
     // When `buffer` is provided, its bytes are copied into the new image, bottom row first. Its
     // length must exactly match the byte count implied by the dimensions and format. Otherwise
     // the pixel bytes are left uninitialized.
+    // The function panics if the dimensions, format, alpha mode, or buffer length is invalid.
     //
     // ## Example
     //
@@ -331,14 +332,16 @@ impl Image
     // ```
     func create(width, height: s32, pixelFormat: PixelFormat, buffer: const [..] u8? = null, alphaMode = AlphaMode.Straight)->Image
     {
-        Swag.assert(width > 0 and height > 0, "invalid dimensions")
-
         var result: #returntype
         result.init(width, height, pixelFormat, alphaMode)
+        if buffer
+        {
+            if buffer.count != result.byteCount do
+                Swag.panic("pixel buffer size does not match image geometry", #curlocation)
+        }
         result.allocPixels()
         if buffer
         {
-            Swag.assert(buffer.count == result.byteCount, "pixel buffer size does not match image geometry")
             Memory.copy(cast([*] u8, result.pixels.storage()), buffer.buffer, buffer.count)
         }
 
@@ -379,12 +382,16 @@ impl Image
     // afterward, or supply storage through a higher-level creation operation.
     internal mtd init(width, height: s32, pixelFormat: PixelFormat, alphaMode = AlphaMode.Straight)
     {
-        Swag.assert(width > 0 and height > 0, "invalid dimensions")
+        if width <= 0 or height <= 0 do
+            Swag.panic("invalid image dimensions", #curlocation)
         let bitsPerPixel = pixelFormat.bitsPerPixel()
-        Swag.assert(pixelFormat.isPacked(), "an image holds a packed pixel format")
-        Swag.assert(pixelFormat.hasAlpha() or alphaMode == .Straight, "a format without alpha cannot be premultiplied")
+        if not pixelFormat.isPacked() do
+            Swag.panic("an image requires a packed pixel format", #curlocation)
+        if not pixelFormat.hasAlpha() and alphaMode != .Straight do
+            Swag.panic("a format without alpha cannot be premultiplied", #curlocation)
         let bytesPerPixel = cast(u8, (bitsPerPixel >> 3))
-        Swag.assert(width <= 0x7FFFFFFF's32 / cast(s32, bytesPerPixel), "image row is too large")
+        if width > 0x7FFFFFFF's32 / cast(s32, bytesPerPixel) do
+            Swag.panic("image row is too large", #curlocation)
 
         .release()
         .width         = width

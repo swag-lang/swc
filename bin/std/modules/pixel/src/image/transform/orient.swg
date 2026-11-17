@@ -6,7 +6,8 @@ impl Image
     //
     // `orientation` says how the stored pixels relate to the upright picture, from 1 (already
     // upright) to 8; [[Pixel.Exif.orientationOf]] reads it from decoded metadata. Values 5 to 8
-    // swap the width and the height. Any value outside 2 to 8 leaves the image unchanged.
+    // swap the width and the height. Any value outside 2 to 8 leaves the image unchanged. When
+    // the image carries an EXIF Orientation field, it is reset to 1 after the pixels are turned.
     public mtd orient(orientation: u32)
     {
         switch orientation
@@ -34,6 +35,9 @@ impl Image
         case 8:
             .rotate(.Clockwise270)
         }
+
+        if orientation >= 2 and orientation <= 8 do
+            Exif.resetOrientation(&.metadata)
     }
 
     // Returns an upright copy of the image for an EXIF `Orientation` value.

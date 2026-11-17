@@ -158,6 +158,7 @@ impl Image
         Swag.assert(.width > 1 and .height > 1)
         var result: #returntype = create(.width / 2, .height / 2, .pixelFormat, alphaMode: me.alphaMode)
         .doHalfSize(&result)
+        result.metadata = .metadata
         return result
     }
 }

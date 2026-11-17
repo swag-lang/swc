@@ -79,6 +79,7 @@ impl FormImage
                 .textureApp.renderer.removeTexture(&.texture)
             .textureApp = app
         }
+
         return app
     }
 
@@ -362,6 +363,7 @@ impl IForm for FormImage
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateValue   = .rotate
             .gizmo.rotateEnabled = .canRotate()
+
             // Editing inside, the handles move the part of the source the form shows.
             if .mustEditInside()
             {
@@ -405,7 +407,7 @@ impl IForm for FormImage
             .refreshTexture()
 
         let iconColor = .ownerApp().theme.colors.btnIcon_Icon
-        var main = g_Main
+        var main      = g_Main
         if .capture and .capture.editView do
             main = .capture.editView.main
 

@@ -63,3 +63,25 @@ func assertBuilderString(value: String, expected: string)->bool
 
     Swag.require(allocator.stats().countAlloc == 0)
 }
+
+#test
+{
+    var builder: StrConv.StringBuilder
+    builder.appendRune('é')
+    builder.appendAny(42)
+    builder.appendFormat(":%/%/%%", "left", "right")
+    builder.appendEOL()
+
+    var expected = String.from("é42:left/right/%")
+    expected.append(Env.LineEnding)
+    Swag.require(assertBuilderString(builder.toString(), expected.toString()))
+    Swag.require(builder.count() == expected.count)
+}
+
+#test
+{
+    var builder: StrConv.StringBuilder
+    builder.appendAny(42, strFormat: "X")
+    Swag.require(assertBuilderString(builder.toString(), "2A"))
+    Swag.require(builder.count() == 2)
+}

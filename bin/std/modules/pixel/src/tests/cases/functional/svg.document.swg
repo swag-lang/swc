@@ -43,17 +43,37 @@ func makeTrianglePath()->LinePath
     Swag.require(not text.contains("1.500"))
 }
 
+// Fractional coordinates retain enough digits to round back to their source f32 values.
+#test
+{
+    let x = 1.2345678'f32
+    let y = 4.567891'f32
+    var path: LinePath
+    path.start(0, 0)
+    path.lineTo(x, y)
+    path.close()
+
+    var doc = Svg.Document.create(8, 8)
+    doc.addPath(path, Color.fromRgb(0, 0, 0))
+    let text = doc.toString()
+    let xText = Format.toString("%", x)
+    let yText = Format.toString("%", y)
+    Swag.require(text.contains(Format.toString("L% %", xText, yText).toString()))
+    Swag.require(expect StrConv.toF32(xText.toString()) == x)
+    Swag.require(expect StrConv.toF32(yText.toString()) == y)
+}
+
 // A ground is painted before every shape, and a title names the document.
 #test
 {
     var doc = Svg.Document.create(10, 10)
     doc.setTitle("Swag & <co>")
-    doc.setBackground(Color.fromRgb(0x0B, 0x0B, 0x0D))
+    doc.setBackground(Color.fromArgb(128'u8, 0x0B'u8, 0x0B'u8, 0x0D'u8))
     doc.addPath(makeTrianglePath(), Color.fromRgb(255, 255, 255))
 
     let text = doc.toString()
     Swag.require(text.contains("aria-label=\"Swag &amp; &lt;co&gt;\""))
-    Swag.require(text.contains("<rect width=\"10\" height=\"10\" fill=\"#0B0B0D\"/>"))
+    Swag.require(text.contains("<rect width=\"10\" height=\"10\" fill=\"#0B0B0D\" fill-opacity=\"0.502\"/>"))
     Swag.require(text.indexOf("<rect") < text.indexOf("<path"))
 }
 

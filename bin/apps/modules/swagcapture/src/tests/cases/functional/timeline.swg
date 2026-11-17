@@ -36,7 +36,7 @@ func testProfileVersion(file: string)->u32
     defer f.shutdown()
 
     let capture = testRecordedCapture()
-    let file = String.from(capture.file)
+    let file    = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
     defer capture.closeMedia()
     f.editView.setCapture(capture)
@@ -189,7 +189,7 @@ func testProfileVersion(file: string)->u32
 
     let bar = TimelineBar.create(fixture.main, &fixture.gui.root)
     bar.resize(800, TimelineHeight)
-    let track = bar.trackRect()
+    let track  = bar.trackRect()
     let center = track.horzCenter()
     Swag.require(capture.timeline.duration == 21_600_000_000)
     Swag.require(bar.timeAt(center) >= 10_400_000_000)
@@ -213,7 +213,7 @@ func testProfileVersion(file: string)->u32
     defer fixture.shutdown()
 
     let capture = testRecordedCapture()
-    let file = String.from(capture.file)
+    let file    = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
     defer capture.closeMedia()
     fixture.editView.setCapture(capture)
@@ -226,11 +226,11 @@ func testProfileVersion(file: string)->u32
     let bar = TimelineBar.create(fixture.main, &fixture.gui.root)
     bar.resize(800, TimelineHeight)
     let track = bar.trackRect()
-    let y = track.y + track.height * 0.8
+    let y     = track.y + track.height * 0.8
     Swag.require(bar.edgeAt(bar.trackX(100_000), y) == .FormStart)
     Swag.require(bar.edgeAt(bar.trackX(200_000), y) == .FormEnd)
 
-    bar.dragEdge = .FormStart
+    bar.dragEdge      = .FormStart
     bar.dragFromStart = shape.timeStart
     bar.dragFromEnd   = shape.timeEnd
     bar.drag(bar.trackX(150_000))
@@ -239,7 +239,7 @@ func testProfileVersion(file: string)->u32
     capture.undo()
     Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
 
-    bar.dragEdge = .FormEnd
+    bar.dragEdge      = .FormEnd
     bar.dragFromStart = shape.timeStart
     bar.dragFromEnd   = shape.timeEnd
     bar.drag(bar.trackX(300_000))
@@ -393,7 +393,7 @@ func testProfileVersion(file: string)->u32
     defer discard catch Capture.deleteFiles(target)
     expect Capture.duplicateDocument(source, target)
     let originalBytes = expect File.readAllBytes(Capture.mediaPathOf(source))
-    let copiedBytes = expect File.readAllBytes(Capture.mediaPathOf(target))
+    let copiedBytes   = expect File.readAllBytes(Capture.mediaPathOf(target))
     Swag.require(Slice.equals(originalBytes.toSlice(), copiedBytes.toSlice()))
 
     let loaded = expect Capture.load(target)

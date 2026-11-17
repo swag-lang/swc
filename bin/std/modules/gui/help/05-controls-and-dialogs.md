@@ -25,6 +25,35 @@ Controls expose signals for local reactions and command IDs for application-wide
 actions. Prefer command IDs when the same operation appears in menus, toolbars,
 shortcuts, and context menus.
 
+The [[Gui.ColorPicker]] is a Tab stop with a visible focus ring. Left and Right
+nudge the horizontal component; Up and Down nudge the vertical component by one
+8-bit step (`1/255`), clamped to `[0, 1]`. A single-axis mode handles only the
+arrow pair along its axis. Vertical direction follows the gradient: Up increases
+a component that grows toward the top and decreases one that grows toward the
+bottom. Only the mapped channel is nudged; the corresponding HSL or RGB values
+are recalculated. [[Gui.ColorPicker.sigColorChanged]] fires once only when the
+selected [[Pixel.Color]] changes.
+
+## Arrange pane stacks
+
+[[Gui.DockHost]] keeps stable pane IDs in tab stacks and programmatic nested splits. The host
+owns each page view: hiding preserves it and its ID, while closing removes the ID and destroys
+the view. Pane minimum sizes are logical units and combine across the split tree.
+
+```swag
+let dock = DockHost.create(mainWnd)
+dock.addPane("editor", "Editor", editorView, {280, 180})
+dock.splitPane("editor", "inspector", "Inspector", inspectorView, .Horizontal,
+               splitSize: 320, minimumSize: {200, 160})
+dock.addTab("inspector", "outline", "Outline", outlineView)
+
+dock.hidePane("outline")
+dock.showPane("outline")
+```
+
+This API builds the layout in code. Drag interaction, floating panes, and layout persistence
+are separate capabilities.
+
 An option sheet replaces a row of drop-down buttons. Its first page names each
 setting with the value in force, and a row slides the page of its choices in;
 the header, Left, Backspace or Escape slide back. Pages are described by

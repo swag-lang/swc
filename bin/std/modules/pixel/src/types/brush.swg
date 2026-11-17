@@ -86,6 +86,9 @@ impl Brush
             if .color.a == 0 do
                 return false
 
+            if .gradientStops.isEmpty() do
+                return true
+
             for stop in .gradientStops
             {
                 if stop.color.a do

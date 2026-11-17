@@ -3,6 +3,25 @@
 
 using Core
 
+// The VUI stores standard aspect ratios as an id and other ratios as two 16-bit values.
+#test
+{
+    // These are Sps420 with the VUI aspect-ratio field set to standard id 2 (12:11), then
+    // extended id 255 with a 1024:768 ratio. The rest of each parameter set is unchanged.
+    const StandardSar: [20] u8 = [0x42, 0xC0, 0x0A, 0xDC, 0x62, 0x7E, 0x4C, 0x08, 0x40, 0x00,
+                                 0x00, 0x00, 0x40, 0x00, 0x00, 0x0C, 0x83, 0xC4, 0x89, 0xE0]
+    const ExtendedSar: [24] u8 = [0x42, 0xC0, 0x0A, 0xDC, 0x62, 0x7E, 0x4F, 0xFC, 0x10, 0x00,
+                                 0x0C, 0x00, 0x40, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x0C,
+                                 0x83, 0xC4, 0x89, 0xE0]
+    var standard: H264.Sps
+    expect standard.parse(StandardSar)
+    Swag.require(standard.sampleAspectWidth == 12 and standard.sampleAspectHeight == 11)
+
+    var extended: H264.Sps
+    expect extended.parse(ExtendedSar)
+    Swag.require(extended.sampleAspectWidth == 1024 and extended.sampleAspectHeight == 768)
+}
+
 private func assertInvalidFrameNumberSize(payload: const [..] u8)
 {
     var sps: H264.Sps

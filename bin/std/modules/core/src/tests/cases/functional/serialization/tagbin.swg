@@ -704,6 +704,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(decoder.serializer.diag.unknownTypes == 0)
     Swag.require(decoder.serializer.diag.recoveredFields == 0)
     Swag.require(decoder.serializer.diag.corruptPayloads == 0)
+    Swag.require(decoder.serializer.diag.lostCount() == 0)
 }
 
 // The root schema is readable in the header and prevents decoding a document through
@@ -785,6 +786,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     // diagnostics say so.
     Swag.require(decoder.serializer.diag.droppedStreamFields == 1)
     Swag.require(decoder.serializer.diag.fieldErrors == 0)
+    Swag.require(decoder.serializer.diag.lostCount() == 1)
 }
 
 #test
@@ -1156,6 +1158,25 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(Utf8.contains(Errors.message(err), "unsupported TagBin format version"))
 }
 
+// A stream with the wrong first four bytes is rejected before its version or body is read.
+#test
+{
+    let bytes = encodeTagBin(makeTagBinPayload())
+    var patched: Array'u8
+    patched.add(bytes.toSlice())
+
+    var writer = ByteStream.openWrite(&patched)
+    writer.setPosition(0)
+    writer.writeNative(0'u32)
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    let error = errorOutcome.value()
+    Swag.require(error is Errors.SerializationError)
+    Swag.require(Errors.message(error) == "invalid root signature")
+}
+
 // Field keys are compared as text. These two deliberately share one CRC32, so a
 // hash-only format would silently conflate them.
 #test
@@ -1373,6 +1394,25 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errlnOutcome
     let errln = errlnOutcome.value()
     Swag.require(errln != null)
+}
+
+// Valid string lengths on both sides of the one-byte LEB128 limit round-trip unchanged.
+#test
+{
+    const Lengths: [2] u32 = [127, 128]
+    for length in Lengths
+    {
+        var payload: TagBinLongText
+        for length do
+            payload.name += "x"
+
+        let bytes = encodeTagBin(payload)
+        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        let decoded = expect decoder.readAll'TagBinLongText(bytes.toSlice())
+        defer Memory.delete(decoded)
+        Swag.require(decoded.name.count == length)
+        Swag.require(decoded.name == payload.name)
+    }
 }
 
 // A fat offset near U64.Max is rejected without wrapping the computed table end.

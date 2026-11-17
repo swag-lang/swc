@@ -2,9 +2,7 @@
 
 using Core, Linux
 
-struct CaptureFrameWaiter
-{
-}
+struct CaptureFrameWaiter {}
 
 impl CaptureFrameWaiter
 {

@@ -10,22 +10,12 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
 
 ## Entries
 
-### std.truetype.001 — WOFF containers are rejected
-
-- Evidence: `parse.swg` rejects the `wOFF` tag with "WOFF font containers are not supported".
-- Next: add WOFF decompression over the existing face parser using `Core`'s zlib support.
-- Done when: WOFF fonts load through Face with the same glyph outlines, names, and metrics as
-  their reconstructed sfnt data, and malformed compression or table lengths fail in focused
-  fixtures.
-- Related: std.truetype.002
-
 ### std.truetype.002 — WOFF2 containers are rejected
 
 - Evidence: `parse.swg` rejects the `wOF2` tag, and no Brotli decoder exists in `bin/std`.
 - Next: add WOFF2 reconstruction and Brotli decompression as a separate format implementation.
 - Done when: WOFF2 fonts load through Face with glyph outlines, names, and metrics matching
   reference sfnt reconstruction, and truncated Brotli data or invalid transforms fail cleanly.
-- Related: std.truetype.001
 
 ### std.truetype.003 — No GSUB single-substitution processing
 

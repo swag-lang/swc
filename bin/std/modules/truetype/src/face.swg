@@ -21,6 +21,9 @@ public enum StyleFlag
 //
 // [[TrueType.Face.metadataAt]] reads this description without loading outlines or retaining
 // the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
+// The fixed-pitch flag comes from `post` and defaults to false when that table is absent.
+// The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees.
+// Underline metrics are in font design units and default to zero without `post`.
 public struct FaceMetadata
 {
     public
@@ -33,6 +36,10 @@ public struct FaceMetadata
         widthClass:            u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
         embedding:             u16           // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
+        isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
+        italicAngle:           s32 = 0       // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
+        underlinePosition:     s16 = 0       // Underline center relative to the baseline, in design units.
+        underlineThickness:    s16 = 0       // Recommended underline thickness in design units.
     }
 }
 
@@ -72,6 +79,8 @@ public struct Face
     public readonly
     {
         style:              StyleFlag     // Declared bold and italic traits.
+        isFixedPitch:       bool          // True when the `post` table declares a nonzero fixed-pitch value.
+        italicAngle:        s32           // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
         glyphCount:         u32           // Number of glyphs in the face.
         familyName:         String        // Owned font-family name.
         styleName:          String        // Owned style name such as `Regular` or `Bold`.
@@ -132,14 +141,24 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 
+    var normalized: Array'u8
+    var fontBytes = bytes
+    if bytes.count >= 4 and try readU32(bytes, 0) == TAG_WOFF
+    {
+        if faceIndex do
+            try fault(0x0F)
+        normalized = try inflateWoff(bytes)
+        fontBytes = normalized.toSlice()
+    }
+
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
-    faceData.fontData.resize(bytes.count)
+    faceData.fontData.resize(fontBytes.count)
     let fontData = faceData.fontData.storage()
-    Memory.copy(fontData, bytes.buffer, bytes.count)
+    Memory.copy(fontData, fontBytes.buffer, fontBytes.count)
 
-    let detected = detectProgramSource(bytes)
+    let detected = detectProgramSource(fontBytes)
     if detected.sfnt
     {
         try parseFace(faceData, faceIndex, fallbackFamilyName)
@@ -151,6 +170,21 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     faceData.outlineSource = detected.source
     try parseProgramFace(faceData, fallbackFamilyName)
     return &faceData.face
+}
+
+// Converts a 26.6 point size to an integer pixels-per-em value at the requested DPI.
+// A positive point size that rounds below one pixel is not a usable size.
+private func pointsToPpem(pointSize: s32, dpi: u32)->u32 fail
+{
+    if pointSize <= 0 or not dpi do
+        try fault(0x17)
+
+    let numerator = cast(u64, pointSize) * cast(u64, dpi)
+    let denominator = 72'u64 * 64
+    let ppem = (numerator + denominator / 2) / denominator
+    if not ppem or ppem > Swag.U16.Max do
+        try fault(0x17)
+    return cast(u32, ppem)
 }
 
 public impl Face
@@ -220,6 +254,16 @@ public impl Face
         .style = style
     }
 
+    internal mtd setFixedPitch(value: bool)
+    {
+        .isFixedPitch = value
+    }
+
+    internal mtd setItalicAngle(value: s32)
+    {
+        .italicAngle = value
+    }
+
     internal mtd initializeRecords()
     {
         .glyph.initialize(me)
@@ -241,8 +285,8 @@ public impl Face
     //
     // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
     // or a `ttcf` collection, of which the first face is taken; use
-    // [[TrueType.Face.loadAt]] to reach the others. WOFF containers are reported as
-    // unsupported rather than as an unknown format.
+    // [[TrueType.Face.loadAt]] to reach the others. WOFF1 data is expanded to sfnt
+    // before parsing; WOFF2 is unsupported.
     //
     // ```swag
     // let bytes = try File.readAllBytes("Inter-Regular.ttf")
@@ -257,7 +301,8 @@ public impl Face
     // an installable OpenType font requires: the document addresses such a font by glyph index
     // or through its own encoding, never by asking the font what character a glyph stands for.
     // `familyName` supplies the missing family identity; absent style and underline metadata use
-    // `Regular` and zero, and a face with no character map answers no character lookup. All
+    // `Regular` and zero, absent fixed-pitch metadata is false, and a face with no character map
+    // answers no character lookup. All
     // outline, location, and horizontal-metric tables remain mandatory. Use
     // [[TrueType.Face.load]] for standalone font files, where missing metadata is an error.
     //
@@ -290,17 +335,17 @@ public impl Face
 
     // Returns how many faces an in-memory font file holds.
     //
-    // A `ttcf` collection answers its declared face count; every other supported
-    // file answers one. The bytes are only inspected, so nothing is allocated and
-    // no face is loaded. Failure is reported for a container this module cannot
-    // read, which is the same diagnostic [[TrueType.Face.load]] would give.
+    // A `ttcf` collection answers its declared face count; a valid WOFF1 or other
+    // standalone font answers one. WOFF1 headers and table ranges are validated
+    // without inflating table data. No face is loaded. Unsupported containers fail.
     func countFaces(bytes: const [..] u8)->u32 fail => try countFacesIn(bytes)
 
     // Returns the family name the face at `faceIndex` declares.
     //
-    // Only the offset table and the `name` table are read, so no face is loaded
-    // and nothing but the returned string is allocated. This is what makes a
-    // collection searchable by family: a caller looking for one member reads the
+    // For sfnt input, only the offset table and the `name` table are read. WOFF1
+    // input is reconstructed before its name table is read. No face is loaded;
+    // WOFF1 also requires temporary storage for the reconstructed font. This makes
+    // a collection searchable by family: a caller looking for one member reads the
     // names first, then calls [[TrueType.Face.loadAt]] once, instead of loading
     // every face to ask each one what it is called. The answer is the value
     // [[TrueType.Face.familyName]] carries once that face is loaded.
@@ -316,12 +361,18 @@ public impl Face
     // ```
     func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail => try familyNameIn(bytes, faceIndex)
 
-    // Reads a face's names, weight, width class, and style without loading its glyphs.
+    // Reads a face's names, weight, width class, style, and fixed-pitch flag without loading its glyphs.
     //
-    // Accepts an sfnt font or a TrueType/OpenType collection. `faceIndex` is zero-based;
-    // a standalone font accepts only zero. The result owns its strings and retains no bytes.
+    // Accepts an sfnt font, WOFF1 font, or TrueType/OpenType collection. `faceIndex` is
+    // zero-based; a standalone font accepts only zero. WOFF1 is reconstructed in temporary
+    // storage. The result owns its strings and retains no bytes.
     // Missing style tables fall back to the subfamily name. Absent or out-of-range weight
     // values use 400/700 according to the bold trait; absent or invalid width classes use 5.
+    // The fixed-pitch flag is true for any nonzero `post.isFixedPitch` value and false when
+    // the `post` table is absent.
+    // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees. It is zero
+    // when the `post` table is absent. Underline position and thickness are in design units
+    // and default to zero when that table is absent.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
     // This inspects metadata only; it does not validate that every glyph can be loaded.
     //
@@ -369,6 +420,39 @@ public impl Face
             height = width
 
         try .size.setPixelMetrics(width, height)
+    }
+
+    // Selects a character size expressed in 26.6 points at the requested resolutions.
+    //
+    // Each nonzero point dimension is converted to pixels per em and rounded to the
+    // nearest whole pixel before scaled metrics are updated. If one point dimension is
+    // zero, its ppem copies the other converted dimension; both zero dimensions fail.
+    // DPI values must be nonzero, and converted ppem must fit in 16 bits. Scaled metrics
+    // are exposed through [[TrueType.Face.size]].
+    //
+    // ```swag
+    // // Twelve points at 96 DPI is 16 pixels per em.
+    // try face.setCharSize(12 * 64, 12 * 64, 96, 96)
+    // ```
+    mtd setCharSize(charWidth26_6, charHeight26_6: s32, horizontalDpi, verticalDpi: u32) fail
+    {
+        if charWidth26_6 < 0 or charHeight26_6 < 0 or
+           (not charWidth26_6 and not charHeight26_6) or
+           not horizontalDpi or not verticalDpi do
+            try fault(0x17)
+
+        var widthPpem = 0'u32
+        var heightPpem = 0'u32
+        if charWidth26_6 do
+            widthPpem = try pointsToPpem(charWidth26_6, horizontalDpi)
+        if charHeight26_6 do
+            heightPpem = try pointsToPpem(charHeight26_6, verticalDpi)
+        if not widthPpem do
+            widthPpem = heightPpem
+        if not heightPpem do
+            heightPpem = widthPpem
+
+        try .size.setPixelMetrics(widthPpem, heightPpem)
     }
 
     // Returns whether the face contains supported kerning pairs.
@@ -448,11 +532,12 @@ public impl Face
 
     // Resolves a PostScript glyph name to a glyph index.
     //
-    // A CFF or Type 1 program keys its outlines by name, which is how a document format
-    // addresses them: the encoding of such a font is a table of names, not of characters,
-    // and resolving it through Unicode would go through a mapping the font never declared.
-    // Zero is returned for a face with no name table of its own, which every TrueType face
-    // is, and for a name it does not carry.
+    // CFF and Type 1 programs key their outlines by name, which is how a document format
+    // addresses them: the encoding of such a font is a table of names, not of characters.
+    // TrueType outlines use names from `post` formats 1, 2, or 2.5. Format 3 contains no
+    // names. If a name appears more than once, the lowest glyph index wins. Zero is returned
+    // when the name is absent; as with [[TrueType.Face.glyphIndex]], zero is also the
+    // conventional missing-glyph index.
     //
     // ```swag
     // let face  = try TrueType.Face.load(bytes)
@@ -462,6 +547,23 @@ public impl Face
     {
         let faceData = cast(*FaceImpl, cast(*void, me))
         return faceData.glyphIndexByName(name)
+    }
+
+    // Returns the name assigned to a glyph index, or null when the font has no name for it.
+    //
+    // CFF and Type 1 use their charstring glyph names. TrueType outlines use names from
+    // `post` formats 1, 2, or 2.5. Format 3 has no names. The returned string borrows storage
+    // owned by this face and remains valid until [[TrueType.Face.destroy]]. Invalid glyph
+    // indices and empty or unavailable names return null.
+    //
+    // ```swag
+    // if let name = face.glyphName(glyphIndex) do
+    //     Swag.print("glyph name: ", name)
+    // ```
+    mtd glyphName(glyphIndex: u32)->string?
+    {
+        let faceData = cast(*FaceImpl, cast(*void, me))
+        return faceData.glyphName(glyphIndex)
     }
 
     // Resolves a code through the font program's own built-in encoding.

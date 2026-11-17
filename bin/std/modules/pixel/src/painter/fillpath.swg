@@ -400,8 +400,9 @@ public impl Painter
         }
         else
         {
-            path.polygon.assumeClockwise(true)
-            let res = path.polygon.cleanedPaths()
+            var clockwiseContour = path.polygon
+            clockwiseContour.assumeClockwise(true)
+            let res = clockwiseContour.cleanedPaths()
             for p in res.paths do
                 .fillPath(p, brush)
         }

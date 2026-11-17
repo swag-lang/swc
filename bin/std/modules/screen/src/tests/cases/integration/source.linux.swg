@@ -37,7 +37,13 @@ private func sharedSegmentCount()->u64 fail
     if not monitors.count do
         return
     let bounds = monitors[0].physicalBounds
-    var source = expect Source.openMonitor(0)
+    var source = expect Source.openMonitor(monitors[0])
+    let pointSource = expect Source.openMonitorAt({bounds.x + bounds.width / 2,
+                                                    bounds.y + bounds.height / 2})
+    let pointOptions = pointSource.captureOptions()
+    Swag.require(pointOptions.x == cast(s32, bounds.x) and pointOptions.y == cast(s32, bounds.y) and
+                 pointOptions.width == cast(s32, bounds.width) and
+                 pointOptions.height == cast(s32, bounds.height))
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
@@ -54,6 +60,8 @@ private func sharedSegmentCount()->u64 fail
     if width <= 0 or height <= 0 do
         return
     var source = expect Source.openDesktop()
+    let options = source.captureOptions()
+    Swag.require(options.width == width and options.height == height)
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
@@ -76,27 +84,68 @@ private func sharedSegmentCount()->u64 fail
 #test
 {
     var source = expect Source.open({0, 0, 320, 240, false})
+    let options = source.captureOptions()
+    Swag.require(options.x == 0 and options.y == 0 and options.width == 320 and
+                 options.height == 240 and not options.includeCursor)
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     var image = Image.create(8, 8, .RGBA8)
     let firstFresh = expect source.grabInto(&image)
     Swag.require(firstFresh)
     let firstCaptureTime = source.lastFrameCaptureMicroseconds()
     Swag.require(firstCaptureTime > 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount == 320 * 240 * 4)
     let storage = image.pixels.storage()
     let firstMetrics = source.metrics()
     Swag.require(firstMetrics.acquiredFrames == 1 and firstMetrics.unchangedFrames == 0)
 
+    let capture = source.sources[0].capture.nativeConnection()
+    source.resetMetrics()
+    let resetMetrics = source.metrics()
+    Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
+                 resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
+                 resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
+    Swag.require(source.sources[0].capture.nativeConnection() == capture and
+                 source.lastFrameCaptureMicroseconds() == firstCaptureTime)
+
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     let secondFresh = expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(secondFresh)
     Swag.require(source.lastFrameCaptureMicroseconds() >= firstCaptureTime)
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixels.storage() == storage)
     let secondMetrics = source.metrics()
-    Swag.require(secondMetrics.acquiredFrames == 2 and secondMetrics.readbackMicroseconds > 0)
+    Swag.require(secondMetrics.acquiredFrames == 1 and secondMetrics.readbackMicroseconds > 0)
+}
+
+// A failed reopen after a geometry change preserves the current connection and last delivered frame time.
+#[Swag.TestTag("integration.host.linux")]
+#test
+{
+    var source = expect Source.open({0, 0, 64, 48, false})
+    var image: Image
+    let fresh = expect source.grabInto(&image)
+    Swag.require(fresh)
+    let captureTime = source.lastFrameCaptureMicroseconds()
+    let native = source.sources[0]
+    let connection = native.capture.nativeConnection()
+    let originalX = native.options.x
+    native.options.x = cast(s32, native.capture.desktopWidth())
+    var failure: Swag.Error
+    discard catch source.reopen() as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+    Swag.require(source.lastFrameCaptureMicroseconds() == captureTime and
+                 native.capture.nativeConnection() == connection)
+
+    native.options.x = originalX
+    expect source.reopen()
+    Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    let freshAfterReopen = expect source.grabInto(&image)
+    Swag.require(freshAfterReopen and source.lastFrameCaptureMicroseconds() >= captureTime)
 }
 
 // A broken XCB socket reconnects without keeping its old descriptor or SysV mapping.

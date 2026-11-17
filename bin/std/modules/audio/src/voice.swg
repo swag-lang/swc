@@ -19,6 +19,30 @@ public enum VoicePlayFlags
     Default = DestroyOnStop     // Uses fire-and-forget lifetime without looping.
 }
 
+internal func voicePanMatrix(sourceChannels: u32, pan: f32)->[4] f32 fail
+{
+    if not Math.isFinite(pan) do
+        fail BadParameterError{"pan must be finite"}
+    if sourceChannels == 0 or sourceChannels > 2 do
+        fail BadParameterError{"stereo pan supports mono and stereo sources"}
+
+    let clamped = Math.clamp(pan, -1, 1)
+    var matrix: [4] f32
+    if sourceChannels == 1
+    {
+        matrix[0] = Math.sqrt((1 - clamped) * 0.5)
+        matrix[1] = Math.sqrt((1 + clamped) * 0.5)
+    }
+    else
+    {
+        matrix[0] = clamped <= 0 ? 1 : 1 - clamped
+        matrix[1] = 0
+        matrix[2] = 0
+        matrix[3] = clamped >= 0 ? 1 : 1 + clamped
+    }
+    return matrix
+}
+
 // Reports internal playback and destruction state.
 #[Swag.EnumFlags]
 enum VoiceState
@@ -50,8 +74,12 @@ public struct Voice
         handle:    *void?                        // Identity of the voice inside the driver.
         file:      const *SoundFile?             // Borrowed source, alive for the voice's lifetime.
         dataMutex: Swag.Mutex                    // Serializes buffer feeding with transport changes.
+        routingBusCount: u32
+        routingBuses: [16] (*Bus?)
 
         requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
+        createFlags: VoiceCreateFlags
+        panValue: f32              // Backend-neutral stereo pan, from -1 (left) to 1 (right).
         codec:       ICodec?       = null     // Decoder instance for a streamed source.
         packetCodec: IPacketCodec? = null     // Decoder instance for packetized media.
 
@@ -87,9 +115,14 @@ impl Voice
         .streamPacketIdx   = 0
         .seekDiscardFrames = 0
         .decodedCapacity   = 0
+        for i in .routingBusCount do
+            .routingBuses[i] = null
+        .routingBusCount   = 0
         .playbackBaseFrame = 0
         .nativeFrameOrigin = 0
         .requestedEncoding = .Unknown
+        .createFlags        = .None
+        .panValue           = 0
         .destroyCodec()
         .destroyPacketCodec()
     }
@@ -138,6 +171,7 @@ public impl Voice
         }
 
         voice.file = file
+        voice.createFlags = createFlags
         voice.seekDiscardFrames = cast(u32, file.leadingTrim)
 
         try voice.createNative(createFlags)
@@ -329,4 +363,30 @@ public impl Voice
 
     // Returns this voice's current gain in decibels.
     mtd volumeDb()->f32 fail => linearGainToDecibels(try .volume())
+
+    // Sets this voice's stereo pan.
+    //
+    // `pan` is clamped to `-1` (left) through `1` (right). Center is `0`.
+    // Mono sources use equal-power panning; stereo sources use balance. Nonzero
+    // pan requires a mono or stereo source and stereo output routes. `batchId`
+    // is forwarded to backends that support deferred operation sets.
+    mtd setPan(pan: f32, batchId: u32 = 0) fail
+    {
+        if not .handle do
+            fail BadParameterError{"voice is not valid"}
+        if not Math.isFinite(pan) do
+            fail BadParameterError{"pan must be finite"}
+        let clamped = Math.clamp(pan, -1, 1)
+        try .validatePanCurrentRouteNative(clamped)
+        try .setPanNative(clamped, batchId)
+        .panValue = clamped
+    }
+
+    // Returns this voice's stereo pan, from `-1` (left) through `1` (right).
+    mtd pan()->f32 fail
+    {
+        if not .handle do
+            fail BadParameterError{"voice is not valid"}
+        return .panValue
+    }
 }

@@ -4,29 +4,35 @@ impl Capture
     // an hour and the tenth of a second when `tenths` is set.
     func clockText(time: u64, tenths = false)->String
     {
-        // `%%` is a literal percent sign in a format: two-digit fields are written digit by digit.
-        func twoDigits(result: *String, value: u64)
+        // A format has no zero padding: two-digit fields are written digit by digit, in place.
+        // The timeline paints this reading for every frame it plays.
+        func digit(result: *String, value: u64)
         {
-            result[] += Format.toString("%", value / 10)
-            result[] += Format.toString("%", value % 10)
+            result.append(cast(u8, '0'u8 + value % 10))
         }
 
         let seconds = time / 1_000_000
         var result: String
         if seconds >= 3600
         {
-            result = Format.toString("%:", seconds / 3600)
-            twoDigits(&result, (seconds / 60) % 60)
+            result.appendFormat("%:", seconds / 3600)
+            digit(&result, (seconds / 600) % 6)
+            digit(&result, (seconds / 60) % 10)
         }
         else
         {
-            result = Format.toString("%", seconds / 60)
+            result.appendFormat("%", seconds / 60)
         }
 
         result += ":"
-        twoDigits(&result, seconds % 60)
-        if tenths do
-            result += Format.toString(".%", (time / 100_000) % 10)
+        digit(&result, (seconds % 60) / 10)
+        digit(&result, seconds % 10)
+        if tenths
+        {
+            result += "."
+            digit(&result, time / 100_000)
+        }
+
         return result
     }
 
@@ -153,35 +159,23 @@ impl Capture
 
     // Makes the capture an animation over the frame file recorded beside its file, and shows the
     // first frame.
-    mtd adoptRecording() fail
-    {
-        .closeMedia()
-
-        let path   = mediaPathOf(.file)
-        var frames = try TimedReader.open(path, .Animation)
-
-        .media               = .Animation
-        .timeline.frameCount = frames.frameCount()
-        .timeline.duration   = frames.endTime
-        .timeline.mediaSize  = (try File.info(path)).size
-        .width, .widthOrg    = frames.width
-        .height, .heightOrg  = frames.height
-        .playhead            = 0
-        .mediaMissing        = false
-
-        .takeFrames(&frames)
-        try .showFrame(0)
-    }
+    mtd adoptRecording() fail => try .adoptMedia(.Animation)
 
     // Makes a newly completed MP4 the editable timed media of this capture.
-    mtd adoptVideo() fail
+    mtd adoptVideo() fail => try .adoptMedia(.Video)
+
+    // Makes the `media` file beside the capture its timed media, sized after it, and shows the
+    // first frame.
+    private mtd adoptMedia(media: CaptureMedia) fail
     {
         .closeMedia()
-        let path   = mediaPathOf(.file, .Video)
-        var frames = try TimedReader.open(path, .Video)
+
+        let path   = mediaPathOf(.file, media)
+        var frames = try TimedReader.open(path, media)
         if not frames.frameCount() do
             fail Errors.InvalidFormatError{}
-        .media               = .Video
+
+        .media               = media
         .timeline.frameCount = frames.frameCount()
         .timeline.duration   = frames.endTime
         .timeline.mediaSize  = (try File.info(path)).size
@@ -189,6 +183,7 @@ impl Capture
         .height, .heightOrg  = frames.height
         .playhead            = 0
         .mediaMissing        = false
+
         .takeFrames(&frames)
         try .showFrame(0)
     }
@@ -341,13 +336,16 @@ impl Capture
     // Shows frame `frame` on the canvas.
     mtd showFrame(frame: u64) fail
     {
-        if .media == .Video do
+        if .media == .Video
+        {
             try .frames!.readVideoInto(&.backImg, frame)
+        }
         else
         {
             let picture = try .frames!.read(frame)
             .backImg = picture[]
         }
+
         .playbackPlanar = false
         .playhead       = frame
         .backgroundChanged()
@@ -376,7 +374,7 @@ impl Capture
     {
         var spare = #move .playbackPlanes
         .playbackPlanes = #move planes[]
-        planes[] = #move spare
+        planes[]        = #move spare
         .playbackPlanar = true
         .playhead       = frame
         .backgroundChanged()

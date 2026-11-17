@@ -47,6 +47,24 @@ using Swag
 
 #test
 {
+    let au = Globalization.CultureInfo.fromName("EN-au")
+    Swag.require(au.name == "EN-au")
+    Swag.require(au.dateTimeFormat.shortDatePattern == "dd/MM/yyyy")
+    Swag.require(au.dateTimeFormat.shortTimePattern == "HH:mm")
+    Swag.require(au.dateTimeFormat.dateOrder == .DayMonthYear)
+    Swag.require(au.dateTimeFormat.uses24Hour)
+
+    let unknown = Globalization.CultureInfo.fromName("xx-ZZ")
+    Swag.require(unknown.name == "xx-ZZ")
+    Swag.require(unknown.numberFormat.decimalSeparator == '.')
+    Swag.require(unknown.numberFormat.groupSeparator == ',')
+    Swag.require(unknown.currencyFormat.symbol == "$")
+    Swag.require(unknown.dateTimeFormat.monthName(1) == "January")
+    Swag.require(unknown.dateTimeFormat.dateOrder == .MonthDayYear)
+}
+
+#test
+{
     let en = Globalization.CultureInfo.fromName("en-US")
     Swag.require(en.ordinalPlural(1) == .One)
     Swag.require(en.ordinalPlural(2) == .Two)

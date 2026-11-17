@@ -491,15 +491,17 @@ impl Capture
             if .dirtyBackImg or not .backTexture.isValid()
             {
                 let planes = .playbackPlanes.view()
-                if not .backTexturePlanar or not .backTexture.isValid() or
+                if not .backTexturePlanar or
+                   not .backTexture.isValid() or
                    not renderer.updateTexture(.backTexture, &planes)
                 {
                     if .backTexture.isValid() do
                         renderer.removeTexture(&.backTexture)
                     .backTexture = renderer.addImage(&planes)
                 }
+
                 .backTexturePlanar = true
-                .dirtyBackImg = false
+                .dirtyBackImg      = false
                 .serialBackTexture += 1
             }
         }

@@ -113,3 +113,19 @@ func checkRgbToRgba(width: s32, sourceFormat, destinationFormat: PixelFormat)
     Swag.require(premultiplied.alphaMode == .Premultiplied)
     assertPixel(premultiplied, 0, 0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
 }
+
+// A value-returning pixel-format conversion preserves opaque format metadata.
+#test
+{
+    var source = Image.create(1, 1, .RGB8)
+    var record: ImageMetadata
+    record.signature = 42
+    record.tag       = "opaque"
+    record.value.add(0xA5'u8)
+    source.metadata.add(#move record)
+
+    let converted = source.convertedTo(.RGBA8)
+    Swag.require(converted.metadata.count == 1)
+    Swag.require(converted.metadata[0].signature == 42 and converted.metadata[0].isTag("opaque"))
+    Swag.require(converted.metadata[0].value.count == 1 and converted.metadata[0].value[0] == 0xA5)
+}

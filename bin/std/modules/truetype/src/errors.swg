@@ -22,7 +22,7 @@ func fault(code: u8) fail
     Errors[0x0B] = "missing module"
     Errors[0x0C] = "missing property"
     Errors[0x0D] = "OpenType CFF outlines are not supported"
-    Errors[0x0E] = "WOFF font containers are not supported"
+    Errors[0x0E] = "WOFF2 font containers are not supported"
     Errors[0x0F] = "face index beyond the end of the font collection"
     Errors[0x10] = "invalid glyph index"
     Errors[0x11] = "invalid character code"

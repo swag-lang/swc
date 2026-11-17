@@ -186,6 +186,16 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
     view.sendEvent(&reset)
     Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
+
+    // The actual size takes Ctrl alone, as the zoom steps and the other viewers do.
+    view.imageView.zoomToFit()
+    var shiftedActual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control | .Shift}
+    view.sendEvent(&shiftedActual)
+    Swag.require(view.imageView.isFitted)
+    var actualKey = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
+    view.sendEvent(&actualKey)
+    Swag.require(not view.imageView.isFitted and view.imageView.zoom == 1)
+    view.imageView.zoomToFit()
     view.dockStyle = .Center
     host.root.applyLayout()
     standTestCommands(foot, view.actions)
@@ -356,6 +366,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     }
 }
 
+// Times the image sheet was described while the pointer probed the picture.
+var g_ImageDescriptions: u32
+
 // The pointer over a picture reads the pixel it stands on, and its color, after the summary;
 // leaving the picture gives the summary back.
 #test
@@ -383,9 +396,8 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     if stored.a != 255 do
         code += Format.toString("%{X02}", stored.a)
     Swag.require(view.probedColorText() == code, view.probedColorText())
-    var results: Lens.Results
+    var results = Testing.lensResults("color")
     var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
-    entries.query = "color"
     view.describeLens(&entries)
     let title = Format.toString(Picture.texts().ui_CopyColor, code, Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y))
     var found = false
@@ -399,19 +411,24 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
 
-    // The pointer moving beside the picture tells the host nothing new, so it is not told again.
+    // The pointer moving beside the picture tells the host nothing new, so the open sheet stays
+    // as it was described.
+    window.toggleInformation()
+    Swag.require(window.infoSheet.isLocallyVisible())
+    g_ImageDescriptions = 0
+    window.instances[window.activeChoiceIndex].describeInformation = func||(_) { g_ImageDescriptions += 1 }
     let corner = view.imageView.surfaceRect()
     let first  = Math.Point{corner.x + 1, corner.y + 1}
     let second = Math.Point{corner.x + 3, corner.y + 2}
     Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(first)).inside)
     Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(second)).inside)
-    var reports = 0'u32
-    view.userData = &reports
-    view.services.reportDetails = func(wnd, _) { cast(*u32, unwrap wnd.userData)[] += 1 }
-    host.moveMouse(center)
+    host.moveMouse(corner.center())
+    let probed = g_ImageDescriptions
     host.moveMouse(first)
+    Swag.require(g_ImageDescriptions > probed)
+    let left = g_ImageDescriptions
     host.moveMouse(second)
-    Swag.require(reports == 2, Format.toString("%", reports))
+    Swag.require(g_ImageDescriptions == left, Format.toString("%", g_ImageDescriptions))
 }
 
 // The information sheet says how much of a picture its alpha hides: wholly transparent pixels,

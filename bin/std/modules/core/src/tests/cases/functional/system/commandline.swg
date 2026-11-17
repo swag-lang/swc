@@ -128,11 +128,35 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 {
     let fieldByName  = CommandLine.getField(#typeof(NameOptions), "name")
     let fieldByAlias = CommandLine.getField(#typeof(NameOptions), "n")
+    let missing      = CommandLine.getField(#typeof(NameOptions), "missing")
 
     Swag.require(fieldByName.field != null)
     Swag.require(fieldByAlias.field != null)
     Swag.require(fieldByName.index == 0)
     Swag.require(fieldByAlias.index == 0)
+    Swag.require(missing.field == null)
+    Swag.require(missing.index == Swag.U64.Max)
+}
+
+#test
+{
+    Swag.require(CommandLine.isSameName("buildCfg", "BUILD-CFG"))
+    Swag.require(CommandLine.isSameName("build_cfg", "build-cfg"))
+    Swag.require(not CommandLine.isSameName("buildCfg", "build-flag"))
+}
+
+#test
+{
+    Swag.require(CommandLine.isOption("-count", {}))
+    Swag.require(not CommandLine.isOption("count", {}))
+    Swag.require(not CommandLine.isOption("", {}))
+
+    Swag.require(CommandLine.isValue("-12", #typeof(s32), {}))
+    Swag.require(CommandLine.isValue("-.5", #typeof(f32), {}))
+    Swag.require(not CommandLine.isValue("-", #typeof(s32), {}))
+    Swag.require(not CommandLine.isValue("-.", #typeof(f32), {}))
+    Swag.require(not CommandLine.isValue("-option", #typeof(string), {}))
+    Swag.require(CommandLine.isValue("value", #typeof(string), {}))
 }
 
 #test

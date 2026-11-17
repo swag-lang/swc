@@ -42,9 +42,12 @@ using Core, Pixel
 //     .addSource(.Line, func|doc|(results)
 //     {
 //         let section = results.addSection("In this file")
-//         for line, index in doc.lines where Lens.match(results.query, line).matched
+//         for line, index in doc.lines
 //         {
-//             with let entry = section.addEntry(line)
+//             var found = Lens.match(results.folded, line)
+//             if not found.matched do
+//                 continue
+//             with let entry = section.addEntry(line, #move found)
 //             {
 //                 .lead      = Format.toString("%", index + 1)
 //                 .monoTitle = true
@@ -84,6 +87,8 @@ struct View
     hotPicture:        PictureHit
     segment:           u64     // Segment the keys chose in the chosen row of an inline section, by index into its entries.
     inlineChoices:     Array'InlineChoice
+    escapeFont:        *Font?     // Font of the faint words of the input band, or null until it is measured again.
+    escapeWidth:       f32        // Width of the Escape label set in `escapeFont`.
 }
 
 internal struct InlineChoice
@@ -178,9 +183,10 @@ impl IWnd for View
 
         // The input band: the query is the edit box; the faint name of the key that closes the
         // lens stands at its end.
-        let small  = .theme().createDefaultFont(metrics.defaultFontSize)
+        let escape = .escapeLabel()
+        let small  = escape.font
         let escKey = strings().key_Escape
-        let escX   = body.right() - metrics.lens_TextInset - Painter.measureString(escKey, small).width
+        let escX   = body.right() - metrics.lens_TextInset - escape.width
         discard paintTextLine(painter, escX, body.y + metrics.lens_InputHeight * 0.5, escKey, small, colors.faintText)
         painter.fillRect(Math.Rectangle{body.x, body.y + metrics.lens_InputHeight, body.width, metrics.separator_HairlineSize}, colors.line)
 
@@ -302,10 +308,15 @@ impl IWnd for View
     {
         if evt.kind == .ThemeChanged do
             .updateBackdrop()
+
+        // The Escape label is set in the font of the theme, in the words of the language.
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+            .escapeFont = null
         if (evt.kind == .ThemeChanged or evt.kind == .LanguageChanged) and .isLocallyVisible()
         {
             .input.setPlaceholder(strings().lens_Placeholder)
             .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
+            .labelPaging()
             .refresh()
         }
 
@@ -398,6 +409,7 @@ impl View
             .sigPressed += func|lens = result|(_) { lens.pageResults(1) }
         }
 
+        result.labelPaging()
         return result
     }
 
@@ -631,8 +643,10 @@ impl View
     {
         .updateBackdrop()
         .returnFocus = .focusedWindow()
+        .escapeFont  = null
         .input.setPlaceholder(strings().lens_Placeholder)
         .input.style.setFont(.theme().createDefaultFontFamily(.themeMetrics().lens_InputFontSize))
+        .labelPaging()
         .itf.onLayout()
         .bringToFront()
         discard .app().animator.arrive(me)
@@ -716,18 +730,6 @@ impl View
 
             if split.prefix == .None or split.prefix == .Action do
                 .addCommandSections()
-        }
-
-        // A source that marked nothing leaves the marking to the lens; a row the query does not
-        // answer, shown for its group, is not marked.
-        for section in .results.sections
-        {
-            for &entry in section!.entries where entry.spans.isEmpty() and not entry.matchedAlias and .results.query.count > 0
-            {
-                var found = match(.results.folded, entry.title)
-                if found.matched do
-                    entry.spans = #move found.spans
-            }
         }
 
         .rankResults()
@@ -950,19 +952,50 @@ private impl View
         if not owner do
             return
 
-        var families: Array'String
-        for &command in .commands where command.inLens
+        // The families in the order of their first command, and the family of each command by its
+        // index, so that gathering the commands of a family compares numbers rather than labels.
+        // A family borrows the label of its first command, which stays put until the next
+        // refresh. The lens finds the family of every command on each keystroke, and comparing
+        // plain strings in place costs well under half of comparing the owned labels.
+        var families: Array'string
+        var familyOf: Array'u64
+        familyOf.reserve(.commands.count)
+        for &command in .commands
         {
-            if command.familyText do
-                command.family = command.familyText()
-            if not families.contains(command.family) do
-                families.add(command.family)
+            var family = Swag.U64.Max
+            if command.inLens
+            {
+                if command.familyText do
+                    command.family = command.familyText()
+                let label = command.family.toString()
+                for known, index in families where known == label
+                {
+                    family = index
+                    break
+                }
+
+                if family == Swag.U64.Max
+                {
+                    family = families.count
+                    families.add(label)
+                }
+            }
+
+            familyOf.add(family)
         }
 
-        for family in families
+        for family, familyIndex in families
         {
+            // A query that spells the whole label of a family brings every command of it. The
+            // label is the same for each of them, so it is matched once.
+            let familyMatch  = match(.results.folded, family)
+            let familyAnswer = familyMatch.matched and
+                               familyMatch.spans.count == 1 and
+                               familyMatch.spans[0].start == 0 and
+                               familyMatch.spans[0].count == family.count
+
             var section: *Section?
-            for command in .commands where command.inLens and command.family == family[]
+            for command, commandIndex in .commands where familyOf[commandIndex] == familyIndex
             {
                 let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
                 if state.updatedFields.has(.Hidden) and state.hidden do
@@ -979,25 +1012,28 @@ private impl View
                 var found = command.find(.results.folded, title)
                 if not found.matched
                 {
-                    let familyMatch = match(.results.folded, family[])
-                    if not familyMatch.matched or familyMatch.spans.count != 1 do
-                        continue
-                    let span = familyMatch.spans[0]
-                    if span.start != 0 or span.count != family.length do
+                    if not familyAnswer do
                         continue
                     found.matched = true
                     found.score   = ClearMatchScore
+                    found.spans.clear()
                 }
 
                 if not section
                 {
-                    section        = .results.addSection(family[])
+                    section        = .results.addSection(family)
                     section.ranked = true
                 }
 
+                // The row keeps the answer it was found with, so the lens does not match it again.
+                // An alternative phrase or the family label answers without marking title bytes.
                 addCommandEntry(section, command.commandId.toString(), title, state)
-                section.entries.backPtr().score        = found.score
-                section.entries.backPtr().matchedAlias = .results.query.count > 0 and found.spans.isEmpty()
+                with let entry = section.entries.backPtr()
+                {
+                    .answered = true
+                    .score    = found.score
+                    .spans    = #move found.spans
+                }
             }
         }
     }
@@ -1168,12 +1204,26 @@ private impl View
         return {body.x, top, body.width, Math.max(available - paging, 0)}
     }
 
+    // Returns the font of the faint words of the input band and the width of the Escape label set
+    // in it. The input is placed again on every keystroke, where finding the font and measuring
+    // the label cost more than the rest of the layout, so both are kept until a change of theme or
+    // language, or the next opening, forgets them.
+    mtd escapeLabel()->{font: *Font, width: f32}
+    {
+        if not .escapeFont
+        {
+            .escapeFont  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+            .escapeWidth = Painter.measureString(strings().key_Escape, .escapeFont).width
+        }
+
+        return {.escapeFont, .escapeWidth}
+    }
+
     mtd placeInput()
     {
         let metrics = .themeMetrics()
         let body    = .body()
-        let escape  = Painter.measureString(strings().key_Escape, .theme().createDefaultFont(metrics.defaultFontSize)).width
-        let room    = body.width - 2 * metrics.lens_TextInset - escape - metrics.hintLine_GroupGap
+        let room    = body.width - 2 * metrics.lens_TextInset - .escapeLabel().width - metrics.hintLine_GroupGap
         .input.setPosition(Math.Rectangle{body.x + metrics.lens_TextInset, body.y, room, metrics.lens_InputHeight})
     }
 
@@ -1299,6 +1349,15 @@ private impl View
         .runChosen()
     }
 
+    // Gives the paging buttons their words and fits the buttons to them. Measuring them costs more
+    // than the rest of a layout, and their width changes only with the language and the theme, so
+    // this runs when the lens is created, when it opens and when either changes, not on each layout.
+    mtd labelPaging()
+    {
+        .previousPage.setQuietText(strings().lens_PreviousResults)
+        .nextPage.setQuietText(strings().lens_MoreResults)
+    }
+
     // A named pair makes overflow reachable without a wheel or knowledge of the navigation keys.
     mtd placePaging()
     {
@@ -1313,8 +1372,6 @@ private impl View
         if not overflow do
             return
         let metrics = .themeMetrics()
-        .previousPage.setQuietText(strings().lens_PreviousResults)
-        .nextPage.setQuietText(strings().lens_MoreResults)
         .previousPage.setPosition({list.x + metrics.lens_TextInset, list.bottom(), .previousPage.position.width, metrics.quiet_Height})
         .nextPage.setPosition({list.right() - metrics.lens_TextInset - .nextPage.position.width, list.bottom(), .nextPage.position.width, metrics.quiet_Height})
         .previousPage.enable(.scroll > 0)
@@ -1760,10 +1817,17 @@ private impl View
                     continue
                 }
 
-                var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
-                entry.score = Math.max(entry.score, found.matched ? found.score : 0)
-                if entry.spans.isEmpty() and not entry.matchedAlias and found.matched do
-                    entry.spans = #move found.spans
+                // A row is matched once. One its source added without its answer is matched here;
+                // a source that marked nothing leaves the marking to the lens, and a row the query
+                // does not answer, shown for its group, is not marked.
+                if not entry.answered
+                {
+                    var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
+                    entry.score = Math.max(entry.score, found.matched ? found.score : 0)
+                    if entry.spans.isEmpty() and found.matched do
+                        entry.spans = #move found.spans
+                }
+
                 if section.ranked and not entry.disabled do
                     bestAll = Math.max(bestAll, entry.score)
             }

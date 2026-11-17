@@ -41,6 +41,8 @@ enum class TokenIdKindE : uint32_t
     StorageModifier   = 1 << 20, // late tls global
     PresenceAssertion = 1 << 22, // unwrap and the asserted-access postfix !
     NativeArtifactCompilerFunc = 1 << 23,
+    SubTypeStart               = 1 << 24, // Non-type starters accepted after an array prefix.
+    QuoteOperatorPredecessor   = 1 << 25, // Identifiers, numeric literals, and strings before an apostrophe suffix.
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -142,6 +144,8 @@ struct Token
     static bool intrinsicObservesExternalBorrows(TokenId id) { return !isPortableIntrinsic(id) && !toKind(id).has(TokenIdKindE::ArgumentStorageOnly); }
 
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
+    static bool isSubTypeStart(TokenId id) { return toKind(id).hasAny(TokenIdKindE::Type | TokenIdKindE::SubTypeStart); }
+    static bool isQuoteOperatorPredecessor(TokenId id) { return toKind(id).hasAll(TokenIdKindE::QuoteOperatorPredecessor); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isStorageModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::StorageModifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }

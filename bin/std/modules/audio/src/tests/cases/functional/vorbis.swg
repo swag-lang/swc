@@ -53,6 +53,30 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     vorbisAssertCloseTo("vorbis-stereo-44100", 44_100, 2)
 }
 
+// Six distinct speaker tones verify Vorbis-to-WAVE channel placement across a 5.1 stream.
+#test
+{
+    var sound = expect SoundFile.load(audioGetTestDataPath("vorbis-5.1-48000.ogg").toString())
+    Swag.require(sound.numChannels() == 6 and sound.speakerChannelMask() == 0x003F)
+    vorbisAssertCloseTo("vorbis-5.1-48000", 48_000, 6)
+}
+
+// Mono Vorbis uses a center speaker mask even though its lone channel needs no reordering.
+#test
+{
+    var sound = expect SoundFile.load(audioGetTestDataPath("vorbis-mono-48000.ogg").toString())
+    Swag.require(sound.numChannels() == 1 and sound.speakerChannelMask() == 0x0004)
+    vorbisAssertCloseTo("vorbis-mono-48000", 48_000, 1)
+}
+
+// Eight channels reach the format's maximum and exercise every position in the WAVE remapping.
+#test
+{
+    var sound = expect SoundFile.load(audioGetTestDataPath("vorbis-8ch-48000.ogg").toString())
+    Swag.require(sound.numChannels() == 8 and sound.speakerChannelMask() == 0x063F)
+    vorbisAssertCloseTo("vorbis-8ch-48000", 48_000, 8)
+}
+
 // Clicks over noise, which make the encoder switch between long and short blocks and exercise
 // every window shape.
 #test

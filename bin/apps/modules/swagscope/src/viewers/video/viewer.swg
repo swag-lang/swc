@@ -262,7 +262,9 @@ struct Panel
     playbackRate:     f64  = 1
     optionsOpen:      bool
     volume:           f32  = 1
-    details:          String     // What the footer reads under the film.
+    details:          String        // What the footer reads under the film.
+    factsRate:        FrameRate     // The rate the footer and the sheet were last given.
+    factsDuration:    f64  = -1     // The length they were last given, negative before the first.
     metadataReady:    bool
     audioReady:       bool
     timelineReady:    bool
@@ -382,6 +384,11 @@ private impl Panel
 
         .refreshDetails()
         .refreshControls()
+
+        // The sheet's snapshot holds words of the interface, such as a channel layout or where an
+        // attached subtitle file comes from, so it is written again in the new language.
+        .informationReady = false
+        .refreshInformation()
     }
 }
 
@@ -804,7 +811,8 @@ private impl IWnd for Panel
 private impl Panel
 {
     // Refreshes the snapshot when progressive indexing discovers stream or track properties, and
-    // tells the host, whose sheet gives them.
+    // tells the host, whose sheet gives them. A change the counts do not show, such as a corrected
+    // rate or a replaced subtitle file, clears `informationReady` first.
     mtd refreshInformation()
     {
         if not .video.isOpen() do
@@ -866,23 +874,35 @@ private impl Panel
             data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
         }
 
-        if subtitles do
-            data.add(.Subtitles, Format.toString("%", subtitles), group: true)
+        // The tracks the film carries come first, then the files attached beside it, numbered on
+        // as the track menu lists them; an attached file says where it comes from.
+        func addSubtitle(data: *MediaInfoData, number: u64, track: const *Subtitle.Track, origin: string)
+        {
+            var measures: Array'String
+            let language = knownLanguage(track.language)
+            var name     = String.from(track.name)
+            if name.isEmpty() do
+                name = language.isEmpty() ? trackText(number) : language
+            elif not language.isEmpty() do
+                measures.add(language)
+            measures.add(String.from(subtitleFormatText(track.format)))
+            measures.add(String.from(origin))
+            data.addTrack(number, name, joinMeasures(measures.toSlice()))
+        }
+
+        let sidecars = .subtitleOverlay.sidecars.count
+        if subtitles or sidecars do
+            data.add(.Subtitles, Format.toString("%", subtitles + sidecars), group: true)
         for index in subtitles
         {
             let track = .video.subtitleTrack(index)
             if not track do
                 continue
-            var measures: Array'String
-            let language = knownLanguage(track.language)
-            var name     = String.from(track.name)
-            if name.isEmpty() do
-                name = language.isEmpty() ? trackText(index + 1) : language
-            elif not language.isEmpty() do
-                measures.add(language)
-            measures.add(String.from(subtitleFormatText(track.format)))
-            data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
+            addSubtitle(&data, index + 1, track, "")
         }
+
+        for track, index in .subtitleOverlay.sidecars do
+            addSubtitle(&data, subtitles + index + 1, track, texts().ui_SubtitleSidecar)
 
         .information = #move data
         .services.informationChanged(me)
@@ -947,7 +967,6 @@ private impl Panel
         try .finishMetadata()
 
         .refreshTransport()
-        .refreshDetails()
         discard .showFrame(0)
         .services.loadingChanged(me)
     }
@@ -955,11 +974,24 @@ private impl Panel
     // Applies what progressive indexing has discovered so far to the information panel, the timeline, the summary, and the sound.
     mtd finishMetadata() fail
     {
+        let duration  = .video.durationInSeconds()
+        let frameRate = .video.frameRate()
+        let rate      = frameRate.framesPerSecond()
+
+        // Progressive indexing corrects a rate the container misstated once it has read the times
+        // the pictures carry, and the length of a stream can follow the count it learns. The
+        // footer and the sheet both give them.
+        if frameRate != .factsRate or duration != .factsDuration
+        {
+            .factsRate        = frameRate
+            .factsDuration    = duration
+            .informationReady = false
+            .refreshDetails()
+        }
+
         .refreshInformation()
-        let duration = .video.durationInSeconds()
-        let rate     = .video.frameRate().framesPerSecond()
-        let step     = rate > 0 ? 1 / rate : 0.01
-        let count    = .video.frameCount()
+        let step  = rate > 0 ? 1 / rate : 0.01
+        let count = .video.frameCount()
         if not .timelineReady
         {
             if duration > 0 do
@@ -974,7 +1006,6 @@ private impl Panel
             if duration > 0 do
                 .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
             .timeline.enable(duration > 0 and count > 1)
-            .refreshDetails()
         }
 
         let audioCount = .video.audioTrackCount()

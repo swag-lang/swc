@@ -11,6 +11,23 @@ using Swag
     Swag.require(not literal.match("2"))
 }
 
+// Recompiling an expression reports syntax errors and leaves it ready for a later compile.
+#test
+{
+    var expression = expect Parser.RegExp.create("(old)")
+    Swag.require(expression.captureCount() == 1)
+
+    var invalidOutcome: Swag.Error
+    discard catch expression.compile("(") as invalidOutcome
+    Swag.require(invalidOutcome.value() is Errors.SyntaxError)
+    Swag.require(expression.captureCount() == 0)
+
+    expect expression.compile("(new)")
+    Swag.require(expression.captureCount() == 1)
+    Swag.require(expression.match("new"))
+    Swag.require(expression.getCapture(1) == "new")
+}
+
 #test
 {
     var digitClass = expect Parser.RegExp.create("\\d")

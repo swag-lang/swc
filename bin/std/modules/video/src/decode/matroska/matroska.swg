@@ -209,7 +209,7 @@ private impl Track
     // A track states the two sizes separately, and their ratio is what matters: a display size
     // equal to the stored one, or missing, means square samples. Unit 0 states pixels and unit 3
     // states a bare ratio; the physical units are not something a window can act on.
-    mtd const displaySize(width, height: s32)->{ width, height: s32 }
+    internal mtd const displaySize(width, height: s32)->{ width, height: s32 }
     {
         if .displayUnit != 0 and .displayUnit != 3 do
             return {width: 0, height: 0}
@@ -227,7 +227,7 @@ private impl Track
 
     // Recognized explicit display geometry takes priority over codec pixel aspect, including an
     // explicit 1:1 geometry that happens to match the coded dimensions.
-    mtd const hasDisplaySize()->bool => (.displayUnit == 0 or .displayUnit == 3) and .displayWidth and .displayHeight
+    internal mtd const hasDisplaySize()->bool => (.displayUnit == 0 or .displayUnit == 3) and .displayWidth and .displayHeight
 
     mtd const isPlayableVideo()->bool
     {

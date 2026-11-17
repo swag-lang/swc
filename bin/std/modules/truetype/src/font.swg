@@ -113,6 +113,7 @@ struct FaceImpl
 
     // Names declared by an sfnt `post` table. Keys are owned by this face.
     postNameToGid: HashTable'(String, u32)
+    postGlyphNames: Array'String
 }
 
 impl FaceImpl
@@ -133,6 +134,7 @@ impl FaceImpl
         .kernPairs.free()
         .gposPairSubtables.free()
         .postNameToGid.free()
+        .postGlyphNames.free()
         .syntheticCMap.free()
 
         // A custom drop owns nested cleanup, so release each string and parser
@@ -158,6 +160,35 @@ impl FaceImpl
         case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
         case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
         case .Glyf:  return .postNameToGid.getOrDefault(key, 0)
+        }
+    }
+
+    // Returns the glyph name held at an index, or null when unavailable.
+    mtd const glyphName(glyphIndex: u32)->string?
+    {
+        if glyphIndex >= .face.glyphCount do
+            return null
+
+        switch #complete .outlineSource
+        {
+        case .Cff:
+            if glyphIndex >= .cff.glyphNames.count do
+                return null
+            if not .cff.glyphNames[glyphIndex].length do
+                return null
+            return .cff.glyphNames[glyphIndex].toString()
+        case .Type1:
+            if glyphIndex >= .type1.glyphNames.count do
+                return null
+            if not .type1.glyphNames[glyphIndex].length do
+                return null
+            return .type1.glyphNames[glyphIndex].toString()
+        case .Glyf:
+            if glyphIndex >= .postGlyphNames.count do
+                return null
+            if not .postGlyphNames[glyphIndex].length do
+                return null
+            return .postGlyphNames[glyphIndex].toString()
         }
     }
 

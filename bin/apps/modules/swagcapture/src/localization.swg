@@ -177,6 +177,8 @@ struct AppStrings
     msg_ExportingCaptures:        string = "Exporting selected captures…"
     msg_ExportedCaptures:         string = "Selected captures exported"
     msg_FailedMoveCaptures:       string = "Some captures could not be moved. They are still where they were."
+    msg_FailedDeleteCaptures:     string = "Some captures could not be deleted. They are still in the recycle bin."
+    msg_FailedRestoreCaptures:    string = "Some captures could not be restored. They are still in the recycle bin."
     msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
     msg_ResidentTitle:            string = "Swag Capture is still running."     // Title of the resident reminder.
     msg_ResidentText:             string = "Double-click its icon in the notification area to open it, right-click for the menu."     // Says where the application went.

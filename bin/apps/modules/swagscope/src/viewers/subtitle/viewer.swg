@@ -22,7 +22,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// One line of a cue's words as the list sets it: a byte range of the words, and the width it takes.
+// One line of a cue's words as the list sets it: a byte range of the words.
 struct CueLine
 {
     start: u64
@@ -54,13 +54,6 @@ private func clockText(seconds: f64)->String
     let rest     = millis / 1_000 % 60
     let fraction = millis % 1_000
     return Format.toString("%{02}:%{02}:%{02},%{03}", hours, minutes, rest, fraction)
-}
-
-// Formats a time as HH:MM:SS, the reading at the foot of the list.
-private func secondsText(seconds: f64)->String
-{
-    let whole = cast(u64, Math.max(Math.floor(seconds), 0.0))
-    return Format.toString("%{02}:%{02}:%{02}", whole / 3_600, whole / 60 % 60, whole % 60)
 }
 
 // Returns the established name of a subtitle syntax.
@@ -308,11 +301,29 @@ impl IWnd for CueSheet
         let column  = .column()
         .paintHead(painter, column)
 
-        // The list is set in document coordinates; only the rows in view are written.
+        // The list is set in document coordinates; only the rows in view are written. The rows
+        // follow one another down the list, so a binary search finds the first one that reaches
+        // the view, and the writing stops at the first one below it.
         var band = .clientRect()
         band.offset(.scrollPos)
-        for &row, index in .rows where row.top + row.height >= band.y and row.top <= band.bottom() do
+        var first = 0'u64
+        var last  = .rows.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            let row    = &.rows[middle]
+            if row.top + row.height < band.y do
+                first = middle + 1
+            else do
+                last = middle
+        }
+
+        for index in first until .rows.count
+        {
+            if .rows[index].top > band.bottom() do
+                break
             .paintRow(painter, index)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -413,12 +424,16 @@ impl IWnd for CueRhythm
         let start = Math.max(track.cueStartTime(0), track.cueStartTime(focus) - Span * Lead)
         let scale = cast(f64, width) / Span
 
+        // The track orders its cues by their start, so the first one that starts past the minute
+        // ends the rules. One that started earlier may still last into it, so those are all read.
         painter.setParams(.Antialiased)
         for index in track.cueCount()
         {
             let first = track.cueStartTime(index)
             let last  = track.cueEndTime(index)
-            if last < start or first > start + Span do
+            if first > start + Span do
+                break
+            if last < start do
                 continue
 
             let x0 = left + cast(f32, (Math.max(first, start) - start) * scale)
@@ -494,11 +509,12 @@ impl Panel
         .sheet.invalidate()
     }
 
-    // Says the current cue on the readings at the foot: its rank on the left, its time on the right.
+    // Says the current cue on the readings at the foot: its rank on the left, its time on the right,
+    // spelled as every clock of Swag Scope spells one.
     mtd refreshReadings()
     {
         .services.showDetails(me, .cuePosition())
-        let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : secondsText(.track!.cueStartTime(.currentCue))
+        let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : Viewer.timeText(.track!.cueStartTime(.currentCue))
         .timeButton.setQuietText(time)
         .services.chromeChanged(me)
     }
@@ -536,12 +552,14 @@ impl Panel
     }
 
     // Shows the first cue still on screen at `seconds`, or the last cue when the track has ended.
+    // A cue's end is exclusive: at that very instant, or in the gap after it, the next cue is the
+    // one to come.
     mtd revealTime(seconds: f64)
     {
         let count = .track!.cueCount()
         if not count do
             return
-        for index in count where .track.cueEndTime(index) >= seconds
+        for index in count where .track.cueEndTime(index) > seconds
         {
             discard .revealCue(index)
             return
@@ -668,13 +686,16 @@ impl Panel
     // Asks for a time and reveals the first cue that has not ended by then, or the last cue.
     //
     // The time is read as the lens reads one, but from the start of the track and without an end:
-    // an instant past the last cue shows the last cue.
+    // an instant past the last cue shows the last cue. Like the Go to Time of a film, the box
+    // offers where the reader stands as the clocks spell it: the start of the current cue, or zero
+    // before any cue is current, since the track reads zero as the start of a cue it lacks.
     mtd promptGoToTime()
     {
         let count = .track!.cueCount()
         if not count do
             return
-        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00"})
+        let current = Viewer.timeText(.track.cueStartTime(.currentCue))
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: current})
         if dialog.doModal() != Dialog.BtnOk do
             return
 

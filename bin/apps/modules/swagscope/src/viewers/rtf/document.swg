@@ -217,8 +217,7 @@ private impl Reader
                 if first < 0 or second < 0 do
                     fail Errors.InvalidFormatError{texts().err_Invalid}
                 .offset += 2
-                var encoded: [1] u8 = [cast(u8, first * 16 + second)]
-                .appendText(Text.decode(encoded, .Windows1252))
+                .appendRune(Text.windows1252Rune(cast(u8, first * 16 + second)))
             }
 
             return

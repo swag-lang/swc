@@ -135,6 +135,58 @@ using Core, Gui, Gui.Testing, Viewers
     host.finishAnimations()
 }
 
+// The page rows of the lens stop at the ends of the book, and teach the arrow that turns the way
+// the book reads: a manga turns forward with the left one.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.activePage == 0)
+
+    func pageRows(window: *ViewerWindow, host: *HeadlessHost)->{previousDisabled: bool, nextDisabled: bool, nextKey: String}
+    {
+        var result: #returntype
+        window.lens.open()
+        host.finishAnimations()
+        defer
+        {
+            window.lens.close()
+            host.finishAnimations()
+        }
+
+        for section in window.lens.results.sections
+        {
+            for &entry in section!.entries
+            {
+                if entry.title == Comic.texts().ui_Previous
+                {
+                    result.previousDisabled = entry.disabled
+                }
+                elif entry.title == Comic.texts().ui_Next
+                {
+                    result.nextDisabled = entry.disabled
+                    result.nextKey      = entry.detail
+                }
+                elif entry.title == Comic.texts().ui_RightToLeft
+                {
+                    Swag.require(entry.detail.isEmpty(), "no key toggles the reading direction")
+                }
+            }
+        }
+
+        return result
+    }
+
+    let leftToRight = pageRows(window, &host)
+    Swag.require(leftToRight.previousDisabled and not leftToRight.nextDisabled)
+    Swag.require(leftToRight.nextKey == Input.formatKeyShortcut(.None, .Right))
+
+    view.rightToLeft = true
+    let rightToLeft = pageRows(window, &host)
+    Swag.require(rightToLeft.nextKey == Input.formatKeyShortcut(.None, .Left))
+}
+
 // A `ComicInfo.xml` at the root of the book is read for the information sheet, and a manga that
 // says it reads from right to left turns its pages that way from the start.
 #test
@@ -157,6 +209,10 @@ using Core, Gui, Gui.Testing, Viewers
     let book = expect Comic.Book.load(fileName)
     Swag.require(book.pages.count == 2 and book.info.title == "The Potion of Flight")
     Swag.require(book.info.series == "Pepper & Carrot" and book.info.number == "1" and book.info.rightToLeft)
+
+    // The Explorer cover needs only the page order, and leaves the description unread.
+    let cover = expect Comic.Book.loadPages(fileName)
+    Swag.require(cover.pages.count == 2 and cover.info.isEmpty() and not cover.info.rightToLeft)
 
     var host: HeadlessHost
     let window = framedViewerWindow(&host, fileName, false)

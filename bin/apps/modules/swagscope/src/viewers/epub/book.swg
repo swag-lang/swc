@@ -85,9 +85,9 @@ impl Book
         let container    = try requiredEntry(&archive, "META-INF/container.xml")
         let packagePath  = try rootFile(fileName, container)
         let packageEntry = try requiredEntry(&archive, packagePath)
-        let index        = try readPackage(fileName, packageEntry, &archive)
-        result.chapters = index.chapters
-        result.metadata = index.metadata
+        var index        = try readPackage(fileName, packageEntry, &archive)
+        result.chapters = #move index.chapters
+        result.metadata = #move index.metadata
         let navigationPath = index.navPath.isEmpty() ? index.ncxPath.toString() : index.navPath.toString()
         if navigationPath.count
         {
@@ -289,7 +289,7 @@ private func readPackage(fileName: string, entry: const *Archive.ZipEntry, archi
         fail Errors.InvalidFormatError{texts().err_Invalid}
 
     var result: #returntype
-    result.metadata = metadata
+    result.metadata = #move metadata
     for item in items
     {
         for property in Tokenize.split(item.properties, ' 'u8)
@@ -310,22 +310,24 @@ private func readPackage(fileName: string, entry: const *Archive.ZipEntry, archi
             result.ncxPath = item.path
     }
 
+    // The spine names manifest items by identifier; index them once rather than scanning the
+    // manifest for every reference. The first item declaring an identifier is the one named.
+    var itemById: HashTable'(string, u64)
+    for item, index in items do
+        itemById.add(item.id.toString(), index, updateValue: false)
+
     for id in order
     {
-        var found = false
-        for &item in items where item.id == id
-        {
-            found = true
-            if item.mediaType != "application/xhtml+xml" and item.mediaType != "text/html" do
-                fail Errors.UnsupportedFormatError{texts().err_UnsupportedChapter}
-            if archive.tryFindEntry(item.path) == null do
-                fail Errors.InvalidFormatError{texts().err_Invalid}
-            result.chapters.add(Chapter{item.path, item.id})
-            break
-        }
-
+        let found = itemById.tryFind(id.toString())
         if not found do
             fail Errors.InvalidFormatError{texts().err_Invalid}
+
+        let item = &items[found.value]
+        if item.mediaType != "application/xhtml+xml" and item.mediaType != "text/html" do
+            fail Errors.UnsupportedFormatError{texts().err_UnsupportedChapter}
+        if archive.tryFindEntry(item.path) == null do
+            fail Errors.InvalidFormatError{texts().err_Invalid}
+        result.chapters.add(Chapter{item.path, item.id})
     }
 
     if result.chapters.isEmpty() do

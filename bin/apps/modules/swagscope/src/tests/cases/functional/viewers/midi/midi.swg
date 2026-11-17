@@ -116,6 +116,48 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Testing.assertContentFits(viewer.info)
 }
 
+// A note held from the start of the piece still shows once the view scrolls far past where it
+// started, beyond many shorter notes that it no longer reaches.
+#test
+{
+    const ShortNotes = 64'u32
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "MThd"))
+    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add(cast(const [..] u8, "MTrk"))
+    let trackSize = 4 + ShortNotes * 9 + 4 + 4
+    bytes.add([0'u8, 0, cast(u8, trackSize >> 8), cast(u8, trackSize & 0xFF)])
+    bytes.add([0'u8, 0x90, 60, 100])
+    for ShortNotes do
+        bytes.add([0'u8, 0x90, 64, 100, 0x83, 0x60, 0x80, 64, 0])
+    bytes.add([0'u8, 0x80, 60, 0])
+    bytes.add([0'u8, 0xFF, 0x2F, 0])
+    let fileName = Gui.Testing.tempFilePath("scope-midi-held-", ".mid")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+    var document = expect Midi.loadDocument(fileName)
+    Swag.require(document.notes.count == ShortNotes + 1 and document.longestNote == ShortNotes * 480)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let roll = Midi.RollView.create(&host.root, #move document)
+    host.root.applyLayout()
+    roll.applyZoom(1)
+    roll.scroll.setScrollPos(roll.timelineWidth * 0.5, 0)
+    Swag.require(roll.scrollPos.x > roll.clientRect().width)
+
+    // The held key's row is painted across the view; the next white key, which no note plays, is not.
+    func rowY(roll: *Midi.RollView, key: u8)->s32
+    {
+        let middle = roll.plotTop + (cast(f32, roll.highKey - key) + 0.5) * roll.rowHeight
+        return cast(s32, roll.surfaceRect().y + middle)
+    }
+
+    let image = host.render(&host.root)
+    let x     = cast(s32, roll.surfaceRect().x + roll.clientRect().width * 0.75)
+    Swag.require(image.pixelColor(x, rowY(roll, 60)) != image.pixelColor(x, rowY(roll, 62)))
+}
+
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-midi-bad-", ".mid")

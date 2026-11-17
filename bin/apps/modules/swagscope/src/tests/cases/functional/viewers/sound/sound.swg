@@ -288,6 +288,82 @@ func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Ar
     Swag.require(points[1].body == points[1].peak)
 }
 
+// Reduces `samples` the way the reducer once did, working out the point of every frame on its own
+// from its offset, and reports in `ready` how many points it stored.
+func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, ready: *u64)->Array'Sound.WaveformPoint
+{
+    var result: #returntype
+    result.resize(pointCount)
+    let frameCount = samples.count / channels
+    var current    = 0'u64
+    var count      = 0'u64
+    var peak       = 0'f32
+    var sum        = 0'f64
+    for frame in frameCount
+    {
+        let target = Math.min(frame * pointCount / frameCount, pointCount - 1)
+        if target != current
+        {
+            result[current] = Sound.WaveformPoint{peak, count ? cast(f32, (sum / cast(f64, count))) : 0}
+            ready[]         = current + 1
+            current         = target
+            peak            = 0
+            sum             = 0
+            count           = 0
+        }
+
+        var mixed = 0'f32
+        for channel in channels do
+            mixed += cast(f32, samples[frame * channels + channel]) / 32768
+        let level = Math.abs(mixed / channels)
+        peak  = Math.max(peak, level)
+        sum   += level
+        count += 1
+    }
+
+    if count
+    {
+        result[current] = Sound.WaveformPoint{peak, cast(f32, (sum / cast(f64, count)))}
+        ready[]         = current + 1
+    }
+
+    return result
+}
+
+// The reducer finds the point of a frame once per point rather than once per frame. On a ratio
+// that does not divide, over chunks that cut across points, and with more points than frames,
+// every point still holds what the reading of each frame on its own gives.
+#test
+{
+    var samples: Array's16
+    for index in 2 * 1_009 do
+        samples.add(cast(s16, cast(s64, index * 7_919 % 65_536) - 32_768))
+    let all = samples.toSlice()
+
+    for shape in [{frames: 1_009'u64, points: 13'u64}, {frames: 5'u64, points: 8'u64}]
+    {
+        let slice    = all[0 until shape.frames * 2]
+        var ready    = 0'u64
+        let expected = referenceWaveform(slice, 2, shape.points, &ready)
+
+        var points: Array'Sound.WaveformPoint
+        points.resize(shape.points)
+        var reducer = Sound.WaveformReducer{&points, shape.frames, shape.points, 2}
+        var start   = 0'u64
+        while start < shape.frames
+        {
+            let end = Math.min(start + 37, shape.frames)
+            reducer.consume(slice[start * 2 until end * 2])
+            start = end
+        }
+
+        reducer.finish()
+        Swag.require(reducer.readyCount == ready)
+        for point, index in points do
+            Swag.require(point.peak == expected[index].peak and point.body == expected[index].body, Format.toString("%", index))
+    }
+}
+
 // One slice covering several frames reports the loudest of them and the mean of them, and the two
 // are only equal when the slice is flat. Channels are mixed before either is read.
 #test
@@ -642,6 +718,24 @@ func soundInformation(bytes: const [..] u8)->String
                  not Utf8.contains(view.details.toString(), "0:00–"))
     view.seekSeconds(1.6)
     Swag.require(not view.followLoop())
+
+    // A passage looped up to the very end plays again from its start. By then the voice has
+    // handed the device its last buffer and stopped playing, while the transport still plays; the
+    // silent engine never runs a voice dry, so a pause stands for that here.
+    view.seekSeconds(1)
+    view.setLoopStart()
+    view.seekSeconds(view.duration)
+    view.setLoopEnd()
+    Swag.require(view.loopEnd > view.duration - 0.01)
+    view.togglePlayback()
+    let voice = unwrap view.voice
+    expect voice.pause()
+    view.elapsed = cast(f32, voice.playbackPositionSeconds())
+    Swag.require(view.playing and view.followLoop())
+    Swag.require(view.playing and voice.isPlaying() and Math.abs(voice.playbackPositionSeconds() - 1) < 0.01)
+    view.stopPlayback()
+    view.clearLoop()
+    view.seekSeconds(1.6)
 
     // The lens copies the instant playback stands at, as the clock writes it.
     var results: Lens.Results

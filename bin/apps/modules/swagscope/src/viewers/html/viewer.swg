@@ -46,6 +46,7 @@ struct Panel
     outline:     *DocumentOutline?
     services:    Viewer.HostServices
     shownFacts:  HtmlDocumentFacts     // What the information sheet was last told of the page's head.
+    factsFinal:  bool     // Whether `shownFacts` was read from a page that had finished loading.
 }
 
 // The fallback reading measure for a page without its own CSS width.
@@ -193,10 +194,18 @@ func createViewer(host: Viewer.Host)
     result.hookZoomKeys()
 
     // A head read once the page has streamed in changes what the information sheet says.
+    //
+    // Only a page still arriving, or a newly followed one, can change its head; reading the facts
+    // walks every node, so the relayouts of a loaded page for zoom or width do not read them again.
     let services = host.services()
     result.services = services
     result.view.sigDocumentChanged += func|result|(_)
     {
+        let loading = result.view.isLoading()
+        if result.factsFinal and not loading do
+            return
+        result.factsFinal = not loading
+
         let facts = result.view.documentFacts()
         if facts.title != result.shownFacts.title or
            facts.language != result.shownFacts.language or

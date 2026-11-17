@@ -42,6 +42,11 @@ private func mountCacheDirectoryName(name: string)->bool
     return true
 }
 
+private func isMountCacheDirectory(entry: const *File.FileInfo)->bool =>
+    entry.isDirectory() and
+    not entry.attributes.has(.ReparsePoint) and
+    mountCacheDirectoryName(Path.fileName(entry.fullName) orelse "")
+
 impl ThumbnailCache
 {
     private func policyDirectory(policy: const *File.MountPrivacy)->String
@@ -60,10 +65,10 @@ impl ThumbnailCache
             return
         discard try clear(root, false)
         let entries = try Directory.enumerate(root, {})
-        for &entry in entries where entry.isDirectory()
+        for &entry in entries where isMountCacheDirectory(entry)
         {
             let name = Path.fileName(entry.fullName) orelse ""
-            if mountCacheDirectoryName(name) and Utf8.startsWith(name, Format.toString("%.", channel))
+            if Utf8.startsWith(name, Format.toString("%.", channel))
             {
                 discard try clear(entry.fullName)
                 catch Directory.delete(entry.fullName)
@@ -84,7 +89,7 @@ impl ThumbnailCache
         {
             if file.isDirectory()
             {
-                if mountCacheDirectoryName(Path.fileName(file.fullName) orelse "") do
+                if isMountCacheDirectory(file) do
                     try prune(file.fullName, nowTicks)
                 continue
             }
@@ -123,7 +128,7 @@ impl ThumbnailCache
                 break
             if file.isDirectory()
             {
-                if includeMounts and mountCacheDirectoryName(Path.fileName(file.fullName) orelse "")
+                if includeMounts and isMountCacheDirectory(file)
                 {
                     removed += try clear(file.fullName)
                     catch Directory.delete(file.fullName)

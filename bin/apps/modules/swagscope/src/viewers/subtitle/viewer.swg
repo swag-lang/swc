@@ -22,7 +22,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// One line of a cue's words as the list sets it: a byte range of the words, and the width it takes.
+// One line of a cue's words as the list sets it: a byte range of the words.
 struct CueLine
 {
     start: u64

@@ -723,6 +723,7 @@ namespace Simd
     }
 
     // Maps each lane from its source range into its destination range without clamping.
+    // Every source endpoint pair must differ.
     func map(value, sourceMinimum, sourceMaximum, destinationMinimum, destinationMaximum: Simd.F32x4)->Simd.F32x4
         => destinationMinimum + inverseLerp(sourceMinimum, sourceMaximum, value) * (destinationMaximum - destinationMinimum)
 

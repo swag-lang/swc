@@ -778,7 +778,7 @@ impl LibraryWnd
         }
     }
 
-    // Offers the most used tags as chips; the chip of the tag in force is chosen.
+    // Offers the first six tags alphabetically as chips; the chip of the tag in force is chosen.
     mtd updateTagChips()
     {
         if .tagChips == null do

@@ -57,6 +57,14 @@ impl Quaternion
     // Returns the conjugate, which negates the vector part.
     mtd const conjugate()->Quaternion => Quaternion{-.x, -.y, -.z, .w}
 
+    // Multiplies quaternions using the Hamilton product, composing rotations for unit inputs.
+    #[Inline]
+    mtd(op: Swag.Operator) const opBinary(other: Quaternion)->Quaternion
+        where op == .Mul
+    {
+        return .multiply(other)
+    }
+
     // Returns the multiplicative inverse, or identity for zero or non-finite components.
     mtd const inverse()->Quaternion
     {

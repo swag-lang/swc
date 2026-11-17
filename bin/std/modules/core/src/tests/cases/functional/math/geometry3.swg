@@ -54,6 +54,7 @@ func expectNear(actual, expected: f32)
     let first = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitZ, Math.ConstF32.PiBy2)
     let second = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitX, Math.ConstF32.PiBy2)
     expectVec3(first.multiply(second).rotate(Math.Vector3.UnitY), {0, 0, 1})
+    expectVec3((first * second).rotate(Math.Vector3.UnitY), {0, 0, 1})
 }
 
 #test

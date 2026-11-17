@@ -221,11 +221,11 @@ DIAGNOSE AND FIX IN BATCHES; DO NOT REPEAT GREEN WORK
   exhaustive ladder above once. If a final gate fails, fix its root and rerun that gate plus any
   later or earlier gates that consume the changed inputs. Do not restart at step 1 by category
   alone. The final ladder still verifies both compiler executables and both program configurations.
-- Budget the session before the first expensive stage: estimate each build and gate from recent
-  timings, reserve time for one final ladder, and report when the remaining work cannot fit. Do
-  not spend the budget replaying green gates or launching another broad pass to seek diagnostics.
-  If the budget expires, retain the gate ledger and exact open batch for continuation; report the
-  reset as incomplete rather than presenting a partial campaign as green.
+- Before the first expensive stage, estimate each build and gate from recent timings. Plan the
+  remaining work in batches so compiler builds and broad checks serve distinct decisions. Respect
+  any time limit set for the current session; if the work cannot fit, retain the gate ledger and
+  exact open batch for continuation. Do not replay green gates or launch another broad pass merely
+  to gather diagnostics. Report an unfinished reset as incomplete, never as green.
 - For an intermittent failure, use a bounded, focused reproducer with diagnostic capture. Do not
   loop an entire application suite to wait for chance. If the failure remains unexplained, keep
   it open and report the reset as incomplete; a green retry is not a repair.

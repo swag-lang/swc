@@ -11,18 +11,20 @@ using Core, Linux
     Swag.require(Linux.mkdtemp(temporary.storage()) == temporary.buffer)
     defer expect Directory.delete(temporary, recurse: true)
 
+    let hadPath = Linux.getenv("PATH".buffer) != null
+    let hadInterop = Linux.getenv("WSL_INTEROP".buffer) != null
     let originalPath = Env.variable("PATH")
     let originalInterop = Env.variable("WSL_INTEROP")
     defer
     {
-        if originalPath.isEmpty() do
-            discard Linux.unsetenv("PATH".buffer)
-        else do
+        if hadPath do
             discard Linux.setenv("PATH".buffer, originalPath.storage(), 1)
-        if originalInterop.isEmpty() do
-            discard Linux.unsetenv("WSL_INTEROP".buffer)
         else do
+            discard Linux.unsetenv("PATH".buffer)
+        if hadInterop do
             discard Linux.setenv("WSL_INTEROP".buffer, originalInterop.storage(), 1)
+        else do
+            discard Linux.unsetenv("WSL_INTEROP".buffer)
     }
     let pidFile = Path.combine(temporary, "powershell.pid")
     var python = expect Env.runProcess("which", ["python3"])

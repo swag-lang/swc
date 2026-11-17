@@ -353,8 +353,7 @@ impl Panel
     }
 
     // Gives the host `details` unless they are what it shows already. The pointer sends many moves
-    // over one pixel, or beside the picture, and each report lays the footer out again and
-    // refreshes an open information sheet.
+    // over one pixel, or beside the picture, and the host would only set each repeat aside.
     mtd reportDetails(details: String)
     {
         if details == .reported do

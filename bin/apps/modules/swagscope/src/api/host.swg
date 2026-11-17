@@ -7,6 +7,10 @@ using Core, Gui
 alias ReportFailure = func(*Wnd, string)
 
 // Hands format statistics that changed after creation back to the host information band.
+//
+// A summary equal to the one the host already holds changes nothing, so pointer probes and
+// timers may repeat it freely. It is not a way to refresh the information sheet; report that
+// with [[Viewer.ReportInformationChanged]].
 alias ReportDetails = func(*Wnd, string)
 
 // Describes a file in the shared information sheet.

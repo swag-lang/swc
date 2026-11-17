@@ -202,6 +202,10 @@ func reportViewerDetails(view: *Wnd, details: string)
     let window = viewerWindowFor(view)
     for &instance, index in window.instances where instance.view == view
     {
+        // Pointer probes and timers repeat a summary that has not moved. The line already shows
+        // it, and laying the line out or describing an open sheet again would only cost a frame.
+        if instance.details == details do
+            return
         instance.details = details
         if index == window.activeChoiceIndex do
             window.updateFileInfo(details)

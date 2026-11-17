@@ -52,6 +52,8 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
 {
     for &instance in embeddedViewerFor(view).instances where instance.view == view
     {
+        // The sheet gives the summary, so only a new one is worth describing it again.
+        let changed = instance.details != details
         instance.details = details
         let embedded = embeddedViewerFor(view)
         if embedded.currentView == view
@@ -60,7 +62,7 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
             embedded.titleLabel.toolTip = details
         }
 
-        if embedded.informationOnly
+        if changed and embedded.informationOnly
         {
             let information = embedded.owner.information
             information.postRefresh()

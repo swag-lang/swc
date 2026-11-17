@@ -157,6 +157,29 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.require(StrConv.toDisplaySize(1) == "1 byte")
     Swag.require(StrConv.toDisplaySize(1023) == "1023 bytes")
     Swag.require(StrConv.toDisplaySize(1536) == "1 KB")
+    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024) == "1 MB")
+    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024 * 1024) == "1 GB")
+    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024 * 1024 * 1024) == "1 TB")
+}
+
+#test
+{
+    Swag.require(StrConv.toDisplayBitrate(0) == "0 bps")
+    Swag.require(StrConv.toDisplayBitrate(999) == "999 bps")
+    Swag.require(StrConv.toDisplayBitrate(1000) == "1 Kbps")
+    Swag.require(StrConv.toDisplayBitrate(1_234_567) == "1 Mbps")
+    Swag.require(StrConv.toDisplayBitrate(1_000_000_000) == "1 Gbps")
+}
+
+#test
+{
+    Swag.require(StrConv.toDisplayDuration(0) == "0s")
+    Swag.require(StrConv.toDisplayDuration(59_999) == "59s")
+    Swag.require(StrConv.toDisplayDuration(60_000) == "1m 0s")
+    Swag.require(StrConv.toDisplayDuration(3_599_000) == "59m 59s")
+    Swag.require(StrConv.toDisplayDuration(3_600_000) == "1h 0m 0s")
+    Swag.require(StrConv.toDisplayDuration(86_399_000) == "23h 59m 59s")
+    Swag.require(StrConv.toDisplayDuration(86_400_000) == "1d 0h 0m 0s")
 }
 
 // A character literal formats as the character, and a decimal literal as the double nearest to it.

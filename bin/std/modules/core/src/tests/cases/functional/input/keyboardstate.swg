@@ -10,6 +10,9 @@ using Swag
     for i in Input.Key.count do
         state.setPressed(Input.keyFromStorageIndex(i), true)
 
+    for i in Input.Key.count do
+        Swag.require(state.pressed[i])
+
     state.clear()
 
     for i in Input.Key.count do

@@ -67,6 +67,8 @@ impl SoundTags
 
         if head[0] == 'I' and head[1] == 'D' and head[2] == '3'
         {
+            if not isSyncSafe(head[6 until 10]) do
+                return result
             let size = Id3HeaderSize + syncSafe(head[6 until 10])
             if size > TagSizeLimit do
                 return result
@@ -142,7 +144,10 @@ internal impl SoundTags
         {
             if offset + 4 > tag.count do
                 return
-            let extended = version == 4 ? syncSafe(tag[offset until offset + 4]) : bigEndian(tag[offset until offset + 4]) + 4
+            let extendedBytes = tag[offset until offset + 4]
+            if version == 4 and not isSyncSafe(extendedBytes) do
+                return
+            let extended = version == 4 ? syncSafe(extendedBytes) : bigEndian(extendedBytes) + 4
             offset += extended
         }
 
@@ -166,7 +171,10 @@ internal impl SoundTags
                 size = bigEndian(tag[offset + 4 until offset + 8])
 
             default:
-                size = syncSafe(tag[offset + 4 until offset + 8])
+                let sizeBytes = tag[offset + 4 until offset + 8]
+                if not isSyncSafe(sizeBytes) do
+                    return
+                size = syncSafe(sizeBytes)
             }
 
             let body = offset + headerSize
@@ -474,10 +482,19 @@ private func yearOf(date: String)->String
     return date
 }
 
-private func syncSafe(bytes: const [..] u8)->u64 => (cast(u64, bytes[0] & 0x7F) << 21) |
-                                                    (cast(u64, bytes[1] & 0x7F) << 14) |
-                                                    (cast(u64, bytes[2] & 0x7F) << 7) |
-                                                    cast(u64, bytes[3] & 0x7F)
+private func isSyncSafe(bytes: const [..] u8)->bool
+{
+    if bytes.count != 4 do
+        return false
+    for byte in bytes where (byte & 0x80) != 0 do
+        return false
+    return true
+}
+
+private func syncSafe(bytes: const [..] u8)->u64 => (cast(u64, bytes[0]) << 21) |
+                                                        (cast(u64, bytes[1]) << 14) |
+                                                        (cast(u64, bytes[2]) << 7) |
+                                                        cast(u64, bytes[3])
 private func bigEndian(bytes: const [..] u8)->u64 => (cast(u64, bytes[0]) << 24) |
                                                      (cast(u64, bytes[1]) << 16) |
                                                      (cast(u64, bytes[2]) << 8) |

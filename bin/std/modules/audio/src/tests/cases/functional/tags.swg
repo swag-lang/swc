@@ -203,6 +203,47 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.year == "2024", tags.year)
 }
 
+// ID3v2.4 syncsafe size bytes with their high bit set do not decode as a tag.
+#test
+{
+    var body: Array'u8
+    body.add(3'u8)
+    for byte in "2024" do
+        body.add(byte)
+
+    var frames: Array'u8
+    appendId3v24Frame(&frames, "TDRC", body.toSlice())
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(4'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    file.add(frames.toSlice())
+
+    var invalidHeader = file
+    invalidHeader[6] |= 0x80
+    let headerPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                  Format.toString("swag_audio_tags_bad_header_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(headerPath)
+    discard expect File.writeAllBytes(headerPath, invalidHeader.toSlice())
+    Swag.require(SoundTags.read(headerPath).isEmpty())
+
+    var invalidFrame = file
+    invalidFrame[14] |= 0x80 // Frame size, after the ten-byte ID3 header and four-byte frame id.
+    let framePath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                 Format.toString("swag_audio_tags_bad_frame_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(framePath)
+    discard expect File.writeAllBytes(framePath, invalidFrame.toSlice())
+    Swag.require(SoundTags.read(framePath).isEmpty())
+}
+
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.
 #test
 {

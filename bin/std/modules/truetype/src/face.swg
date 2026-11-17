@@ -22,6 +22,7 @@ public enum StyleFlag
 // [[TrueType.Face.metadataAt]] reads this description without loading outlines or retaining
 // the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
 // The fixed-pitch flag comes from `post` and defaults to false when that table is absent.
+// The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees.
 public struct FaceMetadata
 {
     public
@@ -35,6 +36,7 @@ public struct FaceMetadata
         embedding:             u16           // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
         isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
+        italicAngle:           s32 = 0       // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
     }
 }
 
@@ -75,6 +77,7 @@ public struct Face
     {
         style:              StyleFlag     // Declared bold and italic traits.
         isFixedPitch:       bool          // True when the `post` table declares a nonzero fixed-pitch value.
+        italicAngle:        s32           // Signed 16.16 degrees from `post`; divide by 65536 to obtain degrees.
         glyphCount:         u32           // Number of glyphs in the face.
         familyName:         String        // Owned font-family name.
         styleName:          String        // Owned style name such as `Regular` or `Bold`.
@@ -253,6 +256,11 @@ public impl Face
         .isFixedPitch = value
     }
 
+    internal mtd setItalicAngle(value: s32)
+    {
+        .italicAngle = value
+    }
+
     internal mtd initializeRecords()
     {
         .glyph.initialize(me)
@@ -359,6 +367,8 @@ public impl Face
     // values use 400/700 according to the bold trait; absent or invalid width classes use 5.
     // The fixed-pitch flag is true for any nonzero `post.isFixedPitch` value and false when
     // the `post` table is absent.
+    // The italic angle is signed 16.16 degrees; divide by 65536 to obtain degrees. It is zero
+    // when the `post` table is absent.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
     // This inspects metadata only; it does not validate that every glyph can be loaded.
     //

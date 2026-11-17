@@ -167,6 +167,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x9A)
 
     faceData.face.setUnderline(try readS16(postTable, 8), try readS16(postTable, 10))
+    faceData.face.setItalicAngle(try readS32(postTable, 4))
     faceData.face.setFixedPitch(try readU32(postTable, 12) != 0)
     try parsePostGlyphNames(faceData, postTable, format)
 }
@@ -623,6 +624,7 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
         if post.count < 32 do
             fault(0x9B)
         result.isFixedPitch = readU32(post, 12) != 0
+        result.italicAngle = readS32(post, 4)
     }
 
     result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16

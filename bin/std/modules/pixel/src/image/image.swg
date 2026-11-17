@@ -66,6 +66,24 @@ struct Image
     workingBuffer: *Image?
 }
 
+internal func validateImagePixelStorage(image: const *Image)
+{
+    if not image.pixels.buffer or
+       image.width <= 0 or
+       image.height <= 0 or
+       not image.bytesPerPixel or
+       not image.pixelFormat.isPacked() do
+        Swag.panic("cannot visit pixels of an invalid image", #curlocation)
+
+    let rowBytes = cast(u64, image.width) * cast(u64, image.bytesPerPixel)
+    if rowBytes > Swag.S32.Max or
+       image.rowStride != cast(s32, rowBytes) or
+       image.byteCount != rowBytes * cast(u64, image.height) or
+       image.pixels.count != image.byteCount or
+       image.bytesPerPixel != image.pixelFormat.bitsPerPixel() / 8 do
+        Swag.panic("image pixel storage does not match its geometry", #curlocation)
+}
+
 // One logical pixel in the representation used between storage formats.
 // Integer formats map their full range to zero through one; floating-point formats retain
 // finite values outside that range so HDR conversions do not clip until an integer target asks.
@@ -498,13 +516,16 @@ impl Image
     // - `index`, the ordinal of the pixel in the buffer;
     // - `x` and `y`, its column and buffer row, where row zero is the bottom of the picture;
     // - `userData`, the `pixelUserData` passed to the macro.
+    // Panics if the image storage is invalid or `stride` is not positive.
     #[Swag.Macro]
     mtd visitPixels(pixelUserData: *void? = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
-        Swag.assert(stride > 0)
+        if stride <= 0 do
+            Swag.panic("pixel visit stride must be positive", #curlocation)
+        validateImagePixelStorage(me)
 
         let self: const *Image = me
-        let step   = cast(u64, (.bytesPerPixel * stride))
+        let step   = cast(u64, .bytesPerPixel) * cast(u64, stride)
         let base   = cast([*] u8, self.pixels.storage())
         let visit  = self.pixels.count / step
         let opaque = pixelUserData
@@ -512,13 +533,15 @@ impl Image
         {
             let pixPtr   = base + parIndex * step
             let pixIndex = cast(u64, (pixPtr - cast([*] u8, self.pixels.storage()))) / self.bytesPerPixel
+            let x        = cast(s32, (pixIndex % cast(u64, self.width)))
+            let y        = cast(s32, (pixIndex / cast(u64, self.width)))
 
             #inject(stmt,
                     pix = pixPtr,
                     image = self,
                     index = pixIndex,
-                    x = cast(s32, pixIndex) % self.width,
-                    y = cast(s32, pixIndex) / self.width,
+                    x = x,
+                    y = y,
                     userData = opaque)
         }
     }

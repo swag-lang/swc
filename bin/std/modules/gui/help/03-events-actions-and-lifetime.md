@@ -48,7 +48,8 @@ control is inserted.
 
 ## Access keys
 
-Set [[Gui.Item.accessKey]] to a rune on a captioned control or a [[Gui.PopupMenuItem]].
+Set [[Gui.Wnd.accessKey]] on a captioned control, or [[Gui.Item.accessKey]] on a
+[[Gui.PopupMenuItem]].
 NUL means no key. Holding Alt reveals matching underlines on the focused surface; pressing
 the matching character activates a unique, enabled target, and releasing Alt hides the
 underlines. Duplicate and unavailable keys do nothing.

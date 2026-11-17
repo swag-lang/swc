@@ -359,3 +359,22 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let err = errOutcome.value()
     Swag.require(err != null)
 }
+
+// A valid DTS header whose declared frame is one byte longer than the file is rejected on load.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000.dts").toString())
+    let info   = expect Dts.frameInfo(source.toSlice())
+    Swag.require(info.frameBytes > 1 and info.frameBytes <= source.count)
+
+    var bytes: Array'u8
+    bytes.add(source.toSlice()[until info.frameBytes - 1])
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-dts-truncated-frame-%.dts", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(path.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}

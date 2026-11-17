@@ -258,6 +258,11 @@ impl Bounds3
     {
         if not .isValid() do
             return {intersects: false, distance: 0, point: ray.origin}
+        if ray.direction.isZero()
+        {
+            let containsOrigin = .contains(ray.origin)
+            return {intersects: containsOrigin, distance: 0, point: ray.origin}
+        }
 
         var near = -Swag.F32.Max
         var far = Swag.F32.Max

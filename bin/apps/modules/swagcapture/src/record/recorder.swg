@@ -232,9 +232,13 @@ impl Recorder
         let options = &main.captureOptions
         let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
         let rows = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
-        // Four slices reduce the compression penalty at their boundaries while leaving CPU for
-        // screen readback. Keep at least sixteen macroblock rows in each slice.
-        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 4'u32, Math.max(rows / 16, 1'u32))
+        let maxSide = Math.max(cast(s32, recorder.area.width), cast(s32, recorder.area.height))
+        // Downscaled desktops need CPU time for native readback and reduction as well.
+        let sliceLimit = maxSide > 4096 ? 4'u32 : 8'u32
+
+        // Nothing is predicted across a slice, so a slice keeps at least sixteen macroblock rows
+        // to limit the extra cost of coding its boundaries independently.
+        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), sliceLimit, Math.max(rows / 16, 1'u32))
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
                                                         try FrameRate.create(VideoCaptureFramesPerSecond, 1),
                                                         options.captureCursor, configs.toSlice(),

@@ -651,8 +651,11 @@ impl Panel
             if target >= 0 do
                 entries.add(Viewer.timeJumpText(target, query), .GoTo, func|view = me, target|() { view.revealTime(target) })
             let cue = catch StrConv.toU64(Latin1.trim(query)) { return; }
-            if cue >= 1 and cue <= count do
-                entries.add(Format.toString(strings.ui_GoToCueNumber, cue), .GoTo, func|view = me, cue|() { discard view.revealCue(cue - 1) })
+            if cue < 1 or cue > count do
+                return
+            let entry = entries.add(Format.toString(strings.ui_GoToCueNumber, cue), .GoTo, func|view = me, cue|() { discard view.revealCue(cue - 1) })
+            if entry do
+                entry.lead = Format.toString("%", cue)
             return
         }
 

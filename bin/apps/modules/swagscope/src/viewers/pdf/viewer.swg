@@ -473,8 +473,11 @@ private impl Panel
                 view.history.visit(view.pdfView.readingPosition())
                 view.pdfView.showPage(index)
             })
+
+            // The row leads with the page's position, as the other numbered jump rows do: a label
+            // with its position would not fit the narrow column before the title.
             if entry do
-                entry.lead = named
+                entry.lead = Format.toString("%", index + 1)
             return
         }
 
@@ -484,10 +487,15 @@ private impl Panel
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
+
+        // The page view zooms by factors, far past the shared bounds, and shows actual size at the
+        // scale of a printed page rather than at the 100 % of its readout, so these rows are its
+        // own instead of the shared ones of [[Viewer.LensEntries.addZoom]].
         entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.pdfView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
+        entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
 
         // The commands of the page's context menu, so none of them needs a right click.

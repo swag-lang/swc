@@ -8,8 +8,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view FORMAT_CONFIG_FILE = ".swc-format";
-
     void bindNamedStyleSchema(StructConfigSchema& schema, FormatNamedStyle* style, bool* seen)
     {
         schema.addEnum("style", style, {{"preserve", FormatNamedStyle::Preserve}, {"swag", FormatNamedStyle::Swag}}, "Rebase every option on a named style, then apply the rest of the file on top of it", {&StructConfigAssignHook::setBoolTrue, seen});
@@ -354,7 +352,7 @@ Result FormatOptionsLoader::resolveDirectory(const fs::path& directory, FormatOp
             SWC_RESULT(resolveDirectory(parent, options));
     }
 
-    const fs::path  configPath = normalizedDirectory / FORMAT_CONFIG_FILE;
+    const fs::path  configPath = normalizedDirectory / CONFIG_FILE_NAME;
     std::error_code ec;
     const bool      exists = fs::exists(configPath, ec);
     if (!ec && exists)

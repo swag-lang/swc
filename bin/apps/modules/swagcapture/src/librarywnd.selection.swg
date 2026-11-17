@@ -269,7 +269,6 @@ impl LibraryWnd
         }
     }
 
-    // Asks for a folder and writes each selected capture in its media format.
     // Moves the chosen captures to a folder the user picks: they leave the page, and the library
     // when the folder is outside it.
     mtd moveSelected()
@@ -304,6 +303,7 @@ impl LibraryWnd
             MessageDlg.error(.main.surface, appStrings().msg_FailedMoveCaptures)
     }
 
+    // Asks for a folder and writes each selected capture in its media format.
     mtd exportSelected()
     {
         if .exporting

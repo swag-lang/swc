@@ -123,12 +123,10 @@ impl Capture
         pt.x /= zoom
         pt.y /= zoom
 
-        for itf in result
-        {
-            let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
-            let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
+        let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
+        let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
+        for itf in result do
             itf.moveForm(cast(dx), cast(dy))
-        }
 
         .addNewForms(result)
     }

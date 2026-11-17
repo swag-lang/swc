@@ -544,7 +544,7 @@ impl LibraryWnd
     }
 }
 
-// The library's 0â€“5 rating shortcuts, in the same order as `ratingLabel`.
+// The library's 0 to 5 rating shortcuts, in the same order as `ratingLabel`.
 func ratingKey(rating: u8)->Input.Key
 {
     switch rating

@@ -30,14 +30,15 @@ impl RecentItem
     }
 }
 
-// The state a capture thumbnail is painted in.
+// The state a capture thumbnail is painted in, for the paint of one frame: it borrows the path of
+// the linked image instead of copying it for every thumbnail of every frame.
 struct RecentInfos
 {
     hot:            bool
     selected:       bool
     loading:        bool
     linkedUpToDate: bool
-    linked:         String
+    linked:         string = ""
     showLinked:     bool = true
     duration:       u64     // Length of an animation, in microseconds; zero for a picture.
 }
@@ -128,8 +129,6 @@ impl RecentView
         .recentWnd.requestSelection(item.file, contextMenu, pos)
     }
 
-    // Paints the mark of a capture linked to an image file at the top-left corner of `rect`: on the
-    // ground when the image is up to date, on yellow when it is not.
     // Marks a capture linked to an image file, inside the leading top corner of its picture `rect`:
     // a chip on the floating ground, which reads over any picture, with a soft link while the
     // image matches the capture and a caution link once the capture changed since the image was
@@ -137,7 +136,7 @@ impl RecentView
     // action's.
     func paintLinkBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
     {
-        if not infos.showLinked or infos.linked.isEmpty() do
+        if not infos.showLinked or infos.linked.count == 0 do
             return
 
         let colors = parent.themeColors()

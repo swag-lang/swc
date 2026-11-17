@@ -82,7 +82,7 @@ internal struct NativeSurface
     preparedHeight:                        s32
     presentationTarget:                    Pixel.RenderTarget
     presentationDC:                        HDC
-    presentationBitmap:                    Gdi32.HBITMAP
+    presentationBitmap:                    HBITMAP
     presentationPixels:                    *u8?
     presentationWidth, presentationHeight: s32
     readback:                              Pixel.RenderOglReadback

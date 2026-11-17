@@ -112,7 +112,7 @@ using Swag, Core
 
     // The filesystem may publish the directory write time after the first scan. A reused count
     // is valid only when the timestamp and library revision still match.
-    var previousWritten: DateTime
+    var previousWritten:  DateTime
     var previousRevision: u64
     var hadCached = false
     for &cached in lib.folderCounts where cached.folder == sub
@@ -120,8 +120,9 @@ using Swag, Core
         previousWritten  = cached.written
         previousRevision = cached.revision
         hadCached        = true
-        cached.count = 7
+        cached.count     = 7
     }
+
     Swag.require(hadCached)
     lib.updateFolderTabs()
     var stillCurrent = false
@@ -135,6 +136,7 @@ using Swag, Core
         cached.written = {}
         cached.count   = 7
     }
+
     lib.updateFolderTabs()
     Swag.require(countOf(lib, sub) == "1")
 

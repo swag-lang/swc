@@ -42,7 +42,7 @@ func unreachableAfterAttributedReturn()->s32
     {
         return 16
     }
-    let never = 0 // swc-expected-warning {{sema_warn_unreachable_code}}
+    let never = 0     // swc-expected-warning {{sema_warn_unreachable_code}}
     return never
 }
 

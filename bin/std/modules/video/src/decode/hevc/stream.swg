@@ -93,6 +93,8 @@ struct HevcStream
     skippedNonReference: u64
     width:               s32
     height:              s32
+    sampleAspectWidth:   u32 = 1
+    sampleAspectHeight:  u32 = 1
 }
 
 impl HevcStream
@@ -195,6 +197,8 @@ impl HevcStream
             fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
         .width  = cast(s32, sequence.visibleWidth())
         .height = cast(s32, sequence.visibleHeight())
+        .sampleAspectWidth  = sequence.sampleAspectWidth
+        .sampleAspectHeight = sequence.sampleAspectHeight
     }
 
     // Builds the display order of the installed samples from their presentation times.

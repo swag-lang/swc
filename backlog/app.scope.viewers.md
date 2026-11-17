@@ -295,7 +295,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested provenance, archive-wide integrity, encrypted/variant policy | [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.015](app.scope.binary.md) |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.binary.010](app.scope.binary.md) |
 | TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [app.scope.font.001](app.scope.font.md) |
-| CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF/WOFF2 signatures | CFF specimen registration; WOFF containers | [app.scope.font.013](app.scope.font.md), std.truetype.001, std.truetype.002 |
+| CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF1 font engine | CFF specimen registration; WOFF1 viewer routing; WOFF2 support | [app.scope.font.013](app.scope.font.md), std.truetype.002 |
 | Program databases | `.pdb` | signature | MSF streams and CodeView match | [app.scope.binary.014](app.scope.binary.md) |
 | Databases | `.sqlite` `.db` | signature | schema and bounded table browse | [app.scope.binary.012](app.scope.binary.md) |
 | Certificates and keys | `.pem` `.der` `.crt` `.p12` | printable PEM as text; binary inspection otherwise | ASN.1 and X.509 decode | [app.scope.binary.013](app.scope.binary.md) |

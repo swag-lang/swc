@@ -15,8 +15,9 @@ private
     const MinPitchZoom  = 0.5'f32
     const MaxPitchZoom  = 8.0'f32
 
-    // A key or lens step scales the timeline by a quarter and a wheel notch by an eighth, as the
-    // picture and PDF views scale their canvas, so the same gesture moves every canvas viewer alike.
+    // A key or lens step scales the timeline or the pitch by a quarter and a wheel notch by an
+    // eighth, as the picture and PDF views scale their canvas, so the same gesture moves every canvas
+    // viewer alike.
     const ZoomStep      = 1.25'f32
     const WheelZoomStep = 1.12'f32
 
@@ -663,8 +664,8 @@ impl IWnd for RollView
         {
             switch evt.key
             {
-            case .Add, .OemPlus:       .applyPitchZoom(.pitchZoom * 1.25)
-            case .Subtract, .OemMinus: .applyPitchZoom(.pitchZoom / 1.25)
+            case .Add, .OemPlus:       .applyPitchZoom(.pitchZoom * ZoomStep)
+            case .Subtract, .OemMinus: .applyPitchZoom(.pitchZoom / ZoomStep)
             default: evt.accepted = false
             }
 
@@ -701,9 +702,9 @@ impl IWnd for RollView
         if evt.kind == .Wheel and evt.modifiers == (.Control | .Shift)
         {
             if evt.delta.y > 0 do
-                .applyPitchZoom(.pitchZoom * 1.25)
+                .applyPitchZoom(.pitchZoom * WheelZoomStep)
             elif evt.delta.y < 0 do
-                .applyPitchZoom(.pitchZoom / 1.25)
+                .applyPitchZoom(.pitchZoom / WheelZoomStep)
             return
         }
 

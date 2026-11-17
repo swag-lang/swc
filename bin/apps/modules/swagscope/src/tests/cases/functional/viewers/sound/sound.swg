@@ -738,9 +738,8 @@ func soundInformation(bytes: const [..] u8)->String
     view.seekSeconds(1.6)
 
     // The lens copies the instant playback stands at, as the clock writes it.
-    var results: Lens.Results
+    var results = Testing.lensResults("copy")
     var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
-    entries.query = "copy"
     view.describeLens(&entries)
     var found = false
     for &entry in results.sections[0]!.entries where entry.title == Format.toString(appStrings().cmd_CopyTime, "0:01")

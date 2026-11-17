@@ -7,8 +7,8 @@ using Swag
 {
     #static if #safety(Swag.SafetyWhat.BoundCheck)
     {
-        var byteIndex = Time.monotonicMilliseconds() + 1
-        var wordIndex = Time.monotonicMilliseconds() + 8
+        var byteIndex = 1'u64
+        var wordIndex = 8'u64
         let byteFailure = Swag.catchPanic(func|&byteIndex|() { discard Math.byteAt(0xA5'u8, byteIndex) })
         let wordFailure = Swag.catchPanic(func|&wordIndex|() { discard Math.byteAt(0x0123456789ABCDEF'u64, wordIndex) })
 

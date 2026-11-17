@@ -178,3 +178,41 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     let single = Image.create(1, 1, .RGBA8, [7'u8, 17, 27, 37]).resized(3, 2, .Bicubic)
     assertPixel(single, 0, 1, Color.fromArgb(37'u8, 7, 17, 27))
 }
+
+// Resizing into a target matches the returned copy, keeps the target's storage across frames,
+// and gives a stale target the source's size, format and alpha mode.
+#test
+{
+    var source = Image.create(37, 29, .BGRA8)
+    for index in source.byteCount do
+        source.pixels[index] = cast(u8, ((index * 53 + 11) & 0xFF))
+
+    var target = Image.create(5, 7, .RGB8)
+    for mode in [Image.ResizeMode.Nearest, Image.ResizeMode.Bilinear, Image.ResizeMode.Bicubic]
+    {
+        let expected = source.resized(19, 0, mode)
+        source.resizedInto(&target, 19, 0, mode)
+        assertImage(target, expected.width, expected.height, .BGRA8)
+        Swag.require(target.alphaMode == source.alphaMode)
+        Swag.require(Memory.compare(target.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
+    }
+
+    // Successive frames reuse the target's pixels.
+    let storage = target.pixels.storage()
+    for frame in 3
+    {
+        source.pixels[0] = cast(u8, frame)
+        source.resizedInto(&target, 19, 0, .Bilinear)
+        Swag.require(target.pixels.storage() == storage)
+        let expected = source.resized(19, 0, .Bilinear)
+        Swag.require(Memory.compare(target.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
+    }
+
+    // The source's own size copies its pixels.
+    var premultiplied = source
+    premultiplied.convertAlphaTo(.Premultiplied)
+    premultiplied.resizedInto(&target, 37, 29, .Bicubic)
+    assertImage(target, 37, 29, .BGRA8)
+    Swag.require(target.alphaMode == .Premultiplied)
+    Swag.require(Memory.compare(target.pixels.storage(), premultiplied.pixels.storage(), premultiplied.byteCount) == 0)
+}

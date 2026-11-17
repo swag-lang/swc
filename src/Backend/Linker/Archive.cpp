@@ -2,7 +2,6 @@
 #include "Backend/Linker/Archive.h"
 #include "Main/FileSystem.h"
 #include "Support/Math/Hash.h"
-#include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

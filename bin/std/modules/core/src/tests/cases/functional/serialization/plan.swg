@@ -16,10 +16,22 @@ struct EmptyPlanKey
     value: s32
 }
 
+struct PlanLookupProbe
+{
+    #[Serialization.Key("wire-value")]
+    value: s32
+}
+
 func buildSerializationPlan(type: typeinfo) fail
 {
     let structType = assume cast(const *Swag.TypeInfoStruct, type)
     discard try Serialization.planFor(structType)
+}
+
+func lookupProbePlan()->const *Serialization.Plan fail
+{
+    let structType = assume cast(const *Swag.TypeInfoStruct, PlanLookupProbe)
+    return try Serialization.planFor(structType)
 }
 
 // The captured error keeps both source field names and their conflicting wire key.
@@ -41,4 +53,14 @@ func buildSerializationPlan(type: typeinfo) fail
     let error = errorOutcome.value()
     Swag.require(error is Errors.SerializationError)
     Swag.require(Errors.message(error) == "serialized field needs a non-empty key")
+}
+
+#test
+{
+    let plan = expect lookupProbePlan()
+    Swag.require(plan.fields.count == 1)
+
+    let field = plan.fieldByKey("wire-value")
+    Swag.require(field != null and field.key == "wire-value")
+    Swag.require(plan.fieldByKey("missing") == null)
 }

@@ -23,6 +23,101 @@ struct XmlTextPayload
     value: String
 }
 
+struct XmlFloatPayload
+{
+    single: f32
+    double: f64
+}
+
+struct XmlPairSequencePayload
+{
+    pairs: Array'XmlPair
+}
+
+// XML writes fields in declaration order, escapes text, and round-trips its supported values.
+#test
+{
+    var payload: XmlPayload
+    payload.id     = 7
+    payload.active = true
+    payload.name   = "a <b> & \"c'\r"
+    payload.counts.add([-1, 0, 4])
+    payload.pair = {x: 3, y: -2}
+
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    expect encoder.writeAll(&output, payload)
+    let xml = output.toString()
+    var expected: ConcatBuffer
+    expected.addBytes("<root><id>7</id><active>true</active><name>")
+    expected.addBytes("a &lt;b&gt; &amp; &quot;c&apos;&#13;</name>")
+    expected.addBytes("<counts>-1 0 4</counts><pair><x>3</x><y>-2</y></pair></root>")
+    Swag.require(xml == expected.toString())
+
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlPayload(xml.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.id == 7)
+    Swag.require(decoded.active)
+    Swag.require(decoded.name == payload.name)
+    Swag.require(Slice.equals(decoded.counts.toSlice(), [-1, 0, 4]))
+    Swag.require(decoded.pair.x == 3 and decoded.pair.y == -2)
+}
+
+// XML writes floating-point values with an invariant decimal separator.
+#test
+{
+    let payload = XmlFloatPayload{single: 1.5, double: -2.25}
+
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    expect encoder.writeAll(&output, payload)
+    let xml = output.toString()
+    Swag.require(xml == "<root><single>1.5</single><double>-2.25</double></root>")
+
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlFloatPayload(xml.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.single == payload.single and decoded.double == payload.double)
+}
+
+// XML 1.0-forbidden text fails instead of producing a document the reader rejects.
+#test
+{
+    let value = XmlTextPayload{value: "before\x01after"}
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var error: Swag.Error
+    discard catch encoder.writeAll(&output, value) as error
+    Swag.require(error.value() is Errors.SerializationError)
+}
+
+// XML output rejects invalid UTF-8 bytes instead of emitting an invalid document.
+#test
+{
+    const InvalidUtf8: [1] u8 = [0xFF]
+    let value = XmlTextPayload{value: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
+
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var error: Swag.Error
+    discard catch encoder.writeAll(&output, value) as error
+    Swag.require(error.value() is Errors.SerializationError)
+}
+
+// Unsupported dynamic sequences fail explicitly instead of returning incomplete XML.
+#test
+{
+    var value: XmlPairSequencePayload
+    value.pairs.add({x: 1, y: 2})
+
+    var output: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var error: Swag.Error
+    discard catch encoder.writeAll(&output, value) as error
+    Swag.require(error.value() is Errors.UnsupportedFormatError)
+}
+
 // Fields are elements in declaration order, a sequence holds blank-separated values, and text
 // decodes predefined entities and XML character references.
 #test
@@ -67,6 +162,23 @@ struct XmlTextPayload
     discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
     let syntax = expect cast(*SyntaxError, errOutcome.value())
     Swag.require(syntax.line == 5 and syntax.col == 3)
+}
+
+// The root reader rejects a malformed XML declaration and tags without either delimiter.
+#test
+{
+    const MalformedDocuments = [
+        "<?xml version=\"1.0\"<p>",
+        "<p",
+        "p>"]
+
+    for input in MalformedDocuments
+    {
+        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        Swag.require(errorOutcome.value() is SyntaxError)
+    }
 }
 
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.

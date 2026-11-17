@@ -94,6 +94,8 @@ struct Sps
     cropTop:              s32
     cropBottom:           s32
     fullRange:            bool
+    sampleAspectWidth:    u32 = 1
+    sampleAspectHeight:   u32 = 1
     matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
     hasScaling:           bool
     scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
@@ -224,6 +226,9 @@ impl Sps
         var bits: BitReader
         bits.init(payload)
 
+        .sampleAspectWidth  = 1
+        .sampleAspectHeight = 1
+
         .profile = cast(u8, bits.read(8))
         bits.skip(8)          // Constraint flags and reserved bits.
         bits.skip(8)          // level_idc.
@@ -348,9 +353,7 @@ impl Sps
         {
             if bits.bit()
             {
-                let aspect = bits.read(8)
-                if aspect == 255 do
-                    bits.skip(32)
+                readSampleAspectRatio(&bits, me)
             }
 
             if bits.bit() do
@@ -395,6 +398,71 @@ impl Sps
 
     // Returns the visible frame height, in pixels.
     mtd const height()->s32 => .mbHeight * 16 - .cropTop - .cropBottom
+}
+
+// Reads the H.264/HEVC Table E-1 sample aspect ratio from a VUI.
+func readSampleAspectRatio(bits: *BitReader, sps: *Sps)
+{
+    let aspect = bits.read(8)
+    switch aspect
+    {
+    case 1:
+        sps.sampleAspectWidth = 1
+        sps.sampleAspectHeight = 1
+    case 2:
+        sps.sampleAspectWidth = 12
+        sps.sampleAspectHeight = 11
+    case 3:
+        sps.sampleAspectWidth = 10
+        sps.sampleAspectHeight = 11
+    case 4:
+        sps.sampleAspectWidth = 16
+        sps.sampleAspectHeight = 11
+    case 5:
+        sps.sampleAspectWidth = 40
+        sps.sampleAspectHeight = 33
+    case 6:
+        sps.sampleAspectWidth = 24
+        sps.sampleAspectHeight = 11
+    case 7:
+        sps.sampleAspectWidth = 20
+        sps.sampleAspectHeight = 11
+    case 8:
+        sps.sampleAspectWidth = 32
+        sps.sampleAspectHeight = 11
+    case 9:
+        sps.sampleAspectWidth = 80
+        sps.sampleAspectHeight = 33
+    case 10:
+        sps.sampleAspectWidth = 18
+        sps.sampleAspectHeight = 11
+    case 11:
+        sps.sampleAspectWidth = 15
+        sps.sampleAspectHeight = 11
+    case 12:
+        sps.sampleAspectWidth = 64
+        sps.sampleAspectHeight = 33
+    case 13:
+        sps.sampleAspectWidth = 160
+        sps.sampleAspectHeight = 99
+    case 14:
+        sps.sampleAspectWidth = 4
+        sps.sampleAspectHeight = 3
+    case 15:
+        sps.sampleAspectWidth = 3
+        sps.sampleAspectHeight = 2
+    case 16:
+        sps.sampleAspectWidth = 2
+        sps.sampleAspectHeight = 1
+    case 255:
+        let width = bits.read(16)
+        let height = bits.read(16)
+        if width != 0 and height != 0
+        {
+            sps.sampleAspectWidth = width
+            sps.sampleAspectHeight = height
+        }
+    }
 }
 
 impl Pps

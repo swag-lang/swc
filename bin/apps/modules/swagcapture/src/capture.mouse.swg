@@ -455,12 +455,10 @@ impl Capture
         return true
     }
 
+    // Returns the index of the topmost form under `localPos`, or `Swag.U64.Max` when there is
+    // none.
     mtd hitTest(localPos: Math.Point)->u64
     {
-        // Holding `O` makes the mouse ignore every form, so a click can start a
-        // lasso or create a new form on top of existing ones.
-        if .editView!.app().keyboard.isKeyPressed(Input.Key.O) do
-            return Swag.U64.Max
         let result = .hitTests(localPos, true)
         if result.isEmpty() do
             return Swag.U64.Max
@@ -469,12 +467,18 @@ impl Capture
 
     // Returns the indices of the forms under `localPos`, topmost first; only the topmost when
     // `retFirst`.
+    //
+    // Holding `O` makes the mouse ignore every form, so a click can start a lasso or create a
+    // new form on top of existing ones; a press repeated on the same spot finds none to cycle
+    // through either.
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
         var result: #returntype
         if .forms.isEmpty() do
             return result
         let editView = unwrap .editView
+        if editView.app().keyboard.isKeyPressed(Input.Key.O) do
+            return result
         for i in reversed(.forms.count)
         {
             let f = .forms[i]

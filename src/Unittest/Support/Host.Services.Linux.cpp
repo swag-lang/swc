@@ -14,6 +14,40 @@ namespace swc::LinuxHostTests
 {
     void testPrivateCompilerCacheRoot()
     {
+        std::array<std::string, 2> processRoots;
+        for (std::string& processRoot : processRoots)
+        {
+            int channel[2];
+            require(pipe2(channel, O_CLOEXEC) == 0, "cannot create cache-root process channel");
+            const pid_t child = fork();
+            if (child == 0)
+            {
+                close(channel[0]);
+                const std::string root = WorkspaceLayout::cacheRoot().string();
+                const ssize_t       written = write(channel[1], root.c_str(), root.size() + 1);
+                close(channel[1]);
+                _exit(written == static_cast<ssize_t>(root.size() + 1) ? 0 : 1);
+            }
+            require(child > 0, "cannot fork cache-root process probe");
+            close(channel[1]);
+
+            char   buffer[4096];
+            size_t length = 0;
+            ssize_t count;
+            while ((count = read(channel[0], buffer + length, sizeof(buffer) - length)) > 0)
+            {
+                length += static_cast<size_t>(count);
+                if (length == sizeof(buffer))
+                    break;
+            }
+            close(channel[0]);
+            const int status = waitForChild(child);
+            require(WIFEXITED(status) && WEXITSTATUS(status) == 0 && length > 1 && length < sizeof(buffer), "cache-root process probe failed");
+            processRoot.assign(buffer, length - 1);
+            require(buffer[length - 1] == '\0', "cache-root process probe returned an incomplete path");
+        }
+        require(processRoots[0] == processRoots[1], "compiler cache root changes between processes");
+
         const fs::path root = WorkspaceLayout::cacheRoot();
         struct stat info{};
         require(root.is_absolute() && lstat(root.c_str(), &info) == 0, "compiler cache root is unavailable");

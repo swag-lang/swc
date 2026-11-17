@@ -267,7 +267,7 @@ impl LossyCoder
 
         // A scroll or a pan moves a whole area by one vector that no local search finds on fine
         // detail; each region of the slice proposes the translation its profiles show.
-        var regions: Array'LossyVector
+        var regions: Array'LossyRegionResult
         if not key
         {
             for region in (.lumaStride() + LossyRegionWidth - 1) / LossyRegionWidth do
@@ -282,7 +282,8 @@ impl LossyCoder
                 if key do
                     .encodeIntraMb(&bits, mbX, mbY, firstRow, false)
                 else do
-                    .encodeInterMb(&bits, mbX, mbY, firstRow, regions[cast(u64, mbX) * 16 / LossyRegionWidth], &skipRun)
+                    .encodeInterMb(&bits, mbX, mbY, firstRow,
+                                   regions[cast(u64, mbX) * 16 / LossyRegionWidth], &skipRun)
             }
         }
 
@@ -1331,6 +1332,12 @@ struct LossyVector
     y: s32
 }
 
+struct LossyRegionResult
+{
+    vector:         LossyVector
+    fullyUnchanged: bool
+}
+
 // Returns the bit count of a signed Exp-Golomb code.
 func lossySignedBits(value: s32)->s32
 {
@@ -1428,10 +1435,10 @@ impl LossyCoder
     // Estimates the translation of one region of a slice since the previous picture, in whole
     // samples, from the sums of its rows and then of its columns. The estimate is only a
     // candidate: the search measures it like any other, so a wrong one costs one comparison.
-    mtd const regionMotion(firstRow, lastRow: u32, region: u64)->LossyVector
+    mtd const regionMotion(firstRow, lastRow: u32, region: u64)->LossyRegionResult
     {
         if not .hasPrior do
-            return {}
+            return {{}, false}
 
         // Side of the cells a row or a column is summed in. One sum per whole row says little
         // about fine detail; a few sums along it tell two rows apart.
@@ -1455,8 +1462,28 @@ impl LossyCoder
             if Memory.compare(current + offset, prior + offset, cast(u64, width)) != 0 do
                 unchanged = false
         }
-        if unchanged do
-            return {}
+        if unchanged
+        {
+            let chromaStride = .chromaStride()
+            let chromaLeft   = cast(u64, left / 2)
+            let chromaTop    = cast(u64, top / 2)
+            let chromaWidth  = cast(u64, width / 2)
+            let chromaRows   = cast(u64, rows / 2)
+            let currentU     = .sourceU.storage()
+            let currentV     = .sourceV.storage()
+            let priorU       = .priorU.storage()
+            let priorV       = .priorV.storage()
+
+            for row in chromaRows where unchanged
+            {
+                let offset = (chromaTop + row) * chromaStride + chromaLeft
+                if Memory.compare(currentU + offset, priorU + offset, chromaWidth) != 0 or
+                   Memory.compare(currentV + offset, priorV + offset, chromaWidth) != 0 do
+                    unchanged = false
+            }
+
+            return {{}, unchanged}
+        }
 
         // Row profiles: the sums of each row of the region, cell by cell, here and in the rows
         // of the previous picture a shift can reach.
@@ -1517,7 +1544,7 @@ impl LossyCoder
         }
 
         if bestScore == 0 and bestY == 0 do
-            return {}
+            return {{}, false}
 
         // Column profiles over the rows the vertical shift pairs up, in cells of rows.
         let cellsY = (rows + Cell - 1) / Cell
@@ -1573,7 +1600,7 @@ impl LossyCoder
             }
         }
 
-        return {cast(s32, bestX) * 4, cast(s32, bestY) * 4}
+        return {{cast(s32, bestX) * 4, cast(s32, bestY) * 4}, false}
     }
 
     // Keeps a vector inside the samples the reference picture carries around itself.
@@ -1800,7 +1827,8 @@ impl LossyCoder
 
     // Codes one macroblock of a P slice: skipped, predicted from the reference, or intra when
     // nothing in the reference comes close.
-    mtd encodeInterMb(bits: *EncoderBits, mbX, mbY, firstRow: u32, region: LossyVector, skipRun: *u32)
+    mtd encodeInterMb(bits: *EncoderBits, mbX, mbY, firstRow: u32,
+                      region: LossyRegionResult, skipRun: *u32)
     {
         let mb        = &.mbs[.mbIndex(mbX, mbY)]
         let predicted = .predictMotion(mbX, mbY, firstRow)
@@ -1809,12 +1837,12 @@ impl LossyCoder
 
         // A source that did not change keeps what the decoder already shows: quantizing it again
         // would only move the picture around its own rounding.
-        let still  = .repeatsPrior(mbX, mbY)
+        let still  = region.fullyUnchanged or .repeatsPrior(mbX, mbY)
         var vector = LossyVector{}
         var cost   = 0'u32
         if not still
         {
-            vector = .searchMotion(mbX, mbY, firstRow, predicted, skip, region, &cost)
+            vector = .searchMotion(mbX, mbY, firstRow, predicted, skip, region.vector, &cost)
 
             // What the reference predicts is compared with what the neighbours do, both as the
             // transform will see them. A cut or an uncovered area has no reference to speak of,

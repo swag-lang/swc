@@ -13,7 +13,7 @@
 #include "Main/Global.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
-#include "Support/Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

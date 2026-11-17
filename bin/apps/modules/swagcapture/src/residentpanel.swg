@@ -210,10 +210,8 @@ impl IWnd for ResidentPanel
             .recents?.clearKeyboardSelection()
 
         .menu.handleKeyboard(evt)
-        if .menu.isModalEnded()
-        {
+        if .menu.isModalEnded() do
             .choose(.menu.modalResult())
-        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)

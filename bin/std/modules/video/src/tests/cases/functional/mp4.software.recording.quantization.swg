@@ -23,6 +23,37 @@ private func quantizedRecordingPicture(shift: u64)->Image
     return Image.create(64, 64, .RGB8, rgb.toSlice())
 }
 
+// SoftwareRecording feeds completed packet sizes back into its per-picture QP controller.
+#test
+{
+    let path = videoTempPath("mp4-software-rate-control", "mp4")
+    defer discard catch File.delete(path)
+    let config = Mp4.SoftwareVideoRateControl{targetBitsPerSecond: 1_000,
+                                               reservoirBits: 1_000,
+                                               minQp: 10,
+                                               maxQp: 40}
+    var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000,
+                                                                 keyInterval: 20,
+                                                                 rateControl: &config)
+    let pacer = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
+    var firstQp = 0'u32
+    for frame in 8'u64
+    {
+        let image = quantizedRecordingPicture(frame * 3)
+        expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+        if frame == 0 do
+            firstQp = recorder.videoQuantizationQp()
+    }
+    expect recorder.repeatLastFrame(expect pacer.slotAt(8))
+    let finalQp = recorder.videoQuantizationQp()
+    expect recorder.end()
+
+    Swag.require(recorder.videoFrameCount() == 9 and recorder.repeatedFrameCount() == 1)
+    Swag.require(firstQp >= config.minQp and finalQp > firstQp and finalQp <= config.maxQp)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.packetCount == 9 and not summary.hasIncompleteTail)
+}
+
 // SoftwareRecording carries QP into H.264 while preserving decode order and
 // the caller's repeated final frame in fragmented MP4.
 #test

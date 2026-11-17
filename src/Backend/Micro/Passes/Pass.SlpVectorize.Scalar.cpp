@@ -840,8 +840,9 @@ namespace
     void emitRootPair(MicroPassContext& context, const MicroSsaState& ssa, const RootCandidate& first, const RootCandidate& second, const RootHoistPlan& plan)
     {
         const auto           products = packedRootProducts(context, ssa, first, second);
-        uint32_t             next     = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-        uint32_t             nextInt  = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        uint32_t             nextInt;
+        uint32_t             next;
+        MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, next);
         FlatKeyMap<MicroReg> names;
         for (const MicroInstrRef reference : plan.order)
         {
@@ -987,8 +988,12 @@ namespace
                 paired = false;
                 MicroSsaState ssa;
                 ssa.build(*context.builder, *context.instructions, *context.operands, context.encoder);
-                if (!ssa.isValid() || MicroPassHelpers::computeNextVirtualFloatRegIndex(context) + K_MAX_ROOT_HOIST_INSTRUCTIONS + 4 >= MicroReg::K_MAX_INDEX ||
-                    MicroPassHelpers::computeNextVirtualIntRegIndex(context) + K_MAX_ROOT_HOIST_INSTRUCTIONS >= MicroReg::K_MAX_INDEX)
+                if (!ssa.isValid())
+                    return changed;
+                uint32_t nextInt;
+                uint32_t nextFloat;
+                MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+                if (nextFloat + K_MAX_ROOT_HOIST_INSTRUCTIONS + 4 >= MicroReg::K_MAX_INDEX || nextInt + K_MAX_ROOT_HOIST_INSTRUCTIONS >= MicroReg::K_MAX_INDEX)
                     return changed;
                 const auto                 observed = observedUpperHalves(context, ssa);
                 std::vector<MicroInstrRef> references;

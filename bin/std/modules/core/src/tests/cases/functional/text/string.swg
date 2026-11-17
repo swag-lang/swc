@@ -310,6 +310,15 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(assertString(value, "abc"))
 }
 
+// A null replacement removes all matching text, as documented by String.replace.
+#test
+{
+    var value: String = "one fish, two fish"
+    let nullReplacement: string? = null
+    value.replace("fish", nullReplacement)
+    Swag.require(assertString(value, "one , two "))
+}
+
 #test
 {
     var value: String = "Core Caf\u00E9"

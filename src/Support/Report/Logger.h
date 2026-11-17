@@ -2,6 +2,8 @@
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
 
+#include "Support/Report/LogColor.h"
+
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
@@ -9,14 +11,45 @@ class TaskContext;
 class Logger
 {
 public:
+    static constexpr size_t PROGRESS_FRAME_COUNT = 4;
+    using ProgressFrames                         = std::array<Utf8, PROGRESS_FRAME_COUNT>;
+
+    struct FieldValuePart
+    {
+        Utf8     text;
+        LogColor color = LogColor::Reset;
+    };
+
     struct FieldEntry
     {
-        Utf8     label;
-        Utf8     value;
+        Utf8                        label;
+        Utf8                        value;
+        std::vector<FieldValuePart> valueParts;
+
+        LogColor labelColor  = LogColor::Gray;
+        LogColor valueColor  = LogColor::White;
         uint32_t indentLevel = 0;
     };
 
+    struct FieldGroupStyle
+    {
+        LogColor titleColor        = LogColor::BrightCyan;
+        LogColor defaultLabelColor = LogColor::Gray;
+        LogColor defaultValueColor = LogColor::White;
+
+        size_t lineIndent     = 2;
+        size_t indentPerLevel = 2;
+        size_t minLabelWidth  = 16;
+        size_t maxLabelWidth  = 28;
+        size_t maxLineWidth   = 108;
+
+        bool blankLineBefore = true;
+        bool blankLineAfter  = false;
+        bool wrapValues      = false;
+    };
+
     Logger() = default;
+    ~Logger();
 
     class ScopedStageMute
     {
@@ -113,8 +146,13 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void lock() { mutexAccess_.lock(); }
-    void unlock() { mutexAccess_.unlock(); }
+    void lock();
+    void unlock();
+
+    size_t beginProgress(ProgressFrames frames);
+    void   updateProgress(size_t progressId, ProgressFrames frames);
+    void   endProgress(size_t progressId, std::string_view finalLine);
+    void   cancelProgress(size_t progressId);
 
     void resetStageClaims();
     bool claimStageOnce(std::string_view key);
@@ -134,19 +172,48 @@ public:
     bool stagesDetailed() const { return stagesDetailed_; }
 
     static void print(const TaskContext& ctx, std::string_view message);
-    static void printStdErr(std::string_view message);
+    static void printDim(const TaskContext& ctx, std::string_view message);
+    static void printStdErr(LogColor color, std::string_view message, bool resetColor = true);
 
-    // A field prints as 'label: value', or as its value alone without a label, indented two spaces
-    // per level. A group prints its title on its own line first; its entries then start one level in.
-    static void printField(const TaskContext& ctx, const FieldEntry& entry);
-    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries);
+    static void printField(const TaskContext& ctx, const FieldEntry& entry, const FieldGroupStyle& style);
+    static void printField(const TaskContext& ctx, const FieldEntry& entry) { printField(ctx, entry, {}); }
+    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries, const FieldGroupStyle& style);
+    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries) { printFieldGroup(ctx, title, entries, {}); }
+
+    static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 60);
+    static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, LogColor dotColor, std::string_view dot, size_t messageColumn = 60);
+    static void printHeaderCentered(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, size_t centerColumn = 24);
+    static void printAction(const TaskContext& ctx, std::string_view left, std::string_view right);
 
 private:
-    std::recursive_mutex mutexAccess_;
-    std::vector<Utf8>    claimedStageKeys_;
+    struct ActiveProgress
+    {
+        size_t                                id = 0;
+        ProgressFrames                        frames;
+        std::chrono::steady_clock::time_point startTick;
+        size_t                                frameIndex = 0;
+    };
 
-    size_t stageMuteDepth_ = 0;
-    bool   stagesDetailed_ = false;
+    void animateLoop();
+    void clearProgressNoLock();
+    void renderProgressNoLock();
+    void showCursorNoLock();
+
+    std::recursive_mutex        mutexAccess_;
+    std::mutex                  animatorWakeMutex_;
+    std::condition_variable     animatorWake_;
+    std::vector<ActiveProgress> activeProgress_;
+    std::thread                 animator_;
+    std::vector<Utf8>           claimedStageKeys_;
+
+    std::atomic<bool> stopAnimator_      = false;
+    size_t            outputBlockDepth_  = 0;
+    size_t            stageMuteDepth_    = 0;
+    size_t            nextProgressId_    = 0;
+    bool              progressRendered_  = false;
+    bool              cursorHidden_      = false;
+    bool              permanentLineOpen_ = false;
+    bool              stagesDetailed_    = false;
 };
 
 SWC_END_NAMESPACE();

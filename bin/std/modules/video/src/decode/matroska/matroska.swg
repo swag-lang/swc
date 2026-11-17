@@ -209,21 +209,41 @@ private impl Track
     // A track states the two sizes separately, and their ratio is what matters: a display size
     // equal to the stored one, or missing, means square samples. Unit 0 states pixels and unit 3
     // states a bare ratio; the physical units are not something a window can act on.
-    mtd const displaySize(width, height: s32)->{ width, height: s32 }
+    internal mtd const displaySize(width, height: s32)->{ width, height: s32 }
     {
         if .displayUnit != 0 and .displayUnit != 3 do
             return {width: 0, height: 0}
         if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
             return {width: 0, height: 0}
-        if .displayWidth * cast(u64, height) == .displayHeight * cast(u64, width) do
+        // StreamInfo uses signed dimensions, so larger container values cannot be represented.
+        // Bounding them here also keeps each ratio product within u64 before comparing.
+        if .displayWidth > Swag.S32.Max or .displayHeight > Swag.S32.Max do
+            return {width: 0, height: 0}
+
+        let shownWidth  = .displayWidth * cast(u64, height)
+        let shownHeight = .displayHeight * cast(u64, width)
+        if shownWidth == shownHeight do
             return {width: 0, height: 0}
 
         // The taller of the two axes keeps its stored resolution, so a picture is only ever
         // stretched: shrinking one instead would throw away samples the stream carries.
-        if .displayWidth * cast(u64, height) > .displayHeight * cast(u64, width) do
-            return {width: cast(s32, ((cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight)), height: height}
-        return {width: width, height: cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
+        if shownWidth > shownHeight
+        {
+            let scaledWidth = (cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight
+            if scaledWidth > Swag.S32.Max do
+                return {width: 0, height: 0}
+            return {width: cast(s32, scaledWidth), height: height}
+        }
+
+        let scaledHeight = (cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth
+        if scaledHeight > Swag.S32.Max do
+            return {width: 0, height: 0}
+        return {width: width, height: cast(s32, scaledHeight)}
     }
+
+    // Recognized explicit display geometry takes priority over codec pixel aspect, including an
+    // explicit 1:1 geometry that happens to match the coded dimensions.
+    internal mtd const hasDisplaySize()->bool => (.displayUnit == 0 or .displayUnit == 3) and .displayWidth and .displayHeight
 
     mtd const isPlayableVideo()->bool
     {
@@ -1919,6 +1939,8 @@ private impl Decoder
     mtd configureMetadata(layout: *Layout) fail
     {
         var video = &layout.tracks[layout.selectedVideo]
+        var aspectWidth = 1'u32
+        var aspectHeight = 1'u32
         if video.needsInlineSetup() and video.setup.isEmpty()
         {
             // A track that carries its layer in the stream needs one sample read before it can
@@ -1956,6 +1978,8 @@ private impl Decoder
             try probe.open(video.codecPrivate.toSlice(), #move empty)
             .info.width  = probe.width
             .info.height = probe.height
+            aspectWidth  = probe.sampleAspectWidth
+            aspectHeight = probe.sampleAspectHeight
         }
         else
         {
@@ -1967,11 +1991,19 @@ private impl Decoder
                 fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
             .info.width  = sps.width()
             .info.height = sps.height()
+            aspectWidth  = sps.sampleAspectWidth
+            aspectHeight = sps.sampleAspectHeight
         }
 
         let display = video.displaySize(.info.width, .info.height)
         .info.displayWidth  = display.width
         .info.displayHeight = display.height
+        if not video.hasDisplaySize()
+        {
+            let codecDisplay = pictureDisplaySize(.info.width, .info.height, aspectWidth, aspectHeight)
+            .info.displayWidth  = codecDisplay.width
+            .info.displayHeight = codecDisplay.height
+        }
         if video.defaultDuration do
             .info.frameRate = try frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do
@@ -2036,7 +2068,7 @@ private impl Decoder
 
     mtd targetTimestamp(index: u64)->s64
     {
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return .presentationOrigin
         let offset = cast(f64, index) * cast(f64, rate.denominator()) * 1_000_000_000.0 / cast(f64, rate.numerator())
@@ -2215,31 +2247,10 @@ private impl Decoder
         .info.frameRate = catch frameRateFromDuration(observed)
     }
 
-    mtd const currentFrameCount()->u64
-    {
-        if .memoryComplete do
-            return .info.frameCount
-        return .info.frameCount
-    }
-
-    mtd const currentFrameRate()->FrameRate
-    {
-        if .memoryComplete do
-            return .info.frameRate
-        return .info.frameRate
-    }
-
-    mtd const currentDuration()->f64
-    {
-        if .memoryComplete do
-            return .durationSeconds
-        return .durationSeconds
-    }
-
     // Converts an absolute container timestamp to the first display rank not earlier than it.
     mtd const frameAtTimestamp(timestampNanoseconds: f64)->u64
     {
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return 0
         let seconds = Math.max((timestampNanoseconds - cast(f64, .presentationOrigin)) / 1_000_000_000.0, 0)
@@ -2394,7 +2405,7 @@ impl IDecoder for Decoder
             return Math.max(index, .frameAtTimestamp(cueNanoseconds))
         }
 
-        return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64, .presentationOrigin))
+        return .frameAtTimestamp(.durationSeconds * 1_000_000_000.0 + cast(f64, .presentationOrigin))
     }
 
     // Makes sure the window reaches a sample the container marks as a clean decode point.
@@ -2612,7 +2623,7 @@ impl ITimedDecoder for Decoder
     {
         if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
             return cast(f64, (.video.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin)) / 1_000_000_000.0
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         return rate.isValid() ? cast(f64, index) * cast(f64, rate.denominator()) / cast(f64, rate.numerator()) : 0
     }
 
@@ -2620,11 +2631,10 @@ impl ITimedDecoder for Decoder
     {
         if seconds < 0 do
             return 0
-        let count    = .currentFrameCount()
-        let duration = .currentDuration()
-        if count and seconds >= duration do
+        let count = .info.frameCount
+        if count and seconds >= .durationSeconds do
             return count
-        let rate = .currentFrameRate()
+        let rate = .info.frameRate
         if not rate.isValid() do
             return 0
         return Math.min(cast(u64, (seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator()))), count ? count : Swag.U64.Max)
@@ -2633,11 +2643,11 @@ impl ITimedDecoder for Decoder
 
 impl IDeferredDecoder for Decoder
 {
-    mtd impl frameCount()->u64 => .currentFrameCount()
+    mtd impl frameCount()->u64 => .info.frameCount
 
-    mtd impl frameRate()->FrameRate => .currentFrameRate()
+    mtd impl frameRate()->FrameRate => .info.frameRate
 
-    mtd impl durationInSeconds()->f64 => .currentDuration()
+    mtd impl durationInSeconds()->f64 => .durationSeconds
 
     mtd impl requestCancel()
     {

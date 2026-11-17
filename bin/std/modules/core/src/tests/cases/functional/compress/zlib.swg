@@ -148,6 +148,15 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     let errC = errCOutcome.value()
     Swag.require(dictionaryResult.isEmpty())
     Swag.require((errC is Errors.UnsupportedFormatError))
+
+    // CINFO 8 is a valid header check but announces a window larger than 32 KiB.
+    let largeWindow: [6] u8 = [0x88, 0x1C, 0, 0, 0, 0]
+    var largeWindowReader: Compress.ZLib
+    var largeWindowResult: #decltype(expect largeWindowReader.decompress(largeWindow))
+    var largeWindowOutcome: Swag.Error
+    catch { largeWindowResult = try largeWindowReader.decompress(largeWindow) } as largeWindowOutcome
+    Swag.require(largeWindowResult.isEmpty())
+    Swag.require(largeWindowOutcome.value() is Errors.UnsupportedFormatError)
 }
 
 #test

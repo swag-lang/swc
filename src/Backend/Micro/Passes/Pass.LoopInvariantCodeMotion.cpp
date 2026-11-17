@@ -263,19 +263,32 @@ namespace
 
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        thread_local std::vector<MicroInstrUseDef> useDefs;
+        thread_local std::vector<MicroInstrUseDef>       ownedUseDefs;
+        thread_local std::vector<const MicroInstrUseDef*> useDefs;
         // Keyed by the packed register and only looked up; a fresh table costs what this round
         // records.
         FlatKeyMap<RegDefinitionSummary> definitions;
-        useDefs.resize(n); // every instruction effect is replaced below
+        useDefs.resize(n);
+        const MicroSsaState* cachedSsa     = context.ssaState && context.ssaState->isValidFor(storage) ? context.ssaState : nullptr;
+        bool                 sizedFallback = false;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             if (!inst)
                 return false;
-            useDefs[i] = {};
-            inst->collectUseDef(useDefs[i], operands, context.encoder);
-            const MicroInstrUseDef* useDef = &useDefs[i];
+            const MicroInstrUseDef* useDef = cachedSsa ? cachedSsa->instrUseDef(instrRefs[i]) : nullptr;
+            if (!useDef)
+            {
+                if (!sizedFallback)
+                {
+                    ownedUseDefs.resize(n);
+                    sizedFallback = true;
+                }
+                ownedUseDefs[i] = {};
+                inst->collectUseDef(ownedUseDefs[i], operands, context.encoder);
+                useDef = &ownedUseDefs[i];
+            }
+            useDefs[i] = useDef;
             for (const MicroReg def : useDef->defs)
             {
                 RegDefinitionSummary& summary = definitions.getOrInsert(def.packed);
@@ -354,15 +367,15 @@ namespace
                 uint8_t                  baseIndex = 0;
                 const bool               hasBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst->op, MicroInstr::info(inst->op));
                 const MicroInstrOperand* instOps   = inst->ops(operands);
-                for (const MicroReg use : useDefs[i].uses)
+                for (const MicroReg use : useDefs[i]->uses)
                 {
                     const uint64_t* privateKey = privateGlobalBases.find(use.packed);
                     if (!privateKey)
                         continue;
                     // This loop already proves one use; only a sole base use with no definition stays private.
                     if (!hasBase || !instOps || instOps[baseIndex].reg != use ||
-                        std::ranges::count(useDefs[i].uses, use) != 1 ||
-                        std::ranges::find(useDefs[i].defs, use) != useDefs[i].defs.end())
+                        std::ranges::count(useDefs[i]->uses, use) != 1 ||
+                        std::ranges::find(useDefs[i]->defs, use) != useDefs[i]->defs.end())
                         materializedPrivateGlobals.insert(*privateKey);
                 }
             }
@@ -426,7 +439,7 @@ namespace
                 bodyIndices.push_back(i);
                 loopHasNestedLoop |= innermostLoopSizes[i] < loop->bodySize;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
-                const MicroInstrUseDef* useDef = &useDefs[i];
+                const MicroInstrUseDef* useDef = useDefs[i];
                 if (!inst)
                     continue;
                 for (const MicroReg def : useDef->defs)
@@ -588,9 +601,9 @@ namespace
                     const MicroInstr* gap = lastSlot + 2 == i && inBody[lastSlot + 1] ? storage.ptr(instrRefs[lastSlot + 1]) : nullptr;
                     if (!gap || !opcodeReadsMemory(gap->op) || (inst->op != MicroInstrOpcode::CmpAmcReg && inst->op != MicroInstrOpcode::CmpRegAmc))
                         continue;
-                    const MicroInstrUseDef& gapUseDef = useDefs[lastSlot + 1];
+                    const MicroInstrUseDef& gapUseDef = *useDefs[lastSlot + 1];
                     if (gapUseDef.defs.size() != 1 || gapUseDef.defs[0] == innerBase || gapUseDef.defs[0] == innerIndex ||
-                        std::ranges::find(useDefs[i].uses, gapUseDef.defs[0]) == useDefs[i].uses.end())
+                        std::ranges::find(useDefs[i]->uses, gapUseDef.defs[0]) == useDefs[i]->uses.end())
                         continue;
                 }
 
@@ -704,7 +717,7 @@ namespace
                 if (i == header)
                     continue;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
-                const MicroInstrUseDef* useDef = &useDefs[i];
+                const MicroInstrUseDef* useDef = useDefs[i];
                 if (!inst)
                     continue;
 
@@ -803,7 +816,7 @@ namespace
                             continue;
 
                         const MicroInstr*       inst   = storage.ptr(ref);
-                        const MicroInstrUseDef* useDef = &useDefs[i];
+                        const MicroInstrUseDef* useDef = useDefs[i];
                         if (!inst)
                             continue;
 
@@ -1047,7 +1060,7 @@ namespace
                     {
                         for (const uint32_t i : bodyIndices)
                         {
-                            for (const MicroReg use : useDefs[i].uses)
+                            for (const MicroReg use : useDefs[i]->uses)
                             {
                                 ++inLoopUse.getOrInsert(use.packed);
                                 if (innermostLoopSizes[i] < loop->bodySize)
@@ -1060,7 +1073,7 @@ namespace
                     for (const uint32_t i : hoistOrder)
                     {
                         const MicroInstr*       inst = storage.ptr(instrRefs[i]);
-                        const MicroInstrUseDef* ud   = &useDefs[i];
+                        const MicroInstrUseDef* ud   = useDefs[i];
                         if (!inst || ud->defs.size() != 1)
                             continue;
                         const uint32_t*          uc           = inLoopUse.find(ud->defs[0].packed);
@@ -1112,7 +1125,7 @@ namespace
                         // operands pull the producing webs whole: keeping a
                         // compute without the defs before it would compound the
                         // two-address update across iterations.
-                        const MicroInstrUseDef* ud = &useDefs[i];
+                        const MicroInstrUseDef* ud = useDefs[i];
 
                         const auto pullWeb = [&](const MicroReg reg) {
                             const RegWeb* web = findWeb(reg);
@@ -1171,7 +1184,7 @@ namespace
                             break;
                         if (hoistSet.contains(s))
                             continue;
-                        const MicroInstrUseDef* ud = &useDefs[s];
+                        const MicroInstrUseDef* ud = useDefs[s];
                         violated                   = std::ranges::find(ud->uses, reg) != ud->uses.end();
                     }
 

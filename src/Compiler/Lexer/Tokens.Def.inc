@@ -10,19 +10,19 @@ SWC_TOKEN_DEF(CommentBlock, "", TokenIdKindE::Trivia)
 
 // LITERALS
 
-SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal)
-SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
 
 SWC_TOKEN_DEF(Character, "", TokenIdKindE::Literal)
 
-SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal)
-SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal)
-SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal)
-SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
 
 // IDENTIFIERS
 
-SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart)
+SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart | TokenIdKindE::QuoteOperatorPredecessor)
 SWC_TOKEN_DEF(SharpIdentifier, "", TokenIdKindE::Compiler)
 
 SWC_TOKEN_DEF(KwdMe, "me", TokenIdKindE::Keyword)

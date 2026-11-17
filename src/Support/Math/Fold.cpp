@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Math/Fold.h"
-#include "Support/Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

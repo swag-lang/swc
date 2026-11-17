@@ -130,3 +130,58 @@ using Swag, Core, Gui, Pixel, Video
     Swag.require(File.exists(trashed) and File.exists(Capture.mediaPathOf(trashed, .Video)))
     Swag.require(timeline.audioReader == null and not timeline.isPlaying())
 }
+
+// A video without sound is opened for its audio once; later plays remember it has none, until the
+// capture's media is released.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let document = testTempCapturePath()
+    let source   = Capture.mediaPathOf(document, .Video)
+    defer
+    {
+        f.capture.closeMedia()
+        discard catch Capture.deleteFiles(document)
+    }
+
+    let picture = Image.create(64, 48, .BGRA8)
+    picture.fill(Argb.White)
+    var recording = expect Mp4.SoftwareRecording.createVideoOnly(source, 64, 48, 1_000_000)
+    for frame in 10'u64 do
+        expect recording.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    expect recording.end()
+
+    f.capture.file = document
+    expect f.capture.adoptVideo()
+    let timeline = TimelineBar.create(f.main, &f.gui.root)
+    f.main.timeline = timeline
+
+    func playUntilClockStarts(timeline: *TimelineBar)
+    {
+        timeline.togglePlay()
+        var event   = TimerEvent{timer: unwrap timeline.playTimer}
+        let readyBy = Time.monotonicMicroseconds() + 2_000_000
+        while not timeline.decoder.isBuffered()
+        {
+            Swag.require(Time.monotonicMicroseconds() < readyBy, "video prefetch did not finish")
+            Threading.Thread.sleep(1'ms)
+        }
+
+        timeline.IWnd.onTimerEvent(&event)
+        Swag.require(timeline.playStart != 0)
+    }
+
+    playUntilClockStarts(timeline)
+    Swag.require(timeline.audioReader == null and Path.equals(timeline.silentPath, source))
+    timeline.togglePlay()
+
+    playUntilClockStarts(timeline)
+    Swag.require(timeline.audioReader == null and Path.equals(timeline.silentPath, source))
+    timeline.togglePlay()
+
+    timeline.releaseCaptureMedia(document)
+    Swag.require(timeline.silentPath.isEmpty())
+}

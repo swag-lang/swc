@@ -876,6 +876,16 @@ impl Array
         return unwrap .buffer
     }
 
+    // Borrows the first element for reading without copying it.
+    //
+    // Asserts if the array is empty. Growth can invalidate the pointer. Inserting, removing, or
+    // reordering elements can change which element occupies the first slot.
+    mtd const frontPtr()->const *T
+    {
+        Swag.assert(.count > 0, "array is empty")
+        return .opIndexPtr(0)
+    }
+
     // Returns a copy of the last element.
     //
     // Asserts if the array is empty.
@@ -893,6 +903,16 @@ impl Array
     {
         Swag.assert(.count > 0, "array is empty")
         return unwrap .buffer + .count - 1
+    }
+
+    // Borrows the last element for reading without copying it.
+    //
+    // Asserts if the array is empty. Growth can invalidate the pointer. Inserting, removing, or
+    // reordering elements can change which element occupies the last slot.
+    mtd const backPtr()->const *T
+    {
+        Swag.assert(.count > 0, "array is empty")
+        return .opIndexPtr(.count - 1)
     }
 
     // Removes the last element and returns it.

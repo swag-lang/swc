@@ -32,6 +32,7 @@ impl Capture
             result += "."
             digit(&result, time / 100_000)
         }
+
         return result
     }
 

@@ -303,6 +303,26 @@ func assertJsonPayload(value: JsonPayload)->bool
     }
 }
 
+// The writer escapes control bytes without losing them, while the reader rejects raw controls.
+#test
+{
+    let payload = JsonStringPayload{ text: "\x00\x01\x0B\x1F" }
+    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var buffer:  ConcatBuffer
+    expect encoder.writeAll(&buffer, payload)
+    Swag.require(buffer.toString() == "{\"text\":\"\\u0000\\u0001\\u000B\\u001F\"}")
+
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = expect decoder.readAll'JsonStringPayload(unwrap buffer.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.text == payload.text)
+
+    let rawControl = "{\"text\":\"before\x01after\"}"
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, rawControl)) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SyntaxError)
+}
+
 #test
 {
     const InvalidJson = [

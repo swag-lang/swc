@@ -3,12 +3,12 @@ using Core, Pixel, Audio, Video
 // The timeline of a timed capture, on a floating panel under the canvas: play and pause, the time
 // at the playhead against the length, and a track the playhead is dragged along. A picture has
 // none.
-const TimelineHeight    = 40.0      // Logical height of the bar.
-const TimelinePadding   = 8.0       // Air inside the bar.
-const TimelineButton    = 28.0      // Side of the play command.
-const TimelineTextWidth = 104.0     // Room for the time reading.
-const TimelineGap       = 8.0       // Air between the bar and the hint line.
-const TimelineThumbnails = 6        // Fixed decoding budget for the visible passage.
+const TimelineHeight     = 40.0      // Logical height of the bar.
+const TimelinePadding    = 8.0       // Air inside the bar.
+const TimelineButton     = 28.0      // Side of the play command.
+const TimelineTextWidth  = 104.0     // Room for the time reading.
+const TimelineGap        = 8.0       // Air between the bar and the hint line.
+const TimelineThumbnails = 6         // Fixed decoding budget for the visible passage.
 
 struct TimelineBar
 {
@@ -25,15 +25,16 @@ struct TimelineBar
     audioVoices:     [2] (*Voice?)
     audioVoiceCount: u32
     audioPath:       String
+    silentPath:      String     // The video last found to have no sound, until the audio is disposed.
     ownsAudioEngine: bool
-    audioClockLast:   f64 = -1
+    audioClockLast:  f64 = -1
     isDragging:      bool
     dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
     dragFromStart:   u64     // Selected form's span when its end is dragged.
     dragFromEnd:     u64
-    viewStart:       u64     // First time visible on the track.
-    zoom:            f32 = 1 // One shows the whole recording.
-    readingFont:     *Font?     // The font and duration `readingWidth` was measured for.
+    viewStart:       u64         // First time visible on the track.
+    zoom:            f32 = 1     // One shows the whole recording.
+    readingFont:     *Font?      // The font and duration `readingWidth` was measured for.
     readingDuration: u64
     readingWidth:    f32
     viewCapture:     *Capture?
@@ -224,6 +225,7 @@ impl IWnd for TimelineBar
                 .stopTimer(&.seekTimer)
                 return
             }
+
             if .decoder.present(capture, .decoder.firstFrame)
             {
                 .stopTimer(&.seekTimer)
@@ -534,11 +536,17 @@ impl TimelineBar
         if .audioReader and not Path.equals(.audioPath, path) do
             .disposeAudio()
 
+        // A video without sound is opened once: each later play or loop knows it has nothing to play.
         if not .audioReader
         {
-            var reader = try Video.Reader.open(path)
-            if not reader.audioTrackCount() do
+            if Path.equals(.silentPath, path) do
                 return
+            var reader = try Video.Reader.open(path)
+            if not reader.audioTrackCount()
+            {
+                .silentPath = path
+                return
+            }
 
             let stored = Memory.new'Video.Reader()
             stored[]     = #move reader
@@ -547,8 +555,6 @@ impl TimelineBar
         }
 
         let reader = .audioReader
-        if not reader or not reader.audioTrackCount() do
-            return
 
         if not Audio.isEngineCreated()
         {
@@ -617,6 +623,7 @@ impl TimelineBar
             .audioReader = null
         }
 
+        .silentPath.clear()
         .ownsAudioEngine = false
     }
 

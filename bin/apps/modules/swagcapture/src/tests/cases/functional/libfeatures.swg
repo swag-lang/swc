@@ -97,7 +97,7 @@ using Swag, Core
     discard expect File.writeAllText(Path.combine(sub, "one.scc"), "capture")
 
     g_Library.loaded = true
-    f.main.libWnd = LibraryWnd.create(f.main)
+    f.main.libWnd    = LibraryWnd.create(f.main)
     let lib = f.main.libWnd
 
     func countOf(lib: *LibraryWnd, folder: string)->String
@@ -400,13 +400,24 @@ using Swag, Core
     f.main.requestLibraryExport(source, target, false)
     Swag.require(f.main.exportJob == null and f.main.exportTimer != null)
     Swag.require(g_CaptureSaves.flush(source).isEmpty())
+
+    // The decode and the write run on workers, and the pump that follows each step lands a worker
+    // that already finished: whichever step is still running is waited for, in order.
     f.gui.fireTimer(f.main.exportTimer)
-    Swag.require(f.main.exportJob != null)
-    f.main.exportJob.task.wait()
-    f.gui.pump()
-    Swag.require(f.main.imageWriteJob != null)
-    f.main.imageWriteJob.task.wait()
-    f.gui.pump()
+    Swag.require(f.main.exportTimer == null)
+    if f.main.exportJob
+    {
+        f.main.exportJob.task.wait()
+        f.gui.pump()
+    }
+
+    if f.main.imageWriteJob
+    {
+        f.main.imageWriteJob.task.wait()
+        f.gui.pump()
+    }
+
+    Swag.require(f.main.exportJob == null and f.main.imageWriteJob == null)
 
     let image = expect Image.load(target)
     Swag.require(image.width == 19 and image.height == 13)

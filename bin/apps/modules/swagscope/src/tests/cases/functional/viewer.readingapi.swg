@@ -128,8 +128,23 @@ using Core, Gui
     var unbound  = control(.D1)
     var bare     = KeyEvent{kind: .Pressed, key: .Add}
     var released = KeyEvent{kind: .Released, key: .Add, modifiers: .Control}
-    for evt in [&unbound, &bare, &released] do
+    var shifted  = KeyEvent{kind: .Pressed, key: .Add, modifiers: .Control | .Shift}
+    for evt in [&unbound, &bare, &released, &shifted] do
         Swag.require(not Viewer.isZoomKey(evt))
+
+    // The wheel zooms under the same chord as the keys, one notch per turn of the wheel.
+    var wheelUp   = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
+    var wheelDown = MouseEvent{kind: .Wheel, delta: Math.Point{0, -120}, modifiers: .Control}
+    Swag.require(Viewer.isZoomWheel(&wheelUp) and Viewer.zoomAfterWheel(&wheelUp, 100) == 100 + Viewer.ZoomStep)
+    Swag.require(Viewer.isZoomWheel(&wheelDown) and Viewer.zoomAfterWheel(&wheelDown, 100) == 100 - Viewer.ZoomStep)
+    Swag.require(Viewer.zoomAfterWheel(&wheelUp, Viewer.MaxZoom) == Viewer.MaxZoom)
+
+    var plainWheel   = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}}
+    var shiftedWheel = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Shift}
+    var altWheel     = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Alt}
+    var click        = MouseEvent{kind: .Pressed, button: .Left, modifiers: .Control}
+    for evt in [&plainWheel, &shiftedWheel, &altWheel, &click] do
+        Swag.require(not Viewer.isZoomWheel(evt))
 
     // The lens asks for the same levels as the keys, and never leaves the range.
     Swag.require(Viewer.zoomTarget(.In, 100) == 125 and Viewer.zoomTarget(.Out, 100) == 75)

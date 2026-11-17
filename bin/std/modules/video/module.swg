@@ -14,6 +14,11 @@ encoding them. [[Video.Timebase]] converts absolute timestamps between integer m
 including nanosecond capture timestamps and video or audio track ticks, without cumulative
 rounding.
 
+For H.264 and H.265, [[Video.Reader.width]] and [[Video.Reader.height]] describe stored pixels,
+while [[Video.Reader.displayWidth]] and [[Video.Reader.displayHeight]] include the sample aspect
+ratio carried by codec metadata or the container. Matroska track display geometry takes priority
+over codec metadata; ISO-BMFF `pasp` takes priority over codec metadata.
+
 ```swag
 #import("video")
 
@@ -47,7 +52,7 @@ Four codecs ship in the box:
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
   through the requested frame.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
-  Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
+  Motion JPEG, and exposes AAC-LC and MPEG Layer III audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
   AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
   The writer reports submitted video and audio packet counts, track end times, and completed byte
@@ -86,6 +91,8 @@ Four codecs ship in the box:
   [[Video.Mp4.SoftwareRecording]] joins RGB-to-NV12 conversion, software H.264 and AAC encoding,
   sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM
   chunks, AAC priming when audio is present, and fragmented MP4 finalization.
+  Its optional [[Video.Mp4.SoftwareVideoRateControl]] adapts per-picture QP toward an average
+  video rate and reports the selected QP; it does not promise a fixed packet size or file size.
   [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
   and reports skipped frames without retaining pictures.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,

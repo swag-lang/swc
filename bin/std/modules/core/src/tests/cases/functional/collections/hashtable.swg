@@ -44,6 +44,9 @@ func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
 
 func assertConstHashTableBorrowTypes(table: const *HashTable'(s32, s32))
 {
+    Swag.require(table[].tryFind(1) != null)
+    Swag.require(table[].tryFind(99) == null)
+
     for &key, value in table[]
     {
         #assert(#typeof(key) == const *s32)

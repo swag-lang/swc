@@ -4,6 +4,57 @@
 
 using Core, Pixel
 
+// Cursor-only motion produces a new image without leaving the previous cursor behind.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    if bounds.width < 64 or bounds.height < 64 do
+        return
+    let monitorX = cast(s32, bounds.x)
+    let monitorY = cast(s32, bounds.y)
+    let monitorWidth = cast(s32, bounds.width)
+    let monitorHeight = cast(s32, bounds.height)
+    let captureWidth = Math.min(256's32, monitorWidth)
+    let captureHeight = Math.min(256's32, monitorHeight)
+    let captureX = monitorX + (monitorWidth - captureWidth) / 2
+    let captureY = monitorY + (monitorHeight - captureHeight) / 2
+
+    var cursor: CURSORINFO
+    cursor.cbSize = #sizeof(CURSORINFO)
+    if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) do
+        return
+    let originalX = cursor.ptScreenPos.x
+    let originalY = cursor.ptScreenPos.y
+    defer SetCursorPos(originalX, originalY)
+
+    var source = expect Source.open({captureX, captureY, captureWidth, captureHeight, true})
+    SetCursorPos(captureX + captureWidth / 4, captureY + captureHeight / 4)
+    var image: Image
+    Swag.require(expect source.grabInto(&image))
+    var previous = Image.create(image.width, image.height, image.pixelFormat)
+    Memory.copy(previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+
+    SetCursorPos(captureX + captureWidth * 3 / 4, captureY + captureHeight * 3 / 4)
+    let fresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(fresh, "cursor movement should make the captured image fresh")
+    Swag.require(Memory.compare(previous.pixels.storage(), image.pixels.storage(), image.byteCount) != 0,
+                 "moving the cursor should change the captured image")
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+                                image.byteCount) == 0,
+                 "moving the cursor should redraw from cursorless desktop pixels")
+
+    image = Image.create(1, 1, .BGRA8)
+    discard expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(image.width == captureWidth and image.height == captureHeight)
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+                                image.byteCount) == 0,
+                 "a replacement target should receive the current cursor-composited frame")
+}
+
 // Split readbacks copy only the selected top-down regions into bottom-up image storage.
 #[Swag.TestTag("integration.host.windows")]
 #test
@@ -50,6 +101,17 @@ using Core, Pixel
     if not monitors.count do
         return
     var source = expect Source.openMonitor(0)
+    let selection = source.captureOptions()
+    let monitorBounds = monitors[0].physicalBounds
+    Swag.require(selection.x == cast(s32, monitorBounds.x) and
+                 selection.y == cast(s32, monitorBounds.y) and
+                 selection.width == cast(s32, monitorBounds.width) and
+                 selection.height == cast(s32, monitorBounds.height))
+    let pointSource = expect Source.openMonitorAt({monitorBounds.x + monitorBounds.width / 2,
+                                                    monitorBounds.y + monitorBounds.height / 2})
+    let pointOptions = pointSource.captureOptions()
+    Swag.require(pointOptions.x == selection.x and pointOptions.y == selection.y and
+                 pointOptions.width == selection.width and pointOptions.height == selection.height)
     let native = source.sources[0]
     Swag.require(expect native.beginGrab())
     Swag.require(native.pending)
@@ -60,18 +122,22 @@ using Core, Pixel
     Swag.require(fresh)
     let lastCaptureTime = source.lastFrameCaptureMicroseconds()
     Swag.require(lastCaptureTime > 0)
+    let lastPresentationTime = source.lastFramePresentationMicroseconds()
+    Swag.require(lastPresentationTime > 0)
     let originalX = native.options.x
     native.options.x = Env.getSystemMetric(.DesktopX) + Env.getSystemMetric(.DesktopWidth) + 32
     var rejected = false
     catch source.reopen() { rejected = true }
     Swag.require(rejected, "reopening an unavailable output should fail")
-    Swag.require(source.lastFrameCaptureMicroseconds() == lastCaptureTime)
+    Swag.require(source.lastFrameCaptureMicroseconds() == lastCaptureTime and
+                 source.lastFramePresentationMicroseconds() == lastPresentationTime)
     rejected = false
     discard catch native.beginGrab() { rejected = true }
     Swag.require(rejected, "a failed reopen should leave a recoverable source")
     native.options.x = originalX
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(expect native.beginGrab())
     native.abortGrab()
 }
@@ -90,11 +156,21 @@ using Core, Pixel
     let firstFresh = expect source.grabInto(&image, copyUnchanged: false,
                                             updateChangedOnly: true)
     Swag.require(firstFresh and source.lastFrameCaptureMicroseconds() > 0)
+    Swag.require(source.lastFramePresentationMicroseconds() > 0 and
+                 source.lastFramePresentationMicroseconds() <= source.lastFrameCaptureMicroseconds())
     var lastCaptureTime = source.lastFrameCaptureMicroseconds()
     let firstMetrics = source.metrics()
     Swag.require(firstMetrics.maxReadbackMicroseconds > 0 and
                  firstMetrics.maxReadbackMicroseconds <= firstMetrics.readbackMicroseconds and
                  firstMetrics.maxAcquireMicroseconds <= firstMetrics.acquireMicroseconds)
+    let firstCaptureTime = source.lastFrameCaptureMicroseconds()
+    source.resetMetrics()
+    let resetMetrics = source.metrics()
+    Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
+                 resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
+                 resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
+    Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     for 12
     {
         let fresh = expect source.grabInto(&image, copyUnchanged: false,
@@ -173,6 +249,9 @@ using Core, Pixel
     let width = cast(s32, right - left)
     let height = cast(s32, bottom - top)
     var source = expect Source.openDesktop()
+    let selection = source.captureOptions()
+    Swag.require(selection.x == cast(s32, left) and selection.y == cast(s32, top) and
+                 selection.width == width and selection.height == height)
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false, updateChangedOnly: true))
     for native in source.sources do

@@ -24,6 +24,59 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+
+    // Any nonzero post.isFixedPitch value means fixed pitch.
+    writeBigU32(&bytes, table + 12, 2)
+    let fixedFace = expect Face.load(bytes.toSlice())
+    defer fixedFace.destroy()
+    let fixedMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(fixedFace.isFixedPitch and fixedMetadata.isFixedPitch)
+
+    writeBigU32(&bytes, table + 12, 0)
+    let proportionalFace = expect Face.load(bytes.toSlice())
+    defer proportionalFace.destroy()
+    let proportionalMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(not proportionalFace.isFixedPitch and not proportionalMetadata.isFixedPitch)
+}
+
+#test
+{
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+
+    // -12.5 degrees in signed 16.16 form.
+    writeBigU32(&bytes, table + 4, 0xFFF38000)
+    let italicFace = expect Face.load(bytes.toSlice())
+    defer italicFace.destroy()
+    let italicMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(italicFace.italicAngle == -819200 and italicMetadata.italicAngle == -819200)
+
+    writeBigU32(&bytes, table + 4, 0)
+    let uprightFace = expect Face.load(bytes.toSlice())
+    defer uprightFace.destroy()
+    let uprightMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(uprightFace.italicAngle == 0 and uprightMetadata.italicAngle == 0)
+}
+
+#test
+{
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
+
+    let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(not metadata.isFixedPitch and metadata.italicAngle == 0)
+    let subset = expect Face.loadSubset(bytes.toSlice(), "Arial")
+    defer subset.destroy()
+    Swag.require(not subset.isFixedPitch and subset.italicAngle == 0)
+}
+
+#test
+{
     var bytes   = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     let regular = expect Face.metadataAt(bytes.toSlice(), 0)
     let bold    = expect Face.metadataAt(bytes.toSlice(), 1)

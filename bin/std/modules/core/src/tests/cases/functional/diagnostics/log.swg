@@ -7,12 +7,26 @@ struct MemoryLogWriter
     count:    u32
 }
 
+struct OrderedLogWriter
+{
+    order:  *u32
+    marker: u32
+}
+
 impl ILogWriter for MemoryLogWriter
 {
     mtd impl print(text: string)
     {
         me.count += 1
         Swag.require(text == me.expected.toString(), Format.toString("Expected '%', got '%'", me.expected.toString(), text))
+    }
+}
+
+impl ILogWriter for OrderedLogWriter
+{
+    mtd impl print(_: string)
+    {
+        .order[] = .order[] * 10 + .marker
     }
 }
 
@@ -133,4 +147,20 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
     Swag.require(removedWriter.count == 0)
     Swag.require(writer.count == 1)
+}
+
+// Writers receive each message in the order they were registered.
+#test
+{
+    var order   = 0'u32
+    var writerA = OrderedLogWriter{order: &order, marker: 1}
+    var writerB = OrderedLogWriter{order: &order, marker: 2}
+
+    var log = Log.create()
+    log.setFlags(LogFlags.None)
+    log.addWriter(writerA)
+    log.addWriter(writerB)
+    log.print("ordered")
+
+    Swag.require(order == 12)
 }

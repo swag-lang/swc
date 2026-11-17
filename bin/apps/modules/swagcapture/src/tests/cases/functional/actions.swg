@@ -94,6 +94,26 @@ using Swag, Core
     Swag.require(not evt.checked)
 }
 
+// Every tool command presents its tool as the editor names it and takes that tool in hand; the
+// callout shows its own bubble wherever the tool is drawn as a glyph.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    for mode in EditMode
+    {
+        let id = mode.command()
+        Swag.require(ActionToolMode.modeOf(id) == mode)
+        var evt = Gui.Testing.commandState(id)
+        Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, id, &evt))
+        Swag.require(evt.name == mode.name())
+        Swag.require(evt.toolTip == mode.tip())
+    }
+
+    Swag.require(EditMode.Callout.glyph() == CaptureIcons.Callout)
+}
+
 // Capture delay, capture-option toggles and view clipping are pure state actions.
 #test
 {

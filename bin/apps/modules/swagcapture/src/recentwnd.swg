@@ -39,7 +39,7 @@ struct RecentInfos
     loading:        bool
     linkedUpToDate: bool
     linked:         string = ""
-    showLinked:     bool = true
+    showLinked:     bool   = true
     duration:       u64     // Length of an animation, in microseconds; zero for a picture.
 }
 

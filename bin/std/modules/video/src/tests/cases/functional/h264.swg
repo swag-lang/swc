@@ -23,6 +23,7 @@ using Core, Core.Errors, Pixel
     var decoder:  Mp4.Decoder
     let idecoder: IDecoder = &decoder
     discard expect idecoder.open(&source)
+    Swag.require(decoder.video.sampleAspectWidth == 1 and decoder.video.sampleAspectHeight == 1)
 
     var expectedSync = cast(u64, decoder.video.avc.sampleAtRank[57])
     while expectedSync > 0 and decoder.video.avc.syncFlags[expectedSync] == 0 do

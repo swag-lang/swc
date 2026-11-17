@@ -24,7 +24,7 @@ using Swag
         Swag.require(main.editWnd.surfaceRect() == area)
         Swag.require(main.dock.surfaceRect().x == area.x + metrics.floating_Inset)
         Swag.require(main.inspector.surfaceRect().right() == area.right() - metrics.floating_Inset)
-        Swag.require(main.miniBar.isLocallyVisible() and main.miniBarKind == .Text)
+        Swag.require(main.miniBar.isLocallyVisible() and main.miniBar.shownKind == .Text)
         Swag.require(main.sizeReading.text() == "400 × 240")
         Swag.require(main.zoomReading.text() == "100 %")
 

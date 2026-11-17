@@ -59,6 +59,15 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     return score
 }
 
+func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
+{
+    let front = values[].frontPtr()
+    let back  = values[].backPtr()
+    #assert(#typeof(front) == const *s32)
+    #assert(#typeof(back) == const *s32)
+    return front[] + back[]
+}
+
 #test
 {
     let seed: [4] s32 = [1, 2, 3, 4]
@@ -68,6 +77,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
     Swag.require(values.count == 4)
     Swag.require(Slice.equals(values.toSlice(), seed))
+    Swag.require(assertConstStaticArrayEnds(&values) == 5)
 }
 
 #test

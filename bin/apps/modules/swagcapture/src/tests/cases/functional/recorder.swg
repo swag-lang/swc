@@ -327,6 +327,27 @@ internal func testEndRecording()
     Swag.require(Capture.clockText(36_000_000_000) == "10:00:00")
 }
 
+// A recording keeps the identity of the window it was taken from, as a screenshot does.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+
+    with var window: CaptureWindowInfo
+    {
+        .application  = "Editor"
+        .executable   = "editor.exe"
+        .title        = "notes.txt"
+        .className    = "EditorFrame"
+        .nativeWindow = 42
+    }
+
+    capture.setScreenSource(window)
+    Swag.require(capture.sourceKind == .Screen)
+    Swag.require(capture.sourceApplication == "Editor" and capture.sourceExecutable == "editor.exe")
+    Swag.require(capture.sourceWindowTitle == "notes.txt" and capture.sourceWindowClass == "EditorFrame")
+}
+
 // A video records even sides without dropping the last column or row of the selection: an odd
 // side takes one pixel more, and gives one up only against the far edge of the desktop.
 #test

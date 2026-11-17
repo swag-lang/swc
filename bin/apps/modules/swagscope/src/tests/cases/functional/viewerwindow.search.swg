@@ -136,6 +136,31 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 }
 
+// A viewer that fails while the lens is open takes its rows with it. The lens asks the error
+// surface that replaced it, which offers none, instead of keeping commands that would run on the
+// viewer that is gone.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.txt"), false)
+    window.openFile(scopeTestDataPath("viewer.damaged.xlsx"))
+    completeViewerWindowClassification(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "xlsx")
+
+    window.lens.open()
+    let workbook = Xlsx.texts().ui_Name
+    var listed   = false
+    for section in window.lens.results.sections where section and section.label == workbook do
+        listed = true
+    Swag.require(listed)
+
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.lens.isOpen() and not window.instances[window.activeChoiceIndex].failureReason.isEmpty())
+    for section in window.lens.results.sections where section do
+        Swag.require(section.label != workbook)
+    window.lens.close()
+}
+
 // The lens finds the lines of the open file as the file is now: each line holding the query once,
 // led by its number, and `:` with a number the start of that line. A reload reads the file again.
 #test

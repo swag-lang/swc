@@ -17,6 +17,45 @@ impl IImageDecoder for ImageReaderMismatchDecoder
     }
 }
 
+struct ImageReaderMixedDepthDecoder {}
+
+impl IImageDecoder for ImageReaderMixedDepthDecoder
+{
+    mtd impl format()->ImageFormat => {"Mixed-depth animation", ".mixeddepthanimation"}
+    mtd impl decode(_: const [..] u8, _: DecodeOptions)->Image fail => Image.create(1, 1, .RGBA8)
+}
+
+impl IImageSetDecoder for ImageReaderMixedDepthDecoder
+{
+    mtd impl open(_: const [..] u8, _: DecodeOptions)->ImageSetInfo fail
+    {
+        var result: #returntype
+        result.canvasWidth  = 1
+        result.canvasHeight = 1
+        result.frames.add(ImageFrameInfo{kind: .Animation, width: 1, height: 1, pixelFormat: .RGBA8})
+        result.frames.add(ImageFrameInfo{kind: .Animation, width: 1, height: 1, pixelFormat: .RGBA16})
+        return result
+    }
+
+    mtd impl readFrame(index: u32, _: DecodeOptions)->Image fail
+    {
+        if index == 0
+        {
+            var result = Image.create(1, 1, .RGBA8)
+            result.fill(Argb.Black)
+            return result
+        }
+
+        var result = Image.create(1, 1, .RGBA16)
+        let channels = cast([*] u16, result.pixels.storage())
+        channels[0] = 0x1234
+        channels[1] = 0x5678
+        channels[2] = 0x9ABC
+        channels[3] = 0xFFFF
+        return result
+    }
+}
+
 struct ImageReaderDecoderAllocatorProbe
 {
     upstream:        IAllocator
@@ -290,6 +329,17 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     var image: #decltype(expect reader.read(0))
     catch { image = try reader.read(0) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
+}
+
+// A high-precision later animation frame keeps its channels in the composited canvas.
+#test
+{
+    Image.registerDecoder'(ImageReaderMixedDepthDecoder)()
+    var reader = expect ImageReader.decode("image.mixeddepthanimation", "input")
+    let image = expect reader.read(1)
+    let channels = cast(const [*] u16, image.pixels.storage())
+    Swag.require(image.pixelFormat == .RGBA16)
+    Swag.require(channels[0] == 0x1234 and channels[1] == 0x5678 and channels[2] == 0x9ABC and channels[3] == 0xFFFF)
 }
 
 // Closing a reader uses the allocator that created its persistent decoder.

@@ -444,6 +444,17 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
     ProcessOutput  output(options);
     ProcessHandles handles;
     handles.parent = pidfd_open(getpid(), 0);
+    if (handles.parent >= 0 && handles.parent < 3)
+    {
+        int moved;
+        do
+            moved = fcntl(handles.parent, F_DUPFD_CLOEXEC, 3);
+        while (moved < 0 && errno == EINTR);
+        if (moved < 0)
+            return ProcessRunResult::StartFailed;
+        closeDescriptor(handles.parent);
+        handles.parent = moved;
+    }
     if (handles.parent < 0 || !makePipe(handles.control) || !makePipe(handles.status) || (output.needsPipe() && !makePipe(handles.output)))
         return ProcessRunResult::StartFailed;
     handles.supervisor = _Fork();

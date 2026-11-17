@@ -13,6 +13,32 @@ const PictureHevc      = 1'u32
 const PictureMpeg4     = 2'u32
 const PictureRealVideo = 3'u32
 
+// Converts a codec pixel aspect ratio to display dimensions, returning zero dimensions for
+// square pixels so callers can preserve the StreamInfo convention.
+func pictureDisplaySize(width, height: s32, aspectWidth, aspectHeight: u32)->{ width, height: s32 }
+{
+    if width <= 0 or height <= 0 or not aspectWidth or not aspectHeight do
+        return {width: 0, height: 0}
+
+    let codedWidth  = cast(u64, width) * aspectWidth
+    let codedHeight = cast(u64, height) * aspectHeight
+    if codedWidth == codedHeight do
+        return {width: 0, height: 0}
+
+    if codedWidth > codedHeight
+    {
+        let displayWidth = (cast(u64, width) * aspectWidth + aspectHeight / 2) / aspectHeight
+        if displayWidth > Swag.S32.Max do
+            return {width: 0, height: 0}
+        return {width: cast(s32, displayWidth), height: height}
+    }
+
+    let displayHeight = (cast(u64, height) * aspectHeight + aspectWidth / 2) / aspectWidth
+    if displayHeight > Swag.S32.Max do
+        return {width: 0, height: 0}
+    return {width: width, height: cast(s32, displayHeight)}
+}
+
 // The coded picture track of one container, whichever picture codec named it.
 //
 // Each codec consumes indexed access units in decoding order and returns pictures in display
@@ -25,10 +51,21 @@ struct PictureStream
     mpeg4:     Mpeg4.Mpeg4Stream
     realvideo: RealVideo.Stream
     kind:      u32
+    sampleAspectWidth:  u32 = 1
+    sampleAspectHeight: u32 = 1
 }
 
 impl PictureStream
 {
+    // Applies a pixel aspect ratio without changing the coded frame dimensions. A zero ratio
+    // means the caller has no container override and the codec ratio is used.
+    mtd const displaySize(width, height: s32, aspectWidth = 0, aspectHeight = 0)->{ width, height: s32 }
+    {
+        let ratioWidth  = aspectWidth ? aspectWidth : .sampleAspectWidth
+        let ratioHeight = aspectHeight ? aspectHeight : .sampleAspectHeight
+        return pictureDisplaySize(width, height, ratioWidth, ratioHeight)
+    }
+
     // Configures the decoder from the container's decoder configuration record and installs the
     // access units of the track. `kind` selects the codec and its configuration format.
     // `prefix` is what the container took off the front of every stored frame, if it did.
@@ -43,6 +80,8 @@ impl PictureStream
             .hevc.prefix.clear()
             .hevc.prefix.add(prefix)
             try .hevc.open(config, #move owned)
+            .sampleAspectWidth  = .hevc.sampleAspectWidth
+            .sampleAspectHeight = .hevc.sampleAspectHeight
 
         case PictureRealVideo:
             .realvideo.prefix.clear()
@@ -58,6 +97,8 @@ impl PictureStream
             .avc.prefix.clear()
             .avc.prefix.add(prefix)
             try .avc.open(config, #move owned)
+            .sampleAspectWidth  = .avc.sampleAspectWidth
+            .sampleAspectHeight = .avc.sampleAspectHeight
         }
     }
 

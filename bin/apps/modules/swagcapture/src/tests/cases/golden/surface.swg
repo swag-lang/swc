@@ -398,9 +398,9 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    let button = unwrap main.miniBarFontSize
+    let button = unwrap main.miniBar.sizeButton
     host.clickWnd(button)
-    let popup = unwrap main.textChoicePopover
+    let popup = unwrap main.miniBar.choicePopover
     Swag.require(popup.list.lineCount() == TextChoiceSizes.count)
     host.finishAnimations()
     var image = host.render(main)
@@ -428,9 +428,9 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    let button = unwrap main.miniBarFontFace
+    let button = unwrap main.miniBar.faceButton
     host.clickWnd(button)
-    let popup  = unwrap main.textChoicePopover
+    let popup  = unwrap main.miniBar.choicePopover
     let filter = unwrap popup.filter
     Swag.require(popup.list.scrollWnd.scrollSize.y > popup.list.position.height)
     let frameWnd = unwrap popup.parent

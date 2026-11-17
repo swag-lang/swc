@@ -160,11 +160,16 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 
     let record    = unwrap rec
     let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
+    if postTable.count < 32 do
+        try fault(0x9B)
     let format    = try readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
         try fault(0x9A)
 
     faceData.face.setUnderline(try readS16(postTable, 8), try readS16(postTable, 10))
+    faceData.face.setItalicAngle(try readS32(postTable, 4))
+    faceData.face.setFixedPitch(try readU32(postTable, 12) != 0)
+    try parsePostGlyphNames(faceData, postTable, format)
 }
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables
@@ -467,7 +472,7 @@ func initFaceRecords(faceData: *FaceImpl)
 func checkSfntVersion(data: const [..] u8, offset: u64) fail
 {
     let tag = readU32(data, offset)
-    if tag == TAG_WOFF or tag == TAG_WOF2 do
+    if tag == TAG_WOF2 do
         fault(0x0E)
     if tag != TAG_SFNT and tag != TAG_TRUE and tag != TAG_OTTO do
         fault(0x02)
@@ -482,6 +487,11 @@ func countFacesIn(data: const [..] u8)->u32 fail
         fault(0x02)
     if readU32(data, 0) == TAG_TTCF do
         return readU32(data, 8)
+    if readU32(data, 0) == TAG_WOFF
+    {
+        discard readWoffDirectory(data)
+        return 1
+    }
 
     checkSfntVersion(data, 0)
     return 1
@@ -536,6 +546,12 @@ func findTableAt(data: const [..] u8, faceOffset: u64, tag: u32)->const [..] u8?
 #[Swag.Propagate]
 func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 {
+    if data.count >= 4 and readU32(data, 0) == TAG_WOFF
+    {
+        let sfnt = inflateWoff(data)
+        return familyNameIn(sfnt.toSlice(), faceIndex)
+    }
+
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do
@@ -553,6 +569,12 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 #[Swag.Propagate]
 func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
 {
+    if data.count >= 4 and readU32(data, 0) == TAG_WOFF
+    {
+        let sfnt = inflateWoff(data)
+        return metadataIn(sfnt.toSlice(), faceIndex)
+    }
+
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do
@@ -595,6 +617,14 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
         let selection = readU16(os2, 62)
         bold   = bold or (selection & 0x20) != 0
         italic = italic or (selection & 1) != 0 or (version >= 4 and (selection & 0x200) != 0)
+    }
+
+    if let post = findTableAt(data, faceOffset, TAG_POST)
+    {
+        if post.count < 32 do
+            fault(0x9B)
+        result.isFixedPitch = readU32(post, 12) != 0
+        result.italicAngle = readS32(post, 4)
     }
 
     result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16

@@ -528,6 +528,12 @@ private impl Panel
                 }
             }
 
+            if evt is MouseEvent as mouse where Viewer.isZoomWheel(mouse)
+            {
+                result.setZoom(Viewer.zoomAfterWheel(mouse, result.zoomPercent))
+                return true
+            }
+
             return false
         }
 

@@ -528,12 +528,15 @@ public impl Voice
     // `1` preserves the source pitch, values below `1` lower it, and values
     // above `1` raise it. Create the voice with
     // [[Audio.VoiceCreateFlags.PitchControl]] before changing this value.
+    // The ratio must be finite and greater than zero.
     mtd setFrequencyRatio(ratio: f32, batchId: u32 = 0) fail
     {
         if not .handle do
             fail BadParameterError{"voice is not valid"}
-        if ratio <= 0 do
-            fail BadParameterError{"frequency ratio must be greater than zero"}
+        if not Math.isFinite(ratio) or ratio <= 0 do
+            fail BadParameterError{"frequency ratio must be finite and greater than zero"}
+        if not .createFlags.has(.PitchControl) do
+            fail BadParameterError{"voice was created without pitch control"}
         switch g_Driver.kind
         {
         case .NoSound:

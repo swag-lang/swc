@@ -44,7 +44,7 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | --- | --- | --- | --- |
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values. |
 | `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture. |
-| `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
+| `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC or Layer III audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
 | `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
 
 YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the
@@ -63,8 +63,9 @@ in parallel without sharing a seek position or retaining compressed payloads. Ma
 every supported track and puts the container's default track at index zero.
 
 Memory-backed readers expose pictures but no sound track because a voice needs an independently
-owned streaming cursor. AVI exposes integer PCM tracks and ISO-BMFF AAC-LC mono/stereo tracks. Matroska exposes
-AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core, FLAC, Layer III, Vorbis, and Opus
+owned streaming cursor. AVI exposes integer PCM tracks; ISO-BMFF exposes AAC-LC mono/stereo and
+Layer III tracks. Matroska exposes AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core,
+FLAC, Layer III, Vorbis, and Opus
 tracks within the channel counts their decoders support, preserves their speaker order, and
 subtracts `CodecDelay` priming from playback and seeking. Unsupported
 sound codecs remain unavailable while a supported picture track stays playable.
@@ -81,6 +82,11 @@ try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
 
 [[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]] both select the JPEG quality of their Motion JPEG
 frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.
+
+The fragmented software H.264 recorder accepts [[Mp4.SoftwareVideoRateControl]] to steer its
+per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does
+not guarantee a per-frame bitrate or final file size; query
+`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot.
 
 ## Adding a format
 

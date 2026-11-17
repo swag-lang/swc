@@ -652,6 +652,14 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
     return true;
 }
 
+SWC_FORCE_INLINE void PEWriter::sortSectionsByRva(std::vector<uint32_t>& order) const
+{
+    std::ranges::iota(order, 0u);
+    std::ranges::sort(order, [this](uint32_t left, uint32_t right) {
+        return sections_[left].rva < sections_[right].rva;
+    });
+}
+
 void PEWriter::compressEmbeddedDebugTable()
 {
     // LZNT1 is optional: the plain embedded table has the same runtime contract.
@@ -918,10 +926,7 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     // Section table. The PE spec requires the section headers to be sorted by ascending virtual
     // address; the working set is kept in resolution order, so emit a virtual-address-sorted view.
     std::vector<uint32_t> headerOrder(sections_.size());
-    std::ranges::iota(headerOrder, 0u);
-    std::ranges::sort(headerOrder, [this](uint32_t left, uint32_t right) {
-        return sections_[left].rva < sections_[right].rva;
-    });
+    sortSectionsByRva(headerOrder);
     for (const uint32_t sectionIdx : headerOrder)
     {
         const OutSection& section = sections_[sectionIdx];
@@ -1051,8 +1056,7 @@ void PEWriter::emitDebugInfo()
     // Build the section -> 1-based segment map in the same RVA-sorted order the PE section table uses, and
     // the matching PdbSectionInfo list so the PDB's section headers match the image exactly.
     std::vector<uint32_t> order(sections_.size());
-    std::ranges::iota(order, 0u);
-    std::ranges::sort(order, [this](uint32_t left, uint32_t right) { return sections_[left].rva < sections_[right].rva; });
+    sortSectionsByRva(order);
 
     std::vector<uint32_t>       segmentOf(sections_.size(), 0);
     std::vector<uint32_t>       sectionRva(sections_.size(), 0);

@@ -1,6 +1,6 @@
 using Core, Video
 
-const TimelineVideoSlots = 5 // Five 4K YUV420 pictures stay below 64 MiB.
+const TimelineVideoSlots = 5     // Five 4K YUV420 pictures stay below 64 MiB.
 
 // One decoded picture and the frame it shows.
 struct TimelineVideoSlot
@@ -26,8 +26,8 @@ struct TimelineVideoDecoder
     executor:         Swag.Executor
     path:             String
     generation:       u32
-    firstFrame:       u64      // Frame the current request starts from.
-    nextFrame:        u64      // Next frame the worker decodes.
+    firstFrame:       u64     // Frame the current request starts from.
+    nextFrame:        u64     // Next frame the worker decodes.
     frameCount:       u64
     active:           bool
     failed:           bool
@@ -86,7 +86,7 @@ impl TimelineVideoDecoder
             return
         Sync.scopedLock(&.lock)
         .generation += 1
-        .active = false
+        .active     = false
         .ready.clear()
         .free.clear()
     }
@@ -108,6 +108,7 @@ impl TimelineVideoDecoder
             Sync.scopedLock(&.lock)
             .releaseRequested = true
         }
+
         .wake.signal()
         .released.wait()
     }
@@ -162,7 +163,7 @@ private impl TimelineVideoDecoder
     // Decodes the pictures asked for until none is wanted or no slot is free.
     mtd run()
     {
-        var reader: Video.Reader
+        var reader:     Video.Reader
         var readerPath: String
         while not Swag.isCancelled()
         {
@@ -195,7 +196,7 @@ private impl TimelineVideoDecoder
     mtd decodeOne(reader: *Video.Reader, readerPath: *String)->bool
     {
         var slot, generation: u32
-        var index: u64
+        var index:  u64
         var reopen: bool
         scope
         {
@@ -206,8 +207,8 @@ private impl TimelineVideoDecoder
             index      = .nextFrame
             generation = .generation
             .nextFrame += 1
-            .busy       = true
-            .busySlot   = slot
+            .busy      = true
+            .busySlot  = slot
 
             // The path only changes with a request: it is copied then, not for every picture.
             reopen = not reader.isOpen() or not Path.equals(readerPath.toString(), .path)
@@ -224,6 +225,7 @@ private impl TimelineVideoDecoder
                     reader.close()
                 reader[] = try Video.Reader.open(readerPath.toString(), pictureOnly: true)
             }
+
             try reader.decodeFramePlanesInto(&.slots[slot].planes, index)
         }
         {
@@ -237,12 +239,14 @@ private impl TimelineVideoDecoder
             .free.add(slot)
             return true
         }
+
         if failed
         {
             .failed = true
             .free.add(slot)
             return false
         }
+
         .slots[slot].index = index
         .ready.add(slot)
         return true

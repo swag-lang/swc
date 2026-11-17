@@ -153,7 +153,7 @@ impl Capture
 
         // An odd-sided capture is framed in an even picture whose extra column or row stays white:
         // that picture is made once, and only the capture's rows are copied into it per frame.
-        var padded: Image
+        var padded:      Image
         var outputFrame: u64
         var outputTime:  u64
         for frame in frames.frameAt(start) until frames.frameCount()
@@ -194,7 +194,7 @@ impl Capture
             while remaining
             {
                 let duration = cast(u32, Math.min(remaining, cast(u64, Swag.U32.Max)))
-                try recording.addFrame(picture,FrameSlot{outputFrame, outputTime, duration, 0})
+                try recording.addFrame(picture, FrameSlot{outputFrame, outputTime, duration, 0})
                 outputFrame += 1
                 outputTime  += duration
                 remaining   -= duration

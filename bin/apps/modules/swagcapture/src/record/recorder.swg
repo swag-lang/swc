@@ -75,6 +75,7 @@ struct Recorder
     nextFrame:       u64                // Recorded time of the next frame to grab.
     task:            Swag.Task          // Writes `pending` to the file.
     pending:         Image
+    reduced:         Image     // `pending` at the stored size, when the area is larger.
     pendingTime:     u64
     writeFailed:     bool           // Set by the task when the file could not be written.
     recordError:     Swag.Error     // Retains a video or sound failure until the capture command reports it.
@@ -163,7 +164,7 @@ impl Recorder
         {
             .file = recorder.file
             try .adoptRecording()
-            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+            .setScreenSource(g_CaptureWindow)
         }
 
         if recorder.dropped do
@@ -194,13 +195,14 @@ impl Recorder
                 recorder.videoAudio = null
             }
         }
+
         recorder.main            = main
         recorder.target          = target
         recorder.videoMode       = true
         recorder.screenSelection = screenSelection
         recorder.screenIndex     = screenIndex
         recorder.file            = Library.newFileName()
-        fileToDiscard = Capture.mediaPathOf(recorder.file, .Video)
+        fileToDiscard            = Capture.mediaPathOf(recorder.file, .Video)
 
         // H.264 needs even dimensions. The selection stays anchored at its chosen origin.
         recorder.area = evenVideoArea(target.area, desktopBounds())
@@ -314,7 +316,7 @@ impl Recorder
             fail Swag.err
         }
 
-        result.setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+        result.setScreenSource(g_CaptureWindow)
         if not failedAfterFrames do
             main.confirmSaved(mediaFile)
         if recorder.video.stoppedForLowStorage() do
@@ -591,9 +593,16 @@ impl Recorder
         .pendingTime = time
         .task.submit(func|recorder = me|()
         {
-            if recorder.pending.width != recorder.storedWidth or recorder.pending.height != recorder.storedHeight do
-                recorder.pending.resize(recorder.storedWidth, recorder.storedHeight, .Bilinear)
-            catch recorder.writer.add(recorder.pending, recorder.pendingTime) do
+            // The grab keeps its full-size picture and the reduction its own, so neither is
+            // reallocated from one frame to the next.
+            var frame = &recorder.pending
+            if frame.width != recorder.storedWidth or frame.height != recorder.storedHeight
+            {
+                frame.resizedInto(&recorder.reduced, recorder.storedWidth, recorder.storedHeight, .Bilinear)
+                frame = &recorder.reduced
+            }
+
+            catch recorder.writer.add(frame[], recorder.pendingTime) do
                 recorder.writeFailed = true
         })
     }

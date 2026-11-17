@@ -715,14 +715,14 @@ impl Capture
 
     // Records the source of a screen capture. The native backend supplies as much window
     // identity as Windows allows; empty values deliberately mean "not available".
-    mtd setScreenSource(application, executable, windowTitle, windowClass: String)
+    mtd setScreenSource(window: CaptureWindowInfo)
     {
         .sourceKind        = .Screen
         .capturedAt        = Time.DateTime.now()
-        .sourceApplication = application
-        .sourceExecutable  = executable
-        .sourceWindowTitle = windowTitle
-        .sourceWindowClass = windowClass
+        .sourceApplication = window.application
+        .sourceExecutable  = window.executable
+        .sourceWindowTitle = window.title
+        .sourceWindowClass = window.className
     }
 
     // Returns whether this capture owns `tag`, without making tag spelling case-sensitive.

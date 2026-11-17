@@ -162,8 +162,10 @@ impl VideoCaptureSession
     // Up to four missed slots remain individual frames; longer intervals become held samples.
     mtd captureAt(tick: u64)->bool fail
     {
+        // Once stopped for storage, every later slot fails the same way.
+        const LowStorageStop = "video capture stopped because the destination has little free space"
         if .lowStorageStop do
-            fail Swag.SystemError{"video capture stopped because the destination has little free space"}
+            fail Swag.SystemError{LowStorageStop}
         var slot: FrameSlot
         if not try .pacer.tryAccept(tick, &slot) do
             return false
@@ -172,7 +174,7 @@ impl VideoCaptureSession
             if (try Directory.freeSpace(.outputDirectory.toString())) < .minimumFreeSpace
             {
                 .lowStorageStop = true
-                fail Swag.SystemError{"video capture stopped because the destination has little free space"}
+                fail Swag.SystemError{LowStorageStop}
             }
 
             .nextSpaceCheckTick = tick > Swag.U64.Max - 1_000_000 ? Swag.U64.Max : tick + 1_000_000

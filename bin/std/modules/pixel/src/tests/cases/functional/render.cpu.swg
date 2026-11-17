@@ -820,7 +820,7 @@ private func checkSharedEdge(mode: s32)
 // Full-mask texturing exercises the general textured scalar branch.
 #test { checkSharedEdge(4) }
 
-// A captured MSDF footprint lands immediately below the alpha 111 truncation boundary.
+// A captured MSDF footprint keeps its texel-space alpha at 111 after atlas-coordinate rounding is removed.
 // Static descriptor storage is retained by the shaped run; the test only reads it.
 private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800'u32), shiftY: cast #bit (f32, 0xC21844A5'u32), width: cast #bit (f32, 0x424D3334'u32), height: 54}
 
@@ -861,5 +861,5 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
     painter.end()
 
     let image = renderCpu(160, 320, &painter)
-    Swag.require(image.pixelColor(96, 271).a == 110)
+    Swag.require(image.pixelColor(96, 271).a == 111)
 }

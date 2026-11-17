@@ -13,8 +13,9 @@ defer face.destroy()
 ```
 
 The input can be a TrueType font with `glyf` outlines, an OpenType font with CFF
-outlines (`OTTO`), or a bare CFF or Type 1 program. WOFF and WOFF2 containers are
-recognized and reported as unsupported, so a failure names the container.
+outlines (`OTTO`), a WOFF1 font, or a bare CFF or Type 1 program. WOFF1 table
+streams are decompressed and rebuilt as sfnt before parsing. WOFF2 is recognized
+and reported as unsupported.
 
 ## Rendering-only subsets
 

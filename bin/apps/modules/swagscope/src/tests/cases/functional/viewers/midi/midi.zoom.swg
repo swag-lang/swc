@@ -23,8 +23,9 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(roll.pitchZoom == 1.25 and roll.rowHeight > fittedRowHeight)
     Swag.require(roll.scroll.scrollSize.y > roll.clientRect().height)
 
+    // A wheel notch scales the pitch by an eighth, as it scales the timeline.
     host.mouseWheel(roll.surfaceRect().center(), 120, .Control | .Shift)
-    Swag.require(roll.pitchZoom == 1.5625)
+    Swag.require(Math.isEqualEpsilon(roll.pitchZoom, 1.25 * 1.12, 0.0001))
     var pageDown = KeyEvent{kind: .Pressed, key: .PageDown}
     roll.sendEvent(&pageDown)
     let pageDownPosition = roll.scroll.scrollPosition().y

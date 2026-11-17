@@ -136,6 +136,20 @@ func audioStartNoSoundEngine()
     discard catch voice.setFrequencyRatio(0) as errInvalidRatioOutcome
     let errInvalidRatio = errInvalidRatioOutcome.value()
     Swag.require((errInvalidRatio is Errors.BadParameterError))
+    discard catch voice.setFrequencyRatio(Swag.F32.NaN) as errInvalidRatioOutcome
+    Swag.require(errInvalidRatioOutcome.value() is Errors.BadParameterError)
+    let infiniteRatio = Swag.F32.Max * 2
+    discard catch voice.setFrequencyRatio(infiniteRatio) as errInvalidRatioOutcome
+    Swag.require(errInvalidRatioOutcome.value() is Errors.BadParameterError)
+    audioAssertFloat(handle.frequencyRatio, 1.75)
+
+    let fixedVoice = expect Voice.create(&file, .None)
+    let fixedHandle = cast(*NoSoundVoice, unwrap fixedVoice.handle)
+    var errPitchControlOutcome: Swag.Error
+    discard catch fixedVoice.setFrequencyRatio(1.25) as errPitchControlOutcome
+    Swag.require(errPitchControlOutcome.value() is Errors.BadParameterError)
+    audioAssertFloat(fixedHandle.frequencyRatio, 1)
+    fixedVoice.destroy()
 
     let safeBus0 = expect Bus.create(2)
 
@@ -174,6 +188,19 @@ func audioStartNoSoundEngine()
     voice.destroy()
 }
 
+// The convenience overload creates, registers, and starts a voice in one operation.
+#test
+{
+    audioStartNoSoundEngine()
+    defer destroyEngine()
+
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice = expect Voice.play(&file, .Default, .Loop)
+    let handle = cast(*NoSoundVoice, unwrap voice.handle)
+    Swag.require(voice.isPlaying() and handle.isPlaying)
+    voice.destroy()
+}
+
 #test
 {
     audioStartNoSoundEngine()
@@ -188,6 +215,9 @@ func audioStartNoSoundEngine()
     let monoRight = expect voicePanMatrix(1, 1)
     audioAssertFloat(monoRight[0], 0)
     audioAssertFloat(monoRight[1], 1)
+    let monoHalfRight = expect voicePanMatrix(1, 0.5)
+    audioAssertFloat(monoHalfRight[0], 0.5)
+    audioAssertFloat(monoHalfRight[1], Math.sqrt(0.75'f32))
     let stereoCenter = expect voicePanMatrix(2, 0)
     audioAssertFloat(stereoCenter[0], 1)
     audioAssertFloat(stereoCenter[1], 0)
@@ -199,6 +229,9 @@ func audioStartNoSoundEngine()
     let stereoRight = expect voicePanMatrix(2, 1)
     audioAssertFloat(stereoRight[0], 0)
     audioAssertFloat(stereoRight[3], 1)
+    let stereoHalfRight = expect voicePanMatrix(2, 0.5)
+    audioAssertFloat(stereoHalfRight[0], 0.5)
+    audioAssertFloat(stereoHalfRight[3], 1)
 
     var monoFile   = expect SoundFile.load(audioGetTestDataPath("pcm8_mono_odd.wav"))
     var stereoFile = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
@@ -232,6 +265,8 @@ func audioStartNoSoundEngine()
 
     var nonFiniteOutcome: Swag.Error
     discard catch stereoVoice.setPan(Swag.F32.NaN) as nonFiniteOutcome
+    Swag.require(nonFiniteOutcome.value() is Errors.BadParameterError)
+    discard catch stereoVoice.setPan(Swag.F32.Max * 2) as nonFiniteOutcome
     Swag.require(nonFiniteOutcome.value() is Errors.BadParameterError)
     Swag.require((expect stereoVoice.pan()) == 0.25 and stereoHandle.pan == 0.25)
 

@@ -122,6 +122,7 @@ private func has4KDesktop()->bool fail
 // retain the MP4 for an external FFmpeg probe.
 // SWAG_CAPTURE_4K_QP selects the optional quantized path; the default is exact.
 // SWAG_CAPTURE_4K_SLICES selects one through eight independently coded row bands.
+// SWAG_CAPTURE_4K_STATIC_BACKGROUND moves only four tiles over a fixed background.
 #[Swag.TestTag("stress.capture.x11.4k.dynamic")]
 #test
 {
@@ -165,9 +166,10 @@ private func has4KDesktop()->bool fail
         }
     }
 
-    let externalPath   = Env.variable("SWAG_CAPTURE_4K_OUTPUT")
-    let qpText         = Env.variable("SWAG_CAPTURE_4K_QP")
-    let slicesText     = Env.variable("SWAG_CAPTURE_4K_SLICES")
+    let externalPath = Env.variable("SWAG_CAPTURE_4K_OUTPUT")
+    let qpText = Env.variable("SWAG_CAPTURE_4K_QP")
+    let slicesText = Env.variable("SWAG_CAPTURE_4K_SLICES")
+    let localized = not Env.variable("SWAG_CAPTURE_4K_STATIC_BACKGROUND").isEmpty()
     let quantizationQp = qpText.isEmpty() ? 0'u32 : expect StrConv.toU32(qpText.toString())
     let sliceCount     = slicesText.isEmpty() ? 1'u32 : expect StrConv.toU32(slicesText.toString())
     let retained       = not externalPath.isEmpty()
@@ -197,15 +199,38 @@ private func has4KDesktop()->bool fail
     var videoMicros = 0'u64
     var soundMicros = 0'u64
     var audioBlocks = 0'u64
+    if localized
+    {
+        var black: u32
+        checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &black))
+        checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
+    }
     for frame in 60'u64
     {
         let paintStart = Time.monotonicMicroseconds()
-        let red        = cast(u32, (frame * 5) % 64)
-        let green      = cast(u32, (frame * 3) % 64)
-        let blue       = cast(u32, (frame * 7) % 64)
-        let background = red << 16 | green << 8 | blue
-        checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &background))
-        checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
+        if localized
+        {
+            if frame
+            {
+                for quadrant in 4'u64
+                {
+                    let previousX = cast(s16, (quadrant % 2) * 1_920 + 32 + (frame - 1) * 16)
+                    let previousY = cast(s16, (quadrant / 2) * 1_080 + 32 + (frame - 1) * 8)
+                    checkedDynamicX11(connection, check,
+                                      clear(connection, 0, x11.rootWindow(), previousX, previousY,
+                                            cast(u16, Tile), cast(u16, Tile)))
+                }
+            }
+        }
+        else
+        {
+            let red = cast(u32, (frame * 5) % 64)
+            let green = cast(u32, (frame * 3) % 64)
+            let blue = cast(u32, (frame * 7) % 64)
+            let background = red << 16 | green << 8 | blue
+            checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &background))
+            checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
+        }
         for quadrant in 4'u64
         {
             let destinationX = cast(s16, (quadrant % 2) * 1_920 + 32 + frame * 16)
@@ -265,7 +290,10 @@ private func has4KDesktop()->bool fail
 
         let mse  = cast(f64, squaredError) / cast(f64, sourceY.count)
         let psnr = mse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / mse)
-        Console.printf("Dynamic X11 4K60 final-frame luma PSNR: % dB\n", psnr)
+        if localized do
+            Console.printf("Localized X11 4K60 final-frame luma PSNR: % dB\n", psnr)
+        else do
+            Console.printf("Dynamic X11 4K60 final-frame luma PSNR: % dB\n", psnr)
     }
 
     let sound = unwrap reader.audioTrack(0)
@@ -277,13 +305,12 @@ private func has4KDesktop()->bool fail
         return true
     })
     Swag.require(pcm.count == 47 * 1_024 * 2)
-    Console.printf("Dynamic X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                   quantizationQp,
-                   sliceCount,
-                   paintMicros,
-                   videoMicros,
-                   soundMicros,
-                   finalizeMicros,
-                   (expect File.info(path)).size,
-                   path)
+    if localized do
+        Console.printf("Localized X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
+                       quantizationQp, sliceCount, paintMicros, videoMicros, soundMicros, finalizeMicros,
+                       (expect File.info(path)).size, path)
+    else do
+        Console.printf("Dynamic X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
+                       quantizationQp, sliceCount, paintMicros, videoMicros, soundMicros, finalizeMicros,
+                       (expect File.info(path)).size, path)
 }

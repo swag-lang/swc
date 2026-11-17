@@ -213,6 +213,8 @@ struct Sps
     strongIntraSmoothing: bool
     fullRange: bool
     matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
+    sampleAspectWidth:   u32 = 1
+    sampleAspectHeight:  u32 = 1
 
     // Clause 7.4.3.2.2: the range extensions, which Main 10 leaves off.
     transformSkipRotation:    bool
@@ -253,6 +255,8 @@ impl Sps
     // Reads one sequence parameter set, clause 7.3.2.2.1.
     mtd read(reader: *BitReader) fail
     {
+        .sampleAspectWidth  = 1
+        .sampleAspectHeight = 1
         discard reader.read(4)
         let maxSubLayersMinus1 = reader.read(3)
         discard reader.bit()
@@ -831,12 +835,7 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
 {
     if reader.bit()
     {
-        let aspectRatioIdc = reader.read(8)
-        if aspectRatioIdc == 255
-        {
-            discard reader.read(16)
-            discard reader.read(16)
-        }
+        readSampleAspectRatio(reader, sps)
     }
 
     if reader.bit() do
@@ -894,6 +893,71 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
 
     if reader.overran do
         fail InvalidFormatError{"HEVC video usability information is truncated"}
+}
+
+// Reads the H.264/HEVC Table E-1 sample aspect ratio from a VUI.
+func readSampleAspectRatio(reader: *BitReader, sps: *Sps)
+{
+    let aspect = reader.read(8)
+    switch aspect
+    {
+    case 1:
+        sps.sampleAspectWidth = 1
+        sps.sampleAspectHeight = 1
+    case 2:
+        sps.sampleAspectWidth = 12
+        sps.sampleAspectHeight = 11
+    case 3:
+        sps.sampleAspectWidth = 10
+        sps.sampleAspectHeight = 11
+    case 4:
+        sps.sampleAspectWidth = 16
+        sps.sampleAspectHeight = 11
+    case 5:
+        sps.sampleAspectWidth = 40
+        sps.sampleAspectHeight = 33
+    case 6:
+        sps.sampleAspectWidth = 24
+        sps.sampleAspectHeight = 11
+    case 7:
+        sps.sampleAspectWidth = 20
+        sps.sampleAspectHeight = 11
+    case 8:
+        sps.sampleAspectWidth = 32
+        sps.sampleAspectHeight = 11
+    case 9:
+        sps.sampleAspectWidth = 80
+        sps.sampleAspectHeight = 33
+    case 10:
+        sps.sampleAspectWidth = 18
+        sps.sampleAspectHeight = 11
+    case 11:
+        sps.sampleAspectWidth = 15
+        sps.sampleAspectHeight = 11
+    case 12:
+        sps.sampleAspectWidth = 64
+        sps.sampleAspectHeight = 33
+    case 13:
+        sps.sampleAspectWidth = 160
+        sps.sampleAspectHeight = 99
+    case 14:
+        sps.sampleAspectWidth = 4
+        sps.sampleAspectHeight = 3
+    case 15:
+        sps.sampleAspectWidth = 3
+        sps.sampleAspectHeight = 2
+    case 16:
+        sps.sampleAspectWidth = 2
+        sps.sampleAspectHeight = 1
+    case 255:
+        let width = reader.read(16)
+        let height = reader.read(16)
+        if width != 0 and height != 0
+        {
+            sps.sampleAspectWidth = width
+            sps.sampleAspectHeight = height
+        }
+    }
 }
 
 // Reads and discards one `hrd_parameters` structure, clause E.2.2.

@@ -1033,7 +1033,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
     f.main.recentWnd.scheduleLoadRecent()
     Swag.require(not f.main.recentWnd.loadDone)
-    f.gui.fireTimer(f.main.recentWnd.loadTimer)
+
+    // The tick does not drain the posted events, as `fireTimer` would: the full decode it starts
+    // runs on a worker, and a worker done before that drain would land in the editor before the
+    // test could see it still empty.
+    f.gui.tickTimer(f.main.recentWnd.loadTimer)
     Swag.require(f.main.recentWnd.loadDone)
     Swag.require(f.main.recentWnd.pendingRecentFiles.count == 1)
     Swag.require(f.main.editWnd.getCapture() == null)

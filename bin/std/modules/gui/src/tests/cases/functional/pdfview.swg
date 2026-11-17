@@ -249,6 +249,21 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(view.zoomMode == .Free)
     Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
 
+    // Only Ctrl alone zooms, as it does for the zoom keys. Shift with it still scrolls across.
+    let stepped = view.effectiveZoom()
+    host.mouseWheel({320, 210}, 1, .Control | .Shift)
+    host.mouseWheel({320, 210}, 1, .Control | .Alt)
+    Swag.require(view.effectiveZoom() == stepped)
+
+    // The actual size takes Ctrl alone too, and the fits take their letter alone.
+    host.focus(view)
+    host.keyPress(.D0, .Control | .Shift)
+    host.keyPress(.F, .Shift)
+    host.keyPress(.W, .Alt)
+    Swag.require(view.zoomMode == .Free and view.effectiveZoom() == stepped)
+    host.keyPress(.F)
+    Swag.require(view.zoomMode == .FitPage)
+
     // A deep zoom stays a transform change and still paints the page region under the view.
     view.setZoom(40)
     Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))

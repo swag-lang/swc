@@ -95,6 +95,45 @@ func buildColorFont()->Array'u8
     return result
 }
 
+func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
+{
+    var result = buildColorFont()
+    let colrRecord = colorTableRecord(&result, TAG_COLR)
+    let colrOffset = cast(u64, readBigU32(&result, colrRecord + 8))
+    writeColorU16(&result, colrOffset + 20, firstGlyph)
+    writeColorU16(&result, colrOffset + 24, secondGlyph)
+    writeColorU16(&result, colrOffset + 28, thirdGlyph)
+
+    let cpalRecord = colorTableRecord(&result, TAG_CPAL)
+    let cpalOffset = cast(u64, readBigU32(&result, cpalRecord + 8))
+    result[cpalOffset + 23] = 0x80 // Palette 0, entry 1 is half-transparent.
+    return result
+}
+
+func blendExpectedColor(destination, source: u32, coverage: u8)->u32
+{
+    let sourceAlpha = (((source >> 24) & 255) * cast(u32, coverage) + 127) / 255
+    if not sourceAlpha do
+        return destination
+
+    let destinationAlpha = (destination >> 24) & 255
+    let outputAlpha = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
+    let sourceRed   = (source >> 16) & 255
+    let sourceGreen = (source >> 8) & 255
+    let sourceBlue  = source & 255
+    let destinationRed   = (destination >> 16) & 255
+    let destinationGreen = (destination >> 8) & 255
+    let destinationBlue  = destination & 255
+
+    let red = (sourceRed * sourceAlpha +
+               (destinationRed * destinationAlpha * (255 - sourceAlpha) + 127) / 255 + outputAlpha / 2) / outputAlpha
+    let green = (sourceGreen * sourceAlpha +
+                 (destinationGreen * destinationAlpha * (255 - sourceAlpha) + 127) / 255 + outputAlpha / 2) / outputAlpha
+    let blue = (sourceBlue * sourceAlpha +
+                (destinationBlue * destinationAlpha * (255 - sourceAlpha) + 127) / 255 + outputAlpha / 2) / outputAlpha
+    return (outputAlpha << 24) | (red << 16) | (green << 8) | blue
+}
+
 #test
 {
     var bytes = buildColorFont()
@@ -137,6 +176,10 @@ func buildColorFont()->Array'u8
 
     let layers = expect face.getColorLayers(face.glyphIndex('A'))
     Swag.require(layers.isEmpty())
+
+    var noColorGlyph: Swag.Error
+    discard catch face.loadColorGlyph(face.glyphIndex('A')) as noColorGlyph
+    Swag.require(noColorGlyph.value() != null)
 }
 
 #test
@@ -171,4 +214,126 @@ func buildColorFont()->Array'u8
     var badPaletteRange: Swag.Error
     discard catch paletteFace.getColorLayers(36) as badPaletteRange
     Swag.require(badPaletteRange.value() != null)
+}
+
+#test
+{
+    var bytes = buildCompositeColorFont(36, 36, 36)
+    let face = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+    expect face.setPixelSize(0, 48)
+
+    let base = face.glyphIndex('A')
+    expect face.loadGlyph(base, .Render)
+    let baseMetrics = face.glyph.metrics
+    let baseLeft = face.glyph.bitmapLeft
+    let baseTop = face.glyph.bitmapTop
+    let gray = face.glyph.bitmap
+    Swag.require(gray.pixelMode == .Gray)
+    var mask: Array'u8
+    for row in gray.rows do
+        mask.add(expect gray.row(row))
+
+    let foreground = 0x8000FF00'u32
+    expect face.loadColorGlyph(base, 0, foreground)
+    let colorBitmap = face.glyph.bitmap
+    Swag.require(face.glyph.index == base)
+    Swag.require(face.glyph.metrics.width == baseMetrics.width and face.glyph.metrics.height == baseMetrics.height)
+    Swag.require(face.glyph.bitmapLeft == baseLeft and face.glyph.bitmapTop == baseTop)
+    Swag.require(colorBitmap.width == gray.width and colorBitmap.rows == gray.rows)
+    Swag.require(colorBitmap.pitch == cast(s32, colorBitmap.width * 4))
+    Swag.require(colorBitmap.pixelMode == .ColorRgba and colorBitmap.pixelMode.bytesPerPixel() == 4)
+
+    for y in colorBitmap.rows
+    {
+        let maskRow = cast(u64, y) * colorBitmap.width
+        let rgba = expect colorBitmap.row(y)
+        for x in colorBitmap.width
+        {
+            let coverage = mask[maskRow + x]
+            var expected = 0'u32
+            expected = blendExpectedColor(expected, 0xFF112233, coverage)
+            expected = blendExpectedColor(expected, 0x80445566, coverage)
+            expected = blendExpectedColor(expected, foreground, coverage)
+            let offset = cast(u64, x) * 4
+            let actual = (cast(u32, rgba[offset + 3]) << 24) |
+                         (cast(u32, rgba[offset + 0]) << 16) |
+                         (cast(u32, rgba[offset + 1]) << 8) |
+                         rgba[offset + 2]
+            Swag.require(actual == expected)
+        }
+    }
+
+    expect face.loadColorGlyph(base, 1, foreground)
+    let alternate = face.glyph.bitmap
+    for y in alternate.rows
+    {
+        let maskRow = cast(u64, y) * alternate.width
+        let rgba = expect alternate.row(y)
+        for x in alternate.width
+        {
+            let coverage = mask[maskRow + x]
+            var expected = 0'u32
+            expected = blendExpectedColor(expected, 0x80778899, coverage)
+            expected = blendExpectedColor(expected, 0xFFAABBCC, coverage)
+            expected = blendExpectedColor(expected, foreground, coverage)
+            let offset = cast(u64, x) * 4
+            let actual = (cast(u32, rgba[offset + 3]) << 24) |
+                         (cast(u32, rgba[offset + 0]) << 16) |
+                         (cast(u32, rgba[offset + 1]) << 8) |
+                         rgba[offset + 2]
+            Swag.require(actual == expected)
+        }
+    }
+
+    expect face.loadGlyph(base, .Render)
+    Swag.require(face.glyph.bitmap.pixelMode == .Gray)
+}
+
+#test
+{
+    var bytes = buildCompositeColorFont(36, 37, 38)
+    let face = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+    expect face.setPixelSize(0, 48)
+
+    var hasBounds = false
+    var left = 0
+    var right = 0
+    var top = 0
+    var bottom = 0
+    for glyph in [36'u32, 37, 38]
+    {
+        expect face.loadGlyph(glyph, .Render)
+        let bitmap = face.glyph.bitmap
+        if not bitmap.width or not bitmap.rows do
+            continue
+        let itemLeft = face.glyph.bitmapLeft
+        let itemRight = itemLeft + cast(s32, bitmap.width)
+        let itemTop = face.glyph.bitmapTop
+        let itemBottom = itemTop - cast(s32, bitmap.rows)
+        if not hasBounds
+        {
+            left = itemLeft
+            right = itemRight
+            top = itemTop
+            bottom = itemBottom
+            hasBounds = true
+        }
+        else
+        {
+            left = Math.min(left, itemLeft)
+            right = Math.max(right, itemRight)
+            top = Math.max(top, itemTop)
+            bottom = Math.min(bottom, itemBottom)
+        }
+    }
+
+    expect face.loadColorGlyph(36, 0)
+    let bitmap = face.glyph.bitmap
+    Swag.require(hasBounds)
+    Swag.require(bitmap.pixelMode == .ColorRgba)
+    Swag.require(bitmap.width == cast(u32, right - left) and bitmap.rows == cast(u32, top - bottom))
+    Swag.require(face.glyph.bitmapLeft == left and face.glyph.bitmapTop == top)
+    Swag.require(face.glyph.index == 36)
 }

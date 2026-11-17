@@ -126,15 +126,14 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
   fonts produce expected outlines and metrics across supported axes, with invalid variation
   tables rejected.
 
-### std.truetype.016 — COLR v0 layers are exposed but not composited
+### std.truetype.016 — Color glyph rendering is opt-in
 
-- Evidence: `Face.getColorLayers` exposes ordered `COLR` version-0 layer glyphs and resolved
-  `CPAL` version-0 ARGB colors. The outline and raster APIs still load one glyph at a time and do
-  not composite a color glyph into a bitmap.
-- Next: add a color-glyph drawing path that renders and composites these layers while preserving
-  their order and selected palette.
-- Done when: a color glyph can be loaded and painted as an ordered set of layers from the chosen
-  palette, including text and emoji presentation selection.
+- Evidence: `Face.loadColorGlyph` composites ordered `COLR` version-0 layers with `CPAL` version-0
+  colors into an RGBA bitmap. `loadChar` and `loadGlyph(..., .Render)` remain grayscale operations,
+  so a caller must choose the color path and palette explicitly.
+- Next: integrate palette and color-glyph selection into a higher-level text or emoji drawing path.
+- Done when: the chosen text or emoji presentation is rendered in color automatically by that path,
+  while ordinary monochrome glyph rendering remains available.
 - Related: std.truetype.017, std.truetype.018, std.truetype.019
 
 ### std.truetype.017 — No `sbix` color bitmap strikes

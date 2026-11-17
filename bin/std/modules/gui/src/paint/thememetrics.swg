@@ -111,7 +111,8 @@ struct ThemeMetrics
         // five sixths of this box wide and half that tall.
         chevron_Size: f32 = 12
 
-        btnCheck_Size:    f32 = 24     // Side of the box of a check box or radio button.
+        btnCheck_Size:    f32 = 24     // Cell size of a check box or radio button marker.
+        btnCheck_AtlasInsetRatio: f32 = 0.15625     // Fraction of the marker cell left transparent around the atlas ink.
         btnCheck_Padding: f32 = 4      // Air between the box of a check box and its wording.
 
         // A dialog is a floating sheet: one inset around its title, its body and its actions, one

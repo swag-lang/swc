@@ -36,6 +36,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [app.scope.image.md](app.scope.image.md) | Swag Scope image viewer |
 | [app.scope.md](app.scope.md) | Swag Scope shell and document lifecycle |
 | [app.scope.midi.md](app.scope.midi.md) | Swag Scope MIDI viewer |
+| [app.scope.scene.md](app.scope.scene.md) | Swag Scope 3D scene viewer |
 | [app.scope.text.md](app.scope.text.md) | Swag Scope text and code viewers |
 | [app.scope.video.md](app.scope.video.md) | Swag Scope video viewer |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts shared by Swag Scope viewers |

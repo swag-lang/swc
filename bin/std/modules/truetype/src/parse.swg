@@ -230,18 +230,23 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         case 0:
             subTableLength = try readU16(remaining, 2)
             minimumLength  = 262
+
         case 4:
             subTableLength = try readU16(remaining, 2)
             minimumLength  = 18
+
         case 6:
             subTableLength = try readU16(remaining, 2)
             minimumLength  = 10
+
         case 12, 13:
             subTableLength = try readU32(remaining, 4)
             minimumLength  = 16
+
         case 14:
             subTableLength = try readU32(remaining, 2)
             minimumLength  = 10
+
         default:
             continue
         }
@@ -510,6 +515,7 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
     if let os2 = findTableAt(data, faceOffset, TAG_OS2)
     {
         weight = readU16(os2, 4)
+        result.embedding = readU16(os2, 8)
         let widthClass = readU16(os2, 6)
         if widthClass >= 1 and widthClass <= 9 do
             result.widthClass = widthClass

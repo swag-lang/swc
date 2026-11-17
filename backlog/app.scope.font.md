@@ -70,10 +70,11 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.004 — Font names, legal metadata, and embedding permissions are hidden
 
-- Evidence: the information sheet gives family, style, units per em, and the version, designer
-  and copyright notice the face declares. Full/PostScript/unique names, vendor, licence,
-  description, dates, PANOSE, weight/width/classification, fsType embedding restrictions,
-  localized name records and supported tables are absent.
+- Evidence: the information sheet gives family, style, units per em, the version, designer
+  and copyright notice the face declares, its OS/2 weight class with the name of the nearest
+  hundred, and its `fsType` embedding permissions named as the specification names them
+  (`TrueType.FaceMetadata.embedding`). Full/PostScript/unique names, vendor, licence, description,
+  dates, PANOSE, width/classification, localized name records and supported tables are absent.
 - Next: expose original localized name records and normalized technical/legal properties through a
   read-only information panel.
 - Done when: all name records retain platform/language IDs, permissions are explained without

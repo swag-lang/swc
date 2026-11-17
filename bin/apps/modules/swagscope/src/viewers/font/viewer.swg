@@ -441,6 +441,14 @@ impl Panel
         if not face.copyright.isEmpty() do
             data.add(.Copyright, face.copyright.toString())
 
+        // The weight class and the embedding permissions the OS/2 table declares.
+        catch
+        {
+            let metadata = try Face.metadataAt(.document.fontBytes.toSlice(), 0)
+            data.add(.Weight, weightText(metadata.weight))
+            data.add(.Embedding, embeddingText(metadata.embedding))
+        }
+
         // How much of each block the character map jumps to the face maps.
         data.add(.Coverage, group: true)
         let names = blockNames()
@@ -452,6 +460,37 @@ impl Panel
 
         data.describe(sheet)
     }
+}
+
+// Names a weight class by its number and the name of the nearest hundred: `400 · Regular`.
+func weightText(weight: u16)->String
+{
+    let t     = texts()
+    let names = [t.ui_WeightThin, t.ui_WeightExtraLight, t.ui_WeightLight, t.ui_Regular, t.ui_WeightMedium,
+                 t.ui_WeightSemiBold, t.ui_WeightBold, t.ui_WeightExtraBold, t.ui_WeightBlack]
+    let index = Math.clamp(cast(s32, Math.round(cast(f32, weight) / 100)) - 1, 0, 8)
+    return Format.toString("% · %", weight, names[index])
+}
+
+// Names the embedding permissions of an OS/2 `fsType`: the least restrictive usage its bits set,
+// as the specification reads several, then the restrictions that come with it.
+func embeddingText(fsType: u16)->String
+{
+    let t = texts()
+    var result: String
+    if fsType & 0x8 do
+        result = String.from(t.ui_EmbedEditable)
+    elif fsType & 0x4 do
+        result = String.from(t.ui_EmbedPreview)
+    elif fsType & 0x2 do
+        result = String.from(t.ui_EmbedRestricted)
+    else do
+        result = String.from(t.ui_EmbedInstallable)
+    if fsType & 0x100 do
+        result += Format.toString(" · %", t.ui_EmbedNoSubset)
+    if fsType & 0x200 do
+        result += Format.toString(" · %", t.ui_EmbedBitmap)
+    return result
 }
 
 func createViewer(host: Viewer.Host)

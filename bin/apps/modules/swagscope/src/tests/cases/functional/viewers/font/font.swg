@@ -138,4 +138,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     // The sheet counts what the face maps of each block the character map jumps to.
     Swag.require(Utf8.contains(text, "Coverage\nBasic Latin\n95 characters"), text)
+
+    // The OS/2 table gives the weight class and the embedding permissions, named as written.
+    Swag.require(Utf8.contains(text, "Weight\n400 · Regular"), text)
+    Swag.require(Utf8.contains(text, "Embedding\n"), text)
+    Swag.require(Typeface.embeddingText(0) == "installable" and Typeface.embeddingText(0x0104) == "preview and print · no subsetting")
+    Swag.require(Typeface.embeddingText(0x000C) == "editable" and Typeface.weightText(680) == "680 · Bold")
 }

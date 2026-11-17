@@ -63,6 +63,8 @@ year        Année
 trackNumber Piste
 disc        Disque
 genre       Genre
+weight      Graisse
+embedding   Incorporation
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

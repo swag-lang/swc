@@ -31,6 +31,7 @@ public struct FaceMetadata
         typographicStyleName:  String        // Preferred subfamily name (name ID 17), falling back to `styleName`.
         weight:                u16 = 400     // Weight from the font, or 400/700 when only regular/bold traits are available.
         widthClass:            u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
+        embedding:             u16           // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
     }
 }
@@ -108,7 +109,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
         try fault(0x06)
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
-    let previousAllocator = context.allocator
+    let previousAllocator   = context.allocator
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 

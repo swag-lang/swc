@@ -208,7 +208,7 @@ private func num(value: f32)->String
         return result
     }
 
-    result.appendFormat("%{f3}", value)
+    result.appendFormat("%", value)
     while result.endsWith("0") do
         result.removeBack(1)
     if result.endsWith(".") do

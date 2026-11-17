@@ -43,6 +43,26 @@ func makeTrianglePath()->LinePath
     Swag.require(not text.contains("1.500"))
 }
 
+// Fractional coordinates retain enough digits to round back to their source f32 values.
+#test
+{
+    let x = 1.2345678'f32
+    let y = 4.567891'f32
+    var path: LinePath
+    path.start(0, 0)
+    path.lineTo(x, y)
+    path.close()
+
+    var doc = Svg.Document.create(8, 8)
+    doc.addPath(path, Color.fromRgb(0, 0, 0))
+    let text = doc.toString()
+    let xText = Format.toString("%", x)
+    let yText = Format.toString("%", y)
+    Swag.require(text.contains(Format.toString("L% %", xText, yText).toString()))
+    Swag.require(expect StrConv.toF32(xText.toString()) == x)
+    Swag.require(expect StrConv.toF32(yText.toString()) == y)
+}
+
 // A ground is painted before every shape, and a title names the document.
 #test
 {

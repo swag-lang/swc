@@ -54,6 +54,8 @@ private func sharedSegmentCount()->u64 fail
     if width <= 0 or height <= 0 do
         return
     var source = expect Source.openDesktop()
+    let options = source.captureOptions()
+    Swag.require(options.width == width and options.height == height)
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
@@ -76,6 +78,9 @@ private func sharedSegmentCount()->u64 fail
 #test
 {
     var source = expect Source.open({0, 0, 320, 240, false})
+    let options = source.captureOptions()
+    Swag.require(options.x == 0 and options.y == 0 and options.width == 320 and
+                 options.height == 240 and not options.includeCursor)
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     var image = Image.create(8, 8, .RGBA8)
     let firstFresh = expect source.grabInto(&image)

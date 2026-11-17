@@ -51,9 +51,10 @@
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Functions</span><span class="toc-count">10</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">11</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#Screen_Source_captureOptions">Source.captureOptions</a></li>
 <li><a href="#Screen_Source_grabInto">Source.grabInto</a></li>
 <li><a href="#Screen_Source_lastFrameCaptureMicroseconds">Source.lastFrameCaptureMicroseconds</a></li>
 <li><a href="#Screen_Source_lastFramePresentationMicroseconds">Source.lastFramePresentationMicroseconds</a></li>
@@ -104,6 +105,8 @@
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Screen_Source_captureOptions">Source.captureOptions</a></td><td><p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_grabInto">Source.grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_lastFrameCaptureMicroseconds">Source.lastFrameCaptureMicroseconds</a></td><td><p>Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.</p>
@@ -157,6 +160,8 @@
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Screen_Source_captureOptions">captureOptions</a></td><td><p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_grabInto">grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_lastFrameCaptureMicroseconds">lastFrameCaptureMicroseconds</a></td><td><p>Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.</p>
@@ -243,6 +248,11 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_captureOptions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.captureOptions</span> <a class="api-item-permalink" href="#Screen_Source_captureOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L401">src</a></div>
+<p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">captureOptions</span>()-&gt;<span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L231">src</a></div>
 <p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 <p>False means no new image is available yet, either because the desktop and cursor did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead. A reusable target stays untouched on a false return; a new or resized target receives a complete current frame. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. Windows cursor composition rebuilds the selected area each poll to account for pointer-only changes. The target remains owned by the caller.</p>
@@ -266,7 +276,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metrics</span>()-&gt;<span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L418">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L421">src</a></div>
 <p>Releases the native capture handles and cached frames on the opening thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
@@ -292,7 +302,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openMonitor</span>(monitor: <span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_Monitor">Monitor</a></span>, includeCursor: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L401">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L404">src</a></div>
 <p>Reopens a source after a display change or native access loss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reopen</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -583,6 +593,7 @@
 "v|Screen.SourceOptions.width|Screen_SourceOptions_width|Width in physical pixels.",
 "v|Screen.SourceOptions.x|Screen_SourceOptions_x|Left edge in physical desktop pixels.",
 "v|Screen.SourceOptions.y|Screen_SourceOptions_y|Top edge in physical desktop pixels.",
+"f|Screen.Source.captureOptions|Screen_Source_captureOptions|Returns the physical desktop rectangle and cursor policy selected when this source was opened.",
 "f|Screen.Source.grabInto|Screen_Source_grabInto|Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.",
 "f|Screen.Source.lastFrameCaptureMicroseconds|Screen_Source_lastFrameCaptureMicroseconds|Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.",
 "f|Screen.Source.lastFramePresentationMicroseconds|Screen_Source_lastFramePresentationMicroseconds|Returns the display presentation time for the latest acquired frame, when the backend reports it.",

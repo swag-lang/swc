@@ -397,6 +397,9 @@ impl Source
             source.metrics = SourceMetrics{}
     }
 
+    // Returns the physical desktop rectangle and cursor policy selected when this source was opened.
+    mtd const captureOptions()->SourceOptions => .options
+
     // Reopens a source after a display change or native access loss.
     mtd reopen() fail
     {

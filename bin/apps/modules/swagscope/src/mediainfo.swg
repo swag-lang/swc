@@ -51,6 +51,8 @@ enum MediaInfoField
     Author
     Publisher
     Published
+    Created
+    Application
     Bookmarks
     TextLayer
     Style
@@ -118,6 +120,8 @@ struct MediaInfoStrings
     author:         string = "Author"
     publisher:      string = "Publisher"
     published:      string = "Published"
+    created:        string = "Created"
+    application:    string = "Application"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -245,6 +249,8 @@ impl MediaInfoRow
         case .Author:         return s.author
         case .Publisher:      return s.publisher
         case .Published:      return s.published
+        case .Created:        return s.created
+        case .Application:    return s.application
         case .Bookmarks:      return s.bookmarks
         case .TextLayer:      return s.textLayer
         case .Style:          return s.style

@@ -52,6 +52,8 @@ title       Titre
 author      Auteur
 publisher   Éditeur
 published   Publication
+created     Création
+application Application
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

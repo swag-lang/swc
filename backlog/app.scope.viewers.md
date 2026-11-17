@@ -117,8 +117,11 @@ viewer packages, helper binaries, or network service required to open supported 
 
 - Evidence: Image and Video already publish grouped metadata through the shared `MediaInfoPanel`,
   with translated property labels, row selection and a copy command. The host also shows size and
-  a viewer-supplied summary. Canonical path, timestamps, file identity, hashes, detection evidence
-  and warnings still lack one contract available across all twenty-one viewers.
+  a viewer-supplied summary. Office documents (DOCX, PPTX, XLSX and their OpenDocument
+  counterparts) add the title, author, creation day and saving program their package names, read
+  by `Package.DocumentProperties`; EPUB and comic books add their own metadata. Canonical path,
+  timestamps, file identity, hashes, detection evidence and warnings still lack one contract
+  available across all twenty-one viewers.
 - Next: extend the existing information surface with host-owned file facts and optional viewer
   properties and warnings, including cancellable hashing and links back to the described content.
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format

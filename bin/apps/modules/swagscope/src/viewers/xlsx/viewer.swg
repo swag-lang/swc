@@ -26,6 +26,9 @@ struct Panel
 {
     using wnd: Wnd
 
+    properties:     Package.DocumentProperties     // What the package says of the document, once read.
+    propertiesRead: bool
+
     workbook:         Workbook
     load:             Viewer.BackgroundLoad'Workbook
     services:         Viewer.HostServices
@@ -357,10 +360,29 @@ func createViewer(host: Viewer.Host)
     createWorkbookViewer(host, &Workbook.load)
 }
 
+impl Panel
+{
+    // Describes the document in the information sheet with what its package says of it, read
+    // once, the first time the sheet asks.
+    internal mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .propertiesRead and not .load.fileName.isEmpty()
+        {
+            .properties     = Package.DocumentProperties.read(.load.fileName)
+            .propertiesRead = true
+        }
+
+        var data: MediaInfoData
+        .properties.describe(&data)
+        data.describe(sheet)
+    }
+}
+
 func createWorkbookViewer(host: Viewer.Host, loader: func(string)->Workbook fail)
 {
     let view = Panel.create(host)
     host.attachView(view)
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showSheet(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })

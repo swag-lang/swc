@@ -305,20 +305,6 @@ pagination path that can disagree with paper.
   consumed without runtime string lookup, or demonstrates why that route fails and retires the
   resource proposal before editor work.
 
-### std.gui.003 — Construction-time text does not automatically retranslate
-
-
-`Application.setLanguage` already broadcasts `LanguageChanged`, and its documented contract asks
-windows with construction-time text to handle that notification. Command-driven surfaces and
-explicitly rebuilt grids already refresh. Define an automatic binding for text resolved once at
-construction so static labels do not depend on each application remembering a manual handler.
-
-- Related: std.gui.004
-
-- Next: define automatic bindings for construction-time catalog text and test language changes
-  without application-specific handlers.
-- Done when: A label initialized from the GUI string catalog updates after Application.setLanguage without an application-specific notification handler, while command-driven controls retain their existing behavior in a localization test.
-
 ### std.gui.004 — French is the only shipped GUI translation
 
 

@@ -403,6 +403,15 @@ impl DocumentOutline
             .follow()
     }
 
+    // Marks the heading of what the document shows now, as `followReading`, only while the
+    // outline is open. Finding the text being read walks the document's layout, too much to do
+    // on every scroll for a closed outline, which marks the heading again as it opens.
+    mtd followOpenReading()
+    {
+        if .toggle.isChecked do
+            .followReading()
+    }
+
     mtd bindHtml(view: *HtmlView)
     {
         .follow = func|panel = me, view|()
@@ -426,7 +435,7 @@ impl DocumentOutline
         // The heading being read follows the page as it moves.
         view.sigScrolled += func|panel = me|(_)
         {
-            panel.followReading()
+            panel.followOpenReading()
         }
     }
 
@@ -459,7 +468,7 @@ impl DocumentOutline
         // The heading being read follows the document as it moves.
         view.sigScrolled += func|panel = me|(_)
         {
-            panel.followReading()
+            panel.followOpenReading()
         }
     }
 

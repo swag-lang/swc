@@ -43,18 +43,17 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.032 — Restore native test recovery after a terminal expect
+### compiler.safety.032 — Confirm native terminal-expect reporting on Windows
 
-- Evidence: on Windows, `swc.dm unittest --dev-full --num-cores 3` fails
-  `Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery` and
-  `Compiler_ExplicitExpectTerminatesThroughInlineExpansion`. The generated executable reports
-  the intended first-test error and one failed test, but never reaches the following recovery
-  test's completion marker. The fixtures live in `Test.Compiler.Failure.cpp`; they compile
-  standalone native test programs, independently of module API publication.
-- Next: reduce one fixture and trace terminal `expect`, the returning panic hook, and the native
-  test-runner boundary. Establish whether the runtime should recover or the tests assume an
-  obsolete contract. Preserve captured-error cleanup and local-context restoration either way.
-- Done when: both fixtures pass with the documented panic/test-recovery contract on Windows.
+- Evidence: commit `017485df` changed the fixtures to match the safe contract: a terminal panic
+  cleans up captured errors and records one failed test, then stops the native process instead of
+  running another test after its frame was abandoned. The current tests are
+  `Compiler_NativePanicReleasesCapturedErrorsBeforeStop` and
+  `Compiler_ExplicitExpectStopsThroughInlineExpansion`; both pass in the Linux DevMode C++
+  filesystem suite. Windows has not been rechecked against these updated expectations.
+- Next: run `swc.dm unittest --dev-full --num-cores 3` on Windows and verify both fixtures report
+  the failed tally before the native process stops.
+- Done when: both fixtures pass with the terminal panic contract on Windows.
 
 ### compiler.safety.031 — Preserve inline-string views across interface calls
 

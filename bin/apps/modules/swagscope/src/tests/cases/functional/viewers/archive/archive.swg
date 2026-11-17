@@ -125,6 +125,35 @@ func writeZipFixture()->String
     }
 }
 
+// A part is found by its exact name among names that differ only by case, and of a name stored
+// twice, the entry found is the first in the archive's order.
+#test
+{
+    var zip: Archive.Zip
+    Swag.require(zip.tryFindEntry("missing") == null)
+    for path in ["b/Chapter.xhtml", "a/one.xml", "B/chapter.xhtml", "b/chapter.xhtml", "b/chapter.xhtml", "c.txt"]
+    {
+        var entry: Archive.ZipEntry
+        entry.path = path
+        zip.entries.add(#move entry)
+    }
+
+    zip.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
+    for path in ["a/one.xml", "b/Chapter.xhtml", "B/chapter.xhtml", "c.txt"]
+    {
+        let entry = zip.tryFindEntry(path)
+        Swag.require(entry != null and entry.path == path, path)
+    }
+
+    var first: const *Archive.ZipEntry? = null
+    for &entry in zip.entries where first == null and entry.path == "b/chapter.xhtml" do
+        first = entry
+    Swag.require(first != null and zip.tryFindEntry("b/chapter.xhtml") == first)
+
+    for path in ["b/CHAPTER.xhtml", "b/chapter", "0", "d"] do
+        Swag.require(zip.tryFindEntry(path) == null, path)
+}
+
 // A split central directory is rejected before any entry is offered for preview.
 #test
 {

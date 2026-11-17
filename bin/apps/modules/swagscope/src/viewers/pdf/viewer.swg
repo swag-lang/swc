@@ -275,7 +275,10 @@ private impl Panel
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+            if unreadable == 1 do
+                result += texts().ui_TextLayerOneUnreadable
+            else do
+                result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
         }
 
         return result
@@ -294,13 +297,18 @@ private impl Panel
         let pages = .pdfView.pageCount()
         if coverage.pictures == pages do
             result = texts().ui_NoTextLayer
+        elif coverage.pictures == 1 do
+            result = Format.toString(texts().ui_OneNoText, pages)
         elif coverage.pictures do
             result = Format.toString(texts().ui_SomeNoText, coverage.pictures, pages)
         if coverage.unreadable
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
+            if coverage.unreadable == 1 do
+                result += texts().ui_OneUnreadable
+            else do
+                result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
         }
 
         return result
@@ -476,8 +484,8 @@ private impl Panel
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
-        entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
@@ -637,9 +645,10 @@ private impl Panel
                 view.refreshZoom()
             }
 
+            // Only an open outline follows the reading as it moves; a closed one catches up as it opens.
             .sigScrolled += func|view = me|(_)
             {
-                view.followReading()
+                view.outline?.followOpenReading()
             }
 
             .sigRenderError += func|view = me|(_, message)

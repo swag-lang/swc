@@ -234,7 +234,8 @@ integration around those engines.
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
   sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
   returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
-  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  The information sheet counts the chapters and gives the title, authors, language, publisher
+  and date of the package's Dublin Core metadata. Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
   remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
   bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.

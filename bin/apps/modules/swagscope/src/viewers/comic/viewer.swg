@@ -134,8 +134,12 @@ impl ComicInfo
         if not .writer.isEmpty() do
             data.add(.Author, .writer)
         for row in [{name: "Series", value: .series.toString()}, {name: "Number", value: .number.toString()}, {name: "Volume", value: .volume.toString()},
-                    {name: "Penciller", value: .penciller.toString()}, {name: "Publisher", value: .publisher.toString()}, {name: "Year", value: .year.toString()}] where row.value.count do
+                    {name: "Penciller", value: .penciller.toString()}] where row.value.count do
             data.addText(row.name, row.value)
+        if not .publisher.isEmpty() do
+            data.add(.Publisher, .publisher)
+        if not .year.isEmpty() do
+            data.add(.Published, .year)
     }
 }
 

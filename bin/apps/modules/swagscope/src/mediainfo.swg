@@ -49,6 +49,8 @@ enum MediaInfoField
     FullScale
     Title
     Author
+    Publisher
+    Published
     Bookmarks
     TextLayer
     Style
@@ -114,6 +116,8 @@ struct MediaInfoStrings
     fullScale:      string = "Full scale"
     title:          string = "Title"
     author:         string = "Author"
+    publisher:      string = "Publisher"
+    published:      string = "Published"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -239,6 +243,8 @@ impl MediaInfoRow
         case .FullScale:      return s.fullScale
         case .Title:          return s.title
         case .Author:         return s.author
+        case .Publisher:      return s.publisher
+        case .Published:      return s.published
         case .Bookmarks:      return s.bookmarks
         case .TextLayer:      return s.textLayer
         case .Style:          return s.style

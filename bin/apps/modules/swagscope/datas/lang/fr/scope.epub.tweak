@@ -19,3 +19,5 @@ ui_WideColumn "Colonne de lecture large"
 
 ui_Back "Retour dans le livre"
 ui_Forward "Avancer dans le livre"
+ui_OneChapter        1 chapitre
+ui_Chapters          % chapitres

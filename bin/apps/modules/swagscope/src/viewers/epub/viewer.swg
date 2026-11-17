@@ -62,6 +62,33 @@ struct ReadingVisit
     fragment: String
 }
 
+impl Panel
+{
+    // Describes the book in the information sheet: its chapters, then what its package says of it.
+    internal mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .book.chapters.count do
+            return
+        var data: MediaInfoData
+        let count = .book.chapters.count
+        data.addFigure(.Sections, count == 1 ? String.from(texts().ui_OneChapter) : Format.toString(texts().ui_Chapters, count))
+        let metadata = &.book.metadata
+        data.add(.Document, group: true)
+        if not metadata.title.isEmpty() do
+            data.add(.Title, metadata.title)
+        if not metadata.creators.isEmpty() do
+            data.add(.Author, metadata.creators)
+        let language = knownLanguage(metadata.language)
+        if not language.isEmpty() do
+            data.add(.Language, language)
+        if not metadata.publisher.isEmpty() do
+            data.add(.Publisher, metadata.publisher)
+        if not metadata.date.isEmpty() do
+            data.add(.Published, metadata.date)
+        data.describe(sheet)
+    }
+}
+
 // Owns book navigation while the HTML control streams the selected chapter and its resources.
 struct Panel
 {
@@ -512,6 +539,7 @@ func createViewer(host: Viewer.Host)
     view.outline.follow      = func|view|() { view.followReading() }
     view.load.start(host.fileName(), &Book.load, view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.load.isPending() or (view.view?.isLoading() orelse false)

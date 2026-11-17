@@ -42,12 +42,23 @@ private func requiredAttribute(token: const *Package.Token, name: string)->strin
     return value
 }
 
+// What the package says of the book in its Dublin Core metadata, as written.
+struct BookMetadata
+{
+    title:     String     // The first title.
+    creators:  String     // Every creator, in order, joined by a middle dot.
+    language:  String     // The first language code.
+    publisher: String
+    date:      String     // The first date, as the package writes it.
+}
+
 // An EPUB package extracted to a bounded disposable folder for the HTML reader.
 struct Book
 {
     chapters:   Array'Chapter
     root:       String
     navigation: Navigation
+    metadata:   BookMetadata
 }
 
 impl Book
@@ -76,6 +87,7 @@ impl Book
         let packageEntry = try requiredEntry(&archive, packagePath)
         let index        = try readPackage(fileName, packageEntry, &archive)
         result.chapters = index.chapters
+        result.metadata = index.metadata
         let navigationPath = index.navPath.isEmpty() ? index.ncxPath.toString() : index.navPath.toString()
         if navigationPath.count
         {
@@ -159,6 +171,7 @@ private struct PackageIndex
     navPath:   String
     ncxPath:   String
     coverPath: String     // Picture the package names as its cover, or empty.
+    metadata:  BookMetadata
 }
 
 private func readNavigation(fileName: string, archive: const *Archive.Zip, path: string, ncx: bool)->Navigation fail
@@ -184,10 +197,70 @@ private func readPackage(fileName: string, entry: const *Archive.ZipEntry, archi
     var coverId: String
     let base  = Package.parentPath(entry.path)
 
+    // The Dublin Core element whose text is being read, and that text.
+    var metadata: BookMetadata
+    var field:    String
+    var text:     String
+
     while scan.next(&token)
     {
+        if token.kind == .Text
+        {
+            if not field.isEmpty() do
+                text += token.text
+            continue
+        }
+
+        if token.kind == .End
+        {
+            if not field.isEmpty() and token.isElement(field.toString())
+            {
+                let value = Latin1.trim(text.toString())
+                switch field.toString()
+                {
+                case "title":
+                    if metadata.title.isEmpty() do
+                        metadata.title = value
+
+                case "language":
+                    if metadata.language.isEmpty() do
+                        metadata.language = value
+
+                case "publisher":
+                    if metadata.publisher.isEmpty() do
+                        metadata.publisher = value
+
+                case "date":
+                    if metadata.date.isEmpty() do
+                        metadata.date = value
+
+                case "creator":
+                    if value.count
+                    {
+                        if not metadata.creators.isEmpty() do
+                            metadata.creators += " · "
+                        metadata.creators += value
+                    }
+                }
+
+                field.clear()
+                text.clear()
+            }
+
+            continue
+        }
+
         if token.kind != .Start do
             continue
+        if not token.empty and Utf8.startsWith(token.name.toString(), "dc:")
+        {
+            for name in ["title", "creator", "language", "publisher", "date"] where token.isElement(name)
+            {
+                field = name
+                text.clear()
+            }
+        }
+
         if token.isElement("item")
         {
             let id        = try requiredAttribute(&token, "id")
@@ -216,6 +289,7 @@ private func readPackage(fileName: string, entry: const *Archive.ZipEntry, archi
         fail Errors.InvalidFormatError{texts().err_Invalid}
 
     var result: #returntype
+    result.metadata = metadata
     for item in items
     {
         for property in Tokenize.split(item.properties, ' 'u8)

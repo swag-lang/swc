@@ -50,6 +50,8 @@ rmsLevel    Niveau RMS
 fullScale   Pleine échelle
 title       Titre
 author      Auteur
+publisher   Éditeur
+published   Publication
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

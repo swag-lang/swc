@@ -167,5 +167,5 @@ using Core, Gui, Gui.Testing, Viewers
     let text = sheet.text()
     Swag.require(Utf8.contains(text, "2 pages"), text)
     Swag.require(Utf8.contains(text, "Title\nThe Potion of Flight") and Utf8.contains(text, "Author\nDavid Revoy"), text)
-    Swag.require(Utf8.contains(text, "Series\nPepper & Carrot") and Utf8.contains(text, "Year\n2014"), text)
+    Swag.require(Utf8.contains(text, "Series\nPepper & Carrot") and Utf8.contains(text, "Published\n2014"), text)
 }

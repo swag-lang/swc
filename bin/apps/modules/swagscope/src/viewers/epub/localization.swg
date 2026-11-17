@@ -22,6 +22,8 @@ struct Texts
     err_TooLarge:           string = "This EPUB book is too large to open safely."
     err_UnsupportedChapter: string = "This EPUB book has a chapter format that cannot be read."
     err_NoChapters:         string = "This EPUB book contains no readable chapters."
+    ui_OneChapter:          string = "1 chapter"      // Length of a one-chapter book.
+    ui_Chapters:            string = "% chapters"     // Length of a longer book.
 }
 
 private const FrenchStringsName = "lang/fr/scope.epub.tweak"

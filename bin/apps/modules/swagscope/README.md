@@ -135,7 +135,6 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   script, style, template, and embedded-document content never executes. Default document text
   size follows the common zoom control. The hosted page keeps a reading inset at narrow widths,
   including beside the outline; authored CSS margins remain inside that inset.
-- `3D Scene` uses the shared `std/scene3d` module to read bounded Wavefront OBJ and ASCII/binary STL triangle meshes. It draws a perspective view; drag, use the lens, or press Alt+arrows to orbit; right-drag or Shift+arrows to pan; and use the shared zoom control, Ctrl+wheel, or Ctrl+plus/minus/0 for zoom. Lens actions frame the scene. OBJ material libraries and textures are not read yet; the current codecs expose one mesh and root node per file.
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.

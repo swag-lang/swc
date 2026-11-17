@@ -1,6 +1,6 @@
 # Swag Scope viewer feature audit
 
-This audit compares all 25 plugins registered by `createViewerPluginRegistry` with published
+This audit compares all 24 plugins registered by `createViewerPluginRegistry` with published
 features of dedicated readers. It is a feature inventory for local, read-only opening, reading,
 navigation and inspection; the referenced product may also edit, synchronize or use cloud services.
 `Today` describes the Swag Scope reader, not all decoders or alternative viewers offered for a file.
@@ -21,7 +21,6 @@ the named reference. `app.scope.viewers.014` covers clean-machine single-executa
 | Markdown | [Typora](https://support.typora.io/Markdown-Reference/) | Rendered document, source alternative and heading outline | Nested blocks, cross-window references, exact search, fragment/footnote navigation, source sync, optional diagrams | `std.gui.markdown.002–012`, `app.scope.document.001–004` |
 | Subtitles | [Subtitle Edit](https://github.com/SubtitleEdit/subtitleedit/blob/main/docs/features/audio-visualizer.md) | Timed cue transcript | Styled/source modes, cue timeline, media synchronization, waveform context, cue-aware interchange | `app.scope.text.011–014` |
 | Image | [XnView MP](https://www.xnview.com/en/image-viewer/) and [Gwenview](https://docs.kde.org/trunk_kf6/en/gwenview/gwenview/introduction.html) | Raster/SVG view, transform, zoom and metadata | Probe/histogram, profiles and HDR, frame/layer navigation, compare, huge-image behavior | `app.scope.image.001–015`, `std.pixel.image` |
-| 3D scene | [Windows 3D Viewer](https://learn.microsoft.com/en-us/windows/mixed-reality/design/3d-modeling) and [MeshLab](https://www.meshlab.net/) | OBJ and ASCII/binary STL triangle meshes with orbit, pan, percentage zoom and frame-all | glTF/GLB, OBJ material libraries, textures, scene hierarchy, mesh selection and diagnostics | `app.scope.scene.001` |
 | Video | [VLC](https://docs.videolan.me/vlc-user/desktop/3.0/en/basic/settings/adjustmentsandeffects.html) and [mpv](https://mpv.io/manual/stable/) | Native decoded playback with timeline and subtitles for supported codecs | Exact frame/time address, A/B, chapters, track details, sync, transforms, color/HDR, performance path | `app.scope.video.001–016`, `std.video` |
 | PDF | [Okular](https://docs.kde.org/stable_kf6/en/okular/okular/index.html) and [Acrobat Reader](https://helpx.adobe.com/uk/acrobat/using/reading-pdfs-reflow-accessibility-features.html) | Pages, text search/selection and bookmarks | Partial-page robustness, thumbnails/facing, forms/annotations/security, reflow, accessible order, region/table selection | `app.scope.document.011–019`, `.030–031`, `std.gui.pdf` |
 | Sound | [VLC](https://docs.videolan.me/vlc-user/desktop/3.0/en/basic/playback.html) | Native decoded playback and waveform | Zoom/loop, chapters, channel/frequency/loudness probes, tags and ReplayGain, output diagnostics | `app.scope.audio.001–011`, `std.audio` |

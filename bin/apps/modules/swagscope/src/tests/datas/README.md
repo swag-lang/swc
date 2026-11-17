@@ -25,7 +25,6 @@ selection correctly offers Text first for those bytes.
 | Structured text | `viewer.csv`, `.tsv`, `.tab`, `.srt`, `.vtt`, `.ass`, `.ssa`, `.lrc`, `.sub`, `.html`, `.htm`, `.xhtml`, `.md`, `.markdown` | Existing `viewer.reading.srt`, HTML pages and comprehensive Markdown cover richer reading states |
 | Code and plain text | `viewer.cpp`, `.json`, `.xml`, `.py`, `.swg`, `.txt`, `.rst` | Syntax families and common prose; many spelling aliases share these parsers |
 | Font and archive | `viewer.ttf`, `.ttc`, `.zip` | Collection wrapper; existing archive navigation fixture |
-| 3D scene | `viewer.obj`, `viewer.ascii.stl`, `viewer.binary.stl` | Repository-authored tetrahedron OBJ plus ASCII and binary STL triangle fixtures |
 
 `viewer.jar` exercises the Archive fallback and does **not** mean that Swag Scope reads
 its executable content. Other ZIP package suffixes currently share the same Archive implementation; they
@@ -125,6 +124,3 @@ An independent LibreOfficeDev 26.8 re-save materializes B2's column XF, B3/B5's 
 B4's unchanged direct XF, confirming the expected precedence. The workbook itself is the
 unmodified openpyxl package, not that materialized re-save. Its licence is this repository's.
 SHA-256: `0a251d0cab7928d459a051dc43da26a39e49ab7fea1ef85912860e3e7323a8f3`.
-
-`viewer.extreme.obj` contains finite coordinates outside the scene viewer's safe camera range and
-confirms that framing fails with a user-facing format error.

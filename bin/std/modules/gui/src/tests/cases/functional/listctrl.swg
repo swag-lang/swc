@@ -139,10 +139,12 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     Swag.require(selected[0] == root0)
     Swag.require(selected[1] == root1)
     Swag.require(selected[2] == root2)
+    Swag.require(list.selectedLineCount() == 3)
 
     list.selModel.select(hiddenChild.index)
     let selectedVisible = list.selectedLines()
     Swag.require(selectedVisible.count == 3)
+    Swag.require(list.selectedLineCount() == 3)
 
     root1.canCheck = true
     list.setLineChecked(root1, notify: false)
@@ -185,14 +187,17 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     Swag.require(list.isLineSelected(4))
     Swag.require(not list.isLineSelected(5))
     Swag.require(list.selectedLines().isEmpty())
+    Swag.require(list.selectedLineCount() == 3)
 
     list.selectLine(3, false)
     Swag.require(not list.isLineSelected(3))
+    Swag.require(list.selectedLineCount() == 2)
 
     list.clear()
     Swag.require(not list.isVirtual)
     Swag.require(list.lineCount() == 0)
     Swag.require(list.selModel.isEmpty())
+    Swag.require(list.selectedLineCount() == 0)
 
     let line = list.createLine("real")
     Swag.require(line.index == 0)

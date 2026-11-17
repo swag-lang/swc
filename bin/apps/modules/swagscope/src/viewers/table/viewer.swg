@@ -736,7 +736,7 @@ private impl Panel
             result += "\n"
         }
 
-        let anySelected = .hasSelection()
+        let anySelected = .list.selectedLineCount() != 0
         for line in .document.rows.count
         {
             let selected = anySelected ? .list.isLineSelected(cast(u32, line)) : line == .list.focusIndex
@@ -754,13 +754,6 @@ private impl Panel
         }
 
         return result
-    }
-
-    mtd hasSelection()->bool
-    {
-        for line in .document.rows.count where .list.isLineSelected(cast(u32, line)) do
-            return true
-        return false
     }
 
     // Returns the document row shown at line `index`.

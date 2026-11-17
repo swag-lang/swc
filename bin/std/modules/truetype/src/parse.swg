@@ -160,11 +160,14 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
 
     let record    = unwrap rec
     let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
+    if postTable.count < 32 do
+        try fault(0x9B)
     let format    = try readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
         try fault(0x9A)
 
     faceData.face.setUnderline(try readS16(postTable, 8), try readS16(postTable, 10))
+    try parsePostGlyphNames(faceData, postTable, format)
 }
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables

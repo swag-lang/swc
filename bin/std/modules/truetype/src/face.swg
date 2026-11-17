@@ -507,11 +507,12 @@ public impl Face
 
     // Resolves a PostScript glyph name to a glyph index.
     //
-    // A CFF or Type 1 program keys its outlines by name, which is how a document format
-    // addresses them: the encoding of such a font is a table of names, not of characters,
-    // and resolving it through Unicode would go through a mapping the font never declared.
-    // Zero is returned for a face with no name table of its own, which every TrueType face
-    // is, and for a name it does not carry.
+    // CFF and Type 1 programs key their outlines by name, which is how a document format
+    // addresses them: the encoding of such a font is a table of names, not of characters.
+    // TrueType outlines use names from `post` formats 1, 2, or 2.5. Format 3 contains no
+    // names. If a name appears more than once, the lowest glyph index wins. Zero is returned
+    // when the name is absent; as with [[TrueType.Face.glyphIndex]], zero is also the
+    // conventional missing-glyph index.
     //
     // ```swag
     // let face  = try TrueType.Face.load(bytes)

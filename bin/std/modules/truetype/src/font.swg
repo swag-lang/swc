@@ -110,6 +110,9 @@ struct FaceImpl
     // answer before 'kernPairs', which covers the pairs they leave at zero.
     gposTable:         const [..] u8?
     gposPairSubtables: Array'u32
+
+    // Names declared by an sfnt `post` table. Keys are owned by this face.
+    postNameToGid: HashTable'(String, u32)
 }
 
 impl FaceImpl
@@ -129,6 +132,7 @@ impl FaceImpl
         .bitmapPixels.free()
         .kernPairs.free()
         .gposPairSubtables.free()
+        .postNameToGid.free()
         .syntheticCMap.free()
 
         // A custom drop owns nested cleanup, so release each string and parser
@@ -141,7 +145,11 @@ impl FaceImpl
         Swag.init(&.type1, 1)
     }
 
-    // Returns the glyph a name selects, or zero when the face cannot be addressed by name.
+    // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
+    //
+    // CFF and Type 1 names come from their charstring programs. TrueType outlines use the
+    // names in `post` formats 1, 2, or 2.5; format 3 carries no names, so it answers zero.
+    // When a name occurs more than once, the lowest glyph index is returned.
     mtd glyphIndexByName(name: string)->u32
     {
         let key = String.from(name)
@@ -149,7 +157,7 @@ impl FaceImpl
         {
         case .Cff:   return .cff.nameToGid.getOrDefault(key, 0)
         case .Type1: return .type1.nameToGid.getOrDefault(key, 0)
-        case .Glyf:  return 0
+        case .Glyf:  return .postNameToGid.getOrDefault(key, 0)
         }
     }
 

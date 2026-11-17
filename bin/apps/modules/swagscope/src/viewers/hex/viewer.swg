@@ -354,12 +354,12 @@ impl Panel
         let result = &.analysisView.result
         if result.hasDigests
         {
-            let crc = entries.add(texts().ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.crc32Text().toString()) })
+            let crc = entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.crc32Text()) })
             if crc do
                 crc.detail = result.crc32Text()
-            entries.add(texts().ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha256Text().toString()) })
-            entries.add(texts().ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.md5Text().toString()) })
-            entries.add(texts().ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha1Text().toString()) })
+            entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha256Text()) })
+            entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.md5Text()) })
+            entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha1Text()) })
         }
     }
 

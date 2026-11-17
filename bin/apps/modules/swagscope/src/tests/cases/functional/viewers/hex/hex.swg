@@ -351,8 +351,10 @@ internal func writeSampleFile()->String
         .moveCaret(0x44, true)
     }
 
+    // A copy replaces whatever the clipboard held, a picture included, so pasting gives the bytes.
+    Clipboard.addImage(Image.create(4, 4, .RGB8))
     grid.copySelection(.Bytes)
-    Swag.require(Clipboard.getString() == "41 42 43 44")
+    Swag.require(Clipboard.getString() == "41 42 43 44" and not Clipboard.hasImage())
 
     grid.copySelection(.Text)
     Swag.require(Clipboard.getString() == "ABCD")

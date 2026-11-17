@@ -99,6 +99,14 @@ impl GizmoPoints
                 view.app().setFrameCursor(Cursor.from(.ResizeNorthwestSoutheast))
                 return true
             }
+
+        case .Leave:
+            if .moving do
+                return true
+            if .hotAnchor == Swag.U32.Max do
+                return false
+            .hotAnchor = Swag.U32.Max
+            return true
         }
 
         return false

@@ -37,3 +37,15 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
     assertInvalidMonitorIndex(Swag.U64.Max)
     assertInvalidMonitor({})
 }
+
+// QPC presentation stamps use the same microsecond scale as Core.Time.
+#test
+{
+    Swag.require(qpcTicksToMicroseconds(0, 10_000_000) == 0)
+    Swag.require(qpcTicksToMicroseconds(10_000_000, 10_000_000) == 1_000_000)
+    Swag.require(qpcTicksToMicroseconds(15_000_000, 10_000_000) == 1_500_000)
+    Swag.require(qpcTicksToMicroseconds(1, 10_000_000) == 0)
+    Swag.require(qpcTicksToMicroseconds(1, 3) == 333_333)
+    Swag.require(qpcTicksToMicroseconds(2, 3) == 666_666)
+    Swag.require(qpcTicksToMicroseconds(1, 0) == 0)
+}

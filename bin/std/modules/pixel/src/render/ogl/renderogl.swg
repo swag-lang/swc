@@ -96,6 +96,13 @@ internal struct ClipMask
     lastUse:     u64     // Stamp of the last request that selected this mask, for reuse order.
 }
 
+// Clipping state suspended while a render target is painted independently.
+internal struct SuspendedClipMask
+{
+    index: s32
+    on:    bool
+}
+
 // Executes [[Pixel.Painter]] command streams through OpenGL.
 //
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
@@ -194,7 +201,7 @@ struct RenderOgl
         clipMaskIndex:         s32 = -1                // Mask of the region in force, or none yet.
         clipMaskOn:            bool                    // Whether fragments are cut by the region.
         clipMaskWriting:       bool                    // Whether fragments are writing the region.
-        stackClipMaskOn:       Array'bool              // Regions suspended by the render targets bound inside them.
+        stackClipMaskOn:       Array'SuspendedClipMask // Regions suspended by the render targets bound inside them.
         nativeContext:         const *void?            // Shared native OpenGL context owned by interface-created drawables.
         offscreen:             bool                    // Contexts own invisible drawables and never present to the desktop.
         contextCount:          u32                     // Number of live interface-created drawables.
@@ -2196,8 +2203,9 @@ impl RenderOgl
 
             // A layer has a space of its own: the region in force around it cuts the layer when
             // it is drawn, not the marks inside it.
-            .stackClipMaskOn.add(.clipMaskOn)
+            .stackClipMaskOn.add({index: .clipMaskIndex, on: .clipMaskOn})
             .clipMaskOn = false
+            .clipMaskIndex = -1
             .uploadClipMaskState()
 
         case .UnbindRenderTarget:
@@ -2236,7 +2244,16 @@ impl RenderOgl
             .computeMatrices(curShader.mvp, curShader.mdl)
             if .stackClipMaskOn.count
             {
-                .clipMaskOn = .stackClipMaskOn.popBack()
+                let saved = .stackClipMaskOn.popBack()
+                .clipMaskIndex = saved.index
+                .clipMaskOn = saved.on
+                if saved.index >= 0
+                {
+                    let mask = .clipMasks[cast(u64, saved.index)]
+                    glActiveTexture(GL_TEXTURE5)
+                    glBindTexture(GL_TEXTURE_2D, mask.texture)
+                    glActiveTexture(GL_TEXTURE0)
+                }
                 .uploadClipMaskState()
             }
 
@@ -2490,7 +2507,7 @@ impl RenderOgl
     {
         .clipMaskClock += 1
 
-        for &mask, index in .clipMasks where mask.width == width and mask.height == height
+        for &mask, index in .clipMasks where mask.width == width and mask.height == height and not .clipMaskIndexIsSuspended(cast(s32, index))
         {
             mask.lastUse = .clipMaskClock
             return cast(s32, index)
@@ -2500,7 +2517,7 @@ impl RenderOgl
         if .clipMasks.count >= MaxClipMasks
         {
             var oldest = Swag.U64.Max
-            for mask, index in .clipMasks where cast(s32, index) != .clipMaskIndex and mask.lastUse < oldest
+            for mask, index in .clipMasks where cast(s32, index) != .clipMaskIndex and not .clipMaskIndexIsSuspended(cast(s32, index)) and mask.lastUse < oldest
             {
                 oldest = mask.lastUse
                 reuse  = cast(s32, index)
@@ -2545,6 +2562,13 @@ impl RenderOgl
 
         .clipMasks.add(mask)
         return cast(s32, (.clipMasks.count - 1))
+    }
+
+    private mtd clipMaskIndexIsSuspended(index: s32)->bool
+    {
+        for saved in .stackClipMaskOn where saved.index == index do
+            return true
+        return false
     }
 
     // Hands every coverage mask back to the graphics context.

@@ -82,6 +82,7 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(firstFresh)
     let firstCaptureTime = source.lastFrameCaptureMicroseconds()
     Swag.require(firstCaptureTime > 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(image.width == 320 and image.height == 240)
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount == 320 * 240 * 4)
     let storage = image.pixels.storage()
@@ -100,6 +101,7 @@ private func sharedSegmentCount()->u64 fail
 
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    Swag.require(source.lastFramePresentationMicroseconds() == 0)
     let secondFresh = expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(secondFresh)
     Swag.require(source.lastFrameCaptureMicroseconds() >= firstCaptureTime)

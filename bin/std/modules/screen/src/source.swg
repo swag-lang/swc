@@ -9,6 +9,16 @@ internal func validateSourceOptions(options: SourceOptions) fail
         fail BadParameterError{"screen source needs positive dimensions"}
 }
 
+// Converts QPC ticks to the microsecond units used by Core.Time.
+internal func qpcTicksToMicroseconds(ticks, frequency: u64)->u64
+{
+    let divisor = Math.max(1'u64, frequency)
+    let seconds = ticks / divisor
+    let remainder = ticks % divisor
+    let scaled = seconds * 1_000_000 + (remainder * 1_000_000) / divisor
+    return frequency ? scaled : 0
+}
+
 #[Swag.Inline]
 internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
 {
@@ -74,6 +84,7 @@ struct Source
         composed: Image
         composeMicroseconds: u64
         lastFrameCaptureTime: u64
+        lastFramePresentationTime: u64
         mirroredPixels:       u64
         mirroredImage:        u64
         mirroredStorage:      u64
@@ -345,6 +356,10 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
+    // Returns the display presentation time for the latest acquired frame, when the backend reports it.
+    // The value shares the monotonic microsecond clock; zero means the backend has no presentation time.
+    mtd const lastFramePresentationMicroseconds()->u64 => .lastFramePresentationTime
+
     // Returns cumulative native and composition timing since this source was opened.
     mtd const metrics()->SourceMetrics
     {
@@ -396,6 +411,7 @@ impl Source
                 try source[].reopen()
         }
         .lastFrameCaptureTime = 0
+        .lastFramePresentationTime = 0
     }
 
     // Releases the native capture handles and cached frames on the opening thread.

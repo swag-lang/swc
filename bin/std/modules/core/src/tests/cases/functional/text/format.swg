@@ -3,6 +3,12 @@
 
 using Swag
 
+#[Swag.EnumFlags]
+enum FormatFallbackState
+{
+    Ready
+}
+
 func assertFormatString(value: String, expected: string)->bool
 {
     let text = value.toString()
@@ -120,6 +126,13 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
 {
     let value = String.from("referenced")
     Swag.require(assertFormatString(formatReferencedString(value), "referenced"))
+}
+
+// An enum value without a declared name uses the documented conversion fallback.
+#test
+{
+    let unknown: FormatFallbackState = cast(FormatFallbackState, 2)
+    Swag.require(Format.toString("%", unknown) == "?")
 }
 
 // '%{#n}' targets an explicit 0-based argument, so translations can reorder arguments.

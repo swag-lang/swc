@@ -401,6 +401,7 @@ private impl Application
                 {
                     evt.kind = .Pressed
 
+                    targetWnd.surface?.setAccessKeysVisible(false)
                     .focusPointerTarget(targetWnd)
                 }
 
@@ -514,6 +515,7 @@ private impl Application
             if not lastP and curP
             {
                 let key = Input.keyFromStorageIndex(i)
+                .updateAccessKeyVisibility(key, true)
                 var evt = KeyEvent{kind: .Pressed}
                 evt.key       = key
                 evt.modifiers = modifiers
@@ -524,6 +526,7 @@ private impl Application
             elif lastP and not curP
             {
                 let key = Input.keyFromStorageIndex(i)
+                .updateAccessKeyVisibility(key, false)
                 var evt = KeyEvent{kind: .Released}
                 evt.key       = key
                 evt.modifiers = modifiers
@@ -534,6 +537,11 @@ private impl Application
 
     internal mtd sendRuneEvent(key: Input.Key, r: rune)
     {
+        .sendRuneEvent(key, r, .keyboard.pressedModifiers())
+    }
+
+    internal mtd sendRuneEvent(key: Input.Key, r: rune, modifiers: Input.KeyModifiers)
+    {
         var targetWnd = .keyboardFocusWnd
         targetWnd = skipDisabled(targetWnd)
         if not targetWnd do
@@ -542,7 +550,31 @@ private impl Application
         var evt = KeyEvent{kind: .Character}
         evt.character = r
         evt.key       = key
-        evt.modifiers = .keyboard.pressedModifiers()
+        evt.modifiers = modifiers
+
+        if modifiers.has(.Alt) and not modifiers.has(.Control)
+        {
+            var menu: *Wnd? = targetWnd
+            while menu and not (menu is MenuCtrl) do
+                menu = menu.parent
+
+            if menu
+            {
+                targetWnd.sendEvent(&evt)
+                if not evt.accepted
+                {
+                    if let surface = targetWnd.surface do
+                        discard surface.activateAccessKey(r)
+                }
+            }
+            else
+            {
+                if let surface = targetWnd.surface do
+                    discard surface.activateAccessKey(r)
+            }
+            return
+        }
+
         targetWnd.sendEvent(&evt)
     }
 
@@ -975,6 +1007,30 @@ private impl Application
 
 internal impl Application
 {
+    // Reveals access keys while either Alt key is held and hides them after both are released.
+    mtd updateAccessKeyVisibility(key: Input.Key, pressed: bool)
+    {
+        if key != .LMenu and key != .RMenu and key != .MenuCtrl do
+            return
+
+        if pressed
+        {
+            if .keyboard.pressedModifiers().has(.Alt)
+            {
+                if not .keyboardFocusWnd do
+                    .seedKeyboardFocus()
+                .keyboardFocusWnd?.surface?.setAccessKeysVisible(true)
+            }
+            return
+        }
+
+        if .keyboard.isKeyPressed(.LMenu) or .keyboard.isKeyPressed(.RMenu) or .keyboard.isKeyPressed(.MenuCtrl) do
+            return
+
+        for surface in .surfaces do
+            surface.setAccessKeysVisible(false)
+    }
+
     // Registers a surface with initialized renderer state; its creator owns its lifetime.
     mtd registerSurface(surface: *Surface)
     {

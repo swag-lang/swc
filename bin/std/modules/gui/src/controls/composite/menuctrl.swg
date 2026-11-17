@@ -97,6 +97,7 @@ public struct MenuCtrl
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
     popupAnchorButton:       *IconButton?           // Icon button identified while its popup is open.
     popupButtonOpensUp:      bool                   // Whether an anchored menu opens above its button.
+    accessKeyRestoreFocus:   *Wnd? = null           // Focus to restore when an access-key-opened bar menu closes.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
     widgetUnderPointer:      *Wnd?                  // Hosted child currently receiving pointer movement.
@@ -185,7 +186,8 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            painter.drawRichString(labelPos, &it.name, format)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
+                              .surface?.accessKeysVisible orelse false)
         }
     }
 
@@ -295,7 +297,8 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .font()
-            painter.drawRichString(labelPos, &it.name, format)
+            drawAccessKeyText(painter, labelPos, &it.name, format, it.accessKey,
+                              .surface?.accessKeysVisible orelse false)
 
             // Everything standing on the entry's line — the check mark, the glyph, the
             // submenu arrow — is levelled with the wording, not with the row.
@@ -755,7 +758,8 @@ impl MenuCtrl
             icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
-        painter.drawRichString(labelPos, &i.name, format)
+        drawAccessKeyText(painter, labelPos, &i.name, format, i.accessKey,
+                          .surface?.accessKeysVisible orelse false)
     }
 
     mtd setEndModal(result: WndId?)
@@ -787,7 +791,18 @@ impl MenuCtrl
         {
             .hideSubVisible()
             .postCommandEvent(result)
-            .setFocus()
+            let restore = .accessKeyRestoreFocus
+            let surface = .surface
+            .accessKeyRestoreFocus = null
+            if restore and surface and surface.containsWindow(restore) and
+               restore.focusPolicy != .None and restore.isEnabled() and restore.isVisible()
+            {
+                restore.setFocus()
+            }
+            else
+            {
+                .setFocus()
+            }
         }
 
         if p.bar
@@ -1227,9 +1242,17 @@ public impl MenuCtrl
     mtd handleKeyboard(evt: *KeyEvent)
     {
         evt.accepted = false
-        if .bar or .endModal do
+        if .endModal do
             return
 
+        if evt.kind == .Character and evt.modifiers.has(.Alt) and not evt.modifiers.has(.Control)
+        {
+            evt.accepted = .activateAccessKey(evt.character)
+            return
+        }
+
+        if .bar do
+            return
         if evt.kind == .Character and evt.character >= ' 'rune and
            not evt.modifiers.has(.Control) and not evt.modifiers.has(.Alt)
         {
@@ -1278,6 +1301,46 @@ public impl MenuCtrl
         }
 
         evt.accepted = true
+    }
+
+    // Activates the sole enabled menu item whose explicit access key matches `key`.
+    internal mtd activateAccessKey(key: rune)->bool
+    {
+        var match = Swag.U64.Max
+        for item, index in .items
+        {
+            let entry = unwrap item
+            if entry.hidden or entry.disabled or entry.separator or entry.note or entry.accessKey == 0 do
+                continue
+            if Unicode.toLower(entry.accessKey) != Unicode.toLower(key) do
+                continue
+            if match != Swag.U64.Max do
+                return false
+            match = index
+        }
+        if match == Swag.U64.Max do
+            return false
+
+        let entry = unwrap .items[match]
+        .hotIdx = cast(u32, match)
+        if entry.popup != null
+        {
+            if .bar do
+                .accessKeyRestoreFocus = .app().keyboardFocusWnd
+            .showHotPopup()
+            return true
+        }
+        if entry.widget
+        {
+            entry.widget.setFocus()
+            return true
+        }
+        if entry.id
+        {
+            .setEndModal(entry.id)
+            return true
+        }
+        return false
     }
 
     private mtd canSelectKeyboard(index: u64)->bool

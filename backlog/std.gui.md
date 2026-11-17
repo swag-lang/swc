@@ -113,18 +113,6 @@ making clipboard completion depend on drag interaction.
   independently of drag interaction.
 - Done when: A clipboard owner publishes virtual-file names, metadata, and deferred contents through the typed-value API, and another GUI consumer retrieves them after the copy action without initiating a drag.
 
-### std.gui.010 — No keyboard access keys
-
-
-Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
-one keyboard access-key contract.
-
-- Related: platform.portability.048
-
-- Next: add caption mnemonics, surface Alt handling, menu activation, and underline visibility as
-  one access-key contract.
-- Done when: Alt reveals mnemonic underlines, activates a unique caption or menu target from the keyboard, and restores focus correctly; tests cover duplicate and unavailable keys.
-
 ### std.gui.013 — Gesture recognizers have no claim arbitration
 
 

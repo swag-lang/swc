@@ -858,6 +858,7 @@ impl HeadlessHost
     mtd setKeyState(key: Input.Key, pressed: bool)
     {
         .app.keyboard.setCurrentKeyState(key, pressed)
+        .app.updateAccessKeyVisibility(key, pressed)
     }
 
     // Presses or releases the keys behind `modifiers` in the simulated keyboard state.
@@ -1297,6 +1298,7 @@ impl HeadlessHost
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
+        .app.updateAccessKeyVisibility(key, true)
 
         var evt = KeyEvent{kind: .Pressed}
         evt.key       = key
@@ -1309,6 +1311,7 @@ impl HeadlessHost
             .app.routeUnhandledKey(target, key, modifiers)
 
         .setKeyState(key, false)
+        .app.updateAccessKeyVisibility(key, false)
         evt.kind = .Released
         target.sendEvent(&evt)
         .setModifierKeys(modifiers, false)
@@ -1324,16 +1327,10 @@ impl HeadlessHost
     // Sends one simulated character to the focused window.
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = None)
     {
-        let target = unwrap .app.keyboardFocusWnd
-
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
 
-        var evt = KeyEvent{kind: .Character}
-        evt.key       = key
-        evt.character = char
-        evt.modifiers = modifiers
-        target.sendEvent(&evt)
+        .app.sendRuneEvent(key, char, modifiers)
 
         .setKeyState(key, false)
         .setModifierKeys(modifiers, false)

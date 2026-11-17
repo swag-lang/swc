@@ -89,6 +89,44 @@ using Swag, Core
     Swag.require(dock.paneCount == 1)
 }
 
+// Emptying a split branch hides its tab window and removes it from splitter layout; restoring
+// the pane makes that same branch visible again, while closing it leaves the branch collapsed.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 400)
+
+    let dock = DockHost.create(&host.root, {0, 0, 620, 360})
+    let left = Label.create(&host.root, "Left")
+    let right = Label.create(&host.root, "Right")
+    dock.addPane("left", "Left", left, {100, 80})
+    dock.splitPane("left", "right", "Right", right, .Horizontal, splitSize: 280, minimumSize: {100, 80})
+    host.pump()
+
+    let rightTab = assume cast(*Tab, unwrap right.parent)
+    let splitter = assume cast(*SplitterCtrl, unwrap rightTab.parent)
+    let originalLeftWidth = left.position.width
+    Swag.require(splitter.isPaneVisible(0) and splitter.isPaneVisible(1) and rightTab.isLocallyVisible())
+
+    dock.hidePane("right")
+    host.pump()
+    Swag.require(dock.paneCount == 2 and dock.hasPane("right"))
+    Swag.require(splitter.isPaneVisible(0) and not splitter.isPaneVisible(1))
+    Swag.require(not rightTab.isLocallyVisible() and not right.isLocallyVisible())
+    Swag.require(left.position.width > originalLeftWidth)
+
+    dock.showPane("right")
+    host.pump()
+    Swag.require(splitter.isPaneVisible(0) and splitter.isPaneVisible(1) and rightTab.isLocallyVisible())
+    Swag.require(right.isLocallyVisible())
+
+    dock.closePane("right")
+    host.pump()
+    Swag.require(dock.paneCount == 1 and not dock.hasPane("right"))
+    Swag.require(splitter.isPaneVisible(0) and not splitter.isPaneVisible(1) and not rightTab.isLocallyVisible())
+    Swag.require(right.isPendingDestroy and left.position.width > originalLeftWidth)
+}
+
 // Closing the last pane leaves the host reusable with a new root pane.
 #test
 {

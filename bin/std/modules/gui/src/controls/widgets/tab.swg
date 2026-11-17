@@ -976,8 +976,8 @@ impl Tab
             {
                 let selected = unwrap .items[.selectedIndex]
                 selected.view?.show()
-                .sigSelectionChanged.call(me)
             }
+            .sigSelectionChanged.call(me)
         }
         elif visible and .selectedIndex == Swag.U32.Max
         {
@@ -1021,9 +1021,10 @@ impl Tab
             {
                 let selected = unwrap .items[.selectedIndex]
                 selected.view?.show()
-                .sigSelectionChanged.call(me)
             }
         }
+        if wasSelected do
+            .sigSelectionChanged.call(me)
 
         .sendResizeEvent()
         .invalidate()
@@ -1032,6 +1033,7 @@ impl Tab
     // Removes all tabs and destroys every page view previously transferred to the control.
     mtd clear()
     {
+        let hadSelection = .selectedIndex < .items.count
         .closePopups()
         for itemMaybe in .items
         {
@@ -1044,6 +1046,8 @@ impl Tab
         .firstVisibleIndex = 0
         .hasSelectionRail  = false
         .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
+        if hadSelection do
+            .sigSelectionChanged.call(me)
         .sendResizeEvent()
         .invalidate()
     }

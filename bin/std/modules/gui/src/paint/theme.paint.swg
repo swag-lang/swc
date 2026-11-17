@@ -227,7 +227,10 @@ impl Theme
     }
 
     // Draws rich text with an optional leading icon inside `position`.
-    func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
+    //
+    // When `showAccessKey` is true, the first matching rune in plain text is underlined; a zero
+    // `accessKey` draws the label unchanged. Existing styled text keeps its source formatting.
+    func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32, accessKey: rune = 0, showAccessKey = false)
     {
         let count = (name[]).count
         if count == 0 and not icon.isValid() do
@@ -249,7 +252,7 @@ impl Theme
             pos.moveLeft(icon.sizeX + iconMargin)
 
         // Text
-        painter.drawRichString(pos, name, stringFormat)
+        drawAccessKeyText(painter, pos, name, stringFormat, accessKey, showAccessKey)
 
         // Icon, levelled with the text it leads rather than with the box around it.
         if icon.isValid()

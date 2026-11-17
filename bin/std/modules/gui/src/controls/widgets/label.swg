@@ -34,6 +34,7 @@ struct Label
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted with the target of the link the user activates.
+        accessKeyTarget: *Wnd? = null     // Same-surface window focused when this label's access key is chosen.
 
         readonly
         {
@@ -211,7 +212,8 @@ impl IWnd for Label
                                      (.activeLink < .name.chunks.count and chunk.urlStart == .name.chunks[.activeLink].urlStart and .hasVisibleFocus())
             }
 
-            painter.drawRichString(posText, &.name, sf)
+            drawAccessKeyText(painter, posText, &.name, sf, me.accessKey,
+                              .surface?.accessKeysVisible orelse false)
         }
     }
 

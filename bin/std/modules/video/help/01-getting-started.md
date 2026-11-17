@@ -45,7 +45,7 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values. |
 | `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture. |
 | `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC or Layer III audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
+| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks, including Xiph, fixed, and EBML video lacing; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies. |
 
 YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the
 stream. AVI reads offsets from the container index, and ISO-BMFF expands its chunk and sample
@@ -53,6 +53,8 @@ tables once when the stream opens.
 H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode
 prediction dependencies forward, so a distant random seek costs the group of pictures it enters
 rather than one frame.
+Laced Matroska video pictures use `DefaultDuration`, or share a declared `BlockDuration`; the
+reader rejects a multi-picture block when neither supplies a reliable timestamp step.
 
 ## Reading sound tracks
 

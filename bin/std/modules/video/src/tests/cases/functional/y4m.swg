@@ -314,7 +314,7 @@ using Core, Core.Errors, Pixel
         let meanRowU = (cast(u32, fullPayload[4 + fullChroma]) + fullPayload[5 + fullChroma] + 1) / 2
         let meanRowV = (cast(u32, fullPayload[8 + fullChroma]) + fullPayload[9 + fullChroma] + 1) / 2
         Swag.require(payload422[reducedChroma] == meanRowU and
-                     payload422[reducedChroma + 4] == meanRowV)
+                     payload422[reducedChroma + 2] == meanRowV)
     }
     var reader422 = expect Reader.openMemory("422.y4m", subsampled422.toSlice())
     Swag.require(reader422.frameCount() == 1 and expect reader422.decodeFrame(0).isValid())

@@ -145,6 +145,22 @@ chunk offset where it was.
 
 ## Generated for this repository
 
+`matroska-video-laced-{xiph,fixed,ebml}.mkv` contain two synthetic MPEG-4 Part 2 intra pictures
+generated from FFmpeg's `testsrc2` pattern and packaged as one video block with the named
+Matroska lacing mode. They exercise per-lace indexing, timestamps, and picture decode. The
+`matroska-video-laced-no-duration.mkv` variant removes the track's `DefaultDuration` to verify
+that ambiguous laced timing is refused. These files contain no third-party recordings.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `matroska-video-laced-xiph.mkv` | 4534 | `78597b554979245dc11f69ca9b6ab17096722d74723c8c45b529a568d2184056` |
+| `matroska-video-laced-fixed.mkv` | 4541 | `82071e2df5d3e51cf0c85906e6250e3832d76ebdd159e3c1cad87054b37f81dd` |
+| `matroska-video-laced-ebml.mkv` | 4528 | `5ebcb38bc5a3adbb115722d7c12008d7cd257aa424be4c96f90d52fe86dbe8a8` |
+| `matroska-video-laced-no-duration.mkv` | 4520 | `7f7879ef47cb6b732e6e77681d71c46f0b0899e4781886f68e37df3b3fd5a598` |
+
+- FFmpeg: 7.1.5; source: `testsrc2=size=96x64:rate=25`, MPEG-4 Part 2, two intra pictures.
+- License: same as this repository.
+
 `ffmpeg-h264-subtitle.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and muxes the repository's
 `subtitle-sample.srt` as a default French SubRip track through FFmpeg 7.1. It exercises Matroska
 subtitle discovery, metadata, packet timestamps, durations, and cue decoding without introducing

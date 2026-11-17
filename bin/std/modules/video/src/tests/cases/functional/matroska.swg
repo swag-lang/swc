@@ -53,6 +53,34 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(unrepresentable.width == 0 and unrepresentable.height == 0)
 }
 
+// Video blocks with Xiph, fixed, and EBML lacing expose one timestamped picture per lace. The
+// block's random-access flag applies to its first picture; subsequent laces keep dependencies.
+#test
+{
+    const Fixtures = ["matroska-video-laced-xiph.mkv",
+                      "matroska-video-laced-fixed.mkv",
+                      "matroska-video-laced-ebml.mkv"]
+    for fixture in Fixtures
+    {
+        var reader = expect Reader.open(videoFixturePath(fixture))
+        Swag.require(reader.width() == 96 and reader.height() == 64)
+        Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
+        Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 0.08, 0.0001))
+
+        let first = expect reader.decodeFrame(0)
+        let second = expect reader.decodeFrame(1)
+        Swag.require(reader.frameCount() == 2)
+        Swag.require(first.isValid() and second.isValid())
+        Swag.require(first.width == second.width and first.height == second.height)
+    }
+
+    var untimed = expect Reader.open(videoFixturePath("matroska-video-laced-no-duration.mkv"))
+    var missingTimingOutcome: Swag.Error
+    discard catch untimed.decodeFrame(0) as missingTimingOutcome
+    let missingTiming = missingTimingOutcome.value()
+    Swag.require((missingTiming is UnsupportedFormatError))
+}
+
 // A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel
 // count alone cannot express.
 #test

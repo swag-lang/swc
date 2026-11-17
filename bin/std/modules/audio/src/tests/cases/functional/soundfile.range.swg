@@ -55,6 +55,10 @@ using Swag, Core
     discard expect voice.seekSampleFrame(Frames)
     Swag.require(voice.playbackSampleFrame() == sound.sampleFrameCount())
     Swag.require(cast(f32, voice.playbackPositionSeconds()) == sound.durationInSeconds())
+    discard expect voice.seekSampleFrame(Frames + 1)
+    Swag.require(voice.playbackSampleFrame() == sound.sampleFrameCount())
+    discard expect voice.seekSampleFrame(Swag.U64.Max)
+    Swag.require(voice.playbackSampleFrame() == sound.sampleFrameCount())
 }
 
 // PCM ranges address audible frames, preserve interleaving and do not call back for an empty span.

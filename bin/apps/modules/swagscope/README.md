@@ -58,8 +58,8 @@ decoder failure leaves the file's type icon available for opening it normally.
 `src/viewerpluginregistry.swg` is the only registry, and it holds no format knowledge: an ordered
 list of descriptors, each returned by the viewer that implements it. A descriptor binds a stable
 key, a display name, a glyph, a smoke fixture, and a set of lowercase extensions or exact file names
-to one creation callback. Image, video, and sound selectors are derived from their modules' decoder
-registries, so their application coverage cannot drift behind the formats the modules expose.
+to one creation callback. Image, video, sound and scene selectors are derived from their modules'
+decoder registries, so their application coverage cannot drift behind the formats the modules expose.
 There is no runtime index, dynamic library, exported entry point, or versioned ABI yet.
 
 A file is classified in three passes: its name, then its content, then the fallbacks. Several
@@ -135,6 +135,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   script, style, template, and embedded-document content never executes. Default document text
   size follows the common zoom control. The hosted page keeps a reading inset at narrow widths,
   including beside the outline; authored CSS margins remain inside that inset.
+- `3D Scene` uses the shared `std/scene3d` module to read bounded Wavefront OBJ and ASCII/binary STL triangle meshes. It draws a perspective view; drag, use the lens, or press Alt+arrows to orbit; right-drag or Shift+arrows to pan; and use the shared zoom control, Ctrl+wheel, or Ctrl+plus/minus/0 for zoom. Lens actions frame the scene. OBJ material libraries and textures are not read yet; the current codecs expose one mesh and root node per file.
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.

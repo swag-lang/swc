@@ -49,27 +49,28 @@ struct Texts
     ui_AnalysisNoBytes:        string = "No bytes were analyzed"                                                                              // Empty analysis result.
     ui_AnalysisDigests:        string = "CRC-32 % · SHA-256 %"                                                                                // Checksums of the analyzed bytes, read in full.
     ui_AnalysisCopyCrc32:      string = "Copy CRC-32 of the Analyzed Bytes"                                                                   // Lens action copying the checksum of the last complete analysis.
-    ui_AnalysisCopySha256:     string = "Copy SHA-256 of the Analyzed Bytes"
-    ui_AnalysisCopyMd5:        string = "Copy MD5 of the Analyzed Bytes"                      // Lens action copying the MD5 digest of the last complete analysis.
-    ui_AnalysisCopySha1:       string = "Copy SHA-1 of the Analyzed Bytes"                    // Lens action copying the SHA-1 digest of the last complete analysis.                                                                  // Lens action copying the digest of the last complete analysis.
-    ui_AnalysisByteHint:       string = "Point at the byte map to inspect an exact count"     // Histogram interaction hint.
-    ui_AnalysisByte:           string = "Byte %{X02} · % occurrences · %{f2}%%"               // Exact count under the histogram pointer.
-    ui_AnalysisByteOnce:       string = "Byte %{X02} · 1 occurrence · %{f2}%%"                // The same, for a byte seen once.
-    ui_AnalysisStrings:        string = "Inferred strings"                                    // Heading before string extraction completes.
-    ui_AnalysisStringsCount:   string = "% inferred strings"                                  // Complete inferred-string count.
-    ui_AnalysisOneString:      string = "1 inferred string"                                   // The same, for a single string.
-    ui_AnalysisStringsLimited: string = "First % inferred strings · result limit reached"     // Bounded inferred-string count.
-    ui_AnalysisAscii:          string = "ASCII"                                               // Inferred single-byte text.
-    ui_AnalysisUtf16Little:    string = "UTF-16 LE"                                           // Inferred little-endian wide text.
-    ui_AnalysisUtf16Big:       string = "UTF-16 BE"                                           // Inferred big-endian wide text.
-    ui_AnalysisOffset:         string = "Offset"                                              // String-table source offset column.
-    ui_AnalysisEncoding:       string = "Encoding"                                            // String-table inference column.
-    ui_AnalysisText:           string = "Text"                                                // String-table preview column.
-    err_AnalysisShortRead:     string = "The file ends before the analysis range"             // Failure when a file changes while it is being analyzed.
+    ui_AnalysisCopySha256:     string = "Copy SHA-256 of the Analyzed Bytes"                                                                  // Lens action copying the digest of the last complete analysis.
+    ui_AnalysisCopyMd5:        string = "Copy MD5 of the Analyzed Bytes"                                                                      // Lens action copying the MD5 digest of the last complete analysis.
+    ui_AnalysisCopySha1:       string = "Copy SHA-1 of the Analyzed Bytes"                                                                    // Lens action copying the SHA-1 digest of the last complete analysis.
+    ui_AnalysisByteHint:       string = "Point at the byte map to inspect an exact count"                                                     // Histogram interaction hint.
+    ui_AnalysisByte:           string = "Byte %{X02} · % occurrences · %{f2}%%"                                                               // Exact count under the histogram pointer.
+    ui_AnalysisByteOnce:       string = "Byte %{X02} · 1 occurrence · %{f2}%%"                                                                // The same, for a byte seen once.
+    ui_AnalysisStrings:        string = "Inferred strings"                                                                                    // Heading before string extraction completes.
+    ui_AnalysisStringsCount:   string = "% inferred strings"                                                                                  // Complete inferred-string count.
+    ui_AnalysisOneString:      string = "1 inferred string"                                                                                   // The same, for a single string.
+    ui_AnalysisStringsLimited: string = "First % inferred strings · result limit reached"                                                     // Bounded inferred-string count.
+    ui_AnalysisAscii:          string = "ASCII"                                                                                               // Inferred single-byte text.
+    ui_AnalysisUtf16Little:    string = "UTF-16 LE"                                                                                           // Inferred little-endian wide text.
+    ui_AnalysisUtf16Big:       string = "UTF-16 BE"                                                                                           // Inferred big-endian wide text.
+    ui_AnalysisOffset:         string = "Offset"                                                                                              // String-table source offset column.
+    ui_AnalysisEncoding:       string = "Encoding"                                                                                            // String-table inference column.
+    ui_AnalysisText:           string = "Text"                                                                                                // String-table preview column.
+    err_AnalysisShortRead:     string = "The file ends before the analysis range"                                                             // Failure when a file changes while it is being analyzed.
 
-    ui_CopyBytes: string = "Copy Bytes"     // Menu entry copying the selection as hexadecimal byte pairs.
-    ui_CopyText:  string = "Copy Text"      // Menu entry copying the selection as printable text.
-    ui_CopyDump:  string = "Copy Dump"      // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyBytes:  string = "Copy Bytes"        // Menu entry copying the selection as hexadecimal byte pairs.
+    ui_CopyText:   string = "Copy Text"         // Menu entry copying the selection as printable text.
+    ui_CopyDump:   string = "Copy Dump"         // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyOffset: string = "Copy Offset %"     // Lens command copying the offset of the caret in hexadecimal.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

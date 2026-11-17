@@ -667,3 +667,9 @@ internal func writeSampleFile()->String
     host.finishAnimations()
     Swag.require(view.grid.caret == 0x1F0)
 }
+
+// The lens copies the offset of the caret as a hexadecimal address.
+#test
+{
+    Swag.require(Hex.offsetHex(26) == "0x0000001A" and Hex.offsetHex(0x1_0000_0000) == "0x0000000100000000", Hex.offsetHex(26))
+}

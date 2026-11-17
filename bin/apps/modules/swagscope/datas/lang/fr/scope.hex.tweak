@@ -60,6 +60,7 @@ err_AnalysisShortRead   Le fichier se termine avant la plage d’analyse
 ui_CopyBytes     Copier les octets
 ui_CopyText      Copier le texte
 ui_CopyDump      Copier le dump
+ui_CopyOffset    Copier le décalage %
 
 ui_CopyBytesMax  Copier les % premiers en octets
 ui_CopyTextMax   Copier les % premiers en texte

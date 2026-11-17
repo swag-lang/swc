@@ -73,6 +73,9 @@ replacements Caractères illisibles (U+FFFD)
 transparency Transparence
 character   Caractère
 glyphIndex  Index de glyphe
+timing      Minutage
+overlaps    Sous-titres qui se chevauchent
+shortestCue Sous-titre le plus court
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

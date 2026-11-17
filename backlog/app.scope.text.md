@@ -424,8 +424,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.013 — Subtitle timing cannot be checked against media
 
-- Evidence: the standalone subtitle viewer has no way to associate a video or sound file, overlay
-  cues, visualize waveform/frame timing, or apply a temporary delay and frame-rate conversion.
+- Evidence: the information sheet counts the cues that start before the one before them has ended
+  and gives the shortest time a cue stays on screen; the track orders its cues by start, so cues
+  written out of order are not reported. The standalone subtitle viewer has no way to associate a
+  video or sound file, overlay cues, visualize waveform/frame timing, or apply a temporary delay and
+  frame-rate conversion.
 - Next: let the reader attach one local media file without modifying either input and reuse the
   existing video subtitle overlay and media clock.
 - Done when: cues preview over media, delay and FPS conversion are reversible session settings,

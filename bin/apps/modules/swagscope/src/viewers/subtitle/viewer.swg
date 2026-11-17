@@ -769,6 +769,30 @@ impl Panel
         data.addFigure(.Custom, cueCountText(track.cueCount()))
         if .duration > 0 do
             data.addFigure(.Duration, Viewer.durationText(.duration))
+
+        // Timing a subtitler checks: cues that start before the one before them has ended, and
+        // the shortest time a cue stays on screen. The track orders its cues by their start.
+        let count = track.cueCount()
+        if count
+        {
+            var overlaps = 0'u64
+            var shortest = Swag.F64.Max
+            var lastEnd  = Swag.F64.NegInf
+            for index in count
+            {
+                let start = track.cueStartTime(index)
+                let end   = track.cueEndTime(index)
+                if start < lastEnd do
+                    overlaps += 1
+                lastEnd  = Math.max(lastEnd, end)
+                shortest = Math.min(shortest, end - start)
+            }
+
+            data.add(.Timing, group: true)
+            data.add(.Overlaps, Format.toString("%", overlaps))
+            data.add(.ShortestCue, Format.toString("%{f2} s", shortest))
+        }
+
         data.describe(sheet)
     }
 }

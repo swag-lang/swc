@@ -116,3 +116,20 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
         Swag.require(Clipboard.getString() == "The first caption.", Clipboard.getString())
     }
 }
+
+// The information sheet gives the timing a subtitler checks: how many cues start before the one
+// before them has ended, and the shortest time a cue stays on screen.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-cues-timing-", ".srt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "1\n00:00:01,000 --> 00:00:04,000\nOne\n\n2\n00:00:03,500 --> 00:00:03,900\nTwo\n\n3\n00:00:05,000 --> 00:00:06,000\nThree\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+    let sheet  = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "Overlapping cues\n1") and Utf8.contains(text, "Shortest cue\n0.40 s"), text)
+}

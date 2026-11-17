@@ -72,6 +72,9 @@ enum MediaInfoField
     Transparency
     Character
     GlyphIndex
+    Timing
+    Overlaps
+    ShortestCue
     Bookmarks
     TextLayer
     Style
@@ -160,6 +163,9 @@ struct MediaInfoStrings
     transparency:   string = "Transparency"
     character:      string = "Character"
     glyphIndex:     string = "Glyph index"
+    timing:         string = "Timing"
+    overlaps:       string = "Overlapping cues"
+    shortestCue:    string = "Shortest cue"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -308,6 +314,9 @@ impl MediaInfoRow
         case .Transparency:      return s.transparency
         case .Character:         return s.character
         case .GlyphIndex:        return s.glyphIndex
+        case .Timing:            return s.timing
+        case .Overlaps:          return s.overlaps
+        case .ShortestCue:       return s.shortestCue
         case .Bookmarks:         return s.bookmarks
         case .TextLayer:         return s.textLayer
         case .Style:             return s.style

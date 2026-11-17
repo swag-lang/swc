@@ -23,7 +23,49 @@ AstNodeRef AstSwitchCaseStmt::conditionBindingRef(const Ast& ast) const
 
 namespace
 {
-    void walkBoundaryOnSameLine(const TaskContext& ctx, const Ast& ast, const SourceView& view, const AstNode& root, SourceViewRef baseViewRef, uint32_t baseLine, bool walkLeft, SourceCodeRange& boundaryLoc)
+    struct SourceRangeLineOffset
+    {
+        uint32_t line   = 0;
+        uint32_t offset = 0;
+        uint32_t len    = 0;
+        bool     valid  = false;
+    };
+
+    SourceRangeLineOffset tokenLineOffset(const SourceView& view, const Token& token)
+    {
+        SourceRangeLineOffset result;
+        const uint32_t        offset = view.tokenByteStart(token);
+        const uint32_t        len    = token.id == TokenId::EndOfFile ? 0 : token.byteLength;
+        const size_t           size   = view.stringView().size();
+        if (offset > size || len > size - offset)
+            return result;
+
+        result.offset = offset;
+        result.len    = len;
+        result.valid  = true;
+
+        const auto& lines = view.lines();
+        if (lines.empty())
+            return result;
+
+        const auto it = std::ranges::upper_bound(lines, offset);
+        if (it == lines.begin())
+            result.line = 1 + view.lineOffset();
+        else
+            result.line = static_cast<uint32_t>(std::distance(lines.begin(), it)) + view.lineOffset();
+
+        return result;
+    }
+
+    SourceCodeRange sourceRange(const TaskContext& ctx, const SourceView& view, const SourceRangeLineOffset& location)
+    {
+        SourceCodeRange result;
+        if (location.valid)
+            result.fromOffset(ctx, view, location.offset, location.len);
+        return result;
+    }
+
+    void walkBoundaryOnSameLine(const Ast& ast, const SourceView& view, const AstNode& root, SourceViewRef baseViewRef, uint32_t baseLine, bool walkLeft, SourceRangeLineOffset& boundaryLoc)
     {
         SmallVector<AstNodeRef> children;
         const AstNode*          current = &root;
@@ -49,7 +91,7 @@ namespace
             if (child.tokRef().get() >= view.tokens().size())
                 break;
 
-            const SourceCodeRange childLoc = view.token(child.tokRef()).codeRange(ctx, view);
+            const SourceRangeLineOffset childLoc = tokenLineOffset(view, view.token(child.tokRef()));
             if (childLoc.line != baseLine)
                 break;
 
@@ -115,26 +157,26 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
         return codeRange;
 
     const Token&          baseTok  = view.token(codeRef_.tokRef);
-    const SourceCodeRange baseLoc  = baseTok.codeRange(ctx, view);
-    const uint32_t        baseLine = baseLoc.line;
+    const SourceRangeLineOffset baseLoc  = tokenLineOffset(view, baseTok);
+    const uint32_t              baseLine = baseLoc.line;
 
-    SourceCodeRange startLoc = baseLoc;
-    walkBoundaryOnSameLine(ctx, ast, view, *this, baseViewRef, baseLine, true, startLoc);
+    SourceRangeLineOffset startLoc = baseLoc;
+    walkBoundaryOnSameLine(ast, view, *this, baseViewRef, baseLine, true, startLoc);
 
-    SourceCodeRange endLoc = baseLoc;
-    walkBoundaryOnSameLine(ctx, ast, view, *this, baseViewRef, baseLine, false, endLoc);
+    SourceRangeLineOffset endLoc = baseLoc;
+    walkBoundaryOnSameLine(ast, view, *this, baseViewRef, baseLine, false, endLoc);
 
     const uint32_t startOff = startLoc.offset;
     const uint32_t endByte  = endLoc.offset + endLoc.len;
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
 
-    if (startLoc.srcView == &view)
+    if (startLoc.valid)
     {
         const size_t sourceSize = view.stringView().size();
         if (startOff > sourceSize || spanLen > sourceSize - startOff)
             return codeRange;
 
-        codeRange     = startLoc;
+        codeRange     = sourceRange(ctx, view, startLoc);
         codeRange.len = spanLen;
     }
     else

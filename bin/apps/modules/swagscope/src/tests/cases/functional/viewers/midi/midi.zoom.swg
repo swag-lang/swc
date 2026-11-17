@@ -102,6 +102,9 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     host.mouseWheel(roll.surfaceRect().center(), -120, .Control)
     Swag.require(roll.fit and roll.zoom == smallest)
 
+    // A key step and a wheel notch scale the timeline as the picture and PDF views scale theirs.
     roll.zoomIn()
-    Swag.require(not roll.fit and roll.zoom > smallest)
+    Swag.require(not roll.fit and Math.isEqualEpsilon(roll.zoom, smallest * 1.25, 0.0001))
+    host.mouseWheel(roll.surfaceRect().center(), 120, .Control)
+    Swag.require(Math.isEqualEpsilon(roll.zoom, smallest * 1.25 * 1.12, 0.0001))
 }

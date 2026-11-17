@@ -15,6 +15,11 @@ private
     const MinPitchZoom  = 0.5'f32
     const MaxPitchZoom  = 8.0'f32
 
+    // A key or lens step scales the timeline by a quarter and a wheel notch by an eighth, as the
+    // picture and PDF views scale their canvas, so the same gesture moves every canvas viewer alike.
+    const ZoomStep      = 1.25'f32
+    const WheelZoomStep = 1.12'f32
+
     // The measures of the tracks presentation, after `scope.midi`.
     const LaneColumn  = 208.0     // Width of the column the names of the tracks stand in.
     const AxisTop     = 40.0      // Distance from the strip to the line of bar numbers.
@@ -346,8 +351,8 @@ impl RollView
             .applyZoom(target)
     }
 
-    mtd zoomIn()  => .stepZoom(.zoom * 1.5)
-    mtd zoomOut() => .stepZoom(.zoom / 1.5)
+    mtd zoomIn()  => .stepZoom(.zoom * ZoomStep)
+    mtd zoomOut() => .stepZoom(.zoom / ZoomStep)
 
     // Report whether a zoom step still widens or narrows the timeline, so the commands that take
     // one can read as unavailable at the limits instead of doing nothing.
@@ -687,9 +692,9 @@ impl IWnd for RollView
         if evt.kind == .Wheel and evt.modifiers == .Control
         {
             if evt.delta.y > 0 do
-                .zoomIn()
+                .stepZoom(.zoom * WheelZoomStep)
             elif evt.delta.y < 0 do
-                .zoomOut()
+                .stepZoom(.zoom / WheelZoomStep)
             return
         }
 

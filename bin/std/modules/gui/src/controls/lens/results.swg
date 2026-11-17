@@ -71,8 +71,8 @@ struct Entry
         spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.
     }
 
-    matchedAlias: bool     // The query matched an alternative phrase, not title bytes.
-    score:        s32      // How well the query answered the title; the lens ranks the rows by it.
+    answered: bool     // The row was matched as it was added, and `score` and `spans` hold that answer.
+    score:    s32      // How well the query answered the title; the lens ranks the rows by it.
 }
 
 // A picture in the strip of a section: a recent document, a page.

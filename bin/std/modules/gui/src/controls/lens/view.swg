@@ -718,18 +718,6 @@ impl View
                 .addCommandSections()
         }
 
-        // A source that marked nothing leaves the marking to the lens; a row the query does not
-        // answer, shown for its group, is not marked.
-        for section in .results.sections
-        {
-            for &entry in section!.entries where entry.spans.isEmpty() and not entry.matchedAlias and .results.query.count > 0
-            {
-                var found = match(.results.folded, entry.title)
-                if found.matched do
-                    entry.spans = #move found.spans
-            }
-        }
-
         .rankResults()
         .buildRows()
         .buildInlineChoices()
@@ -961,6 +949,14 @@ private impl View
 
         for family in families
         {
+            // A query that spells the whole label of a family brings every command of it. The
+            // label is the same for each of them, so it is matched once.
+            let familyMatch  = match(.results.folded, family[])
+            let familyAnswer = familyMatch.matched and
+                               familyMatch.spans.count == 1 and
+                               familyMatch.spans[0].start == 0 and
+                               familyMatch.spans[0].count == family.length
+
             var section: *Section?
             for command in .commands where command.inLens and command.family == family[]
             {
@@ -979,14 +975,11 @@ private impl View
                 var found = command.find(.results.folded, title)
                 if not found.matched
                 {
-                    let familyMatch = match(.results.folded, family[])
-                    if not familyMatch.matched or familyMatch.spans.count != 1 do
-                        continue
-                    let span = familyMatch.spans[0]
-                    if span.start != 0 or span.count != family.length do
+                    if not familyAnswer do
                         continue
                     found.matched = true
                     found.score   = ClearMatchScore
+                    found.spans.clear()
                 }
 
                 if not section
@@ -995,9 +988,15 @@ private impl View
                     section.ranked = true
                 }
 
+                // The row keeps the answer it was found with, so the lens does not match it again.
+                // An alternative phrase or the family label answers without marking title bytes.
                 addCommandEntry(section, command.commandId.toString(), title, state)
-                section.entries.backPtr().score        = found.score
-                section.entries.backPtr().matchedAlias = .results.query.count > 0 and found.spans.isEmpty()
+                with let entry = section.entries.backPtr()
+                {
+                    .answered = true
+                    .score    = found.score
+                    .spans    = #move found.spans
+                }
             }
         }
     }
@@ -1760,10 +1759,17 @@ private impl View
                     continue
                 }
 
-                var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
-                entry.score = Math.max(entry.score, found.matched ? found.score : 0)
-                if entry.spans.isEmpty() and not entry.matchedAlias and found.matched do
-                    entry.spans = #move found.spans
+                // A row is matched once. One its source added without its answer is matched here;
+                // a source that marked nothing leaves the marking to the lens, and a row the query
+                // does not answer, shown for its group, is not marked.
+                if not entry.answered
+                {
+                    var found = match(.results.folded, entry.title, tolerateTypos: section.ranked)
+                    entry.score = Math.max(entry.score, found.matched ? found.score : 0)
+                    if entry.spans.isEmpty() and found.matched do
+                        entry.spans = #move found.spans
+                }
+
                 if section.ranked and not entry.disabled do
                     bestAll = Math.max(bestAll, entry.score)
             }

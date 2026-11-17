@@ -180,6 +180,11 @@ internal impl Voice
                 fail BadParameterError{"bus invalid"}
         }
 
+        for i in handle.busCount
+        {
+            if i >= count do
+                handle.buses[i] = null
+        }
         handle.busCount = cast(u32, count)
         for i in count
         {

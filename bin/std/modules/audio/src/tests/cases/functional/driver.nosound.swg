@@ -282,8 +282,15 @@ func audioStartNoSoundEngine()
     for index in 16 do
         Swag.require(handle.buses[index] == buses[index])
 
+    expect voice.setRouting([buses[0]])
+    Swag.require(handle.busCount == 1 and handle.buses[0] == buses[0])
+    for index in 1 until 16 do
+        Swag.require(handle.buses[index] == null)
+
     expect voice.setRouting([])
     Swag.require(handle.busCount == 0)
+    for index in 16 do
+        Swag.require(handle.buses[index] == null)
     voice.destroy()
 }
 

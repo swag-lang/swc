@@ -314,6 +314,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,
   and x264's measured process time includes startup and muxing while Swag's timer covers only
   encoding; these are rate-quality references, not direct speed ratios.
+  On the 12-picture 4K localized-motion clip at QP 28, Swag emitted 3.32 MB at 39.96 dB
+  luma PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 2.69 MB at 40.16 dB, and
+  Baseline/ultrafast at CRF 28 emitted 3.40 MB at 40.52 dB. Swag's encode-only timer was
+  552 ms and x264's process took 317 ms, but those timings include different stages and are
+  not directly comparable.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
   A deterministic four-slice stress case now measures 100 alternating 4K P pictures at

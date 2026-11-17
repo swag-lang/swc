@@ -102,3 +102,25 @@ using Core, Gui, Gui.Testing, Viewers
     discard host.render(window)
     Swag.require(grid.scratch.text == "a<b", grid.scratch.text)
 }
+
+// The tooltip names the hovered cell, the anchor's text over a merged range, and nothing over the
+// headers. It is rebuilt when the pointer enters another cell, not on each move inside one.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.geometry.xlsx"), false)
+    let panel  = assume cast(*Xlsx.Panel, window.currentView)
+    let grid   = unwrap panel.grid
+    let price  = grid.localToSurface(grid.cellRect({2, 1}, {2, 1}).center())
+    host.moveMouse(price)
+    Swag.require(grid.toolTip == "$1,100.00", grid.toolTip)
+
+    grid.toolTip = "unchanged"
+    host.moveMouse(price + Math.Point{1, 1})
+    Swag.require(grid.toolTip == "unchanged", grid.toolTip)
+
+    host.moveMouse(grid.localToSurface(grid.cellRect({7, 2}, {7, 2}).center()))
+    Swag.require(grid.toolTip == "Bring receipts to the next meeting.", grid.toolTip)
+    host.moveMouse(grid.localToSurface(Math.Point{4, 4}))
+    Swag.require(grid.toolTip.isEmpty(), grid.toolTip)
+}

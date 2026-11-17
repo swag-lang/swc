@@ -24,6 +24,8 @@ struct Grid
     showHidden:           bool
     keepSelectionVisible: bool
     syncing:              bool
+    hovering:             bool
+    hovered:              Address     // Cell under the pointer while `hovering`, which the tooltip shows.
     scratch:              RichString
     sigSelected:          SigArray'func||(*Wnd)
 }
@@ -259,6 +261,29 @@ impl Grid
         return {Address{.rowAt(y), column}, true}
     }
 
+    // Shows the text of the cell under the pointer as the tooltip. The pointer moves many times
+    // inside one cell, so the tooltip is rebuilt only when it enters another cell or leaves them.
+    mtd hover(found: bool, address: Address)
+    {
+        if found == .hovering and address.row == .hovered.row and address.column == .hovered.column do
+            return
+        .hovering = found
+        .hovered  = address
+        .toolTip.clear()
+        if not found do
+            return
+
+        let range = .mergedRange(address)
+        if let cell = .sheet!.cellAt(range.first)
+        {
+            let text  = cell.text.toString()
+            var count = Math.min(text.count, 512)
+            while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80 do
+                count -= 1
+            .toolTip = text[until count]
+        }
+    }
+
     mtd drawCell(painter: *Painter, rect: Math.Rectangle, cell: const *Cell, textWidth = -1.0'f32)
     {
         if rect.width <= 0 or rect.height <= 0 or cell.covered do
@@ -443,19 +468,7 @@ impl IWnd for Grid
             .setFocus()
 
         case .Move:
-            .toolTip = ""
-            if hit.found
-            {
-                let range = .mergedRange(hit.address)
-                if let cell = .sheet!.cellAt(range.first)
-                {
-                    let text  = cell.text.toString()
-                    var count = Math.min(text.count, 512)
-                    while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80 do
-                        count -= 1
-                    .toolTip = text[until count]
-                }
-            }
+            .hover(hit.found, hit.address)
 
         case .Wheel:
             .keepSelectionVisible = false

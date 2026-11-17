@@ -3,7 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticTypes.h"
 #include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();

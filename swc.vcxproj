@@ -888,6 +888,7 @@
         <ClInclude Include="src\Support\Report\Assert.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticDef.h"/>
+        <ClInclude Include="src\Support\Report\DiagnosticTypes.h"/>
         <ClInclude Include="src\Support\Report\HardwareException.h"/>
         <ClInclude Include="src\Support\Report\LogColor.h"/>
         <ClInclude Include="src\Support\Report\Diagnostic.h"/>

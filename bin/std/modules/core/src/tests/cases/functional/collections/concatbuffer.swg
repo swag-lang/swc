@@ -362,6 +362,28 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     Swag.require(buffer.toString() == "bc")
 }
 
+// Linearizing combines multiple buckets and moves the write cursor to the end.
+#test
+{
+    var buffer: ConcatBuffer
+    buffer.setBucketSize(4)
+    buffer.addBytes("abcd")
+    buffer.addBytes("efgh")
+    Swag.require(buffer.toSlice() == null)
+
+    buffer.setPosition({})
+    buffer.advance(2)
+    buffer.makeLinear()
+
+    let bytes = unwrap buffer.toSlice()
+    Swag.require(bytes.count == 8)
+    Swag.require(Memory.compare(bytes.buffer, "abcdefgh".buffer, 8) == 0)
+    Swag.require(ConcatBuffer.offsetOf(buffer.position()) == 8)
+
+    buffer.makeLinear()
+    Swag.require(buffer.toSlice() != null and buffer.toString() == "abcdefgh")
+}
+
 #test
 {
     var buffer: ConcatBuffer

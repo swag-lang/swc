@@ -109,6 +109,22 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     Swag.require(values[0] and values[1] and values[2])
 }
 
+#test
+{
+    var values: BitArray
+    values.setAll(true)
+    Swag.require(values.count == 0)
+
+    values.resize(33)
+    values.setAll(true)
+    for index in values.count do
+        Swag.require(values[index])
+
+    values.setAll(false)
+    for index in values.count do
+        Swag.require(not values[index])
+}
+
 // Logic operations cross four-word SIMD batches and preserve the unused bits
 // in the last word for arbitrary logical lengths.
 #test

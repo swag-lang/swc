@@ -862,6 +862,51 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(lib.dateFilters.count == 3)
 }
 
+// The applications and the tags are counted in one pass. A lens row keeps its own copy of the
+// name it narrows to, so it still names its application after a load replaced the lists.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+
+    let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
+    chrome.capture!.sourceApplication = "Chrome"
+    chrome.capture.tags.add("docs")
+    let other = testAddLibraryItem(lib.view, "other.scc", 10, 2)
+    other.capture!.sourceApplication = "chrome"
+    other.capture.tags.add("Docs")
+    other.capture.tags.add("work")
+
+    let filters = lib.collectNamedFilters()
+    Swag.require(filters.applications.count == 1 and filters.applications[0].count == 2)
+    Swag.require(filters.tags.count == 2 and filters.tags[0].name == "docs" and filters.tags[0].count == 2)
+
+    lib.refreshAutomaticFilters()
+    var results: Lens.Results
+    lib.describeLens(&results)
+    var chromeRun: (func||())?
+    for section in results.sections where section!.label == appStrings().act_Application
+    {
+        for &entry in section.entries where entry.title == "Chrome" do
+            chromeRun = entry.run
+    }
+
+    let slack = testAddLibraryItem(lib.view, "slack.scc", 10, 3)
+    slack.capture!.sourceApplication = "Slack"
+    lib.refreshAutomaticFilters()
+    Swag.require(lib.sidebarApplications.count == 2)
+    Swag.require(lib.currentFilterNames(applications: true).count == 2)
+
+    (unwrap chromeRun)()
+    Swag.require(lib.applicationFilter == "Chrome")
+}
+
 // At rest the lens offers what can be done with the chosen captures — open, export, tags,
 // favourite, move, delete — and their rating as one row of segments, then what the page shows;
 // with none chosen, what the page shows only.

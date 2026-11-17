@@ -84,6 +84,21 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
 #test
 {
+    var values: StaticArray'(s32, 4'u64)
+    values.add(3)
+    values.add(1)
+    values.add(4)
+    values.add(2)
+
+    values.sort()
+    Swag.require(Slice.equals(values.toSlice(), [1, 2, 3, 4]))
+
+    values.sortReverse()
+    Swag.require(Slice.equals(values.toSlice(), [4, 3, 2, 1]))
+}
+
+#test
+{
     var values: StaticArray'(s32, 3'u64)
     values.addOnce(1)
     values.addOnce(2)

@@ -192,18 +192,16 @@ impl Recorder
                 recorder.videoAudio = null
             }
         }
-        recorder.main      = main
-        recorder.target    = target
-        recorder.area      = target.area
-        recorder.videoMode = true
+        recorder.main            = main
+        recorder.target          = target
+        recorder.videoMode       = true
         recorder.screenSelection = screenSelection
-        recorder.screenIndex = screenIndex
-        recorder.file = Library.newFileName()
+        recorder.screenIndex     = screenIndex
+        recorder.file            = Library.newFileName()
         fileToDiscard = Capture.mediaPathOf(recorder.file, .Video)
-        recorder.limit = 0
 
         // H.264 needs even dimensions. The selection stays anchored at its chosen origin.
-        recorder.area = evenVideoArea(recorder.area, desktopBounds())
+        recorder.area = evenVideoArea(target.area, desktopBounds())
         if recorder.area.width < 2 or recorder.area.height < 2 do
             fail Errors.InvalidFormatError{}
 
@@ -653,19 +651,14 @@ impl Recorder
             return
 
         let {outer, thick, scale} = .chromeGeometry()
-        .addEdge({outer.x, outer.y, outer.width, thick})
-        .addEdge({outer.x, outer.bottom() - thick, outer.width, thick})
-        .addEdge({outer.x, outer.y + thick, thick, outer.height - 2 * thick})
-        .addEdge({outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick})
+        for side in edgeRects(outer, thick) do
+            .addEdge(side[])
 
         .hud = RecordHud.open(me, outer, scale)
         if .state != .Preparing do
             .hideOverlappingVideoHud()
-        if let hud = .hud
-        {
-            if let surface = hud.surface do
-                excludeCaptureChrome(surface)
-        }
+        if let surface = .hud?.surface do
+            excludeCaptureChrome(surface)
 
         // The selection overlay is gone. Give keyboard input back to the recorded window;
         // only the border strips and the controls remain above it.
@@ -700,13 +693,20 @@ impl Recorder
         if .edges.count != 4 do
             return
         let {outer, thick, scale} = .chromeGeometry()
-        let rects = [Math.Rectangle{outer.x, outer.y, outer.width, thick},
-                     Math.Rectangle{outer.x, outer.bottom() - thick, outer.width, thick},
-                     Math.Rectangle{outer.x, outer.y + thick, thick, outer.height - 2 * thick},
-                     Math.Rectangle{outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick}]
+        let sides = edgeRects(outer, thick)
         for edge, index in .edges do
-            edge[].setPosition(rects[index])
+            edge[].setPosition(sides[index])
         .hud?.follow(outer, scale)
+    }
+
+    // Returns the four sides of the frame drawn inside `outer`, `thick` physical pixels wide:
+    // top, bottom, left and right.
+    private func edgeRects(outer: Math.Rectangle, thick: f32)->[4] Math.Rectangle
+    {
+        return [{outer.x, outer.y, outer.width, thick},
+                {outer.x, outer.bottom() - thick, outer.width, thick},
+                {outer.x, outer.y + thick, thick, outer.height - 2 * thick},
+                {outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick}]
     }
 
     // Removes the frame and the pill.

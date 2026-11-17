@@ -135,3 +135,26 @@
     region.close()
     mapped.close()
 }
+
+// Closing a mapped file twice is safe, and its region remains valid until that region closes.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_mapped_file_close_lifetime.tmp")
+    defer discard catch File.delete(fileName)
+
+    let expected: [4] u8 = ['r'u8, 'e'u8, 'a'u8, 'd'u8]
+    discard expect File.writeAllBytes(fileName, expected)
+
+    var mapped = expect File.MappedFile.open(fileName)
+    var region = expect mapped.mapAll()
+    mapped.close()
+    mapped.close()
+
+    Swag.require(not mapped.isOpen())
+    Swag.require(region.isOpen())
+    Swag.require(Slice.equals(region.bytes(), expected))
+
+    region.close()
+    region.close()
+    Swag.require(not region.isOpen())
+}

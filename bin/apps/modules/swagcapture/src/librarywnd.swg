@@ -95,6 +95,13 @@ struct LibraryWnd
     // The folders the lens offered last, which its rows open.
     lensFolders: Array'String
 
+    // The applications and the tags the lens offered last, which its rows narrow the page to.
+    lensNames: Array'String
+
+    // The applications and the tags the filter sheet offers, which its choices narrow the page to.
+    applicationChoices: Array'String
+    tagChoices:         Array'String
+
     // The dates the captures were taken on, newest first, offered by the lens.
     dateFilters: Array'LibraryDateFilter
 

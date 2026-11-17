@@ -623,8 +623,10 @@ func createViewer(host: Viewer.Host)
 
         // Subscribed before the outline reveals its heading, so the place kept is the one left.
         .outline.sigSelected += func|zoomButton|(_, _) { zoomButton.rememberPlace() }
+
+        // The headings are read as the outline first opens: the view and its counts already read
+        // the source, and most documents, and every thumbnail, are read without an outline.
         .outline.bindMarkdown(view, host.fileName())
-        .outline.startMarkdown()
         .applyReadingColors()
     }
 

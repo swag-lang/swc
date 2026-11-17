@@ -31,7 +31,8 @@ struct OutlinedDocument
 }
 
 // Opens `fileName` in a viewer window and waits for its headings. An outline that is `open`
-// follows the reading as the document moves; a closed one keeps its full width to the document.
+// follows the reading as the document moves; a closed one keeps its full width to the document,
+// and has its headings read all the same.
 func openOutlined(host: *HeadlessHost, fileName: string, open = true)->OutlinedDocument
 {
     host.setup(880, 560)
@@ -45,6 +46,10 @@ func openOutlined(host: *HeadlessHost, fileName: string, open = true)->OutlinedD
     {
         outline.toggle.setChecked(true)
         outline.toggle.sigCheckedChanged.call(outline.toggle)
+    }
+    else
+    {
+        outline.startMarkdown()
     }
 
     completeViewerBackgroundLoad(host, &outline.load)
@@ -271,5 +276,27 @@ func sectionAt(offsets: const [..] u64, reading: u64)->u64
     Swag.require(zoom.statisticsLoad.isPending())
     Swag.require(zoom.outline!.list.themeColors().listItem_Text == view.themeColors().label_Text)
     completeViewerBackgroundLoad(&host, &zoom.statisticsLoad)
-    completeViewerBackgroundLoad(&host, &zoom.outline.load)
+}
+
+// The headings are read only once the outline opens: a document read without it is not read
+// again for them.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-markdown-deferred-", ".md")
+    defer discard catch File.delete(fileName)
+    discard writeSections(fileName)
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
+    let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
+    let outline = unwrap zoom.outline
+    completeViewerBackgroundLoad(&host, &zoom.statisticsLoad)
+    Swag.require(not outline.load.started and not outline.loaded and outline.headings.isEmpty())
+
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.load.started)
+    completeViewerBackgroundLoad(&host, &outline.load)
+    Swag.require(outline.loaded and outline.rows.count == SectionCount)
 }

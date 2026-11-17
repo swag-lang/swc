@@ -89,13 +89,15 @@ large-file work without editing, implicit network access, macros or source mutat
   detected after replacement; and persistence is an explicit part of app.scope.viewers.003.
 - Related: app.scope.viewers.003, app.scope.viewers.005
 
-### app.scope.text.009 — Syntax language and highlighting rules cannot be inspected or overridden
+### app.scope.text.009 — Syntax detection cannot explain itself or remember an override
 
 - Evidence: `Viewers.Code.detectLanguage` chooses from file name, extension and supported shebangs, and
-  `GenericLexer` applies fixed lexical rules. The details already show `languageName`.
-  A misclassified file has no language override or explanation of the detection decision.
-- Next: publish language identity in the command bar and allow a temporary or persisted override,
-  including Plain Text.
+  `GenericLexer` applies fixed lexical rules. The details show `languageName`, and a language
+  typed into the lens offers to color the source as that language, or as Swag, for the file in
+  view. The detection decision is not explained, an override is forgotten with the file, and there
+  is no Plain Text choice.
+- Next: state the evidence of the detection (extension, name or interpreter line) beside the
+  language, and remember an override per file identity.
 - Done when: every supported language is selectable, detection evidence is visible, overrides
   re-highlight the resident window immediately, and opening an unsupported language stays readable.
 

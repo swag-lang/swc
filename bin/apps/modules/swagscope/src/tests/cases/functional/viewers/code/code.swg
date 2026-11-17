@@ -359,3 +359,38 @@ struct CodeLanguageSample
     let next   = assume cast(*Code.Panel, second.view)
     Swag.require(next.editor.flags.has(.DrawBlanks))
 }
+
+// A typed language name in the lens colors the source as that language, whatever its name says;
+// the summary names the language in force, and an empty query offers no language list.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-language-", ".c")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "def main():\n    return 0\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Code.Panel, result.view)
+    Swag.require(view.languageName == "C")
+
+    var quiet: Lens.Results
+    var quietRows = Viewer.LensEntries.create(&quiet, "Code", host.theme)
+    view.describeLens(&quietRows)
+    for entry in quiet.sections[0]!.entries do
+        Swag.require(not Utf8.startsWith(entry.title.toString(), "Highlight as"), entry.title.toString())
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+    entries.query = "python"
+    view.describeLens(&entries)
+    var chosen = 0
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Code.texts().ui_HighlightAs, "Python")
+    {
+        Swag.require(not entry.checked)
+        entry.run!()
+        chosen += 1
+    }
+
+    Swag.require(chosen == 1 and view.languageName == "Python")
+}

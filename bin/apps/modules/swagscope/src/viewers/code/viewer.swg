@@ -328,6 +328,18 @@ impl Panel
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // A typed language name offers to color the source as that language instead.
+        if entries.query.count
+        {
+            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode, func|view = me|() { view.highlightAs(.C, swag: true) }, checked: .languageName == "Swag")
+            for language in SourceLanguage
+            {
+                let name = displayName(language)
+                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode, func|view = me, language|() { view.highlightAs(language) }, checked: .languageName == name)
+            }
+        }
+
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
     }
 
@@ -461,6 +473,27 @@ impl Panel
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
         }
+    }
+
+    // Colors the source as `language`, or as Swag with `swag`, whatever its name says, and colors
+    // the lines already shown again. The choice holds for this file only.
+    internal mtd highlightAs(language: SourceLanguage, swag = false)
+    {
+        if swag
+        {
+            .languageName = "Swag"
+            .editor.setLexer(&.swagLexer)
+        }
+        else
+        {
+            .languageName = displayName(language)
+            .codeLexer.configure(language)
+            .editor.setLexer(&.codeLexer)
+        }
+
+        .editor.lexAll()
+        .editor.invalidate()
+        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
     }
 
     // Follows scrolling with the resident window, routes the keys the code view answers for, and

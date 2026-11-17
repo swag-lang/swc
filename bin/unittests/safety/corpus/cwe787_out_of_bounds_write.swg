@@ -135,13 +135,13 @@ func fillRangeWithSafeChangedIndex()->s32
 
 func sumRangeWithChangedNegativeIndex()->s32
 {
-    var sum = 0
+    var sum     = 0
     var changed = false
     for index in -1 to 1
     {
-        if index == 0 && !changed
+        if index == 0 and not changed
         {
-            index = -2
+            index   = -2
             changed = true
         }
         sum += index

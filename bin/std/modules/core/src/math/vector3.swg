@@ -344,6 +344,9 @@ impl Vector3
     // The result is NaN when either vector is zero.
     mtd const angleCosineTo(other: Vector3)->f32
     {
+        if .isZero() or other.isZero() do
+            return Swag.F32.NaN
+
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
         let cosine = normalizedVector3(me).dot(normalizedVector3(other))
@@ -357,7 +360,12 @@ impl Vector3
     // Returns the unsigned angle between this vector and `other`, in radians within [0, π].
     //
     // The result is NaN when either vector is zero.
-    mtd const angleTo(other: Vector3)->f32 => Math.acos(.angleCosineTo(other))
+    mtd const angleTo(other: Vector3)->f32
+    {
+        if .isZero() or other.isZero() do
+            return Swag.F32.NaN
+        return Math.acos(.angleCosineTo(other))
+    }
 
     // Returns the linear interpolation from `src` to `dst` at `factor`.
     //

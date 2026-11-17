@@ -337,6 +337,9 @@ impl Vector2
     // The result is NaN when either vector is zero.
     mtd const angleCosineTo(other: Vector2)->f32
     {
+        if .isZero() or other.isZero() do
+            return Swag.F32.NaN
+
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
         let cosine = normalizedVector2(me).dot(normalizedVector2(other))
@@ -350,7 +353,12 @@ impl Vector2
     // Returns the unsigned angle between this vector and `other`, in radians within [0, π].
     //
     // The result is NaN when either vector is zero.
-    mtd const angleTo(other: Vector2)->f32 => Math.acos(.angleCosineTo(other))
+    mtd const angleTo(other: Vector2)->f32
+    {
+        if .isZero() or other.isZero() do
+            return Swag.F32.NaN
+        return Math.acos(.angleCosineTo(other))
+    }
 
     // Returns the angle that turns this vector onto `other`, in radians within [0, 2π).
     //
@@ -358,6 +366,9 @@ impl Vector2
     // is NaN when either vector is zero.
     mtd const orientedAngleTo(other: Vector2)->f32
     {
+        if .isZero() or other.isZero() do
+            return Swag.F32.NaN
+
         var angle          = Math.acos(.angleCosineTo(other))
         let direction      = normalizedVector2(me)
         let otherDirection = normalizedVector2(other)

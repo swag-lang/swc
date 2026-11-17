@@ -151,6 +151,23 @@ struct XmlPairSequencePayload
     Swag.require(syntax.line == 5 and syntax.col == 3)
 }
 
+// The root reader rejects a malformed XML declaration and tags without either delimiter.
+#test
+{
+    const MalformedDocuments = [
+        "<?xml version=\"1.0\"<p>",
+        "<p",
+        "p>"]
+
+    for input in MalformedDocuments
+    {
+        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        Swag.require(errorOutcome.value() is SyntaxError)
+    }
+}
+
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.
 #test
 {

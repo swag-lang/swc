@@ -5,6 +5,13 @@ using Core, Pixel, Serialization
 // Physical-pixel growth step: reserve room for a border drag without doubling large GPU buffers.
 private const SurfaceRenderTargetStep = 256's32
 
+private struct AccessKeyCandidate
+{
+    wnd:           *Wnd
+    menu:          *MenuCtrl? = null
+    menuItemIndex: u64 = Swag.U64.Max
+}
+
 // Serializable placement and display state of a surface.
 //
 // This is what an application persists through [[Gui.Application.saveState]], so a field
@@ -70,6 +77,7 @@ struct Surface
             dpiScale: f32 = 1
 
             isHidden:      bool = true     // Whether the surface is not visible.
+            accessKeysVisible: bool        // Whether access-key underlines are shown on this surface.
             opacity:       f32  = 1        // Opacity the desktop composites the whole surface at, from zero through one.
             isInitialized: bool            // Whether the surface has received its one-time initialization event.
             isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
@@ -158,6 +166,102 @@ enum SurfaceFlags
 
 impl Surface
 {
+    // Reports whether `wnd` belongs to the reachable native tree or its hosted view.
+    // Headless surfaces keep the hosted view outside SurfaceWnd.children.
+    internal mtd containsWindow(wnd: *Wnd)->bool
+    {
+        let root = cast(*Wnd, .wnd)
+        if FocusOrder.contains(root, wnd) do
+            return true
+        if not FocusOrder.contains(root, .wnd.view) do
+            return FocusOrder.contains(.wnd.view, wnd)
+        return false
+    }
+
+    // Shows or hides access-key underlines and repaints the surface when the state changes.
+    internal mtd setAccessKeysVisible(visible: bool)
+    {
+        if .accessKeysVisible == visible do
+            return
+        .accessKeysVisible = visible
+        .wnd.invalidate()
+    }
+
+    // Activates the one enabled, visible target that owns `key`; ambiguity is a no-op.
+    internal mtd activateAccessKey(key: rune)->bool
+    {
+        var candidates: Array'AccessKeyCandidate
+        .collectAccessKeyCandidates(cast(*Wnd, .wnd), key, &candidates)
+        // A headless surface hosts its root view separately rather than as a child of SurfaceWnd.
+        // Scan that view too, while keeping normal views (already parented to SurfaceWnd) single.
+        if not FocusOrder.contains(cast(*Wnd, .wnd), .wnd.view) do
+            .collectAccessKeyCandidates(.wnd.view, key, &candidates)
+
+        var popupCandidates: Array'AccessKeyCandidate
+        for candidate in candidates where candidate.menu and not candidate.menu.bar do
+            popupCandidates.add(candidate)
+        if popupCandidates.count > 0
+        {
+            if popupCandidates.count != 1 do
+                return false
+            let candidate = popupCandidates[0]
+            let menu = unwrap candidate.menu
+            return menu.activateAccessKey(menu.items[candidate.menuItemIndex]!.accessKey)
+        }
+
+        if candidates.count != 1 do
+            return false
+        let candidate = candidates[0]
+        if candidate.menu
+        {
+            return candidate.menu.activateAccessKey(candidate.menu.items[candidate.menuItemIndex]!.accessKey)
+        }
+
+        var target = candidate.wnd
+        var focusOnly = false
+        if target is Label as label
+        {
+            if label.accessKeyTarget
+            {
+                target = label.accessKeyTarget
+                focusOnly = true
+            }
+        }
+        if target.surface != me or target.focusPolicy == .None or not target.isEnabled() or not target.isVisible() do
+            return false
+
+        target.setFocus()
+        if focusOnly do
+            return target.hasFocus()
+        var evt = KeyEvent{kind: .Pressed, key: .Return}
+        target.sendEvent(&evt)
+        return evt.accepted
+    }
+
+    private mtd collectAccessKeyCandidates(wnd: *Wnd, key: rune, candidates: *Array'AccessKeyCandidate)
+    {
+        if not wnd.isVisible() or not wnd.isEnabled() do
+            return
+
+        if wnd.accessKey != 0 and Unicode.toLower(wnd.accessKey) == Unicode.toLower(key) do
+            candidates.add({wnd: wnd})
+
+        if wnd is MenuCtrl as menu
+        {
+            for item, index in menu.items
+            {
+                let entry = unwrap item
+                if entry.hidden or entry.disabled or entry.separator or entry.note do
+                    continue
+                if entry.accessKey != 0 and Unicode.toLower(entry.accessKey) == Unicode.toLower(key) do
+                    candidates.add({wnd: wnd, menu: menu, menuItemIndex: index})
+            }
+        }
+
+        for child in wnd.children do
+            .collectAccessKeyCandidates(child, key, candidates)
+    }
+
     internal mtd bindPainterToRenderer(renderer: IRenderer)
     {
         .painter.setRenderer(renderer)

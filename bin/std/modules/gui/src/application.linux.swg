@@ -502,6 +502,7 @@ namespace LinuxDesktop
         app.keyboard.setCurrentKeyState(key, pressed)
         if pressed and not app.keyboardFocusWnd do
             app.seedKeyboardFocus()
+        app.updateAccessKeyVisibility(key, pressed)
         let target = app.keyboardFocusWnd
         if not target or target.isDisabled() do
             return
@@ -536,7 +537,7 @@ namespace LinuxDesktop
             {
                 // A compose result can contain several Unicode scalars and have no keysym.
                 let size = context.xkb_compose_state_get_utf8(surface.compose, null, 0)
-                if size > 0 and not (packet.state & (4 | 8))
+                if size > 0 and not (packet.state & 4)
                 {
                     var bytes: Array'u8
                     bytes.resize(cast(u64, size) + 1)
@@ -559,7 +560,7 @@ namespace LinuxDesktop
         }
 
         let character = context.xkb_keysym_to_utf32(symbol)
-        if character >= 32 and character != 127 and not (packet.state & (4 | 8)) do
+        if character >= 32 and character != 127 and not (packet.state & 4) do
             app.sendRuneEvent(key, cast(rune, character))
     }
 }

@@ -151,7 +151,8 @@ impl IWnd for CheckButton
         if not .flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
-        Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
+        Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin,
+                           accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].

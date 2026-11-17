@@ -143,3 +143,28 @@ using Swag, Core, Pixel
     let ringed = host.renderSettled()
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.toggle.on")
 }
+
+// Access-key mode underlines the chosen caption while preserving the surface's text and palette.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 64)
+    host.theme.setLight()
+
+    let button = PushButton.create(&host.root, "Open", {8, 16, 84, 32})
+    button.accessKey = 'o'
+    let lastKey = PushButton.create(&host.root, "Close", {108, 16, 84, 32})
+    lastKey.accessKey = 'e'
+    let iconButton = IconButton.create(&host.root, {}, {208, 16, 84, 32})
+    iconButton.setText("Find")
+    iconButton.accessKey = 'f'
+    let hidden = host.renderSettled()
+
+    host.setKeyState(.LMenu, true)
+    Swag.require(host.surface.accessKeysVisible)
+    let revealed = host.renderSettled()
+    Swag.require(not Slice.equals(revealed.pixels.toSlice(), hidden.pixels.toSlice()))
+    Pixel.Testing.assertImageGolden(&revealed, "focus.access-key.revealed")
+    host.setKeyState(.LMenu, false)
+}

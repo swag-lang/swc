@@ -20,6 +20,8 @@ private struct DockNode
     tab:          *Tab?
     firstItem:    *SplitterItem?
     secondItem:   *SplitterItem?
+    firstItemIndex:  u32
+    secondItemIndex: u32
     orientation:  DockSplitOrientation
     hasPendingSize: bool
     pendingPaneIndex: u32
@@ -153,7 +155,7 @@ private impl DockNode
         {
             let splitter = .splitter
             let available = .orientation == .Vertical ? splitter.position.height : splitter.position.width
-            if .hasPendingSize and available > 0
+            if .hasPendingSize and available > 0 and splitter.isPaneVisible(.pendingPaneIndex)
             {
                 let equalSize = Math.max(0, (available - splitter.themeMetrics().splitView_BarSize) * 0.5)
                 let requestedSize = .pendingSize > 0 ? .pendingSize : equalSize
@@ -297,6 +299,8 @@ impl DockHost
             splitNode.firstItem  = newItem
             splitNode.secondItem = oldItem
         }
+        splitNode.firstItemIndex  = 0
+        splitNode.secondItemIndex = 1
         leaf.parent    = splitNode
         newLeaf.parent = splitNode
         .nodes.add(splitNode)
@@ -497,12 +501,13 @@ impl DockHost
         .refreshNode(second)
         let firstSize  = first.minimumSize()
         let secondSize = second.minimumSize()
+        let splitter = unwrap node.splitter
         node.firstItem!.minimumSize  = node.orientation == .Horizontal ? firstSize.x : firstSize.y
         node.secondItem!.minimumSize = node.orientation == .Horizontal ? secondSize.x : secondSize.y
-        node.firstItem.visible      = first.hasVisiblePane()
-        node.secondItem.visible     = second.hasVisiblePane()
-        node.splitter!.minSize       = node.minimumSize()
-        node.splitter.sendResizeEvent()
+        splitter.setPaneVisible(node.firstItemIndex, first.hasVisiblePane())
+        splitter.setPaneVisible(node.secondItemIndex, second.hasVisiblePane())
+        splitter.minSize = node.minimumSize()
+        splitter.sendResizeEvent()
     }
 }
 

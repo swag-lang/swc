@@ -42,6 +42,53 @@ using Swag, Core
     Swag.require(enter.accepted and menu.isModalEnded() and menu.modalResult() == "record.screen")
 }
 
+// Alt+character activates a unique menu mnemonic and leaves duplicate or unavailable keys alone.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(440, 320)
+    defer host.shutdown()
+
+    let menu = MenuCtrl.createPopup(&host.root)
+    menu.addItem("Open", "document.open").accessKey = 'o'
+    var open = KeyEvent{kind: .Character, key: .O, character: 'O', modifiers: .Alt}
+    menu.handleKeyboard(&open)
+    Swag.require(open.accepted and menu.isModalEnded() and menu.modalResult() == "document.open")
+
+    let duplicate = MenuCtrl.createPopup(&host.root)
+    duplicate.addItem("Open", "document.open").accessKey = 'o'
+    duplicate.addItem("Options", "document.options").accessKey = 'O'
+    var ambiguous = KeyEvent{kind: .Character, key: .O, character: 'o', modifiers: .Alt}
+    duplicate.handleKeyboard(&ambiguous)
+    Swag.require(not ambiguous.accepted and not duplicate.isModalEnded())
+
+    let unavailable = MenuCtrl.createPopup(&host.root)
+    unavailable.addItem("Open", "document.open", disabled: true).accessKey = 'o'
+    var disabled = KeyEvent{kind: .Character, key: .O, character: 'o', modifiers: .Alt}
+    unavailable.handleKeyboard(&disabled)
+    Swag.require(not disabled.accepted and not unavailable.isModalEnded())
+}
+
+// A menu-bar mnemonic opens its popup and restores the field that owned focus when the menu closes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(440, 320)
+    defer host.shutdown()
+
+    let field = EditBox.create(&host.root, "", {10, 40, 180, 24})
+    let bar   = MenuCtrl.createBar(&host.root, {0, 0, 400, 0})
+    let file  = MenuCtrl.createPopup(&host.root)
+    file.addItem("Open", "document.open")
+    bar.addPopup("File", file).accessKey = 'f'
+    field.setFocus()
+
+    host.sendRune(.F, 'f', .Alt)
+    Swag.require(bar.subVisible == file)
+    bar.setEndModal(null)
+    Swag.require(field.hasFocus())
+}
+
 // Dynamic navigation targets remain valid after the source collection has been released.
 #test
 {

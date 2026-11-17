@@ -305,6 +305,7 @@ struct Wnd
         readonly children: Array'(*Wnd)
 
         name: RichString     // Display text with optional rich spans.
+        accessKey: rune = 0     // Case-insensitive access key; zero means none, and Alt mode reveals its underline.
         // Optional stable command, lookup, and persistence identifier. `Wnd.create` copies this
         // value; assignments made directly to the public field remain caller-owned.
         id:      WndId?

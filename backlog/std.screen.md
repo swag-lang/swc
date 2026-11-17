@@ -11,17 +11,19 @@ continues to own media frames and codecs, not desktop access.
   physical desktop area. `SourceMetrics` separates acquisition, readback, copying and composition;
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
-  cached-frame copy for a recorder that will emit a held picture. `Source` now exposes the
-  monotonic capture-completion time of its latest fresh frame, opens a monitor by enumeration index
-  or `Env.Monitor` physical-bounds snapshot, and opens the virtual-desktop bounds including gaps.
+  cached-frame copy for a recorder that will emit a held picture. `Source` exposes the monotonic
+  capture-completion time and age of its latest fresh frame (zero before the first frame or after a
+  successful reopen), opens a monitor by enumeration index or `Env.Monitor` physical-bounds snapshot,
+  and opens the virtual-desktop bounds including gaps.
   It also exposes DXGI presentation time in the monotonic clock (zero on backends without that
   timestamp), supports cursor composition on X11 and Windows, and can reset cumulative metrics
   without reopening. `captureOptions()` returns the selected physical rectangle and cursor policy.
   `openMonitorAt()` selects the containing or nearest physical monitor for a desktop point. Monitor
   values are only snapshots; borrowed GPU frames, persistent monitor IDs, and window targets remain
-  unavailable.
-- Next: add a bounded borrowed-frame contract, persistent monitor/window targets, permission and
-  source-loss results. Keep pacing and encoding outside the source.
+  unavailable. X11 currently treats every successful image read as a fresh frame; it does not detect
+  repeated desktop pixels yet.
+- Next: detect unchanged X11 frames, add a bounded borrowed-frame contract, persistent monitor/window
+  targets, permission and source-loss results. Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while
   retaining a frame safely across a consumer handoff on Windows and Linux.
 - Related: std.screen.002, std.screen.003, app.capture.011

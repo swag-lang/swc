@@ -175,9 +175,9 @@ func touch()
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
-        const uint64_t          errorsBefore = Stats::getNumErrors();
+        const uint64_t                          errorsBefore = Stats::getNumErrors();
         const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-        CompilerInstance        compiler(ctx.global(), cmdLine);
+        CompilerInstance                        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
             return Result::Error;
@@ -309,9 +309,9 @@ func touch()
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
-        const uint64_t          errorsBefore = Stats::getNumErrors();
+        const uint64_t                          errorsBefore = Stats::getNumErrors();
         const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-        CompilerInstance        compiler(ctx.global(), cmdLine);
+        CompilerInstance                        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
             return Result::Error;
@@ -385,9 +385,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const uint64_t                          errorsBefore = Stats::getNumErrors();
     const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance        compiler(ctx.global(), cmdLine);
+    CompilerInstance                        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
@@ -598,9 +598,9 @@ struct GeneratedInitNoise
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const uint64_t                          errorsBefore = Stats::getNumErrors();
     const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance        compiler(ctx.global(), cmdLine);
+    CompilerInstance                        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
@@ -719,9 +719,9 @@ func touch()
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const uint64_t                          errorsBefore = Stats::getNumErrors();
     const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance        compiler(ctx.global(), cmdLine);
+    CompilerInstance                        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
@@ -792,9 +792,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const uint64_t                          errorsBefore = Stats::getNumErrors();
     const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance        compiler(ctx.global(), cmdLine);
+    CompilerInstance                        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() == ExitCode::Success)
         return Result::Error;

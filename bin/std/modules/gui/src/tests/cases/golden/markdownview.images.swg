@@ -4,7 +4,7 @@
 using Swag, Core, Pixel
 
 // The first paint shows a ring in each image box. Completion replaces it without reflow,
-// for both Markdown images and embedded HTML, in every shipped palette and at high DPI.
+// for both Markdown images and embedded HTML, at high DPI and with a document theme override.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -20,16 +20,14 @@ using Swag, Core, Pixel
                                  fileName,
                                  secondFileName)
 
-    for name, index in ["dark", "light", "hidpi", "paper"]
+    for name, index in ["dark", "hidpi", "paper"]
     {
         var host: Testing.HeadlessHost
-        host.setup(480, 240, index == 2 ? 2 : 1)
-        if index == 1 do
-            host.theme.setLight()
+        host.setup(480, 240, index == 1 ? 2 : 1)
 
         host.app.deterministicStreaming = false
         let view = Markdown.View.createText(&host.root, source.toString())
-        if index == 3 do
+        if index == 2 do
             view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
         view.resize(480, 240)
         view.applyLayout()

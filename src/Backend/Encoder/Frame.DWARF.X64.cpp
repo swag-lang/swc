@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/DwarfEncoding.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
+#include "Backend/DwarfEncoding.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

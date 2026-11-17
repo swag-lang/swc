@@ -87,7 +87,6 @@ void CommandLineParser::registerCommands()
         &cmdLine_->exportApiDir,
         "Write the module public API to this directory after a successful semantic pass");
 
-
     addEnum(HelpOptionGroup::Target, "syntax sema doc test build run smoke", "--os", nullptr,
             &cmdLine_->targetOs,
             {

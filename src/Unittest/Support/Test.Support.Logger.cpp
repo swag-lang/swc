@@ -4,6 +4,7 @@
 
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -56,6 +57,29 @@ SWC_TEST_BEGIN(Logger_TestTalliesNameSuccessfulWork)
     parts.clear();
     ScopedTimedLog::appendTestStats(parts, 10, 2);
     if (ScopedTimedLog::joinStatItems(parts) != "8 passed, 2 did not pass")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Logger_CommandOutcomeUsesTheReturnedExitCode)
+{
+    CommandLine command;
+    command.command = CommandKind::Unittest;
+    const TaskContext  commandCtx(ctx.global(), command);
+    std::ostringstream output;
+    std::streambuf*    savedBuffer;
+    {
+        const Logger::ScopedLock              lock(ctx.global().logger());
+        const Logger::ScopedStageOutputUnmute unmute(ctx.global().logger());
+        savedBuffer     = std::cout.rdbuf(output.rdbuf());
+        ExitCode result = ExitCode::Success;
+        {
+            const ScopedCommandLog log(commandCtx, result);
+            result = ExitCode::ErrorCommand;
+        }
+        std::cout.rdbuf(savedBuffer);
+    }
+    if (!output.str().starts_with("command error: unittest sources, "))
         return Result::Error;
 }
 SWC_TEST_END()

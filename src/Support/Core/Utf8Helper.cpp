@@ -641,7 +641,7 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
             }
             else
             {
-                keepLeftChars  = std::min(keepLeftChars, options.maxChars);
+                keepLeftChars                = std::min(keepLeftChars, options.maxChars);
                 const uint32_t rightCapacity = options.maxChars - keepLeftChars;
                 keepRightChars               = keepRightChars ? std::min(keepRightChars, rightCapacity) : rightCapacity;
             }

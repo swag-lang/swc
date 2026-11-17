@@ -129,7 +129,6 @@ namespace
         Logger::print(ctx, " : ");
         Logger::print(ctx, optimize);
         Logger::print(ctx, "\n");
-
     }
 
     void printPassInstructions(const MicroPassContext& context, const MicroPass& pass, bool before)

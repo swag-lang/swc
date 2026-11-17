@@ -1144,7 +1144,7 @@ Utf8 ApInt::toSignedString() const
     }
     else
     {
-        mag = *this;
+        mag           = *this;
         bool overflow = false;
         mag.abs(overflow);
         SWC_ASSERT(!overflow);

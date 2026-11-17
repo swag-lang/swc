@@ -190,7 +190,7 @@ namespace
             return false;
 
         const auto* loop = codeGen.sema().semaPayload<LoopSemaPayload>(breakContext.nodeRef);
-        if (!loop || loop->isRangeLoop || loop->indexCanBeWritten || !loop->countCstRef.isValid())
+        if (!loop || loop->indexCanBeWritten)
             return false;
 
         const Symbol* loopIndex = codeGen.viewSymbol(breakContext.nodeRef).sym();
@@ -198,15 +198,36 @@ namespace
         if (!loopIndex || !index || loopIndex != index)
             return false;
 
-        const ConstantValue& bound = codeGen.cstMgr().get(loop->countCstRef);
-        if (!bound.isInt())
+        const ConstantValue* bound = nullptr;
+        if (loop->isRangeLoop)
+        {
+            if (loop->lowerBoundRef.isValid())
+            {
+                const SemaNodeView lower = codeGen.viewConstant(loop->lowerBoundRef);
+                if (!lower.cst() || !lower.cst()->isInt())
+                    return false;
+
+                const ApsInt& value = lower.cst()->getInt();
+                if (!value.fits64() || (!value.isUnsigned() && value.isNegative()))
+                    return false;
+            }
+
+            bound = codeGen.viewConstant(loop->upperBoundRef).cst();
+        }
+        else if (loop->countCstRef.isValid())
+            bound = &codeGen.cstMgr().get(loop->countCstRef);
+
+        if (!bound || !bound->isInt())
             return false;
 
-        const ApsInt& count = bound.getInt();
-        if (!count.fits64() || (!count.isUnsigned() && count.isNegative()))
+        const ApsInt& upper = bound->getInt();
+        if (!upper.fits64() || (!upper.isUnsigned() && upper.isNegative()))
             return false;
 
-        return count.as64() <= indexedType.payloadArrayDims()[0];
+        // An inclusive endpoint is itself an index; compare it directly instead of adding one
+        // and potentially overflowing the widest unsigned range.
+        const uint64_t extent = indexedType.payloadArrayDims()[0];
+        return loop->inclusive ? upper.as64() < extent : upper.as64() <= extent;
     }
 
     MicroReg emitFloatImmediateReg(CodeGen& codeGen, const MicroOpBits opBits, const uint64_t bits)

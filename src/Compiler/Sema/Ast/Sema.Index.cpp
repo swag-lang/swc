@@ -437,8 +437,8 @@ Result AstIndexListExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     const auto indexedView = sema.viewType(nodeExprRef);
     if (indexedView.typeRef().isInvalid())
         return Result::Continue;
-    TypeRef currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
-    const auto arguments = sema.ast().nodeSpan(spanChildrenRef);
+    TypeRef    currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
+    const auto arguments      = sema.ast().nodeSpan(spanChildrenRef);
     for (auto chunk = arguments.chunksBegin(); chunk != arguments.chunksEnd(); ++chunk)
     {
         const auto chunkArguments = std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);

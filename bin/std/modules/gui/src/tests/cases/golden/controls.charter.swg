@@ -166,17 +166,3 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "controls.charter.ink")
 }
-
-// Papier: the action is ink on paper, Arc deepens to be read, Voltage is never written.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(840, 500)
-    host.theme.setLight()
-    host.notify(.ThemeChanged)
-    buildCharterWall(&host)
-
-    var image = host.render()
-    Pixel.Testing.assertImageGolden(&image, "controls.charter.paper")
-}

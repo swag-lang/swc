@@ -1220,9 +1220,9 @@ namespace
 
         if (exprRef.isValid() && !normalizedRet.isVoid)
         {
-            const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
-            const MicroReg            payloadReg      = exprPayload.reg;
-            const bool                payloadLValue   = exprPayload.isAddress();
+            const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+            const MicroReg            payloadReg    = exprPayload.reg;
+            const bool                payloadLValue = exprPayload.isAddress();
             CodeGenFunctionHelpers::emitCompilerRunReturnValue(codeGen, callConvKind, returnTypeRef, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
         }
 

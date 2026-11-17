@@ -45,7 +45,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     SWC_RESULT(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
-    const size_t knownSectionCount =
+    const size_t                  knownSectionCount =
         1 +
         static_cast<size_t>(description.includeMergedRData && !builder_->mergedRData.bytes.empty()) +
         description.rdataAllocationCount +

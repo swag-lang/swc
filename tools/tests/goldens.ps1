@@ -30,26 +30,28 @@ try {
     foreach ($workspace in @('std', 'examples', 'apps', 'reference')) {
         $module = Join-Path $scratch "bin\$workspace\modules\fixture\src"
         $null = New-Item -ItemType Directory -Path $module -Force
-        Set-Content -LiteralPath (Join-Path $module 'fixture.swg') -Value '#test {}' -Encoding Ascii
+        $cases = Join-Path $module 'tests\cases\golden'
+        $null = New-Item -ItemType Directory -Path $cases -Force
+        Set-Content -LiteralPath (Join-Path $cases 'fixture.swg') -Value '#test {}' -Encoding Ascii
         Set-Content -LiteralPath (Join-Path $module 'documentation.swg') -Value '/** #[Swag.TestTag("golden")] */' -Encoding Ascii
         Write-Runner $workspace
     }
     Assert-Campaign 0 @()
 
     foreach ($workspace in @('std', 'apps')) {
-        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\tests\cases\golden\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     }
     Assert-Campaign 0 @('std/fixture', 'apps/fixture')
 
     foreach ($workspace in @('examples', 'reference')) {
-        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\tests\cases\golden\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     }
     Assert-Campaign 0 @('std/fixture', 'examples/fixture', 'apps/fixture', 'reference/fixture')
 
     Write-Runner 'examples' 7
     Assert-Campaign 1 @('std/fixture', 'examples/fixture', 'apps/fixture', 'reference/fixture')
 
-    $nested = Join-Path $scratch 'bin\std\modules\followup\src\nested'
+    $nested = Join-Path $scratch 'bin\std\modules\followup\src\tests\cases\golden\nested'
     $null = New-Item -ItemType Directory -Path $nested -Force
     Set-Content -LiteralPath (Join-Path $nested 'followup.swg') -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     Write-Runner 'std' 7

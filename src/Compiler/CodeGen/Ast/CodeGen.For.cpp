@@ -225,8 +225,8 @@ namespace
 
         const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar, false);
         const TypeInfo&          typeInfo       = codeGen.typeMgr().get(symVar.typeRef());
-        const MicroOpBits        opBits         = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        codeGen.builder().emitLoadRegMem(valueReg, storagePayload.reg, 0, opBits);
+        const MicroReg           storedValue    = materializeLoopValueReg(codeGen, storagePayload, typeInfo);
+        codeGen.builder().emitLoadRegReg(valueReg, storedValue, loopOperationBits(codeGen, typeInfo));
     }
 
     Result emitForInit(CodeGen& codeGen, const AstForStmt& node, ForStmtCodeGenPayload& loopState)

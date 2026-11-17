@@ -1,7 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <utility>
-#include <vector>
 #include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -16,6 +13,9 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -103,14 +103,14 @@ public:
         std::ranges::sort(result);
         return result;
     }
-    const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const;
-    void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
-    void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
-    void                                                       mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
-    bool                                                       isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
-    bool                                                       isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
-    void                                                       preserveVirtualCopy(MicroReg virtualReg);
-    bool                                                       shouldPreserveVirtualCopy(MicroReg virtualReg) const;
+    const std::unordered_set<MicroReg>& preservedVirtualCopyRegs() const;
+    void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
+    void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
+    void                                mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
+    bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
+    bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
+    void                                preserveVirtualCopy(MicroReg virtualReg);
+    bool                                shouldPreserveVirtualCopy(MicroReg virtualReg) const;
     // A register that holds the address of a value-handle parameter the ABI
     // passes by reference. The callee takes the handle as an immutable value,
     // so what the address names does not change while the function runs.

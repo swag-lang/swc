@@ -44,7 +44,6 @@ namespace
         TokenRef      tokRef() const { return tokenRef; }
     };
 
-
     bool sameSourceRange(const SourceCodeRange& lhs, const SourceCodeRange& rhs)
     {
         return lhs.srcView == rhs.srcView && lhs.offset == rhs.offset && lhs.len == rhs.len &&
@@ -86,9 +85,9 @@ func validate()
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
-        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const uint64_t                    errorsBefore = Stats::getNumErrors();
         Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-        CompilerInstance  compiler(ctx.global(), cmdLine);
+        CompilerInstance                  compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, GENERIC_UNION_DEDUCTION_SOURCE);
         Command::sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
@@ -179,7 +178,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
 {
     {
-        CommandLine cmdLine;
+        CommandLine      cmdLine;
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);
@@ -388,7 +387,7 @@ SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
     };
     {
         CommandLine cmdLine;
-        cmdLine.tabSize         = 4;
+        cmdLine.tabSize = 4;
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);
@@ -443,9 +442,9 @@ SWC_TEST_BEGIN(Compiler_DuplicateDisplayStillVerifiesEachOwner)
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);
-        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const uint64_t                    errorsBefore = Stats::getNumErrors();
         Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-        Utf8              firstText;
+        Utf8                              firstText;
         for (uint32_t index = 0; index < 2; ++index)
         {
             SourceFile& file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("DuplicateDisplay_{}", index), "// swc-expected-error@* {{sema_err_expr_not_const}}\n");
@@ -759,9 +758,9 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
     cmdLine.files.insert(callerPath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, providerPath, PROVIDER);
     Unittest::registerTestSource(compiler, callerPath, CALLER);
     Command::sema(compiler);
@@ -864,9 +863,9 @@ const copied = #run identity(42'u32)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
@@ -944,9 +943,9 @@ func matchesInteger(target: typeinfo)->bool => target is s32
     cmdLine.files.insert(callerPath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, providerPath, PROVIDER);
     Unittest::registerTestSource(compiler, callerPath, CALLER);
     Command::sema(compiler);
@@ -989,9 +988,9 @@ func checkIndex(value: *s32)->s32
     cmdLine.files.insert(providerPath);
     cmdLine.files.insert(callerPath);
     CommandLineParser::refreshBuildCfg(cmdLine);
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, providerPath, PROVIDER);
     Unittest::registerTestSource(compiler, callerPath, CALLER);
     Command::sema(compiler);
@@ -1068,9 +1067,9 @@ func trailingUse()
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, source);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
@@ -1346,10 +1345,10 @@ using Swag
     command.name     = "runtime_bootstrap_reservation_sizes";
     CommandLineParser::refreshBuildCfg(command);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), command);
-    TaskContext       context(compiler);
+    CompilerInstance                  compiler(ctx.global(), command);
+    TaskContext                       context(compiler);
     Unittest::addTestSource(context, "Runtime", "BootstrapReservationSizes", SOURCE, FileFlagsE::Runtime);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
@@ -1375,9 +1374,9 @@ SWC_TEST_BEGIN(Compiler_LinuxGuardedRuntimeBootstrapsPureLeaves)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
@@ -1462,9 +1461,9 @@ SWC_TEST_BEGIN(Compiler_ControlFlowPayloadsStayIndependentOfValues)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, "");
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)

@@ -7,6 +7,7 @@ struct TaskContext;
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+enum class ExitCode;
 
 // A scoped stage times the work done in its lifetime and prints one summary line on destruction:
 // '<stage> <outcome>: <part>, <part>', where the outcome is ok, up-to-date, warning or error.
@@ -89,18 +90,20 @@ private:
 };
 
 // Brackets a whole command: one closing line names it and signs the run off with its outcome
-// and the wall time of the process.
+// and the wall time of the process. The result belongs to the caller and outlives this scope;
+// it is read on destruction, after the command has selected its return code.
 class ScopedCommandLog
 {
 public:
-    explicit ScopedCommandLog(const TaskContext& ctx);
+    ScopedCommandLog(const TaskContext& ctx, const ExitCode& result);
     ~ScopedCommandLog();
 
     ScopedCommandLog(const ScopedCommandLog&)            = delete;
     ScopedCommandLog& operator=(const ScopedCommandLog&) = delete;
 
 private:
-    const TaskContext*                ctx_ = nullptr;
+    const TaskContext*                ctx_    = nullptr;
+    const ExitCode*                   result_ = nullptr;
     ScopedTimedLog::Clock::time_point startTick_{};
 };
 

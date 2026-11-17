@@ -44,9 +44,9 @@ func divideByRuntimeDenominator(value: u64)->u64
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
 
     Command::sema(compiler);
@@ -91,9 +91,9 @@ func divideByRuntimeDenominator(value: u64)->u64
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t    errorsBefore = Stats::getNumErrors();
+    const uint64_t                    errorsBefore = Stats::getNumErrors();
     Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
-    CompilerInstance  compiler(ctx.global(), cmdLine);
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
 
     Command::sema(compiler);

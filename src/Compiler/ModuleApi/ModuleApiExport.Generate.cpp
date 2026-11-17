@@ -785,7 +785,7 @@ namespace
     std::string encodeReturnFieldOrigins(const SymbolFunction& function, const SymbolFunction* variant)
     {
         std::vector<SymbolFunction::ReturnFieldBorrow> origins;
-        const auto append = [&origins](const SymbolFunction* source) {
+        const auto                                     append = [&origins](const SymbolFunction* source) {
             if (!source)
                 return;
             for (const auto& entry : source->returnFieldBorrows())

@@ -839,9 +839,9 @@ namespace
 
     void emitRootPair(MicroPassContext& context, const MicroSsaState& ssa, const RootCandidate& first, const RootCandidate& second, const RootHoistPlan& plan)
     {
-        const auto           products = packedRootProducts(context, ssa, first, second);
-        uint32_t             nextInt;
-        uint32_t             next;
+        const auto products = packedRootProducts(context, ssa, first, second);
+        uint32_t   nextInt;
+        uint32_t   next;
         MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, next);
         FlatKeyMap<MicroReg> names;
         for (const MicroInstrRef reference : plan.order)

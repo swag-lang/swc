@@ -148,10 +148,16 @@ public:
     }
 
     template<typename T>
-    const T* safeCast() const { return KindCast::safeCast<T>(this, kind_); }
+    const T* safeCast() const
+    {
+        return KindCast::safeCast<T>(this, kind_);
+    }
 
     template<typename T>
-    T* safeCast() { return KindCast::safeCast<T>(this, kind_); }
+    T* safeCast()
+    {
+        return KindCast::safeCast<T>(this, kind_);
+    }
 
 private:
     TaskContext ctx_;

@@ -315,7 +315,7 @@ namespace
         emitReturnWriteBack(builder, conv, ret, regBase);
     }
 
-    template <auto EmitCall>
+    template<auto EmitCall>
     SWC_FORCE_INLINE void emitPreparedSymbolCall(MicroBuilder& builder, const CallConvKind callConvKind, const Symbol* targetSymbol, const MicroReg targetReg, const ABICall::PreparedCall& preparedCall, const ABICall::Return& ret)
     {
         SWC_ASSERT(targetSymbol != nullptr);

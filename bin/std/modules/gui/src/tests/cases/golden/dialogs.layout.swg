@@ -10,58 +10,84 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     return host.renderSurface(unwrap dlg.surface)
 }
 
-// Pins the composition of every predefined box against the charter pictures, in Encre and in Papier.
+// A question keeps its primary action at the end of the Encre sheet.
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        host.setup(900, 600)
-        if light
-        {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
-        }
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
 
-        let suffix = light ? "paper" : "ink"
+    let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk.", mark: .Question})
+    question.addButton("Reload", Dialog.BtnOk, true)
+    question.addButton("Ignore", Dialog.BtnCancel)
+    question.adaptSizeToMessage()
+    var image = renderDialog(&host, &question.dialog)
+    Pixel.Testing.assertImageGolden(&image, "dialogs.message.ink")
+}
 
-        let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk.", mark: .Question})
-        question.addButton("Reload", Dialog.BtnOk, true)
-        question.addButton("Ignore", Dialog.BtnCancel)
-        question.adaptSizeToMessage()
-        var image = renderDialog(&host, &question.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.%", suffix).toString())
+// A failure uses its critical mark and mono detail on Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
 
-        let failure = MessageDlg.create(&host.surface, "The file is damaged.", {title: "Cannot open this file.", failure: true, detail: "Error code: 0x80070017"})
-        failure.addButton(strings().dlg_Close, Dialog.BtnOk, true)
-        failure.adaptSizeToMessage()
-        image = renderDialog(&host, &failure.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.error.%", suffix).toString())
+    let failure = MessageDlg.create(&host.surface, "The file is damaged.", {title: "Cannot open this file.", failure: true, detail: "Error code: 0x80070017"})
+    failure.addButton(strings().dlg_Close, Dialog.BtnOk, true)
+    failure.adaptSizeToMessage()
+    var image = renderDialog(&host, &failure.dialog)
+    Pixel.Testing.assertImageGolden(&image, "dialogs.error.paper")
+}
 
-        let prompt = EditDlg.createSingleLine(&host.surface, {title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", text: "0x0001F400", confirmButtonText: "Go"})
-        image = renderDialog(&host, &prompt.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.prompt.%", suffix).toString())
+// A single-line prompt keeps its selected value and primary action on Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
 
-        let form = FormDlg.create(&host.surface, {title: "Change Password", confirmButtonText: "Apply"})
-        discard form.form.addPasswordField("Current password")
-        discard form.form.addPasswordField("New password")
-        discard form.form.addPasswordField("Confirm", placeholder: "Type the new password again", help: "Leave empty to remove only the password.")
-        form.form.computeLayout()
-        form.adaptSizeToForm()
-        image = renderDialog(&host, &form.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.form.%", suffix).toString())
+    let prompt = EditDlg.createSingleLine(&host.surface, {title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", text: "0x0001F400", confirmButtonText: "Go"})
+    var image = renderDialog(&host, &prompt.dialog)
+    Pixel.Testing.assertImageGolden(&image, "dialogs.prompt.ink")
+}
 
-        let about = AboutDlg.create(&host.surface, {
-            surfaceTitle: "Swag Scope",
-            contentTitle: "Swag Scope",
-            message: "Code, text, Markdown, HTML, PDF, images, video, sound, MIDI, fonts, tables, subtitles, archives.\n\nCreated with <a>Swag</a> · <a>Source</a>\nCopyright © 2026 Christophe Beaudet",
-            surfaceIcon: {},
-            contentIcon: host.theme.icon(.About, host.theme.metrics.dialog_TileSize),
-            identity: "0.1.1173 · 28 October 2026"})
-        image = renderDialog(&host, &about.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.about.%", suffix).toString())
-    }
+// A password form keeps labels above their fields on Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let form = FormDlg.create(&host.surface, {title: "Change Password", confirmButtonText: "Apply"})
+    discard form.form.addPasswordField("Current password")
+    discard form.form.addPasswordField("New password")
+    discard form.form.addPasswordField("Confirm", placeholder: "Type the new password again", help: "Leave empty to remove only the password.")
+    form.form.computeLayout()
+    form.adaptSizeToForm()
+    var image = renderDialog(&host, &form.dialog)
+    Pixel.Testing.assertImageGolden(&image, "dialogs.form.paper")
+}
+
+// The About sheet keeps its identity and links legible on Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+
+    let about = AboutDlg.create(&host.surface, {
+        surfaceTitle: "Swag Scope",
+        contentTitle: "Swag Scope",
+        message: "Code, text, Markdown, HTML, PDF, images, video, sound, MIDI, fonts, tables, subtitles, archives.\n\nCreated with <a>Swag</a> · <a>Source</a>\nCopyright © 2026 Christophe Beaudet",
+        surfaceIcon: {},
+        contentIcon: host.theme.icon(.About, host.theme.metrics.dialog_TileSize),
+        identity: "0.1.1173 · 28 October 2026"})
+    var image = renderDialog(&host, &about.dialog)
+    Pixel.Testing.assertImageGolden(&image, "dialogs.about.ink")
 }
 
 // The confirmation helper's default answer takes keyboard focus when the modal opens. Keep that

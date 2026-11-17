@@ -97,8 +97,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ElfSymbolTable_OmitsRuntimeSymbolsAndCompactsFile)
 {
-    ByteArray bytes = makeSymbolImage(0x400000);
-    Utf8      error;
+    ByteArray    bytes = makeSymbolImage(0x400000);
+    Utf8         error;
     const size_t originalSize = bytes.size();
     if (!ELFSymbolTable::finalizeImage(bytes, error, false) || !error.empty() || bytes.size() >= originalSize)
         return Result::Error;

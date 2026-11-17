@@ -413,7 +413,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     Swag.require(not editing)
 }
 
-// Copy/isSame covers every concrete form family and the regression-sensitive subKind fields.
+// Copy/isSame covers every form family and each form's complete style contract.
 #test
 {
     var f: HeadlessFixture
@@ -437,13 +437,46 @@ func testAssertFormFitsItsMargin(itf: IForm)
         .fontSize  = 34
         .boldSize  = 2
         .joinStyle = .Bevel
+        .alignHorz = .RightBottom
+        .alignVert = .LeftTop
+        .lineSpacing = 22
     }
 
     var textCopy: FormText
     text.IForm.copy(&textCopy, text)
+    Swag.require(textCopy.alignHorz == text.alignHorz)
+    Swag.require(textCopy.alignVert == text.alignVert)
+    Swag.require(textCopy.lineSpacing == text.lineSpacing)
     Swag.require(text.IForm.isSame(&textCopy))
+
+    textCopy.alignHorz = .LeftTop
+    Swag.require(not text.IForm.isSame(&textCopy))
+    textCopy.alignHorz = text.alignHorz
+    textCopy.alignVert = .RightBottom
+    Swag.require(not text.IForm.isSame(&textCopy))
+    textCopy.alignVert = text.alignVert
+    textCopy.lineSpacing += 1
+    Swag.require(not text.IForm.isSame(&textCopy))
+
     textCopy.fontSize += 1
     Swag.require(not text.IForm.isSame(&textCopy))
+
+    with let callout = testAddCallout(f.capture, 0, 0, 50, 60)
+    {
+        .alignHorz   = .RightBottom
+        .alignVert   = .LeftTop
+        .lineSpacing = 22
+    }
+
+    var calloutCopy: FormCallout
+    callout.IForm.copy(&calloutCopy, callout)
+    Swag.require(calloutCopy.alignHorz == callout.alignHorz)
+    Swag.require(calloutCopy.alignVert == callout.alignVert)
+    Swag.require(calloutCopy.lineSpacing == callout.lineSpacing)
+    Swag.require(callout.IForm.isSame(&calloutCopy))
+
+    calloutCopy.lineSpacing += 1
+    Swag.require(not callout.IForm.isSame(&calloutCopy))
 
     with let step = testAddStep(f.capture, 0, 0, 20, 30)
     {

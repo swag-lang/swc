@@ -180,6 +180,9 @@ impl IForm for FormText
         return .isSameBase(ptr) and
                .fontSize == other.fontSize and
                .boldSize == other.boldSize and
+               .alignHorz == other.alignHorz and
+               .alignVert == other.alignVert and
+               .lineSpacing == other.lineSpacing and
                .fontName == other.fontName and
                .fontStyle == other.fontStyle and
                .joinStyle == other.joinStyle
@@ -195,6 +198,9 @@ impl IForm for FormText
         dstf.joinStyle = srcf.joinStyle
         dstf.fontName  = srcf.fontName
         dstf.fontStyle = srcf.fontStyle
+        dstf.alignHorz = srcf.alignHorz
+        dstf.alignVert = srcf.alignVert
+        dstf.lineSpacing = srcf.lineSpacing
         dstf.scale     = srcf.scale
     }
 

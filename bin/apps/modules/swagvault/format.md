@@ -33,8 +33,10 @@ between these bounds:
 
 Production creation randomizes the complete physical file before writing the initial records. A
 hidden volume has no camouflage tail: its physical view length is exactly the authenticated hidden
-range length. In either view, a shorter host region is rejected; after an ordinary committed
-shrink, a writable open may truncate an excess tail left by an interrupted resize.
+range length. A shorter host region is rejected. After a committed size or camouflage update, a
+writable open may truncate excess host bytes to the authenticated physical size, but only for an
+ordinary view without active hidden-range protection. Hidden views do not use this recovery
+truncation.
 
 ## Cryptographic construction
 
@@ -42,8 +44,14 @@ Production uses Argon2id with 262,144 KiB memory, three iterations, four lanes, 
 output. The first 32 bytes of the key-slot area are the container-wide salt. Every password slot
 uses that salt, so opening a password derives one key and tries the four slots. A hidden-volume
 locator has its own random 32-byte salt and derives its key independently.
-The empty password is valid and derives a slot key in the same way. Version 1 has no KDF profile
-selector; changing these costs requires a format-version change.
+The empty password is valid and derives a slot key in the same way. With no key files, password
+bytes are the KDF input. With ordered key files, the input is an unkeyed BLAKE2b digest with a
+64-byte output over the ASCII domain `swag vault access key files v1`, password length as
+little-endian `u64`, password bytes, key-file count as little-endian `u64`, and each key file's
+length as little-endian `u64` followed
+by its complete contents. Paths are not included. This credential derivation is used for outer
+password slots and hidden-volume locators. Version 1 has no KDF profile selector; changing these
+costs requires a format-version change.
 
 The 64-byte master key is generated randomly. It is not derived from a password. A password-derived
 32-byte slot key wraps the master key with ChaCha20-Poly1305. The master key is expanded into two
@@ -142,10 +150,12 @@ Names and labels use the same sized-string encoding: a little-endian `u32` byte 
 that many bytes, canonically UTF-8. The current reader bounds the count but does not validate
 UTF-8. The root node has identifier 1, empty name, and itself as parent.
 The free-block map is not stored; it is rebuilt as the complement of metadata pages and file
-blocks. Node names are indexed after Unicode simple lowercase mapping. Production readers cap
-the node count at 100,000,000, names at 4 KiB, labels at 128 bytes, and security data at 1 MiB.
-Each node's run count cannot exceed the block count; run ranges must fit the container and
-physical blocks cannot be shared by nodes or metadata pages.
+blocks. Node names are indexed after Unicode simple lowercase mapping without normalization.
+Production readers cap the node count at 100,000,000, names at 4 KiB, labels at 128 bytes, and
+security data at 1 MiB.
+Each node's run count cannot exceed the block count. Physical run ranges must fit the block count,
+and physical blocks cannot be shared by nodes or metadata pages. Logical runs must be ordered and
+non-overlapping, but the current reader does not require them to fit the node's declared file size.
 
 Version-1 writers end the header and metadata image after their final listed field. The current
 reader does not explicitly reject authenticated trailing bytes in either stream. The header's
@@ -181,10 +191,11 @@ record fails while being applied semantically, recovery fails instead of skippin
 
 ## Opening and validation
 
-For a normal container, opening rejects sparse files, opens the host file with the requested
-access, checks the minimum size, and tries the four wrapped-key slots using the shared salt. If no
+For a normal container, Windows opening rejects files marked sparse by the host and opens the file
+with the requested access. The Linux backend does not currently detect sparse files. Both
+platforms check the minimum size and try the four wrapped-key slots using the shared salt. If no
 outer slot opens, the optional hidden-locator extension may identify a bounded hidden view and the
-password is tried against that view's key slots.
+credential is tried against that view's key slots.
 
 After deriving the record keys, the reader checks both header slots. A slot is usable only if its
 locator, decoded length, AEAD tag, magic, and version validate. Of two usable headers, the greater
@@ -211,6 +222,6 @@ authenticating or validating the header, metadata image, or replayed journal rep
 `PasswordOrDamaged` result. A later data-block authentication failure reports `Corrupted`.
 Optional hidden-range protection validation can report `HiddenProtected`; invalid combinations of
 an inner-volume password and an outer-protection password report `InvalidInput`. Host-level I/O
-errors and sparse-file rejection can also be distinguished. This error behavior does not prevent
-rollback to an older complete container copy and does not replace an independent cryptographic
-audit.
+errors and (on Windows) sparse-file rejection can also be distinguished. This error behavior does
+not prevent rollback to an older complete container copy and does not replace an independent
+cryptographic audit.

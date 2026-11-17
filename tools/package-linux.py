@@ -24,6 +24,7 @@ def prefix_path(value: str) -> PurePosixPath:
 
 
 def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, checkout: Path) -> None:
+    build_root = build_dir.resolve()
     binary = build_dir / app
     if not binary.is_file() or not binary.stat().st_mode & 0o111:
         raise SystemExit(f'Expected an executable Linux ELF at {binary}')
@@ -56,13 +57,15 @@ def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, chec
             if dependency.name.startswith('.') or '.so' not in dependency.name:
                 continue
             if dependency.is_symlink():
+                link_target = dependency.readlink()
                 try:
                     target = dependency.resolve(strict=True)
                 except (OSError, RuntimeError):
                     raise SystemExit(f'Dependency symlink has no usable target: {dependency}') from None
-                if dependency.readlink().is_absolute() or not target.is_file() or not target.is_relative_to(build_dir.resolve()):
-                    raise SystemExit(f'Dependency symlink target is not a file inside build directory: {dependency}')
-                (destination / dependency.name).symlink_to(dependency.readlink())
+                if (link_target.is_absolute() or len(link_target.parts) != 1 or not target.is_file() or
+                        target.parent != build_root or '.so' not in target.name):
+                    raise SystemExit(f'Dependency symlink target is not a packaged sibling library: {dependency}')
+                (destination / dependency.name).symlink_to(link_target)
             elif dependency.is_file():
                 shutil.copy2(dependency, destination / dependency.name)
 

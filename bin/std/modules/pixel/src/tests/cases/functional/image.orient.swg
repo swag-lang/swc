@@ -76,6 +76,15 @@ func orientRows(image: const *Image)->String
     records.add(#move record)
     Swag.require(Exif.orientationOf(records.toSlice()) == 6)
 
+    var taggedImage = Image.create(2, 3, .RGBA8)
+    taggedImage.metadata = records
+    let upright = taggedImage.oriented(6)
+    Swag.require(Exif.orientationOf(taggedImage.metadata.toSlice()) == 6)
+    Swag.require(Exif.orientationOf(upright.metadata.toSlice()) == 1)
+    Swag.require(upright.metadata.count == taggedImage.metadata.count)
+    taggedImage.orient(6)
+    Swag.require(Exif.orientationOf(taggedImage.metadata.toSlice()) == 1)
+
     records[0].value.clear()
     records[0].value.add(0x49'u8)
     Swag.require(Exif.orientationOf(records.toSlice()) == 1)

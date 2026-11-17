@@ -643,6 +643,24 @@ func soundInformation(bytes: const [..] u8)->String
     view.seekSeconds(1.6)
     Swag.require(not view.followLoop())
 
+    // A passage looped up to the very end plays again from its start. By then the voice has
+    // handed the device its last buffer and stopped playing, while the transport still plays; the
+    // silent engine never runs a voice dry, so a pause stands for that here.
+    view.seekSeconds(1)
+    view.setLoopStart()
+    view.seekSeconds(view.duration)
+    view.setLoopEnd()
+    Swag.require(view.loopEnd > view.duration - 0.01)
+    view.togglePlayback()
+    let voice = unwrap view.voice
+    expect voice.pause()
+    view.elapsed = cast(f32, voice.playbackPositionSeconds())
+    Swag.require(view.playing and view.followLoop())
+    Swag.require(view.playing and voice.isPlaying() and Math.abs(voice.playbackPositionSeconds() - 1) < 0.01)
+    view.stopPlayback()
+    view.clearLoop()
+    view.seekSeconds(1.6)
+
     // The lens copies the instant playback stands at, as the clock writes it.
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)

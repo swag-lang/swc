@@ -813,6 +813,18 @@ impl Panel
             return
         }
 
+        // The voice stops playing once it has handed the device its last buffer, a moment before
+        // that buffer is heard, and a seek leaves a stopped voice where it lands. A jump made in
+        // that moment, such as the return of a passage looped up to the end, would park the sound
+        // while the transport still plays, so the voice is started again.
+        if .playing and not .voice!.isPlaying()
+        {
+            catch .voice!.play()
+            {
+                .playing = false
+            }
+        }
+
         .elapsed = target
         .refreshTransport()
     }

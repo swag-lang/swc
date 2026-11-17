@@ -65,6 +65,18 @@
     func compareExchange(addr: *u32, compareTo, exchangeWith: u32)->u32 => Swag.atomicCompareExchange(addr, compareTo, exchangeWith)
     func compareExchange(addr: *u64, compareTo, exchangeWith: u64)->u64 => Swag.atomicCompareExchange(addr, compareTo, exchangeWith)
 
+    // Atomically stores `value` at `addr` without returning its previous value.
+    //
+    // A thread that reads the value with [[Swag.atomicLoad]] observes memory writes completed before this store.
+    func set(addr: *s8, value: s8)   => Swag.atomicStore(addr, value)
+    func set(addr: *s16, value: s16) => Swag.atomicStore(addr, value)
+    func set(addr: *s32, value: s32) => Swag.atomicStore(addr, value)
+    func set(addr: *s64, value: s64) => Swag.atomicStore(addr, value)
+    func set(addr: *u8, value: u8)   => Swag.atomicStore(addr, value)
+    func set(addr: *u16, value: u16) => Swag.atomicStore(addr, value)
+    func set(addr: *u32, value: u32) => Swag.atomicStore(addr, value)
+    func set(addr: *u64, value: u64) => Swag.atomicStore(addr, value)
+
     // Reads the integer at `addr` as one atomic access, without locking the cache line.
     func get(addr: *s8)->s8   => Swag.atomicLoad(addr)
     func get(addr: *s16)->s16 => Swag.atomicLoad(addr)

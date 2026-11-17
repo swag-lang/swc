@@ -25,6 +25,7 @@ struct TimelineBar
     audioVoices:     [2] (*Voice?)
     audioVoiceCount: u32
     audioPath:       String
+    silentPath:      String     // The video last found to have no sound, until the audio is disposed.
     ownsAudioEngine: bool
     audioClockLast:   f64 = -1
     isDragging:      bool
@@ -511,21 +512,25 @@ impl TimelineBar
         if .audioReader and not Path.equals(.audioPath, path) do
             .disposeAudio()
 
+        // A video without sound is opened once: each later play or loop knows it has nothing to play.
         if not .audioReader
         {
-            var reader = try Video.Reader.open(path)
-            if not reader.audioTrackCount() do
+            if Path.equals(.silentPath, path) do
                 return
+            var reader = try Video.Reader.open(path)
+            if not reader.audioTrackCount()
+            {
+                .silentPath = path
+                return
+            }
 
             let stored = Memory.new'Video.Reader()
             stored[] = #move reader
             .audioReader = stored
-            .audioPath = path
+            .audioPath   = path
         }
 
         let reader = .audioReader
-        if not reader or not reader.audioTrackCount() do
-            return
 
         if not Audio.isEngineCreated()
         {
@@ -593,6 +598,7 @@ impl TimelineBar
             .audioReader = null
         }
 
+        .silentPath.clear()
         .ownsAudioEngine = false
     }
 

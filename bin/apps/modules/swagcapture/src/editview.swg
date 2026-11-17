@@ -13,6 +13,16 @@ const CaptureEdgeReach = 28.0
 // Let a wheel gesture settle before rebuilding form layers at its final zoom.
 const ZoomRefineDelay: Time.Duration = 180'ms
 
+// The chip above the zone of the in-place editor, which holds the kind control and writes the
+// size of the capture (see [[EditView.inPlaceSizeChip]]).
+struct InPlaceSizeChip
+{
+    rect:      Math.Rectangle     // Where the chip stands, in view pixels.
+    text:      String             // The size it writes.
+    late font: *Font              // The font it writes it in.
+    pad:       f32                // The air inside the chip around its content.
+}
+
 struct EditView
 {
     using wnd:   Wnd
@@ -270,16 +280,11 @@ impl EditView
         painter.drawRect(zone, Argb.White, 1)
 
         let metrics = .themeMetrics()
-        let colors  = .themeColors()
-        let capture = unwrap .capture
-        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        let text    = Format.toString("% × %", capture.width, capture.height)
-        let pad     = metrics.hintLine_KeyGap
-        let chip    = .inPlaceSizeChipRect(zone, Painter.measureString(text, font).width, font.height, pad)
-        let textX   = chip.x + pad + .inPlaceChipLeading(pad)
+        let chip    = .inPlaceSizeChip(zone)
+        let textX   = chip.rect.x + chip.pad + .inPlaceChipLeading(chip.pad)
         painter.setParams(.Antialiased)
-        painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
-        painter.drawString(textX, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+        painter.fillRoundRect(chip.rect, metrics.corner_Chip, metrics.corner_Chip, .themeColors().surface)
+        painter.drawString(textX, chip.font.opticalLineTop(chip.rect.vertCenter()), chip.text, chip.font, .themeColors().text)
     }
 
     // Returns the room the kind button and its gap take before the size in the chip, if any.
@@ -291,14 +296,25 @@ impl EditView
         return buttonWidth + .themeMetrics().menuPopup_IconTextMargin + pad * 0.5
     }
 
-    // Gives the dimensions and kind control one chip at the capture's top edge.
-    mtd inPlaceSizeChipRect(zone: Math.Rectangle, textWidth, textHeight, pad: f32)->Math.Rectangle
+    // Returns the chip at the top edge of the in-place `zone` that holds the kind control and
+    // the size of the capture: where it stands, the size it writes, in what font, and its inner
+    // padding. The painting of the chip and the placing of its buttons share it.
+    mtd inPlaceSizeChip(zone: Math.Rectangle)->InPlaceSizeChip
     {
+        var result: #returntype
         let metrics = .themeMetrics()
-        let width   = .inPlaceChipLeading(pad) + textWidth + 2 * pad
-        let bounds  = .clientRect()
-        let x       = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
-        return {x, zone.y - textHeight - pad - metrics.miniBar_Padding, width, textHeight + pad}
+        let capture = unwrap .capture
+        result.font = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        result.text = Format.toString("% × %", capture.width, capture.height)
+        result.pad  = metrics.hintLine_KeyGap
+
+        let textWidth  = Painter.measureString(result.text, result.font).width
+        let textHeight = result.font.height
+        let width      = .inPlaceChipLeading(result.pad) + textWidth + 2 * result.pad
+        let bounds     = .clientRect()
+        let x          = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
+        result.rect = {x, zone.y - textHeight - result.pad - metrics.miniBar_Padding, width, textHeight + result.pad}
+        return result
     }
 
     // Returns where the capture is painted in the view at the current zoom: centered, or at the

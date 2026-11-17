@@ -532,8 +532,8 @@ public impl Voice
     {
         if not .handle do
             fail BadParameterError{"voice is not valid"}
-        if ratio <= 0 do
-            fail BadParameterError{"frequency ratio must be greater than zero"}
+        if not Math.isFinite(ratio) or ratio <= 0 do
+            fail BadParameterError{"frequency ratio must be finite and greater than zero"}
         switch g_Driver.kind
         {
         case .NoSound:

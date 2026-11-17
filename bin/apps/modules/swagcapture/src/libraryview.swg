@@ -259,7 +259,7 @@ impl IWnd for LibraryView
                 .addItem(appStrings().act_EditTags, "capture.library.tags", icon: .theme().icon(.Edit))
                 .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.favorite)
 
-                let metrics = .themeMetrics()
+                let metrics     = .themeMetrics()
                 let ratingNames = [appStrings().act_NoRating,
                                    appStrings().act_Rating1,
                                    appStrings().act_Rating2,
@@ -298,9 +298,11 @@ impl IWnd for LibraryView
                             if child is IconButton as other do
                                 other.setChecked(other == selected)
                         }
+
                         selected.postCommandEvent(Format.toString("capture.library.rating.%", rating))
                     }
                 }
+
                 menu.addWidget(ratingChoices, fullWidth: true)
 
                 .addSeparator()
@@ -428,7 +430,7 @@ impl IWnd for LibraryView
         if not g_UpdatingLib do
             .imgSpin.hide()
 
-        let painter    = evt.paintContext.painter
+        let painter = evt.paintContext.painter
         if g_DirtyList and .takeListRefresh()
         {
             .filter()
@@ -448,11 +450,11 @@ impl IWnd for LibraryView
         }
 
         let clientRect = .paddedClientRect()
-        var x = clientRect.x
-        var y = clientRect.y
-        let {w, h}  = .getPreviewSize()
-        let columns = .numImagesPerLine()
-        var column  = 0'u32
+        var x          = clientRect.x
+        var y          = clientRect.y
+        let {w, h}     = .getPreviewSize()
+        let columns    = .numImagesPerLine()
+        var column     = 0'u32
 
         // The viewport, and the band a thumbnail is kept decoded in. A library holds thousands
         // of captures where a viewport shows a dozen, so the loop below places every cell — the
@@ -555,7 +557,7 @@ impl LibraryView
         let {h}     = .getPreviewSize()
         let rows    = (.items.count + cast(u64, columns) - 1) / cast(u64, columns)
         let extent  = rows > 0 ? .paddedClientRect().y + cast(f32, rows) * (h + FileTile.captionHeight(me)) +
-                                 cast(f32, rows - 1) * LibraryRowGap + LibraryCellRing : 0
+                      cast(f32, rows - 1) * LibraryRowGap + LibraryCellRing : 0
         .scrollWnd.setScrollSize(0, extent)
     }
 
@@ -643,15 +645,17 @@ impl LibraryView
             .mainWnd.swapLibraryMode()
             .mainWnd.updateState()
         }
-        else do
+        else
+        {
             .mainWnd.recentWnd.requestSelection(item.fi.fullName, false, {}, returnToEditor: true)
+        }
     }
 
     // Returns how many cells a row of the grid holds: as many as the chosen preview size lets fit.
     mtd const numImagesPerLine()->u32
     {
         let nominal = .nominalPreviewHeight() * 4.0 / 3.0
-        let room = Math.max(.paddedClientRect().width + LibraryCellGap, 0)
+        let room    = Math.max(.paddedClientRect().width + LibraryCellGap, 0)
         return Math.max(cast(u32, room / (nominal + LibraryCellGap)), 1)
     }
 

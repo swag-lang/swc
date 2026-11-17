@@ -248,6 +248,28 @@ using Swag, Core
     Swag.require(f.capture.mouseMode == .None)
 }
 
+// Holding O ignores the forms for a press repeated where the last one selected too: the drag
+// creates a new form over the selected one instead of moving it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let shape = testAddShape(f.capture, 10, 10, 40, 40)
+
+    f.clickImage({30, 30})
+    Swag.require(f.capture.selection.count == 1)
+
+    f.gui.setKeyState(Input.Key.O, true)
+    f.dragImage({30, 30}, {70, 70})
+    f.gui.setKeyState(Input.Key.O, false)
+
+    Swag.require(shape.x == 10 and shape.y == 10)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.selection.count == 1)
+    Swag.require(f.capture.selection[0] == 1)
+}
+
 // The edit view context menu posts real commands back to MainWnd through the
 // popup/menu dispatch path.
 #test

@@ -73,6 +73,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -93,6 +95,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -113,6 +117,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -133,6 +139,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -153,6 +161,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -173,6 +183,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -193,6 +205,8 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }
 
 #test
@@ -213,4 +227,6 @@ func incrementAtomicCounter(thread: const *Threading.Thread)
     Swag.require(Atomic.compareExchange(&value, 7, 1) == 9)
     Swag.require(value == 9)
     Swag.require(Atomic.get(&value) == 9)
+    Atomic.set(&value, 11)
+    Swag.require(value == 11 and Atomic.get(&value) == 11)
 }

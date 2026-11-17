@@ -284,7 +284,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: C
         .backImagePos.x = -grabRect.x
         .backImagePos.y = -grabRect.y
         .inPlaceEdit    = true
-        .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+        .setScreenSource(g_CaptureWindow)
     }
 
     if main.captureOptions.captureCursor do
@@ -486,7 +486,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
                 .width, .widthOrg   = image.width
                 .height, .heightOrg = image.height
                 .backImg = image
-                .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+                .setScreenSource(g_CaptureWindow)
             }
 
             if main.captureOptions.sendToClipboard do

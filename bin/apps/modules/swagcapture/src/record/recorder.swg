@@ -161,7 +161,7 @@ impl Recorder
         {
             .file = recorder.file
             try .adoptRecording()
-            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+            .setScreenSource(g_CaptureWindow)
         }
 
         if recorder.dropped do
@@ -311,8 +311,7 @@ impl Recorder
             main.reportRetainedVideo(mediaFile)
             fail Swag.err
         }
-        result.setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable,
-                               g_CaptureWindow.title, g_CaptureWindow.className)
+        result.setScreenSource(g_CaptureWindow)
         if not failedAfterFrames do
             main.confirmSaved(mediaFile)
         if recorder.video.stoppedForLowStorage() do

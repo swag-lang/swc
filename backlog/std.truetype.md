@@ -159,16 +159,6 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
   while external resources, recursive references, and oversized data are bounded or rejected.
 - Related: std.truetype.016, std.pixel.image.008
 
-### std.truetype.020 — Vertical writing has no metrics
-
-- Evidence: no `vhea` or `vmtx`, so vertical CJK layout has no metrics to work from. The two
-  tables mirror `hhea` and `hmtx`, which `parseFace` and `buildGlyphMetrics` already read,
-  run-length compression included.
-- Next: parse `vhea`/`vmtx` beside the horizontal metrics and expose vertical advances and
-  bearings on Face.
-- Done when: vertical fonts expose vhea/vmtx advances and bearings for short and long metric
-  runs, and a vertical CJK fixture uses those values rather than horizontal metrics.
-
 ### std.truetype.021 — TrueType bytecode hinting
 
 - Evidence: `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter;

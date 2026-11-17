@@ -158,3 +158,38 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
         Swag.require(words[line.end] == ' ' and Painter.measureString(words[line.start until next], font).width > width)
     }
 }
+
+// Scrolled down a long list, the row the view cuts at its top is still written: the current cue
+// there stands on the selection ground, and the next cue made current does not.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-cues-scroll-", ".srt")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for index in 40 do
+        source += Format.toString("%\n00:%{02}:00,000 --> 00:%{02}:30,000\nCue %\n\n", index + 1, index, index, index + 1)
+    discard expect File.writeAllText(fileName, source)
+
+    var host: Testing.HeadlessHost
+    host.setup(820, 520)
+    var result = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
+    let view   = assume cast(*Captions.Panel, result.view)
+    view.dockStyle = .Center
+    host.root.applyLayout()
+
+    let sheet = view.sheet
+    let row   = &sheet.rows[20]
+    let point = sheet.localToSurface(Math.Point{sheet.column().x + 8, row.height * 0.25})
+
+    func groundAt(host: *Testing.HeadlessHost, view: *Captions.Panel, cue: u64, top: f32, point: Math.Point)->u32
+    {
+        view.setCurrentCue(cue)
+        view.scroll.setScrollPos(0, top)
+        var image = host.render()
+        return image.pixelColor(cast(s32, point.x), cast(s32, point.y)).argb
+    }
+
+    let top = row.top + row.height * 0.5
+    Swag.require(sheet.rows.count == 40 and top + sheet.clientRect().height < view.scroll.scrollSize.y)
+    Swag.require(groundAt(&host, view, 20, top, point) != groundAt(&host, view, 21, top, point))
+}

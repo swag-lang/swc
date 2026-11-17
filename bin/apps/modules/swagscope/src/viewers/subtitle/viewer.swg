@@ -301,11 +301,29 @@ impl IWnd for CueSheet
         let column  = .column()
         .paintHead(painter, column)
 
-        // The list is set in document coordinates; only the rows in view are written.
+        // The list is set in document coordinates; only the rows in view are written. The rows
+        // follow one another down the list, so a binary search finds the first one that reaches
+        // the view, and the writing stops at the first one below it.
         var band = .clientRect()
         band.offset(.scrollPos)
-        for &row, index in .rows where row.top + row.height >= band.y and row.top <= band.bottom() do
+        var first = 0'u64
+        var last  = .rows.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            let row    = &.rows[middle]
+            if row.top + row.height < band.y do
+                first = middle + 1
+            else do
+                last = middle
+        }
+
+        for index in first until .rows.count
+        {
+            if .rows[index].top > band.bottom() do
+                break
             .paintRow(painter, index)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -406,12 +424,16 @@ impl IWnd for CueRhythm
         let start = Math.max(track.cueStartTime(0), track.cueStartTime(focus) - Span * Lead)
         let scale = cast(f64, width) / Span
 
+        // The track orders its cues by their start, so the first one that starts past the minute
+        // ends the rules. One that started earlier may still last into it, so those are all read.
         painter.setParams(.Antialiased)
         for index in track.cueCount()
         {
             let first = track.cueStartTime(index)
             let last  = track.cueEndTime(index)
-            if last < start or first > start + Span do
+            if first > start + Span do
+                break
+            if last < start do
                 continue
 
             let x0 = left + cast(f32, (Math.max(first, start) - start) * scale)

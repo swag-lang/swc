@@ -750,6 +750,36 @@ impl LibraryView
         }
     }
 
+    // Drops the cell of `file`, which left the library. The selection and the focus stay on the
+    // files they were on, since every cell after the removed one moves back by one; the focus of
+    // the removed cell passes to the cell taking its place, so the keys go on from there. The
+    // caller filters the grid again and resumes the loader.
+    mtd removeFile(file: string)
+    {
+        // The loader walks its own list of the items. Join it before one of them is deleted.
+        .stopLoading()
+
+        let selection = .rememberSelection()
+        var removedAt = Swag.U64.Max
+        for item, i in .items where item.fi.fullName == file
+        {
+            removedAt = i
+            .items.removeAtOrdered(i)
+            break
+        }
+
+        for item, i in .allItems where item!.fi.fullName == file
+        {
+            .allItems.deleteAt(i)
+            break
+        }
+
+        .hotItem = Swag.U32.Max
+        .restoreSelection(selection)
+        if selection.focused == file and removedAt < .items.count do
+            .focusItem = cast(u32, removedAt)
+    }
+
     // Whether the date of `it` falls on the year, month, and day the sidebar picked; a zero picks
     // any.
     mtd matchesDate(it: *LibraryItem)->bool

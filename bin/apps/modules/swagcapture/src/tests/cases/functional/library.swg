@@ -310,19 +310,8 @@ impl IAllocator for LibraryRejectAllocator
     let lib  = f.setupLibraryWnd()
     let view = lib.view
 
-    // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
-    g_Library.onDeleteFile += func|libWnd = lib|(file)
-    {
-        for it, i in libWnd.view.items
-        {
-            if it.fi.fullName == file
-            {
-                libWnd.view.selModel.unselect(cast(i))
-                libWnd.view.items.removeAtOrdered(i)
-                break
-            }
-        }
-    }
+    // The part of the handler LibraryWnd.fill() installs that drops the matching view item.
+    g_Library.onDeleteFile += func|libWnd = lib|(file) { libWnd.view.removeFile(file) }
 
     // Three real capture files, registered in the library and the view.
     var paths: Array'String
@@ -373,6 +362,33 @@ impl IAllocator for LibraryRejectAllocator
         Swag.require(not File.exists(p[]))
         Swag.require(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p[]))))
     }
+}
+
+// A capture leaving the library takes its cell with it, and the selection and the focus stay on
+// the captures they were on, although every cell after it moves back by one. The focus of the
+// removed cell passes to the cell taking its place.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let view = f.setupLibraryWnd().view
+
+    for name in ["a.scc", "b.scc", "c.scc", "d.scc"] do
+        discard testAddLibraryItem(view, name, 10, 1)
+    view.selModel.select(2)
+    view.focusItem = 2
+
+    view.removeFile("a.scc")
+    Swag.require(view.items.count == 3 and view.allItems.count == 3)
+    Swag.require(view.items[1].fi.fullName == "c.scc")
+    Swag.require(view.selModel.isSelected(1) and not view.selModel.isSelected(2))
+    Swag.require(view.focusItem == 1)
+
+    view.removeFile("c.scc")
+    Swag.require(view.items.count == 2)
+    Swag.require(view.selModel.isEmpty())
+    Swag.require(view.items[view.focusItem].fi.fullName == "d.scc")
 }
 
 // The library search box matches captures by title, linked image path or file name,

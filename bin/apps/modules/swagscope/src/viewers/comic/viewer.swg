@@ -23,10 +23,11 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// The same first page the comic reader opens supplies the Explorer cover.
+// The same first page the comic reader opens supplies the Explorer cover. A cover needs only the
+// page order, so what the book says of itself is not read.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
-    let book  = try Book.load(fileName)
+    let book  = try Book.loadPages(fileName)
     let entry = &book.archive.entries[book.pages[0]]
     if entry.uncompressedSize > 32 * 1024 * 1024'u64 do
         fail Errors.UnsupportedFormatError{"comic page exceeds the thumbnail budget"}
@@ -156,8 +157,9 @@ struct Book
 
 impl Book
 {
-    // Lists decodable images; non-image members of the archive are not reading pages.
-    func load(fileName: string)->Book fail
+    // Lists decodable images; non-image members of the archive are not reading pages. What the
+    // book says of itself is left empty: `Book.load` reads it too.
+    func loadPages(fileName: string)->Book fail
     {
         var result: #returntype
         result.archive = try Archive.Zip.load(fileName)
@@ -169,8 +171,14 @@ impl Book
 
         let archive = &result.archive
         result.pages.sort(func|archive|(a, b)->s32 => Latin1.compareNatural(archive.entries[a].path, archive.entries[b].path))
+        return result
+    }
 
-        // A `ComicInfo.xml` at the root of the book describes it; one that cannot be read says nothing.
+    // Lists the reading pages, then reads what the book says of itself: a `ComicInfo.xml` at the
+    // root of the book describes it; one that cannot be read says nothing.
+    func load(fileName: string)->Book fail
+    {
+        var result = try Book.loadPages(fileName)
         for &entry in result.archive.entries where not entry.isDirectory and
                                                    entry.uncompressedSize <= ComicInfoLimit and
                                                    Utf8.compare(entry.path, "ComicInfo.xml", .Latin1NoCase) == 0

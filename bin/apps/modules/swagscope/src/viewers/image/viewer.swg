@@ -531,9 +531,10 @@ impl Panel
 
         // The picture zooms by factors, far past the shared bounds, so only actual size, the 100 %
         // of the readout, is the shared row; it reads as chosen while the picture shows at it.
+        // The steps read as unavailable at the picture view's own limits.
         entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, checked: .imageView.isFitted, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, disabled: not .imageView.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, disabled: not .imageView.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.imageView.actualSize() })
         if .imageView.movie.frameCount > 1
         {

@@ -285,6 +285,16 @@ internal func createPdfFixture()->String
     // The menu's percentages are of the same actual size the readout measures against.
     view.setZoomPercent(200)
     Swag.require(view.zoomPercent() == 200 and Math.isEqualEpsilon(view.pdfView.effectiveZoom(), 2 * PdfView.ActualSizeZoom, 0.001))
+
+    // At the page view's limits, the step that cannot be taken reads as unavailable.
+    view.pdfView.setZoom(PdfView.MaxZoom)
+    var largest: Lens.Results
+    Swag.require((unwrap row(view, &host, appStrings().cmd_ZoomIn, &largest)).disabled)
+    var shrinkable: Lens.Results
+    Swag.require(not (unwrap row(view, &host, appStrings().cmd_ZoomOut, &shrinkable)).disabled)
+    view.pdfView.setZoom(PdfView.MinZoom)
+    var smallest: Lens.Results
+    Swag.require((unwrap row(view, &host, appStrings().cmd_ZoomOut, &smallest)).disabled)
 }
 
 // The information sheet says whether the pages carry text, without a search: once the text is

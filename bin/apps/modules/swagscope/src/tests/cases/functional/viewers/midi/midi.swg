@@ -113,6 +113,24 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
 
     Swag.require(fitRows == 1 and viewer.roll.fit)
 
+    // At the roll's limits, the step that cannot be taken reads as unavailable.
+    for value in [1000.0'f32, 0.0'f32]
+    {
+        viewer.roll.applyZoom(value)
+        var limit: Lens.Results
+        var limitEntries = Viewer.LensEntries.create(&limit, "MIDI", host.theme)
+        viewer.describeLens(&limitEntries)
+        for &entry in limit.sections[0]!.entries
+        {
+            if entry.title == appStrings().cmd_ZoomIn do
+                Swag.require(entry.disabled == (value > 1))
+            elif entry.title == appStrings().cmd_ZoomOut do
+                Swag.require(entry.disabled == (value < 1))
+        }
+    }
+
+    viewer.roll.zoomToFit()
+
     host.root.applyLayout()
     Swag.require(viewer.optionsButton.parent == viewer.info and viewer.zoomLabel.parent == viewer.info)
     viewer.roll.refreshLayout()

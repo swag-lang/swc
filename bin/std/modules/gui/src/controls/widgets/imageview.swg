@@ -198,6 +198,15 @@ private impl ImageView
         .invalidate()
     }
 
+    // Zooms to `target`, one step from the scale shown, unless the step heads past a limit the
+    // image already stands at. Any explicit zoom is clamped inside the limits, so a picture fitted
+    // beyond one would otherwise move the other way: a zoom in that shrinks it.
+    mtd stepZoom(target: f32, anchor: const *Math.Point? = null)
+    {
+        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut() do
+            .applyZoom(target, anchor)
+    }
+
     // Draws the vector document at the scale the view currently shows it at.
     //
     // Nothing is rasterized: the contours go through the painter under the view's own zoom,
@@ -321,7 +330,7 @@ impl IWnd for ImageView
 
             let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
             let anchor = .surfaceToLocal(evt.surfacePos)
-            .applyZoom(.effectiveZoom() * factor, &anchor)
+            .stepZoom(.effectiveZoom() * factor, &anchor)
 
         case .DoubleClick where evt.button == .Left:
             if .isFitted do
@@ -770,17 +779,35 @@ impl ImageView
         .applyZoom(value)
     }
 
-    // Increases the current image scale by one viewer step.
+    // Increases the current image scale by one viewer step, up to [[Gui.ImageView.MaxZoom]].
+    //
+    // Nothing changes while [[Gui.ImageView.canZoomIn]] is false.
     mtd zoomIn()
     {
-        .applyZoom(.effectiveZoom() * 1.25)
+        .stepZoom(.effectiveZoom() * 1.25)
     }
 
-    // Decreases the current image scale by one viewer step.
+    // Decreases the current image scale by one viewer step, down to [[Gui.ImageView.MinZoom]].
+    //
+    // Nothing changes while [[Gui.ImageView.canZoomOut]] is false.
     mtd zoomOut()
     {
-        .applyZoom(.effectiveZoom() / 1.25)
+        .stepZoom(.effectiveZoom() / 1.25)
     }
+
+    // Reports whether [[Gui.ImageView.zoomIn]] would enlarge the image: it is shown below
+    // [[Gui.ImageView.MaxZoom]].
+    //
+    // A host disables its zoom-in command when this is false. A small image fitted to a large
+    // viewport can already show past the limit.
+    mtd const canZoomIn()->bool => .effectiveZoom() < MaxZoom
+
+    // Reports whether [[Gui.ImageView.zoomOut]] would shrink the image: it is shown above
+    // [[Gui.ImageView.MinZoom]].
+    //
+    // A host disables its zoom-out command when this is false. A large image fitted to a small
+    // viewport can already show below the limit.
+    mtd const canZoomOut()->bool => .effectiveZoom() > MinZoom
 
     // Fits the complete image inside the viewport and recentres it.
     mtd zoomToFit()

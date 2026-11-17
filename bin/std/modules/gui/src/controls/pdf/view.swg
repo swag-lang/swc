@@ -397,6 +397,15 @@ internal impl PdfView
         .invalidate()
     }
 
+    // Zooms to `target`, one step from the scale shown, unless the step heads past a limit the
+    // pages already stand at. Any explicit zoom is clamped inside the limits, so a page fitted
+    // beyond one would otherwise move the other way: a zoom in that shrinks it.
+    mtd stepZoom(target: f32, anchor: const *Math.Point? = null)
+    {
+        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut() do
+            .applyZoom(target, anchor)
+    }
+
     // Recomputes the page the viewport shows, and reports it when it changed.
     mtd updateCurrentPage()
     {
@@ -1168,7 +1177,7 @@ internal impl IWnd for PdfCanvas
             if evt.modifiers.has(.Control)
             {
                 let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
-                owner.applyZoom(owner.effectiveZoom() * factor, &local)
+                owner.stepZoom(owner.effectiveZoom() * factor, &local)
                 return
             }
 
@@ -1592,17 +1601,35 @@ impl PdfView
         .applyZoom(value)
     }
 
-    // Increases the page scale by one viewer step.
+    // Increases the page scale by one viewer step, up to [[Gui.PdfView.MaxZoom]].
+    //
+    // Nothing changes while [[Gui.PdfView.canZoomIn]] is false.
     mtd zoomIn()
     {
-        .applyZoom(.effectiveZoom() * 1.25)
+        .stepZoom(.effectiveZoom() * 1.25)
     }
 
-    // Decreases the page scale by one viewer step.
+    // Decreases the page scale by one viewer step, down to [[Gui.PdfView.MinZoom]].
+    //
+    // Nothing changes while [[Gui.PdfView.canZoomOut]] is false.
     mtd zoomOut()
     {
-        .applyZoom(.effectiveZoom() / 1.25)
+        .stepZoom(.effectiveZoom() / 1.25)
     }
+
+    // Reports whether [[Gui.PdfView.zoomIn]] would enlarge the pages: they are shown below
+    // [[Gui.PdfView.MaxZoom]].
+    //
+    // A host disables its zoom-in command when this is false. A small page fitted to a large
+    // viewport can already show past the limit.
+    mtd const canZoomIn()->bool => .effectiveZoom() < MaxZoom
+
+    // Reports whether [[Gui.PdfView.zoomOut]] would shrink the pages: they are shown above
+    // [[Gui.PdfView.MinZoom]].
+    //
+    // A host disables its zoom-out command when this is false. A large page fitted to a small
+    // viewport can already show below the limit.
+    mtd const canZoomOut()->bool => .effectiveZoom() > MinZoom
 
     // Fits a whole page inside the viewport and keeps it fitted as the viewport changes.
     mtd zoomToFit()

@@ -1,6 +1,8 @@
 #global public
 #global namespace Threading
 
+using Core.Errors, Math, Time
+
 // Opaque platform handle of a thread.
 alias ThreadHandle = const *void?
 
@@ -25,8 +27,9 @@ enum ThreadPriority
 // [[Core.Threading.Thread.init]] creates the thread suspended and [[Core.Threading.Thread.start]]
 // runs it. Calls that change or query the same thread's native handle must be serialized by
 // the owner. The body can read its published context, user data and cooperative stop flag.
-// The value must be waited for, with [[Core.Threading.Thread.wait]] or
-// [[Core.Threading.wait]], before it is dropped, and it must not move while the thread runs.
+// The value must be waited for, with [[Core.Threading.Thread.wait]],
+// [[Core.Threading.Thread.waitFor]], or [[Core.Threading.wait]], before it is dropped, and it
+// must not move while the thread runs.
 #[Swag.NoCopy]
 struct Thread
 {
@@ -159,6 +162,28 @@ impl Thread
         waitOneNative(.handle)
         closeNative(.handle)
         .handle = null
+    }
+
+    // Waits up to `timeout` for this thread to finish and returns whether it did.
+    //
+    // The timeout must be finite, nonnegative, and representable as a u64 millisecond count. A
+    // timeout leaves the thread running or joinable and retains its handle; success releases the
+    // handle just like [[Core.Threading.Thread.wait]]. The wait uses a monotonic clock.
+    mtd waitFor(timeout: Time.Duration)->bool fail
+    {
+        Swag.assert(.isValid())
+        if not Math.isFinite(timeout.seconds) or
+           timeout.seconds < 0 or
+           timeout.seconds >= 18_446_744_073_709_550.0 do
+            fail BadParameterError{"thread timeout is outside the supported range"}
+
+        let milliseconds = timeout.millisecondsCeiling()
+        if not (try waitForNative(.handle, milliseconds)) do
+            return false
+
+        closeNative(.handle)
+        .handle = null
+        return true
     }
 
     // Returns whether this thread has finished without blocking.

@@ -375,4 +375,13 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
         viewPointer[].convertRowsToRgb(wrongTargetPointer, 0, 4)
     })
     Swag.require(rejectedSize.raised)
+
+    var truncatedTarget = Image.create(4, 4, .RGB8)
+    truncatedTarget.pixels.resize(3)
+    let truncatedTargetPointer = &truncatedTarget
+    let rejectedStorage = Swag.catchPanic(func|viewPointer, truncatedTargetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(truncatedTargetPointer, 0, 4)
+    })
+    Swag.require(rejectedStorage.raised)
 }

@@ -107,6 +107,16 @@ using Swag
     }
 }
 
+// Returns whether `type` can be initialized to its declared default value.
+//
+// Returns false when `type` is null. This is a query only; it does not modify a value.
+func canDefaultInit(type: typeinfo?)->bool
+{
+    if not type do
+        return false
+    return Memory.canDefaultInit(type)
+}
+
 #[ConstExpr]
 {
     // Resolves nested aliases and returns their underlying type.

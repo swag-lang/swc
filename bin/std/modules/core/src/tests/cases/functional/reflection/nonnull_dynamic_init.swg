@@ -33,6 +33,8 @@ func testCoreNonNullDynamicInitialization()->bool
 {
     var item         = CoreNonNullDynamicItem{value: 71}
     let requiredType = #typeof(*CoreNonNullDynamicItem)
+    if Reflection.canDefaultInit(null) or Reflection.canDefaultInit(requiredType) do
+        return false
 
     let rejectedNew = Swag.catchPanic(func|requiredType|() { discard Memory.new(requiredType) }).raised
 
@@ -55,10 +57,10 @@ func testCoreNonNullDynamicInitialization()->bool
     let zeroAliasType = #typeof(CoreNonNullZeroUnionAlias)
     let zeroArrayType = #typeof([2] CoreNonNullZeroUnion)
     let zeroTupleType = #typeof({value: CoreNonNullZeroUnion{bits: 0}})
-    if Memory.canDefaultInit(zeroType) or
-       Memory.canDefaultInit(zeroAliasType) or
-       Memory.canDefaultInit(zeroArrayType) or
-       Memory.canDefaultInit(zeroTupleType) do
+    if Reflection.canDefaultInit(zeroType) or
+       Reflection.canDefaultInit(zeroAliasType) or
+       Reflection.canDefaultInit(zeroArrayType) or
+       Reflection.canDefaultInit(zeroTupleType) do
         return false
 
     let rejectedZeroNew = Swag.catchPanic(func|zeroType|() { discard Memory.new(zeroType) }).raised
@@ -79,6 +81,10 @@ func testCoreNonNullDynamicInitialization()->bool
         return false
     if defaultArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit or defaultAliasType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
+    if not Reflection.canDefaultInit(defaultArrayType) or
+       not Reflection.canDefaultInit(defaultAliasType) or
+       not Reflection.canDefaultInit(#typeof(s32)) do
+        return false
 
     let allocatedDefaults      = Memory.new(defaultArrayType)
     let allocatedDefaultValues = cast(*[2] CoreNonNullRuntimeDefault?, allocatedDefaults)
@@ -93,6 +99,8 @@ func testCoreNonNullDynamicInitialization()->bool
     Memory.free(cast([*] void?, allocatedAlias), cast(u64, defaultAliasType.sizeof))
 
     let nestedAliasArrayType        = #typeof([3] CoreNonNullRuntimeDefaultPair)
+    if not Reflection.canDefaultInit(nestedAliasArrayType) do
+        return false
     let allocatedNestedAliasArray   = Memory.new(nestedAliasArrayType)
     let nestedAliasValues           = cast([*] CoreNonNullRuntimeDefault?, allocatedNestedAliasArray)
     let initializedNestedAliasArray = nestedAliasValues != null and
@@ -101,6 +109,8 @@ func testCoreNonNullDynamicInitialization()->bool
     Memory.free(cast([*] void?, allocatedNestedAliasArray), cast(u64, nestedAliasArrayType.sizeof))
 
     let nestedArrayType        = #typeof([3][2] CoreNonNullRuntimeDefault)
+    if not Reflection.canDefaultInit(nestedArrayType) do
+        return false
     let allocatedNestedArray   = Memory.new(nestedArrayType)
     let nestedValues           = cast([*] CoreNonNullRuntimeDefault?, allocatedNestedArray)
     let initializedNestedArray = nestedValues != null and

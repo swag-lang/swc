@@ -125,3 +125,36 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     let text = sheet.text()
     Swag.require(Utf8.contains(text, "Overlapping cues\n1") and Utf8.contains(text, "Shortest cue\n0.40 s"), text)
 }
+
+// The words of a cue wrap greedily between words: every line fits the column, and the next word
+// would not have.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-cues-wrap-", ".srt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "1\n00:00:01,000 --> 00:00:04,000\nThe ferry left the harbour at dusk and nobody on the pier could say where it was bound that night\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(560, 400)
+    var result = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
+    let view   = assume cast(*Captions.Panel, result.view)
+    view.dockStyle = .Center
+    host.root.applyLayout()
+
+    let sheet = view.sheet
+    let font  = sheet.wordsFont()
+    let width = Math.max(1, sheet.column().width - Captions.CueSheet.WordsX - Captions.CueSheet.WordsRight)
+    let words = view.track!.cueContent(0)
+    let row   = &sheet.rows[0]
+    Swag.require(row.lines.count > 2)
+    for line, index in row.lines
+    {
+        Swag.require(Painter.measureString(words[line.start until line.end], font).width <= width)
+        if index + 1 == row.lines.count do
+            break
+        var next = row.lines[index + 1].start
+        while next < words.count and words[next] != ' ' do
+            next += 1
+        Swag.require(words[line.end] == ' ' and Painter.measureString(words[line.start until next], font).width > width)
+    }
+}

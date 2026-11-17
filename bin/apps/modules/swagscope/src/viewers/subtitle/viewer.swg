@@ -151,9 +151,18 @@ impl CueSheet
                 continue
             }
 
+            // A line only grows wider as it takes characters, so a word overflows exactly when it
+            // does with its last character: the line is measured there and at each space, not at
+            // every character, which made a relayout quadratic in the length of a line.
             if words[scan] == ' ' do
                 lastBreak = scan
-            if lastBreak != Swag.U64.Max and Painter.measureString(words[lineStart until scan + 1], font).width > width
+            let wordEnd = words[scan] == ' ' or
+                          scan + 1 == words.count or
+                          words[scan + 1] == ' ' or
+                          words[scan + 1] == '\n'
+            if lastBreak != Swag.U64.Max and
+               wordEnd and
+               Painter.measureString(words[lineStart until scan + 1], font).width > width
             {
                 result.add(CueLine{lineStart, lastBreak})
                 lineStart = lastBreak + 1

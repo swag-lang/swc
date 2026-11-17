@@ -22,6 +22,7 @@ struct ViewerSession
     prepareSearch:       Viewer.PrepareSearch?
     collectFileMatches:  Viewer.CollectFileMatches?
     useSearchMatches:    Viewer.UseSearchMatches?
+    explainSearch:       Viewer.ExplainSearch?
     isLoading:           Viewer.IsLoading?
     needsLoadingOverlay: Viewer.NeedsLoadingOverlay?
     retire:              Viewer.Retire?
@@ -330,6 +331,7 @@ impl Viewer.Host for ViewerPluginHost
         .session.prepareSearch      = api.prepare
         .session.collectFileMatches = api.collectFileMatches
         .session.useSearchMatches   = api.useMatches
+        .session.explainSearch      = api.explainSearch
     }
 
     mtd impl setLensSource(source: Viewer.LensSource)

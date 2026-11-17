@@ -364,6 +364,13 @@ layout. A new module copies it without deciding anything:
   other; copy the fixture instead, and let the copy be a fixture rather than a shared asset.
 - **A fixture is never present-or-absent.** A test that returns early when its fixture is missing
   reports success while proving nothing; a missing fixture must fail the test.
+- **A test never depends on a font installed on the machine.** A test run has no system fonts:
+  `Pixel.FontFamily.hasSystemFontAccess` is false in a process started with `swag.test`, so every
+  family lookup, enumeration and glyph fallback answers as if none were installed. Load the faces
+  a test needs from its module's `datas/`, and give a font cache its fallback faces with
+  `FontCache.setFallbackTypeFaces`. Only a case about the system font boundary itself calls
+  `Pixel.FontFamily.setSystemFontAccess(true)`; it carries the `integration.fonts` tag and turns
+  the access off again with a `defer`. Never record a golden with the access on.
 - **`datas/` holds no `.swg` or `.swgs` file.** The compiler collects every Swag source below `src/`
   recursively, with no exception for a test folder, so such a fixture is compiled into the module
   and its public declarations join the module's API. When a test needs a Swag source as *input*,

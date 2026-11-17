@@ -621,3 +621,30 @@ preview. Validate requested settings against the capabilities supplied by platfo
   Linux, a thread message on Windows), then wait for input, a posted event or the next timer.
 - Done when: an idle application blocks until input, a posted event or a timer, with a test that a
   worker's posted event is still delivered promptly.
+
+### std.gui.066 — The headless host draws Korean and Arabic as missing glyphs
+
+- Evidence: a test run has no installed fonts, and `Gui.Testing.HeadlessHost` falls back to the
+  two subsets compiled in from `gui/src/testing/fonts`: three Japanese ideographs and one emoji.
+  Swag Scope's `comprehensive.txt` fixture also carries a Korean and an Arabic word, which the
+  `viewer.dark`, `search.dark`, `menus.search.options`, `menus.text.options` and `menus.text.zoom`
+  goldens now record as missing-glyph boxes. A machine's own fonts used to draw them, differently
+  on each machine.
+- Next: subset U+D55C, U+AD6D, U+C5B4 from the Korean face of Noto Sans CJK and the letters of
+  the Arabic word from Noto Sans Arabic with the fontTools recipe in
+  `gui/src/tests/datas/fonts/README.md`, add both to the host's fallback faces with their
+  licences, and record those five goldens again.
+- Done when: every script of the shared text fixtures draws its own glyphs in a test run, from
+  faces the repository carries.
+
+### std.gui.067 — The shipped theme rasters differ from the Linux rasterizer
+
+- Evidence: `theme.rasters.swg` rasterizes `theme/widgets.svg` and `theme/icons.svg` and compares
+  the result with the shipped PNG derivatives. On a Linux DevMode test build the widget rasters
+  differ by up to 64 levels (rows 180 to 309 at scale 1) and the 20 and 28 pixel icon rasters by up
+  to 8, while the 16, 24, 32, 40 and 48 pixel icon rasters match. Regenerating the 20 pixel set on
+  Linux moved the search arrows of `viewer.hex.search-inspector` by 4 levels, so the shipped files
+  are what the Windows goldens were recorded from, and the two hosts rasterize differently.
+- Next: rasterize the same glyphs on Windows and Linux, find the operation that diverges (sample
+  count, coverage accumulation, or fused arithmetic), and make both produce the shipped pixels.
+- Done when: `theme.rasters.swg` passes on both platforms with the same shipped rasters.

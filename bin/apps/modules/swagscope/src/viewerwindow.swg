@@ -1275,6 +1275,8 @@ impl ViewerWindow
         if not playbackViewer do
             return false
 
+        if rateStep and key == "sound" do
+            return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
         if rateStep or frameStep or timeJump
         {
             if key != "video" do

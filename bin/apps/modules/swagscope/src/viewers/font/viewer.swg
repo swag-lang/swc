@@ -41,6 +41,18 @@ func viewerPlugin()->Viewer.Plugin
 
 private const CommandWidth = 512.0
 
+// The Unicode blocks the character map can jump to: their first and last code points, and their
+// names in [[blockNames]].
+const BlockFirst: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
+const BlockLast:  [5] u32 = [0x7E, 0xFF, 0x3FF, 0x4FF, 0x2BFF]
+
+// Returns the names of the blocks of [[BlockFirst]] in the active language.
+func blockNames()->[5] string
+{
+    let strings = texts()
+    return [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
+}
+
 // What loading a font file produces: its bytes, the face and typeface built on them, and the
 // details line.
 #[Swag.NoCopy]
@@ -90,6 +102,33 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
 
     return result
+}
+
+// Returns the character `query` names, or zero when it names none: one character typed as itself,
+// or a Unicode code point written `U+` and its hexadecimal digits.
+func queriedCharacter(query: string)->rune
+{
+    let text = Latin1.trim(query)
+    if not text.count do
+        return 0
+
+    let {c, eat} = Utf8.decodeRune(text)
+    if eat == text.count do
+        return c == ' ' ? 0 : c
+    if text.count < 3 or text.count > 8 or (text[0] != 'U'u8 and text[0] != 'u'u8) or text[1] != '+'u8 do
+        return 0
+
+    var code = 0'u32
+    for index in 2 until text.count
+    {
+        let digit = hexDigitValue(text[index])
+        if digit >= 16 do
+            return 0
+        code = code * 16 + digit
+    }
+
+    let result = cast(rune, code)
+    return Utf8.isValidRune(result) ? result : 0
 }
 
 // The font viewer: a specimen of the face, a sample field, and the glyph pages browsed from the
@@ -154,7 +193,7 @@ private impl Panel
     }
 
     // Gives the lens the sample, the pages of the glyph grid and the blocks it can jump to.
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
         entries.add(strings.ui_EditSample, .Edit, func|view = me|()
@@ -181,16 +220,64 @@ private impl Panel
                     disabled: not .nextButton.isEnabled(),
                     shortcut: Input.formatKeyShortcut(.Control, .PageDown))
 
-        const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
-        let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
-        for range, index in Ranges
+        // The character marked in the map, to paste elsewhere.
+        if .document != null and .document.shown
         {
-            entries.add(names[index], .GoTo, func|view = me, range|()
+            var text: String
+            text.append(.document.shown)
+            entries.add(Format.toString(strings.ui_CopyCharacter, text), .Copy, func|view = me|()
             {
-                view.document.goToCharacterPage(range)
-                view.refreshPageCommands()
+                var marked: String
+                marked.append(view.document.shown)
+                Clipboard.setString(marked)
             })
         }
+
+        // A typed character, or its code point after `U+`, is a cell of the map to go to.
+        let character = queriedCharacter(entries.query)
+        if character and not .load.isPending() and .document != null
+        {
+            let code       = Format.toString("U+%{X04} %", cast(u32, character), character)
+            let mapped     = .document.face and .document.face.hasChar(character)
+            with let entry = entries.add(Format.toString(strings.ui_ShowCharacter, code),
+                                         .GoTo,
+                                         func|view = me, character|()
+                                         {
+                                             view.document.showCharacter(character)
+                                             view.refreshPageCommands()
+                                         },
+                                         disabled: not mapped)
+            {
+                if not mapped do
+                    .detail = strings.ui_NotInFont
+            }
+        }
+
+        // A block the face maps nothing of cannot be shown, so it is offered disabled.
+        let names = blockNames()
+        for range, index in BlockFirst
+        {
+            entries.add(names[index],
+                        .GoTo,
+                        func|view = me, range|()
+                        {
+                            view.document.goToCharacterPage(range)
+                            view.refreshPageCommands()
+                        },
+                        disabled: .blockCoverage(index) == 0)
+        }
+    }
+
+    // Counts the characters of block `index` of [[BlockFirst]] the face maps.
+    mtd blockCoverage(index: u64)->u32
+    {
+        let face = .document.face
+        if not face do
+            return 0
+        var result = 0'u32
+        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
+            result += 1
+        return result
     }
 
     // Offers the Unicode blocks the glyph grid can jump to, and shows the first page of the one
@@ -199,11 +286,11 @@ private impl Panel
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
-            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(0) == 0)
+            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(1) == 0)
+            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(2) == 0)
+            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(3) == 0)
+            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(4) == 0)
         }
 
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
@@ -244,6 +331,7 @@ private impl IWnd for Panel
 
         .document            = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
         .document.pageStarts = #move content.pageStarts
+        .document.sigMarked  += func|view = me|(_) { view.services.showDetails(view, view.details) }
         content.face         = null
         .details             = #move content.details
         .refreshPageCommands()
@@ -358,8 +446,76 @@ impl Panel
         data.add(.Font, group: true)
         data.add(.Style, face.styleName.isEmpty() ? texts().ui_Regular : face.styleName.toString())
         data.add(.UnitsPerEm, Format.toString("%", face.unitsPerEm))
+
+        // What the face says of itself, set literally: the names and the notice are its own text.
+        if not face.version.isEmpty() do
+            data.add(.Version, face.version.toString())
+        if not face.designer.isEmpty() do
+            data.add(.Designer, face.designer.toString())
+        if not face.copyright.isEmpty() do
+            data.add(.Copyright, face.copyright.toString())
+
+        // The weight class and the embedding permissions the OS/2 table declares.
+        catch
+        {
+            let metadata = try Face.metadataAt(.document.fontBytes.toSlice(), 0)
+            data.add(.Weight, weightText(metadata.weight))
+            data.add(.Embedding, embeddingText(metadata.embedding))
+        }
+
+        // How much of each block the character map jumps to the face maps.
+        data.add(.Coverage, group: true)
+        let names = blockNames()
+        for index in BlockFirst.count
+        {
+            let count = .blockCoverage(index)
+            data.addText(names[index], count ? characterCountText(count) : String.from(texts().ui_NotCovered))
+        }
+
+        // The character marked in the map: its code point and the glyph the face draws it with.
+        let shown = .document.shown
+        if shown
+        {
+            var text: String
+            text.append(shown)
+            data.add(.Character, group: true)
+            data.addText("Unicode", Format.toString("U+%{X04} · %", cast(u32, shown), text))
+            data.add(.GlyphIndex, Format.toString("%", face.glyphIndex(shown)))
+        }
+
         data.describe(sheet)
     }
+}
+
+// Names a weight class by its number and the name of the nearest hundred: `400 · Regular`.
+func weightText(weight: u16)->String
+{
+    let t     = texts()
+    let names = [t.ui_WeightThin, t.ui_WeightExtraLight, t.ui_WeightLight, t.ui_Regular, t.ui_WeightMedium,
+                 t.ui_WeightSemiBold, t.ui_WeightBold, t.ui_WeightExtraBold, t.ui_WeightBlack]
+    let index = Math.clamp(cast(s32, Math.round(cast(f32, weight) / 100)) - 1, 0, 8)
+    return Format.toString("% · %", weight, names[index])
+}
+
+// Names the embedding permissions of an OS/2 `fsType`: the least restrictive usage its bits set,
+// as the specification reads several, then the restrictions that come with it.
+func embeddingText(fsType: u16)->String
+{
+    let t = texts()
+    var result: String
+    if fsType & 0x8 do
+        result = String.from(t.ui_EmbedEditable)
+    elif fsType & 0x4 do
+        result = String.from(t.ui_EmbedPreview)
+    elif fsType & 0x2 do
+        result = String.from(t.ui_EmbedRestricted)
+    else do
+        result = String.from(t.ui_EmbedInstallable)
+    if fsType & 0x100 do
+        result += Format.toString(" · %", t.ui_EmbedNoSubset)
+    if fsType & 0x200 do
+        result += Format.toString(" · %", t.ui_EmbedBitmap)
+    return result
 }
 
 func createViewer(host: Viewer.Host)

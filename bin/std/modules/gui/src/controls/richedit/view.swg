@@ -551,7 +551,7 @@ impl RichEditView
 
             newStyle = edn.styles[pStyle[]]
 
-            var cr = pChar[]
+            let cr = pChar[]
             let isTabulation = cr == '\t'
 
             var selected = false
@@ -588,22 +588,13 @@ impl RichEditView
                 newStyle.underline = edn.styles[pStyle[]].underline
             }
 
-            if edn.flags.has(.DrawBlanks)
-            {
-                if cr == ' ' and pChar != &dummyChar
-                {
-                    newStyle.colFg = .themeColors().richEdit_TextSpecial
-                    cr = '.'
-                }
-                elif isTabulation
-                {
-                    newStyle.colFg = .themeColors().richEdit_TextSpecial
-                }
-            }
+            // A blank is marked over its own advance rather than replaced by a printable rune,
+            // whose different width would move every rune after it away from the caret.
+            let markBlank = edn.flags.has(.DrawBlanks) and cr == ' ' and pChar != &dummyChar
 
             // Paint accumulated string if we have a change of style
             let styleChange = newStyle != oldStyle
-            if styleChange or isTabulation
+            if styleChange or isTabulation or markBlank
             {
                 x        = .paintString(bc, x, y, str, oldStyle, visible)
                 oldStyle = newStyle
@@ -618,6 +609,29 @@ impl RichEditView
                 // Background color for tabulations
                 if visible and oldStyle.colBk.a do
                     bc.painter.fillRect(Math.Rectangle{x1, y, x - x1, size.y}, oldStyle.colBk)
+
+                // A tabulation is a line across its whole advance, ended by a bar at the stop.
+                if visible and edn.flags.has(.DrawBlanks)
+                {
+                    let color  = .themeColors().richEdit_TextSpecial
+                    let middle = Math.round(y + size.y * 0.5)
+                    let left   = x1 + size.x * 0.25
+                    let right  = x - size.x * 0.25
+                    if right > left
+                    {
+                        bc.painter.fillRect(Math.Rectangle{left, middle, right - left, 1}, color)
+                        bc.painter.fillRect(Math.Rectangle{right - 1, middle - size.y * 0.2, 1, size.y * 0.4 + 1}, color)
+                    }
+                }
+            }
+            elif markBlank
+            {
+                let x1 = x
+                str += cr
+                x   = .paintString(bc, x, y, str, newStyle, visible)
+                str.clear()
+                if visible do
+                    bc.painter.fillCircle((x1 + x) * 0.5, y + size.y * 0.5, Math.max(size.x * 0.1, 1), .themeColors().richEdit_TextSpecial)
             }
             else
             {

@@ -9,7 +9,11 @@ using Core, Gui
 // standard spelling, so the summary below is the only sentence this viewer writes.
 struct Texts
 {
-    ui_ZoomMenu: string = "Zoom…"     // Tooltip of the zoom value menu.
+    ui_ZoomMenu:          string = "Zoom…"                      // Tooltip of the zoom value menu.
+    ui_HighlightAs:       string = "Highlight as %"             // Lens command coloring the source as the language it names.
+    ui_Blanks:            string = "Show Whitespace"            // Lens command marking each space with a dot and each tabulation with an arrow.
+    ui_MatchingDelimiter: string = "Go to Matching Bracket"     // Lens command moving the caret to the bracket, parenthesis or brace pairing with the one at it.
+    ui_TabWidth:          string = "Tab Width"                  // Lens commands placing a tab stop every 2, 4 or 8 spaces; the number follows.
     // Summary the host shows beside the file size. `%` takes the name of the language.
     ui_Details:   string = "% · UTF-8"
     err_Read:     string = "source stream could not be read"     // Diagnostics of a source the viewer cannot show.

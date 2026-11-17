@@ -12,14 +12,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let absentAgain = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
     Swag.require(absent == absentAgain)
 
-    let installed = FontFamily.enumerateSystemFonts()
-    if not installed.isEmpty()
-    {
-        let name     = installed[0].name.toString()
-        let direct   = MarkdownText.systemFaces([name])
-        let fallback = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501", name])
-        Swag.require(direct == fallback)
-    }
+    // A test run sees no installed family, so every appearance reads in the embedded faces
+    // whatever the machine holds.
+    Swag.require(FontFamily.enumerateSystemFonts().isEmpty())
+    for face in MarkdownText.systemFaces(["Segoe UI", "Arial", "Times New Roman", "Consolas", "DejaVu Sans"]) do
+        Swag.require(face == null)
 }
 
 // Markdown places its options on the line of readings, and floats no commands over the document.

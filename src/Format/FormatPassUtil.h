@@ -144,6 +144,23 @@ namespace FormatPassUtil
         uint32_t last  = INVALID_PIECE;
     };
 
+    struct SegmentSnapshot
+    {
+        std::vector<FormatPiece> pieces;
+        std::vector<FormatGap>   innerGaps;
+    };
+
+    inline void snapshotSegment(FormatModel& model, const PieceRange& range, SegmentSnapshot& snapshot, FormatGap& leadingGap)
+    {
+        leadingGap = model.gapBefore(range.first);
+        for (uint32_t i = range.first; i <= range.last; ++i)
+        {
+            snapshot.pieces.push_back(model.piece(i));
+            if (i != range.first)
+                snapshot.innerGaps.push_back(model.gapBefore(i));
+        }
+    }
+
     // Reorders contiguous segments in place. The leading gap of each segment
     // position is kept at that position (so line breaks / indentation stay
     // put), while the inner gaps travel with their segment.

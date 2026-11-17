@@ -283,42 +283,34 @@ namespace
             // Closures all go on one line when every body can, and all expand otherwise.
             for (const auto& group : FormatSiblings::closureGroups(*model_, options_->uniformClosureBodies))
             {
-                bool oneLine  = false;
-                bool expanded = false;
-                bool compact  = true;
+                FormatSiblings::BodyGroupShape shapeGroup;
                 for (const uint32_t i : group)
                 {
                     const FormatSiblings::BodyShape shape = FormatSiblings::functionShape(*model_, bodies[i]);
-                    oneLine                               = oneLine || shape.oneLine;
-                    expanded                              = expanded || !shape.oneLine;
-                    compact                               = compact && shape.compact;
+                    shapeGroup.add(shape);
                 }
 
-                if (!oneLine || !expanded)
+                if (!shapeGroup.oneLine || !shapeGroup.expanded)
                     continue;
 
                 for (const uint32_t i : group)
                 {
                     if (bodies[i].openPiece != INVALID_PIECE)
-                        result[bodies[i].openPiece] = compact ? SiblingLayout::Join : SiblingLayout::Split;
+                        result[bodies[i].openPiece] = shapeGroup.compact ? SiblingLayout::Join : SiblingLayout::Split;
                 }
             }
 
             // Functions only ever join, and only when every one of them can.
             for (const auto& group : FormatSiblings::functionGroups(*model_, options_->uniformFunctionBodies))
             {
-                bool oneLine  = false;
-                bool expanded = false;
-                bool compact  = true;
+                FormatSiblings::BodyGroupShape shapeGroup;
                 for (const uint32_t i : group)
                 {
                     const FormatSiblings::BodyShape shape = FormatSiblings::functionShape(*model_, bodies[i]);
-                    oneLine                               = oneLine || shape.oneLine;
-                    expanded                              = expanded || !shape.oneLine;
-                    compact                               = compact && shape.compact && shape.valid;
+                    shapeGroup.add(shape, true);
                 }
 
-                if (!oneLine || !expanded || !compact)
+                if (!shapeGroup.oneLine || !shapeGroup.expanded || !shapeGroup.compact)
                     continue;
 
                 for (const uint32_t i : group)

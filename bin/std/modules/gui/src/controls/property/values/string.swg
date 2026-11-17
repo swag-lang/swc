@@ -1,5 +1,27 @@
-// System font families listed by the FontName editor, enumerated once per process.
+// Font families listed by the FontName editor: the installed ones, enumerated once per process,
+// unless [[Gui.Properties.setFontNames]] supplied the list.
 internal var g_PropSysFonts: Array'String
+
+public impl Properties
+{
+    // Replaces the family names every font-name editor offers after the interface face.
+    //
+    // By default an editor lists the installed families, read once per process when the first
+    // one is built. An application offers its own choice instead by naming it here, and a test
+    // supplies a list here because a test run sees no installed font. The names are copied and
+    // kept in the order given; an empty list returns to the installed families. The list is
+    // shared by the whole process, and an editor already built keeps the rows it has.
+    //
+    // ```swag
+    // Gui.Properties.setFontNames(["Example Sans", "Example Serif"])
+    // ```
+    func setFontNames(names: const [..] string)
+    {
+        g_PropSysFonts.clear()
+        for name in names do
+            g_PropSysFonts.add(name)
+    }
+}
 
 internal impl Properties
 {

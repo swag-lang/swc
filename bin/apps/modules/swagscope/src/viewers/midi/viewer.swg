@@ -7,6 +7,37 @@ using Core, Pixel, Gui
 private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
 
 // Describes the MIDI viewer to the host.
+// Draws the notes of a MIDI file as a small piano roll, time across and pitch up, its drums apart
+// in a softer tone, within `maxSide`.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    let document = try loadDocument(fileName)
+    let width    = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let height   = width / 2
+    var canvas   = try ImageCanvas.create(width, height)
+    canvas.clear(Color.fromRgb(248, 249, 250))
+    if document.notes.isEmpty() or not document.durationTicks do
+        return try canvas.toImage()
+
+    const Margin = 8.0
+    let painter = &canvas.painter
+    let span    = cast(f32, document.durationTicks)
+    let keys    = cast(f32, document.maxKey - document.minKey + 1)
+    let room    = Math.Rectangle{Margin, Margin, cast(f32, width) - Margin * 2, cast(f32, height) - Margin * 2}
+    let pitch   = Math.max(room.height / keys, 1)
+    for &note in document.notes
+    {
+        let end = note.endTick == Swag.U64.Max ? document.durationTicks : note.endTick
+        let x   = room.x + room.width * cast(f32, note.startTick) / span
+        let w   = Math.max(room.width * cast(f32, end - note.startTick) / span, 1)
+        let y   = room.bottom() - cast(f32, note.key - document.minKey + 1) * room.height / keys
+        let ink = note.channel == 9 ? Color.fromRgb(150, 165, 177) : Color.fromRgb(48, 80, 104)
+        painter.fillRect({x, y, w, Math.min(pitch, 3)}, ink)
+    }
+
+    return try canvas.toImage()
+}
+
 func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
@@ -19,6 +50,7 @@ func viewerPlugin()->Viewer.Plugin
         .create       = &createViewer
         .options      = &addViewerOptions
         .probe        = &pluginProbe
+        .thumbnail    = &loadThumbnail
         .smokeFixture = "viewer.mid"
         .addSelectors(".mid;.midi")
     }
@@ -307,11 +339,33 @@ impl Panel
         data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
         data.addFigure(.Custom, trackCountText(.roll.lanes.count))
         data.addFigure(.Custom, noteCountText(.roll.document.notes.count))
-        let meter = .roll.document.meterText()
-        if meter.count
+
+        // The tempo, the meter and the key, each with how often it changes.
+        data.add(.Music, group: true)
+        data.add(.Tempo, .roll.document.tempoText())
+        data.add(.Meter, .roll.document.meterChangesText())
+        data.add(.KeySignature, .roll.document.keyChangesText())
+
+        // Each lane of the roll: its track, its channel, the instrument the track selects and its
+        // notes. The tenth channel is the drum kit whatever its program says.
+        if .roll.lanes.count
         {
-            data.add(.Music, group: true)
-            data.add(.Meter, meter)
+            data.add(.Tracks, Format.toString("%", .roll.lanes.count), group: true)
+            for &lane, index in .roll.lanes
+            {
+                let track = &.roll.document.tracks[lane.track]
+                let name  = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
+                var notes = 0'u64
+                for &note in .roll.document.notes where note.track == lane.track and note.channel == lane.channel do
+                    notes += 1
+                var measures = Format.toString(texts().ui_Channel, cast(u32, lane.channel) + 1)
+                if lane.channel == 9 do
+                    measures += Format.toString(" · %", texts().ui_Percussion)
+                elif track.program >= 0 do
+                    measures += Format.toString(" · %", instrumentName(cast(u8, track.program)))
+                measures += Format.toString(" · %", noteCountText(notes))
+                data.addTrack(index + 1, name, measures)
+            }
         }
 
         data.describe(sheet)

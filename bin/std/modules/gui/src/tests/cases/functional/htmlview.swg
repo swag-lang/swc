@@ -2265,3 +2265,20 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     host.click(hit.point)
     Swag.require(view.scroll.scrollPosition().y > 0)
 }
+
+// A page says what it is in its head: its title, its language and its description, as written.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    const Source = """<html lang="fr"><head><title>
+  Journal de bord </title><meta name="Description" content=" Notes de voyage "></head>
+<body><title>Not the page title</title><p>Text</p></body></html>"""
+    let view  = HtmlView.createText(&host.root, Source)
+    let facts = view.documentFacts()
+    Swag.require(facts.title == "Journal de bord" and facts.language == "fr", facts.title)
+    Swag.require(facts.description == "Notes de voyage", facts.description)
+
+    let bare = HtmlView.createText(&host.root, "<p>No head</p>").documentFacts()
+    Swag.require(bare.title.isEmpty() and bare.language.isEmpty() and bare.description.isEmpty())
+}

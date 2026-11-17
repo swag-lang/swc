@@ -588,9 +588,7 @@ Result MicroLoopLoadForwardPass::run(MicroPassContext& context)
 
     if (forwardRound(context))
     {
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        context.builder->invalidateControlFlowGraph();
+        MicroPassHelpers::invalidateCfgAndSsa(context);
         context.passChanged = true;
     }
     return Result::Continue;

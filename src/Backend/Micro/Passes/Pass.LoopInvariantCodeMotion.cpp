@@ -648,9 +648,7 @@ namespace
                 storage.insertDerivedBefore(operands, ref, rewrittenOp, {rewritten.data(), rewritten.size()});
                 storage.erase(ref);
 
-                if (context.ssaState)
-                    context.ssaState->invalidate();
-                context.builder->invalidateControlFlowGraph();
+                MicroPassHelpers::invalidateCfgAndSsa(context);
                 return true;
             }
 
@@ -1290,9 +1288,7 @@ namespace
             for (const Clone& clone : plan.clones)
                 storage.erase(clone.original);
 
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        context.builder->invalidateControlFlowGraph();
+        MicroPassHelpers::invalidateCfgAndSsa(context);
         return true;
     }
 }

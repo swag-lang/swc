@@ -47,6 +47,11 @@ struct Texts
     ui_AnalysisCancelled:      string = "Stopped after %"                                                                                     // Cancelled partial analysis.
     ui_AnalysisMetrics:        string = "Entropy %{f2}/8 · zero %{f1}%% · printable %{f1}%%"                                                  // Compact byte-distribution metrics.
     ui_AnalysisNoBytes:        string = "No bytes were analyzed"                                                                              // Empty analysis result.
+    ui_AnalysisDigests:        string = "CRC-32 % · SHA-256 %"                                                                                // Checksums of the analyzed bytes, read in full.
+    ui_AnalysisCopyCrc32:      string = "Copy CRC-32 of the Analyzed Bytes"                                                                   // Lens action copying the checksum of the last complete analysis.
+    ui_AnalysisCopySha256:     string = "Copy SHA-256 of the Analyzed Bytes"                                                                  // Lens action copying the digest of the last complete analysis.
+    ui_AnalysisCopyMd5:        string = "Copy MD5 of the Analyzed Bytes"                                                                      // Lens action copying the MD5 digest of the last complete analysis.
+    ui_AnalysisCopySha1:       string = "Copy SHA-1 of the Analyzed Bytes"                                                                    // Lens action copying the SHA-1 digest of the last complete analysis.
     ui_AnalysisByteHint:       string = "Point at the byte map to inspect an exact count"                                                     // Histogram interaction hint.
     ui_AnalysisByte:           string = "Byte %{X02} · % occurrences · %{f2}%%"                                                               // Exact count under the histogram pointer.
     ui_AnalysisByteOnce:       string = "Byte %{X02} · 1 occurrence · %{f2}%%"                                                                // The same, for a byte seen once.
@@ -62,9 +67,10 @@ struct Texts
     ui_AnalysisText:           string = "Text"                                                                                                // String-table preview column.
     err_AnalysisShortRead:     string = "The file ends before the analysis range"                                                             // Failure when a file changes while it is being analyzed.
 
-    ui_CopyBytes: string = "Copy Bytes"     // Menu entry copying the selection as hexadecimal byte pairs.
-    ui_CopyText:  string = "Copy Text"      // Menu entry copying the selection as printable text.
-    ui_CopyDump:  string = "Copy Dump"      // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyBytes:  string = "Copy Bytes"        // Menu entry copying the selection as hexadecimal byte pairs.
+    ui_CopyText:   string = "Copy Text"         // Menu entry copying the selection as printable text.
+    ui_CopyDump:   string = "Copy Dump"         // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyOffset: string = "Copy Offset %"     // Lens command copying the offset of the caret in hexadecimal.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

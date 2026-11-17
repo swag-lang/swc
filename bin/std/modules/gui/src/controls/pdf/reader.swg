@@ -227,6 +227,81 @@ impl Reader
         return result
     }
 
+    // Returns the label of every page as the document numbers it, from its `/PageLabels` number
+    // tree: each range a prefix and a decimal, Roman or alphabetic count from its own start, so a
+    // book's front matter reads `i`, `ii`, `iii` before page `1`. Returns an empty array when the
+    // document labels no page; a page before the first range is named by its position.
+    mtd loadPageLabels()->Array'String
+    {
+        var result: #returntype
+        let root = .parser.dict(.parser.catalogId, "PageLabels")
+        if root == InvalidNode do
+            return result
+
+        // The ranges, in the order of the pages they start at.
+        var ranges:  Array'PageLabelRange
+        var pending: Array'u32
+        var visited: HashTable'(u32, bool)
+        pending.add(root)
+        while pending.count
+        {
+            let node = .parser.resolve(pending.popBack())
+            if node == InvalidNode or visited.contains(node) or visited.count > 4096 do
+                continue
+            visited[node] = true
+            let numsId = .parser.dict(node, "Nums")
+            if numsId != InvalidNode and .parser.nodes[numsId].kind == .Array
+            {
+                let pairs = .parser.nodes[numsId].values
+                var index = 0'u64
+                while index + 1 < pairs.count
+                {
+                    let start = .parser.integer(pairs[index], -1)
+                    if start >= 0 do
+                        ranges.add(PageLabelRange{cast(u64, start), pairs[index + 1]})
+                    index += 2
+                }
+            }
+
+            let kidsId = .parser.dict(node, "Kids")
+            if kidsId != InvalidNode and .parser.nodes[kidsId].kind == .Array
+            {
+                for child in .parser.nodes[kidsId].values do
+                    pending.add(child)
+            }
+        }
+
+        if ranges.isEmpty() do
+            return result
+        ranges.sort(func(a, b: PageLabelRange)->s32 => a.start < b.start ? -1 : (a.start > b.start ? 1 : 0))
+
+        var range = Swag.U64.Max
+        for page in .sources.count
+        {
+            while (range == Swag.U64.Max and ranges[0].start <= page) or (range != Swag.U64.Max and range + 1 < ranges.count and ranges[range + 1].start <= page) do
+                range = range == Swag.U64.Max ? 0 : range + 1
+            if range == Swag.U64.Max
+            {
+                result.add(Format.toString("%", page + 1))
+                continue
+            }
+
+            let node   = .parser.resolve(ranges[range].node)
+            let prefix = .parser.stringValue(.parser.dict(node, "P"))
+            var label: String
+            if prefix.count >= 2 and prefix[0] == 0xFE and prefix[1] == 0xFF do
+                label = Text.decode(cast(const [..] u8, prefix[2 to]), .Utf16Be)
+            else do
+                label = Text.decode(cast(const [..] u8, prefix), .Windows1252)
+            let first  = Math.max(.parser.integer(.parser.dict(node, "St"), 1), 1)
+            let number = cast(u64, first) + page - ranges[range].start
+            label += pageNumberText(.parser.name(.parser.dict(node, "S")), number)
+            result.add(#move label)
+        }
+
+        return result
+    }
+
     // Decodes and returns the page at zero-based `index`.
     //
     // The returned page owns all content it retains and remains valid after this reader is
@@ -272,4 +347,47 @@ impl Reader
         var text   = TextIndex.build(&page)
         return #move text.text
     }
+}
+
+// One range of a `/PageLabels` number tree: the page it starts at and its label dictionary.
+internal struct PageLabelRange
+{
+    start: u64
+    node:  u32
+}
+
+// Writes `number` in the numbering style a page-label range names: `D` decimal, `R` and `r`
+// Roman, `A` and `a` letters repeated past Z (AA, BB...). Any other style, or none, writes nothing:
+// the label is its prefix alone.
+func pageNumberText(style: string, number: u64)->String
+{
+    var result: String
+    switch style
+    {
+    case "D":
+        result = Format.toString("%", number)
+
+    case "R", "r":
+        const Values: [13] u64    = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+        const Upper:  [13] string = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+        const Lower:  [13] string = ["m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i"]
+        var rest = Math.min(number, 3999)
+        for value, index in Values
+        {
+            while rest >= value
+            {
+                result += style == "R" ? Upper[index] : Lower[index]
+                rest   -= value
+            }
+        }
+
+    case "A", "a":
+        if not number do
+            return result
+        let letter = cast(u8, (number - 1) % 26) + (style == "A" ? 'A'u8 : 'a'u8)
+        for (number - 1) / 26 + 1 do
+            result += cast(rune, letter)
+    }
+
+    return result
 }

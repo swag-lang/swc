@@ -66,6 +66,14 @@ func appendLittle32(block: *Array'u8, value: u64)
     for byte in "1888" do
         year.add(byte)
     appendId3Frame(&frames, "TYER", year.toSlice())
+    for frame in [{id: "TRCK", text: "1/3"}, {id: "TPOS", text: "1/1"}, {id: "TCON", text: "(32)Classical"}]
+    {
+        var body: Array'u8
+        body.add(0'u8)
+        for byte in frame.text do
+            body.add(byte)
+        appendId3Frame(&frames, frame.id, body.toSlice())
+    }
 
     var file: Array'u8
     for byte in "ID3" do
@@ -91,6 +99,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.title == "Gymnopédie No. 1" and tags.artist == "Satie" and tags.year == "1888")
     Swag.require(tags.album == "Trois Gymnopédies")
     Swag.require(tags.albumArtist == "Various Artists")
+    Swag.require(tags.track == "1/3" and tags.disc == "1/1" and tags.genre == "Classical", tags.genre)
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.
@@ -100,7 +109,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     appendLittle32(&comment, 4)
     for byte in "swag" do
         comment.add(byte)
-    let fields = ["title=Clair de lune", "ARTIST=Debussy", "Album=Suite bergamasque", "DATE=1905-01-01", "albumartist=Various Artists"]
+    let fields = ["title=Clair de lune", "ARTIST=Debussy", "Album=Suite bergamasque", "DATE=1905-01-01", "albumartist=Various Artists", "TRACKNUMBER=3", "genre=Impressionism"]
     appendLittle32(&comment, fields.count)
     for field in fields
     {
@@ -135,6 +144,7 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.title == "Clair de lune" and tags.artist == "Debussy")
     Swag.require(tags.album == "Suite bergamasque" and tags.year == "1905")
     Swag.require(tags.albumArtist == "Various Artists")
+    Swag.require(tags.track == "3" and tags.genre == "Impressionism" and tags.disc.isEmpty())
 }
 
 // A file without tags, or one this reader does not know, simply names nothing.
@@ -143,4 +153,106 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(SoundTags.read("this-file-does-not-exist.mp3").isEmpty())
     let albumOnly = SoundTags{albumArtist: "Various Artists"}
     Swag.require(not albumOnly.isEmpty())
+}
+
+// Writes `tag` as the whole ID3v2.3 tag of an MP3 file, frames only, and returns its name.
+func writeId3File(frames: const [..] u8)->String
+{
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(3'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    for byte in frames do
+        file.add(byte)
+    file.add(0xFF'u8)
+    file.add(0xFB'u8)
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_audio_picture_%.mp3", Guid64.random()).toString())
+    discard expect File.writeAllBytes(fileName, file.toSlice())
+    return fileName
+}
+
+// An MP3 file embeds its sleeve in a picture frame; the front cover wins over another picture,
+// past a UTF-16 description, and a reader that does not ask for it gets no picture.
+#test
+{
+    var frames: Array'u8
+    var back:   Array'u8
+    back.add(0'u8)
+    for byte in "image/png" do
+        back.add(byte)
+    back.add(0'u8)
+    back.add(4'u8)
+    back.add(0'u8)
+    for byte in [0x89'u8, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2] do
+        back.add(byte)
+    appendId3Frame(&frames, "APIC", back.toSlice())
+
+    var front: Array'u8
+    front.add(1'u8)
+    for byte in "image/jpeg" do
+        front.add(byte)
+    front.add(0'u8)
+    front.add(3'u8)
+    for byte in [0xFF'u8, 0xFE, 0x46, 0, 0, 0, 0xFF, 0xD8, 0xFF, 0xE0, 7, 7] do
+        front.add(byte)
+    appendId3Frame(&frames, "APIC", front.toSlice())
+
+    let fileName = writeId3File(frames.toSlice())
+    defer discard catch File.delete(fileName)
+    Swag.require(SoundTags.read(fileName).picture.isEmpty())
+    let tags = SoundTags.read(fileName, withPicture: true)
+    Swag.require(tags.pictureExtension == ".jpg" and tags.picture.count == 6 and tags.picture[5] == 7)
+}
+
+// A FLAC file embeds its sleeve in a picture block after the comment.
+#test
+{
+    var picture: Array'u8
+
+    func appendBig32(block: *Array'u8, value: u64)
+    {
+        for shift in 4 do
+            block.add(cast(u8, (value >> ((3 - shift) * 8)) & 0xFF))
+    }
+
+    appendBig32(&picture, 3)
+    appendBig32(&picture, 9)
+    for byte in "image/png" do
+        picture.add(byte)
+    appendBig32(&picture, 0)
+    for 16 do
+        picture.add(0'u8)
+    let png = [0x89'u8, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 42]
+    appendBig32(&picture, png.count)
+    for byte in png do
+        picture.add(byte)
+
+    var comment: Array'u8
+    appendLittle32(&comment, 0)
+    appendLittle32(&comment, 0)
+
+    var file: Array'u8
+    for byte in "fLaC" do
+        file.add(byte)
+    for byte in [4'u8, 0, 0, cast(u8, comment.count)] do
+        file.add(byte)
+    for byte in comment do
+        file.add(byte)
+    for byte in [0x86'u8, 0, 0, cast(u8, picture.count)] do
+        file.add(byte)
+    for byte in picture do
+        file.add(byte)
+
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_audio_picture_%.flac", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, file.toSlice())
+    let tags = SoundTags.read(fileName, withPicture: true)
+    Swag.require(tags.pictureExtension == ".png" and tags.picture.count == png.count and tags.picture[8] == 42)
 }

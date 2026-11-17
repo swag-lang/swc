@@ -10,6 +10,19 @@ struct GenericInstanceOrigin;
 namespace SymbolGenericData
 {
     template<typename T>
+    inline auto rootSym(const T* data) noexcept
+    {
+        return data ? data->rootSym : nullptr;
+    }
+
+    template<typename T>
+    inline T* rootOrSelf(T* symbol, T* root) noexcept
+    {
+        SWC_ASSERT(root != nullptr || !symbol->isGenericInstance());
+        return root ? root : symbol;
+    }
+
+    template<typename T>
     inline void setCompletionOwner(T& data, const TaskContext& ctx) noexcept
     {
         const TaskContext* expected = nullptr;

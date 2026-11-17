@@ -34,6 +34,16 @@ namespace Unittest
     inline constexpr uint32_t MAX_COMPILER_WORKERS = 3;
     uint32_t                  compilerWorkerCount(const TaskContext& ctx);
 
+    class ScopedErrorCountRestore
+    {
+    public:
+        explicit ScopedErrorCountRestore(uint64_t saved);
+        ~ScopedErrorCountRestore();
+
+    private:
+        uint64_t saved_;
+    };
+
     class TestRegistrar
     {
     public:

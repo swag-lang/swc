@@ -16,20 +16,26 @@ the professional listening and inspection surface; decoder and output-engine wor
   synchronized, numeric time/frame jumps work, waveform detail refines asynchronously, and memory
   is independent of recording duration.
 
-### app.scope.audio.001 — Audio playback has no speed or pitch policy
+### app.scope.audio.001 — Audio playback has no rate above 2x or pitch-preserving mode
 
-- Evidence: transport plays at source speed only. There is no 0.25x–4x rate selector, fine rate
-  adjustment, pitch-preserving mode, pitch shift, or visible statement of resampling quality.
-- Next: add variable-rate playback first with an explicit pitch-follows-speed mode, then evaluate a
-  bounded time-stretch path for speech and music.
+- Evidence: a recording plays at the film rates, 0.25x to 2x, stepped with Shift and the arrows
+  or from the lens, the pitch following the rate through `Voice.setFrequencyRatio`; positions stay
+  in source seconds and the summary declares a rate other than 1x. There is no fine rate
+  adjustment, no rate above the voices' 2x ceiling, no pitch-preserving mode or pitch shift, and no
+  statement of resampling quality.
+- Next: evaluate a bounded time-stretch path for speech and music, shared with the film player.
 - Done when: speed is visible and keyboard adjustable, seeks and elapsed time remain source-time
   based, A/V-independent sound playback stays stable at supported rates, and unsupported pitch
   preservation is never implied.
 
 ### app.scope.audio.002 — Audio cannot loop a selection or mark an A/B region
 
-- Evidence: the timeline supports one playhead and fixed ten-second seeks. There is no range
-  selection, set/clear A and B, loop toggle, play-selection, or sample-accurate region readout.
+- Evidence: `[` and `]`, or the lens, mark where a looped passage starts and ends while listening
+  (an end alone loops from the beginning); playback past its end goes back to its start, the
+  wave shows the passage as a band and the summary names it, and Stop Looping in the lens clears
+  it. The points are taken from the playback position in whole timer steps, the summary writes
+  them in seconds, and there is no pointer range selection, play-once, editable boundary, or
+  sample-accurate region readout.
 - Next: add a source-frame-backed selection model to the waveform and transport.
 - Done when: pointer and keyboard set a range, loop and play-once honor exact supported frame
   boundaries, start/end/duration are editable in time or frames, and selection survives zoom but
@@ -67,8 +73,12 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.007 — Audio has no loudness, peak, clipping, silence, or DC analysis
 
-- Evidence: the waveform is visual only. It reports neither sample/true peak nor RMS/LUFS, channel
-  balance, clipping runs, silence ranges, DC offset, crest factor, or analysis scope.
+- Evidence: the worker that builds the waveform measures every decoded sample as it goes, and once
+  the whole recording has been read the information sheet states its sample peak and RMS level in
+  dBFS and how many samples sit at full scale, the top of an 8-bit source counted where widening
+  puts it. The levels are measured on the 16-bit samples the decoder delivers, every channel
+  together, for the whole file only. There is no true peak, LUFS, per-channel balance, clipping
+  run, silence range, DC offset or crest factor, and a reading does not navigate to the waveform.
 - Next: implement cancellable exact peak/RMS/DC and clipping scans, then add a standards-based
   integrated/short-term loudness pass where channel layout is known.
 - Done when: units and thresholds are explicit, whole-file versus selection scope is visible,
@@ -77,9 +87,16 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.008 — Tags, artwork, codec/container facts, and ReplayGain are hidden
 
-- Evidence: the summary carries sample rate, channels, storage bits, and duration only. Title,
-  artist, album, date, track/disc, comments, embedded art, codec profile/bitrate, container, delay,
-  padding, ReplayGain/R128, and custom tags are not inspectable.
+- Evidence: the summary carries sample rate, channels, storage bits, and duration only; the
+  information sheet adds the payload encoding (PCM, MP3, FLAC…) and its approximate bitrate over
+  the length. The page
+  writes the title, artist, album and year of ID3v2 and FLAC tags, and shows the picture they
+  embed (the front cover first) as the sleeve, ahead of one stored beside the file. The
+  information sheet lists those tags with the track, the disc and a genre named in words (a bare
+  numeric ID3v1 genre is left out rather than looked up). Comments, Ogg and MP4 tags, codec
+  profile, container, delay, padding, ReplayGain/R128, and custom tags are not
+  inspectable. The explorer thumbnail shows the embedded picture too,
+  after a sleeve stored in the folder.
 - Next: define an audio metadata model separate from decoded samples and surface it through app.scope.viewers.006.
 - Done when: original tag keys/values and normalized common fields coexist, artwork is bounded
   and opens in Image, technical stream facts include provenance, suspicious or malformed metadata

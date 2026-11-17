@@ -2496,15 +2496,7 @@ namespace InstructionCombine
 
             case MicroOp::Subtract:
             case MicroOp::Xor:
-            {
-                if (!ctx.claimAll({ref}))
-                    return false;
-                MicroInstrOperand clearOps[2];
-                clearOps[0].reg    = dst;
-                clearOps[1].opBits = opBits;
-                ctx.emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
-                return true;
-            }
+                return ctx.emitClearReg(ref, dst, opBits);
 
             default:
                 return false;

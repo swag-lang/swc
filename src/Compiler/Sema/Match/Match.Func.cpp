@@ -1426,12 +1426,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_enum_value, argRef);
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, paramTy);
-            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), *enumSym);
-            if (!availableValues.empty())
-            {
-                diag.addNote(DiagnosticId::sema_note_available_enum_values);
-                diag.last().addArgument(Diagnostic::ARG_VALUES, availableValues);
-            }
+            SemaError::addAvailableEnumValuesNote(diag, sema.ctx(), *enumSym);
             diag.report(sema.ctx());
             return Result::Error;
         }

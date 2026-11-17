@@ -5,6 +5,30 @@ using Core, Pixel, Gui
 
 private var g_ZoomPercent: u32 = 100
 
+// Whether source code marks its spaces and tabulations. The choice follows the reader from file to file.
+private var g_Blanks: bool
+
+// Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
+private var g_TabWidth: s32 = 4
+
+// Reports whether `c` opens or closes a pair the source viewer matches: (), [] or {}.
+func isDelimiter(c: rune)->bool => c == '(' or c == ')' or c == '[' or c == ']' or c == '{' or c == '}'
+
+// Returns the delimiter that closes or opens the pair `c` belongs to.
+func delimiterPartner(c: rune)->rune
+{
+    switch c
+    {
+    case '(': return ')'
+    case ')': return '('
+    case '[': return ']'
+    case ']': return '['
+    case '{': return '}'
+    }
+
+    return '{'
+}
+
 private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and shebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
@@ -221,7 +245,10 @@ impl Panel
     // Reloads the resident window to start shortly before `offset` and highlights `text` there. A
     // start inside a UTF-8 sequence does not decode, so it moves forward up to three bytes to reach
     // the next character. Returns false when the file cannot be read there.
-    mtd revealOffset(offset: u64, text: string)->bool
+    //
+    // With `caret`, the caret is placed at `offset` and brought into view even without text to
+    // highlight; without it, an empty `text` only loads the part of the file around `offset`.
+    mtd revealOffset(offset: u64, text: string, caret = false)->bool
     {
         .stopLoading()
         .pendingSeek   = false
@@ -252,7 +279,7 @@ impl Panel
             .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if text.count do
+            if text.count or caret do
                 Viewer.highlightRichEditMatch(.editor, chunk, requested - actual, text.count)
             .scheduleMore()
             return true
@@ -299,13 +326,150 @@ impl Panel
         Viewer.centerColumn(.editor, Viewer.CodeColumn * scale)
     }
 
-    // Gives the lens the zoom of the source.
+    // Marks the spaces and tabulations of the source, or stops marking them.
+    mtd toggleBlanks()
+    {
+        g_Blanks = not .editor.flags.has(.DrawBlanks)
+        .applyBlanks()
+    }
+
+    mtd applyBlanks()
+    {
+        if g_Blanks do
+            .editor.flags.add(.DrawBlanks)
+        else do
+            .editor.flags.remove(.DrawBlanks)
+        .editor.setFlags(.editor.flags)
+    }
+
+    // Sets the tab stops of the source every `width` spaces.
+    mtd setTabWidth(width: s32)
+    {
+        g_TabWidth = width
+        .applyTabWidth()
+    }
+
+    mtd applyTabWidth()
+    {
+        .editor.tabSize = g_TabWidth
+        .editor.setFlags(.editor.flags)
+    }
+
+    // Returns where the delimiter at the caret stands — the one after it, or else the one before
+    // it — or an invalid cursor when neither is a parenthesis, a bracket or a brace.
+    mtd delimiterAtCaret()->RichEditCursor
+    {
+        var cp = .editor.cursorFromLogicalPosition(.editor.cursorLogicalLineIndex(), .editor.cursorLogicalCharPos())
+        if isDelimiter(.editor.runeAt(cp).char) do
+            return cp
+        if cp.charPosInLine
+        {
+            cp.charPosInLine -= 1
+            if isDelimiter(.editor.runeAt(cp).char) do
+                return cp
+        }
+
+        return {Swag.U64.Max, 0}
+    }
+
+    // Moves the caret to the delimiter that pairs with the one at the caret, within the text read
+    // so far. Only delimiters drawn in the same style count, so one inside a string or a comment
+    // pairs with neither code nor another string. Returns false when there is no pair to reach.
+    mtd goToMatchingDelimiter()->bool
+    {
+        let start = .delimiterAtCaret()
+        if start.lineIndex == Swag.U64.Max do
+            return false
+
+        // Lines are colored as they are painted; the pair may lie on lines never shown.
+        .editor.lexAll()
+        let first   = .editor.runeAt(start)
+        let partner = delimiterPartner(first.char)
+        let forward = first.char == '(' or first.char == '[' or first.char == '{'
+
+        var cp    = start
+        var depth = 0'u64
+        while true
+        {
+            if not (forward ? .stepForward(&cp) : .stepBackward(&cp)) do
+                return false
+            let at = .editor.runeAt(cp)
+            if at.style != first.style do
+                continue
+            if at.char == first.char
+            {
+                depth += 1
+            }
+            elif at.char == partner
+            {
+                if not depth
+                {
+                    .editor.setCursorPos(cp)
+                    .editor.ensureCaretIsVisible(center: true)
+                    .editor.invalidate()
+                    return true
+                }
+
+                depth -= 1
+            }
+        }
+
+        return false
+    }
+
+    // Moves `cp` to the next rune of the text; the end of a line reads as a line feed.
+    private mtd stepForward(cp: *RichEditCursor)->bool
+    {
+        cp.charPosInLine += 1
+        if .editor.runeAt(cp[]).char do
+            return true
+        cp[] = {cp.lineIndex + 1, 0}
+        return .editor.runeAt(cp[]).char != 0
+    }
+
+    // Moves `cp` to the previous rune of the text; the end of a line reads as a line feed.
+    private mtd stepBackward(cp: *RichEditCursor)->bool
+    {
+        if cp.charPosInLine
+        {
+            cp.charPosInLine -= 1
+            return true
+        }
+
+        if not cp.lineIndex do
+            return false
+        cp[] = {cp.lineIndex - 1, 0}
+        .editor.moveCursorEndLine(cp)
+        return true
+    }
+
+    // Gives the lens the whitespace marks and the zoom of the source.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // A typed language name offers to color the source as that language instead.
+        if entries.query.count
+        {
+            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode, func|view = me|() { view.highlightAs(.C, swag: true) }, checked: .languageName == "Swag")
+            for language in SourceLanguage
+            {
+                let name = displayName(language)
+                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode, func|view = me, language|() { view.highlightAs(language) }, checked: .languageName == name)
+            }
+        }
+
+        // The pair is offered only when the caret stands by a bracket, which is when it means something.
+        if .delimiterAtCaret().lineIndex != Swag.U64.Max do
+            entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, shortcut: Input.formatKeyShortcut(.Control, .Oem6))
+        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
+
+        // The tab stops answer a query, as the languages do, rather than fill the empty lens.
+        for width in Viewer.TabWidths where entries.query.count do
+            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .editor.tabSize == width)
     }
 
     mtd showZoomMenu()
@@ -340,6 +504,8 @@ impl Panel
 
         result.applyLayout()
         result.setZoom(g_ZoomPercent)
+        result.applyBlanks()
+        result.applyTabWidth()
         result.scheduleMore()
         return result
     }
@@ -439,6 +605,27 @@ impl Panel
         }
     }
 
+    // Colors the source as `language`, or as Swag with `swag`, whatever its name says, and colors
+    // the lines already shown again. The choice holds for this file only.
+    internal mtd highlightAs(language: SourceLanguage, swag = false)
+    {
+        if swag
+        {
+            .languageName = "Swag"
+            .editor.setLexer(&.swagLexer)
+        }
+        else
+        {
+            .languageName = displayName(language)
+            .codeLexer.configure(language)
+            .editor.setLexer(&.codeLexer)
+        }
+
+        .editor.lexAll()
+        .editor.invalidate()
+        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
+    }
+
     // Follows scrolling with the resident window, routes the keys the code view answers for, and
     // keeps painting and resizing from reloading text.
     private mtd hookEvents()
@@ -491,6 +678,10 @@ impl Panel
                 view.repositioning = true
                 view.editor.keyPressed(.Home, .Control)
                 view.repositioning = false
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Oem6 and keyEvt.modifiers == .Control:
+                discard view.goToMatchingDelimiter()
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
@@ -635,7 +826,7 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true)
         .matchBounds = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
         .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }

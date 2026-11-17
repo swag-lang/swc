@@ -180,6 +180,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     view.tags.year        = "1999"
     view.refreshDetails()
     Swag.require(view.credits() == "Various Artists · 1999" and not Utf8.contains(view.details.toString(), "Various Artists"))
+
+    // The information sheet gives every tag the file names, the track and the genre among them.
+    view.tags.track = "4/12"
+    view.tags.genre = "Ambient"
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let information = sheet.text()
+    Swag.require(Utf8.contains(information, "Tags\nAlbum artist\nVarious Artists\nYear\n1999\nTrack\n4/12\nGenre\nAmbient"), information)
     view.tags = {}
     view.refreshDetails()
     Swag.require(view.credits().isEmpty())
@@ -388,4 +396,258 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     let view   = assume cast(*Sound.Panel, result.view)
     waitForSoundOpen(&host, view)
     Swag.require(view.opened and view.cover.isValid() and not view.coverImage.isValid())
+}
+
+// A sleeve the recording embeds in its tags is decoded and fitted like one beside it, and its
+// encoded bytes are let go; one that does not decode gives no cover.
+#test
+{
+    var tags: SoundTags
+    tags.picture = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    tags.pictureExtension = ".png"
+    let image = Sound.embeddedSleeve(&tags)
+    Swag.require(image.isValid() and Math.max(image.width, image.height) <= cast(s32, Sound.CoverSize * 2))
+    Swag.require(tags.picture.isEmpty())
+
+    tags.picture.add(0xFF'u8)
+    tags.picture.add(0xD8'u8)
+    tags.pictureExtension = ".jpg"
+    Swag.require(not Sound.embeddedSleeve(&tags).isValid())
+}
+
+// The thumbnail of a recording that embeds its sleeve is that sleeve, fitted to the size asked for,
+// rather than a waveform.
+#test
+{
+    let png = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    var frame: Array'u8
+    frame.add(0'u8)
+    for byte in "image/png" do
+        frame.add(byte)
+    frame.add(0'u8)
+    frame.add(3'u8)
+    frame.add(0'u8)
+    for byte in png do
+        frame.add(byte)
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    for byte in [3'u8, 0, 0] do
+        file.add(byte)
+    let size = frame.count + 10
+    for shift in [21'u64, 14, 7, 0] do
+        file.add(cast(u8, (size >> shift) & 0x7F))
+    for byte in "APIC" do
+        file.add(byte)
+    for shift in [24'u64, 16, 8, 0] do
+        file.add(cast(u8, (frame.count >> shift) & 0xFF))
+    file.add(0'u8)
+    file.add(0'u8)
+    for byte in frame do
+        file.add(byte)
+
+    let fileName = Gui.Testing.tempFilePath("scope-sound-sleeve-", ".mp3")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, file.toSlice())
+
+    let plugin = Sound.viewerPlugin()
+    let image  = expect plugin.thumbnail!(fileName, 96)
+
+    // The 5000 × 367 banner keeps its shape; a waveform would be half as tall as it is wide.
+    Swag.require(image.isValid() and image.width == 96 and image.height == 7)
+}
+
+// Shift and an arrow step the rate of a recording through the rates a film offers, the lens
+// steps it too, and the summary declares a rate other than the source one.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-sound-rate-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, TinyWav)
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view     = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.playbackRate == 1)
+
+    var faster = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
+    view.sendEvent(&faster)
+    Swag.require(view.playbackRate == 1.25 and Utf8.contains(view.details.toString(), "1.25×"))
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries where entry.title == Sound.texts().cmd_Slower do
+        entry.run!()
+    Swag.require(view.playbackRate == 1 and not Utf8.contains(view.details.toString(), "×"))
+
+    for 9 do
+        view.sendEvent(&faster)
+    Swag.require(view.playbackRate == Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
+}
+
+// A colon and an instant, or a displacement in seconds, in the lens move a recording there; an
+// instant past its end offers nothing.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("pacman_beginning.wav"), false)
+    let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.playButton.isEnabled() and view.duration > 3)
+
+    window.lens.open(":0:02")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:02"))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(Math.abs(view.elapsed - 2) < 0.05)
+
+    window.lens.open(":+1")
+    host.finishAnimations()
+    Swag.require((unwrap window.lens.results.sections[0]).entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:03 (+1)"))
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":59:00")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
+}
+
+// Writes `samples` as a 16-bit mono WAV at 8 kHz.
+func pcm16Wav(samples: const [..] s16)->Array'u8
+{
+    var result: #returntype
+    result.resize(44 + samples.count * 2)
+    for value, index in TinyWav[0 until 44] do
+        result[index] = value
+    writeU32(&result, 4, cast(u32, 36 + samples.count * 2))
+    writeU32(&result, 28, 16_000)     // Bytes per second.
+    result[32] = 2      // Bytes per frame.
+    result[34] = 16     // Bits per sample.
+    writeU32(&result, 40, cast(u32, samples.count * 2))
+    for sample, index in samples do
+        writeU16(&result, 44 + index * 2, cast #bit (u16, sample))
+    return result
+}
+
+// Opens `bytes` as a WAV, measures it in full, and returns what the information sheet reads.
+func soundInformation(bytes: const [..] u8)->String
+{
+    let fileName = Gui.Testing.tempFilePath("scope-sound-levels-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    Swag.require(not Utf8.contains(sheet.text(), "Sample peak"))
+    finishWaveform(view)
+    view.describeInformation(sheet)
+    return sheet.text()
+}
+
+// Once the waveform worker has read every sample, the sheet states the levels of the whole
+// recording: its sample peak, its RMS level and how many samples touch full scale, where an 8-bit
+// source tops out lower than a 16-bit one.
+#test
+{
+    let halfBytes = pcm16Wav([16384's16, -16384, 0, 0])
+    let half      = soundInformation(halfBytes.toSlice())
+    Swag.require(Utf8.contains(half, "Levels"), half)
+    Swag.require(Utf8.contains(half, "Format\n") and Utf8.contains(half, "Approx. bitrate\n128 kb/s"), half)
+    Swag.require(Utf8.contains(half, "Sample peak\n-6.0 dBFS"), half)
+    Swag.require(Utf8.contains(half, "RMS level\n-9.0 dBFS"), half)
+    Swag.require(Utf8.contains(half, "Full scale\n0 samples"), half)
+
+    let full = soundInformation(TinyWav)
+    Swag.require(Utf8.contains(full, "Sample peak\n0.0 dBFS"), full)
+    Swag.require(Utf8.contains(full, "RMS level\n-3.0 dBFS"), full)
+    Swag.require(Utf8.contains(full, "Full scale\n2 samples"), full)
+
+    let silentBytes = pcm16Wav([0's16, 0, 0, 0])
+    let silent      = soundInformation(silentBytes.toSlice())
+    Swag.require(Utf8.contains(silent, "Sample peak\n−∞ dBFS"), silent)
+}
+
+// Two points marked while listening loop the passage between them: playback past its end goes
+// back to its start, the wave and the summary show it, and stopping the loop plays through again.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var samples: Array's16
+    samples.resize(8_000 * 3)
+    let bytes    = pcm16Wav(samples.toSlice())
+    let fileName = Gui.Testing.tempFilePath("scope-sound-loop-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.engineReady and view.duration > 2.9)
+
+    // An end before any start loops from the beginning; a start after the end drops the end.
+    view.seekSeconds(1)
+    view.setLoopEnd()
+    Swag.require(view.loopStart == 0 and Math.abs(view.loopEnd - 1) < 0.01)
+    view.seekSeconds(2)
+    view.setLoopStart()
+    Swag.require(Math.abs(view.loopStart - 2) < 0.01 and view.loopEnd < 0)
+
+    view.seekSeconds(0.5)
+    view.setLoopStart()
+    view.seekSeconds(1.5)
+    view.setLoopEnd()
+    Swag.require(Math.abs(view.waveform.loopStart - 0.5 / view.duration) < 0.01 and view.waveform.loopEnd > view.waveform.loopStart)
+    Swag.require(Utf8.contains(view.details.toString(), Format.toString(Sound.texts().ui_Loop, "0:00", "0:01").toString()), view.details)
+
+    view.seekSeconds(1.6)
+    Swag.require(view.followLoop() and Math.abs(view.elapsed - 0.5) < 0.01, Format.toString("%", view.elapsed))
+    view.seekSeconds(1.2)
+    Swag.require(not view.followLoop())
+
+    view.clearLoop()
+    Swag.require(view.loopStart < 0 and
+                 view.waveform.loopStart < 0 and
+                 not Utf8.contains(view.details.toString(), "0:00–"))
+    view.seekSeconds(1.6)
+    Swag.require(not view.followLoop())
+
+    // The lens copies the instant playback stands at, as the clock writes it.
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
+    entries.query = "copy"
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(appStrings().cmd_CopyTime, "0:01")
+    {
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found)
+    if Clipboard.isFake() do
+        Swag.require(Clipboard.getString() == "0:01", Clipboard.getString())
 }

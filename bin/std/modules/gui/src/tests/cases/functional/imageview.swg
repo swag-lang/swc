@@ -313,3 +313,61 @@ private func edgeSpread(image: *Image, row: s32)->s32
     view.setDisplaySize(0, 0)
     Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 }
+
+// The pixel a point names is the one drawn there, whatever rotation and mirror the view shows:
+// each sample of a picture with eight distinct colors is found again under its own rendered cell.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+
+    // Rows are stored bottom first; a pixel's red names its column and its green its row.
+    var image = Image.create(4, 2, .RGBA8)
+    for y in 2
+    {
+        for x in 4
+        {
+            let at = ((1 - y) * 4 + x) * 4
+            image.pixels[at + 0] = cast(u8, 40 + x * 60)
+            image.pixels[at + 1] = cast(u8, 60 + y * 120)
+            image.pixels[at + 2] = 30
+            image.pixels[at + 3] = 255
+        }
+    }
+
+    Swag.require(image.pixelColor(3, 0).r == 220 and image.pixelColor(3, 0).g == 60)
+
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
+    view.setImage(image)
+    view.setZoom(20)
+    for turn in 8
+    {
+        view.resetTransform()
+        for turn % 4 do
+            view.rotateClockwise()
+        if turn >= 4 do
+            view.mirrorHorizontally()
+
+        let frame = host.render(view)
+        var found = 0
+        for py in 4
+        {
+            for px in 6
+            {
+                // Sample in the middle of the 20-unit cells around the view's centre.
+                let point = Math.Point{150 + (cast(f32, px) - 3) * 20 + 10, 100 + (cast(f32, py) - 2) * 20 + 10}
+                let pixel = view.pixelAt(point)
+                if not pixel.inside do
+                    continue
+                let drawn  = frame.pixelColor(cast(s32, point.x), cast(s32, point.y))
+                let stored = image.pixelColor(pixel.x, pixel.y)
+                Swag.require(drawn.r == stored.r and drawn.g == stored.g, Format.toString("turn % at %,% names %,%", turn, px, py, pixel.x, pixel.y))
+                found += 1
+            }
+        }
+
+        Swag.require(found == 8)
+    }
+
+    Swag.require(not view.pixelAt(Math.Point{2, 2}).inside)
+}

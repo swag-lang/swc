@@ -132,10 +132,11 @@ struct PdfView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigPageChanged: SigArray'func||(*Wnd)             // Emitted after the page the viewport shows changes.
-        sigZoomChanged: SigArray'func||(*Wnd)             // Emitted after the effective zoom changes.
-        sigRenderError: SigArray'func||(*Wnd, string)     // Emitted when a page cannot be decoded or painted.
-        sigScrolled:    SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
+        sigPageChanged:   SigArray'func||(*Wnd)             // Emitted after the page the viewport shows changes.
+        sigZoomChanged:   SigArray'func||(*Wnd)             // Emitted after the effective zoom changes.
+        sigRenderError:   SigArray'func||(*Wnd, string)     // Emitted when a page cannot be decoded or painted.
+        sigScrolled:      SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
+        sigTextExtracted: SigArray'func||(*Wnd)             // Emitted once the document's text has been extracted, when [[Gui.PdfView.textCoverage]] can answer.
 
         readonly
         {
@@ -1008,6 +1009,21 @@ impl IWnd for PdfView
         .cache.close(.app().renderer)
     }
 
+    // The end of the text extraction makes the coverage of the document known.
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        // An extraction stopped by a closed document can still report; only the current one counts.
+        if evt.task != &.documentText.task or
+           evt.submission != .documentText.task.currentSubmission() or
+           not .documentText.isComplete()
+        {
+            evt.accepted = false
+            return
+        }
+
+        .sigTextExtracted.call(me)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .pollTimer
@@ -1360,6 +1376,36 @@ impl PdfView
 
     // Returns the number of pages of the open document, or zero when none is open.
     mtd const pageCount()->u64 => .hasDocument ? .pageSizes.count : 0
+
+    // Starts extracting the document's text on a worker, as the first search would, so that
+    // [[Gui.PdfView.textCoverage]] can answer without one; [[Gui.PdfView.sigTextExtracted]] tells
+    // when it is done. Extraction runs once per document, so a call after it started does nothing.
+    mtd extractText()
+    {
+        .ensureDocumentText()
+    }
+
+    // Counts the pages a text search finds no words in, once the document's text has been
+    // extracted for search: `pictures` carry no text at all, as a scan without a recognized text
+    // layer does, and `unreadable` could not be decoded. `complete` is false while the extraction
+    // [[Gui.PdfView.collectTextMatches]] starts is still running, and both counts are then zero.
+    mtd textCoverage()->{ complete: bool, pictures: u64, unreadable: u64 }
+    {
+        var result: #returntype
+        if not .hasDocument or not .documentText.isComplete() do
+            return result
+
+        result.complete = true
+        for index in .documentText.pages.count
+        {
+            if .documentText.pageFailed(index) do
+                result.unreadable += 1
+            elif not Latin1.trim(.documentText.pageText(index)).count do
+                result.pictures += 1
+        }
+
+        return result
+    }
 
     // Returns the dimensions of the page the viewport shows, in PDF points.
     mtd const pageSize()->Math.Point => .hasDocument ? .pageSizes[.pageIndex] : {}
@@ -1820,7 +1866,7 @@ impl PdfView
     {
         if .documentText.started or not .hasDocument do
             return
-        .documentText.start(.reader.fileName(), .reader.pageCount())
+        .documentText.start(.reader.fileName(), .reader.pageCount(), me)
     }
 
     // Selects the word around one position of the document, the double-click gesture.

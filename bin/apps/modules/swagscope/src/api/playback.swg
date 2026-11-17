@@ -20,6 +20,25 @@ const SlideMaxSeconds       = 3600'f32     // Longest supported still-picture du
 const SlideChoices: [5] f32 = [3, 5, 10, 30, 60]     // Still-picture durations offered by the options, in seconds.
 const VolumeStep            = 0.05'f32     // Volume change of one Up or Down key press in a media viewer.
 
+// The playback rates a media viewer offers, slowest first. An audio voice is created with the
+// default maximum frequency ratio of two, so 2x is the fastest rate the sound can follow; the pitch
+// follows the rate, as the voice resamples without preserving it.
+const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+
+// Returns the rate one step from `current` through [[Viewer.PlaybackRates]], toward the faster ones
+// for a positive `direction`, and no further than either end.
+func playbackRateStep(current: f64, direction: s32)->f64
+{
+    var currentIndex = 0's32
+    for rate, index in PlaybackRates where rate <= current do
+        currentIndex = cast(s32, index)
+    let nextIndex = Math.clamp(currentIndex + direction, 0, cast(s32, PlaybackRates.count - 1))
+    return PlaybackRates[cast(u32, nextIndex)]
+}
+
+// Names one playback rate; the source rate keeps its word rather than a number.
+func playbackRateText(rate: f64)->String => rate == 1 ? String.from(appStrings().ui_SpeedNormal) : Format.toString("%×", rate)
+
 // Shared playback preferences, retained by the host across files and viewer instances.
 struct PlaybackSettings
 {

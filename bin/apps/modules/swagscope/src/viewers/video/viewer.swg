@@ -35,10 +35,6 @@ private
     const SeekSeconds = 10.0
     const NoSubtitle  = Swag.U32.Max
 
-    // The playback rates the settings menu offers. XAudio2 creates every voice with the default
-    // maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
-    const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-
     // How far behind the clock playback is allowed to fall before it gives up and jumps.
     //
     // Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
@@ -132,19 +128,6 @@ func soundSample(sound: const *SoundFile, seconds: f64)->u64
     return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
 
-// Moves one step through the playback rates the options offer.
-private func playbackRateStep(current: f64, direction: s32)->f64
-{
-    var currentIndex = 0's32
-    for rate, index in PlaybackRates where rate <= current do
-        currentIndex = cast(s32, index)
-    let nextIndex = Math.clamp(currentIndex + direction, 0, cast(s32, PlaybackRates.count - 1))
-    return PlaybackRates[cast(u32, nextIndex)]
-}
-
-// Names one selectable playback rate; the source rate keeps its word rather than a number.
-private func playbackRateText(rate: f64)->String => rate == 1 ? texts().ui_PlayerSpeedNormal : Format.toString("%×", rate)
-
 // One decoded picture of the run-ahead queue.
 //
 // A codec reconstructs planar 4:2:0 and the renderer converts where it draws, so a queued picture
@@ -179,13 +162,21 @@ struct Panel
         volumeSlider:    *Slider
     }
 
-    seekOverlay:         *SeekOverlay?
-    subtitleToast:       *Toast?
+    seekOverlay:   *SeekOverlay?
+    subtitleToast: *Toast?
+    frameToast:    *Toast?
+
+    // The picture on screen is not kept once drawn, so copying it decodes it again from the file,
+    // on a worker with a reader of its own.
+    frameCopy:           Swag.Task'Image
+    frameCopying:        bool
     subtitleLoad:        Viewer.BackgroundLoad'LoadedSubtitle
     pendingSubtitle:     String
     subtitleDelay:       f64
     manualSubtitleIndex: u32 = Swag.U32.Max
     previousSeek:        f64 = -1
+    loopStart:           f64 = -1     // Second a looped passage starts at, negative without one.
+    loopEnd:             f64 = -1     // Second it ends at, negative while only its start is set.
     helpLine:            *HintLine?
 
     // The veils leave when the hand rests away from them, unless a timeline is being dragged or
@@ -306,6 +297,7 @@ private impl Panel
             return
 
         .decode.wait()
+        .frameCopy.wait()
         .decodeExecutor.close()
         if .decodeWake.isValid() do
             .decodeWake.release()
@@ -370,7 +362,8 @@ private impl Panel
         }
 
         let subtitlesRetired = .subtitleLoad.retire()
-        if .decode.isPending() or not subtitlesRetired do
+        .frameCopy.cancel()
+        if .decode.isPending() or .frameCopy.isPending() or not subtitlesRetired do
             return false
         .finishRetire()
         return true
@@ -586,6 +579,59 @@ impl Panel
         .seekSeconds(seconds)
     }
 
+    // Starts a looped passage where playback stands; an end before it no longer holds.
+    mtd setLoopStart()
+    {
+        if not .hasFrame do
+            return
+        .loopStart = .currentSeconds()
+        if .loopEnd <= .loopStart do
+            .loopEnd = -1
+        .refreshLoop()
+    }
+
+    // Ends the looped passage where playback stands, from its start, or from the beginning when
+    // none was set. A point at or before the start sets nothing.
+    mtd setLoopEnd()
+    {
+        if not .hasFrame do
+            return
+        let position = .currentSeconds()
+        let start    = .loopStart >= 0 ? .loopStart : 0
+        if position <= start do
+            return
+        .loopStart = start
+        .loopEnd   = position
+        .refreshLoop()
+    }
+
+    // Plays the film through again, without a looped passage.
+    mtd clearLoop()
+    {
+        .loopStart = -1
+        .loopEnd   = -1
+        .refreshLoop()
+    }
+
+    // Shows the looped passage on the timeline and in the summary.
+    mtd refreshLoop()
+    {
+        .timeline.loopStart = cast(f32, .loopStart)
+        .timeline.loopEnd   = cast(f32, .loopEnd)
+        .timeline.invalidate()
+        .refreshDetails()
+    }
+
+    // Plays a looped passage again from its start once playback has reached its end; reports
+    // whether it did. The return is not a jump the reader can undo.
+    mtd followLoop()->bool
+    {
+        if .loopStart < 0 or .loopEnd <= .loopStart or .currentSeconds() < .loopEnd do
+            return false
+        .seekSeconds(.loopStart)
+        return true
+    }
+
     mtd undoSeek()
     {
         if .previousSeek < 0 do
@@ -659,6 +705,7 @@ private impl IWnd for Panel
             }
 
             .finishSubtitleLoad()
+            .finishFrameCopy()
             .finishSubtitles()
             .refreshTime()
             .refreshSubtitle()
@@ -727,8 +774,11 @@ private impl IWnd for Panel
         switch evt.key
         {
         case .G where control:                    .promptGoToTime()
+        case .Oem4 where plain:                   .setLoopStart()
+        case .Oem6 where plain:                   .setLoopEnd()
+        case .C where control:                    .copyFrame()
         case .Left, .Right where control:         discard .stepFrame(evt.key == .Right)
-        case .Left, .Right where shift:           .setPlaybackRate(playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+        case .Left, .Right where shift:           .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
         case .Space, .MediaPlayPause where plain: .togglePlayback()
         case .Left where plain:                   .seekRelative(-SeekSeconds)
         case .Right where plain:                  .seekRelative(SeekSeconds)
@@ -740,7 +790,7 @@ private impl IWnd for Panel
         default: evt.accepted = false
         }
 
-        if evt.accepted and evt.key != .G do
+        if evt.accepted and evt.key != .G and evt.key != .C do
             .notePlaybackGesture()
     }
 }
@@ -839,10 +889,14 @@ private impl Panel
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
-            .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
+            .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
 
-        // Technical facts use the host footer; the title only identifies the file.
-        .services.showDetails(me, .facts())
+        // Technical facts use the host footer; the title only identifies the file. A looped
+        // passage is part of what the reader is watching, so the footer names it.
+        var facts = .facts()
+        if .loopStart >= 0 and .loopEnd > .loopStart do
+            facts = Format.toString("% · %", facts, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        .services.showDetails(me, facts)
     }
 
     // Returns the facts for the shared bottom reading line: the picture, its rate and its length.
@@ -974,6 +1028,15 @@ private impl Panel
         let texts = appStrings()
         let ready = .playButton.isEnabled()
 
+        // `:` and an instant, or a displacement in seconds, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), .currentSeconds(), .video.durationInSeconds()) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.jumpTo(target) })
+            return
+        }
+
         // At rest the lens offers what the film can use without a search query.
         if entries.query.isEmpty()
         {
@@ -1002,12 +1065,52 @@ private impl Panel
         entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, disabled: not ready)
         entries.add(strings.cmd_LoadSubtitles, .OpenFile, func|view = me|() { view.promptSubtitle() }, disabled: not ready or .subtitleLoad.started)
         entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(.currentSeconds())), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(view.currentSeconds())) }, disabled: not .hasFrame)
+        entries.add(strings.cmd_CopyFrame, .Copy, func|view = me|() { view.copyFrame() }, disabled: not .hasFrame or .frameCopying, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem4))
+        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem6))
+        if .loopStart >= 0 do
+            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() })
         entries.add(strings.cmd_UndoSeek, .ChevronLeft, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0)
         entries.add(strings.cmd_PlaybackHelp, .Information, func|view = me|() { view.showPlaybackHelp() })
         entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, disabled: not .audio or .video.audioTrackCount() < 2)
         entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() }, disabled: not .tracksButton.isEnabled())
         entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
         entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+    }
+
+    // Puts the picture on screen on the clipboard, at the size the film is shown and without its
+    // subtitles. The decode runs on a worker; the copy lands once it is done.
+    mtd copyFrame()
+    {
+        if not .hasFrame or .frameCopying do
+            return
+        .frameCopying = true
+        let index  = .frameIndex
+        let width  = .video.displayWidth()
+        let height = .video.displayHeight()
+        .frameCopy.submit(func|view = me, index, width, height|()->Image fail => try decodeShownFrame(view.openFileName, index, width, height))
+    }
+
+    // Hands a decoded copy to the clipboard, or says why there is none.
+    internal mtd finishFrameCopy()
+    {
+        if not .frameCopying or not .frameCopy.isDone() do
+            return
+        .frameCopying = false
+        var failure: Swag.Error
+        catch
+        {
+            let image = try .frameCopy.take()
+            Clipboard.addImage(image)
+        } as failure
+
+        let reason = failure.value()
+        if reason == null do
+            return
+        if not .frameToast do
+            .frameToast = Toast.create(me)
+        .frameToast.show(texts().ui_FrameCopyFailed, Viewer.failureText(reason), .Failure)
     }
 
     // Creates the transport inside the host's command group.

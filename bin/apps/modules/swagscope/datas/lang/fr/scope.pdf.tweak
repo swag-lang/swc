@@ -6,15 +6,25 @@ ui_ZoomOut   Réduire
 ui_ZoomIn    Agrandir
 ui_Fit       Ajuster la page
 ui_FitWidth  Ajuster à la largeur
+ui_CopyText    Copier le texte sélectionné
+ui_SelectPage  Sélectionner le texte de la page
 ui_Actual    Taille réelle
 ui_ZoomMenu Zoom…
 ui_GoToPage  Aller à la page
 ui_PageRange Numéro de page entre 1 et %.
+ui_PageRangeLabels Numéro de page entre 1 et %, ou libellé de page comme %.
 ui_Continuous Continu
 ui_SinglePage Page par page
 ui_OnePage    1 page
 ui_Pages      % pages
 
 err_NoPage le document PDF ne contient aucune page
+ui_NoTextLayer Les pages sont des images sans couche de texte : leurs mots ne peuvent pas être recherchés
+ui_SomeNoText  % pages sur % sont des images sans couche de texte et n'ont pas été parcourues
+ui_Unreadable  Le texte de % pages n'a pas pu être lu
+ui_TextLayerAll sur chaque page
+ui_TextLayerNone aucune, les pages sont des images
+ui_TextLayerSome absente sur % pages sur %
+ui_TextLayerUnreadable % pages illisibles
 ui_Back      Retour dans le document
 ui_Forward   Avancer dans le document

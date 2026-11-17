@@ -515,6 +515,7 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
     if let os2 = findTableAt(data, faceOffset, TAG_OS2)
     {
         weight = readU16(os2, 4)
+        result.embedding = readU16(os2, 8)
         let widthClass = readU16(os2, 6)
         if widthClass >= 1 and widthClass <= 9 do
             result.widthClass = widthClass

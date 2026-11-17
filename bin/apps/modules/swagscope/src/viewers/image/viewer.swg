@@ -140,17 +140,77 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         let dimensions  = Format.toString("% × % px", shown.width, shown.height)
         let pixelFormat = Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false)
         let depth       = Format.toString("%", frame.bitsPerPixel)
+        var transparency: String
+        if not animated and frame.pixelFormat.hasAlpha() do
+            transparency = transparencyText(shown)
         result.information.add(.Dimensions, dimensions)
         result.information.add(.PixelFormat, pixelFormat)
         result.information.add(.Depth, depth)
         if animated do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
+        if transparency.count do
+            result.information.add(.Transparency, transparency)
 
         result.information.addImageMetadata(result.movie.frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
         if result.movie.frameCount <= 1 do
             result.movie.clear()
     }
 
+    return result
+}
+
+// Says how much of a picture its alpha channel hides: none of it, or the share of pixels it makes
+// wholly transparent and the share it lets show through. Read from 8-bit alpha only; empty for
+// other formats.
+func transparencyText(image: const *Image)->String
+{
+    var step = 4'u64
+    switch image.pixelFormat
+    {
+    case .RGBA8, .BGRA8: step = 4
+    case .GrayAlpha8:    step = 2
+    default: return {}
+    }
+
+    let offset = step - 1
+
+    var transparent, partial: u64
+    let bytes = image.pixels.toSlice()
+    var at    = offset
+    while at < bytes.count
+    {
+        let alpha = bytes[at]
+        if alpha == 0 do
+            transparent += 1
+        elif alpha != 255 do
+            partial += 1
+        at += step
+    }
+
+    if not transparent and not partial do
+        return String.from(texts().ui_Opaque)
+    let total = Math.max(cast(u64, image.width) * cast(u64, image.height), 1)
+    var result: String
+    if transparent do
+        result = Format.toString(texts().ui_Transparent, shareText(transparent, total))
+    if partial
+    {
+        if not result.isEmpty() do
+            result += " · "
+        result += Format.toString(texts().ui_Translucent, shareText(partial, total))
+    }
+
+    return result
+}
+
+// Writes `count` out of `total` as a whole percentage, or `<1%` for a share too small to round.
+func shareText(count, total: u64)->String
+{
+    let percent = count * 100 / total
+    if not percent do
+        return String.from("<1%")
+    var result = Format.toString("%", percent)
+    result += "%"
     return result
 }
 
@@ -214,6 +274,9 @@ struct Panel
     handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:               Viewer.BackgroundLoad'ViewerContent
     failureReason:      String
+    shownItem:          String         // What the summary last said of the item in view.
+    probed:             Math.Point     // Pixel of the stored picture the pointer last read.
+    hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
 }
 
 impl Panel
@@ -241,13 +304,65 @@ impl Panel
         .services.chromeChanged(me)
     }
 
+    // Returns what the image set says of the item in view when the items stand apart — an icon
+    // size, a page, a layer or a texture level — rather than following one another in time: its
+    // size, then its place in a texture and its name. Empty for a single image or an animation.
+    mtd itemText()->String
+    {
+        var result: String
+        let movie = &.imageView.movie
+        if movie.frameCount <= 1 do
+            return result
+        let info = movie.frameInfo()
+        if not info do
+            return result
+
+        // A paused animation says how long its frame stays on screen; a playing one says nothing,
+        // the frames passing too quickly to be read.
+        if info.kind == .Animation
+        {
+            if movie.isPaused do
+                result = Format.toString(texts().ui_FrameDelay, cast(u32, Math.round(movie.currentFrameDuration() * 1000)))
+            return result
+        }
+
+        result = Format.toString("% × %", info.width, info.height)
+        if info.kind == .Texture
+        {
+            if info.level do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemLevel, info.level))
+            if info.layer do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
+            if info.face do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemFace, info.face))
+        }
+
+        if not info.name.isEmpty() do
+            result += Format.toString(" · %", info.name)
+        return result
+    }
+
+    // Returns the summary of the picture, followed by what the image set says of the item in view.
+    mtd shownDetails()->String
+    {
+        let item = .itemText()
+        return item.isEmpty() ? String.from(.details) : Format.toString("% · %", .details, item)
+    }
+
     // Updates the frame controls of an animation, and ends the cycle the first time the movie
-    // completes a loop.
+    // completes a loop. Over a set of independent images, the summary follows the item in view.
     mtd refreshFrame()
     {
         let movie = &.imageView.movie
         if movie.frameCount <= 1 do
             return
+        let item = .itemText()
+        if item != .shownItem
+        {
+            .shownItem = item
+            .services.showDetails(me, .shownDetails())
+        }
+
         .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
         .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
         .previousPage.enable(movie.frameIndex > 0)
@@ -344,6 +459,33 @@ impl Panel
         return menu
     }
 
+    // Returns the color of the pixel the pointer last read, as `#RRGGBB`, or `#RRGGBBAA` when it is
+    // not opaque; empty when no pixel of the bitmap shown has been read.
+    mtd probedColorText()->String
+    {
+        var result: #returntype
+        let picture = .imageView.picture()
+        if not .hasProbe or not picture do
+            return result
+        let x = cast(s32, .probed.x)
+        let y = cast(s32, .probed.y)
+        if x >= picture.width or y >= picture.height do
+            return result
+        let color = picture.pixelColor(x, y)
+        result = Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)
+        if color.a != 255 do
+            result += Format.toString("%{X02}", color.a)
+        return result
+    }
+
+    // Puts the color of the pixel the pointer last read on the clipboard, as the lens names it.
+    mtd copyProbedColor()
+    {
+        let color = .probedColorText()
+        if color.count do
+            Clipboard.setString(color)
+    }
+
     // Puts the picture on the clipboard as decoded and stood upright, without the view's own
     // rotation or zoom.
     mtd copyPicture()
@@ -368,14 +510,22 @@ impl Panel
         entries.add(texts.ui_ResetTransform, .Update, func|view = me|() { view.resetTransform() }, shortcut: Input.formatKeyShortcut(.Control, .R))
         if .imageView.picture() do
             entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, shortcut: Input.formatKeyShortcut(.Control, .C))
+
+        // The pixel the pointer read last, whose color the reader may want elsewhere.
+        let color = .probedColorText()
+        if color.count do
+            entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, shortcut: Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .C))
         entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(lens.cmd_ZoomReset, .ActualSize, func|view = me|() { view.imageView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
         if .imageView.movie.frameCount > 1
         {
-            entries.add(lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-            entries.add(lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+            // An animation steps by frames, an image set by pages.
+            let info      = .imageView.movie.frameInfo()
+            let animation = info and info.kind == .Animation
+            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         }
 
         entries.add(lens.cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
@@ -445,7 +595,7 @@ private impl IWnd for Panel
             if not .facts.width.isEmpty()
             {
                 .details = .facts.text()
-                .services.showDetails(me, .details)
+                .services.showDetails(me, .shownDetails())
             }
         }
 
@@ -495,7 +645,7 @@ private impl IWnd for Panel
         .information = #move content.information
         .refreshZoom()
         .applyLayout()
-        .services.showDetails(me, .details)
+        .services.showDetails(me, .shownDetails())
         .services.loadingChanged(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
@@ -549,6 +699,9 @@ private impl IWnd for Panel
 
         case .C where evt.modifiers == .Control:
             .copyPicture()
+
+        case .C where evt.modifiers == (Input.KeyModifiers.Control | .Shift):
+            .copyProbedColor()
 
         case .H where evt.modifiers == .None:
             .mirrorHorizontally()
@@ -737,11 +890,57 @@ private impl Panel
         .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
+    // Returns the reading of the content under `local`, a point of the picture view: the pixel
+    // and, for a bitmap, its color and opacity; or an empty string beside the picture.
+    mtd probeText(local: Math.Point)->String
+    {
+        var result: String
+        let pixel = .imageView.pixelAt(local)
+        if not pixel.inside do
+            return result
+
+        result    = Format.toString(texts().ui_ProbePixel, pixel.x, pixel.y)
+        .probed   = {cast(f32, pixel.x), cast(f32, pixel.y)}
+        .hasProbe = true
+        let picture = .imageView.picture()
+        if picture
+        {
+            let color = picture.pixelColor(pixel.x, pixel.y)
+            result += Format.toString(" · #%{X02}%{X02}%{X02}", color.r, color.g, color.b)
+            if color.a != 255 do
+                result += Format.toString(" · %", Format.toString(texts().ui_ProbeAlpha, shareText(color.a, 255)))
+        }
+
+        return result
+    }
+
+    // Shows the reading of the point under the pointer after the summary, or the summary alone.
+    mtd showProbe(local: Math.Point)
+    {
+        let probe = .probeText(local)
+        let shown = .shownDetails()
+        .services.showDetails(me, probe.isEmpty() ? shown : Format.toString("% · %", shown, probe))
+    }
+
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
+    // The pointer over the picture reads the pixel it stands on into the summary.
     mtd createImageView()
     {
         with .imageView = ImageView.create(me)
         {
+            .hookOnEvent = func|view = me|(imageView, evt)->bool
+            {
+                if evt is MouseEvent as mouse
+                {
+                    if mouse.kind == .Move do
+                        view.showProbe(imageView.surfaceToLocal(mouse.surfacePos))
+                    elif mouse.kind == .Leave do
+                        view.services.showDetails(view, view.shownDetails())
+                }
+
+                return false
+            }
+
             .dockStyle = .Center
             .setAllPaddings(.themeMetrics().floating_Inset)     // A fitted picture keeps the air of the window around it.
             .sigZoomChanged += func|view = me|(_)

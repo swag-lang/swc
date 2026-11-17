@@ -13,9 +13,19 @@ ui_MirrorHorizontal       Miroir horizontal
 ui_MirrorVertical         Miroir vertical
 ui_ResetTransform         Réinitialiser l'orientation
 ui_CopyImage              Copier l'image
+ui_CopyColor              Copier la couleur % en %
 word_Mirrored             miroir
 
 word_Frame     image
 word_Frames    images
 
 ui_DetailsVector % × % · vectoriel
+ui_ProbePixel    x %, y %
+ui_ItemLevel     niveau %
+ui_ItemLayer     couche %
+ui_ItemFace      face %
+ui_ProbeAlpha    opacité %
+ui_FrameDelay    délai % ms
+ui_Opaque        aucune, chaque pixel est opaque
+ui_Transparent   % transparents
+ui_Translucent   % translucides

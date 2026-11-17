@@ -184,3 +184,116 @@ internal func createPdfFixture()->String
     collectViewerMatches(result.collectMatches, "absent", &matches)
     Swag.require(matches.isEmpty())
 }
+
+// A document that labels its pages names the page in view by its label beside its position, and
+// the page dialog accepts a label as well as a position.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-pdf-labels-", ".pdf")
+    defer discard catch File.delete(fileName)
+    var source: String = "%PDF-1.7\n"
+    source += "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [1 << /S /r >> 3 << /S /D >> 6 << /P (Cover) >>] >> >>\nendobj\n"
+    source += "2 0 obj\n<< /Type /Pages /Count 7 /Kids [3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R] >>\nendobj\n"
+    source += "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> >>\nendobj\n"
+    source += "trailer\n<< /Root 1 0 R >>\n%%EOF\n"
+    discard expect File.writeAllText(fileName, source)
+
+    var host: HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*PdfDocument.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    view.resize(640, 360)
+    view.applyLayout()
+    Swag.require(view.pageLabels.count == 7)
+    Swag.require(view.pageReadout() == Viewer.pageText(0, 7))
+
+    Swag.require(view.goToTypedPage("II"))
+    Swag.require(view.pdfView.pageIndex == 2, Format.toString("page %", view.pdfView.pageIndex))
+    Swag.require(view.pageReadout() == "ii (3/7)")
+    Swag.require(view.goToTypedPage("cover") and view.pdfView.pageIndex == 6)
+    Swag.require(view.goToTypedPage("4") and view.pdfView.pageIndex == 3)
+    Swag.require(not view.goToTypedPage("xiv"))
+
+    // The lens answers `:` with a page, named by its label and its position.
+    var windowHost: HeadlessHost
+    let window = framedViewerWindow(&windowHost, fileName, false)
+    let shown  = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+    window.lens.open(":ii")
+    windowHost.finishAnimations()
+    let row = (unwrap window.lens.results.sections[0]).entries[0]
+    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)"))
+    row.run!()
+    window.lens.close()
+    windowHost.finishAnimations()
+    Swag.require(shown.pdfView.pageIndex == 2)
+}
+
+// The lens selects the text of the page in view and copies a selection, as the page's context
+// menu does; with nothing selected, the copy is offered faint.
+#test
+{
+    var host: HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, scopeTestDataPath("viewer.pdf"))
+    let view    = assume cast(*PdfDocument.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    view.resize(640, 360)
+    view.applyLayout()
+    discard host.render(view)
+
+    func row(view: *PdfDocument.Panel, host: *HeadlessHost, title: string, results: *Lens.Results)->*Lens.Entry?
+    {
+        var entries = Viewer.LensEntries.create(results, "PDF", host.theme)
+        view.describeLens(&entries)
+        for &entry in results.sections[0]!.entries where entry.title == title do
+            return entry
+        Swag.require(false, title)
+        return null
+    }
+
+    var before: Lens.Results
+    Swag.require((unwrap row(view, &host, PdfDocument.texts().ui_CopyText, &before)).disabled)
+    var select: Lens.Results
+    (unwrap row(view, &host, PdfDocument.texts().ui_SelectPage, &select)).run!()
+    Swag.require(view.pdfView.hasSelection())
+
+    discard catch Clipboard.resetFake()
+    var copy: Lens.Results
+    let entry = unwrap row(view, &host, PdfDocument.texts().ui_CopyText, &copy)
+    Swag.require(not entry.disabled)
+    entry.run!()
+    Swag.require(not Clipboard.getString().isEmpty())
+}
+
+// The information sheet says whether the pages carry text, without a search: once the text is
+// extracted, a scanned document reads as pictures and a written one as text on every page.
+#test
+{
+    for name, index in ["viewer.jpeg.pdf", "viewer.pdf"]
+    {
+        var host: HeadlessHost
+        host.setup(960, 680)
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.resize(960, 680)
+        window.openFile(scopeTestDataPath(name))
+        completeQueuedViewerFile(&host, window)
+        window.applyLayout()
+        window.toggleInformation()
+
+        let view     = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+        var attempts = 0
+        while not view.pdfView.textCoverage().complete and attempts < 5_000
+        {
+            Threading.Thread.sleep(1'ms)
+            host.pump()
+            attempts += 1
+        }
+
+        host.pump()
+        window.infoSheet.selectPage(1)
+        let text     = window.infoSheet.text()
+        let expected = index == 0 ? PdfDocument.texts().ui_TextLayerNone : PdfDocument.texts().ui_TextLayerAll
+        Swag.require(Utf8.contains(text, Format.toString("Text layer\n%", expected).toString()), text)
+    }
+}

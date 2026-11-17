@@ -57,6 +57,7 @@ struct ViewerContent
     page:    Pdf.Page
     facts:   DocumentFacts
     outline: Array'Pdf.OutlineEntry
+    labels:  Array'String     // Page labels the document gives, or empty when it gives none.
 }
 
 private func loadViewerContent(fileName: string)->ViewerContent fail
@@ -64,6 +65,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     var result: #returntype
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
+    result.labels  = result.reader.loadPageLabels()
     if not result.reader.pageCount() do
         fail Errors.InvalidFormatError{texts().err_NoPage}
     result.page = #move try result.reader.loadPage(0)
@@ -142,6 +144,7 @@ struct Panel
     failureReason: String
     outline:       *DocumentOutline?
     bookmarks:     Array'Pdf.OutlineEntry
+    pageLabels:    Array'String     // Labels the document gives its pages, one per page, or empty.
     history:       Viewer.History'PdfReadingPosition
 
     late
@@ -194,7 +197,8 @@ private impl IWnd for Panel
 
         .pdfView.exchangeDocument(&content.reader, &content.page)
         .history.clear()
-        .bookmarks = #move content.outline
+        .bookmarks  = #move content.outline
+        .pageLabels = #move content.labels
         .publishBookmarks()
 
         .facts   = #move content.facts
@@ -255,13 +259,60 @@ private impl Panel
 
     mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool => .pdfView.revealTextMatch(PdfTextMatch{match.major, match.offset, match.length})
 
+    // Says which pages carry text: every one, none, or how many are pictures without it, then how
+    // many could not be read.
+    mtd textLayerText(pictures, unreadable: u64)->String
+    {
+        let pages = .pdfView.pageCount()
+        var result: String
+        if pictures == pages do
+            result = String.from(texts().ui_TextLayerNone)
+        elif pictures do
+            result = Format.toString(texts().ui_TextLayerSome, pictures, pages)
+        elif not unreadable do
+            result = String.from(texts().ui_TextLayerAll)
+        if unreadable
+        {
+            if not result.isEmpty() do
+                result += " · "
+            result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+        }
+
+        return result
+    }
+
+    // Says why a complete search found nothing when pages hold no searchable words: pictures of
+    // pages without a text layer, which reading cannot tell from text, and pages whose text could
+    // not be read. A document whose every page has text leaves the plain answer.
+    mtd explainSearch()->String
+    {
+        var result: String
+        let coverage = .pdfView.textCoverage()
+        if not coverage.complete do
+            return result
+
+        let pages = .pdfView.pageCount()
+        if coverage.pictures == pages do
+            result = texts().ui_NoTextLayer
+        elif coverage.pictures do
+            result = Format.toString(texts().ui_SomeNoText, coverage.pictures, pages)
+        if coverage.unreadable
+        {
+            if not result.isEmpty() do
+                result += " · "
+            result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
+        }
+
+        return result
+    }
+
     mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect(PdfTextMatch{match.major, match.offset, match.length}, result)
 
     mtd refreshNavigation()
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
-        .pageLabel.setText(Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount()))
+        .pageLabel.setText(.pageReadout())
     }
 
     mtd refreshZoom()
@@ -269,21 +320,61 @@ private impl Panel
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
     }
 
+    // Returns the label the document gives page `index`, or an empty string when it is only its
+    // position: no labels, or a label that is the page number itself.
+    internal mtd pageLabelOf(index: u64)->string
+    {
+        if index >= .pageLabels.count do
+            return ""
+        let label = .pageLabels[index].toString()
+        return label == Format.toString("%", index + 1).toString() ? "" : label
+    }
+
+    // Returns the page readout: the position among the pages, after the page's own label when the
+    // document gives one and it fits the readout, as `iv (4/120)`.
+    internal mtd pageReadout()->String
+    {
+        const LabelledLimit = 13'u64
+        let position = Format.toString("%/%", Math.min(.pdfView.pageIndex + 1, .pdfView.pageCount()), .pdfView.pageCount())
+        let label    = .pageLabelOf(.pdfView.pageIndex)
+        if label.count and label.count + position.length + 3 <= LabelledLimit do
+            return Format.toString("% (%)", label, position)
+        return Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount())
+    }
+
+    // Moves to the page `text` names: its position, counted from one, or else the label the
+    // document gives it, compared without case.
     internal mtd goToTypedPage(text: string)->bool
     {
+        let index = .typedPageIndex(text)
+        if index == Swag.U64.Max do
+            return false
+        .history.visit(.pdfView.readingPosition())
+        .pdfView.showPage(index)
+        return true
+    }
+
+    // Returns the index of the page `text` names, its position counted from one or else the label
+    // the document gives it, compared without case; `U64.Max` when it names none.
+    internal mtd typedPageIndex(text: string)->u64
+    {
+        let typed = Latin1.trim(text)
+        for label, index in .pageLabels where typed.count and
+                                              not Latin1.isDigit(typed[0]) and
+                                              Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
+            return index
+
         var parseErrorOutcome: Swag.Error
-        var parsed: #decltype(expect StrConv.parseU64(text))
-        catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
+        var parsed: #decltype(expect StrConv.parseU64(typed))
+        catch { parsed = try StrConv.parseU64(typed) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or
-           parsed.eat != text.count or
+           parsed.eat != typed.count or
            parsed.ovf or
            not parsed.value or
            parsed.value > .pdfView.pageCount() do
-            return false
-        .history.visit(.pdfView.readingPosition())
-        .pdfView.showPage(parsed.value - 1)
-        return true
+            return Swag.U64.Max
+        return parsed.value - 1
     }
 
     // Lists the bookmarks in the outline, each addressed by its index, so the outline can filter
@@ -361,6 +452,24 @@ private impl Panel
     // Gives the lens the pages and the zoom of the document.
     internal mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and a page, by its position or its label, go to that page.
+        if entries.results.prefix == .Line
+        {
+            let index = .typedPageIndex(entries.query.toString())
+            if index == Swag.U64.Max do
+                return
+            let label = .pageLabelOf(index)
+            let named = label.count ? Format.toString("% (%)", label, index + 1) : Format.toString("%", index + 1)
+            let entry = entries.add(Format.toString(appStrings().lens_GoToPage, named), .GoTo, func|view = me, index|()
+            {
+                view.history.visit(view.pdfView.readingPosition())
+                view.pdfView.showPage(index)
+            })
+            if entry do
+                entry.lead = named
+            return
+        }
+
         let strings = texts()
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
@@ -372,6 +481,10 @@ private impl Panel
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // The commands of the page's context menu, so none of them needs a right click.
+        entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.ui_SelectPage, .SelectAll, func|view = me|() { view.pdfView.selectAll() }, disabled: not .pdfView.pageCount(), shortcut: Input.formatKeyShortcut(.Control, .A))
     }
 
     mtd promptGoToPage()
@@ -382,6 +495,13 @@ private impl Panel
         options.title   = texts().ui_GoToPage
         options.message = Format.toString(texts().ui_PageRange, .pdfView.pageCount()).toString()
         options.text    = Format.toString("%", .pdfView.pageIndex + 1).toString()
+        let label = .pageLabelOf(.pdfView.pageIndex)
+        if label.count
+        {
+            options.message = Format.toString(texts().ui_PageRangeLabels, .pdfView.pageCount(), label).toString()
+            options.text    = label
+        }
+
         let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -506,6 +626,12 @@ private impl Panel
                 view.refreshNavigation()
             }
 
+            // The text layer of every page is known; the information sheet can state it.
+            .sigTextExtracted += func|view = me|(_)
+            {
+                view.services.showDetails(view, view.details)
+            }
+
             .sigZoomChanged += func|view = me|(_)
             {
                 view.refreshZoom()
@@ -545,6 +671,13 @@ impl Panel
             data.add(.Author, .facts.author)
         if .bookmarks.count do
             data.add(.Bookmarks, Format.toString("%", .bookmarks.count))
+
+        // Whether the pages carry text is known once the text the search reads has been
+        // extracted, which the sheet starts and then waits for.
+        .pdfView.extractText()
+        let coverage = .pdfView.textCoverage()
+        if coverage.complete do
+            data.add(.TextLayer, .textLayerText(coverage.pictures, coverage.unreadable))
         data.describe(sheet)
     }
 }
@@ -556,8 +689,9 @@ func createViewer(host: Viewer.Host)
     let commands = host.createCommandGroup(Viewer.pageControlWidth(host.contentParent().themeMetrics()))
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
-    view.outline = DocumentOutline.create(host)
+    view.outline             = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
+    view.outline.follow      = func|view|() { view.followReading() }
 
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at
@@ -569,6 +703,7 @@ func createViewer(host: Viewer.Host)
         .revealMatch    = func|view|(match, text)->bool => view.revealMatch(match, text)
         .matchBounds    = func|view|(match, bounds)->bool => view.searchBounds(match, bounds)
         .clear          = func|view|() => view.pdfView.clearSelection()
+        .explainSearch  = func|view|(_)->String => view.explainSearch()
     }
 
     host.setSearch(search)

@@ -26,23 +26,26 @@ large-file work without editing, implicit network access, macros or source mutat
 
 - Evidence: SubRip and related files become a searchable timestamped transcript. The information
   bar exposes validated Go To Cue and Go To Time dialogs; Ctrl+Page Up/Down navigates adjacent cues,
-  Ctrl+Home/End jumps to the first or last cue,
-  and the editor caret, direct jumps, and host search update the highlighted cue and its position
-  counter. There is no
+  Ctrl+Home/End jumps to the first or last cue, `:` and an instant or a cue number go there from
+  the lens, and the editor caret, direct jumps, and host search update the highlighted cue and its
+  position counter. There is no
   duration filter or timeline.
 - Next: add a compact time ruler with overlap markers and a duration filter.
 - Done when: cue and time jumps are keyboard accessible, overlapping cues are grouped, the
   current cue is marked, and search reveal, cue selection, and timeline position remain
   synchronized.
 
-### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
+### app.scope.text.002 — Text navigation has no column, byte-offset, or percentage jump
 
-- Evidence: basic text and code can reach the file ends and host search matches, but there is no
-  Go To command or caret address readout. `revealOffset` already seeks a source byte offset into
-  the resident editor for search and streamed scrolling; it does not provide a reverse map from
-  arbitrary editor positions to exact whole-file line, column, and byte coordinates.
-- Next: introduce a streamed text-position map and a Go To surface that accepts line, `line:column`,
-  absolute byte offset, and percentage.
+- Evidence: `:` and a line number in the lens move basic text and code to that line and place the
+  caret on it; `:line:column` places it on that character of the line, counted in characters from
+  1 and stopped at the line's end, the row naming the column reached. Basic text names the cursor's line in the whole file once the window is
+  counted (`Viewer.LineCounter.offsetOfLine` and `lineAt`). The lens resolves the line in the first
+  `LensFileLimit` bytes of the file by counting byte 10, so a line further down is not offered and a
+  UTF-16 or UTF-32 file is numbered wrongly; a window more than a few megabytes past the last
+  count names no line until the gutter is shown; byte offsets and percentages cannot be typed.
+- Next: let the active viewer resolve a typed line itself through its encoding-aware
+  `LineCounter`, and extend the `:` grammar with an absolute byte offset and a percentage.
 - Done when: jumps work before a full line index exists, report exact versus estimated
   positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
 
@@ -85,20 +88,25 @@ large-file work without editing, implicit network access, macros or source mutat
   detected after replacement; and persistence is an explicit part of app.scope.viewers.003.
 - Related: app.scope.viewers.003, app.scope.viewers.005
 
-### app.scope.text.009 — Syntax language and highlighting rules cannot be inspected or overridden
+### app.scope.text.009 — Syntax detection cannot explain itself or remember an override
 
 - Evidence: `Viewers.Code.detectLanguage` chooses from file name, extension and supported shebangs, and
-  `GenericLexer` applies fixed lexical rules. The details already show `languageName`.
-  A misclassified file has no language override or explanation of the detection decision.
-- Next: publish language identity in the command bar and allow a temporary or persisted override,
-  including Plain Text.
+  `GenericLexer` applies fixed lexical rules. The details show `languageName`, and a language
+  typed into the lens offers to color the source as that language, or as Swag, for the file in
+  view. The detection decision is not explained, an override is forgotten with the file, and there
+  is no Plain Text choice.
+- Next: state the evidence of the detection (extension, name or interpreter line) beside the
+  language, and remember an override per file identity.
 - Done when: every supported language is selectable, detection evidence is visible, overrides
   re-highlight the resident window immediately, and opening an unsupported language stays readable.
 
 ### app.scope.text.031 — Source structure has no sticky scope, indentation guides, or delimiter matching
 
-- Evidence: lexical color is the only structural cue inside the code surface. There is no sticky
-  scope, indentation guide or delimiter-pair view independent of project semantics.
+- Evidence: lexical color is the only structural cue inside the code surface. Ctrl+], or the lens
+  while the caret stands by a bracket, moves the caret to the parenthesis, bracket or brace that
+  pairs with it within the resident text, counting only delimiters drawn in the same style, so one
+  in a string or a comment pairs with no code. Pairs are not highlighted, an unmatched delimiter
+  is not marked, and there is no sticky scope or indentation guide.
 - Next: derive indentation, delimiter pairs, and sticky headings from the same bounded lexical and
   outline ranges planned by app.scope.text.006 and .010.
 - Done when: the current scope path remains visible and navigable, indentation guides survive
@@ -165,8 +173,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler
 
-- Evidence: Basic text exposes wrap on/off and zoom only. A tab always inherits the widget default,
-  wrapped lines follow the viewport rather than a chosen column, and there is no column ruler,
+- Evidence: Basic text exposes wrap on/off, zoom and the tab stops. Basic text and Code place a tab
+  stop every 2, 4 or 8 spaces, chosen in the lens when a query is typed and, for basic text, in its
+  options; the choice follows the reader from file to file within a session but is not saved and
+  is not read from the file or an `.editorconfig`. Wrapped lines follow the viewport rather than a
+  chosen column, and there is no column ruler,
   horizontal guide, line-spacing choice, or explicit fixed-font identity to explain alignment.
 - Next: define presentation-only text layout settings shared with Code, keeping every source
   position independent of visual lines and glyph metrics.
@@ -219,9 +230,11 @@ large-file work without editing, implicit network access, macros or source mutat
 ### app.scope.text.030 — Text statistics stop at line and word counts
 
 - Evidence: the background pass reports exact line and word totals plus decoded Unicode scalar count
-  for the selected encoding; a leading BOM is excluded. It still omits byte count, newline-kind
-  totals, longest line, invalid-sequence count, control-character count, and sampled versus exact
-  scope, so it cannot explain every rendering or navigation discrepancy.
+  for the selected encoding; a leading BOM is excluded. The information sheet adds the line ends
+  by kind, the characters of the longest line, the control characters other than a tabulation and
+  the line breaks, and the U+FFFD characters bytes the decoder could not read become (a literal
+  U+FFFD counts too). It still omits byte count, where the longest line is, and sampled versus
+  exact scope.
 - Next: extend the text profile with source byte, newline, line-length, decode, and control-character
   metrics, retaining bounded background work and explicit scope.
 - Done when: every metric names its unit and exact or sampled scope, line-length extremes link
@@ -329,14 +342,17 @@ large-file work without editing, implicit network access, macros or source mutat
   and schemas are local or explicitly supplied rather than fetched from the network.
 - Related: app.scope.text.004, app.scope.viewers.004, app.scope.viewers.006
 
-### app.scope.text.003 — Basic text has no whitespace view or newline diagnostics
+### app.scope.text.003 — Basic text has no newline or control-character diagnostics
 
-- Evidence: the basic viewer numbers its lines on demand, but mixed CRLF/LF/CR, tabs, trailing
-  spaces, control characters, BOMs, and missing final newlines are invisible.
-- Next: add an optional non-printing-character layer without injecting decoration into
-  selectable text.
-- Done when: mixed newline kinds and invalid/control bytes are distinguishable, tabs and spaces
-  can be shown, and copy returns only source text.
+- Evidence: basic text and code can mark every space with a dot and every tabulation with a line
+  to its stop (`RichEditFlags.DrawBlanks`), without moving the text. The information sheet names
+  the line ends, each convention with its count when they are mixed, and says when the last line
+  of a text broken into lines has no break after it. Line ends are not marked in the text itself,
+  and control characters and a BOM are still invisible.
+- Next: extend the blank marks with line-end and control-character marks drawn over the text's
+  own advance, without injecting decoration into selectable text.
+- Done when: mixed newline kinds and invalid/control bytes are distinguishable and copy returns
+  only source text.
 
 ### app.scope.text.004 — Character encoding choice is too narrow and cannot explain decoding damage
 
@@ -408,8 +424,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.013 — Subtitle timing cannot be checked against media
 
-- Evidence: the standalone subtitle viewer has no way to associate a video or sound file, overlay
-  cues, visualize waveform/frame timing, or apply a temporary delay and frame-rate conversion.
+- Evidence: the information sheet counts the cues that start before the one before them has ended
+  and gives the shortest time a cue stays on screen; the track orders its cues by start, so cues
+  written out of order are not reported. The standalone subtitle viewer has no way to associate a
+  video or sound file, overlay cues, visualize waveform/frame timing, or apply a temporary delay and
+  frame-rate conversion.
 - Next: let the reader attach one local media file without modifying either input and reuse the
   existing video subtitle overlay and media clock.
 - Done when: cues preview over media, delay and FPS conversion are reversible session settings,
@@ -417,8 +436,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.014 — Subtitle text has no focused interchange commands
 
-- Evidence: generic selection can copy transcript text, but there is no copy-current-cue, copy
-  plain dialogue, export normalized transcript, or report of cues omitted because of parser damage.
+- Evidence: generic selection can copy transcript text; Ctrl+C or the lens copies the current
+  cue, and the lens copies the whole dialogue without its times, a blank line between two cues.
+  There is no export of a normalized transcript or report of cues omitted because of parser damage.
 - Next: add cue-aware copy commands and bounded exports that preserve explicit timing policy.
 - Done when: one cue, selected cues, dialogue-only text, and a normalized transcript can be
   copied or exported, and lossy normalization is summarized before writing.
@@ -457,8 +477,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.019 — Table selection and clipboard interchange stop at one cell preview
 
-- Evidence: search can reveal a cell and long cells use a bounded preview, but there is no row,
-  column, rectangle, discontiguous selection, copy-with-headers, or export-visible-rows command.
+- Evidence: search can reveal a cell and long cells use a bounded preview. Selected rows copy as
+  tab-separated text, quoted where a value holds a tab, a line break or a quote, with or without
+  the column names, from Ctrl+C or the lens, and the lens copies the values of the column the
+  table is sorted on, one per line in the order shown. There is no column, rectangle or
+  discontiguous cell selection, no copy bound, and no export of the visible rows.
 - Next: introduce a source-backed cell-range selection model and stream serializers for TSV, CSV,
   JSON Lines, and plain text.
 - Done when: keyboard and pointer ranges work across virtual rows, copied data uses a declared
@@ -466,8 +489,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.020 — Table exploration has no summaries, grouping, or duplicate analysis
 
-- Evidence: the viewer reports only row and column counts. It cannot show null/error/distinct
-  counts, min/max, distributions, top values, duplicate rows, or lightweight groups.
+- Evidence: the foot sums one quantity column, and the information sheet profiles the first 48
+  columns over every row, counted once on the GUI thread the first time it asks: each column's
+  kind, its empty cells and, for quantities, their range and mean. Distinct and error counts,
+  distributions, top values, duplicate rows and lightweight groups are absent, and the profile
+  is not cancellable.
 - Next: build cancellable per-column sketches over the row stream, followed by exact calculations
   on demand for one column or filtered subset.
 - Done when: statistics state sampled versus exact scope, memory remains bounded for high
@@ -475,8 +501,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.021 — Table navigation has no stable row identity or direct cell address
 
-- Evidence: the reader can scroll and search but cannot jump to source row, visible row, column,
-  or `R:C` cell; sorting and filtering from app.scope.text.017 will make those coordinate systems diverge.
+- Evidence: `:` and a number in the lens go to that row as the row readout counts it, in the
+  order on screen. There is no jump to a source row once sorted, to a column, or to an `R:C`
+  cell; sorting and filtering from app.scope.text.017 make those coordinate systems diverge.
 - Next: define source and view coordinates before adding a name/address box and navigation history.
 - Done when: direct jumps identify their coordinate space, headers are searchable, current cell
   and source row remain visible, and back/forward survives sort and filter changes where possible.

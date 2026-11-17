@@ -10,9 +10,11 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
@@ -22,6 +24,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Backend::Unittest
 {
+    const SymbolVariable* findRegularGlobal(const NativeBackendBuilder& nativeBuilder, TaskContext& ctx, const std::string_view name)
+    {
+        for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
+        {
+            if (symbol && symbol->name(ctx) == name)
+                return symbol;
+        }
+
+        return nullptr;
+    }
+
     Result executeMicroCase(TaskContext& ctx, MicroBuilder& builder, uint64_t* values)
     {
         X64Encoder encoder(ctx);
@@ -122,11 +135,8 @@ namespace Backend::Unittest
         return Result::Continue;
     }
 
-    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn)
+    Result runEncodePipeline(MicroBuilder& builder, Encoder& encoder)
     {
-        MicroBuilder builder(ctx);
-        fn(builder);
-
         MicroRegisterAllocationPass regAllocPass;
         MicroLegalizePass           legalizePass;
         MicroEmitPass               encodePass;
@@ -137,7 +147,15 @@ namespace Backend::Unittest
         passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
-        SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
+        return builder.runPasses(passes, &encoder, passCtx);
+    }
+
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn)
+    {
+        MicroBuilder builder(ctx);
+        fn(builder);
+
+        SWC_RESULT(runEncodePipeline(builder, encoder));
 
         if (encoder.size() == 0)
         {

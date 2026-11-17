@@ -94,17 +94,6 @@ namespace InstructionCombine
                    ctx.areCpuFlagsDeadAfter(useRef);
         }
 
-        bool emitClearReg(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
-        {
-            if (!ctx.claimAll({ref}))
-                return false;
-            MicroInstrOperand clearOps[2];
-            clearOps[0].reg    = dst;
-            clearOps[1].opBits = opBits;
-            ctx.emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
-            return true;
-        }
-
         bool emitLoadRegImm(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, uint64_t value)
         {
             if (!ctx.claimAll({ref}))
@@ -480,7 +469,7 @@ namespace InstructionCombine
             ctx.areCpuFlagsDeadAfter(ref))
         {
             if (absorbed == 0)
-                return emitClearReg(ctx, ref, dst, opBits);
+                return ctx.emitClearReg(ref, dst, opBits);
             return emitLoadRegImm(ctx, ref, dst, opBits, absorbed);
         }
 

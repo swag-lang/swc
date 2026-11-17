@@ -96,6 +96,8 @@ alias PluginOptions = func(*PropertiesCtrl, string)
 //
 // Use this when the format has a useful direct thumbnail decoder. The shared source renderer handles
 // plugins without one. Failure leaves the file's type icon visible; the host bounds and caches the pixels.
+// An empty image says the file has no picture of its own, such as a book without a cover, and lets
+// the shared source renderer draw its preview instead.
 //
 // The second argument is the longest side the host keeps. A decoder that can produce its picture at
 // that size directly — a vector drawing, a scaled decode — should, rather than producing it whole

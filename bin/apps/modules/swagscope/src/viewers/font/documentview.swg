@@ -144,6 +144,9 @@ struct DocumentView
     pageStart:  u32
     pageEnd:    u32
     hasNext:    bool
+    shown:      rune     // Character the reader asked to see, marked in its cell; zero for none.
+
+    sigMarked: SigArray'func||(*DocumentView)     // Emitted when a click marks another character.
 }
 
 private impl DocumentView
@@ -306,7 +309,7 @@ private impl DocumentView
 
                 let cell = &.cells[index]
                 let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (CellWidth + CellGap), top, CellWidth, .layout.cellHeight}
-                painter.fillRoundRect(box, corner, corner, colors.wnd_Bk)
+                painter.fillRoundRect(box, corner, corner, cell.character == .shown ? colors.listItem_SelectedBk : colors.wnd_Bk)
 
                 let codeTop   = box.bottom() - CellPadding - .fontCode.height
                 let codeWidth = Painter.measureString(cell.code, .fontCode).width
@@ -376,6 +379,30 @@ impl IWnd for DocumentView
         case .End:      .scroll.setScrollPos(0, .layout.height)
         default:        evt.accepted = false
         }
+    }
+
+    // A click on a cell of the map marks its character.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind != .Pressed or evt.button != .Left
+        {
+            evt.accepted = false
+            return
+        }
+
+        var point = .surfaceToLocal(evt.surfacePos)
+        point.x += .scrollPos.x
+        point.y += .scrollPos.y
+        let index = .cellAt(point)
+        if index >= .cells.count or .cells[index].character == .shown
+        {
+            evt.accepted = false
+            return
+        }
+
+        .shown = .cells[index].character
+        .invalidate()
+        .sigMarked.call(me)
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -554,6 +581,44 @@ impl DocumentView
             .pageIndex = index
         .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
+    }
+
+    // Returns the cell of the loaded page under `point`, in document coordinates, or `Swag.U64.Max`
+    // between cells or outside the map.
+    mtd cellAt(point: Math.Point)->u64
+    {
+        let pitch = .layout.cellHeight + CellGap
+        if point.y < .layout.gridTop or point.x < .layout.gridLeft do
+            return Swag.U64.Max
+        let row    = cast(u64, (point.y - .layout.gridTop) / pitch)
+        let column = cast(u64, (point.x - .layout.gridLeft) / (CellWidth + CellGap))
+        if column >= .layout.columns or
+           point.y - .layout.gridTop - cast(f32, row) * pitch > .layout.cellHeight or
+           point.x - .layout.gridLeft - cast(f32, column) * (CellWidth + CellGap) > CellWidth do
+            return Swag.U64.Max
+        let index = row * .layout.columns + column
+        return index < .cells.count ? index : Swag.U64.Max
+    }
+
+    // Shows the page holding `character` and marks its cell in the middle of the view. A character
+    // the face does not map shows nothing new.
+    mtd showCharacter(character: rune)
+    {
+        let face = .face
+        if not face or not Utf8.isValidRune(character) or not face.hasChar(character) do
+            return
+        .goToCharacterPage(cast(u32, character))
+        .shown = character
+
+        for cell, index in .cells where cell.character == character
+        {
+            let pitch = .layout.cellHeight + CellGap
+            let top   = .layout.gridTop + cast(f32, index / .layout.columns) * pitch
+            .scroll.setScrollPos(0, top - Math.max(.clientRect().height - .layout.cellHeight, 0) * 0.5)
+            break
+        }
+
+        .invalidate()
     }
 
     // Brings the character-map caption to the top of the viewport, which is where a reader who just

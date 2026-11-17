@@ -715,9 +715,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
         if (promoteLoop(context, fn, loop, instrRefs))
         {
             context.passChanged = true;
-            if (context.ssaState)
-                context.ssaState->invalidate();
-            context.builder->invalidateControlFlowGraph();
+            MicroPassHelpers::invalidateCfgAndSsa(context);
             return Result::Continue;
         }
     }

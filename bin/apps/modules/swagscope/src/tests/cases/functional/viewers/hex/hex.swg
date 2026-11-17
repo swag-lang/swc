@@ -204,7 +204,43 @@ internal func writeSampleFile()->String
         return Hex.analyzeRange(path, Viewers.Hex.AnalysisRange{0, count})
     })
     let stopped = expect stopper.take()
-    Swag.require(stopped.cancelled and not stopped.scanned)
+    Swag.require(stopped.cancelled and not stopped.scanned and not stopped.hasDigests)
+}
+
+// An analysis read in full gives the CRC-32 and SHA-256 of exactly its range, as checksum tools
+// print them; the lens copies each whole.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-hex-digests-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "xabcx")
+
+    let result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3})
+    Swag.require(result.hasDigests and result.scanned == 3)
+    Swag.require(result.crc32Text() == "352441C2")
+    Swag.require(result.sha256Text() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    Swag.require(result.md5Text() == "900150983cd24fb0d6963f7d28e17f72", result.md5Text())
+    Swag.require(result.sha1Text() == "a9993e364706816aba3e25717850c26c9cd0d89d", result.sha1Text())
+    Swag.require(Utf8.contains(result.digestsText(), "MD5 900150983cd24fb0d6963f7d28e17f72\nSHA-1 a9993e36"))
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view      = hexTestViewer(&host, fileName, 900, 560)
+    var published = result
+    view.analysisView.publish(&published)
+    Swag.require(view.analysisView.digestsLabel.isLocallyVisible())
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var copied = 0
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_AnalysisCopySha256
+    {
+        entry.run!()
+        copied += 1
+    }
+
+    Swag.require(copied == 1 and Clipboard.getString() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 }
 
 // Caret movement, selection, and the row width the window fits.
@@ -567,4 +603,73 @@ internal func writeSampleFile()->String
     grid.copySelection(.Text)
     Swag.require(Clipboard.getString().length == Hex.CopyLimit)
     Swag.require(grid.doc.window.count <= Hex.WindowSize)
+}
+
+// The lens offers the commands of the context menu, with their shortcuts, and they act on the
+// bytes as the menu does.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-lens-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "ABCD")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+
+    func run(results: *Lens.Results, title: string)
+    {
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
+            Swag.require(not entry.disabled)
+            entry.run!()
+            return
+        }
+
+        Swag.require(false, title)
+    }
+
+    var goTo = 0
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_GoTo do
+        goTo += entry.detail == Input.formatKeyShortcut(.Control, .G) ? 1 : 0
+    Swag.require(goTo == 1)
+
+    run(&results, Hex.texts().ui_SelectAll)
+    Swag.require(view.grid.selectionStart() == 0 and view.grid.selectionLength() == 4)
+    run(&results, Hex.texts().ui_CopyText)
+    Swag.require(Clipboard.getString() == "ABCD")
+    run(&results, Hex.texts().ui_CopyBytes)
+    Swag.require(Clipboard.getString() == "41 42 43 44")
+}
+
+// A colon and an offset in the lens, in the grammar of Go to Offset, move the caret there.
+#test
+{
+    let fileName = writeStreamedFile(4096)
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex do
+        window.selectViewer(cast(u32, index))
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*Hex.Panel, window.currentView)
+
+    window.lens.open(":1f0")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(Utf8.contains(section.entries[0].title.toString(), "000001F0"), section.entries[0].title.toString())
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.grid.caret == 0x1F0)
+}
+
+// The lens copies the offset of the caret as a hexadecimal address.
+#test
+{
+    Swag.require(Hex.offsetHex(26) == "0x0000001A" and Hex.offsetHex(0x1_0000_0000) == "0x0000000100000000", Hex.offsetHex(26))
 }

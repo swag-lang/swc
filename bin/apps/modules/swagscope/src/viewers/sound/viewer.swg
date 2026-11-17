@@ -26,9 +26,15 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// Draws a bounded waveform from the same PCM decoder and reducer as the sound viewer.
+// Returns the sleeve the recording embeds, fitted within `maxSide`, or else draws a bounded
+// waveform from the same PCM decoder and reducer as the sound viewer.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
+    var tags   = SoundTags.read(fileName, withPicture: true)
+    var sleeve = embeddedSleeve(&tags, cast(s32, maxSide))
+    if sleeve.isValid() do
+        return sleeve
+
     let sound  = try SoundFile.load(fileName, preloadData: false)
     let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
     let height = width / 2
@@ -261,8 +267,54 @@ struct WaveformView
     samples:    Array'WaveformPoint
     readyCount: u64     // Points the builder has published so far.
     duration:   f32
-    progress:   f32     // Played fraction, from 0 to 1.
+    progress:   f32          // Played fraction, from 0 to 1.
+    loopStart:  f32 = -1     // Fraction where the looped passage starts, negative without one.
+    loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
 }
+
+// Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
+struct SoundLevels
+{
+    peak:      u32     // Largest sample magnitude, 32,768 at full scale.
+    squares:   f64     // Sum of the squared samples.
+    samples:   u64     // Samples measured, every channel counted.
+    fullScale: u64     // Samples at the top or bottom of the scale, where a louder signal clips.
+    ceiling:   s16     // Highest value the source can store, once widened to 16 bits.
+}
+
+impl SoundLevels
+{
+    // Folds one sample into the levels.
+    #[Swag.Inline]
+    mtd add(sample: s16)
+    {
+        let value     = cast(s32, sample)
+        let magnitude = cast(u32, value < 0 ? -value : value)
+        .peak    = Math.max(.peak, magnitude)
+        .squares += cast(f64, value) * cast(f64, value)
+        .samples += 1
+        if sample == -32768 or sample >= .ceiling do
+            .fullScale += 1
+    }
+
+    // Returns the sample peak in decibels below full scale.
+    mtd const peakDecibels()->f64 => decibels(cast(f64, .peak) / 32768)
+
+    // Returns the root mean square level in decibels below full scale.
+    mtd const rmsDecibels()->f64 => .samples ? decibels(Math.sqrt(.squares / cast(f64, .samples)) / 32768) : decibels(0)
+}
+
+// Converts an amplitude relative to full scale into the `dBFS` reading the sheet writes, with
+// one decimal; silence has no finite level.
+func decibelsText(value: f64)->String
+{
+    if value == Swag.F64.NegInf do
+        return String.from("−∞ dBFS")
+    return Format.toString("%{f1} dBFS", value > -0.05 ? 0'f64 : value)
+}
+
+// Converts an amplitude relative to full scale into decibels; zero is minus infinity.
+func decibels(amplitude: f64)->f64 => amplitude > 0 ? 20 * Math.log10(amplitude) : Swag.F64.NegInf
 
 // Reduces successive interleaved PCM16 chunks without retaining their borrowed storage.
 struct WaveformReducer
@@ -277,6 +329,7 @@ struct WaveformReducer
     sum:          f64
     sampleCount:  u64
     readyCount:   u64
+    levels:       SoundLevels
 }
 
 impl WaveformReducer
@@ -301,8 +354,13 @@ impl WaveformReducer
             }
 
             var mixed = 0'f32
-            for channel in .channels do
-                mixed += cast(f32, samples[frame * .channels + channel]) / 32768
+            for channel in .channels
+            {
+                let sample = samples[frame * .channels + channel]
+                .levels.add(sample)
+                mixed += cast(f32, sample) / 32768
+            }
+
             let level = Math.abs(mixed / .channels)
             .peak        = Math.max(.peak, level)
             .sum         += level
@@ -335,6 +393,19 @@ private impl IWnd for WaveformView
         let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
 
         painter.setParams(.Antialiased)
+
+        // A looped passage stands as a faint band behind its bars, its start alone as a line.
+        if .loopStart >= 0
+        {
+            var band = colors.arc
+            band.a = 48
+            let left = bars.x + Math.clamp(.loopStart, 0, 1) * bars.width
+            if .loopEnd > .loopStart do
+                painter.fillRect(Math.Rectangle{left, bars.y, (Math.clamp(.loopEnd, 0, 1) - .loopStart) * bars.width, bars.height}, band)
+            else do
+                painter.fillRect(Math.Rectangle{left, bars.y, 1, bars.height}, colors.arc)
+        }
+
         if not .samples.isEmpty()
         {
             for bar in count
@@ -399,16 +470,22 @@ struct Panel
     waveformTask:  Swag.Task
     waveformLock:  Swag.Mutex
     waveformBuilt: u64
+    levels:        SoundLevels     // Written by the waveform worker; read once it has finished.
+    levelsRead:    bool            // Whether the whole recording was measured, set with `levels`.
+    levelsShown:   bool            // Whether the sheet has been told the levels are known.
 
-    voice:       *Voice?
-    timer:       *Timer?
-    duration:    f32
-    elapsed:     f32
-    engineReady: bool
-    thumbnail:   bool
-    playing:     bool
-    muted:       bool
-    volume:      f32 = 1
+    voice:        *Voice?
+    timer:        *Timer?
+    duration:     f32
+    elapsed:      f32
+    engineReady:  bool
+    thumbnail:    bool
+    playing:      bool
+    muted:        bool
+    volume:       f32 = 1
+    playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
+    loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
+    loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
 
     retireRequested: bool
     retired:         bool
@@ -481,6 +558,13 @@ impl Panel
                                    channelCountText(.sound.numChannels()),
                                    .sound.sampleStorageBits(),
                                    durationText(.duration))
+
+        // An adjusted rate and a looped passage are part of what the reader hears, so the summary
+        // declares them.
+        if .playbackRate != 1 do
+            .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
+        if .loopEnd > .loopStart and .loopStart >= 0 do
+            .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
         .services.showDetails(me, .details)
         .invalidate()
     }
@@ -638,6 +722,11 @@ impl Panel
             return
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
+
+        // A source narrower than 16 bits is widened by shifting, so its top value sits lower.
+        let storage = .sound.sampleStorageBits()
+        reducer.levels.ceiling = storage < 16 ? cast(s16, 32767 - ((1 << (16 - storage)) - 1)) : 32767
+        var decoded = true
         catch .sound.decodePcm16(func|reducer = &reducer, view = me|(samples: const [..] s16)->bool
         {
             reducer.consume(samples)
@@ -645,7 +734,18 @@ impl Panel
                 view.publishWaveform(reducer.readyCount)
             return not Swag.isCancelled()
         })
+        {
+            decoded = false
+        }
+
         reducer.finish()
+        if decoded and not Swag.isCancelled() and reducer.levels.samples
+        {
+            Sync.scopedLock(&.waveformLock)
+            .levels     = reducer.levels
+            .levelsRead = true
+        }
+
         .publishWaveform(reducer.readyCount)
     }
 
@@ -662,6 +762,13 @@ impl Panel
 
     mtd syncWaveform()
     {
+        // Once the worker has measured the whole recording, the sheet can state its levels.
+        if not .levelsShown and .waveform.samples.count and not .waveformTask.isPending()
+        {
+            .levelsShown = true
+            .refreshDetails()
+        }
+
         let ready = .publishedWaveformCount()
         if ready == .waveform.readyCount do
             return
@@ -688,6 +795,8 @@ impl Panel
         {
             .voice = try Voice.create(&.sound)
             catch .voice.setVolume(.muted ? 0 : .volume)
+            if .playbackRate != 1 do
+                catch .voice.setFrequencyRatio(cast(f32, .playbackRate))
             return true
         }
 
@@ -714,12 +823,104 @@ impl Panel
     {
         let texts = appStrings()
         let ready = .playButton.isEnabled()
+
+        // `:` and an instant, or a displacement in seconds, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), cast(f64, .elapsed), cast(f64, .duration)) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.seekSeconds(cast(f32, target)) })
+            return
+        }
+
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
         entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+
+        // The rate is stepped like a film's, and the row reads the rate in force.
+        let strings = Sound.texts()
+        let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
+        if faster do
+            faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
+        let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0])
+        if slower do
+            slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
+
+        // A passage is looped between two points the reader marks while listening.
+        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready)
+        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
+        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
+        if .loopStart >= 0 do
+            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() })
     }
+
+    // Plays the recording at `rate` source seconds per second, the pitch following it. Positions
+    // and times stay in source seconds: the voice reports where it is in the recording. A voice
+    // that refuses the ratio keeps its own rate.
+    mtd setPlaybackRate(rate: f64)
+    {
+        if rate == .playbackRate do
+            return
+        .playbackRate = rate
+        if .voice do
+            catch .voice.setFrequencyRatio(cast(f32, rate))
+        .refreshDetails()
+    }
+
+    // Starts the looped passage where playback stands; an end before it no longer holds.
+    mtd setLoopStart()
+    {
+        .loopStart = .playbackPosition()
+        if .loopEnd <= .loopStart do
+            .loopEnd = -1
+        .refreshLoop()
+    }
+
+    // Ends the looped passage where playback stands, from its start, or from the beginning when
+    // none was set. A point at or before the start sets nothing.
+    mtd setLoopEnd()
+    {
+        let position = .playbackPosition()
+        let start    = .loopStart >= 0 ? .loopStart : 0
+        if position <= start do
+            return
+        .loopStart = start
+        .loopEnd   = position
+        .refreshLoop()
+    }
+
+    // Plays the recording through again, without a looped passage.
+    mtd clearLoop()
+    {
+        .loopStart = -1
+        .loopEnd   = -1
+        .refreshLoop()
+    }
+
+    // Shows the looped passage on the wave and in the summary.
+    mtd refreshLoop()
+    {
+        let length = Math.max(.duration, 0.001)
+        .waveform.loopStart = .loopStart >= 0 ? .loopStart / length : -1
+        .waveform.loopEnd   = .loopEnd >= 0 ? .loopEnd / length : -1
+        .waveform.invalidate()
+        .refreshDetails()
+    }
+
+    // Plays a looped passage again from its start once playback has reached its end; reports
+    // whether it did.
+    mtd followLoop()->bool
+    {
+        if .loopStart < 0 or .loopEnd <= .loopStart or .elapsed < .loopEnd do
+            return false
+        .seekSeconds(.loopStart)
+        return true
+    }
+
+    // Returns where playback stands in the recording, in seconds.
+    mtd playbackPosition()->f32 => .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
 
     mtd seekRelative(seconds: f32)
     {
@@ -854,6 +1055,10 @@ impl IWnd for Panel
         if not .playing or not .voice do
             return
         .elapsed = cast(f32, .voice.playbackPositionSeconds())
+
+        if .followLoop() do
+            return
+
         if .elapsed >= .duration
         {
             .finishPlayback()
@@ -927,6 +1132,13 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        // Shift and an arrow step the rate, as they do over a film.
+        if evt.kind == .Pressed and evt.modifiers == .Shift and (evt.key == .Left or evt.key == .Right)
+        {
+            .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+            return
+        }
+
         if evt.kind != .Pressed or evt.modifiers != .None
         {
             evt.accepted = false
@@ -942,6 +1154,8 @@ impl IWnd for Panel
         case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
         case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
         case .Home:                   .seekSeconds(0)
+        case .Oem4:                   .setLoopStart()
+        case .Oem6:                   .setLoopEnd()
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
         }
@@ -1083,8 +1297,10 @@ impl Panel
         {
             // The tags are read beside the sound, and the GUI thread reads neither until the
             // task has finished.
-            view.tags       = SoundTags.read(view.openFileName)
-            view.coverImage = localSleeve(view.openFileName)
+            view.tags       = SoundTags.read(view.openFileName, withPicture: true)
+            view.coverImage = embeddedSleeve(&view.tags)
+            if not view.coverImage.isValid() do
+                view.coverImage = localSleeve(view.openFileName)
             return try SoundFile.load(view.openFileName, preloadData: false)
         },
                                result.taskNotifier(&result.openTask))
@@ -1102,9 +1318,36 @@ impl Panel
         if .duration > 0 do
             data.addFigure(.Duration, durationText(.duration))
         data.add(.Sound, group: true)
+
+        // How the samples are stored, then the throughput of that payload over the length.
+        data.add(.Format, Film.audioEncodingText(.sound.sampleEncoding()))
+        let bitrate = videoBitrate(.sound.payloadSize(), cast(f64, .duration))
+        if bitrate.count do
+            data.add(.Bitrate, bitrate)
         data.add(.SampleRate, Format.toString("% Hz", .sound.sampleRateHz()))
         data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
         data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))
+
+        // What the tags of the file say of the recording, as they spell it.
+        if .openFinished and not .tags.isEmpty()
+        {
+            data.add(.Tags, group: true)
+            for row in [{field: MediaInfoField.Title, value: .tags.title.toString()}, {field: MediaInfoField.Artist, value: .tags.artist.toString()},
+                        {field: MediaInfoField.Album, value: .tags.album.toString()}, {field: MediaInfoField.AlbumArtist, value: .tags.albumArtist.toString()},
+                        {field: MediaInfoField.Year, value: .tags.year.toString()}, {field: MediaInfoField.TrackNumber, value: .tags.track.toString()},
+                        {field: MediaInfoField.Disc, value: .tags.disc.toString()}, {field: MediaInfoField.Genre, value: .tags.genre.toString()}] where row.value.count do
+                data.add(row.field, row.value)
+        }
+
+        // The levels are known once the waveform worker has read every sample.
+        if .levelsShown and .levelsRead
+        {
+            data.add(.Levels, group: true)
+            data.add(.SamplePeak, decibelsText(.levels.peakDecibels()))
+            data.add(.RmsLevel, decibelsText(.levels.rmsDecibels()))
+            data.add(.FullScale, sampleCountText(.levels.fullScale))
+        }
+
         data.describe(sheet)
     }
 }
@@ -1127,10 +1370,37 @@ func createViewer(host: Viewer.Host)
     host.setLifecycle(lifecycle)
 }
 
+// Brings `image` down to `side`, by default twice the side of the cover, which is all the page
+// ever draws of it.
+private func fitSleeve(image: *Image, side = cast(s32, CoverSize * 2))
+{
+    let largest = Math.max(image.width, image.height)
+    if largest <= side do
+        return
+    let scale = cast(f32, side) / cast(f32, largest)
+    image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
+}
+
+// Returns the sleeve the recording's own tags embed, decoded and fitted, or an invalid image when
+// they embed none or it does not decode. The encoded picture is released either way. `side`
+// bounds the result, by default to what the page draws.
+func embeddedSleeve(tags: *SoundTags, side = cast(s32, CoverSize * 2))->Image
+{
+    var result: Image
+    if not tags.picture.isEmpty()
+    {
+        result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice())
+        if result.isValid() do
+            fitSleeve(&result, side)
+    }
+
+    tags.picture.clear()
+    return result
+}
+
 // Returns the sleeve stored beside `fileName` — `cover`, `folder` or `front`, in JPEG or PNG —
-// decoded and brought down to twice the side of the cover, or an invalid image when there is none.
-//
-// The sleeve is read from the folder only: the tags carry no picture yet.
+// decoded and fitted, or an invalid image when there is none. A sleeve the recording embeds
+// comes first; this one is shared by the folder.
 func localSleeve(fileName: string)->Image
 {
     const MaxBytes = 16'u64 * 1024 * 1024
@@ -1143,15 +1413,8 @@ func localSleeve(fileName: string)->Image
         let info = catch File.info(candidate)
         if info.size > MaxBytes do
             continue
-        var image   = catch Image.load(candidate) { continue }
-        let side    = cast(s32, CoverSize * 2)
-        let largest = Math.max(image.width, image.height)
-        if largest > side
-        {
-            let scale = cast(f32, side) / cast(f32, largest)
-            image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
-        }
-
+        var image = catch Image.load(candidate) { continue }
+        fitSleeve(&image)
         return image
     }
 

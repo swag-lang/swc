@@ -197,3 +197,53 @@ func settle(host: *HeadlessHost, view: *Markdown.View)
     Swag.require(chosen == 2 and document.view.readingOffset() == offsets[7])
     Swag.require(outline.markedTarget() == offsets[7])
 }
+
+// Returns the section heading at or before `reading`, the one a reader there is in.
+func sectionAt(offsets: const [..] u64, reading: u64)->u64
+{
+    var result = Swag.U64.Max
+    for offset in offsets where offset <= reading do
+        result = offset
+    return result
+}
+
+// An outline opened over a document marks the heading in view at once, before any scroll, and
+// whether its headings or the document's layout came first. Opening the panel narrows the
+// document, so the heading in view is read again rather than assumed.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-markdown-open-", ".md")
+    defer discard catch File.delete(fileName)
+    let offsets = writeSections(fileName)
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+    let view = assume cast(*Markdown.View, window.currentView)
+    settle(&host, view)
+    Swag.require(view.revealHeading(offsets[4]))
+    settle(&host, view)
+
+    let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
+    let outline = unwrap zoom.outline
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    completeViewerBackgroundLoad(&host, &outline.load)
+    Swag.require(outline.rows.count == SectionCount)
+    let reading = sectionAt(offsets.toSlice(), view.readingOffset())
+    Swag.require(reading >= offsets[3] and outline.markedTarget() == reading)
+
+    // Closed and opened again, it marks where the document has moved meanwhile.
+    outline.toggle.setChecked(false)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    outline.list.unselectAll()
+    Swag.require(view.revealHeading(offsets[9]))
+    settle(&host, view)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == sectionAt(offsets.toSlice(), view.readingOffset()))
+    Swag.require(outline.markedTarget() >= offsets[8])
+}

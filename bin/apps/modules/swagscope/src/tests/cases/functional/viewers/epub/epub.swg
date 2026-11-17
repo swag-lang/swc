@@ -42,6 +42,21 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(book.chapters[1].path, "46-h-0.htm.xhtml"))
     let chapter = expect File.readAllText(Path.combine(book.root, book.chapters[1].path))
     Swag.require(Utf8.contains(chapter, "Scrooge"))
+
+    // Its Dublin Core metadata names it, and the information sheet says so.
+    Swag.require(Utf8.startsWith(book.metadata.title.toString(), "A Christmas Carol in Prose"), book.metadata.title)
+    Swag.require(book.metadata.creators == "Charles Dickens" and book.metadata.language == "en", book.metadata.creators)
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.christmas-carol.epub"), false)
+    let view   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let sheet  = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "4 chapters") and
+                 Utf8.contains(text, "Author\nCharles Dickens") and
+                 Utf8.contains(text, "Language\nen"),
+                 text)
 }
 
 // A root package path cannot escape its archive.
@@ -50,4 +65,20 @@ using Core, Gui, Gui.Testing, Viewers
     var loadError: Swag.Error
     discard catch Epub.Book.load(scopeTestDataPath("viewer.damaged.epub")) as loadError
     Swag.require(loadError.value() is Errors.InvalidFormatError)
+}
+
+// The Explorer preview of a book is the cover its package names, decoded from the archive and
+// fitted; a book that names no cover has none to give.
+#test
+{
+    let cover = expect Epub.loadCover(scopeTestDataPath("viewer.christmas-carol.epub"))
+    Swag.require(Utf8.endsWith(cover.path.toString(), "_cover.jpg") and cover.bytes.count > 0)
+
+    let plugin = Epub.viewerPlugin()
+    let image  = expect plugin.thumbnail!(scopeTestDataPath("viewer.christmas-carol.epub"), 128)
+    Swag.require(image.isValid() and Math.max(image.width, image.height) == 128 and image.height > image.width)
+
+    let none = expect Epub.loadCover(scopeTestDataPath("viewer.epub"))
+    Swag.require(none.bytes.isEmpty() and none.path.isEmpty())
+    Swag.require(not (expect plugin.thumbnail(scopeTestDataPath("viewer.epub"), 128)).isValid())
 }

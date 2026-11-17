@@ -24,6 +24,7 @@
 #include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1535,17 +1536,7 @@ var GValue: s32 = 7
         return Result::Error;
 
     TaskContext           compilerCtx(compiler);
-    const SymbolVariable* globalVar = nullptr;
-    for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
-    {
-        if (!symbol)
-            continue;
-        if (symbol->name(compilerCtx) != "GValue")
-            continue;
-
-        globalVar = symbol;
-        break;
-    }
+    const SymbolVariable* globalVar = Backend::Unittest::findRegularGlobal(nativeBuilder, compilerCtx, "GValue");
 
     if (!globalVar || !globalVar->hasGlobalStorage())
         return Result::Error;

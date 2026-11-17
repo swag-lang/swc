@@ -48,8 +48,9 @@ integration around those engines.
 ### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
 
 - Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
-  unreadable page. There is no extracted reading view, title/language/description summary,
-  standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
+  unreadable page. The information sheet gives the title, language and description the head of
+  the page writes (`HtmlView.documentFacts`), refreshed when a streamed head changes them. There is
+  no extracted reading view, standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
   through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings. An
   unstyled HTML page opened during the outline test starts at the left edge, where an optional
   reading layout could supply a comfortable measure without changing faithful rendering.
@@ -59,15 +60,18 @@ integration around those engines.
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
 
-### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
+### app.scope.document.016 — Image-only PDF pages are named only when a search finds nothing
 
-- Evidence: the PDF adapter forwards document search into `PdfView`, but its information surface
-  does not distinguish a decoded page with no text from a page whose text has not been loaded.
-  An image-only page gives no explanation that optical character recognition is unavailable.
-- Next: expose the decoded page's text availability through the existing information surface,
-  distinguishing loading, absent text, and unavailable decoding without scanning the whole file.
-- Done when: searching an image-only page explains that OCR is absent, text-backed scans stay
-  searchable, and a pending or failed page is not mislabeled as having no text.
+- Evidence: once the document's text has been extracted for search, `PdfView.textCoverage`
+  counts pages with no text and pages whose text failed to decode, and a search that found
+  nothing says so beside its `0/0`. The information sheet starts that extraction itself
+  (`PdfView.extractText`) and, once `PdfView.sigTextExtracted` reports it done, says whether the
+  pages carry text: on every page, none, or missing on how many, then how many could not be read.
+  A search that finds words in a partly scanned document says, in the tooltip of its count, how
+  many pages were not searched (`Viewer.ExplainSearch`); the count itself carries no mark.
+- Next: mark the count itself, not only its tooltip, when pages could not be searched.
+- Done when: a reader can tell, without searching, that a document or some of its pages have no
+  text layer, and a found count over such a document says which pages it could not cover.
 - Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface
@@ -181,7 +185,8 @@ integration around those engines.
   stay hidden until explicitly revealed. The native grid preserves declared column widths, row
   heights, sparse addresses, disjoint merged cells and hidden rows/columns; a separate command
   reveals hidden ranges. Cell selection, keyboard moves, copy and a theme-aware text view support
-  reading. Only visible rows are painted, including million-row address spans. Direct and base
+  reading, and `:` with a cell address in the lens selects that cell. Only visible rows are
+  painted, including million-row address spans. Direct and base
   XFs now retain font size/emphasis, colors, solid fills, common borders, alignment, wrapping and
   Normal-font indents. Spreadsheet theme/indexed colors and luminance tints are resolved; numeric
   overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
@@ -194,7 +199,7 @@ integration around those engines.
   and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
 - Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
-  rectangular selection, direct cell addressing and sheet-wide search before read-only chart
+  rectangular selection, sheet-qualified cell addresses and sheet-wide search before read-only chart
   previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
   date profiles with producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
@@ -230,7 +235,8 @@ integration around those engines.
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
   sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
   returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
-  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  The information sheet counts the chapters and gives the title, authors, language, publisher
+  and date of the package's Dublin Core metadata. Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
   remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
   bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
@@ -242,13 +248,15 @@ integration around those engines.
 
 - Evidence: `Viewers.Comic` lists image members in natural filename order and opens one page through
   `EmbeddedViewer`. Previous and next controls are available, and a lens option maps left/right
-  keys to manga reading order. A clickable page counter accepts a one-based page number. There is
-  still no thumbnail index or multi-page reading layout. A dedicated reader such as
+  keys to manga reading order. A clickable page counter accepts a one-based page number. A
+  `ComicInfo.xml` at the root of the book, read through the DTD-free package scanner, gives the
+  information sheet its title, writer, series, number, volume, penciller, publisher and year, and a
+  `Manga` value of `YesAndRightToLeft` starts the book in right-to-left order. There is still no
+  thumbnail index or multi-page reading layout. A dedicated reader such as
   [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
   continuous webtoon scroll, bookmarks and reading-position restore.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous
-  layouts, right-to-left spreads, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
-  metadata when present without treating it as an image page.
+  layouts, right-to-left spreads, cover alignment and per-page fit/zoom.
 - Done when: natural order, nested folders, spreads, manga direction, tall pages and damaged
   members remain readable and navigable across real CBZ books; page changes never require
   extracting all images first, and unsupported image pages are named in place.
@@ -336,15 +344,15 @@ integration around those engines.
   to the requesting node.
 - Related: std.gui.html.019
 
-### app.scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
+### app.scope.document.012 — PDF page navigation has no thumbnails
 
-- Evidence: the information group provides previous/next and a clickable `current / total`
-  readout with validated numeric page entry. There is no thumbnail strip, page-label lookup, or
-  overview suitable for a long document.
-- Next: render cancellable low-resolution thumbnails through a bounded cache and extend the page
-  address control with PDF page labels.
-- Done when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
-  jumps validate input, the current page is selected, and thousand-page documents stay responsive.
+- Evidence: the information group provides previous/next and a clickable readout that names the
+  page by the label the document gives it (`/PageLabels`) beside its position, and the page dialog
+  accepts a position or a label. There is no thumbnail strip or overview suitable for a long
+  document.
+- Next: render cancellable low-resolution thumbnails through a bounded cache.
+- Done when: thumbnails prioritize the visible neighborhood, the current page is selected, and
+  thousand-page documents stay responsive.
 - Related: std.gui.pdf.018
 
 ### app.scope.document.015 — PDF pages cannot be rotated or viewed with box and geometry overlays
@@ -404,16 +412,3 @@ integration around those engines.
 - Done when: genuine LibreOffice files retain common authored layout and components; notes
   can be inspected separately; unsupported content remains explicit; navigation stays responsive
   and cancellation/package budgets hold on large and damaged documents.
-
-### app.scope.document.033 — A just-opened document marks no heading in its outline
-
-- Evidence: `DocumentOutline.markReading` follows the Markdown, HTML and PDF reading position
-  from the reader's first move on. At open nothing is marked: the headings arrive from a worker
-  at no fixed moment relative to the first layout, and marking then would change every outline
-  picture, which only the reference GPU renderer can record. EPUB contents are addressed by
-  chapter and fragment and are not followed at all.
-- Next: mark once both the headings and the first layout exist, record the outline goldens again
-  on the reference renderer, then map an EPUB reading position to its contents entry.
-- Done when: an outline opened on a document shows the heading in view before any scroll, in
-  every reader that has one, with its pictures recorded.
-- Related: app.scope.document.001, app.scope.document.021

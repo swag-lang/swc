@@ -26,6 +26,7 @@ ui_MenuCopyName     Copier le nom du fichier
 ui_MenuForget       Retirer ce fichier de l'historique
 ui_PreviousPage Page précédente
 ui_NextPage Page suivante
+ui_SpeedNormal Normale
 ui_CloseSearch Fermer la recherche (Échap)
 ui_Search       Rechercher dans le document
 ui_SearchPrevious Occurrence précédente (Maj+F3)
@@ -238,6 +239,12 @@ explore_Length % h %
 explore_Sources Sources
 lens_InFile Dans ce fichier
 lens_GoToLine Aller à la ligne %
+lens_GoToLineColumn Aller à la ligne %, colonne %
+lens_GoToPage Aller à la page %
+lens_GoToOffset Aller au décalage %
+lens_GoToChapter Aller au chapitre %
+lens_GoToTime Aller à %
+cmd_CopyTime Copier l'instant %
 explore_Album Album
 explore_Tracks % titres
 explore_Play Lire

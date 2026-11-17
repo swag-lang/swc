@@ -32,9 +32,12 @@ struct Texts
     ui_Summary:          string = "% · % · % · % BPM · % · %"
     ui_Details:          string = "% · % · % · %"     // Tracks, meter, notes and length, at the foot of the score.
     ui_Channel:          string = "channel %"         // The channel a track plays on, under its name.
+    ui_Percussion:       string = "percussion"        // What the tenth channel plays, in the information sheet.
     ui_Presentation:     string = "Presentation"      // Option choosing how the score is laid out.
     ui_ByTrack:          string = "Tracks"            // One lane per track.
     ui_ByPitch:          string = "Piano Roll"        // One row per key.
+    ui_OneChange:        string = "1 change"          // A tempo, meter or key that changes once in the file.
+    ui_Changes:          string = "% changes"         // A tempo, meter or key that changes several times.
     ui_Major:            string = "major"
     ui_Minor:            string = "minor"
     err_TooLarge:        string = "the MIDI viewer accepts files up to 32 MiB"
@@ -53,8 +56,9 @@ private var g_Texts: Texts
 func texts()->const *Texts => &g_Texts
 
 // Counts tracks and notes in the active language, singular for one.
-func trackCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneTrack) : Format.toString(texts().ui_Tracks, count)
-func noteCountText(count: u64)->String  => count == 1 ? String.from(texts().ui_OneNote) : Format.toString(texts().ui_Notes, count)
+func trackCountText(count: u64)->String  => count == 1 ? String.from(texts().ui_OneTrack) : Format.toString(texts().ui_Tracks, count)
+func noteCountText(count: u64)->String   => count == 1 ? String.from(texts().ui_OneNote) : Format.toString(texts().ui_Notes, count)
+func changeCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneChange) : Format.toString(texts().ui_Changes, count)
 
 // Names one way of labelling the pitches.
 func pitchLabelText(mode: PitchLabelMode)->string => mode == .MidiNumber ? texts().ui_PitchMidiNumber : texts().ui_PitchScientific

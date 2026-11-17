@@ -26,6 +26,9 @@ struct Panel
 {
     using wnd: Wnd
 
+    properties:     Package.DocumentProperties     // What the package says of the document, once read.
+    propertiesRead: bool
+
     workbook:         Workbook
     load:             Viewer.BackgroundLoad'Workbook
     services:         Viewer.HostServices
@@ -274,8 +277,31 @@ private impl Panel
         return true
     }
 
+    // Shows the cell at `address` of the sheet in view in the grid, selected and in view.
+    internal mtd revealCell(address: Address)
+    {
+        if .textMode do
+            .setTextMode(false)
+        .grid?.selectAddress(address)
+    }
+
+    // Answers `:` and a cell address, as `B12`, with that cell of the sheet in view; any other
+    // query with the commands of the workbook.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        if entries.results.prefix == .Line
+        {
+            var typed = String.from(Latin1.trim(entries.query.toString()))
+            typed.makeUpper()
+            let address = catch Address.parse(typed.toString()) { return; }
+            if .sheet >= .workbook.sheets.count do
+                return
+            let entry = entries.add(Format.toString(texts().ui_GoToCell, address.label()), .GoTo, func|view = me, address|() { view.revealCell(address) })
+            if entry do
+                entry.lead = address.label()
+            return
+        }
+
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         if .workbook.hiddenSheets do
@@ -334,10 +360,29 @@ func createViewer(host: Viewer.Host)
     createWorkbookViewer(host, &Workbook.load)
 }
 
+impl Panel
+{
+    // Describes the document in the information sheet with what its package says of it, read
+    // once, the first time the sheet asks.
+    internal mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .propertiesRead and not .load.fileName.isEmpty()
+        {
+            .properties     = Package.DocumentProperties.read(.load.fileName)
+            .propertiesRead = true
+        }
+
+        var data: MediaInfoData
+        .properties.describe(&data)
+        data.describe(sheet)
+    }
+}
+
 func createWorkbookViewer(host: Viewer.Host, loader: func(string)->Workbook fail)
 {
     let view = Panel.create(host)
     host.attachView(view)
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showSheet(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })

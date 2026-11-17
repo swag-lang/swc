@@ -124,3 +124,67 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     piano.channel = 0
     Swag.require(drum.isHit() and not piano.isHit())
 }
+
+// The information sheet gives the tempo, the meter and the key of the whole file: the range a
+// tempo moves through, and how many times each of them changes.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "MThd"))
+    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add(cast(const [..] u8, "MTrk"))
+    bytes.add([0'u8, 0, 0, 66])
+    bytes.add([0x00'u8, 0xC0, 0x18, 0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
+               0x00, 0xFF, 0x59, 0x02, 0x00, 0x00, 0x00, 0x90, 0x3C, 0x64, 0x83, 0x60, 0xFF, 0x51, 0x03,
+               0x06, 0x1A, 0x80, 0x00, 0xFF, 0x58, 0x04, 0x03, 0x02, 0x18, 0x08, 0x83, 0x60, 0xFF, 0x51,
+               0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x59, 0x02, 0x01, 0x00, 0x00, 0x80, 0x3C, 0x00, 0x00,
+               0xFF, 0x2F, 0x00])
+    let fileName = Gui.Testing.tempFilePath("scope-midi-changes-", ".mid")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    let document = expect Midi.loadDocument(fileName)
+    Swag.require(document.tempos.count == 3 and document.bpm() == 120)
+    Swag.require(document.tempoText() == "120–150 BPM · 2 changes", document.tempoText())
+    Swag.require(document.meterChangesText() == "4/4 · 1 change", document.meterChangesText())
+    Swag.require(document.keyChangesText() == "C major · 1 change", document.keyChangesText())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Midi.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "Tempo\n120–150 BPM · 2 changes"), text)
+    Swag.require(Utf8.contains(text, "Time signature\n4/4 · 1 change"), text)
+    Swag.require(Utf8.contains(text, "Key\nC major · 1 change"), text)
+
+    // The track lists its channel, the General MIDI instrument it selects and its notes.
+    Swag.require(document.tracks[0].program == 24 and Midi.instrumentName(24) == "Acoustic Guitar (nylon)")
+    Swag.require(Utf8.contains(text, "channel 1 · Acoustic Guitar (nylon) · 1 note"), text)
+}
+
+// The Explorer preview of a MIDI file is its notes as a small piano roll on a light ground.
+#test
+{
+    let plugin = Midi.viewerPlugin()
+    let image  = expect plugin.thumbnail!(midiViewerFixturePath(), 128)
+    Swag.require(image.width == 128 and image.height == 64)
+
+    // Some pixels carry the ink of the notes, the rest the ground.
+    var ink = 0'u32
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let color = image.pixelColor(x, y)
+            if color.r < 100 do
+                ink += 1
+        }
+    }
+
+    Swag.require(ink > 20 and ink < 128 * 64 / 2, Format.toString("%", ink))
+}

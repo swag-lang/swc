@@ -250,7 +250,7 @@ namespace PostRaPeephole
             const MicroInstrDef& info = MicroInstr::info(previous->op);
             if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                instructionActuallyDefinesCpuFlags(*previous, previousOperands))
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*previous, previousOperands))
                 return false;
 
             if (regTouch(ctx, *previous, cmp[0].reg).def ||
@@ -312,7 +312,7 @@ namespace PostRaPeephole
             if (identical)
                 continue;
             const auto& info = MicroInstr::info(source->op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*source, ops) ||
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*source, ops) ||
                 regTouch(ctx, *source, compared[0].reg).def || (registerPair && regTouch(ctx, *source, compared[1].reg).def))
                 return false;
             const auto predecessors = cfg.predecessors(index);
@@ -427,7 +427,7 @@ namespace PostRaPeephole
 
             const MicroInstrFlags flags = MicroInstr::info(current->op).flags;
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
+                flags.has(MicroInstrFlagsE::IsCallInstruction) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*current, currentOps))
                 return false;
             if (regTouch(ctx, *current, carry).any())
                 return false;
@@ -886,25 +886,6 @@ namespace PostRaPeephole
 
     namespace
     {
-        // ALU ops that set ZF/SF/PF from their register result exactly as
-        // `cmp result, 0` would. add/sub/and/or/xor all qualify. Multiply
-        // (imul leaves SF/ZF/PF undefined on x64) and shifts (flags depend on
-        // the count, undefined for count 0) are intentionally excluded.
-        bool isFlagReuseSafeMicroOp(MicroOp op)
-        {
-            switch (op)
-            {
-                case MicroOp::Add:
-                case MicroOp::Subtract:
-                case MicroOp::And:
-                case MicroOp::Or:
-                case MicroOp::Xor:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         // Conditions whose truth depends only on ZF/SF/PF, which the reused
         // arithmetic flags reproduce identically. Carry/overflow-sensitive
         // orderings (Above/Below/Greater/Less/Overflow) are NOT reusable: a
@@ -981,7 +962,7 @@ namespace PostRaPeephole
             {
                 case MicroInstrOpcode::OpBinaryRegImm:
                     // [dst, opBits, microOp, imm]
-                    if (!isFlagReuseSafeMicroOp(ops[2].microOp))
+                    if (!MicroPassHelpers::isFlagReuseSafeMicroOp(ops[2].microOp))
                         return false;
                     outReg  = ops[0].reg;
                     outBits = ops[1].opBits;
@@ -989,7 +970,7 @@ namespace PostRaPeephole
 
                 case MicroInstrOpcode::OpBinaryRegReg:
                     // [dst, rhs, opBits, microOp]
-                    if (!isFlagReuseSafeMicroOp(ops[3].microOp))
+                    if (!MicroPassHelpers::isFlagReuseSafeMicroOp(ops[3].microOp))
                         return false;
                     outReg  = ops[0].reg;
                     outBits = ops[2].opBits;
@@ -1052,7 +1033,7 @@ namespace PostRaPeephole
                 if (isTriviallyErasableNoEffect(*scanInst, scanOps))
                     continue;
 
-                if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+                if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scanInst, scanOps))
                 {
                     MicroCond cond;
                     MicroCond signCond;
@@ -1177,13 +1158,13 @@ namespace PostRaPeephole
         if (prev->op == MicroInstrOpcode::OpBinaryMemImm)
         {
             // [base, opBits, microOp, offset, imm]
-            if (prevOps[1].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[2].microOp) || prevOps[3].valueU64 != cmpOps[2].valueU64)
+            if (prevOps[1].opBits != cmpOps[1].opBits || !MicroPassHelpers::isFlagReuseSafeMicroOp(prevOps[2].microOp) || prevOps[3].valueU64 != cmpOps[2].valueU64)
                 return false;
         }
         else if (prev->op == MicroInstrOpcode::OpBinaryMemReg)
         {
             // [base, reg, opBits, microOp, offset]
-            if (prevOps[2].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[3].microOp) || prevOps[4].valueU64 != cmpOps[2].valueU64)
+            if (prevOps[2].opBits != cmpOps[1].opBits || !MicroPassHelpers::isFlagReuseSafeMicroOp(prevOps[3].microOp) || prevOps[4].valueU64 != cmpOps[2].valueU64)
                 return false;
         }
         else
@@ -1857,7 +1838,7 @@ namespace PostRaPeephole
         const MicroInstrRef clearRef = ctx.previousRef(cmpRef);
         const MicroInstr*   clear    = ctx.instruction(clearRef);
         if (!set || !cmp || !clear || set->op != MicroInstrOpcode::SetCondReg ||
-            clear->op != MicroInstrOpcode::ClearReg || !instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
+            clear->op != MicroInstrOpcode::ClearReg || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
             return false;
         const auto* setOps   = set->ops(*ctx.operands);
         const auto* clearOps = clear->ops(*ctx.operands);
@@ -2381,7 +2362,7 @@ namespace PostRaPeephole
                 return false;
         }
         if (initialOps[0].reg != result ||
-            instructionActuallyUsesCpuFlags(*initial, initialOps) || instructionActuallyDefinesCpuFlags(*initial, initialOps))
+            MicroPassHelpers::instructionActuallyUsesCpuFlags(*initial, initialOps) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*initial, initialOps))
             return false;
 
         const MicroInstrRef orRef  = ctx.previousRef(initialRef);
@@ -3073,7 +3054,7 @@ namespace PostRaPeephole
             if (isTriviallyErasableNoEffect(*scanInst, scanOps))
                 continue;
 
-            if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+            if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             {
                 if (isRedundantFallthroughJumpToNextLabel(ctx, scanRef, *scanInst, scanOps))
                     continue;

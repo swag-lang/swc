@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Assert.h"
 
@@ -214,6 +215,15 @@ Symbol* SemaNodeView::singleSymbol() const
         return symList_.size() == 1 ? symList_.front() : nullptr;
 
     return hasSymbol_ ? sym_ : nullptr;
+}
+
+SymbolFunction* SemaNodeView::singleFunction() const
+{
+    Symbol* symbol = singleSymbol();
+    if (!symbol || !symbol->isFunction())
+        return nullptr;
+
+    return &symbol->cast<SymbolFunction>();
 }
 
 const AstNode* SemaNodeView::node() const

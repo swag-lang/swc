@@ -21,19 +21,8 @@ namespace InstructionCombine
     // scan completes. Rewrites mutate opcode + operands in place when the
     // new operand count fits the existing block; otherwise allocOps forces
     // a fresh operand block allocation.
-    struct Action
+    struct Action : MicroPeephole::Action
     {
-        // 8 to hold the widest indexed addressing-mode opcode (LoadAmcMemImm:
-        // base, index, _, addrBits, valBits, scale, disp, imm). Plain
-        // ALU/load rewrites use far fewer.
-        static constexpr uint8_t K_MAX_OPS = 8;
-
-        MicroInstrRef     ref            = MicroInstrRef::invalid();
-        MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
-        uint8_t           numOps         = 0;
-        MicroInstrOperand ops[K_MAX_OPS] = {};
-        bool              erase          = false;
-        bool              allocOps       = false;
         // A new instruction placed before `ref` instead of a rewrite of it.
         bool insert = false;
     };
@@ -75,6 +64,23 @@ namespace InstructionCombine
                 return;
             SWC_ASSERT(passContext != nullptr);
             MicroPassHelpers::computeNextVirtualRegIndices(*passContext, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
+        }
+
+        bool ensureAvailableVirtualIntReg()
+        {
+            ensureVirtualIndices();
+            return nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX;
+        }
+
+        bool emitClearReg(MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
+        {
+            if (!claimAll({ref}))
+                return false;
+            MicroInstrOperand clearOps[2];
+            clearOps[0].reg    = dst;
+            clearOps[1].opBits = opBits;
+            emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
+            return true;
         }
 
         enum class FloatReadFit : uint8_t

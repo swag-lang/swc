@@ -65,6 +65,12 @@ struct PropHeadlessFontData
 #[Swag.TestTag("properties.font")]
 #test
 {
+    // A test run sees no installed font, so the table the editor lists is supplied here: the
+    // mapping between rows and names is what is tested, not what a machine has installed.
+    Swag.require(Pixel.FontFamily.enumerateSystemFontNames().isEmpty())
+    Properties.setFontNames(["Test Mono", "Test Sans", "Test Serif"])
+    defer Properties.setFontNames([])
+
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     var data: PropHeadlessFontData
@@ -72,7 +78,7 @@ struct PropHeadlessFontData
     prop.addStruct(data)
     let item  = unwrap findFieldItem(prop, #nameof(PropHeadlessFontData.face))
     let combo = item.comboBox
-    Swag.require(combo != null and combo.items.count > 2)
+    Swag.require(combo != null and combo.items.count == 5)
     for index in [2'u32, cast(u32, combo.items.count - 1)]
     {
         let name: String = combo.items[index]!.name.text

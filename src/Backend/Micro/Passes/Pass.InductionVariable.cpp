@@ -837,9 +837,7 @@ namespace
 
         if (changed)
         {
-            if (context.ssaState)
-                context.ssaState->invalidate();
-            context.builder->invalidateControlFlowGraph();
+            MicroPassHelpers::invalidateCfgAndSsa(context);
         }
         return changed;
     }

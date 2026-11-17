@@ -120,6 +120,43 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
     return try TypeFace.create(name, embedded)
 }
 
+// Returns the typeface compiled into the module that is closest to a shape.
+//
+// It is the interface face, or its fixed-pitch companion when `fixedPitch` is set, in the
+// nearest of the regular, bold, italic and bold italic styles both carry. Use it for content
+// that must draw the same on every machine, and as the last resort of a search through the
+// installed fonts: it needs no window, no theme and no font on the machine. A theme whose
+// resources override the interface font is not consulted. The face is shared and belongs to
+// Pixel; never delete it. Parsing the embedded program fails only if the module is damaged.
+//
+// ```swag
+// let face = try Gui.embeddedTypeFace(false, .Bold)
+// let font = cache.createFont(face, 13)
+// ```
+func embeddedTypeFace(fixedPitch: bool, style: FontFamilyStyle)->*TypeFace fail
+{
+    let bold   = style == .Bold or style == .BoldItalic or style == .SemiBold
+    let italic = style == .Italic or style == .BoldItalic
+    if fixedPitch
+    {
+        if bold and italic do
+            return try TypeFace.create(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
+        if bold do
+            return try TypeFace.create(ResFontFsBoldName, DefaultFontFsBold)
+        if italic do
+            return try TypeFace.create(ResFontFsItalicName, DefaultFontFsItalic)
+        return try TypeFace.create(ResFontFsRegularName, DefaultFontFsRegular)
+    }
+
+    if bold and italic do
+        return try TypeFace.create(ResFontBoldItalicName, DefaultFontBoldItalic)
+    if bold do
+        return try TypeFace.create(ResFontBoldName, DefaultFontBold)
+    if italic do
+        return try TypeFace.create(ResFontItalicName, DefaultFontItalic)
+    return try TypeFace.create(ResFontRegularName, DefaultFontRegular)
+}
+
 private func systemCjkTypeFace()->*TypeFace? fail
 {
     for name in CjkFontCandidates

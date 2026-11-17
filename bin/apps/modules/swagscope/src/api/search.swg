@@ -28,7 +28,7 @@ struct SearchMatch
         major:  u64     // Zero-based outer container index, such as a page or row.
         minor:  u64     // Zero-based inner container index, such as a span or cell.
         offset: u64     // Byte offset within the container, or within the file for zero indexes.
-        length: u64     // Nonzero matched length in bytes.
+        length: u64     // Matched length in bytes; zero places the reader at `offset`, as a line jump does.
     }
 }
 
@@ -55,6 +55,12 @@ alias ClearSearch = func||()
 // progress and array, until the viewer answers true. A viewer that has everything at hand
 // appends every match and answers true at once.
 alias CollectSearchMatches = func||(string, SearchOptions, *u64, *Array'SearchMatch)->bool
+
+// Says what a complete search of a query could not read, when the viewer knows a reason the
+// reader cannot see on screen — a scanned page holds a picture of words, not words — or returns an
+// empty string to leave the plain count. The host gives it beside a count of nothing, as why, and
+// beside a count of matches, as what the count leaves out.
+alias ExplainSearch = func||(string)->String
 
 // Applies the shared query as a live visibility filter owned by the viewer.
 alias ApplySearchFilter = func||(string, SearchOptions)
@@ -113,6 +119,7 @@ struct SearchApi
         prepare:            PrepareSearch?            // Validates a streamed-file query before scanning.
         collectFileMatches: CollectFileMatches?       // Scans one host-owned streamed source window.
         useMatches:         UseSearchMatches?         // Borrows the active host result index.
+        explainSearch:      ExplainSearch?            // Says what a complete search could not read, when the viewer knows.
     }
 }
 

@@ -532,6 +532,15 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 #[Swag.TestTag("capture.interaction")]
 #test
 {
+    // A test run sees no installed font: the families the inspector and the mini-bar offer
+    // are named here.
+    Gui.Properties.setFontNames(["Test Mono", "Test Sans", "Test Serif"])
+    defer Gui.Properties.setFontNames([])
+    g_MiniBarFonts.clear()
+    for name in ["Test Mono", "Test Sans", "Test Serif"] do
+        g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: name})
+    defer g_MiniBarFonts.clear()
+
     var host: Gui.Testing.HeadlessHost
     let main = testSetupEditorSurface(&host, dark: true)
     defer
@@ -550,7 +559,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     var font: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         font = item
-    Swag.require(font != null and font.comboBox.items.count > 2)
+    Swag.require(font != null and font.comboBox.items.count == 5)
     let first: String = font.comboBox.items[2]!.name.text
     font.comboBox.setSelectedIndex(2)
     Swag.require(text.fontName == first)

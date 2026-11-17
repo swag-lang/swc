@@ -41,6 +41,8 @@ namespace SemaError
     Utf8         formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
     Utf8         formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
     Utf8         formatStructMemberList(Sema& sema, TypeRef typeRef);
+    void         addAvailableEnumValuesNote(Diagnostic& diag, const TaskContext& ctx, const SymbolEnum& symEnum);
+    void         addAutoScopeMemberNotes(Diagnostic& diag, Sema& sema, const TaskContext& ctx, DiagnosticId diagId, TypeRef typeRef);
     void         addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
     DiagnosticId unknownMemberDiagnosticId(const Sema& sema, const SymbolMap* owner);
 

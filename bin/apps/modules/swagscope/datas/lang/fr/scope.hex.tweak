@@ -37,6 +37,11 @@ ui_AnalysisProgress     Analyse · %{f1}%%
 ui_AnalysisCancelled    Arrêt après %
 ui_AnalysisMetrics      Entropie %{f2}/8 · zéro %{f1}%% · imprimable %{f1}%%
 ui_AnalysisNoBytes      Aucun octet analysé
+ui_AnalysisDigests      CRC-32 % · SHA-256 %
+ui_AnalysisCopyCrc32    Copier le CRC-32 des octets analysés
+ui_AnalysisCopySha256   Copier le SHA-256 des octets analysés
+ui_AnalysisCopyMd5      Copier le MD5 des octets analysés
+ui_AnalysisCopySha1     Copier le SHA-1 des octets analysés
 ui_AnalysisByteHint     Survolez la carte pour voir le compte exact
 ui_AnalysisByte         Octet %{X02} · % occurrences · %{f2}%%
 ui_AnalysisByteOnce     Octet %{X02} · 1 occurrence · %{f2}%%
@@ -55,6 +60,7 @@ err_AnalysisShortRead   Le fichier se termine avant la plage d’analyse
 ui_CopyBytes     Copier les octets
 ui_CopyText      Copier le texte
 ui_CopyDump      Copier le dump
+ui_CopyOffset    Copier le décalage %
 
 ui_CopyBytesMax  Copier les % premiers en octets
 ui_CopyTextMax   Copier les % premiers en texte

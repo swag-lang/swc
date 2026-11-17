@@ -46,6 +46,15 @@ namespace
         return true;
     }
 
+    void addAvailableValuesNote(Diagnostic& diag, const DiagnosticId noteId, const Utf8& values)
+    {
+        if (values.empty())
+            return;
+
+        diag.addNote(noteId);
+        diag.last().addArgument(Diagnostic::ARG_VALUES, values);
+    }
+
     // Tells whether 'id' is an error that will be shown: overload and spec-op probing can
     // intentionally silence diagnostics, and those speculative failures must not count.
     bool isVisibleError(const Sema& sema, const DiagnosticId id)
@@ -498,6 +507,26 @@ Utf8 SemaError::formatEnumValueList(const TaskContext& ctx, const SymbolEnum& sy
     }
 
     return result;
+}
+
+void SemaError::addAvailableEnumValuesNote(Diagnostic& diag, const TaskContext& ctx, const SymbolEnum& symEnum)
+{
+    const Utf8 availableValues = formatEnumValueList(ctx, symEnum);
+    addAvailableValuesNote(diag, DiagnosticId::sema_note_available_enum_values, availableValues);
+}
+
+void SemaError::addAutoScopeMemberNotes(Diagnostic& diag, Sema& sema, const TaskContext& ctx, const DiagnosticId diagId, const TypeRef typeRef)
+{
+    if (diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
+    {
+        const Utf8 availableFields = formatStructMemberList(sema, typeRef);
+        addAvailableValuesNote(diag, DiagnosticId::sema_note_available_struct_fields, availableFields);
+    }
+    else if (diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value)
+    {
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        addAvailableEnumValuesNote(diag, ctx, typeInfo.payloadSymEnum());
+    }
 }
 
 Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)

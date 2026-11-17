@@ -43,21 +43,25 @@ remains in [std.truetype.md](std.truetype.md).
   original text-to-glyph mapping remains inspectable.
 - Related: std.truetype.003, std.truetype.009, std.truetype.008
 
-### app.scope.font.002 — The character map cannot search or jump to a glyph
+### app.scope.font.002 — The character map cannot search glyph names, IDs, blocks or scripts
 
 - Evidence: navigation pages 192 mapped Unicode scalars with previous/next, and the clickable range
-  readout jumps to several common Unicode blocks. There is no arbitrary Go To by Unicode,
-  character, glyph name, glyph ID, block/script name, or text search.
-- Next: build a bounded searchable cmap/glyph index and extend the range control with arbitrary Go
-  To input.
-- Done when: `U+`, literal character, decimal/hex glyph ID, glyph name, Unicode block, and script
-  queries reveal a cell; unmapped versus absent results are distinguished; and back/forward works.
+  readout jumps to several common Unicode blocks. A character typed into the lens, or its `U+`
+  code point, shows its page with the cell marked, and one the face does not map is named so.
+  There is no Go To by glyph name, glyph ID, block or script name, no text search over names, and
+  a lens jump does not join a back/forward history.
+- Next: build a bounded searchable cmap/glyph index (post and CFF names, glyph IDs) and answer
+  glyph-name, `#`-prefixed glyph ID and block or script queries in the same lens rows.
+- Done when: glyph name, decimal/hex glyph ID, Unicode block, and script queries reveal a cell;
+  unmapped versus absent results are distinguished; and back/forward works.
 
 ### app.scope.font.003 — Unicode coverage and missing-glyph analysis are absent
 
-- Evidence: the current map displays only characters the face maps. It does not summarize scripts,
-  blocks, code pages, variation sequences, supplementary planes, symbol mappings, or holes in a
-  requested repertoire.
+- Evidence: the current map displays only characters the face maps. The information sheet counts
+  the characters the face maps in each block the map jumps to (Basic Latin, Latin-1 Supplement,
+  Greek and Coptic, Cyrillic, General Punctuation and Symbols), and the lens and the range menu
+  offer a block the face maps nothing of disabled. Other scripts, code pages, variation sequences,
+  supplementary planes, symbol mappings, and holes in a requested repertoire are not summarized.
 - Next: calculate coverage from cmap subtables against Unicode block/script data and user-supplied
   sample text or ranges.
 - Done when: coverage counts identify cmap/subtable provenance, mapped aliases and variation
@@ -66,9 +70,11 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.004 — Font names, legal metadata, and embedding permissions are hidden
 
-- Evidence: only family and style reach the document. Full/PostScript/unique/version names,
-  copyright, designer/vendor, licence, description, dates, PANOSE, weight/width/classification,
-  fsType embedding restrictions, and supported tables are absent.
+- Evidence: the information sheet gives family, style, units per em, the version, designer
+  and copyright notice the face declares, its OS/2 weight class with the name of the nearest
+  hundred, and its `fsType` embedding permissions named as the specification names them
+  (`TrueType.FaceMetadata.embedding`). Full/PostScript/unique names, vendor, licence, description,
+  dates, PANOSE, width/classification, localized name records and supported tables are absent.
 - Next: expose original localized name records and normalized technical/legal properties through a
   read-only information panel.
 - Done when: all name records retain platform/language IDs, permissions are explained without
@@ -78,9 +84,11 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.005 — A glyph cell has no detail inspector
 
-- Evidence: each cell paints a glyph and `U+` label only. Glyph ID/name, advance, bearings, bounding
-  box, contours/points, components, instructions, anchors, color layers, substitutions, and mapped
-  Unicode values cannot be inspected.
+- Evidence: each cell paints a glyph and `U+` label. A click on a cell marks its character, as the
+  lens's Show command does; the information sheet then gives its code point and glyph index, and
+  the lens copies it. There is no keyboard selection, and glyph name, advance, bearings, bounding
+  box, contours/points, components, instructions, anchors, color layers and substitutions cannot be
+  inspected.
 - Next: make map cells selectable and expose available outline/metric/mapping facts in a side panel,
   with unsupported table families explicitly labelled.
 - Done when: pointer and keyboard selection report glyph identity, mappings, advance/bearings,

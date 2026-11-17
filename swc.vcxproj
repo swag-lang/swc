@@ -747,6 +747,8 @@
         <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.DWARF.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugPdbLocal.h"/>
+        <ClInclude Include="src\Backend\DwarfEncoding.h"/>
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.X64.h"/>
@@ -798,6 +800,7 @@
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\FlatTable.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
+        <ClInclude Include="src\Support\Core\KindCast.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\PagedStore.h"/>
         <ClInclude Include="src\Support\Core\PointerSet.h"/>

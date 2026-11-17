@@ -58,8 +58,9 @@ struct DocumentOutline
     markdownFile: String
     filter:       String
     loaded:       bool
-    marking:      bool     // Whether the selection is being moved to follow the reading, not by the reader.
+    marking:      bool                   // Whether the selection is being moved to follow the reading, not by the reader.
     reading:      u64 = Swag.U64.Max     // Target last given to `markReading`, marked again when the rows change.
+    follow:       (func||())?            // Marks the heading of what the document shows now; set by the reader of that document.
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*Wnd, u64)
     sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
@@ -85,6 +86,13 @@ impl DocumentOutline
             .backgroundStyle = .Transparent
             .padding         = floatingSurface ? Math.Vector4{12, 8, 12, 8} : Math.Vector4{0, 8, 0, 8}
             .toggle          = side.toggle
+        }
+
+        // An outline opened over a document marks the heading in view at once, not at the first scroll.
+        result.toggle.sigCheckedChanged += func|panel = result|(button)
+        {
+            if button.isChecked do
+                panel.followReading()
         }
 
         let size = themeCompactButtonSize(result.themeMetrics())
@@ -289,6 +297,9 @@ impl DocumentOutline
         .headings.add(headings)
         .rebuildRows()
         .refresh()
+
+        // Headings and the first layout arrive in no fixed order: the later of the two marks.
+        .followReading()
         .sigPublished.call(me)
     }
 
@@ -384,8 +395,21 @@ impl DocumentOutline
         .list.ensureVisibleLine(cast(u32, row))
     }
 
+    // Marks the heading of what the document shows now, through the reader that bound it. Does
+    // nothing before a document is bound or laid out.
+    mtd followReading()
+    {
+        if .follow do
+            .follow()
+    }
+
     mtd bindHtml(view: *HtmlView)
     {
+        .follow = func|panel = me, view|()
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
+        }
+
         let headings = view.headings()
         .publish(headings.toSlice())
         view.sigDocumentChanged += func|panel = me|(html)
@@ -399,16 +423,21 @@ impl DocumentOutline
             discard view.revealFileOffset(offset, "")
         }
 
-        // The heading being read follows the page from the reader's first move on.
-        view.sigScrolled += func|panel = me, view|(_)
+        // The heading being read follows the page as it moves.
+        view.sigScrolled += func|panel = me|(_)
         {
-            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
+            panel.followReading()
         }
     }
 
     mtd bindMarkdown(view: *Markdown.View, fileName: string)
     {
         .markdownFile = fileName
+        .follow       = func|panel = me, view|()
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
+        }
+
         .toggle.sigCheckedChanged += func|panel = me, view|(button)
         {
             if button.isChecked
@@ -427,10 +456,10 @@ impl DocumentOutline
             discard view.revealHeading(offset)
         }
 
-        // The heading being read follows the document from the reader's first move on.
-        view.sigScrolled += func|panel = me, view|(_)
+        // The heading being read follows the document as it moves.
+        view.sigScrolled += func|panel = me|(_)
         {
-            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
+            panel.followReading()
         }
     }
 

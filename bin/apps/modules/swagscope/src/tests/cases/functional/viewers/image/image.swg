@@ -323,3 +323,69 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         }
     }
 }
+
+// The pointer over a picture reads the pixel it stands on, and its color, after the summary;
+// leaving the picture gives the summary back.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.png"), true)
+    let view   = assume cast(*Picture.Panel, window.instances[window.activeChoiceIndex].view)
+    let center = view.imageView.surfaceRect().center()
+    let pixel  = view.imageView.pixelAt(view.imageView.surfaceToLocal(center))
+    Swag.require(pixel.inside)
+
+    host.moveMouse(center)
+    let details = String.from(window.instances[window.activeChoiceIndex].details)
+    let color   = unwrap view.imageView.picture()
+    let stored  = color.pixelColor(pixel.x, pixel.y)
+    Swag.require(Utf8.startsWith(details.toSlice(), view.details.toString()), details)
+    Swag.require(Utf8.contains(details.toSlice(), Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y).toString()), details)
+    Swag.require(Utf8.contains(details.toSlice(), Format.toString("#%{X02}%{X02}%{X02}", stored.r, stored.g, stored.b).toString()), details)
+
+    host.moveMouse(Math.Point{2, 2})
+    Swag.require(window.instances[window.activeChoiceIndex].details == view.details)
+
+    // The pixel read last stays offered in the lens, its color copied as a code.
+    var code = Format.toString("#%{X02}%{X02}%{X02}", stored.r, stored.g, stored.b)
+    if stored.a != 255 do
+        code += Format.toString("%{X02}", stored.a)
+    Swag.require(view.probedColorText() == code, view.probedColorText())
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
+    entries.query = "color"
+    view.describeLens(&entries)
+    let title = Format.toString(Picture.texts().ui_CopyColor, code, Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y))
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == title
+    {
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found)
+    if Clipboard.isFake() do
+        Swag.require(Clipboard.getString() == code, Clipboard.getString())
+}
+
+// The information sheet says how much of a picture its alpha hides: wholly transparent pixels,
+// pixels that let the ground show through, or none at all.
+#test
+{
+    let mixed: [16] u8 = [0, 0, 0, 0, 9, 9, 9, 255, 9, 9, 9, 128, 9, 9, 9, 255]
+    let picture        = Image.create(4, 1, .RGBA8, mixed)
+    Swag.require(Picture.shareText(128, 255) == "50%" and Picture.shareText(1, 400) == "<1%")
+    Swag.require(Picture.transparencyText(&picture) == "25% transparent · 25% translucent", Picture.transparencyText(&picture))
+    let opaque: [8] u8 = [1, 2, 3, 255, 4, 5, 6, 255]
+    let solid = Image.create(2, 1, .RGBA8, opaque)
+    Swag.require(Picture.transparencyText(&solid) == Picture.texts().ui_Opaque)
+    let rgb = Image.create(2, 1, .RGB8)
+    Swag.require(Picture.transparencyText(&rgb).isEmpty())
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("title.png"), true)
+    let view   = assume cast(*Picture.Panel, window.instances[window.activeChoiceIndex].view)
+    let sheet  = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    Swag.require(Utf8.contains(sheet.text(), "Transparency\n"), sheet.text())
+}

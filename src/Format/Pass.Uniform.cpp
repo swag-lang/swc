@@ -159,20 +159,16 @@ namespace
             const auto& bodies = model_->functionBodies();
             for (const auto& group : FormatSiblings::closureGroups(*model_, options_->uniformClosureBodies))
             {
-                bool                   oneLine  = false;
-                bool                   expanded = false;
-                bool                   compact  = true;
+                FormatSiblings::BodyGroupShape shapeGroup;
                 std::vector<BodyShape> shapes;
                 for (const uint32_t i : group)
                 {
                     shapes.push_back(FormatSiblings::functionShape(*model_, bodies[i]));
                     const BodyShape& shape = shapes.back();
-                    oneLine                = oneLine || shape.oneLine;
-                    expanded               = expanded || !shape.oneLine;
-                    compact                = compact && shape.compact;
+                    shapeGroup.add(shape);
                 }
 
-                if (!oneLine || !expanded)
+                if (!shapeGroup.oneLine || !shapeGroup.expanded)
                     continue;
 
                 for (size_t i = 0; i < group.size(); ++i)
@@ -180,7 +176,7 @@ namespace
                     const FormatFunctionBody& body  = bodies[group[i]];
                     const BodyShape&          shape = shapes[i];
 
-                    if (compact)
+                    if (shapeGroup.compact)
                     {
                         if (shape.valid && canUnbraceFunction(body, shape))
                             unbraceFunction(body, shape);
@@ -209,20 +205,16 @@ namespace
             const auto& bodies = model_->functionBodies();
             for (const auto& group : FormatSiblings::functionGroups(*model_, options_->uniformFunctionBodies))
             {
-                bool                   oneLine  = false;
-                bool                   expanded = false;
-                bool                   compact  = true;
+                FormatSiblings::BodyGroupShape shapeGroup;
                 std::vector<BodyShape> shapes;
                 for (const uint32_t i : group)
                 {
                     shapes.push_back(FormatSiblings::functionShape(*model_, bodies[i]));
                     const BodyShape& shape = shapes.back();
-                    oneLine                = oneLine || shape.oneLine;
-                    expanded               = expanded || !shape.oneLine;
-                    compact                = compact && shape.compact && shape.valid;
+                    shapeGroup.add(shape, true);
                 }
 
-                if (!oneLine || !expanded || !compact)
+                if (!shapeGroup.oneLine || !shapeGroup.expanded || !shapeGroup.compact)
                     continue;
 
                 for (size_t i = 0; i < group.size(); ++i)

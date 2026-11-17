@@ -10,10 +10,9 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroOperandStorage;
 
-// The machinery every peephole pass shares: a queue of rewrites collected while scanning, and
-// a dispatch table that maps an opcode to the patterns worth trying on it. Each pass keeps its
-// own Action and Context so it can size the operand array and carry the extra state it needs;
-// only the mechanics live here.
+// The machinery every peephole pass shares: a rewrite record and queue collected while scanning,
+// and a dispatch table that maps an opcode to the patterns worth trying on it. Each pass adds
+// only the extra state it needs to its action or context.
 namespace MicroPeephole
 {
     // Most pass runs claim no instructions or carry no relocations. An empty flat
@@ -35,6 +34,19 @@ namespace MicroPeephole
 
     private:
         FlatKeySet values_;
+    };
+
+    struct Action
+    {
+        // Indexed address forms carry eight operands.
+        static constexpr uint8_t K_MAX_OPS = 8;
+
+        MicroInstrRef     ref            = MicroInstrRef::invalid();
+        MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
+        uint8_t           numOps         = 0;
+        MicroInstrOperand ops[K_MAX_OPS] = {};
+        bool              erase          = false;
+        bool              allocOps       = false;
     };
 
     // Collected rewrites and the instructions already spoken for. A pass derives its Context

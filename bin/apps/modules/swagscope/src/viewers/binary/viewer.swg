@@ -1076,6 +1076,19 @@ impl Panel
     // Gives the lens the way back and forward through the report.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and an offset, in the grammar of Go to Offset, select the row that covers it.
+        if entries.results.prefix == .Line
+        {
+            let target = parseFileOffset(entries.query.toString(), .selectedOffset(), .doc.image.fileSize)
+            if target != Swag.U64.Max
+            {
+                let value = Format.toString("%{X}", target)
+                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { discard view.revealOffset(target) })
+            }
+
+            return
+        }
+
         let strings = texts()
         if .hasPage
         {
@@ -1090,6 +1103,13 @@ impl Panel
 
         entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
         entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
+
+        // The commands of the report's context menu, so none of them needs a right click.
+        entries.add(strings.ui_MenuGoTo, .GoTo, func|view = me|() { view.promptGoToOffset() }, disabled: not .doc.image.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(strings.ui_MenuCopyAll, .Copy, func|view = me|() { view.copyReport() }, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.ui_MenuCopyLine, .Copy, func|view = me|() { view.copySelectedLine() }, disabled: .list.selectedLine() == null)
+        entries.add(strings.ui_MenuExpand, .ChevronRight, func|view = me|() { view.setExpandedAll(true) }, shortcut: Input.formatKeyShortcut(.Control, .E))
+        entries.add(strings.ui_MenuCollapse, .ChevronDown, func|view = me|() { view.setExpandedAll(false) }, shortcut: Input.formatKeyShortcut(.CtrlShift, .E))
     }
 
     // Creates the command group `host` registers for this viewer, and the history buttons in it.

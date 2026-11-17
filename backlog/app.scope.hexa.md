@@ -20,9 +20,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Evidence: the visible command group exposes row width, value width, representation, byte
   order, and the analysis action. Go To, copy-as-bytes, copy-as-text, copy-as-dump, and
-  select-all are reachable only through the context menu. Pattern search is discoverable through
-  the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A), and Go To (Ctrl+G)
-  have keyboard shortcuts.
+  select-all are in the context menu and the lens, with their shortcuts; the lens also copies the
+  caret's offset as a `0x` address. Pattern search is
+  discoverable through the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A),
+  and Go To (Ctrl+G) have keyboard shortcuts.
 - Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
   the dominant Go To and copy actions directly in the viewer band.
 - Done when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
@@ -212,12 +213,15 @@ are what separate that capable grid from a professional binary-analysis viewer.
   or the complete collection.
 - Related: app.scope.hexa.001, app.scope.hexa.011
 
-### app.scope.hexa.017 — The viewer cannot calculate checksums or hashes
+### app.scope.hexa.017 — Checksums stop at CRC-32 and SHA-256 of an analyzed range
 
-- Evidence: neither the whole file nor a selected range can be verified from the hexadecimal
-  surface, although checksum comparison is a routine integrity and reverse-engineering operation.
-- Next: add a cancellable streamed digest job over an explicit byte range and present one result at
-  a time before building a multi-algorithm panel.
+- Evidence: an analysis read in full (selection, or the whole file) computes the CRC-32, MD5,
+  SHA-1 and SHA-256 of its range in the same streamed, cancellable pass. The analysis panel shows
+  the CRC-32 and SHA-256 on one line whose tooltip gives all four whole, and the lens copies each.
+  CRC-64, SHA-512 and BLAKE2 are absent, a digest cannot be asked for without the rest of the
+  analysis, and the copy omits the range.
+- Next: let the panel choose the algorithms it computes, and copy a result with its algorithm and
+  range.
 - Done when: checksum, CRC32/CRC64, MD5, SHA-1, SHA-256/SHA-512, and BLAKE2 can run over file or
   selection with progress and cancellation, never make the range resident, and copy a result with
   its algorithm and range.

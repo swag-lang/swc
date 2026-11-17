@@ -94,6 +94,9 @@ impl FontFamily
     // coverage; Windows supplies family names and font data only when they are needed.
     internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
     {
+        if not hasSystemFontAccess() do
+            return null
+
         var style = FontFamilyStyle.Regular
         if bold
         {
@@ -189,9 +192,13 @@ impl FontFamily
     }
 
     // Returns the font families currently available from Windows.
+    //
+    // Without [[Pixel.FontFamily.hasSystemFontAccess]] the array is empty.
     public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
     {
         var result: #returntype
+        if not hasSystemFontAccess() do
+            return result
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
@@ -206,9 +213,13 @@ impl FontFamily
 
     // Finds a Windows font family by name.
     //
-    // Returns an empty descriptor when no matching family exists.
+    // Returns an empty descriptor when no matching family exists, as every family does without
+    // [[Pixel.FontFamily.hasSystemFontAccess]].
     public func findSystemFont(fontFamily: string)->SystemFontFamilyInfo
     {
+        if not hasSystemFontAccess() do
+            return {}
+
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
 

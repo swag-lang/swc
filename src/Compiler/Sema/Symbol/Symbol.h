@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/KindCast.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
@@ -233,16 +234,10 @@ public:
     const TypeInfo& typeInfo(const TaskContext& ctx) const;
 
     template<typename T>
-    T* safeCast()
-    {
-        return kind_ == T::K ? static_cast<T*>(this) : nullptr;
-    }
+    T* safeCast() { return KindCast::safeCast<T>(this, kind_); }
 
     template<typename T>
-    const T* safeCast() const
-    {
-        return kind_ == T::K ? static_cast<const T*>(this) : nullptr;
-    }
+    const T* safeCast() const { return KindCast::safeCast<T>(this, kind_); }
 
     template<typename T>
     T& cast()

@@ -473,10 +473,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   differences remain on Mesa software rendering: confirmation focus (8 pixels, maximum channel delta 4), floating sheet (4 pixels,
   delta 3), and property-menu separator endpoint (1 pixel, delta 20). Preserve their strict
   failure status while identifying the geometry, coverage, or driver boundary.
-- Evidence: under Xvfb with the CPU renderer, Swag Scope's functional `viewers/text/text.swg`
-  line-number case and `viewers/odt/content.swg` repeated-table case intermittently never return,
-  about one focused run in six, with the main thread parked in a wait; the same runs pass when
-  repeated. The test executable prints `event=start` for the case and nothing after it.
+- Evidence: under Xvfb, with either renderer, Swag Scope cases intermittently never return, with
+  the main thread parked in a wait: a different handful of golden and functional files in each
+  complete run, each passing when run again on its own. The test executable prints `event=start`
+  for the case and nothing after it. A case that panics can leave the run waiting the same way
+  until its timeout.
+- Evidence: as CPU references, the goldens compare exactly on Linux: all 93 of Pixel's, all of
+  Gui's but two `C:/` fixture-path pictures, and all of Swag Scope's but the seven of
+  app.scope.013. Swag Capture's and Swag Vault's still differ where the product itself does on
+  Linux: an unavailable-shortcuts notice, sound capture, and Windows drive paths.
 - Next: fix remaining failures at their owning boundaries and complete one uninterrupted
   campaign on the synchronized checkout.
   Keep functional, golden and stress coverage, golden expectations and failure status.

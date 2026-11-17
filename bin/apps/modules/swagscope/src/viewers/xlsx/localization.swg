@@ -9,6 +9,7 @@ struct Texts
     ui_Grid:               string = "Show Worksheet Grid"
     ui_ReadText:           string = "Read Worksheet as Text"
     ui_CopyCell:           string = "Copy Cell Value"
+    ui_GoToCell:           string = "Go to Cell %"     // Lens row selecting the cell typed after a colon.
     ui_HiddenRanges:       string = "Show Hidden Rows and Columns"
     ui_Name:               string = "Workbook"
     ui_Previous:           string = "Previous Sheet"

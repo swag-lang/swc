@@ -1426,3 +1426,121 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     waitForVideoFrame(view)
     Swag.require(view.frameIndex == 12)
 }
+
+// A colon and an instant in the lens move a film there, as Go to Time does, remembering the jump.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+    Swag.require(view.playButton.isEnabled())
+
+    window.lens.open(":0:00")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:00"))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    waitForVideoFrame(view)
+    Swag.require(view.previousSeek >= 0 and view.currentSeconds() < 0.5)
+}
+
+// Copying the frame on screen decodes that very picture again and puts it on the clipboard at the
+// size the film is shown, the lens offering it beside the transport.
+#test
+{
+    if not Clipboard.isFake() do
+        return
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), "copy-frame.y4m")
+    defer catch File.delete(path)
+    var clip = expect Clip.create(64, 48, expect FrameRate.create(24, 1))
+    for index in 6
+    {
+        var image = Image.create(64, 48, .RGB8)
+        image.fill(Color.fromRgb(cast(u8, index * 40), 96, cast(u8, 250 - index * 40)))
+        expect clip.addFrame(image)
+    }
+
+    expect clip.save(path)
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+    Swag.require(view.showFrame(3))
+    waitForVideoFrame(view)
+    Swag.require(view.frameIndex == 3, Format.toString("frame %", view.frameIndex))
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Film", host.theme)
+    entries.query = "copy"
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Film.texts().cmd_CopyFrame
+    {
+        Swag.require(not entry.disabled)
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found and view.frameCopying)
+    view.frameCopy.wait()
+    view.finishFrameCopy()
+    Swag.require(not view.frameCopying and Clipboard.hasImage())
+    let copied = Clipboard.getImage()
+    Swag.require(copied.width == 64 and copied.height == 48)
+    let color = copied.pixelColor(32, 24)
+    Swag.require(Math.abs(cast(s32, color.r) - 120) < 12 and Math.abs(cast(s32, color.b) - 130) < 12, Format.toString("% % %", color.r, color.g, color.b))
+}
+
+// Two points marked on a film loop the passage between them: past its end, playback goes back to
+// its start without a jump to undo, and the timeline and the footer show it.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), "loop-passage.y4m")
+    defer catch File.delete(path)
+    var clip = expect Clip.create(32, 24, expect FrameRate.create(24, 1))
+    for index in 48
+    {
+        var image = Image.create(32, 24, .RGB8)
+        image.fill(Color.fromRgb(cast(u8, index * 5), 80, 160))
+        expect clip.addFrame(image)
+    }
+
+    expect clip.save(path)
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+
+    // Paused, so that only the call below follows the loop; playing, the timer does it.
+    if view.playing do
+        view.togglePlayback()
+    view.seekFrame(12)
+    waitForVideoFrame(view)
+    view.setLoopStart()
+    view.seekFrame(36)
+    waitForVideoFrame(view)
+    view.setLoopEnd()
+    Swag.require(Math.abs(view.loopStart - 0.5) < 0.05 and Math.abs(view.loopEnd - 1.5) < 0.05, Format.toString("% %", view.loopStart, view.loopEnd))
+    Swag.require(view.timeline.loopEnd > view.timeline.loopStart and view.timeline.loopStart > 0)
+    Swag.require(Utf8.contains(window.instances[window.activeChoiceIndex].details.toString(), Format.toString(Film.texts().ui_Loop, "0:00", "0:01").toString()), window.instances[window.activeChoiceIndex].details)
+
+    view.seekFrame(40)
+    waitForVideoFrame(view)
+    view.previousSeek = -1
+    Swag.require(view.followLoop(), Format.toString("at % frame %", view.currentSeconds(), view.frameIndex))
+    waitForVideoFrame(view)
+    Swag.require(view.frameIndex == 12 and view.previousSeek < 0, Format.toString("frame %", view.frameIndex))
+
+    view.clearLoop()
+    Swag.require(view.timeline.loopStart < 0 and not view.followLoop())
+}

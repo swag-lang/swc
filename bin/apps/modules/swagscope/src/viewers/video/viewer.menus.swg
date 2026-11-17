@@ -85,7 +85,7 @@ impl Panel
         let dialog = EditDlg.createSingleLine(unwrap .surface, options)
         let check  = func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
         {
-            let valid = parseTimeAddress(edit.text(), origin, duration) >= 0
+            let valid = Viewer.parseTimeAddress(edit.text(), origin, duration) >= 0
             dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
             return valid ? .Valid : .InvalidVisible
         }
@@ -95,7 +95,7 @@ impl Panel
         {
             if result != Dialog.BtnOk do
                 return true
-            let target = parseTimeAddress(dialog.text(), origin, duration)
+            let target = Viewer.parseTimeAddress(dialog.text(), origin, duration)
             if target < 0
             {
                 discard dialog.edit!.revalidate()
@@ -291,7 +291,7 @@ impl Panel
         let iconSize = themeRowIconSize(.themeMetrics())
 
         .services.playback.addOptionRows(page, me)
-        page.addLink(strings.ui_OptionSpeed, playbackRateText(.playbackRate), func|view = me|(speeds) { view.describeSpeeds(speeds) }, theme.icon(.PlaybackSpeed, iconSize))
+        page.addLink(strings.ui_OptionSpeed, Viewer.playbackRateText(.playbackRate), func|view = me|(speeds) { view.describeSpeeds(speeds) }, theme.icon(.PlaybackSpeed, iconSize))
         page.addAction(strings.cmd_GoToTime, func|view = me|() { view.promptGoToTime() }, disabled: not .hasFrame, closesSheet: true, icon: theme.icon(.GoTo, iconSize))
         page.addAction(strings.cmd_UndoSeek, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0, icon: theme.icon(.ChevronLeft, iconSize))
         page.addAction(strings.cmd_PlaybackHelp, func|view = me|() { view.showPlaybackHelp() }, closesSheet: true, icon: theme.icon(.Information, iconSize))
@@ -316,8 +316,8 @@ impl Panel
 
     mtd describeSpeeds(page: *OptionSheet.Page)
     {
-        for rate in PlaybackRates do
-            page.addChoice(playbackRateText(rate), rate == .playbackRate, func|view = me, rate|() { view.setPlaybackRate(rate) })
+        for rate in Viewer.PlaybackRates do
+            page.addChoice(Viewer.playbackRateText(rate), rate == .playbackRate, func|view = me, rate|() { view.setPlaybackRate(rate) })
     }
 
     mtd describeAudioTracks(page: *OptionSheet.Page)

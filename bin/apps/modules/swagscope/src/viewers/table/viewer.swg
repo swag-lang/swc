@@ -292,6 +292,20 @@ func detectDelimiter(fileName, text: string)->u8
 const PageMargin = 112.0
 const HeadHeight = 72.0
 
+// What the values of one column add up to: how many cells are empty and, over those reading as
+// quantities, their range and their sum.
+struct ColumnProfile
+{
+    empty:      u64
+    quantities: u64
+    minimum:    f64
+    maximum:    f64
+    sum:        f64
+}
+
+// The most columns the information sheet profiles; a wider table names how many it leaves out.
+const ProfiledColumnLimit = 48'u64
+
 // Names the kind of values of a column, as its header writes it under its name.
 func kindName(kind: ColumnKind)->string
 {
@@ -327,8 +341,10 @@ func isThousands(text: string)->bool
 // Writes `value` with its thousands grouped by a narrow space, two decimals when `decimal`.
 func groupThousands(value: f64, decimal: bool)->String
 {
+    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100.
     let negative = value < 0
-    let whole    = cast(u64, Math.abs(value))
+    let cents    = cast(u64, Math.round(Math.abs(value) * 100))
+    let whole    = decimal ? cents / 100 : cast(u64, Math.abs(value))
     var digits   = Format.toString("%", whole)
     var result: String
     for byte, at in digits.toString()
@@ -338,11 +354,8 @@ func groupThousands(value: f64, decimal: bool)->String
         result += cast(rune, byte)
     }
 
-    if decimal
-    {
-        let cents = cast(u64, Math.round((Math.abs(value) - cast(f64, whole)) * 100))
-        result += Format.toString(".%{02}", cents)
-    }
+    if decimal do
+        result += Format.toString(".%{02}", cents % 100)
 
     return negative ? Format.toString("-%", result) : result
 }
@@ -471,6 +484,7 @@ struct Panel
 
     fileName: String
     kinds:    Array'ColumnKind
+    profiles: Array'ColumnProfile     // What each column holds, counted the first time the sheet asks.
     built:    bool     // Whether the parts exist: a resize reaches the panel while it is built.
 
     document:      Document
@@ -671,9 +685,37 @@ private impl Panel
 
     // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
     // them: complete cell values separated by tabs, one row per line, in the order shown.
-    internal mtd selectionText()->String
+    // Returns the selected rows, or the focused one, as tab-separated text in the order on screen,
+    // after the column names with `withNames`. A value holding a tab, a line break or a quote is
+    // quoted, its quotes doubled, as spreadsheets read tab-separated text back.
+    internal mtd selectionText(withNames = false)->String
     {
+        func quoted(value: string)->String
+        {
+            var needed = false
+            for c in value where c == '\t' or c == '\n' or c == '\r' or c == '"' do
+                needed = true
+            if not needed do
+                return String.from(value)
+
+            var escaped = String.from(value)
+            escaped.replace('"', "\"\"")
+            return Format.toString("\"%\"", escaped)
+        }
+
         var result: #returntype
+        if withNames
+        {
+            for name, column in .document.columns
+            {
+                if column do
+                    result += "\t"
+                result += quoted(name.toString())
+            }
+
+            result += "\n"
+        }
+
         let anySelected = .hasSelection()
         for line in .document.rows.count
         {
@@ -685,7 +727,7 @@ private impl Panel
             {
                 if column do
                     result += "\t"
-                result += cell.toString()
+                result += quoted(cell.toString())
             }
 
             result += "\n"
@@ -702,7 +744,24 @@ private impl Panel
     }
 
     // Returns the document row shown at line `index`, and the line document row `row` is shown at.
-    mtd documentRow(index: u64)->u64      => .order.count ? .order[index] : index
+    mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
+
+    // Returns the values of `column`, one per line in the order shown, an empty cell as an empty line.
+    internal mtd columnText(column: u64)->String
+    {
+        var result: String
+        for line in .document.rows.count
+        {
+            if line do
+                result += "\n"
+            let row = &.document.rows[.documentRow(line)]
+            if column < row.cells.count do
+                result += row.cells[column]
+        }
+
+        return result
+    }
+
     internal mtd lineOfRow(row: u64)->u32 => .rowLines.count ? .rowLines[row] : cast(u32, row)
 
     // Orders the rows by `column`, ascending first and descending when the same column is chosen
@@ -939,6 +998,48 @@ impl Panel
         return Viewer.listCellMatchBounds(.list, .lineOfRow(.searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
+    // Moves the keyboard focus to row `line` as the table shows it, the one the row readout names,
+    // and brings it into view.
+    internal mtd revealLine(line: u32)
+    {
+        if line >= .document.rows.count do
+            return
+        .list.unselectAll()
+        .list.setFocusedIndex(line)
+        .refreshDetails()
+    }
+
+    // Answers `:` and a number in the lens with that row of the table, counted as the row readout
+    // counts it: from one, in the order on screen. Any other query is answered with the copy
+    // commands.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        if entries.results.prefix != .Line
+        {
+            let empty = not .document.rows.count
+            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.addString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.addString(view.selectionText(withNames: true)) }, disabled: empty)
+
+            // The column the table is sorted on, its values one per line in the order shown.
+            if .sortColumn < .document.columns.count do
+                entries.add(Format.toString(texts().ui_CopyColumn, .document.columns[.sortColumn]), .Copy, func|view = me|() { Clipboard.setString(view.columnText(view.sortColumn)) })
+            return
+        }
+
+        let query = Latin1.trim(entries.query.toString())
+        if not query.count do
+            return
+        for c in query where not Latin1.isDigit(c) do
+            return
+        let row = catch StrConv.toU64(query)
+        if not row or row > .document.rows.count do
+            return
+
+        let entry = entries.add(Format.toString(texts().ui_GoToRow, row), .GoTo, func|view = me, row|() { view.revealLine(cast(u32, row - 1)) })
+        if entry do
+            entry.lead = Format.toString("%", row)
+    }
+
     mtd clearSearch()
     {
         .searchRow    = Swag.U64.Max
@@ -994,7 +1095,70 @@ impl Panel
         data.add(.Table, group: true)
         data.add(.Separator, delimiterKind(.document.delimiter))
         data.add(.Encoding, "UTF-8")
+
+        // Each column under its name: its kind, the range and mean of its quantities, its empty cells.
+        let shown = Math.min(.document.columns.count, ProfiledColumnLimit)
+        if shown and .kinds.count >= shown
+        {
+            .profileColumns()
+            data.add(.Columns, group: true)
+            for column in shown do
+                data.addText(.document.columns[column], .profileText(column))
+            if .document.columns.count > shown do
+                data.addText("…", Format.toString(texts().ui_MoreColumns, .document.columns.count - shown))
+        }
+
         data.describe(sheet)
+    }
+
+    // Counts what each profiled column holds, once.
+    mtd profileColumns()
+    {
+        let shown = Math.min(.document.columns.count, ProfiledColumnLimit)
+        if .profiles.count == shown do
+            return
+        .profiles.clear()
+        .profiles.resize(shown)
+        for &row in .document.rows
+        {
+            for column in shown
+            {
+                let profile = &.profiles[column]
+                let text    = column < row.cells.count ? Latin1.trim(row.cells[column].toString()) : ""
+                if not text.count
+                {
+                    profile.empty += 1
+                    continue
+                }
+
+                var value: f64
+                if column < .numeric.count and .numeric[column] and quantityOf(text, &value)
+                {
+                    profile.minimum    = profile.quantities ? Math.min(profile.minimum, value) : value
+                    profile.maximum    = profile.quantities ? Math.max(profile.maximum, value) : value
+                    profile.sum        += value
+                    profile.quantities += 1
+                }
+            }
+        }
+    }
+
+    // Describes one profiled column: its kind, then the range and the mean of its quantities, then
+    // its empty cells.
+    mtd profileText(column: u64)->String
+    {
+        let profile = &.profiles[column]
+        var result  = String.from(kindName(.kinds[column]))
+        if profile.quantities
+        {
+            let decimal = .kinds[column] == .Decimal
+            result += Format.toString(" · %", Format.toString(texts().ui_Range, groupThousands(profile.minimum, decimal), groupThousands(profile.maximum, decimal)))
+            result += Format.toString(" · %", Format.toString(texts().ui_Mean, groupThousands(profile.sum / cast(f64, profile.quantities), true)))
+        }
+
+        if profile.empty do
+            result += Format.toString(" · %", Format.toString(texts().ui_Empty, profile.empty))
+        return result
     }
 }
 
@@ -1006,6 +1170,7 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(Viewer.searchApi(view))
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

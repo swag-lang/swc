@@ -735,3 +735,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   positional values otherwise; add `sema` cases for both outcomes.
 - Done when: `take({Margin, Margin})` compiles and fills both fields, a repeated field shorthand
   is still rejected with a diagnostic naming a field the type has, and both are suite tests.
+
+### compiler.core.116 — A local initialized from `#sizeof` is not `u64` on the Linux compiler
+
+- Evidence: with `struct H { a, b: u64 }`, `var b = #sizeof(H)` fails `#assert(#typeof(b) == u64)`
+  on a Linux build of the compiler, and assigning a `u64` expression to `b` reports
+  `cannot cast from 'u64' to 's32'`. `bin/runtime/bootstrapallocator.swg` initialized
+  `overhead` that way and stopped every Linux compilation until the local was typed `u64`. The
+  same build fails `bin/unittests/sema/flow/for.swg` on `(5).reversed()`, where the generic
+  parameter of an integer literal receiver is not deduced.
+- Next: compile the two reductions with a Windows build of the same sources. If they pass
+  there, find what the Linux host types differently; if they fail, decide the rule for an
+  untyped `#sizeof` constant and repair the suite.
+- Done when: both reductions give the same answer on both hosts and the `sema` suite passes on
+  Linux.

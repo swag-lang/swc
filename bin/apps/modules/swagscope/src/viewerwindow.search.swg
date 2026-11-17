@@ -352,11 +352,33 @@ impl ViewerWindow
         {
             .searchCountLabel.setText("0/0")
             .searchCountLabel.toolTip = appStrings().ui_NoMatch
+            if .activeChoiceIndex < .instances.count
+            {
+                let instance = &.instances[.activeChoiceIndex]
+                if instance.view and instance.explainSearch
+                {
+                    let reason = instance.explainSearch(.searchQuery)
+                    if not reason.isEmpty() do
+                        .searchCountLabel.toolTip = Format.toString("% · %", appStrings().ui_NoMatch, reason)
+                }
+            }
         }
         else
         {
             .searchCountLabel.setText(Format.toString("%/%", .searchIndex + 1, .searchMatches.count))
             .searchCountLabel.toolTip = .searchCountLabel.text()
+
+            // A count over a document some of which could not be read says what it leaves out.
+            if .activeChoiceIndex < .instances.count
+            {
+                let instance = &.instances[.activeChoiceIndex]
+                if instance.view and instance.explainSearch
+                {
+                    let reason = instance.explainSearch(.searchQuery)
+                    if not reason.isEmpty() do
+                        .searchCountLabel.toolTip = Format.toString("% · %", .searchCountLabel.text(), reason)
+                }
+            }
         }
 
         let canNavigate = not .searchMatches.isEmpty()

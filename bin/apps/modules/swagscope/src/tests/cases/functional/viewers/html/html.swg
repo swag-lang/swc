@@ -159,3 +159,20 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.require(result.view == null and result.commands == null)
     Swag.require(not result.failureReason.isEmpty())
 }
+
+// The information sheet gives what a page says of itself in its head.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-html-facts-", ".html")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "<html lang=\"en\"><head><title>Release notes</title><meta name=\"description\" content=\"What changed\"></head><body><p>Text</p></body></html>")
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    window.toggleInformation()
+    host.pump()
+    let text = window.infoSheet.text()
+    Swag.require(Utf8.contains(text, "Title\nRelease notes") and
+                 Utf8.contains(text, "Language\nen") and
+                 Utf8.contains(text, "Description\nWhat changed"),
+                 text)
+}

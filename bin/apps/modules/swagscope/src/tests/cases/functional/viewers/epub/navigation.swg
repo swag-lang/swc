@@ -101,6 +101,34 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.chapter == 0)
 }
 
+// The contents mark the entry being read from the start, and follow passages, links and turns:
+// an entry whose passage is above the text being read is behind the reader.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    var chosen = 0
+    view.outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
+    Swag.require(view.outline.markedTarget() == 0)
+
+    view.followLink("one.xhtml#passage")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0 and view.outline.markedTarget() == 1)
+
+    // The second chapter's only entry is a passage further down: its start still reads the first.
+    view.turn(1)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1 and view.outline.markedTarget() == 1)
+    view.followLink("two.xhtml#arrival")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.outline.markedTarget() == 2)
+
+    view.turn(-1)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0 and view.outline.markedTarget() == 0 and chosen == 0)
+}
+
 // Book-owned link navigation updates the chapter counter and keeps external targets local.
 #test
 {
@@ -128,4 +156,27 @@ using Core, Gui, Gui.Testing, Viewers
                     <ncx><navMap><navPoint><navLabel><text>Chapter</text></navLabel><content src="one.xhtml"/></navPoint></navMap></ncx>"""
     let navigation = expect Epub.Navigation.parse(source, "OPS/toc.ncx", true)
     Swag.require(navigation.entries.count == 1 and navigation.entries[0].title == "Chapter")
+}
+
+// A colon and a chapter number in the lens turn to that chapter; one past the last offers nothing.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    window.lens.open(":2")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1)
+
+    window.lens.open(":3")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
 }

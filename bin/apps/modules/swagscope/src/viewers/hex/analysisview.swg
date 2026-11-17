@@ -143,6 +143,7 @@ struct AnalysisView
         closeButton:   *IconButton
         scopeLabel:    *Label
         metricsLabel:  *Label
+        digestsLabel:  *Label
         histogram:     *HistogramView
         byteLabel:     *Label
         stringsLabel:  *Label
@@ -240,6 +241,15 @@ private impl AnalysisView
         else
         {
             .metricsLabel.setText(texts().ui_AnalysisNoBytes)
+        }
+
+        // The checksums cover the range only once it has been read in full.
+        .digestsLabel.show(.result.hasDigests)
+        if .result.hasDigests
+        {
+            // The line cannot hold whole digests; its tooltip gives every one, MD5 and SHA-1 too.
+            .digestsLabel.setText(Format.toString(texts().ui_AnalysisDigests, .result.crc32Text(), .result.sha256Text()))
+            .digestsLabel.toolTip = .result.digestsText()
         }
 
         if .result.stringsTruncated do
@@ -408,6 +418,14 @@ impl AnalysisView
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        with result.digestsLabel = Label.create(result, "", {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        {
+            .dockStyle = .Top
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
+            .hide()
         }
 
         with result.histogram = HistogramView.create(result)

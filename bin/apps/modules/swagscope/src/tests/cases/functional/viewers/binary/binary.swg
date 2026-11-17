@@ -809,6 +809,20 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     let one = Clipboard.getString()
     Swag.require(Utf8.contains(one.toSlice(), ".text"))
     Swag.require(not Utf8.contains(one.toSlice(), "swagExport"))
+
+    // The lens offers the same copies as the context menu.
+    discard catch Clipboard.resetFake()
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Binary", host.theme)
+    view.describeLens(&entries)
+    var copies = 0
+    for &entry in results.sections[0]!.entries where entry.title == Binary.texts().ui_MenuCopyAll
+    {
+        entry.run!()
+        copies += 1
+    }
+
+    Swag.require(copies == 1 and Utf8.contains(Clipboard.getString().toSlice(), "swagExport"))
 }
 
 // Search indexes the decoded report, outlines the exact text, and reaches folded structures.
@@ -947,4 +961,26 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     Swag.require(Utf8.contains(doc.report.summary.toSlice(), "Segoe UI"))
     Swag.require(not Utf8.contains(doc.report.summary.toSlice(), ".S.e"))
     Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Segoe UI")
+}
+
+// A colon and an offset in the lens select the report row that covers it.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_lens_offset", bytes.toSlice())
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "binary")
+    let view = assume cast(*Binary.Panel, window.currentView)
+
+    window.lens.open(Format.toString(":%{X}", FixtureTextAt).toString())
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.list.selectedLine() != null)
+    view.copySelectedLine()
+    Swag.require(Utf8.contains(Clipboard.getString().toSlice(), ".text"))
 }

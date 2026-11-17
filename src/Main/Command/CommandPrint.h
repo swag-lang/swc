@@ -96,6 +96,13 @@ namespace CommandPrint
         addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
     }
 
+    inline void addLinuxNativeToolchainEntries(std::vector<Logger::FieldEntry>& entries)
+    {
+        addInfoEntry(entries, "Object format", "ELF64 (x86-64)");
+        addInfoEntry(entries, "Compiler driver", "cc (from PATH at link time)");
+        addInfoEntry(entries, "Archive writer", "ar (from PATH at link time)");
+    }
+
     inline void addNativeToolchainEntries(std::vector<Logger::FieldEntry>& entries, const Os::WindowsToolchainDiscoveryResult toolchainResult, const Os::WindowsToolchainPaths& toolchain)
     {
         switch (toolchainResult)

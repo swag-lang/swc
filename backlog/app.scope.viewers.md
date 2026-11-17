@@ -33,13 +33,16 @@ viewer packages, helper binaries, or network service required to open supported 
 
 ### app.scope.viewers.015 — Explorer thumbnails do not yet reflect every reader
 
-- Evidence: Image, Video, Comic, PDF and Sound can supply content thumbnails. Text, Code,
-  Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample; Archive, Binary,
-  DOCX, ODT, ODS, ODP, EPUB, Font, Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
+- Evidence: Image, Video, Comic, PDF, Sound (the sleeve its tags embed, else its waveform), EPUB
+  (the cover its package names) and MIDI (its notes as a small piano roll, drums in a softer tone)
+  can supply content thumbnails; a plugin decoder answering an empty image keeps the shared
+  preview. Text, Code, Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample;
+  Archive, Binary, DOCX, ODT, ODS, ODP, EPUB without a cover, Font, Hex, PPTX and XLSX show neutral
+  file facts. The old fallback's byte map
   was misleading for binary documents and is no longer used.
 - Next: give each remaining visual reader a bounded thumbnail callback using its own decoded
-  model: EPUB cover or first spine page, Office first page/slide/sheet, font specimen, MIDI score
-  or timeline, and parsed HTML/RTF/Markdown/Table content. Keep archive and hexadecimal previews
+  model: EPUB first spine page when no cover is named, Office first page/slide/sheet, font specimen,
+  and parsed HTML/RTF/Markdown/Table content. Keep archive and hexadecimal previews
   explicitly neutral when no single rendered page represents the file.
 - Done when: every registered viewer either supplies a representative content image through its
   own decoder or deliberately declares a neutral preview; first-visible-preview latency,
@@ -115,8 +118,11 @@ viewer packages, helper binaries, or network service required to open supported 
 
 - Evidence: Image and Video already publish grouped metadata through the shared `MediaInfoPanel`,
   with translated property labels, row selection and a copy command. The host also shows size and
-  a viewer-supplied summary. Canonical path, timestamps, file identity, hashes, detection evidence
-  and warnings still lack one contract available across all twenty-one viewers.
+  a viewer-supplied summary. Office documents (DOCX, PPTX, XLSX and their OpenDocument
+  counterparts) add the title, author, creation day and saving program their package names, read
+  by `Package.DocumentProperties`; EPUB and comic books add their own metadata. Canonical path,
+  timestamps, file identity, hashes, detection evidence and warnings still lack one contract
+  available across all twenty-one viewers.
 - Next: extend the existing information surface with host-owned file facts and optional viewer
   properties and warnings, including cancellable hashing and links back to the described content.
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format

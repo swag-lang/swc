@@ -20,7 +20,6 @@ namespace
 {
     ConstantValue makeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, const TypeInfo& storageType, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
     {
-        const TypeRef typeRef        = originalType.typeRef();
         const TypeRef storageTypeRef = storageType.typeRef();
 
         ConstantValue result;
@@ -30,19 +29,7 @@ namespace
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         else
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
-
-        if (!result.isValid())
-            return result;
-
-        result.setDataSegmentRef(dataSegmentRef);
-        if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
-        {
-            const ConstantRef storageRef = ctx.cstMgr().addConstant(ctx, result);
-            return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
-        }
-
-        result.setTypeRef(typeRef);
-        return result;
+        return ConstantHelpers::finalizeMaterializedConstantValue(ctx, originalType, std::move(result), dataSegmentRef);
     }
 }
 

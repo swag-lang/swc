@@ -324,8 +324,43 @@ impl Panel
     // Gives the lens the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and an offset, in the grammar of Go to Offset, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = parseFileOffset(entries.query.toString(), .grid.caret, .grid.doc.fileSize)
+            if target != Swag.U64.Max
+            {
+                let value = formatDigits(target, .grid.offsetDigits)
+                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { view.grid.moveCaret(target, false, center: true) })
+            }
+
+            return
+        }
+
+        // The commands of the context menu, so none of them needs a right click.
+        let strings = texts()
+        let bounded = .grid.selectionLength() > CopyLimit
+        let limit   = StrConv.toDisplaySize(CopyLimit)
+        entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not .grid.doc.fileSize)
+        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not .grid.doc.fileSize)
+        entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize)
+        entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .A))
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // The checksums of the last analysis read in full, each copied whole with its own row.
+        let result = &.analysisView.result
+        if result.hasDigests
+        {
+            let crc = entries.add(texts().ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.crc32Text().toString()) })
+            if crc do
+                crc.detail = result.crc32Text()
+            entries.add(texts().ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha256Text().toString()) })
+            entries.add(texts().ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.md5Text().toString()) })
+            entries.add(texts().ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha1Text().toString()) })
+        }
     }
 
     mtd showOptions()
@@ -754,6 +789,10 @@ impl Panel
         .inspectorView = InspectorView.create(.inspector)
     }
 }
+
+// Writes `offset` as a hexadecimal address a reader pastes into another tool: `0x` and eight
+// digits, sixteen past four gigabytes.
+func offsetHex(offset: u64)->String => offset > Swag.U32.Max ? Format.toString("0x%{X016}", offset) : Format.toString("0x%{X08}", offset)
 
 // Creates the integrated hexadecimal view.
 func createViewer(host: Viewer.Host)

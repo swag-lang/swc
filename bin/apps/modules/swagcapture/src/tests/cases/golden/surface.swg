@@ -412,6 +412,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
+    // A test run sees no installed font, and a picture must not list the fonts of the machine
+    // that recorded it: the families offered are named here, enough of them to scroll.
+    g_MiniBarFonts.clear()
+    for index in 24 do
+        g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: Format.toString("Test Family %{02}", index + 1)})
+    defer g_MiniBarFonts.clear()
+
     var host: Gui.Testing.HeadlessHost
     let main = testSetupEditorSurface(&host, dark: false)
     defer

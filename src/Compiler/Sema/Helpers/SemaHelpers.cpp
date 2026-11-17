@@ -201,6 +201,22 @@ TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)
     return typeRef;
 }
 
+bool SemaHelpers::mergeCompatibleFunctionBindingType(const TypeRef bindingTypeRef, const TypeRef resolvedTypeRef, TypeRef& outBindingTypeRef, TypeRef& compareTypeRef)
+{
+    if (compareTypeRef.isInvalid())
+    {
+        outBindingTypeRef = bindingTypeRef;
+        compareTypeRef    = resolvedTypeRef;
+        return true;
+    }
+
+    if (compareTypeRef == resolvedTypeRef)
+        return true;
+
+    outBindingTypeRef = TypeRef::invalid();
+    return false;
+}
+
 TypeRef SemaHelpers::ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct)
 {
     TypeRef typeRef = symStruct.typeRef();

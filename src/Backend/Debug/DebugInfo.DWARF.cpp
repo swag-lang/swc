@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.DWARF.h"
 #include "Backend/Debug/DebugPath.h"
+#include "Backend/DwarfEncoding.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Backend/Linker/Format.COFF.h"
 #include "Backend/Micro/MachineCode.h"
@@ -84,16 +85,6 @@ namespace
         Opaque,
         Void,
     };
-
-    void appendUnsigned(ByteArray& bytes, uint64_t value)
-    {
-        do
-        {
-            const uint8_t part = value & 0x7f;
-            value >>= 7;
-            bytes.pushBack(std::byte{static_cast<uint8_t>(part | (value ? 0x80 : 0))});
-        } while (value);
-    }
 
     void appendSigned(ByteArray& bytes, int64_t value)
     {
@@ -208,13 +199,13 @@ namespace
         void abbreviation(const Abbreviation code, const Tag tag, const bool children, const std::initializer_list<std::pair<Attribute, Form>> attributes)
         {
             auto& bytes = abbreviations_.bytes;
-            appendUnsigned(bytes, static_cast<uint32_t>(code));
-            appendUnsigned(bytes, static_cast<uint32_t>(tag));
+            Dwarf::appendUnsignedLeb128(bytes, static_cast<uint32_t>(code));
+            Dwarf::appendUnsignedLeb128(bytes, static_cast<uint32_t>(tag));
             bytes.pushBack(std::byte{static_cast<uint8_t>(children)});
             for (const auto& [attribute, form] : attributes)
             {
-                appendUnsigned(bytes, static_cast<uint32_t>(attribute));
-                appendUnsigned(bytes, static_cast<uint32_t>(form));
+                Dwarf::appendUnsignedLeb128(bytes, static_cast<uint32_t>(attribute));
+                Dwarf::appendUnsignedLeb128(bytes, static_cast<uint32_t>(form));
             }
             bytes.appendLe16(0);
         }
@@ -261,7 +252,7 @@ namespace
             {
                 const auto& function = *source.function;
                 bytes.pushBack(std::byte{0});
-                appendUnsigned(bytes, 9);
+                Dwarf::appendUnsignedLeb128(bytes, 9);
                 bytes.pushBack(std::byte{2}); // DW_LNE_set_address
                 relocate(lines_, function.symbolName);
                 uint32_t offset = 0;
@@ -275,7 +266,7 @@ namespace
                     file = source.lines.front().file;
                     line = source.lines.front().line;
                     bytes.pushBack(std::byte{4});
-                    appendUnsigned(bytes, file);
+                    Dwarf::appendUnsignedLeb128(bytes, file);
                     bytes.pushBack(std::byte{3});
                     appendSigned(bytes, line - 1);
                     bytes.pushBack(std::byte{6}); // DW_LNS_negate_stmt
@@ -288,17 +279,17 @@ namespace
                     if (row.offset != offset)
                     {
                         bytes.pushBack(std::byte{2}); // DW_LNS_advance_pc
-                        appendUnsigned(bytes, row.offset - offset);
+                        Dwarf::appendUnsignedLeb128(bytes, row.offset - offset);
                     }
                     if (row.file != file)
                     {
                         bytes.pushBack(std::byte{4}); // DW_LNS_set_file
-                        appendUnsigned(bytes, row.file);
+                        Dwarf::appendUnsignedLeb128(bytes, row.file);
                     }
                     bytes.pushBack(std::byte{3}); // DW_LNS_advance_line
                     appendSigned(bytes, static_cast<int64_t>(row.line) - line);
                     bytes.pushBack(std::byte{5}); // DW_LNS_set_column
-                    appendUnsigned(bytes, row.column);
+                    Dwarf::appendUnsignedLeb128(bytes, row.column);
                     if (first)
                         bytes.pushBack(std::byte{10}); // DW_LNS_set_prologue_end
                     bytes.pushBack(std::byte{1});      // DW_LNS_copy
@@ -308,9 +299,9 @@ namespace
                     first  = false;
                 }
                 bytes.pushBack(std::byte{2});
-                appendUnsigned(bytes, function.machineCode->bytes.size() - offset);
+                Dwarf::appendUnsignedLeb128(bytes, function.machineCode->bytes.size() - offset);
                 bytes.pushBack(std::byte{0});
-                appendUnsigned(bytes, 1);
+                Dwarf::appendUnsignedLeb128(bytes, 1);
                 bytes.pushBack(std::byte{1}); // DW_LNE_end_sequence
             }
             finishUnit(bytes);
@@ -318,7 +309,7 @@ namespace
 
         void code(const Abbreviation abbreviation)
         {
-            appendUnsigned(info_.bytes, static_cast<uint32_t>(abbreviation));
+            Dwarf::appendUnsignedLeb128(info_.bytes, static_cast<uint32_t>(abbreviation));
         }
 
         void typeReference(const TypeRef type)
@@ -346,7 +337,7 @@ namespace
             relocate(locations_, source.function->symbolName, source.bodyEnd);
             ByteArray expression;
             expression.pushBack(std::byte{0x92}); // DW_OP_bregx
-            appendUnsigned(expression, X64DwarfFrame::registerNumber(base));
+            Dwarf::appendUnsignedLeb128(expression, X64DwarfFrame::registerNumber(base));
             appendSigned(expression, static_cast<int32_t>(variable.offset));
             locations_.bytes.appendLe16(static_cast<uint16_t>(expression.size()));
             locations_.bytes.append(expression);
@@ -376,8 +367,8 @@ namespace
                 bytes.appendCString(function.symbolName.view());
                 relocate(info_, function.symbolName);
                 bytes.appendLe64(function.machineCode->bytes.size());
-                appendUnsigned(bytes, source.lines.front().file);
-                appendUnsigned(bytes, source.lines.front().line);
+                Dwarf::appendUnsignedLeb128(bytes, source.lines.front().file);
+                Dwarf::appendUnsignedLeb128(bytes, source.lines.front().line);
                 typeReference(function.returnTypeRef);
                 for (const auto& parameter : function.parameters)
                     variable(source, parameter, Abbreviation::Parameter);
@@ -441,8 +432,8 @@ namespace
                 for (const uint64_t count : type.payloadArrayDims())
                 {
                     code(Abbreviation::Subrange);
-                    appendUnsigned(bytes, 0);
-                    appendUnsigned(bytes, count);
+                    Dwarf::appendUnsignedLeb128(bytes, 0);
+                    Dwarf::appendUnsignedLeb128(bytes, count);
                 }
                 bytes.pushBack(std::byte{0});
             }
@@ -458,7 +449,7 @@ namespace
                     code(Abbreviation::Member);
                     bytes.appendCString(member->name(ctx));
                     typeReference(member->typeRef());
-                    appendUnsigned(bytes, member->offset());
+                    Dwarf::appendUnsignedLeb128(bytes, member->offset());
                 }
                 bytes.pushBack(std::byte{0});
             }

@@ -2843,17 +2843,7 @@ namespace
             case MicroInstrOpcode::OpBinaryRegImm:
                 if (!ops[0].reg.isVirtualInt())
                     return false;
-                switch (ops[2].microOp)
-                {
-                    case MicroOp::Add:
-                    case MicroOp::Subtract:
-                    case MicroOp::And:
-                    case MicroOp::Or:
-                    case MicroOp::Xor:
-                        return true;
-                    default:
-                        return false;
-                }
+                return MicroPassHelpers::isFlagReuseSafeMicroOp(ops[2].microOp);
             default:
                 return false;
         }

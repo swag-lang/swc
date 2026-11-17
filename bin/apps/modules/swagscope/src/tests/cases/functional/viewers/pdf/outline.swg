@@ -52,8 +52,8 @@ using Core, Gui, Gui.Testing, Viewers
     var chosen  = 0
     outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
 
-    // Nothing is marked until the reader moves.
-    Swag.require(outline.markedTarget() == Swag.U64.Max)
+    // The bookmark in view is marked from the start, before the reader moves.
+    Swag.require(outline.markedTarget() == 0 and chosen == 0)
 
     pdf.setZoom(1)
     let section = &view.bookmarks[1]

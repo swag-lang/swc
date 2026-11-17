@@ -50,9 +50,11 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. The
   shared playback mode now stops after a cycle, repeats, or continues through the folder, with
-  manual seeking kept separate from cycle completion. Previous/next-frame commands, exact frame
-  delay, playback speed, disposal/blend metadata, composited-versus-raw frame view, and dropped-frame
-  indicators remain absent.
+  manual seeking kept separate from cycle completion. Ctrl+Page Up and Page Down step one frame,
+  named Previous and Next Frame in the lens for an animation, and a paused animation's summary
+  gives the delay of the frame in view, the encoded one or the default the movie plays it at.
+  Timestamps, playback speed, disposal/blend metadata, composited-versus-raw frame view, and
+  dropped-frame indicators remain absent.
 - Next: expose animation frame metadata and complete the transport around the existing cached movie.
 - Done when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x rates
   are covered together with the existing loop policy, raw and composited frames can be compared,
@@ -86,9 +88,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: the image viewer (`Viewers.Picture.Panel`) browses every indexed format through
   `Movie` and one `timeline` slider; `src/tests/cases/functional/viewers/image/imageset.swg` covers all nine multi-image codec
-  paths, including unequal dimensions. The slider and counter do not show the selected item's
-  kind, name, dimensions, mip/layer/face coordinates, or thumbnail, although `ImageFrameInfo`
-  already supplies the indexed properties.
+  paths, including unequal dimensions. Over independent items (sizes, pages, layers, texture
+  levels) the summary names the item in view: its dimensions, its level, layer and face, and its
+  name. The selector itself shows a counter and a slider only, with no list of the items or their
+  thumbnails.
 - Next: present those properties and lazy thumbnails in a collection selector over the existing
   reader, keeping animation playback distinct from independent-image selection.
 - Done when: item identity survives view changes and the selector shows each item's description,
@@ -107,21 +110,28 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   damage is marked without discarding valid regions.
 - Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
 
-### app.scope.image.001 — The image has no pixel probe or measurement tools
+### app.scope.image.001 — The pixel probe cannot be copied, stepped or measured with
 
-- Evidence: zoom and pan never expose image coordinates, RGBA/channel values, premultiplied versus
-  straight color, palette index, physical resolution, or distance/angle between points.
-- Next: add a pointer/caret pixel inspector over decoded image coordinates, followed by a
-  non-destructive line/rectangle measurement overlay.
+- Evidence: the pointer over a picture reads its pixel (counted in the stored picture through
+  zoom, pan, rotation and mirror, `ImageView.pixelAt`) and its straight 8-bit color and opacity
+  into the information band. The color of the pixel read last can be copied as `#RRGGBB`, or
+  `#RRGGBBAA` when it is not opaque, from the lens, which names it and where it is, or with
+  Ctrl+Shift+C. Stored channel depth, premultiplied versus straight values, palette index,
+  physical resolution, keyboard stepping between pixels, a copy of the whole reading, and distance
+  or angle between points are absent.
+- Next: let the keyboard move a probe one pixel at a time at high zoom and copy its reading, then
+  add a non-destructive line/rectangle measurement overlay.
 - Done when: coordinates and exact stored/converted channel values are copyable, alpha and
   out-of-bounds states are explicit, keyboard movement reaches individual pixels at high zoom, and
   distance/size can be reported in pixels and physical units when resolution metadata exists.
 
 ### app.scope.image.002 — Image analysis has no histogram, channel, clipping, or transparency views
 
-- Evidence: the viewer renders the composite only. It cannot isolate R/G/B/A or luminance, show
-  per-channel histograms, mark clipped shadows/highlights, visualize alpha, or inspect indexed
-  palettes.
+- Evidence: the viewer renders the composite only. For a still picture with 8-bit alpha, the
+  information sheet says whether the alpha hides anything: none of it, or the share of pixels it
+  makes wholly transparent and the share it lets show through. It cannot isolate R/G/B/A or
+  luminance, show per-channel histograms, mark clipped shadows/highlights, visualize alpha, or
+  inspect indexed palettes.
 - Next: compute cancellable bounded histograms and add temporary channel/transparency overlays.
 - Done when: histogram scope states whole image or selection, high-bit-depth data is binned
   without forced 8-bit loss, channels and alpha can be inspected independently, clipping thresholds

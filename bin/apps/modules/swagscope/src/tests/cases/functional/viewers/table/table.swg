@@ -121,6 +121,7 @@ using Core, Pixel, Gui, Viewers
 
     view.sortBy(0)
     Swag.require(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
+    Swag.require(view.columnText(0) == "File1\nfile2\nfile9\nfile10" and view.columnText(1) == "-4.5\n35\n\n1 200", view.columnText(0))
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "file10", &matches)
@@ -206,4 +207,81 @@ using Core, Pixel, Gui, Viewers
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
     Swag.require(view.list.header.items[0]!.name.text == oldHeading and view.list.isLineSelected(0))
+}
+
+// A colon and a number in the lens go to that row of a table as the row readout counts it, in the
+// order on screen; a number past the last row offers nothing.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-table-rows-", ".csv")
+    defer discard catch File.delete(fileName)
+    var source: String = "name,value\n"
+    for i in 300 do
+        source += Format.toString("item %,%\n", i + 1, (i * 7) % 300)
+    discard expect File.writeAllText(fileName, source)
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Table.Panel, window.instances[window.activeChoiceIndex].view)
+    view.sortBy(1)
+
+    window.lens.open(":250")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(Table.texts().ui_GoToRow, 250))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.list.focusIndex == 249)
+    Swag.require(Utf8.contains(window.instances[window.activeChoiceIndex].details.toString(), Format.toString(Table.texts().ui_RowAt, 250).toString()))
+
+    window.lens.open(":301")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
+}
+
+// Copied rows read back as the same values: a value holding a tab, a line break or a quote is
+// quoted, its quotes doubled, and the lens copies with or without the column names.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-table-copy-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,note\nplain,été\n\"two\nlines\",\"say \"\"hi\"\"\"\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    let view   = assume cast(*Table.Panel, window.instances[window.activeChoiceIndex].view)
+    view.revealLine(1)
+    Swag.require(view.selectionText() == "\"two\nlines\"\t\"say \"\"hi\"\"\"\n")
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Table", host.theme)
+    view.revealLine(0)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames do
+        entry.run!()
+    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n")
+}
+
+// The information sheet profiles each column under its name: its kind, the range and the mean of
+// its quantities, and its empty cells.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-table-profile-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,price,qty\nA,1.50,3\nB,,7\nC,2.25,\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Table.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "Columns\nname\ntext\nprice\ndecimal · 1.50 to 2.25 · mean 1.88 · 1 empty"), text)
+    Swag.require(Utf8.contains(text, "qty\ninteger · 3 to 7 · mean 5.00 · 1 empty"), text)
+    Swag.require(Table.groupThousands(1.999, true) == "2.00" and Table.groupThousands(1234567, false) == "1 234 567")
 }

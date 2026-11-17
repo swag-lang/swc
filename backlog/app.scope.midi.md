@@ -56,9 +56,11 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.006 — Tempo, meter, key, marker, and lyric changes are reduced to first-value summary
 
-- Evidence: summary helpers report only the first tempo, time signature, and key signature.
-  Subsequent tempo changes affect PPQN duration calculation, but none of these changes has a
-  timeline lane; lyrics, markers, and cue points are not parsed into visible lanes.
+- Evidence: the score's summary reports only the first tempo, time signature, and key signature.
+  The information sheet gives the range the tempo moves through, the first meter and the first
+  key, each with how many times it changes. Subsequent tempo changes affect PPQN duration
+  calculation, but none of these changes has a timeline lane or a position; lyrics, markers, and
+  cue points are not parsed into visible lanes.
 - Next: add ruler lanes for tempo, meter, key, markers/cues, and lyrics over the exact event timeline.
 - Done when: every change is positioned and selectable, ramps versus steps are not confused,
   bar numbering follows meter changes, lyrics preserve syllable/order metadata, and lane visibility
@@ -68,9 +70,11 @@ remain available in the Binary viewer.
 
 - Evidence: horizontal and vertical pitch zoom work, and Page Up/Down pan the vertical viewport while
   the header stays fixed. The keyboard can be compact, standard, or wide; labels can use scientific C4
-  names or MIDI key numbers, with both preferences persisted. The tooltip explains C4 = MIDI 60;
-  channel-10 drum names and scale overlays are still absent.
-- Next: add channel-10 drum names, then add optional key-signature and scale highlighting.
+  names or MIDI key numbers, with both preferences persisted. The tooltip explains C4 = MIDI 60.
+  When every note shown is on channel 10 (a selected drum track, or a drums-only piece), each key
+  row tall enough for text names its General MIDI percussion sound, and the rows span the keys of
+  the selected track. Scale overlays are absent.
+- Next: add optional key-signature and scale highlighting.
 - Done when: vertical fit and zoom preserve selected notes, MIDI key number and chosen note name
   are visible, octave convention is declared, channel-10 drum maps can replace pitch names, and
   key-signature/scale highlighting is optional and accessible.
@@ -145,9 +149,11 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.007 — Tracks and channels cannot be muted, soloed, regrouped, or understood
 
-- Evidence: the selector shows All Tracks or one track by note count. It cannot display track and
-  channel concurrently, mute/solo, rename session labels, color consistently, show ports/programs/
-  drum channels, or explain format 0 channel mixtures.
+- Evidence: the selector shows All Tracks or one track by note count. The information sheet lists
+  each lane of the roll, a track on one channel, with its channel, the General MIDI instrument of
+  the first program its track selects (the tenth channel reads as percussion) and its notes. It
+  cannot mute/solo, rename session labels, show ports, banks or later program changes, or explain
+  format 0 channel mixtures.
 - Next: introduce a track/channel matrix with stable colors and diagnostic mute/solo state independent
   of source events.
 - Done when: track and channel filters compose, mute/solo affect display and app.scope.midi.001 playback,

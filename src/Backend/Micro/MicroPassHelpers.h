@@ -18,6 +18,25 @@ namespace MicroPassHelpers
 {
     using MicroOptimizationLimits::Helpers::K_MAX_ROOT_CHAIN;
 
+    void invalidateCfgAndSsa(MicroPassContext& context);
+
+    // On x64 these ALU operations set ZF/SF/PF from their result, as `cmp result, 0` does.
+    // Multiply leaves those flags undefined and shifts depend on the count.
+    inline bool isFlagReuseSafeMicroOp(const MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     struct RegTouch
     {
         bool use = false;
@@ -176,18 +195,7 @@ namespace MicroPassHelpers
 
     inline bool isVariableScalarShiftOp(MicroOp op)
     {
-        switch (op)
-        {
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftArithmeticLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            case MicroOp::RotateLeft:
-            case MicroOp::RotateRight:
-                return true;
-            default:
-                return false;
-        }
+        return isScalarShiftOp(op);
     }
 
     inline uint64_t extendImmediateBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned)

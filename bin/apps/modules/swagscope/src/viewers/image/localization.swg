@@ -21,6 +21,7 @@ struct Texts
     ui_MirrorVertical:         string = "Mirror Vertically"            // Vertical reflection menu action.
     ui_ResetTransform:         string = "Reset Orientation"            // Restores source orientation.
     ui_CopyImage:              string = "Copy Image"                   // Puts the picture on the clipboard.
+    ui_CopyColor:              string = "Copy Color % at %"            // Puts the color of the pixel last under the pointer on the clipboard; its code, then where it is.
     word_Mirrored:             string = "mirrored"                     // Status of reflected image content.
     word_Frame:                string = "frame"                        // One animation frame.
     word_Frames:               string = "frames"                       // Several animation frames.
@@ -31,6 +32,18 @@ struct Texts
     ui_DetailsMovie:  string = "% × % px · %"
     ui_DetailsStill:  string = "% × % px · % bit"
     ui_DetailsVector: string = "% × % · vector"
+
+    // Reading of the point under the pointer, after the summary: its pixel, counted from the
+    // top-left corner of the picture as stored, then its color and its opacity.
+    ui_ProbePixel:  string = "x %, y %"
+    ui_ItemLevel:   string = "level %"           // Mipmap level of the texture item in view.
+    ui_ItemLayer:   string = "layer %"           // Array layer of the texture item in view.
+    ui_ItemFace:    string = "face %"            // Cube face of the texture item in view.
+    ui_FrameDelay:  string = "delay % ms"        // How long the frame of a paused animation stays on screen.
+    ui_ProbeAlpha:  string = "opacity %"         // The share of opacity, its percent sign included.
+    ui_Opaque:      string = "none, every pixel is opaque"     // Transparency reading of a picture whose alpha hides nothing.
+    ui_Transparent: string = "% transparent"     // Share of pixels the alpha hides wholly.
+    ui_Translucent: string = "% translucent"     // Share of pixels the alpha lets show through.
 }
 
 private const FrenchStringsName = "lang/fr/scope.image.tweak"

@@ -8,6 +8,12 @@ private var g_ZoomPercent: u32 = 100
 // Whether basic text numbers its lines. The choice follows the reader from file to file.
 private var g_LineNumbers: bool
 
+// Whether basic text marks its spaces and tabulations. The choice follows the reader from file to file.
+private var g_Blanks: bool
+
+// Width of a tab stop in basic text, in spaces. The choice follows the reader from file to file.
+private var g_TabWidth: s32 = 4
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -66,6 +72,9 @@ private
     const ResidentWindowSize = 256 * 1024'u64
     const RevealContextSize  = 16 * 1024'u64
 
+    // Bytes the window is counted over to name the cursor line when the gutter does not ask for it.
+    const QuietLineCountLimit = 4 * 1024 * 1024'u64
+
     // The encodings offered in the action bar, in the order the selector lists them.
     const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
 }
@@ -94,6 +103,7 @@ struct Panel
     read:               Read
     residentText:       String
     pendingMatch:       String
+    pendingCaret:       bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
     pendingNavigation:  Input.Key
     retiring:           bool
     readFailed:         bool
@@ -119,7 +129,9 @@ struct Panel
     contentStart:       u64
     wrapping:           bool = true
     lineNumbers:        bool
-    windowNumbered:     bool
+    blanks:             bool
+    tabWidth:           s32  = 4
+    windowLine:         u64     // Number of the resident window's first line, or zero when it is not counted.
     lines:              Viewer.LineCounter
     zoomPercent:        u32  = 100
     services:           Viewer.HostServices
@@ -164,10 +176,17 @@ impl Panel
         Viewer.clearRichEditMatch(.editor)
     }
 
+    // Returns the number of the line under the cursor in the whole file, or zero when the lines
+    // before the resident window are not counted. The editor holds one window of the file, so its
+    // own line index starts again at every window.
+    mtd currentLine()->u64 => .windowLine ? .windowLine + .editor.cursorLogicalLineIndex() : 0
+
     mtd detailsText()->String
     {
-        let encoding    = .encodingName()
-        let currentLine = Format.toString(texts().ui_CurrentLine, .editor.cursorLogicalLineIndex() + 1)
+        var result = String.from(.encodingName())
+        let line   = .currentLine()
+        if line do
+            result += Format.toString(" · %", Format.toString(texts().ui_CurrentLine, line))
 
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
@@ -175,11 +194,12 @@ impl Panel
         if not .hasStatistics or
            .statisticsEncoding != .encoding or
            .statisticsStart != .contentStart do
-            return Format.toString(texts().ui_Details, encoding, currentLine)
+            return result
         let lines      = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
         let words      = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
         let characters = .statistics.characters == 1 ? String.from(texts().ui_OneCharacter) : Format.toString(texts().ui_Characters, .statistics.characters)
-        return Format.toString(texts().ui_DetailsStats, encoding, currentLine, lines, words, characters)
+        result += Format.toString(" · % · % · %", lines, words, characters)
+        return result
     }
 
     mtd reportStatistics()
@@ -427,13 +447,16 @@ impl Panel
                 .numberWindow()
             .updateEstimatedHeight()
             .editor.setScrollPosition(oldPosition)
-            if not .pendingMatch.isEmpty()
+            if not .pendingMatch.isEmpty() or .pendingCaret
             {
                 if .encoding == .Utf8 do
                     Viewer.highlightRichEditMatch(.editor, .read.text, .pendingSeekOffset - .residentStart, .pendingMatch.length)
-                else do
+                elif not .pendingMatch.isEmpty() do
                     discard .editor.findText(.pendingMatch)
+                else do
+                    Viewer.highlightRichEditMatch(.editor, .read.text, 0, 0)
                 .pendingMatch.clear()
+                .pendingCaret = false
             }
 
             if .pendingNavigation == .Home or .pendingNavigation == .End
@@ -454,7 +477,12 @@ impl Panel
         {
             .pendingSeek = false
             let requested = Math.min(.pendingSeekOffset, .fileSize)
-            let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
+            var start     = requested > RevealContextSize ? requested - RevealContextSize : 0
+
+            // A file offset cannot be found again in text decoded from another encoding than
+            // UTF-8, so a place with no words to find there starts the window instead.
+            if .pendingCaret and .pendingMatch.isEmpty() and .encoding != .Utf8 do
+                start = requested
             .read.startRead(.fileName, .encoding, start, 64 * 1024, true, me)
         }
         elif .needsMore()
@@ -469,9 +497,13 @@ impl Panel
     // Highlights `text` at `offset` when it already lies in the resident text in the displayed
     // encoding; otherwise cancels the read in progress and reloads there, highlighting the match
     // once it arrives.
-    mtd revealOffset(offset: u64, text: string)->bool
+    //
+    // With `caret`, the caret is placed at `offset` and brought into view even without text to
+    // highlight; without it, an empty `text` only loads the part of the file around `offset` and
+    // leaves the view where it is.
+    mtd revealOffset(offset: u64, text: string, caret = false)->bool
     {
-        if text.count and
+        if (text.count or (caret and .encoding == .Utf8)) and
            .displayedEncoding == .encoding and
            not .pendingSeek and
            not (.read.started and .read.replace) and
@@ -491,6 +523,7 @@ impl Panel
         .pendingSeek       = true
         .pendingSeekOffset = Math.min(offset, .fileSize)
         .pendingMatch      = text
+        .pendingCaret      = caret
         .pendingNavigation = .None
         .readFailed        = false
         .scheduleMore()
@@ -503,8 +536,11 @@ impl Panel
         var flags = RichEditFlags.ReadOnly
         if .wrapping do
             flags.add(.WordWrap)
-        if .lineNumbers and .windowNumbered do
+        if .lineNumbers and .windowLine do
             flags.add(.LineNumbers)
+        if .blanks do
+            flags.add(.DrawBlanks)
+        .editor.tabSize = .tabWidth
         .editor.setFlags(flags)
         .scheduleMore()
     }
@@ -512,18 +548,15 @@ impl Panel
     // Gives the line numbers of the resident window the count of the lines before it, in the
     // encoding that decoded it. A window too deep in the file to count without a visible pause is
     // shown without numbers rather than with wrong ones.
+    //
+    // Without the gutter, the window is counted only when that reads little: the line under the
+    // cursor is then left unnamed rather than paid for with a pause the reader did not ask for.
     mtd numberWindow()
     {
-        .windowNumbered = false
-        if .lineNumbers
-        {
-            let line = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart)
-            if line
-            {
-                .editor.setFirstLineNumber(line)
-                .windowNumbered = true
-            }
-        }
+        let limit = .lineNumbers ? Viewer.LineCountScanLimit : QuietLineCountLimit
+        .windowLine = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart, limit)
+        if .windowLine do
+            .editor.setFirstLineNumber(.windowLine)
 
         .updateWrap()
     }
@@ -533,6 +566,21 @@ impl Panel
         .lineNumbers  = not .lineNumbers
         g_LineNumbers = .lineNumbers
         .numberWindow()
+    }
+
+    mtd toggleBlanks()
+    {
+        .blanks  = not .blanks
+        g_Blanks = .blanks
+        .updateWrap()
+    }
+
+    // Sets the tab stops of the text every `width` spaces.
+    mtd setTabWidth(width: s32)
+    {
+        .tabWidth  = width
+        g_TabWidth = width
+        .updateWrap()
     }
 
     // Rereads the resident window under `encoding`, keeping the reader where they were.
@@ -699,6 +747,8 @@ impl Panel
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
         result.lineNumbers  = g_LineNumbers
+        result.blanks       = g_Blanks
+        result.tabWidth     = g_TabWidth
 
         result.createReadingControls(host)
         result.createEditor()
@@ -746,6 +796,7 @@ impl Panel
         let outside = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
         .pendingMatch.clear()
+        .pendingCaret      = false
         .pendingNavigation = .None
 
         // Returning to resident text also supersedes an in-flight replacement.
@@ -766,6 +817,11 @@ impl Panel
         let strings = texts()
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
+        entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks)
+
+        // The tab stops answer a query rather than fill the empty lens; the options list them too.
+        for width in Viewer.TabWidths where entries.query.count do
+            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width)
         for encoding in Encodings
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
@@ -778,7 +834,8 @@ impl Panel
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
-    // Opens how the text is laid out and decoded: wrapping, line numbers, and the encoding.
+    // Opens how the text is laid out and decoded: wrapping, line numbers, tab stops, and the
+    // encoding.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -790,6 +847,15 @@ impl Panel
         let strings = texts()
         page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() }, icon: .theme().icon(.Wrap, themeRowIconSize(.themeMetrics())))
         page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() }, icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
+        page.addToggle(strings.ui_Blanks, .blanks, func|view = me|(_) { view.toggleBlanks() }, icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
+        page.addLink(strings.ui_TabWidth,
+                     Format.toString("%", .tabWidth),
+                     func|view = me|(widths)
+                     {
+                         for width in Viewer.TabWidths do
+                             widths.addChoice(Format.toString("%", width), width == view.tabWidth, func|view, width|() { view.setTabWidth(width) })
+                     },
+                     icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
@@ -986,7 +1052,7 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true)
         .matchBounds = func|view|(_, bounds)->bool { return view.searchBounds(bounds) }
         .clear       = func|view|() => view.clearSearch()
     }

@@ -478,6 +478,52 @@ func lossyBlockScore(levels: const [*] s16, first: u64)->u32
     return score
 }
 
+// A chroma plane without AC has one flat correction per 4x4 block. Some DC levels only
+// change fractions discarded by the inverse transform. Remove them without changing a sample.
+func lossyOptimizeChromaDc(levels: [*] s16, scale: s64)
+{
+    // At this scale a one-level change moves at least one sample, beyond the rounding cell.
+    if scale >= 2048 do
+        return
+    if levels[0] == 0 and levels[1] == 0 and levels[2] == 0 and levels[3] == 0 do
+        return
+
+    func samples(levels: const [*] s16, scale: s64)->[4] s32
+    {
+        let a = cast(s32, levels[0]) + cast(s32, levels[1])
+        let b = cast(s32, levels[0]) - cast(s32, levels[1])
+        let c = cast(s32, levels[2]) + cast(s32, levels[3])
+        let d = cast(s32, levels[2]) - cast(s32, levels[3])
+        var result:  #returntype
+        let inverse: [4] s32 = [a + c, b + d, a - c, b - d]
+        for block in 4'u64 do
+            result[block] = cast(s32, (((cast(s64, inverse[block]) * scale) >> 5) + 32) >> 6)
+        return result
+    }
+
+    let target = samples(levels, scale)
+
+    // Later nonzero coefficients also cost zero-run syntax. Try those first.
+    for index in 4'u64
+    {
+        let scan = 3 - index
+        while levels[scan]
+        {
+            let saved = levels[scan]
+            levels[scan] += saved < 0 ? 1's16 : -1's16
+            let trial = samples(levels, scale)
+            if trial[0] != target[0] or
+               trial[1] != target[1] or
+               trial[2] != target[2] or
+               trial[3] != target[3]
+            {
+                levels[scan] = saved
+                break
+            }
+        }
+    }
+}
+
 impl LossyCoder
 {
     // Codes the sixteen luma blocks of a macroblock whose prediction stands in the current
@@ -620,6 +666,7 @@ impl LossyCoder
             let plane64 = cast(u64, plane)
             let source  = (plane == 0 ? .sourceU.storage() : .sourceV.storage()) + cast(u64, mbY) * 8 * .chromaStride() + cast(u64, mbX) * 8
             var rawDc: [4] s32
+            var planeAc = false
             for block in 4'u64
             {
                 let bx     = block & 1
@@ -639,7 +686,7 @@ impl LossyCoder
                 levels[0]    = 0
                 residual.chromaCount[at] = cast(u8, lossyQuantize4x4(coefficients.buffer, 1, qpc, rounding, levels, scaled.buffer + at * 16))
                 if residual.chromaCount[at] do
-                    anyAc = true
+                    planeAc = true
             }
 
             let transformed: [4] s32 = [rawDc[0] + rawDc[1] + rawDc[2] + rawDc[3],
@@ -653,13 +700,20 @@ impl LossyCoder
                 let magnitude   = (cast(s64, Math.abs(coefficient)) * cast(s64, LossyQuantFactor[qmod, 0]) + ((rounding << dcBits) >> 16)) >> dcBits
                 let level       = cast(s16, coefficient < 0 ? -magnitude : magnitude)
                 residual.chromaDc[plane64 * 4 + index] = level
-                inverse[index] = level
-                if level do
-                    anyDc = true
+            }
+
+            let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
+            let dc      = residual.chromaDc.buffer + plane64 * 4
+            if not planeAc do
+                lossyOptimizeChromaDc(dc, dcScale)
+            anyAc = anyAc or planeAc
+            for index in 4'u64
+            {
+                inverse[index] = dc[index]
+                anyDc = anyDc or dc[index] != 0
             }
 
             hadamard2x2(inverse.buffer)
-            let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
             for block in 4'u64
             {
                 let dcValue = (cast(s64, inverse[block]) * dcScale) >> 5

@@ -3,11 +3,11 @@
 ui_Name      Texte brut
 ui_Wrap      Retour à la ligne
 ui_Numbers   Numéros de ligne
+ui_Blanks    Afficher les espaces
+ui_TabWidth  Largeur des tabulations
 ui_Encoding  Encodage des caractères
 ui_ZoomMenu Zoom…
 ui_NotText   Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
-ui_Details   % · %
-ui_DetailsStats % · % · % · % · %
 ui_CurrentLine ligne %
 ui_OneLine   1 ligne
 ui_Lines     % lignes

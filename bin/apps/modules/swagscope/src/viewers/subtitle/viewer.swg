@@ -512,6 +512,35 @@ impl Panel
             Clipboard.setString(.track!.cueContent(.currentCue))
     }
 
+    // Returns the words of every cue in order, without their times, a blank line between two cues.
+    mtd dialogueText()->String
+    {
+        var result: String
+        for index in .track!.cueCount()
+        {
+            if index do
+                result += "\n\n"
+            result += .track.cueContent(index)
+        }
+
+        return result
+    }
+
+    // Shows the first cue still on screen at `seconds`, or the last cue when the track has ended.
+    mtd revealTime(seconds: f64)
+    {
+        let count = .track!.cueCount()
+        if not count do
+            return
+        for index in count where .track.cueEndTime(index) >= seconds
+        {
+            discard .revealCue(index)
+            return
+        }
+
+        discard .revealCue(count - 1)
+    }
+
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for index in .track!.cueCount() do
@@ -584,6 +613,24 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        let count   = .track!.cueCount()
+
+        // `:` and an instant goes to the cue on screen then; a whole number is also a cue.
+        if entries.results.prefix == .Line
+        {
+            let query  = entries.query.toString()
+            let now    = .currentCue < count ? .track.cueStartTime(.currentCue) : 0
+            let target = count ? Viewer.parseTimeAddress(query, now, .duration) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, query), .GoTo, func|view = me, target|() { view.revealTime(target) })
+            let cue = catch StrConv.toU64(Latin1.trim(query)) { return; }
+            if cue >= 1 and cue <= count do
+                entries.add(Format.toString(strings.ui_GoToCueNumber, cue), .GoTo, func|view = me, cue|() { discard view.revealCue(cue - 1) })
+            return
+        }
+
+        entries.add(strings.ui_CopyCue, .Copy, func|view = me|() { view.copyCurrentCue() }, disabled: .currentCue >= count, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.ui_CopyDialogue, .Copy, func|view = me|() { Clipboard.setString(view.dialogueText()) }, disabled: not count)
         entries.add(strings.ui_GoToCue, .GoTo, func|view = me|() { view.promptGoToCue() })
         entries.add(strings.ui_GoToTime, .History, func|view = me|() { view.promptGoToTime() })
         entries.add(strings.ui_PreviousCue, .ChevronLeft, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
@@ -622,13 +669,7 @@ impl Panel
         var seconds: f64
         if not timeSeconds(dialog.text(), &seconds) do
             return
-        for index in count where .track.cueEndTime(index) >= seconds
-        {
-            discard .revealCue(index)
-            return
-        }
-
-        discard .revealCue(count - 1)
+        .revealTime(seconds)
     }
 
     // Builds the reading list, the rhythm under it, and the time at the foot that asks for a time
@@ -728,6 +769,30 @@ impl Panel
         data.addFigure(.Custom, cueCountText(track.cueCount()))
         if .duration > 0 do
             data.addFigure(.Duration, Viewer.durationText(.duration))
+
+        // Timing a subtitler checks: cues that start before the one before them has ended, and
+        // the shortest time a cue stays on screen. The track orders its cues by their start.
+        let count = track.cueCount()
+        if count
+        {
+            var overlaps = 0'u64
+            var shortest = Swag.F64.Max
+            var lastEnd  = Swag.F64.NegInf
+            for index in count
+            {
+                let start = track.cueStartTime(index)
+                let end   = track.cueEndTime(index)
+                if start < lastEnd do
+                    overlaps += 1
+                lastEnd  = Math.max(lastEnd, end)
+                shortest = Math.min(shortest, end - start)
+            }
+
+            data.add(.Timing, group: true)
+            data.add(.Overlaps, Format.toString("%", overlaps))
+            data.add(.ShortestCue, Format.toString("%{f2} s", shortest))
+        }
+
         data.describe(sheet)
     }
 }

@@ -16,10 +16,41 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Epub)
         .create       = &createViewer
         .smokeFixture = "viewer.epub"
+        .thumbnail    = &loadThumbnail
         .addSelectors(".epub")
     }
 
     return result
+}
+
+// The cover the package names supplies the Explorer preview, read without extracting the book. A
+// book that names none answers an empty image and keeps the shared preview.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    let cover = try loadCover(fileName)
+    if cover.bytes.isEmpty() do
+        return {}
+    if Path.lowercaseExtension(cover.path) == ".svg"
+    {
+        let drawing = try Svg.Drawing.parse(cast(string, cover.bytes.toSlice()))
+        let largest = Math.max(drawing.width, drawing.height, 1)
+        let scale   = Math.min(cast(f32, maxSide) / largest, 1)
+        return drawing.rasterize(cast(s32, Math.max(Math.round(drawing.width * scale), 1)),
+                                 cast(s32, Math.max(Math.round(drawing.height * scale), 1)),
+                                 2)
+    }
+
+    var image   = try Image.decode(cover.path, cover.bytes.toSlice())
+    let largest = Math.max(image.width, image.height)
+    if largest > maxSide
+    {
+        let scale = cast(f32, maxSide) / cast(f32, largest)
+        image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
+                     Math.max(1, cast(s32, cast(f32, image.height) * scale)),
+                     .Bilinear)
+    }
+
+    return image
 }
 
 enum ReadingColumn { Compact, Comfortable, Wide }
@@ -29,6 +60,33 @@ struct ReadingVisit
     chapter:  u64
     position: HtmlReadingPosition
     fragment: String
+}
+
+impl Panel
+{
+    // Describes the book in the information sheet: its chapters, then what its package says of it.
+    internal mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .book.chapters.count do
+            return
+        var data: MediaInfoData
+        let count = .book.chapters.count
+        data.addFigure(.Sections, count == 1 ? String.from(texts().ui_OneChapter) : Format.toString(texts().ui_Chapters, count))
+        let metadata = &.book.metadata
+        data.add(.Document, group: true)
+        if not metadata.title.isEmpty() do
+            data.add(.Title, metadata.title)
+        if not metadata.creators.isEmpty() do
+            data.add(.Author, metadata.creators)
+        let language = knownLanguage(metadata.language)
+        if not language.isEmpty() do
+            data.add(.Language, language)
+        if not metadata.publisher.isEmpty() do
+            data.add(.Publisher, metadata.publisher)
+        if not metadata.date.isEmpty() do
+            data.add(.Published, metadata.date)
+        data.describe(sheet)
+    }
 }
 
 // Owns book navigation while the HTML control streams the selected chapter and its resources.
@@ -186,6 +244,7 @@ private impl Panel
 
                 .fragment        = fragment
                 .pendingPosition = {}
+                .followReading()
             }
 
             return
@@ -215,6 +274,12 @@ private impl Panel
             .sigDocumentChanged += func|panel = me|(_)
             {
                 panel.restorePendingPosition()
+                panel.followReading()
+            }
+
+            .sigScrolled += func|panel = me|(_)
+            {
+                panel.followReading()
             }
 
             .sigLoadFailed += func|panel = me|(_, reason)
@@ -233,6 +298,46 @@ private impl Panel
         .applyLayout()
         discard .view.navigateToFragment(Format.toString("#%", fragment))
         .refreshNavigation()
+        .followReading()
+    }
+
+    // Marks in the outline the contents entry being read: the last one in an earlier chapter, at
+    // the start of this one, or at a fragment of this one standing at or before the text at the
+    // top of the view. A fragment not read yet does not count.
+    //
+    // At the end of a chapter a passage cannot rise to the top, so the one the reader went to
+    // counts as read there.
+    mtd followReading()
+    {
+        if not .view or .chapter >= .book.chapters.count do
+            return
+
+        let reading = .view.readingOffset()
+        let atEnd   = .view.readingProgress() >= 1
+        var entry   = Swag.U64.Max
+        for content, index in .contents
+        {
+            if content.chapter < .chapter or (content.chapter == .chapter and content.fragment.isEmpty())
+            {
+                entry = index
+                continue
+            }
+
+            if content.chapter != .chapter do
+                continue
+            if atEnd and content.fragment == .fragment
+            {
+                entry = index
+                continue
+            }
+
+            let offset = reading != Swag.U64.Max ? .view.fragmentOffset(content.fragment) : Swag.U64.Max
+            if offset != Swag.U64.Max and offset <= reading do
+                entry = index
+        }
+
+        if entry != Swag.U64.Max do
+            .outline.markReading(entry, atEnd: atEnd)
     }
 
     // A book link stays inside its spine. External URLs and escaping paths never reach the OS.
@@ -323,6 +428,19 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and a chapter number go to that chapter of the spine.
+        if entries.results.prefix == .Line
+        {
+            let typed = Latin1.trim(entries.query.toString())
+            for c in typed where not Latin1.isDigit(c) do
+                return
+            let chapter = catch StrConv.toU64(typed) { return; }
+            if not chapter or chapter > .book.chapters.count do
+                return
+            entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            return
+        }
+
         entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
@@ -416,10 +534,12 @@ func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
-    view.outline = DocumentOutline.create(host)
+    view.outline             = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, target) { view.selectContents(target) }
+    view.outline.follow      = func|view|() { view.followReading() }
     view.load.start(host.fileName(), &Book.load, view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.load.isPending() or (view.view?.isLoading() orelse false)

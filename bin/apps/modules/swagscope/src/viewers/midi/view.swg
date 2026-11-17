@@ -33,13 +33,16 @@ enum RollMode
     Tracks      // One lane per track, its notes spread by pitch in its own range.
 }
 
-// One lane of the tracks presentation: the track, the channel it plays on, and its range of keys.
+// One lane of the tracks presentation: the track, the channel it plays on, its range of keys, and
+// how many of its notes there are and how many of them are percussion hits.
 struct RollLane
 {
-    track:   u32
-    channel: u8
-    lowKey:  u8 = 127
-    highKey: u8
+    track:     u32
+    channel:   u8
+    lowKey:    u8 = 127
+    highKey:   u8
+    noteCount: u64
+    hitCount:  u64
 }
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
@@ -58,6 +61,7 @@ struct RollView
     document:       Document
     mode:           RollMode = .Pitches
     lanes:          Array'RollLane
+    laneOfTrack:    Array'u32     // Index in `lanes` of each track, or `Swag.U32.Max` for a track with no notes.
     selectedTrack:  u32      = Swag.U32.Max
     zoom:           f32      = 1
     pitchZoom:      f32      = 1
@@ -173,7 +177,11 @@ impl RollView
     mtd plotLeft()->f32 => .mode == .Tracks ? LaneColumn + ContentInset : .keyboardWidth + ContentInset
 
     // Gathers the tracks that hold notes, in the order of the file, each with the first channel it
-    // plays on and its range of keys.
+    // plays on, its range of keys and its counts of notes.
+    //
+    // The lanes depend on the document alone, so they are gathered once when the roll is created:
+    // walking every note again on each resize or zoom would cost a score of a million notes as
+    // much as its loading did.
     mtd collectLanes()
     {
         var ranges: Array'RollLane
@@ -187,13 +195,27 @@ impl RollView
             let range = &ranges[note.track]
             if range.lowKey > range.highKey do
                 range.channel = note.channel
-            range.lowKey  = Math.min(range.lowKey, note.key)
-            range.highKey = Math.max(range.highKey, note.key)
+            range.lowKey    = Math.min(range.lowKey, note.key)
+            range.highKey   = Math.max(range.highKey, note.key)
+            range.noteCount += 1
+            if note.isHit() do
+                range.hitCount += 1
         }
 
         .lanes.clear()
-        for range in ranges where range.lowKey <= range.highKey do
+        .laneOfTrack.clear()
+        .laneOfTrack.reserve(ranges.count)
+        for range in ranges
+        {
+            if range.lowKey > range.highKey
+            {
+                .laneOfTrack.add(Swag.U32.Max)
+                continue
+            }
+
+            .laneOfTrack.add(cast(u32, .lanes.count))
             .lanes.add(range)
+        }
     }
 
     // Returns the ticks of one bar, from the first time signature.
@@ -224,7 +246,6 @@ impl RollView
     mtd refreshLayout()
     {
         let client = .clientRect()
-        .collectLanes()
 
         // The rows span the keys of the notes shown: a chosen track has its own range, so a drum
         // track fills the view rather than a sliver of the range of the whole piece.
@@ -299,15 +320,14 @@ impl RollView
     // than pitches. A selected drum track does; all tracks do only when the piece holds nothing else.
     mtd showsPercussion()->bool
     {
-        var hits = false
-        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
+        var notes, hits: u64
+        for lane in .lanes where .selectedTrack == Swag.U32.Max or lane.track == .selectedTrack
         {
-            if not note.isHit() do
-                return false
-            hits = true
+            notes += lane.noteCount
+            hits  += lane.hitCount
         }
 
-        return hits
+        return notes and hits == notes
     }
 
     mtd applyZoom(value: f32)
@@ -386,26 +406,29 @@ impl RollView
             bar += BarStride
         }
 
-        for &lane, index in .lanes
+        // The notes are sorted by start, so one pass over them all, whatever their lane, stops at
+        // the first one past the right edge. The lanes stand apart, so the order they are painted
+        // in does not show.
+        let right = .scrollPos.x + .clientRect().width
+        for note in .document.notes where note.track < .laneOfTrack.count
         {
+            let x = left + cast(f32, note.startTick) * .pixelsPerTick
+            if x > right do
+                break
+            let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            if x + width < .scrollPos.x + left do
+                continue
+
+            let index  = cast(u64, .laneOfTrack[note.track])
+            let lane   = &.lanes[index]
             let band   = .laneRect(index)
             let range  = Math.max(cast(f32, lane.highKey - lane.lowKey), 1)
             let spread = Math.max(band.height - 2 * LanePadding - NoteHeight, 0)
             var color  = colors.series[index % colors.series.count]
             if .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track do
                 color = Color.lerp(colors.ground, color, 0.35)
-
-            for note in .document.notes where note.track == lane.track
-            {
-                let x = left + cast(f32, note.startTick) * .pixelsPerTick
-                if x > .scrollPos.x + .clientRect().width do
-                    break
-                let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-                if x + width < .scrollPos.x + left do
-                    continue
-                let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
-                painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
-            }
+            let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
+            painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
         }
 
         // The names stand in their own column, which the notes pass under when the time scrolls.
@@ -684,6 +707,7 @@ impl RollView
             .backgroundStyle = .View
             .focusPolicy     = .Tab
             .wndFlags        |= .NoFocusRing
+            .collectLanes()
             .refreshFonts()
             .refreshLayout()
         }

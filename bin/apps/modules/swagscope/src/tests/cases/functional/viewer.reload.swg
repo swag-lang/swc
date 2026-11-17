@@ -232,4 +232,10 @@ using Core, Gui, Viewers
     for row in data.rows where row.field == .LineEnds do
         lineEnds.add(row.value)
     Swag.require(lineEnds.count == 1 and lineEnds[0] == "LF · no break after the last line", lineEnds.count ? lineEnds[0].toString() : "")
+
+    // The longest line, the control characters and the characters the decoder could not read.
+    var odd: TextStatisticsCounter
+    odd.append("short\nthe longest line\r\nbell\x07 and \uFFFD\n")
+    let oddTotals = odd.finish()
+    Swag.require(oddTotals.longest == 16 and oddTotals.controls == 1 and oddTotals.replaced == 1, Format.toString("% % %", oddTotals.longest, oddTotals.controls, oddTotals.replaced))
 }

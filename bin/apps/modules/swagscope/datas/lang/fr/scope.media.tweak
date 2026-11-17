@@ -67,6 +67,9 @@ weight      Graisse
 embedding   Incorporation
 columns     Colonnes
 tracks      Pistes
+longestLine Ligne la plus longue
+controls    Caractères de contrôle
+replacements Caractères illisibles (U+FFFD)
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

@@ -66,6 +66,9 @@ enum MediaInfoField
     Embedding
     Columns
     Tracks
+    LongestLine
+    ControlCharacters
+    Replacements
     Bookmarks
     TextLayer
     Style
@@ -148,6 +151,9 @@ struct MediaInfoStrings
     embedding:      string = "Embedding"
     columns:        string = "Columns"
     tracks:         string = "Tracks"
+    longestLine:    string = "Longest line"
+    controls:       string = "Control characters"
+    replacements:   string = "Unreadable characters (U+FFFD)"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -229,84 +235,87 @@ impl MediaInfoRow
         let s = &g_MediaInfoStrings
         switch #complete .field
         {
-        case .Custom:         return .name.toString()
-        case .Media:          return s.media
-        case .Image:          return s.image
-        case .Video:          return s.video
-        case .Metadata:       return s.metadata
-        case .Technical:      return s.technical
-        case .Document:       return s.document
-        case .Text:           return s.text
-        case .Sound:          return s.sound
-        case .Font:           return s.font
-        case .Table:          return s.table
-        case .Music:          return s.music
-        case .Binary:         return s.binary
-        case .Format:         return s.format
-        case .Codec:          return s.codec
-        case .Dimensions:     return s.dimensions
-        case .DisplaySize:    return s.displaySize
-        case .AspectRatio:    return s.aspectRatio
-        case .PixelFormat:    return s.pixelFormat
-        case .Depth:          return s.depth
-        case .Frames:         return s.frames
-        case .Pages:          return s.pages
-        case .Lines:          return s.lines
-        case .Sections:       return s.sections
-        case .Members:        return s.members
-        case .Typeface:       return s.typeface
-        case .Duration:       return s.duration
-        case .FrameRate:      return s.frameRate
-        case .ExactFrameRate: return s.exactFrameRate
-        case .Bitrate:        return s.bitrate
-        case .Audio:          return s.audio
-        case .Subtitles:      return s.subtitles
-        case .Name:           return s.name
-        case .Language:       return s.language
-        case .Encoding:       return s.encoding
-        case .SampleRate:     return s.sampleRate
-        case .Channels:       return s.channels
-        case .SampleSize:     return s.sampleSize
-        case .Levels:         return s.levels
-        case .SamplePeak:     return s.samplePeak
-        case .RmsLevel:       return s.rmsLevel
-        case .FullScale:      return s.fullScale
-        case .Title:          return s.title
-        case .Author:         return s.author
-        case .Publisher:      return s.publisher
-        case .Published:      return s.published
-        case .Created:        return s.created
-        case .Application:    return s.application
-        case .Description:    return s.description
-        case .Tags:           return s.tags
-        case .Artist:         return s.artist
-        case .Album:          return s.album
-        case .AlbumArtist:    return s.albumArtist
-        case .Year:           return s.year
-        case .TrackNumber:    return s.trackNumber
-        case .Disc:           return s.disc
-        case .Genre:          return s.genre
-        case .Weight:         return s.weight
-        case .Embedding:      return s.embedding
-        case .Columns:        return s.columns
-        case .Tracks:         return s.tracks
-        case .Bookmarks:      return s.bookmarks
-        case .TextLayer:      return s.textLayer
-        case .Style:          return s.style
-        case .UnitsPerEm:     return s.unitsPerEm
-        case .Faces:          return s.faces
-        case .Version:        return s.version
-        case .Designer:       return s.designer
-        case .Copyright:      return s.copyright
-        case .Separator:      return s.separator
-        case .Meter:          return s.meter
-        case .Tempo:          return s.tempo
-        case .KeySignature:   return s.keySignature
-        case .LineEnds:       return s.lineEnds
-        case .Coverage:       return s.coverage
-        case .Track:          return .name.toString()
-        case .Empty:          return s.empty
-        case .Unavailable:    return s.unavailable
+        case .Custom:            return .name.toString()
+        case .Media:             return s.media
+        case .Image:             return s.image
+        case .Video:             return s.video
+        case .Metadata:          return s.metadata
+        case .Technical:         return s.technical
+        case .Document:          return s.document
+        case .Text:              return s.text
+        case .Sound:             return s.sound
+        case .Font:              return s.font
+        case .Table:             return s.table
+        case .Music:             return s.music
+        case .Binary:            return s.binary
+        case .Format:            return s.format
+        case .Codec:             return s.codec
+        case .Dimensions:        return s.dimensions
+        case .DisplaySize:       return s.displaySize
+        case .AspectRatio:       return s.aspectRatio
+        case .PixelFormat:       return s.pixelFormat
+        case .Depth:             return s.depth
+        case .Frames:            return s.frames
+        case .Pages:             return s.pages
+        case .Lines:             return s.lines
+        case .Sections:          return s.sections
+        case .Members:           return s.members
+        case .Typeface:          return s.typeface
+        case .Duration:          return s.duration
+        case .FrameRate:         return s.frameRate
+        case .ExactFrameRate:    return s.exactFrameRate
+        case .Bitrate:           return s.bitrate
+        case .Audio:             return s.audio
+        case .Subtitles:         return s.subtitles
+        case .Name:              return s.name
+        case .Language:          return s.language
+        case .Encoding:          return s.encoding
+        case .SampleRate:        return s.sampleRate
+        case .Channels:          return s.channels
+        case .SampleSize:        return s.sampleSize
+        case .Levels:            return s.levels
+        case .SamplePeak:        return s.samplePeak
+        case .RmsLevel:          return s.rmsLevel
+        case .FullScale:         return s.fullScale
+        case .Title:             return s.title
+        case .Author:            return s.author
+        case .Publisher:         return s.publisher
+        case .Published:         return s.published
+        case .Created:           return s.created
+        case .Application:       return s.application
+        case .Description:       return s.description
+        case .Tags:              return s.tags
+        case .Artist:            return s.artist
+        case .Album:             return s.album
+        case .AlbumArtist:       return s.albumArtist
+        case .Year:              return s.year
+        case .TrackNumber:       return s.trackNumber
+        case .Disc:              return s.disc
+        case .Genre:             return s.genre
+        case .Weight:            return s.weight
+        case .Embedding:         return s.embedding
+        case .Columns:           return s.columns
+        case .Tracks:            return s.tracks
+        case .LongestLine:       return s.longestLine
+        case .ControlCharacters: return s.controls
+        case .Replacements:      return s.replacements
+        case .Bookmarks:         return s.bookmarks
+        case .TextLayer:         return s.textLayer
+        case .Style:             return s.style
+        case .UnitsPerEm:        return s.unitsPerEm
+        case .Faces:             return s.faces
+        case .Version:           return s.version
+        case .Designer:          return s.designer
+        case .Copyright:         return s.copyright
+        case .Separator:         return s.separator
+        case .Meter:             return s.meter
+        case .Tempo:             return s.tempo
+        case .KeySignature:      return s.keySignature
+        case .LineEnds:          return s.lineEnds
+        case .Coverage:          return s.coverage
+        case .Track:             return .name.toString()
+        case .Empty:             return s.empty
+        case .Unavailable:       return s.unavailable
         }
     }
 
@@ -315,10 +324,10 @@ impl MediaInfoRow
     {
         switch .field
         {
-        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages,
-             .Lines, .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate,
-             .Bitrate, .SampleRate, .Channels, .SampleSize, .SamplePeak, .RmsLevel,
-             .FullScale, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
+        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines,
+             .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate,
+             .Channels, .SampleSize, .SamplePeak, .RmsLevel, .FullScale, .Bookmarks, .UnitsPerEm,
+             .Faces, .Meter, .LineEnds, .LongestLine, .ControlCharacters, .Replacements:
             return true
         }
 
@@ -455,6 +464,15 @@ impl MediaInfoData
             ends = Format.toString("% · %", ends, s.noFinalBreak)
         if ends.count do
             .add(.LineEnds, ends)
+
+        // The widest line, then what may not read as text: control characters and the U+FFFD that
+        // bytes the encoding could not read become.
+        if statistics.lines > 1 do
+            .add(.LongestLine, characterCountText(statistics.longest))
+        if statistics.controls do
+            .add(.ControlCharacters, Format.toString("%", statistics.controls))
+        if statistics.replaced do
+            .add(.Replacements, Format.toString("%", statistics.replaced))
     }
 
     // Appends a row whose name the format owns, shown as written.

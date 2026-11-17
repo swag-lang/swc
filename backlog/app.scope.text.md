@@ -230,9 +230,11 @@ large-file work without editing, implicit network access, macros or source mutat
 ### app.scope.text.030 — Text statistics stop at line and word counts
 
 - Evidence: the background pass reports exact line and word totals plus decoded Unicode scalar count
-  for the selected encoding; a leading BOM is excluded. It still omits byte count, newline-kind
-  totals, longest line, invalid-sequence count, control-character count, and sampled versus exact
-  scope, so it cannot explain every rendering or navigation discrepancy.
+  for the selected encoding; a leading BOM is excluded. The information sheet adds the line ends
+  by kind, the characters of the longest line, the control characters other than a tabulation and
+  the line breaks, and the U+FFFD characters bytes the decoder could not read become (a literal
+  U+FFFD counts too). It still omits byte count, where the longest line is, and sampled versus
+  exact scope.
 - Next: extend the text profile with source byte, newline, line-length, decode, and control-character
   metrics, retaining bounded background work and explicit scope.
 - Done when: every metric names its unit and exact or sampled scope, line-length extremes link

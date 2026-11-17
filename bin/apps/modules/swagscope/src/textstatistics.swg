@@ -12,6 +12,9 @@ struct TextStatistics
     crlf:       u64      // Lines ended by a carriage return and a line feed.
     cr:         u64      // Lines ended by a lone carriage return.
     unended:    bool     // Whether the text stops on a line with no line break after it.
+    longest:    u64      // Characters of the longest line, its line break left out.
+    controls:   u64      // Control characters other than a tabulation and the line breaks.
+    replaced:   u64      // U+FFFD characters, which is what bytes the encoding cannot read become.
 }
 
 impl TextStatistics
@@ -56,6 +59,7 @@ struct TextStatisticsCounter
     sawRune:            bool
     previousCr:         bool
     endedWithLineBreak: bool
+    lineLength:         u64     // Characters of the line being read so far.
 }
 
 impl TextStatisticsCounter
@@ -74,6 +78,8 @@ impl TextStatisticsCounter
             .totals.characters += 1
             if c == '\r' or c == '\n'
             {
+                .totals.longest = Math.max(.totals.longest, .lineLength)
+                .lineLength     = 0
                 if c == '\r' or not .previousCr do
                     .totals.lines += 1
 
@@ -101,6 +107,11 @@ impl TextStatisticsCounter
 
             .previousCr         = false
             .endedWithLineBreak = false
+            .lineLength         += 1
+            if c == 0xFFFD do
+                .totals.replaced += 1
+            elif c != '\t' and (c < 0x20 or (c >= 0x7F and c < 0xA0)) do
+                .totals.controls += 1
             if Unicode.isSpace(c)
             {
                 .inWord = false
@@ -117,6 +128,7 @@ impl TextStatisticsCounter
     mtd const finish()->TextStatistics
     {
         var result = .totals
+        result.longest = Math.max(result.longest, .lineLength)
         if .sawRune and not .endedWithLineBreak
         {
             result.lines   += 1

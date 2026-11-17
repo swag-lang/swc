@@ -99,6 +99,9 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         return null
     }
 
+    // The open information sheet follows the character the lens marks, as it follows a click.
+    window.toggleInformation()
+    host.finishAnimations()
     let row = unwrap lensRow(&host, window, "U+03A9")
     Swag.require(row.title == Format.toString(Typeface.texts().ui_ShowCharacter, "U+03A9 Ω") and not row.disabled)
     row.run!()
@@ -107,6 +110,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.require(view.document.shown == 'Ω' and
                  view.document.pageStart <= 0x3A9 and
                  view.document.pageEnd >= 0x3A9)
+    let information = window.infoSheet.text()
+    Swag.require(Utf8.contains(information, "Unicode\nU+03A9 · Ω"), information)
     let top = view.document.scroll.scrollPosition().y
     Swag.require(view.document.layout.gridTop < top + view.document.clientRect().height)
 

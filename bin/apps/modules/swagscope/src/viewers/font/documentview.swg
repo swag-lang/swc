@@ -146,7 +146,7 @@ struct DocumentView
     hasNext:    bool
     shown:      rune     // Character the reader asked to see, marked in its cell; zero for none.
 
-    sigMarked: SigArray'func||(*DocumentView)     // Emitted when a click marks another character.
+    sigMarked: SigArray'func||(*DocumentView)     // Emitted when a click or the lens marks another character.
 }
 
 private impl DocumentView
@@ -608,7 +608,11 @@ impl DocumentView
         if not face or not Utf8.isValidRune(character) or not face.hasChar(character) do
             return
         .goToCharacterPage(cast(u32, character))
-        .shown = character
+        if .shown != character
+        {
+            .shown = character
+            .sigMarked.call(me)
+        }
 
         for cell, index in .cells where cell.character == character
         {

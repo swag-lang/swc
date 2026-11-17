@@ -24,6 +24,39 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 
 #test
 {
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+
+    // Any nonzero post.isFixedPitch value means fixed pitch.
+    writeBigU32(&bytes, table + 12, 2)
+    let fixedFace = expect Face.load(bytes.toSlice())
+    defer fixedFace.destroy()
+    let fixedMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(fixedFace.isFixedPitch and fixedMetadata.isFixedPitch)
+
+    writeBigU32(&bytes, table + 12, 0)
+    let proportionalFace = expect Face.load(bytes.toSlice())
+    defer proportionalFace.destroy()
+    let proportionalMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(not proportionalFace.isFixedPitch and not proportionalMetadata.isFixedPitch)
+}
+
+#test
+{
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
+
+    let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(not metadata.isFixedPitch)
+    let subset = expect Face.loadSubset(bytes.toSlice(), "Arial")
+    defer subset.destroy()
+    Swag.require(not subset.isFixedPitch)
+}
+
+#test
+{
     var bytes   = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     let regular = expect Face.metadataAt(bytes.toSlice(), 0)
     let bold    = expect Face.metadataAt(bytes.toSlice(), 1)

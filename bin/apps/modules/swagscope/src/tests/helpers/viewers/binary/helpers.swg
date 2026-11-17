@@ -6,13 +6,14 @@ using Core, Gui, Viewers
 // Completes the binary document load and its delayed activity indicator.
 func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
 {
-    view.loadTask.wait()
-    host.pump()
-
     var attempts: u32
-    while view.loadTimer and attempts < 10_000
+    while view.isLoading() and attempts < 10_000
     {
-        host.fireTimer(view.loadTimer)
+        if view.loadTask.isPending() do
+            view.loadTask.wait()
+        host.pump()
+        if view.loadTimer do
+            host.fireTimer(view.loadTimer)
         attempts += 1
     }
 

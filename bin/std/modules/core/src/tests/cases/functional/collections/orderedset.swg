@@ -117,3 +117,15 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     set.add(7)
     Swag.require(set.count == 1 and set.contains(7))
 }
+
+// Empty forward and reversed views visit no keys.
+#test
+{
+    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var visits = 0
+    for _ in set do
+        visits += 1
+    for _ in set.reversed() do
+        visits += 1
+    Swag.require(visits == 0)
+}

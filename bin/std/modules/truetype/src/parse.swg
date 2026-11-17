@@ -239,6 +239,10 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             subTableLength = try readU16(remaining, 2)
             minimumLength  = 10
 
+        case 10:
+            subTableLength = try readU32(remaining, 4)
+            minimumLength  = 20
+
         case 12, 13:
             subTableLength = try readU32(remaining, 4)
             minimumLength  = 16
@@ -254,6 +258,13 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         if subTableLength < minimumLength do
             try fault(0x03)
         let subTable = try getSlice(remaining, 0, subTableLength)
+
+        if format == 10
+        {
+            let charCount = try readU32(subTable, 16)
+            if cast(u64, charCount) > (subTable.count - 20) / 2 do
+                try fault(0x03)
+        }
 
         // Variation sequences supplement the selected map rather than compete with
         // it: they resolve a base character already mapped elsewhere.
@@ -312,6 +323,56 @@ func buildGlyphMetrics(faceData: *FaceImpl) fail
 
         faceData.glyphMetrics[index] = metric
     }
+}
+
+// Fills the optional per-glyph vertical advances and top side bearings.
+func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
+{
+    let vheaRecord = findTable(faceData, TAG_VHEA)
+    let vmtxRecord = findTable(faceData, TAG_VMTX)
+    if not vheaRecord and not vmtxRecord do
+        return
+    if not vheaRecord or not vmtxRecord do
+        try fault(0x98)
+
+    let vheaTable = unwrap vheaRecord
+    let vmtxTable = unwrap vmtxRecord
+    let vhea      = try getSlice(faceData.fontData.toSlice(), vheaTable.offset, vheaTable.length)
+    if vhea.count < 36 do
+        try fault(0x98)
+
+    let numLongMetrics = try readU16(vhea, 34)
+    let glyphCount     = faceData.face.glyphCount
+    if not numLongMetrics or numLongMetrics > glyphCount do
+        try fault(0x98)
+
+    let vmtx = try getSlice(faceData.fontData.toSlice(), vmtxTable.offset, vmtxTable.length)
+    let shortMetricCount = glyphCount - numLongMetrics
+    let requiredBytes    = cast(u64, numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    if vmtx.count < requiredBytes do
+        try fault(0x98)
+
+    faceData.verticalGlyphMetrics.resize(glyphCount)
+    var lastAdvance = 0'u16
+    for index in glyphCount
+    {
+        let base = index < numLongMetrics
+            ? cast(u64, index) * 4
+            : cast(u64, numLongMetrics) * 4 + cast(u64, index - numLongMetrics) * 2
+        var metric: GlyphVerticalMetrics
+        if index < numLongMetrics
+        {
+            lastAdvance             = try readU16(vmtx, base)
+            metric.set(lastAdvance, try readS16(vmtx, base + 2))
+        }
+        else
+        {
+            metric.set(lastAdvance, try readS16(vmtx, base))
+        }
+        faceData.verticalGlyphMetrics[index] = metric
+    }
+
+    faceData.hasVerticalMetrics = true
 }
 
 func buildGlyphLocations(faceData: *FaceImpl) fail
@@ -692,6 +753,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     faceData.face.setGlyphCount(readU16(maxp, 4))
 
     buildGlyphMetrics(faceData)
+    buildVerticalGlyphMetrics(faceData)
 
     // A CFF-flavoured OpenType file keeps its outlines in charstrings, so it has neither
     // `glyf` nor the `loca` index into it; everything else it declares is unchanged.

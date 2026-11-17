@@ -19,6 +19,8 @@ public struct GlyphMetrics
         horizontalBearingX: s32     // Offset from the pen to the left outline bound.
         horizontalBearingY: s32     // Offset from the baseline to the top outline bound.
         horizontalAdvance:  s32     // Recommended horizontal pen advance.
+        verticalTopSideBearing: s32 // Distance from the glyph's top bound to its vertical origin.
+        verticalAdvance:     s32    // Recommended vertical pen advance, or zero without vertical metrics.
     }
 }
 
@@ -44,6 +46,7 @@ impl GlyphMetrics
     {
         .horizontalAdvance = value
     }
+
 }
 
 // Holds the outline, metrics, and bitmap of the most recently loaded glyph.
@@ -108,6 +111,12 @@ public impl GlyphSlot
         .advance.x = horizontal
         .advance.y = 0
         .metrics.setHorizontalAdvance(horizontal)
+    }
+
+    internal mtd setVerticalMetrics(advance, topSideBearing: s32)
+    {
+        .metrics.verticalAdvance        = advance
+        .metrics.verticalTopSideBearing = topSideBearing
     }
 
     internal mtd resetBitmap()

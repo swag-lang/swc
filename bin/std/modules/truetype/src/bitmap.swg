@@ -1,5 +1,7 @@
 using Swag, Core
 
+const EmptyBitmapRow: [1] u8 = [0]
+
 // Identifies the storage layout of a rendered [[TrueType.Bitmap]].
 public enum PixelMode
 {
@@ -17,6 +19,40 @@ public impl PixelMode
         case .Gray: return 1
         case .Rgba: return 4
         }
+    }
+}
+
+public impl Bitmap
+{
+    // Returns one borrowed row without its trailing pitch padding.
+    //
+    // `y` is zero-based from the first stored row. The slice contains
+    // `width * [[TrueType.PixelMode.bytesPerPixel]]` bytes and remains valid until
+    // the owning face loads or renders another glyph. The pitch must be
+    // non-negative and at least as large as the row, and non-empty data requires
+    // a non-null buffer.
+    //
+    // Invalid rows or inconsistent bitmap layouts fail with an invalid-argument error.
+    mtd const row(y: u32)->const [..] u8 fail
+    {
+        if y >= .rows do
+            try fault(0x06)
+
+        let rowBytes = cast(u64, .width) * .pixelMode.bytesPerPixel()
+        if .pitch < 0 do
+            try fault(0x06)
+        if rowBytes > cast(u64, .pitch) do
+            try fault(0x06)
+
+        if rowBytes
+        {
+            if not .buffer do
+                try fault(0x06)
+
+            return Swag.makeSlice(cast(const [*] u8, unwrap .buffer) + cast(u64, y) * cast(u64, .pitch), rowBytes)
+        }
+
+        return Swag.makeSlice(&EmptyBitmapRow[0], 0)
     }
 }
 
@@ -47,8 +83,8 @@ impl Bitmap
 //
 // The buffer belongs to the parent [[TrueType.Face]]. Its address and contents
 // may change after another load or render operation, and become invalid when the
-// face is destroyed. Walk rows by `pitch` bytes rather than deriving a stride
-// from `width`.
+// face is destroyed. Use [[TrueType.Bitmap.row]] to read one row without pitch
+// padding.
 public struct Bitmap
 {
     // Rendering establishes the bitmap as one result. Callers can read the view

@@ -63,6 +63,23 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(result.view != null and result.commands == null and result.info != null)
 
     let viewer = assume cast(*Midi.Panel, result.view)
+
+    // While the score loads there is no roll yet: the information sheet says nothing of it, and
+    // the lens offers the zoom of the roll disabled.
+    Swag.require(viewer.load.isPending())
+    viewer.describeInformation(InfoSheet.create(&host.root))
+    var pending: Lens.Results
+    var pendingEntries = Viewer.LensEntries.create(&pending, "MIDI", host.theme)
+    viewer.describeLens(&pendingEntries)
+    var zoomRows = 0
+    for &entry in pending.sections[0]!.entries where entry.title == appStrings().cmd_ZoomIn
+    {
+        Swag.require(entry.disabled)
+        zoomRows += 1
+    }
+
+    Swag.require(zoomRows == 1)
+
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(result.info.preferredSize.x == Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
     Swag.require(Utf8.contains(viewer.details.toSlice(), "7 notes"))
@@ -112,6 +129,10 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(not viewer.failureReason.isEmpty())
+
+    // A file that failed has no roll to translate or describe.
+    host.notify(.LanguageChanged)
+    viewer.describeInformation(InfoSheet.create(&host.root))
 }
 
 // The tenth channel is percussion: its notes are hits drawn where they strike, whatever their

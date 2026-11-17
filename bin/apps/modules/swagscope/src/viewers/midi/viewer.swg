@@ -6,7 +6,6 @@ using Core, Pixel, Gui
 // Offers the score surface for a Standard MIDI File, whatever it is called.
 private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
 
-// Describes the MIDI viewer to the host.
 // Draws the notes of a MIDI file as a small piano roll, time across and pitch up, its drums apart
 // in a softer tone, within `maxSide`.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
@@ -38,6 +37,7 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     return try canvas.toImage()
 }
 
+// Describes the MIDI viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
@@ -115,9 +115,8 @@ private impl Panel
     {
         .optionsButton.toolTip = appStrings().ui_Options
         .zoomLabel.toolTip     = texts().ui_ZoomMenu
-        if .isLoading() do
-            return
-        .roll.invalidate()
+        if .hasRoll() do
+            .roll.invalidate()
     }
 
     mtd publishDocument(document: *Document)
@@ -142,6 +141,8 @@ private impl Panel
 
     mtd showZoomMenu()
     {
+        if not .hasRoll() do
+            return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
         menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
@@ -161,6 +162,10 @@ private impl Panel
 
     // Reports whether the document is still being read in the background.
     mtd isLoading()->bool => .load.isPending()
+
+    // Reports whether the piano roll exists, which it does once the document has been read without
+    // failure; until then everything that shows or zooms the score has nothing to act on.
+    mtd hasRoll()->bool => not .isLoading() and .failureReason.isEmpty()
 
     // Requests teardown, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
@@ -202,17 +207,19 @@ private impl IWnd for Panel
 
 impl Panel
 {
-    // Opens what the roll shows and how: the track, the names of the pitches, the keyboard width.
-    // Gives the lens the options and the zoom of the score.
+    // Gives the lens the options and the zoom of the score; the zoom waits for the roll.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        let missing = not .hasRoll()
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, shortcut: Input.formatKeyShortcut(.Control, .D0))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() }, disabled: missing)
     }
 
+    // Opens what the roll shows and how: the track, the presentation, the names of the pitches,
+    // the keyboard width.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -222,7 +229,7 @@ impl Panel
     mtd describeOptions(page: *OptionSheet.Page)
     {
         let strings = texts()
-        if not .isLoading() and .failureReason.isEmpty()
+        if .hasRoll()
         {
             let selected = .roll.selectedTrack
             let current  = selected == Swag.U32.Max ? strings.ui_AllTracks : .roll.document.tracks[selected].name.toString()
@@ -245,7 +252,7 @@ impl Panel
                          icon: .theme().icon(.AudioTracks, themeRowIconSize(.themeMetrics())))
         }
 
-        if not .isLoading() and .failureReason.isEmpty()
+        if .hasRoll()
         {
             let current = .roll.mode == .Tracks ? strings.ui_ByTrack : strings.ui_ByPitch
             page.addLink(strings.ui_Presentation,
@@ -282,7 +289,7 @@ impl Panel
     {
         .pitchLabelMode = mode
         g_ViewerSettings.pitchLabelMode = mode
-        if not .isLoading() and .failureReason.isEmpty() do
+        if .hasRoll() do
             .roll.setPitchLabelMode(mode)
     }
 
@@ -292,7 +299,7 @@ impl Panel
         Swag.assert(index < 3)
         .keyboardWidthMode = index
         g_ViewerSettings.keyboardWidthMode = index
-        if not .isLoading() and .failureReason.isEmpty() do
+        if .hasRoll() do
             .roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
     }
 
@@ -329,12 +336,14 @@ impl Panel
     }
 }
 
-// Creates the integrated MIDI score view and connects it to the host.
 impl Panel
 {
     // Describes the score in the information sheet: its length, tracks and notes, then its meter.
+    // A score still loading, or one that failed to load, has nothing to describe yet.
     mtd describeInformation(sheet: *InfoSheet)
     {
+        if not .hasRoll() do
+            return
         var data: MediaInfoData
         data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
         data.addFigure(.Custom, trackCountText(.roll.lanes.count))
@@ -369,6 +378,7 @@ impl Panel
     }
 }
 
+// Creates the integrated MIDI score view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)

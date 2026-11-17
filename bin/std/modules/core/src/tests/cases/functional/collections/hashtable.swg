@@ -225,6 +225,23 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(table.count == 1 and table[2] == 200)
 }
 
+// Free drops active and deleted owned entries, releases capacity, and permits reuse.
+#test
+{
+    var table: HashTable'(String, String)
+    table.add("keep", "active value")
+    table.add("deleted", "deleted value")
+    table.remove("deleted")
+
+    table.free()
+    Swag.require(table.isEmpty() and table.capacity == 0)
+
+    table.add("reused", "new value")
+    Swag.require(table.count == 1 and table["reused"] == "new value")
+    table.free()
+    Swag.require(table.isEmpty() and table.capacity == 0)
+}
+
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)

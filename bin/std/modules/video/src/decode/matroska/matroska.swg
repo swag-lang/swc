@@ -215,14 +215,30 @@ private impl Track
             return {width: 0, height: 0}
         if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
             return {width: 0, height: 0}
-        if .displayWidth * cast(u64, height) == .displayHeight * cast(u64, width) do
+        // StreamInfo uses signed dimensions, so larger container values cannot be represented.
+        // Bounding them here also keeps each ratio product within u64 before comparing.
+        if .displayWidth > Swag.S32.Max or .displayHeight > Swag.S32.Max do
+            return {width: 0, height: 0}
+
+        let shownWidth  = .displayWidth * cast(u64, height)
+        let shownHeight = .displayHeight * cast(u64, width)
+        if shownWidth == shownHeight do
             return {width: 0, height: 0}
 
         // The taller of the two axes keeps its stored resolution, so a picture is only ever
         // stretched: shrinking one instead would throw away samples the stream carries.
-        if .displayWidth * cast(u64, height) > .displayHeight * cast(u64, width) do
-            return {width: cast(s32, ((cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight)), height: height}
-        return {width: width, height: cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
+        if shownWidth > shownHeight
+        {
+            let scaledWidth = (cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight
+            if scaledWidth > Swag.S32.Max do
+                return {width: 0, height: 0}
+            return {width: cast(s32, scaledWidth), height: height}
+        }
+
+        let scaledHeight = (cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth
+        if scaledHeight > Swag.S32.Max do
+            return {width: 0, height: 0}
+        return {width: width, height: cast(s32, scaledHeight)}
     }
 
     // Recognized explicit display geometry takes priority over codec pixel aspect, including an

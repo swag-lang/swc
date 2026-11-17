@@ -1211,7 +1211,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   native spatializer or an explicitly supported common fallback.
 - Done when: the public model contains no X3DAudio types, the Windows matrix is validated, and
   a backend can declare or implement the same capability without changing `Voice`.
-- Related: std.audio.007
 
 ### platform.portability.064 — Voice filters are specified only by XAudio2 capabilities
 

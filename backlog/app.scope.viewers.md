@@ -214,7 +214,7 @@ viewer packages, helper binaries, or network service required to open supported 
   reference, conflict handling, remapping, and shared state across lens, menu, and key execution.
 - Done when: every non-pointer-only action can be found and invoked by name, shortcuts can be
   inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
-- Related: app.scope.hexa.016, std.gui.010
+- Related: app.scope.hexa.016
 
 ---
 

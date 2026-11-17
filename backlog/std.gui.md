@@ -312,8 +312,6 @@ Add each additional shipped language as an independently reviewable resource con
 coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
 date/name data and plural selection instead of maintaining GUI-local culture tables.
 
-- Related: std.gui.003
-
 - Next: add one independently reviewed GUI translation with key-coverage checks and
   `Core.Globalization` locale data.
 - Done when: At least one additional GUI translation ships as a separately reviewed resource, its key coverage is checked, and locale data and plural selection use Core.Globalization rather than GUI-local rules.

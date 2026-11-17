@@ -118,14 +118,15 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.009 — Color, bitmap, SVG, and vertical glyph capabilities have no viewer modes
 
-- Evidence: std.truetype.016/std.truetype.017/std.truetype.018/std.truetype.019/std.truetype.020 track missing font-engine features. The viewer cannot
-  identify which glyphs use COLR/CPAL, bitmap strikes, SVG, or vertical metrics, select palettes or
+- Evidence: std.truetype.016/std.truetype.017/std.truetype.018/std.truetype.019 track remaining
+  font-engine features; vertical metrics are available. The viewer cannot identify which glyphs
+  use COLR/CPAL, bitmap strikes, SVG, or vertical metrics, select palettes or
   strikes, or compare fallback outline rendering.
 - Next: reserve explicit glyph-source and writing-mode controls, then connect each engine capability
   without silently flattening it into the default monochrome horizontal view.
 - Done when: available source layers/strikes/palettes are listed, vertical specimen and metrics
   are correct, fallback is labelled, and the glyph inspector links to underlying tables.
-- Related: std.truetype.016, std.truetype.020, std.truetype.017, std.truetype.018, std.truetype.019
+- Related: std.truetype.016, std.truetype.017, std.truetype.018, std.truetype.019
 
 ### app.scope.font.010 — Make specimen presets and size controls configurable
 

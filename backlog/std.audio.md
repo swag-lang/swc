@@ -51,7 +51,6 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   against the current reference implementation on the same granules.
 - Done when: synthesis cost is recorded and any retained optimization preserves the complete
   MPEG-1/2/2.5, channel-mode, block-type, and reservoir regression corpus.
-- Related: std.video.008
 
 ### std.audio.003 — Gain changes have no sample-based ramp
 

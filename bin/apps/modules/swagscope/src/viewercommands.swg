@@ -197,6 +197,10 @@ impl ViewerWindow
         let typed:   String = results.query
         let query = typed.toString()
         var section: *Lens.Section?
+
+        // A query naming the choice brings every viewer. The label is the same for each of them,
+        // so it is matched once.
+        let viewAsAnswers = Lens.match(results.folded, texts.lens_ViewAs).matched
         if .isExploring()
         {
             let explorer = unwrap .explorer
@@ -227,7 +231,8 @@ impl ViewerWindow
                 {
                     let plugin = &.index.plugins[choice.pluginIndex]
                     let name   = plugin.displayName()
-                    if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
+                    var found  = Lens.match(results.folded, name)
+                    if not found.matched and not viewAsAnswers do
                         continue
                     if not viewers
                     {
@@ -236,7 +241,7 @@ impl ViewerWindow
                     }
 
                     let chosen     = cast(u32, index)
-                    with let entry = viewers.addEntry(name)
+                    with let entry = viewers.addEntry(name, #move found)
                     {
                         .checked = choice.key == "archive"
                         .run     = func|window = me, chosen|() { window.chooseViewerFromMenu(chosen) }
@@ -253,7 +258,8 @@ impl ViewerWindow
         {
             let plugin = &.index.plugins[choice.pluginIndex]
             let name   = plugin.displayName()
-            if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
+            var found  = Lens.match(results.folded, name)
+            if not found.matched and not viewAsAnswers do
                 continue
             if not section
             {
@@ -262,7 +268,7 @@ impl ViewerWindow
             }
 
             let chosen     = cast(u32, index)
-            with let entry = section.addEntry(name)
+            with let entry = section.addEntry(name, #move found)
             {
                 .checked = chosen == me.activeChoiceIndex
                 .run     = func|window = me, chosen|() { window.selectViewer(chosen) }

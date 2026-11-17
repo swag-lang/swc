@@ -741,25 +741,19 @@ impl TimelineBar
         let edge = .dragEdge
         .dragEdge = .None
         let capture = .capture()
-        if edge == .None or not capture do
+        if edge == .None or not capture or capture.selection.count != 1 do
             return
 
-        if edge == .FormStart or edge == .FormEnd
-        {
-            if capture.selection.count != 1 do
-                return
-            let form: *BaseForm = capture.forms[capture.selection[0]]
-            let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
-            let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
-            if chosen == old do
-                return
-            form.timeStart = .dragFromStart
-            form.timeEnd   = .dragFromEnd
-            capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
-            .invalidate()
+        // The drag moved the form live; put its span back so the edit is recorded from it.
+        let form: *BaseForm = capture.forms[capture.selection[0]]
+        let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
+        let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
+        if chosen == old do
             return
-        }
-
+        form.timeStart = .dragFromStart
+        form.timeEnd   = .dragFromEnd
+        capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
+        .invalidate()
     }
 
     // Moves the playhead to the frame shown at `x`, in local coordinates on the track.
@@ -789,17 +783,8 @@ impl TimelineBar
         if .isPlaying()
         {
             .playFrom = frames.timeOf(frame)
-            if capture.media == .Video and not Swag.jit()
-            {
-                .stopAudio()
-                .requestVideoFrames(capture, frame)
-                .playStart = 0
-            }
-            else
-            {
-                catch .startAudio(.playFrom)
-                .playStart = Time.monotonicMicroseconds()
-            }
+            catch .startAudio(.playFrom)
+            .playStart = Time.monotonicMicroseconds()
         }
 
         .invalidate()

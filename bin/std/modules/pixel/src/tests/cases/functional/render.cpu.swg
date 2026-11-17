@@ -551,6 +551,38 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     Swag.require(right.b > right.r)
 }
 
+// mapOver keeps one gradient continuous across separately painted shapes.
+#test
+{
+    let brush = Brush.createLinearGradient(0, 0, 16, 0, Color.fromArgb(Argb.Red), Color.fromArgb(Argb.Blue))
+    brush.mapOver({0, 0, 16, 8})
+
+    var joinedPainter: Painter
+    joinedPainter.begin()
+    joinedPainter.setColorMaskFull()
+    joinedPainter.clear(Color.fromArgb(Argb.Zero))
+    joinedPainter.fillRect({0, 0, 8, 8}, brush)
+    joinedPainter.fillRect({8, 0, 8, 8}, brush)
+    joinedPainter.end()
+
+    var wholePainter: Painter
+    wholePainter.begin()
+    wholePainter.setColorMaskFull()
+    wholePainter.clear(Color.fromArgb(Argb.Zero))
+    wholePainter.fillRect({0, 0, 16, 8}, brush)
+    wholePainter.end()
+
+    let joined = renderCpu(16, 8, &joinedPainter)
+    let whole  = renderCpu(16, 8, &wholePainter)
+    for y in 8
+    {
+        for x in 16
+        {
+            Swag.require(joined.pixelColor(x, y) == whole.pixelColor(x, y))
+        }
+    }
+}
+
 // The built-in resolve shader averages each supersampling block and returns straight alpha.
 #test
 {

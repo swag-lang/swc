@@ -45,3 +45,20 @@ using Swag
     Swag.require(fr.dateTimeFormat.formatTime(midnight) == "00:00:00")
     Swag.require(fr.dateTimeFormat.formatTime(noon) == "12:00:00")
 }
+
+#test
+{
+    let invalid = Time.DateTime{}
+    var format  = Globalization.DateTimeFormatInfo{}
+
+    let rejectedDate = Swag.catchPanic(func|invalid, &format|()
+    {
+        discard format.formatDate(invalid)
+    })
+    let rejectedTime = Swag.catchPanic(func|invalid, &format|()
+    {
+        discard format.formatTime(invalid)
+    })
+    Swag.require(rejectedDate.raised and rejectedDate.message() == "cannot format an invalid date")
+    Swag.require(rejectedTime.raised and rejectedTime.message() == "cannot format an invalid time")
+}

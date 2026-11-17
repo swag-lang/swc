@@ -47,6 +47,16 @@ struct ArrayOptions
     labels: Array'String
 }
 
+struct UnsupportedValue
+{
+    x: s32
+}
+
+struct UnsupportedOptions
+{
+    point: UnsupportedValue
+}
+
 func parseFailed(args: const [..] string)->bool
 {
     var options:    BasicOptions
@@ -250,6 +260,15 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     Swag.require(parseAdvancedFailed(["-labels"]))
     Swag.require(parseAdvancedFailed(["-values"]))
     Swag.require(parseAdvancedFailed(["-threshold", "-"]))
+}
+
+// Fields outside the supported scalar and dynamic-array types fail with a format error.
+#test
+{
+    var options: UnsupportedOptions
+    var error: Swag.Error
+    discard catch CommandLine.parse(&options, ["-point", "0,0"]) as error
+    Swag.require(error.value() is Errors.UnsupportedFormatError)
 }
 
 // A double dash, a different case, and the '-'/'_' separators all reach the same field.

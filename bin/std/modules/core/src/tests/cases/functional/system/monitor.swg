@@ -36,3 +36,23 @@ using Swag
     stacked.add(bottom)
     Swag.require(Env.monitorForPointIn(stacked, {50, 100}).physicalBounds.y == 100)
 }
+
+// Points outside every monitor select the nearest one, and equal distances keep enumeration order.
+#test
+{
+    var monitors: Array'Env.Monitor
+    var first: Env.Monitor
+    first.physicalBounds = {0, 0, 100, 100}
+    var second: Env.Monitor
+    second.physicalBounds = {200, 0, 100, 100}
+    monitors.add(first)
+    monitors.add(second)
+
+    Swag.require(Env.monitorForPointIn(monitors, {175, 50}).physicalBounds.x == 200)
+    Swag.require(Env.monitorForPointIn(monitors, {150, 50}).physicalBounds.x == 0)
+
+    var empty: Array'Env.Monitor
+    let missing = Env.monitorForPointIn(empty, {0, 0})
+    Swag.require(missing.scaleFactor == 1)
+    Swag.require(missing.physicalBounds == Math.Rectangle.Zero)
+}

@@ -5,6 +5,20 @@ using Swag
 
 #test
 {
+    var backing: [2] s32 = [7, 9]
+    let empty = backing[until 0]
+    Slice.sort(empty)
+    Slice.sort(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs)
+    Swag.require(Slice.isSorted(empty) and backing == [7, 9])
+
+    var single: [1] s32 = [42]
+    Slice.sort(single)
+    Slice.sort(single, descending: true)
+    Swag.require(single[0] == 42 and Slice.isSorted(single))
+}
+
+#test
+{
     let backing: [1] s32 = [42]
     let empty = backing[until 0]
 

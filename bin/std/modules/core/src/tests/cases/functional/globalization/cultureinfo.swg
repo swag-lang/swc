@@ -65,6 +65,14 @@ using Swag
 
 #test
 {
+    // A profile's two-letter language tag must match the whole tag or a hyphen boundary.
+    let lookalike = Globalization.CultureInfo.fromName("french")
+    Swag.require(lookalike.numberFormat.decimalSeparator == '.')
+    Swag.require(lookalike.currencyFormat.symbol == "$")
+}
+
+#test
+{
     let en = Globalization.CultureInfo.fromName("en-US")
     Swag.require(en.ordinalPlural(1) == .One)
     Swag.require(en.ordinalPlural(2) == .Two)

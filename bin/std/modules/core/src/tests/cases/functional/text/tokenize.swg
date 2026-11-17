@@ -70,6 +70,8 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     let stringKeep = Tokenize.split("", "", removeEmpty: false)
     Swag.require(stringKeep.count == 1 and stringKeep[0] == "")
     Swag.require(Tokenize.split("", "").isEmpty())
+    const Unsplit: [1] string = ["core"]
+    Swag.require(assertStringArray(Tokenize.split("core", ""), Unsplit))
 
     const Separators: [2] rune = [','rune, ';'rune]
     let runeSetKeep = Tokenize.splitAny("", Separators, removeEmpty: false)

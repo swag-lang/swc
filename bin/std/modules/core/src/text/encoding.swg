@@ -1,13 +1,11 @@
 #global public
 #global namespace Text
 
-using Swag
+using Swag, Core.Errors
 
-// How the bytes of a text file spell their characters.
+// Encodings for text files read and written through Core.Text.
 //
-// A reader meets these five families and nothing else in practice: UTF-8 everywhere, UTF-16 from
-// Windows APIs and exports, UTF-32 from a few Unix pipelines, and one single-byte page for
-// everything written before any of them. `Windows1252` stands for that page: it is a superset of
+// They cover UTF-8, UTF-16, UTF-32 and Windows code page 1252. `Windows1252` is a superset of
 // Latin-1 that differs only in `0x80`-`0x9F`, where Latin-1 has unused controls and Windows put
 // the quotation marks and dashes an actual document uses.
 enum Encoding
@@ -195,6 +193,124 @@ private const Windows1252Supplement: [32] rune = [
     0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x008D, 0x017D, 0x008F,
     0x0090, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
     0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x009D, 0x017E, 0x0178]
+
+// Returns whether code page 1252 represents `value` and, when it does, the encoded byte.
+private func windows1252Byte(value: rune)->{found: bool, byte: u8}
+{
+    if value <= 0x7F or 0xA0 <= value and value <= 0xFF do
+        return {found: true, byte: cast(u8, value)}
+
+    for codepoint, index in Windows1252Supplement where codepoint == value do
+        return {found: true, byte: cast(u8, 0x80 + index)}
+    return {found: false, byte: 0}
+}
+
+private func append16(output: *Array'u8, value: u16, littleEndian: bool)
+{
+    if littleEndian
+    {
+        output.add(cast(u8, value & 0xFF))
+        output.add(cast(u8, value >> 8))
+    }
+    else
+    {
+        output.add(cast(u8, value >> 8))
+        output.add(cast(u8, value & 0xFF))
+    }
+}
+
+private func append32(output: *Array'u8, value: u32, littleEndian: bool)
+{
+    if littleEndian
+    {
+        output.add(cast(u8, value & 0xFF))
+        output.add(cast(u8, (value >> 8) & 0xFF))
+        output.add(cast(u8, (value >> 16) & 0xFF))
+        output.add(cast(u8, value >> 24))
+    }
+    else
+    {
+        output.add(cast(u8, value >> 24))
+        output.add(cast(u8, (value >> 16) & 0xFF))
+        output.add(cast(u8, (value >> 8) & 0xFF))
+        output.add(cast(u8, value & 0xFF))
+    }
+}
+
+// Encodes valid UTF-8 text into `encoding` and returns an owned byte array.
+//
+// `includeBom` writes the encoding's byte-order mark when it has one; Windows-1252 has no mark.
+// The input must be well-formed UTF-8. The method fails with [[Core.Errors.InvalidFormatError]]
+// for malformed input or when Windows-1252 cannot represent a rune; it never substitutes or
+// drops a character.
+func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
+{
+    let source = cast(const [..] u8, text)
+    if not Utf8.isValid(source) do
+        fail InvalidFormatError{"text is not valid UTF-8"}
+
+    var result: Array'u8
+    if includeBom
+    {
+        switch encoding
+        {
+        case .Utf8:
+            result.add(0xEF)
+            result.add(0xBB)
+            result.add(0xBF)
+        case .Utf16Le:
+            result.add(0xFF)
+            result.add(0xFE)
+        case .Utf16Be:
+            result.add(0xFE)
+            result.add(0xFF)
+        case .Utf32Le:
+            result.add(0xFF)
+            result.add(0xFE)
+            result.add(0)
+            result.add(0)
+        case .Utf32Be:
+            result.add(0)
+            result.add(0)
+            result.add(0xFE)
+            result.add(0xFF)
+        case .Windows1252:
+            break
+        }
+    }
+
+    switch #complete encoding
+    {
+    case .Utf8:
+        result.add(source)
+
+    case .Windows1252:
+        for value in Unicode.fromUtf8(source)
+        {
+            let encoded = windows1252Byte(value)
+            if not encoded.found do
+                fail InvalidFormatError{"text contains a rune that Windows-1252 cannot encode"}
+            result.add(encoded.byte)
+        }
+
+    case .Utf16Le, .Utf16Be:
+        let littleEndian = encoding == .Utf16Le
+        for value in Unicode.fromUtf8(source)
+        {
+            var units: [2] u16
+            let count = Utf16.encodeRune(units, value)
+            for index in count do
+                append16(&result, units[index], littleEndian)
+        }
+
+    case .Utf32Le, .Utf32Be:
+        let littleEndian = encoding == .Utf32Le
+        for value in Unicode.fromUtf8(source) do
+            append32(&result, cast(u32, value), littleEndian)
+    }
+
+    return result
+}
 
 // Returns the character one code page 1252 byte spells.
 func windows1252Rune(value: u8)->rune

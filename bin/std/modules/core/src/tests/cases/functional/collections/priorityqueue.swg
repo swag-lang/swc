@@ -34,8 +34,10 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     let peekFailed    = Swag.catchPanic(func|&queue|() { discard queue.peek() })
     let popFailed     = Swag.catchPanic(func|&queue|() { discard queue.pop() })
     let pointerFailed = Swag.catchPanic(func|&queue|() { discard queue.peekPtr() })
+    let constQueue    = cast(const *PriorityQueue's32, &queue)
+    let constPointerFailed = Swag.catchPanic(func|constQueue|() { discard constQueue[].peekPtr() })
 
-    Swag.require(peekFailed.raised and popFailed.raised and pointerFailed.raised)
+    Swag.require(peekFailed.raised and popFailed.raised and pointerFailed.raised and constPointerFailed.raised)
     Swag.require(queue.isEmpty())
 }
 

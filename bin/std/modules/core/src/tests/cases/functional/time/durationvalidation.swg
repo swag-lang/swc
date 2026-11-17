@@ -22,3 +22,16 @@ using Swag
     })
     Swag.require(tooLarge.raised)
 }
+
+#test
+{
+    var invalid = Time.Duration.fromSeconds(1)
+    let seconds = cast(*f64, &invalid)
+    seconds[] = -1
+
+    let failure = Swag.catchPanic(func|&invalid|()
+    {
+        discard invalid.milliseconds()
+    })
+    Swag.require(failure.raised and failure.message() == "duration is invalid")
+}

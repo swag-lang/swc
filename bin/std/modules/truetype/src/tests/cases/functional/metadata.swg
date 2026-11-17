@@ -46,13 +46,58 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
 {
     var bytes = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+
+    // -12.5 degrees in signed 16.16 form.
+    writeBigU32(&bytes, table + 4, 0xFFF38000)
+    let italicFace = expect Face.load(bytes.toSlice())
+    defer italicFace.destroy()
+    let italicMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(italicFace.italicAngle == -819200 and italicMetadata.italicAngle == -819200)
+
+    writeBigU32(&bytes, table + 4, 0)
+    let uprightFace = expect Face.load(bytes.toSlice())
+    defer uprightFace.destroy()
+    let uprightMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(uprightFace.italicAngle == 0 and uprightMetadata.italicAngle == 0)
+}
+
+#test
+{
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+
+    writeMetadataU16(&bytes, table + 8, cast(u16, -120's16))
+    writeMetadataU16(&bytes, table + 10, 50)
+    let decoratedFace = expect Face.load(bytes.toSlice())
+    defer decoratedFace.destroy()
+    let decoratedMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(decoratedFace.underlinePosition == -120 and decoratedMetadata.underlinePosition == -120)
+    Swag.require(decoratedFace.underlineThickness == 50 and decoratedMetadata.underlineThickness == 50)
+
+    writeMetadataU16(&bytes, table + 8, 0)
+    writeMetadataU16(&bytes, table + 10, 0)
+    let plainFace = expect Face.load(bytes.toSlice())
+    defer plainFace.destroy()
+    let plainMetadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.require(plainFace.underlinePosition == 0 and plainMetadata.underlinePosition == 0)
+    Swag.require(plainFace.underlineThickness == 0 and plainMetadata.underlineThickness == 0)
+}
+
+#test
+{
+    var bytes = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_POST)
     writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
 
     let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
-    Swag.require(not metadata.isFixedPitch)
+    Swag.require(not metadata.isFixedPitch and metadata.italicAngle == 0)
+    Swag.require(metadata.underlinePosition == 0 and metadata.underlineThickness == 0)
     let subset = expect Face.loadSubset(bytes.toSlice(), "Arial")
     defer subset.destroy()
-    Swag.require(not subset.isFixedPitch)
+    Swag.require(not subset.isFixedPitch and subset.italicAngle == 0)
+    Swag.require(subset.underlinePosition == 0 and subset.underlineThickness == 0)
 }
 
 #test

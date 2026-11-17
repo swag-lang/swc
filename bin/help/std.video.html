@@ -37,7 +37,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group" open>
-<summary><span class="toc-label">Namespaces</span><span class="toc-count">5</span></summary>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">6</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Video">Video</a></li>
@@ -45,10 +45,11 @@
 <li><a href="#namespace_Video_H264">Video.H264</a></li>
 <li><a href="#namespace_Video_Mp4">Video.Mp4</a></li>
 <li><a href="#namespace_Video_Subtitle">Video.Subtitle</a></li>
+<li><a href="#namespace_Video_Y4m">Video.Y4m</a></li>
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">47</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">49</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a></li>
@@ -74,6 +75,7 @@
 <li><a href="#Video_Mp4_SoftwareRenderRange">Mp4.SoftwareRenderRange</a></li>
 <li><a href="#Video_Mp4_SoftwareTrimEdits">Mp4.SoftwareTrimEdits</a></li>
 <li><a href="#Video_Mp4_SoftwareTrimResult">Mp4.SoftwareTrimResult</a></li>
+<li><a href="#Video_Mp4_SoftwareVideoRateControl">Mp4.SoftwareVideoRateControl</a></li>
 <li><a href="#Video_Mp4_VideoPacketRange">Mp4.VideoPacketRange</a></li>
 <li><a href="#Video_Mp4_VideoTimeRange">Mp4.VideoTimeRange</a></li>
 <li><a href="#Video_Subtitle_Cue">Subtitle.Cue</a></li>
@@ -98,13 +100,15 @@
 <li><a href="#Video_StreamInfo">Video.StreamInfo</a></li>
 <li><a href="#Video_Timebase">Video.Timebase</a></li>
 <li><a href="#Video_Writer">Video.Writer</a></li>
+<li><a href="#Video_Y4m_EncodeOptions">Y4m.EncodeOptions</a></li>
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">1</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">2</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Video_Subtitle_Format">Subtitle.Format</a></li>
+<li><a href="#Video_Y4m_EncodeChromaMode">Y4m.EncodeChromaMode</a></li>
 </ul>
 </details>
 <details class="toc-group" open>
@@ -115,7 +119,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">204</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">206</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Video_H264_AnnexBAccessUnit_parse">AnnexBAccessUnit.parse</a></li>
@@ -275,7 +279,9 @@
 <li><a href="#Video_Mp4_SoftwareRecording_repeatedFrameCount">SoftwareRecording.repeatedFrameCount</a></li>
 <li><a href="#Video_Mp4_SoftwareRecording_repeatLastFrame">SoftwareRecording.repeatLastFrame</a></li>
 <li><a href="#Video_Mp4_SoftwareRecording_videoFrameCount">SoftwareRecording.videoFrameCount</a></li>
+<li><a href="#Video_Mp4_SoftwareRecording_videoPacketByteCount">SoftwareRecording.videoPacketByteCount</a></li>
 <li><a href="#Video_Mp4_SoftwareRecording_videoPrerollTicks">SoftwareRecording.videoPrerollTicks</a></li>
+<li><a href="#Video_Mp4_SoftwareRecording_videoQuantizationQp">SoftwareRecording.videoQuantizationQp</a></li>
 <li><a href="#Video_Mp4_SoftwareRecording_writtenByteCount">SoftwareRecording.writtenByteCount</a></li>
 <li><a href="#Video_StreamFormat_matches">StreamFormat.matches</a></li>
 <li><a href="#Video_Timebase_convertFrom">Timebase.convertFrom</a></li>
@@ -329,6 +335,7 @@
 <section class="module-overview"><h1 id="overview">Video</h1>
 <p>Video reads and writes timed sequences of <a href="std.pixel.html#Pixel_Image">Pixel.Image</a> frames. File-backed AVI, ISO-BMFF, and Matroska readers also expose streamed sound tracks through <a href="std.audio.html#Audio_SoundFile">Audio.SoundFile</a>, and Matroska readers expose timed text through <a href="#Video_Subtitle_Track">Video.Subtitle.Track</a>. Standalone subtitle documents use the same track and cue model.</p>
 <p>Reading and writing are streamed: <a href="#Video_Reader">Video.Reader</a> opens a stream by reading its metadata and decodes one frame at a time, and <a href="#Video_Writer">Video.Writer</a> encodes one frame at a time into its destination. Encoded media payloads remain in their source; indexed containers retain compact sample tables while decoding keeps only the active picture, codec references, and bounded audio buffers. <a href="#Video_Clip">Video.Clip</a> is the other half of the picture — the frames a program builds in memory before encoding them. <a href="#Video_Timebase">Video.Timebase</a> converts absolute timestamps between integer media clocks, including nanosecond capture timestamps and video or audio track ticks, without cumulative rounding.</p>
+<p>For H.264 and H.265, <a href="#Video_Reader_width">Video.Reader.width</a> and <a href="#Video_Reader_height">Video.Reader.height</a> describe stored pixels, while <a href="#Video_Reader_displayWidth">Video.Reader.displayWidth</a> and <a href="#Video_Reader_displayHeight">Video.Reader.displayHeight</a> include the sample aspect ratio carried by codec metadata or the container. Matroska track display geometry takes priority over codec metadata; ISO-BMFF <span class="code-inline">pasp</span> takes priority over codec metadata.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"video"</span>)
 
 <span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>
@@ -345,9 +352,9 @@
     <span class="SKwd">try</span> reader.<span class="SFct">decodeFrameInto</span>(&amp;picture, index)</span></div>
 <p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a>, selected by filename extension; both read and write through <a href="std.core.html#Core_ByteSource">Core.ByteSource</a> and <a href="std.core.html#Core_ByteSink">Core.ByteSink</a>, which are what make a codec independent of files and memory alike. Four codecs ship in the box:</p>
 <ul>
-<li>YUV4MPEG2 (<span class="code-inline">.y4m</span>) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small implementation over the size of what it produces.</li>
-<li>AVI (<span class="code-inline">.avi</span>) reads Motion JPEG, MPEG-4 Part 2, and uncompressed frames, exposes integer PCM sound tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap header of the container and its setup headers inside the stream, and stores a bidirectional plane behind the plane it refers forward to, which is what this container's lack of a decoding order costs. The container index locates Motion JPEG and uncompressed frames directly. MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies through the requested frame.</li>
-<li>ISO-BMFF (<span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, and <span class="code-inline">.mov</span>) reads Motion JPEG, H.264, and H.265 pictures, writes Motion JPEG, and exposes AAC-LC mono/stereo audio. <a href="#Video_Mp4_FragmentedWriter">Video.Mp4.FragmentedWriter</a> separately writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording. The writer reports submitted video and audio packet counts, track end times, and completed byte count for recording progress and file-size limits. <a href="#Video_Mp4_FragmentedPacketReader">Video.Mp4.FragmentedPacketReader</a> exposes their original compressed packets and track clocks for copying without decoding. <a href="#Video_Mp4_FragmentedPacketCursor">Video.Mp4.FragmentedPacketCursor</a> walks the same video and AAC packets one fragment at a time, keeping a bounded sample window; it reports each packet's fragment location and the last complete media boundary, and can start at a key-frame fragment located through <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a>. <a href="#Video_Mp4_summarizeFragmentedRecording">Video.Mp4.summarizeFragmentedRecording</a> scans with the same bounded memory to report track packet counts, decode-time endpoints, the last complete media boundary, and an interrupted tail. <a href="#Video_Mp4_copyVideoRanges">Video.Mp4.copyVideoRanges</a> joins key-frame-aligned H.264 ranges into a video-only file without re-encoding; <a href="#Video_Mp4_copyRanges">Video.Mp4.copyRanges</a> also copies AAC-LC tracks, rounding cut edges to whole sound packets. <a href="#Video_Mp4_planVideoTimeRanges">Video.Mp4.planVideoTimeRanges</a> expands intervals on the video decode-time clock to safe key-frame packet ranges for either copy operation. <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a> reads an optional final key-frame index from the file tail and locates a fragment without scanning media data; the cursor can seek directly to its video key frame. <a href="#Video_Mp4_rebuildFragmentedIndex">Video.Mp4.rebuildFragmentedIndex</a> can finalize complete fragments after an interrupted write and rebuild that index using temporary disk storage. <a href="#Video_Reader">Video.Reader</a> reads samples by scanning fragment headers and recovers complete fragments after an interrupted final write. The classic reader expands compact sample tables into direct packet offsets while payloads remain in the file. Exact composition timestamps are retained for variable-rate playback and coded display reordering. <a href="#Video_H264_AnnexBAccessUnit">Video.H264.AnnexBAccessUnit</a> converts start-code-delimited H.264 encoder output into the length-prefixed packets and <span class="code-inline">avcC</span> configuration the fragmented MP4 writer consumes. <a href="#Video_Nv12Frame">Video.Nv12Frame</a> converts packed RGB images into BT.709 NV12 surfaces for a video encoder, and converts matching decoded 4:2:0 BT.709 planes directly without a packed RGB intermediate. <a href="#Video_H264_Encoder">Video.H264.Encoder</a> produces Constrained Baseline packets from those surfaces with flat intra blocks, exact inter copies for small screen movements, luma and chroma residuals, P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional positive QP quantizes both IDR and P-picture residuals against locally reconstructed neighbours and references. The fixed QP is not rate control. <a href="#Video_Mp4_SoftwareRecording">Video.Mp4.SoftwareRecording</a> joins RGB-to-NV12 conversion, software H.264 and AAC encoding, sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM chunks, AAC priming when audio is present, and fragmented MP4 finalization. <a href="#Video_FramePacer">Video.FramePacer</a> assigns monotonic capture timestamps to exact constant-rate video slots and reports skipped frames without retaining pictures.</li>
+<li>YUV4MPEG2 (<span class="code-inline">.y4m</span>) reads progressive 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4 YCbCr frames, reports display geometry from valid sample aspect tags, and writes 4:1:1, 4:2:0, 4:2:2, or 4:4:4 frames. It does not compress, so it favors a small implementation over the size of what it produces.</li>
+<li>AVI (<span class="code-inline">.avi</span>) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit frames, exposes integer PCM sound tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap header of the container and its setup headers inside the stream, and stores a bidirectional plane behind the plane it refers forward to, which is what this container's lack of a decoding order costs. The container index locates Motion JPEG and uncompressed frames directly. MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies through the requested frame.</li>
+<li>ISO-BMFF (<span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, and <span class="code-inline">.mov</span>) reads Motion JPEG, H.264, and H.265 pictures, writes Motion JPEG, and exposes AAC-LC, AC-3, and MPEG Layer III audio from classic sample tables. Motion JPEG output can write a pixel aspect ratio. <a href="#Video_Mp4_FragmentedWriter">Video.Mp4.FragmentedWriter</a> separately writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording. The writer reports submitted video and audio packet counts, track end times, and completed byte count for recording progress and file-size limits. <a href="#Video_Mp4_FragmentedPacketReader">Video.Mp4.FragmentedPacketReader</a> exposes their original compressed packets and track clocks for copying without decoding. <a href="#Video_Mp4_FragmentedPacketCursor">Video.Mp4.FragmentedPacketCursor</a> walks the same video and AAC packets one fragment at a time, keeping a bounded sample window; it reports each packet's fragment location and the last complete media boundary, and can start at a key-frame fragment located through <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a>. <a href="#Video_Mp4_summarizeFragmentedRecording">Video.Mp4.summarizeFragmentedRecording</a> scans with the same bounded memory to report track packet counts, decode-time endpoints, the last complete media boundary, and an interrupted tail. <a href="#Video_Mp4_copyVideoRanges">Video.Mp4.copyVideoRanges</a> joins key-frame-aligned H.264 ranges into a video-only file without re-encoding; <a href="#Video_Mp4_copyRanges">Video.Mp4.copyRanges</a> also copies AAC-LC tracks, rounding cut edges to whole sound packets. <a href="#Video_Mp4_planVideoTimeRanges">Video.Mp4.planVideoTimeRanges</a> expands intervals on the video decode-time clock to safe key-frame packet ranges for either copy operation. <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a> reads an optional final key-frame index from the file tail and locates a fragment without scanning media data; the cursor can seek directly to its video key frame. <a href="#Video_Mp4_rebuildFragmentedIndex">Video.Mp4.rebuildFragmentedIndex</a> can finalize complete fragments after an interrupted write and rebuild that index using temporary disk storage. <a href="#Video_Reader">Video.Reader</a> reads samples by scanning fragment headers and recovers complete fragments after an interrupted final write. The classic reader expands compact sample tables into direct packet offsets while payloads remain in the file. Exact composition timestamps are retained for variable-rate playback and coded display reordering. <a href="#Video_H264_AnnexBAccessUnit">Video.H264.AnnexBAccessUnit</a> converts start-code-delimited H.264 encoder output into the length-prefixed packets and <span class="code-inline">avcC</span> configuration the fragmented MP4 writer consumes. <a href="#Video_Nv12Frame">Video.Nv12Frame</a> converts packed RGB images into BT.709 NV12 surfaces for a video encoder, and converts matching decoded 4:2:0 BT.709 planes directly without a packed RGB intermediate. <a href="#Video_H264_Encoder">Video.H264.Encoder</a> produces Constrained Baseline packets from those surfaces with flat intra blocks, exact inter copies for small screen movements, luma and chroma residuals, P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional positive QP quantizes both IDR and P-picture residuals against locally reconstructed neighbours and references. The fixed QP is not rate control. <a href="#Video_Mp4_SoftwareRecording">Video.Mp4.SoftwareRecording</a> joins RGB-to-NV12 conversion, software H.264 and AAC encoding, sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM chunks, AAC priming when audio is present, and fragmented MP4 finalization. Its optional <a href="#Video_Mp4_SoftwareVideoRateControl">Video.Mp4.SoftwareVideoRateControl</a> adapts per-picture QP toward an average video rate and reports the selected QP and cumulative H.264 packet bytes; it does not promise a fixed packet size or file size. <a href="#Video_FramePacer">Video.FramePacer</a> assigns monotonic capture timestamps to exact constant-rate video slots and reports skipped frames without retaining pictures.</li>
 <li>Matroska (<span class="code-inline">.mkv</span>) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight channels that its decoder supports. A picture track remuxed from a legacy file is read as well: such a track names its codec through a Video for Windows header, states its setup headers inside the stream rather than in the container, and may store a bidirectional plane behind the plane it refers forward to. Display order is then taken from the clock the stream states, not from the order the container hands samples over. RealVideo 4 is decoded in Swag, including intra, predicted, and bidirectional pictures, multiple slices, and its loop filter. Its wrapping picture clock also repairs legacy container timestamps that put bidirectional pictures after their future reference. Frames stored without the bytes they all begin with, which is what mkvmerge does by default to several codecs, are handed to the decoder whole; a track compressed or encrypted any other way is not offered. A file whose tail never made it to disk is read as far as it goes. Matroska <span class="code-inline">CodecDelay</span> is removed from the audible timeline. Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor through complete cluster windows as playback reaches them; random access restarts it at the preceding video cue and reconstructs the coded prediction through the requested picture. No full-file scan competes with playback. Sound tracks become available when that progressive cursor reaches their playback window; <span class="code-inline">S_TEXT/UTF8</span>, <span class="code-inline">S_TEXT/ASS</span>, and <span class="code-inline">S_TEXT/SSA</span> subtitle tracks are exposed on that same media timeline. The complete indexes continue in the background, and work may be interrupted through <a href="#Video_Reader_requestCancel">Video.Reader.requestCancel</a>. Media payloads stay in the file.</li>
 </ul>
 <p><a href="#Video_Subtitle_Track_loadOwned">Video.Subtitle.Track.loadOwned</a> decodes SubRip (<span class="code-inline">.srt</span>), WebVTT (<span class="code-inline">.vtt</span>), ASS/SSA (<span class="code-inline">.ass</span> and <span class="code-inline">.ssa</span>), LRC (<span class="code-inline">.lrc</span>), and MicroDVD (<span class="code-inline">.sub</span>) documents. UTF-8, UTF-16, UTF-32, and Windows-1252 text are detected. The decoder keeps cue timing and readable text while leaving font, color, position, outline, and synchronization choices to the player.</p>
@@ -373,20 +380,21 @@
 <tr><th>Extension</th><th>Reads</th><th>Writes</th><th>Costs</th></tr>
 </thead>
 <tbody>
-<tr><td><span class="code-inline">.y4m</span></td><td>8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr</td><td>4:4:4 planar YCbCr</td><td>Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values.</td></tr>
-<tr><td><span class="code-inline">.avi</span></td><td>Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio</td><td>Motion JPEG</td><td>The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture.</td></tr>
-<tr><td><span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, <span class="code-inline">.mov</span></td><td>Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio</td><td>Motion JPEG</td><td>Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order.</td></tr>
-<tr><td><span class="code-inline">.mkv</span></td><td>H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks</td><td>—</td><td>Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies.</td></tr>
+<tr><td><span class="code-inline">.y4m</span></td><td>8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr</td><td>4:1:1, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr</td><td>Frames are uncompressed; storage scales with resolution, plane layout, and frame rate. RGB-to-YCbCr conversion can change channel values.</td></tr>
+<tr><td><span class="code-inline">.avi</span></td><td>Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit, RGB 24-bit, or RGB 32-bit frames; integer PCM audio</td><td>Motion JPEG</td><td>BI_RGB 16-bit frames use the default RGB555 layout. The writer stores independent JPEG frames. Motion JPEG seeks directly; MPEG-4 Part 2 reconstructs prediction dependencies from a sync picture.</td></tr>
+<tr><td><span class="code-inline">.mp4</span>, <span class="code-inline">.m4v</span>, <span class="code-inline">.mov</span></td><td>Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC, AC-3, or Layer III audio</td><td>Motion JPEG</td><td>Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order.</td></tr>
+<tr><td><span class="code-inline">.mkv</span></td><td>H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks, including Xiph, fixed, and EBML video lacing; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks</td><td>—</td><td>Opening reads seek, track, and cue metadata. Playback indexes cluster windows as needed; coded seeks restart at a suitable cue and reconstruct prediction dependencies.</td></tr>
 </tbody>
 </table>
-<p>YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the stream. AVI reads offsets from the container index, and ISO-BMFF expands its chunk and sample tables once when the stream opens. H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode prediction dependencies forward, so a distant random seek costs the group of pictures it enters rather than one frame.</p>
+<p>YUV4MPEG2 computes frame offsets when its markers have a constant size; otherwise it walks the stream. Its <span class="code-inline">Awidth:height</span> tag sets sample aspect ratio for <span class="code-inline">Reader.displayWidth</span> and <span class="code-inline">Reader.displayHeight</span>; <span class="code-inline">A0:0</span> leaves stored geometry unchanged. AVI reads offsets from the container index, and ISO-BMFF expands its chunk and sample tables once when the stream opens. H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode prediction dependencies forward, so a distant random seek costs the group of pictures it enters rather than one frame. Laced Matroska video pictures use <span class="code-inline">DefaultDuration</span>, or share a declared <span class="code-inline">BlockDuration</span>; the reader rejects a multi-picture block when neither supplies a reliable timestamp step.</p>
 <h3 id="guide_Reading_and_writing_video_Reading_sound_tracks">Reading sound tracks</h3>
 <p>File-backed AVI, ISO-BMFF, and Matroska readers expose playable sound tracks through <a href="#Video_Reader_audioTrackCount">Video.Reader.audioTrackCount</a> and <a href="#Video_Reader_audioTrack">Video.Reader.audioTrack</a>. Each <a href="std.audio.html#Audio_SoundFile">Audio.SoundFile</a> owns a compact packet table and reopens the container through its own cursor, so sound and picture stream in parallel without sharing a seek position or retaining compressed payloads. Matroska preserves every supported track and puts the container's default track at index zero.</p>
-<p>Memory-backed readers expose pictures but no sound track because a voice needs an independently owned streaming cursor. AVI exposes integer PCM tracks and ISO-BMFF AAC-LC mono/stereo tracks. Matroska exposes AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core, FLAC, Layer III, Vorbis, and Opus tracks within the channel counts their decoders support, preserves their speaker order, and subtracts <span class="code-inline">CodecDelay</span> priming from playback and seeking. Unsupported sound codecs remain unavailable while a supported picture track stays playable.</p>
+<p>Memory-backed readers expose pictures but no sound track because a voice needs an independently owned streaming cursor. AVI exposes integer PCM tracks; ISO-BMFF exposes AAC-LC mono/stereo, AC-3, and Layer III tracks. Matroska exposes AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core, FLAC, Layer III, Vorbis, and Opus tracks within the channel counts their decoders support, preserves their speaker order, and subtracts <span class="code-inline">CodecDelay</span> priming from playback and seeking. Unsupported sound codecs remain unavailable while a supported picture track stays playable.</p>
 <h3 id="guide_Reading_and_writing_video_Controlling_how_a_stream_is_encoded">Controlling how a stream is encoded</h3>
 <p>A format that has something to configure takes an options structure, exactly as the Pixel image encoders do. Pass it to <a href="#Video_Clip_save">Video.Clip.save</a>, <a href="#Video_Clip_encode">Video.Clip.encode</a> or <a href="#Video_Writer_create">Video.Writer.create</a>; passing nothing takes the defaults of the selected format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">try</span> clip.<span class="SFct">save</span>(<span class="SStr">"capture.avi"</span>, <span class="SCst"><a href="#namespace_Video">Video</a></span>.<span class="SCst"><a href="#namespace_Video_Avi">Avi</a></span>.<span class="SCst">EncodeOptions</span>{quality: <span class="SNum">80</span>})</span></div>
-<p><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> and <a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a> both select the JPEG quality of their Motion JPEG frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.</p>
+<p><a href="#Video_Avi_EncodeOptions">Avi.EncodeOptions</a> and <a href="#Video_Mp4_EncodeOptions">Mp4.EncodeOptions</a> both select the JPEG quality of their Motion JPEG frames. MP4 options can also set <span class="code-inline">pixelAspectWidth</span> and <span class="code-inline">pixelAspectHeight</span> to write a <span class="code-inline">pasp</span> pixel aspect ratio; leave both zero to omit it. It preserves coded frame dimensions while readers report the corresponding display geometry. <a href="#Video_Y4m_EncodeOptions">Y4m.EncodeOptions</a> selects 4:1:1, 4:2:0, 4:2:2, or 4:4:4 planar chroma output; the default is 4:4:4. Subsampled output averages chroma over its sampling group. 4:1:1 needs width divisible by four; 4:2:0 and 4:2:2 need even width, and 4:2:0 also needs even height.</p>
+<p>The fragmented software H.264 recorder accepts <a href="#Video_Mp4_SoftwareVideoRateControl">Mp4.SoftwareVideoRateControl</a> to steer its per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does not guarantee a per-frame bitrate or final file size; query <span class="code-inline">SoftwareRecording.videoQuantizationQp</span> to inspect the base QP selected for the latest video slot, and <span class="code-inline">SoftwareRecording.videoPacketByteCount</span> for the cumulative H.264 packet payload bytes accepted.</p>
 <h3 id="guide_Reading_and_writing_video_Adding_a_format">Adding a format</h3>
 <p>A format is a codec registered against <a href="#Video_IDecoder">Video.IDecoder</a> and <a href="#Video_IEncoder">Video.IEncoder</a> and selected by filename extension, exactly like the image codecs of the Pixel module — and laid out the same way, one subfolder per format on each side, even when that subfolder contains one source file:</p>
 <div class="code-block"><span class="SCde">src/decode/reader.swg    the registry, and Video.Reader
@@ -406,7 +414,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </section>
 <section class="api-guide api-file-documentation"><h2 id="file-documentation">File documentation</h2>
 <h3 id="file_src_decode_avi_avi_swg"><code>src/decode/avi/avi.swg</code></h3>
-<p>Format: Audio Video Interleave (AVI/RIFF) decoder component. Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits. Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB. Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.</p>
+<p>Format: Audio Video Interleave (AVI/RIFF) decoder component. Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits. Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB. Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.</p>
 <h3 id="file_src_decode_cabactables_swg"><code>src/decode/cabactables.swg</code></h3>
 <p>Format: Format-neutral context-adaptive binary arithmetic coding tables. Supported: The range, transition, and renormalization tables H.264 and H.265 specify identically. Not supported: This file does not decode or encode a concrete picture format. Role: This file owns the one copy of the arithmetic engine tables both coded picture formats read.</p>
 <h3 id="file_src_decode_h264_cabac_swg"><code>src/decode/h264/cabac.swg</code></h3>
@@ -474,7 +482,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_matroska_ebml_swg"><code>src/decode/matroska/ebml.swg</code></h3>
 <p>Format: Matroska/EBML container decoder component. Supported: Bounded metadata and media elements used by the Matroska picture, audio, and text-subtitle reader. Not supported: Picture codecs other than H.264, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns bounded EBML element identifiers, vint values, and cursor traversal.</p>
 <h3 id="file_src_decode_matroska_matroska_swg"><code>src/decode/matroska/matroska.swg</code></h3>
-<p>Format: Matroska/EBML container decoder component. Supported: H.264, H.265, MPEG-4 Part 2 and RealVideo 4 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding. Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.</p>
+<p>Format: Matroska/EBML container decoder component. Supported: H.264, H.265, MPEG-4 Part 2 and RealVideo 4 picture tracks, including Xiph, fixed, and EBML lacing with declared timestamps; AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio; and UTF-8 or ASS/SSA subtitle tracks, with cues, codec delay, and discard padding. Not supported: Other picture codecs, laced video without declared timing, bitmap subtitles, invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.</p>
 <h3 id="file_src_decode_mp4_fragmented_cursor_swg"><code>src/decode/mp4/fragmented.cursor.swg</code></h3>
 <p>Format: ISO Base Media File Format (MP4) progressive fragment cursor. Supported: Bounded H.264 and AAC-LC fragments, partial final-fragment recovery, and indexed seek offsets. Not supported: Classic sample tables, multi-track movie fragments, and files changing while open. Role: This file walks compressed MP4 packets with memory independent of recording duration.</p>
 <h3 id="file_src_decode_mp4_fragmented_index_swg"><code>src/decode/mp4/fragmented.index.swg</code></h3>
@@ -484,7 +492,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_mp4_fragmented_summary_swg"><code>src/decode/mp4/fragmented.summary.swg</code></h3>
 <p>Format: ISO Base Media File Format (MP4) fragmented recording summary. Supported: Bounded H.264 and AAC-LC fragments, including a partially written final box. Not supported: Classic sample tables and files changing during the scan. Role: This file reports track durations and recovery boundaries without a packet table.</p>
 <h3 id="file_src_decode_mp4_mp4_swg"><code>src/decode/mp4/mp4.swg</code></h3>
-<p>Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component. Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits. Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC. Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.</p>
+<p>Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component. Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC or MPEG Layer III audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits. Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC or Layer III. Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.</p>
 <h3 id="file_src_decode_mpeg4_block_swg"><code>src/decode/mpeg4/block.swg</code></h3>
 <p>Format: MPEG-4 Part 2 (Simple and Advanced Simple Profile) decoder component. Supported: Rectangular 8-bit 4:2:0 video object layers: I, P and B video object planes, half-sample motion, four motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, and both the H.263 and MPEG quantisers. Not supported: Quarter-sample motion, global motion compensation, interlacing, data partitioning, reversible codes, sprites, and arbitrary object shapes. Role: This file owns inverse quantisation and the inverse transform.</p>
 <h3 id="file_src_decode_mpeg4_decoder_swg"><code>src/decode/mpeg4/decoder.swg</code></h3>
@@ -514,7 +522,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_videoforwindows_swg"><code>src/decode/videoforwindows.swg</code></h3>
 <p>Format: Video for Windows bitmap headers, as containers of that era carried them. Supported: The size of the header, the four characters naming a codec, and the codes that name MPEG-4 Part 2. Not supported: Palettes, and any picture codec other than the one named here. Role: This file owns what a bitmap header says about a picture codec, for every container that carries one.</p>
 <h3 id="file_src_decode_y4m_y4m_swg"><code>src/decode/y4m/y4m.swg</code></h3>
-<p>Format: YUV4MPEG2 (Y4M) decoder component. Supported: Progressive 8-bit mono, 4:2:0, 4:2:2, and 4:4:4 planar frames with limited or full range. Not supported: Interlaced streams, bit depths above 8, alpha, 4:1:1, and other chroma modes. Role: This file owns stream headers, frame markers, planar decoding, seeking, and top-level decoding.</p>
+<p>Format: YUV4MPEG2 (Y4M) decoder component. Supported: Progressive 8-bit mono, 4:1:1, 4:2:0, 4:2:2, and 4:4:4 planar frames with limited or full range and display geometry from aspect tags. Not supported: Interlaced streams, bit depths above 8, alpha, and other chroma modes. Role: This file owns stream headers, frame markers, planar decoding, seeking, and top-level decoding.</p>
 <h3 id="file_src_encode_avi_avi_swg"><code>src/encode/avi/avi.swg</code></h3>
 <p>Format: Audio Video Interleave (AVI/RIFF) encoder component. Supported: Indexed Motion JPEG video with a standard <span class="code-inline">idx1</span> index and files up to the 32-bit RIFF size limit. Not supported: OpenDML/AVI 2.0, audio tracks, uncompressed output, and files of 4 GiB or more. Role: This file owns RIFF chunk emission, stream indexes, frame writing, and top-level encoding.</p>
 <h3 id="file_src_encode_avi_options_swg"><code>src/encode/avi/options.swg</code></h3>
@@ -528,7 +536,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_encode_h264_lossy_swg"><code>src/encode/h264/lossy.swg</code></h3>
 <p>Format: H.264/AVC constrained-baseline quantized picture coding. Supported: Progressive 8-bit 4:2:0 I and P pictures, quarter-sample 16x16 motion, P-skip, Intra_16x16 and Intra_4x4 prediction in both, and CAVLC residuals at a fixed QP of 1 through 51, key pictures three steps finer. Not supported: Macroblock partitions, several references, B pictures, CABAC, the 8x8 transform, and rate control. Role: This file codes the pictures of a quantized encoder against its own decoded reference.</p>
 <h3 id="file_src_encode_h264_rate_control_swg"><code>src/encode/h264/rate.control.swg</code></h3>
-<p>Format: H.264 software rate-control preparation. Supported: Fractional per-picture budgets, a bounded virtual reservoir, and bounded QP changes. Not supported: A hard output-size guarantee, lookahead, or automatic encoder integration. Role: This private helper estimates the next quantizer from observed picture sizes.</p>
+<p>Format: H.264 software rate-control preparation. Supported: Fractional per-picture budgets, a bounded virtual reservoir, and bounded QP changes. Not supported: A hard output-size guarantee or lookahead. Role: This private helper estimates the next quantizer from observed picture sizes.</p>
 <h3 id="file_src_encode_mp4_fragmented_cut_swg"><code>src/encode/mp4/fragmented.cut.swg</code></h3>
 <p>Format: ISO Base Media File Format (MP4) fragmented packet copy. Supported: Key-frame-aligned H.264 ranges copied with optional AAC-LC tracks and bounded audio rounding. Not supported: Metadata, sample-exact AAC cuts, open GOPs crossing a cut, and negative rebased presentation times. Role: This file joins retained encoded packet ranges into a new fragmented MP4.</p>
 <h3 id="file_src_encode_mp4_fragmented_recover_swg"><code>src/encode/mp4/fragmented.recover.swg</code></h3>
@@ -547,8 +555,10 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Format: Encoded media packet contract. Supported: Borrowed packet payloads, decode and presentation times, duration, and sync points. Role: This file carries encoded samples from a codec to a container writer.</p>
 <h3 id="file_src_encode_writer_swg"><code>src/encode/writer.swg</code></h3>
 <p>Format: Format-neutral video encoder registry and writer. Supported: Extension-based encoder selection, streamed frame submission, finalization, and sink patching. Not supported: This file does not write a concrete video or container format. Role: This file owns encoder registration and the public writer that delegates to concrete format subfolders.</p>
+<h3 id="file_src_encode_y4m_options_swg"><code>src/encode/y4m/options.swg</code></h3>
+<p>Format: YUV4MPEG2 (Y4M) encoder options. Supported: Progressive 8-bit limited-range 4:1:1, 4:2:0, 4:2:2, and 4:4:4 chroma output. Not supported: Monochrome, interlaced, or full-range output. Role: This file owns the public chroma-sampling options for Y4M streams.</p>
 <h3 id="file_src_encode_y4m_y4m_swg"><code>src/encode/y4m/y4m.swg</code></h3>
-<p>Format: YUV4MPEG2 (Y4M) encoder component. Supported: Progressive 8-bit 4:4:4 limited-range planar output from 8-bit RGB/BGR images. Not supported: Audio, alpha preservation, interlacing, alternative chroma modes, full-range output, and compression. Role: This file owns stream headers, frame markers, RGB-to-planar conversion, and top-level encoding.</p>
+<p>Format: YUV4MPEG2 (Y4M) encoder component. Supported: Progressive 8-bit 4:4:4, 4:2:2, 4:2:0, and 4:1:1 limited-range planar output from 8-bit RGB/BGR images. Not supported: Audio, alpha preservation, interlacing, monochrome output, full-range output, and compression. Role: This file owns stream headers, frame markers, RGB-to-planar conversion, and top-level encoding.</p>
 </section>
 <section class="api-overview">
 <h2 id="api-reference">API reference</h2>
@@ -562,6 +572,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <tr><td class="code-type"><a href="#namespace_Video_H264">Video.H264</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Video_Mp4">Video.Mp4</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Video_Subtitle">Video.Subtitle</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Video_Y4m">Video.Y4m</a></td></tr>
 </tbody>
 </table>
 <h3 id="summary-types">Types</h3>
@@ -614,6 +625,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareTrimResult">Mp4.SoftwareTrimResult</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reports work performed by <a href="#Video_Mp4_trimSoftwareRecording">Video.Mp4.trimSoftwareRecording</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareVideoRateControl">Mp4.SoftwareVideoRateControl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures adaptive H.264 quantization against a target video bitrate.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_VideoPacketRange">Mp4.VideoPacketRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Selects a half-open range of video packets in decode order.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_VideoTimeRange">Mp4.VideoTimeRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Selects a half-open interval on the video track's decode-time clock.</p>
@@ -662,6 +675,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Writer">Video.Writer</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Encodes frames into a video stream without holding the stream in memory.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_Y4m_EncodeOptions">Y4m.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the planar chroma layout written by the Y4M encoder.</p>
+</td></tr>
 </tbody>
 </table>
 <h3 id="summary-enumerations">Enumerations</h3>
@@ -669,6 +684,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Video_Subtitle_Format">Subtitle.Format</a></td><td><p>Text subtitle syntax decoded into timed cues.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Y4m_EncodeChromaMode">Y4m.EncodeChromaMode</a></td><td><p>Chroma sampling used for YUV4MPEG2 output.</p>
 </td></tr>
 </tbody>
 </table>
@@ -998,7 +1015,11 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoFrameCount">SoftwareRecording.videoFrameCount</a></td><td><p>Returns the number of accepted video frames, including caller-supplied repeats.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoPacketByteCount">SoftwareRecording.videoPacketByteCount</a></td><td><p>Returns the total accepted H.264 access-unit bytes, excluding MP4 and audio overhead.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoPrerollTicks">SoftwareRecording.videoPrerollTicks</a></td><td><p>Returns the AAC priming offset in video ticks, or zero for video-only recording.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoQuantizationQp">SoftwareRecording.videoQuantizationQp</a></td><td><p>Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_writtenByteCount">SoftwareRecording.writtenByteCount</a></td><td><p>Returns bytes written through completed MP4 fragments and the initialization movie.</p>
 </td></tr>
@@ -1108,6 +1129,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <tr><td class="code-type"><a href="#namespace_Video_H264">Video.H264</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Video_Mp4">Video.Mp4</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Video_Subtitle">Video.Subtitle</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Video_Y4m">Video.Y4m</a></td></tr>
 </tbody>
 </table>
 <h3 id="namespace_Video_types">Types</h3>
@@ -1236,6 +1258,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareTrimResult">Mp4.SoftwareTrimResult</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Reports work performed by <a href="#Video_Mp4_trimSoftwareRecording">Video.Mp4.trimSoftwareRecording</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareVideoRateControl">Mp4.SoftwareVideoRateControl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures adaptive H.264 quantization against a target video bitrate.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_VideoPacketRange">Mp4.VideoPacketRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Selects a half-open range of video packets in decode order.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_VideoTimeRange">Mp4.VideoTimeRange</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Selects a half-open interval on the video track's decode-time clock.</p>
@@ -1281,6 +1305,26 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Video_Subtitle_Format">Subtitle.Format</a></td><td><p>Text subtitle syntax decoded into timed cues.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Video_Y4m" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Video.Y4m</span> <a class="api-item-permalink" href="#namespace_Video_Y4m" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Video.Y4m</span>.</p>
+<h3 id="namespace_Video_Y4m_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Y4m_EncodeOptions">Y4m.EncodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the planar chroma layout written by the Y4M encoder.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Video_Y4m_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_Y4m_EncodeChromaMode">Y4m.EncodeChromaMode</a></td><td><p>Chroma sampling used for YUV4MPEG2 output.</p>
 </td></tr>
 </tbody>
 </table>
@@ -1391,6 +1435,10 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td id="Video_Mp4_EncodeOptions_pixelAspectHeight" class="code-type">pixelAspectHeight</td><td class="code-type">u32</td><td><p>Optional pixel aspect ratio denominator; this is not the displayed frame width.</p>
+</td></tr>
+<tr><td id="Video_Mp4_EncodeOptions_pixelAspectWidth" class="code-type">pixelAspectWidth</td><td class="code-type">u32</td><td><p>Optional pixel aspect ratio numerator. Zero and <span class="code-inline">pixelAspectHeight</span> zero omit the <span class="code-inline">pasp</span> box.</p>
+</td></tr>
 <tr><td id="Video_Mp4_EncodeOptions_quality" class="code-type">quality</td><td class="code-type">u8</td><td><p>Quality of every frame, in <span class="code-inline">[1, 100]</span>; higher values preserve more detail and produce larger files.</p>
 </td></tr>
 </tbody>
@@ -1739,9 +1787,9 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">SoftwareFrameRenderer</span> = <span class="SKwd">func</span>||(frameIndex: <span class="STpe">u64</span>, image: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareRecording" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareRecording</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L43">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareRecording" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareRecording</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L57">src</a></div>
 <p>Records RGB pictures and PCM16 sound as a fragmented MP4 without codec libraries.</p>
-<p>The caller assigns video slots with <a href="#Video_FramePacer">Video.FramePacer</a>. Every slot, including a repeated picture for a missed capture, must be submitted in order. Sound may arrive in arbitrary complete-frame chunks. With audio, the first video packet begins one AAC priming packet after sound. The live prefix lets <a href="#Video_Reader">Video.Reader</a> derive the 1024-sample encoder delay; <span class="code-inline">end</span> publishes standard edit lists that align both tracks at zero and omit final AAC padding. It drains audio before finalizing the file. Internal picture, PCM and packet storage stays bounded as the recording grows. Up to four independent sound tracks share one sample rate; a capture source can be kept on each track for later mixing. A video-only recording starts at video time zero and needs no audio device. Video quantization parameter 0 preserves exact samples. Values 1 through 51 may quantize textured IDR and P pictures; this fixed setting does not target a bitrate. Each picture may use one through eight H.264 slices, up to its macroblock-row count. One video producer and one producer per audio track may encode concurrently. Container writes are serialized after encoding. Create and finish the recording with all producers stopped; query each encoder's counters only from its producer or after joining it.</p>
+<p>The caller assigns video slots with <a href="#Video_FramePacer">Video.FramePacer</a>. Every slot, including a repeated picture for a missed capture, must be submitted in order. Sound may arrive in arbitrary complete-frame chunks. With audio, the first video packet begins one AAC priming packet after sound. The live prefix lets <a href="#Video_Reader">Video.Reader</a> derive the 1024-sample encoder delay; <span class="code-inline">end</span> publishes standard edit lists that align both tracks at zero and omit final AAC padding. It drains audio before finalizing the file. Internal picture, PCM and packet storage stays bounded as the recording grows. Up to four independent sound tracks share one sample rate; a capture source can be kept on each track for later mixing. A video-only recording starts at video time zero and needs no audio device. Video quantization parameter 0 preserves exact samples. Values 1 through 51 may quantize textured IDR and P pictures; this fixed setting does not target a bitrate. An optional <a href="#Video_Mp4_SoftwareVideoRateControl">Video.Mp4.SoftwareVideoRateControl</a> adapts the per-picture QP against a target video rate; fixed <span class="code-inline">quantizationQp</span> must remain zero when it is supplied. Each picture may use one through eight H.264 slices, up to its macroblock-row count. One video producer and one producer per audio track may encode concurrently. Container writes are serialized after encoding. Create and finish the recording with all producers stopped; query each encoder's counters only from its producer or after joining it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
 <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
 <span class="SKwd">struct</span> <span class="SCst">SoftwareRecording</span></span></div>
@@ -1780,7 +1828,11 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoFrameCount">videoFrameCount</a></td><td><p>Returns the number of accepted video frames, including caller-supplied repeats.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoPacketByteCount">videoPacketByteCount</a></td><td><p>Returns the total accepted H.264 access-unit bytes, excluding MP4 and audio overhead.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoPrerollTicks">videoPrerollTicks</a></td><td><p>Returns the AAC priming offset in video ticks, or zero for video-only recording.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_videoQuantizationQp">videoQuantizationQp</a></td><td><p>Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_SoftwareRecording_writtenByteCount">writtenByteCount</a></td><td><p>Returns bytes written through completed MP4 fragments and the initialization movie.</p>
 </td></tr>
@@ -1831,6 +1883,26 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <tr><td id="Video_Mp4_SoftwareTrimResult_copiedVideoFrames" class="code-type">copiedVideoFrames</td><td class="code-type">u64</td><td><p>Retained original H.264 access units.</p>
 </td></tr>
 <tr><td id="Video_Mp4_SoftwareTrimResult_encodedVideoFrames" class="code-type">encodedVideoFrames</td><td class="code-type">u64</td><td><p>Pictures encoded for the first GOP, pixel edits and dependent tails.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareVideoRateControl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareVideoRateControl</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareVideoRateControl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L22">src</a></div>
+<p>Configures adaptive H.264 quantization against a target video bitrate.</p>
+<p>The controller adjusts the base QP from completed packet sizes and durations; it smooths average rate but cannot guarantee a bitrate or file size for individual pictures.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SoftwareVideoRateControl</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Video_Mp4_SoftwareVideoRateControl_maxQp" class="code-type">maxQp</td><td class="code-type">u32</td><td><p>Highest base QP; must be at most 51 and no lower than minQp.</p>
+</td></tr>
+<tr><td id="Video_Mp4_SoftwareVideoRateControl_minQp" class="code-type">minQp</td><td class="code-type">u32</td><td><p>Lowest base QP; rate-controlled encoding requires 1 through 51.</p>
+</td></tr>
+<tr><td id="Video_Mp4_SoftwareVideoRateControl_reservoirBits" class="code-type">reservoirBits</td><td class="code-type">u64</td><td><p>Virtual-buffer capacity used to smooth picture-size changes.</p>
+</td></tr>
+<tr><td id="Video_Mp4_SoftwareVideoRateControl_targetBitsPerSecond" class="code-type">targetBitsPerSecond</td><td class="code-type">u64</td><td><p>Average compressed video rate in bits per second.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2244,7 +2316,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_Nv12Frame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Nv12Frame</span> <a class="api-item-permalink" href="#Video_Nv12Frame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L101">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_Nv12Frame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Nv12Frame</span> <a class="api-item-permalink" href="#Video_Nv12Frame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L122">src</a></div>
 <p>Owns one tightly packed NV12 picture for a video encoder.</p>
 <p>The first <span class="code-inline">width * height</span> bytes are top-down luma. The remainder is top-down interleaved Cb/Cr, with one pair for each two-by-two block. Rows use <span class="code-inline">width</span> bytes without padding. <a href="#Video_Nv12Frame_convertFrom">Video.Nv12Frame.convertFrom</a> applies the BT.709 matrix and studio range (Y 16–235, chroma 16–240). Storage is reused when consecutive pictures have the same dimensions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Nv12Frame</span></span></div>
@@ -2477,7 +2549,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-member-details">
 <section class="api-member-detail"><h4 id="Video_StreamInfo_displayWidth"><span class="api-member-name">displayWidth</span><a class="api-member-permalink" href="#Video_StreamInfo_displayWidth" aria-label="Permalink">#</a></h4>
 <p>Size the frame is meant to be shown at, in pixels, when that is not its stored size.</p>
-<p>A picture with non-square samples, common in television standards and disc sources, can store a different width than its displayed width. Zero means the stored and displayed sizes match, as they do for modern encodes.</p>
+<p>A picture with non-square samples, common in television standards and disc sources, can store a different width than its displayed width. H.264 and H.265 VUI, ISO-BMFF <span class="code-inline">pasp</span>, and Matroska display geometry can state this ratio. Zero means the stored and displayed sizes match.</p>
 </section>
 <section class="api-member-detail"><h4 id="Video_StreamInfo_frameCount"><span class="api-member-name">frameCount</span><a class="api-member-permalink" href="#Video_StreamInfo_frameCount" aria-label="Permalink">#</a></h4>
 <p>Number of frames in the stream, or zero when the format cannot report it without decoding the whole stream.</p>
@@ -2538,6 +2610,19 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Video_Y4m_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Y4m.EncodeOptions</span> <a class="api-item-permalink" href="#Video_Y4m_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/y4m/options.swg#L19">src</a></div>
+<p>Configures the planar chroma layout written by the Y4M encoder.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Video_Y4m_EncodeOptions_chroma" class="code-type">chroma</td><td class="code-type"><a href="#Video_Y4m_EncodeChromaMode">Video.Y4m.EncodeChromaMode</a></td><td><p>Output chroma sampling; 4:4:4 preserves one value per pixel.</p>
+</td></tr>
+</tbody>
+</table>
 <h3 id="enumerations">Enumerations</h3>
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Video_Subtitle_Format" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Subtitle.Format</span> <a class="api-item-permalink" href="#Video_Subtitle_Format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L7">src</a></div>
@@ -2559,6 +2644,25 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <tr><td id="Video_Subtitle_Format_SubStationAlpha" class="code-type">SubStationAlpha</td><td><p>SubStation Alpha <span class="code-inline">.ssa</span> and Advanced SubStation Alpha <span class="code-inline">.ass</span> events.</p>
 </td></tr>
 <tr><td id="Video_Subtitle_Format_WebVtt" class="code-type">WebVtt</td><td><p>WebVTT <span class="code-inline">.vtt</span> cues and inline markup.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Video_Y4m_EncodeChromaMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Y4m.EncodeChromaMode</span> <a class="api-item-permalink" href="#Video_Y4m_EncodeChromaMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/y4m/options.swg#L10">src</a></div>
+<p>Chroma sampling used for YUV4MPEG2 output.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">EncodeChromaMode</span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Video_Y4m_EncodeChromaMode_Yuv411" class="code-type">Yuv411</td><td><p>Average each horizontal group of four for each chroma plane.</p>
+</td></tr>
+<tr><td id="Video_Y4m_EncodeChromaMode_Yuv420" class="code-type">Yuv420</td><td><p>Average each aligned 2x2 group for each chroma plane.</p>
+</td></tr>
+<tr><td id="Video_Y4m_EncodeChromaMode_Yuv422" class="code-type">Yuv422</td><td><p>Average each aligned horizontal pair for each chroma plane.</p>
+</td></tr>
+<tr><td id="Video_Y4m_EncodeChromaMode_Yuv444" class="code-type">Yuv444</td><td><p>Preserve one chroma sample per pixel; this is the default.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2660,7 +2764,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_H264_Encoder_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.create</span> <a class="api-item-permalink" href="#Video_H264_Encoder_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L113">src</a></div>
 <p>Creates an encoder for even NV12 dimensions and an IDR interval in frames.</p>
-<p>The image may be cropped within its final macroblock. Dimensions are limited to 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size. The interval is 1 to 255 pictures. A new encoder starts with an IDR picture. <span class="code-inline">quantizationQp</span> is 0 for exact samples or 1 through 51 for quantized intra and inter residuals. This fixed QP is not a target-bitrate controller. <span class="code-inline">sliceCount</span> divides each picture into 1 to 8 complete macroblock-row bands. The default single slice preserves the original bitstream.</p>
+<p>The image may be cropped within its final macroblock. Dimensions are limited to 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size. The interval is 1 to 255 pictures. A new encoder starts with an IDR picture. <span class="code-inline">quantizationQp</span> is 0 for exact samples or 1 through 51 for quantized intra and inter residuals. <span class="code-inline">sliceCount</span> divides each picture into 1 to 8 complete macroblock-row bands. The default single slice preserves the original bitstream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_H264_Encoder">Encoder</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -2669,13 +2773,13 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decoderConfig</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L160">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L163">src</a></div>
 <p>Encodes one picture and returns its MP4-ready access unit.</p>
 <p>The input must have the dimensions supplied to create and exactly one tightly packed NV12 picture. Decode times may have gaps but cannot overlap; durations are positive. The packet payload is borrowed until the next encode call. Validation failure leaves the previously encoded picture and packet intact.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">encode</span>(frame: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Nv12Frame">Nv12Frame</a></span>, decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_repeatPrevious" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.repeatPrevious</span> <a class="api-item-permalink" href="#Video_H264_Encoder_repeatPrevious" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L234">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_repeatPrevious" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.repeatPrevious</span> <a class="api-item-permalink" href="#Video_H264_Encoder_repeatPrevious" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L257">src</a></div>
 <p>Holds the last encoded picture for another video slot without analyzing its pixels.</p>
 <p>The first picture must already have been encoded. At an IDR boundary the stored input picture is encoded normally, preserving the configured clean-point interval. The packet borrows its bytes until the next encode or repeat call.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">repeatPrevious</span>(decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
@@ -3145,12 +3249,12 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trimSoftwareRecording</span>(sourceFileName, targetFileName: <span class="STpe">string</span>, firstFrame, afterLastFrame: <span class="STpe">u64</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {<span class="SNum">60</span>, <span class="SNum">4</span> * <span class="SNum">1024</span> * <span class="SNum">1024</span>, <span class="SNum">100</span>, <span class="SKwd">true</span>}, edits: <span class="SCst"><a href="#Video_Mp4_SoftwareTrimEdits">SoftwareTrimEdits</a></span> = {})-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareTrimResult">SoftwareTrimResult</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_chroma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.chroma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_chroma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L125">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_chroma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.chroma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_chroma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L146">src</a></div>
 <p>Borrows the interleaved Cb/Cr plane until the next conversion or frame mutation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chroma</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_convertFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.convertFrom</span> <a class="api-item-permalink" href="#Video_Nv12Frame_convertFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L132">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_convertFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.convertFrom</span> <a class="api-item-permalink" href="#Video_Nv12Frame_convertFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L153">src</a></div>
 <p>Converts a bottom-up packed image into top-down NV12 using the BT.709 studio range.</p>
 <p>Accepts RGB8, BGR8, RGBA8, and BGRA8; alpha is ignored. Width and height must be positive and even. Invalid inputs leave the previous picture intact. Conversion keeps and reuses the owned byte capacity when dimensions stay the same.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">convertFrom</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
@@ -3159,7 +3263,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">convertFrom</span>(frame: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_luma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.luma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_luma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L122">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_luma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.luma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_luma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L143">src</a></div>
 <p>Borrows the full-resolution luma plane until the next conversion or frame mutation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">luma</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
@@ -3379,94 +3483,105 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">width</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_addAudioFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.addAudioFrames</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_addAudioFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L234">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_addAudioFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.addAudioFrames</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_addAudioFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L327">src</a></div>
 <p>Encodes any number of complete interleaved PCM16 source frames into AAC packets.</p>
 <p>Input is consumed synchronously; the writer copies completed AAC packets before this method returns. An invalid channel layout leaves the audio encoder unchanged.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addAudioFrames</span>(samples: <span class="SKwd">const</span> [..] <span class="STpe">s16</span>, trackIndex: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_addFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.addFrame</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_addFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L190">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_addFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.addFrame</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_addFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L237">src</a></div>
 <p>Converts and appends one video picture at the next exact frame slot.</p>
 <p><span class="code-inline">slot</span> must start at index and decode time zero and then continue without gaps. Submit the previous picture again for a dropped capture slot. Invalid slots and pictures leave the video sequence count unchanged. Audio may be appended before or after a video call.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addFrame</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, slot: <span class="SCst"><a href="#Video_FrameSlot">FrameSlot</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioInputFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioInputFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioInputFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L154">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioInputFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioInputFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioInputFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L201">src</a></div>
 <p>Returns source PCM16 frames consumed by the first track, or zero without audio.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioInputFrameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioInputFrameCountOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioInputFrameCountOf</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioInputFrameCountOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioInputFrameCountOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioInputFrameCountOf</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioInputFrameCountOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L209">src</a></div>
 <p>Returns source PCM16 frames consumed by the selected sound track.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioInputFrameCountOf</span>(trackIndex: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioPacketCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioPacketCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioPacketCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioPacketCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioPacketCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioPacketCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L205">src</a></div>
 <p>Returns AAC-LC packets on the first track, or zero without audio.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioPacketCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioPacketCountOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioPacketCountOf</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioPacketCountOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L170">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioPacketCountOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioPacketCountOf</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioPacketCountOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L217">src</a></div>
 <p>Returns AAC-LC packets submitted on the selected track, including its drain packet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioPacketCountOf</span>(trackIndex: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioTrackCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_audioTrackCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.audioTrackCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_audioTrackCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L198">src</a></div>
 <p>Returns the number of independent AAC-LC sound tracks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">audioTrackCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.create</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.create</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L99">src</a></div>
 <p>Creates a software audiovisual recorder and writes the MP4 initialization movie.</p>
-<p>Video dimensions must be positive and even. The video timescale must express each intended frame duration and distinguish AAC's 1024-frame priming boundary. AAC accepts mono/stereo 44.1 or 48 kHz PCM16. The writer owns the output path; completed fragments stay playable after an interrupted process. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, audioRate: <span class="STpe">u32</span>, audioChannels: <span class="STpe">u16</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, bandwidth: <span class="SCst"><a href="std.audio.html#namespace_Audio_Aac">Aac</a></span>.<span class="SCst"><a href="std.audio.html#Audio_Aac_Bandwidth">Bandwidth</a></span> = .<span class="SCst">Full</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
+<p>Video dimensions must be positive and even. The video timescale must express each intended frame duration and distinguish AAC's 1024-frame priming boundary. AAC accepts mono/stereo 44.1 or 48 kHz PCM16. The writer owns the output path; completed fragments stay playable after an interrupted process. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands. A rate controller can replace fixed QP selection.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, audioRate: <span class="STpe">u32</span>, audioChannels: <span class="STpe">u16</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, bandwidth: <span class="SCst"><a href="std.audio.html#namespace_Audio_Aac">Aac</a></span>.<span class="SCst"><a href="std.audio.html#Audio_Aac_Bandwidth">Bandwidth</a></span> = .<span class="SCst">Full</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>, rateControl: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Mp4_SoftwareVideoRateControl">SoftwareVideoRateControl</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_createVideoOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.createVideoOnly</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_createVideoOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L69">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_createVideoOnly" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.createVideoOnly</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_createVideoOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L87">src</a></div>
 <p>Creates a video-only recorder when no sound source is selected or available.</p>
-<p>Video dimensions must be positive and even, and the timescale must express each frame duration. The resulting MP4 has one video track and no empty sound track. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createVideoOnly</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
+<p>Video dimensions must be positive and even, and the timescale must express each frame duration. The resulting MP4 has one video track and no empty sound track. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands. A rate controller can replace fixed QP selection.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createVideoOnly</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>, rateControl: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Mp4_SoftwareVideoRateControl">SoftwareVideoRateControl</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_createWithAudioTracks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.createWithAudioTracks</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_createWithAudioTracks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L95">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_createWithAudioTracks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.createWithAudioTracks</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_createWithAudioTracks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L113">src</a></div>
 <p>Creates a recorder with zero through four separately encoded AAC-LC sound tracks.</p>
-<p>Every track must have the same 44.1 or 48 kHz sample rate so one video preroll aligns their AAC priming. Their channel counts and bandwidth profiles may differ. The writer copies decoder configurations and owns the output path. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWithAudioTracks</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, audioConfigs: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Video_Mp4_SoftwareAudioConfig">SoftwareAudioConfig</a></span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
+<p>Every track must have the same 44.1 or 48 kHz sample rate so one video preroll aligns their AAC priming. Their channel counts and bandwidth profiles may differ. The writer copies decoder configurations and owns the output path. <span class="code-inline">quantizationQp</span> defaults to exact mode at 0, accepts values through 51, and can make textured IDR and P pictures lossy. <span class="code-inline">sliceCount</span> defaults to one and accepts up to eight complete macroblock-row bands. A rate controller can replace fixed QP selection.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWithAudioTracks</span>(path: <span class="STpe">string</span>, width, height: <span class="STpe">s32</span>, videoTimescale: <span class="STpe">u32</span>, audioConfigs: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Video_Mp4_SoftwareAudioConfig">SoftwareAudioConfig</a></span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {}, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>, rateControl: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Mp4_SoftwareVideoRateControl">SoftwareVideoRateControl</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.end</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L275">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.end</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L368">src</a></div>
 <p>Drains audio and finalizes the MP4 recording; repeated calls are harmless.</p>
 <p>At least one video frame must have been submitted. A short last audio block is padded for AAC encoding; the final MP4 edit list omits that padding and encoder priming. FFmpeg versions that ignore edit lists in fragmented MP4 may still expose the padding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.flush</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L263">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.flush</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L356">src</a></div>
 <p>Flushes completed fragments so an interrupted process leaves a playable media prefix.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_repeatedFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.repeatedFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_repeatedFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L148">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_repeatedFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.repeatedFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_repeatedFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L187">src</a></div>
 <p>Returns the number of frame slots filled by repeating the previous picture.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">repeatedFrameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_repeatLastFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.repeatLastFrame</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_repeatLastFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_repeatLastFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.repeatLastFrame</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_repeatLastFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L282">src</a></div>
 <p>Fills one missed capture slot with the last converted picture without reading the screen.</p>
 <p>The slot must directly follow the last written video slot. A recorder can call this once for each gap reported by <a href="#Video_FramePacer">Video.FramePacer</a> while a screen source is unavailable.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">repeatLastFrame</span>(slot: <span class="SCst"><a href="#Video_FrameSlot">FrameSlot</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoFrameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoFrameCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoFrameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L184">src</a></div>
 <p>Returns the number of accepted video frames, including caller-supplied repeats.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">videoFrameCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoPrerollTicks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoPrerollTicks</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoPrerollTicks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoPacketByteCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoPacketByteCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoPacketByteCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L190">src</a></div>
+<p>Returns the total accepted H.264 access-unit bytes, excluding MP4 and audio overhead.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">videoPacketByteCount</span>()-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoPrerollTicks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoPrerollTicks</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoPrerollTicks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L181">src</a></div>
 <p>Returns the AAC priming offset in video ticks, or zero for video-only recording.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">videoPrerollTicks</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_writtenByteCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.writtenByteCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_writtenByteCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_videoQuantizationQp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.videoQuantizationQp</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_videoQuantizationQp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L195">src</a></div>
+<p>Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.</p>
+<p>Before the first slot, rate-controlled recordings return zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">videoQuantizationQp</span>()-&gt;<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_Mp4_SoftwareRecording_writtenByteCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoftwareRecording.writtenByteCount</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording_writtenByteCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L225">src</a></div>
 <p>Returns bytes written through completed MP4 fragments and the initialization movie.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writtenByteCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -4003,6 +4118,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "n|Video.H264|namespace_Video_H264|",
 "n|Video.Mp4|namespace_Video_Mp4|",
 "n|Video.Subtitle|namespace_Video_Subtitle|",
+"n|Video.Y4m|namespace_Video_Y4m|",
 "s|Video.Clip|Video_Clip|Owns a silent sequence of equal-sized image frames held in memory.",
 "s|Video.FramePacer|Video_FramePacer|Assigns captured pictures to an exact frame-rate timeline without cumulative rounding.",
 "s|Video.FrameRate|Video_FrameRate|Describes an exact number of video frames per second.",
@@ -4097,6 +4213,8 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "v|Video.Mp4.AudioPresentationRange.firstSample|Video_Mp4_AudioPresentationRange_firstSample|First decoded sample frame to present, on the track's media clock.",
 "v|Video.Mp4.AudioPresentationRange.sampleCount|Video_Mp4_AudioPresentationRange_sampleCount|Audible sample frames; zero requires an empty track.",
 "s|Video.Mp4.EncodeOptions|Video_Mp4_EncodeOptions|Configures the Motion JPEG samples of an encoded MP4 stream.",
+"v|Video.Mp4.EncodeOptions.pixelAspectHeight|Video_Mp4_EncodeOptions_pixelAspectHeight|Optional pixel aspect ratio denominator; this is not the displayed frame width.",
+"v|Video.Mp4.EncodeOptions.pixelAspectWidth|Video_Mp4_EncodeOptions_pixelAspectWidth|Optional pixel aspect ratio numerator. Zero and pixelAspectHeight zero omit the pasp box.",
 "v|Video.Mp4.EncodeOptions.quality|Video_Mp4_EncodeOptions_quality|Quality of every frame, in [1, 100]; higher values preserve more detail and produce larger files.",
 "s|Video.Mp4.FragmentedAudioConfig|Video_Mp4_FragmentedAudioConfig|Describes one AAC-LC sound track to add when the fragmented MP4 file is created.",
 "v|Video.Mp4.FragmentedAudioConfig.channelCount|Video_Mp4_FragmentedAudioConfig_channelCount|One or two channels.",
@@ -4123,12 +4241,19 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "v|Video.Mp4.SoftwareTrimResult.copiedAudioPackets|Video_Mp4_SoftwareTrimResult_copiedAudioPackets|Retained original AAC access units, including hidden decode preroll.",
 "v|Video.Mp4.SoftwareTrimResult.copiedVideoFrames|Video_Mp4_SoftwareTrimResult_copiedVideoFrames|Retained original H.264 access units.",
 "v|Video.Mp4.SoftwareTrimResult.encodedVideoFrames|Video_Mp4_SoftwareTrimResult_encodedVideoFrames|Pictures encoded for the first GOP, pixel edits and dependent tails.",
+"s|Video.Mp4.SoftwareVideoRateControl|Video_Mp4_SoftwareVideoRateControl|Configures adaptive H.264 quantization against a target video bitrate.",
+"v|Video.Mp4.SoftwareVideoRateControl.maxQp|Video_Mp4_SoftwareVideoRateControl_maxQp|Highest base QP; must be at most 51 and no lower than minQp.",
+"v|Video.Mp4.SoftwareVideoRateControl.minQp|Video_Mp4_SoftwareVideoRateControl_minQp|Lowest base QP; rate-controlled encoding requires 1 through 51.",
+"v|Video.Mp4.SoftwareVideoRateControl.reservoirBits|Video_Mp4_SoftwareVideoRateControl_reservoirBits|Virtual-buffer capacity used to smooth picture-size changes.",
+"v|Video.Mp4.SoftwareVideoRateControl.targetBitsPerSecond|Video_Mp4_SoftwareVideoRateControl_targetBitsPerSecond|Average compressed video rate in bits per second.",
 "s|Video.Mp4.VideoPacketRange|Video_Mp4_VideoPacketRange|Selects a half-open range of video packets in decode order.",
 "v|Video.Mp4.VideoPacketRange.afterLastPacket|Video_Mp4_VideoPacketRange_afterLastPacket|First packet to omit after this range.",
 "v|Video.Mp4.VideoPacketRange.firstPacket|Video_Mp4_VideoPacketRange_firstPacket|Zero-based first packet to keep.",
 "s|Video.Mp4.VideoTimeRange|Video_Mp4_VideoTimeRange|Selects a half-open interval on the video track's decode-time clock.",
 "v|Video.Mp4.VideoTimeRange.endDecodeTime|Video_Mp4_VideoTimeRange_endDecodeTime|Requested exclusive end time.",
 "v|Video.Mp4.VideoTimeRange.startDecodeTime|Video_Mp4_VideoTimeRange_startDecodeTime|Requested inclusive start time.",
+"s|Video.Y4m.EncodeOptions|Video_Y4m_EncodeOptions|Configures the planar chroma layout written by the Y4M encoder.",
+"v|Video.Y4m.EncodeOptions.chroma|Video_Y4m_EncodeOptions_chroma|Output chroma sampling; 4:4:4 preserves one value per pixel.",
 "s|Video.Subtitle.Cue|Video_Subtitle_Cue|One subtitle cue on the media timeline.",
 "v|Video.Subtitle.Cue.endSeconds|Video_Subtitle_Cue_endSeconds|Exclusive presentation time in seconds.",
 "v|Video.Subtitle.Cue.startSeconds|Video_Subtitle_Cue_startSeconds|Inclusive presentation time in seconds.",
@@ -4147,6 +4272,11 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "i|Video.ISubtitleDecoder|Video_ISubtitleDecoder|Optional decoder capability exposing timed text tracks carried by a video container.",
 "i|Video.ITimedDecoder|Video_ITimedDecoder|Optional decoder capability exposing exact presentation timestamps.",
 "i|Video.IEncoder|Video_IEncoder|Encodes one video format, one frame at a time, into a byte sink.",
+"e|Video.Y4m.EncodeChromaMode|Video_Y4m_EncodeChromaMode|Chroma sampling used for YUV4MPEG2 output.",
+"k|Video.Y4m.EncodeChromaMode.Yuv411|Video_Y4m_EncodeChromaMode_Yuv411|Average each horizontal group of four for each chroma plane.",
+"k|Video.Y4m.EncodeChromaMode.Yuv420|Video_Y4m_EncodeChromaMode_Yuv420|Average each aligned 2x2 group for each chroma plane.",
+"k|Video.Y4m.EncodeChromaMode.Yuv422|Video_Y4m_EncodeChromaMode_Yuv422|Average each aligned horizontal pair for each chroma plane.",
+"k|Video.Y4m.EncodeChromaMode.Yuv444|Video_Y4m_EncodeChromaMode_Yuv444|Preserve one chroma sample per pixel; this is the default.",
 "e|Video.Subtitle.Format|Video_Subtitle_Format|Text subtitle syntax decoded into timed cues.",
 "k|Video.Subtitle.Format.Lyric|Video_Subtitle_Format_Lyric|LRC timestamped lyric lines.",
 "k|Video.Subtitle.Format.MatroskaText|Video_Subtitle_Format_MatroskaText|Text carried by a Matroska subtitle track.",
@@ -4323,7 +4453,9 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "f|Video.Mp4.SoftwareRecording.repeatedFrameCount|Video_Mp4_SoftwareRecording_repeatedFrameCount|Returns the number of frame slots filled by repeating the previous picture.",
 "f|Video.Mp4.SoftwareRecording.repeatLastFrame|Video_Mp4_SoftwareRecording_repeatLastFrame|Fills one missed capture slot with the last converted picture without reading the screen.",
 "f|Video.Mp4.SoftwareRecording.videoFrameCount|Video_Mp4_SoftwareRecording_videoFrameCount|Returns the number of accepted video frames, including caller-supplied repeats.",
+"f|Video.Mp4.SoftwareRecording.videoPacketByteCount|Video_Mp4_SoftwareRecording_videoPacketByteCount|Returns the total accepted H.264 access-unit bytes, excluding MP4 and audio overhead.",
 "f|Video.Mp4.SoftwareRecording.videoPrerollTicks|Video_Mp4_SoftwareRecording_videoPrerollTicks|Returns the AAC priming offset in video ticks, or zero for video-only recording.",
+"f|Video.Mp4.SoftwareRecording.videoQuantizationQp|Video_Mp4_SoftwareRecording_videoQuantizationQp|Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.",
 "f|Video.Mp4.SoftwareRecording.writtenByteCount|Video_Mp4_SoftwareRecording_writtenByteCount|Returns bytes written through completed MP4 fragments and the initialization movie.",
 "f|Video.Mp4.trimSoftwareRecording|Video_Mp4_trimSoftwareRecording|Trims a software H.264 recording precisely, copying its unchanged compressed interior.",
 "f|Video.Subtitle.Cue.endTime|Video_Subtitle_Cue_endTime|Returns the exclusive cue end.",

@@ -33,9 +33,12 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.003 — Video cannot mark or loop an A/B range
 
-- Evidence: the host's shared playback mode can loop the whole file, but the timeline carries only a
-  playhead. There is no set A/B, range selection, range loop, play-once selection, or duration
-  readout for a scene under inspection.
+- Evidence: the host's shared playback mode can loop the whole file. `[` and `]`, or the lens, mark
+  where a looped passage starts and ends at the playback position (an end alone loops from the
+  beginning); past its end, playback seeks back to its start through the ordinary seek pipeline,
+  not as a jump to undo, and the timeline shows the passage as a band and the footer names it.
+  The points cannot be set by pointer or timecode, the footer writes them in whole seconds, and
+  there is no play-once selection or duration readout.
 - Next: reuse the source-time range contract from app.scope.audio.002 on the video clock and seek pipeline.
 - Done when: A/B can be set by pointer, timecode, or current frame; looping accounts for decode
   preroll without showing earlier pictures; subtitles/audio repeat in sync; and clearing the range

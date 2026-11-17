@@ -36,13 +36,15 @@ struct VideoTimeline
     sigStartChange: SigArray'func||(*VideoTimeline)     // Emitted when a press starts moving the knob.
     sigEndChange:   SigArray'func||(*VideoTimeline)     // Emitted when the knob is let go, or set by a call.
 
-    minimum:  f32
-    maximum:  f32 = 1
-    current:  f32
-    buffered: f32 = -1      // Position read so far, or a negative value when unknown.
-    chapters: Array'f32     // Start of each chapter.
-    pointerX: f32 = -1      // Where the pointer stands over the timeline, or a negative value.
-    dragging: bool
+    minimum:   f32
+    maximum:   f32 = 1
+    current:   f32
+    buffered:  f32 = -1      // Position read so far, or a negative value when unknown.
+    chapters:  Array'f32     // Start of each chapter.
+    loopStart: f32 = -1      // Where a looped passage starts, or a negative value without one.
+    loopEnd:   f32 = -1      // Where it ends, or a negative value while only its start is set.
+    pointerX:  f32 = -1      // Where the pointer stands over the timeline, or a negative value.
+    dragging:  bool
 }
 
 impl VideoTimeline
@@ -129,6 +131,18 @@ impl IWnd for VideoTimeline
 
         let knobX = .positionOf(.current)
         painter.fillRoundRect(Math.Rectangle{track.x, track.y, knobX - track.x, TrackSize}, TrackSize * 0.5, TrackSize * 0.5, .themeColors().arc)
+
+        // A looped passage stands as a faint band across the rail, its start alone as a tick.
+        if .loopStart >= .minimum
+        {
+            var band = .themeColors().arc
+            band.a = 64
+            let left = .positionOf(.loopStart)
+            if .loopEnd > .loopStart do
+                painter.fillRect(Math.Rectangle{left, centerY - TickHeight * 0.5, .positionOf(.loopEnd) - left, TickHeight}, band)
+            else do
+                painter.fillRect(Math.Rectangle{Math.round(left), centerY - TickHeight * 0.5, 1, TickHeight}, .themeColors().arc)
+        }
 
         for chapter in .chapters
         {

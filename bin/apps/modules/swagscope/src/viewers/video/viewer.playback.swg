@@ -495,6 +495,8 @@ impl Panel
         }
 
         .followAudioClock()
+        if .followLoop() do
+            return
         if .audioRangePending and .audio and soundCovers(.audio, .currentSeconds()) do
             .resumeAudio()
 

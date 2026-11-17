@@ -23,7 +23,11 @@ struct Texts
     cmd_LoadSubtitles:         string = "Load Subtitles…"
     cmd_GoToTime:              string = "Go to Time…"
     ui_TipTime:                string = "Go to Time… (Ctrl G)"
-    cmd_CopyFrame:             string = "Copy Frame"     // Lens command putting the picture on screen on the clipboard.
+    cmd_CopyFrame:             string = "Copy Frame"          // Lens command putting the picture on screen on the clipboard.
+    cmd_LoopStart:             string = "Start Loop Here"     // Lens command marking where the looped passage starts.
+    cmd_LoopEnd:               string = "End Loop Here"       // Lens command marking where it ends, playback then repeating it.
+    cmd_LoopClear:             string = "Stop Looping"        // Lens command removing the looped passage.
+    ui_Loop:                   string = "loop %–%"            // Looped passage in the footer: its start and end times.
     cmd_UndoSeek:              string = "Return Before Last Jump"
     cmd_PlaybackHelp:          string = "Show Playback Shortcuts"
     ui_Go:                     string = "Go"

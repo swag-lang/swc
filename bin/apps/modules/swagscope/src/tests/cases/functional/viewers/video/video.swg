@@ -1498,3 +1498,49 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     let color = copied.pixelColor(32, 24)
     Swag.require(Math.abs(cast(s32, color.r) - 120) < 12 and Math.abs(cast(s32, color.b) - 130) < 12, Format.toString("% % %", color.r, color.g, color.b))
 }
+
+// Two points marked on a film loop the passage between them: past its end, playback goes back to
+// its start without a jump to undo, and the timeline and the footer show it.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), "loop-passage.y4m")
+    defer catch File.delete(path)
+    var clip = expect Clip.create(32, 24, expect FrameRate.create(24, 1))
+    for index in 48
+    {
+        var image = Image.create(32, 24, .RGB8)
+        image.fill(Color.fromRgb(cast(u8, index * 5), 80, 160))
+        expect clip.addFrame(image)
+    }
+
+    expect clip.save(path)
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+
+    // Paused, so that only the call below follows the loop; playing, the timer does it.
+    if view.playing do
+        view.togglePlayback()
+    view.seekFrame(12)
+    waitForVideoFrame(view)
+    view.setLoopStart()
+    view.seekFrame(36)
+    waitForVideoFrame(view)
+    view.setLoopEnd()
+    Swag.require(Math.abs(view.loopStart - 0.5) < 0.05 and Math.abs(view.loopEnd - 1.5) < 0.05, Format.toString("% %", view.loopStart, view.loopEnd))
+    Swag.require(view.timeline.loopEnd > view.timeline.loopStart and view.timeline.loopStart > 0)
+    Swag.require(Utf8.contains(window.instances[window.activeChoiceIndex].details.toString(), Format.toString(Film.texts().ui_Loop, "0:00", "0:01").toString()), window.instances[window.activeChoiceIndex].details)
+
+    view.seekFrame(40)
+    waitForVideoFrame(view)
+    view.previousSeek = -1
+    Swag.require(view.followLoop(), Format.toString("at % frame %", view.currentSeconds(), view.frameIndex))
+    waitForVideoFrame(view)
+    Swag.require(view.frameIndex == 12 and view.previousSeek < 0, Format.toString("frame %", view.frameIndex))
+
+    view.clearLoop()
+    Swag.require(view.timeline.loopStart < 0 and not view.followLoop())
+}

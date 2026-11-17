@@ -175,6 +175,8 @@ struct Panel
     subtitleDelay:       f64
     manualSubtitleIndex: u32 = Swag.U32.Max
     previousSeek:        f64 = -1
+    loopStart:           f64 = -1     // Second a looped passage starts at, negative without one.
+    loopEnd:             f64 = -1     // Second it ends at, negative while only its start is set.
     helpLine:            *HintLine?
 
     // The veils leave when the hand rests away from them, unless a timeline is being dragged or
@@ -577,6 +579,59 @@ impl Panel
         .seekSeconds(seconds)
     }
 
+    // Starts a looped passage where playback stands; an end before it no longer holds.
+    mtd setLoopStart()
+    {
+        if not .hasFrame do
+            return
+        .loopStart = .currentSeconds()
+        if .loopEnd <= .loopStart do
+            .loopEnd = -1
+        .refreshLoop()
+    }
+
+    // Ends the looped passage where playback stands, from its start, or from the beginning when
+    // none was set. A point at or before the start sets nothing.
+    mtd setLoopEnd()
+    {
+        if not .hasFrame do
+            return
+        let position = .currentSeconds()
+        let start    = .loopStart >= 0 ? .loopStart : 0
+        if position <= start do
+            return
+        .loopStart = start
+        .loopEnd   = position
+        .refreshLoop()
+    }
+
+    // Plays the film through again, without a looped passage.
+    mtd clearLoop()
+    {
+        .loopStart = -1
+        .loopEnd   = -1
+        .refreshLoop()
+    }
+
+    // Shows the looped passage on the timeline and in the summary.
+    mtd refreshLoop()
+    {
+        .timeline.loopStart = cast(f32, .loopStart)
+        .timeline.loopEnd   = cast(f32, .loopEnd)
+        .timeline.invalidate()
+        .refreshDetails()
+    }
+
+    // Plays a looped passage again from its start once playback has reached its end; reports
+    // whether it did. The return is not a jump the reader can undo.
+    mtd followLoop()->bool
+    {
+        if .loopStart < 0 or .loopEnd <= .loopStart or .currentSeconds() < .loopEnd do
+            return false
+        .seekSeconds(.loopStart)
+        return true
+    }
+
     mtd undoSeek()
     {
         if .previousSeek < 0 do
@@ -719,6 +774,8 @@ private impl IWnd for Panel
         switch evt.key
         {
         case .G where control:                    .promptGoToTime()
+        case .Oem4 where plain:                   .setLoopStart()
+        case .Oem6 where plain:                   .setLoopEnd()
         case .C where control:                    .copyFrame()
         case .Left, .Right where control:         discard .stepFrame(evt.key == .Right)
         case .Left, .Right where shift:           .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
@@ -834,8 +891,12 @@ private impl Panel
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
 
-        // Technical facts use the host footer; the title only identifies the file.
-        .services.showDetails(me, .facts())
+        // Technical facts use the host footer; the title only identifies the file. A looped
+        // passage is part of what the reader is watching, so the footer names it.
+        var facts = .facts()
+        if .loopStart >= 0 and .loopEnd > .loopStart do
+            facts = Format.toString("% · %", facts, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        .services.showDetails(me, facts)
     }
 
     // Returns the facts for the shared bottom reading line: the picture, its rate and its length.
@@ -1005,6 +1066,10 @@ private impl Panel
         entries.add(strings.cmd_LoadSubtitles, .OpenFile, func|view = me|() { view.promptSubtitle() }, disabled: not ready or .subtitleLoad.started)
         entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
         entries.add(strings.cmd_CopyFrame, .Copy, func|view = me|() { view.copyFrame() }, disabled: not .hasFrame or .frameCopying, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem4))
+        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem6))
+        if .loopStart >= 0 do
+            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() })
         entries.add(strings.cmd_UndoSeek, .ChevronLeft, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0)
         entries.add(strings.cmd_PlaybackHelp, .Information, func|view = me|() { view.showPlaybackHelp() })
         entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, disabled: not .audio or .video.audioTrackCount() < 2)

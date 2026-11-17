@@ -351,11 +351,7 @@ namespace
 
     void appendRegisterSets(ByteArray& out, const MicroBuilder& builder)
     {
-        std::vector<std::pair<uint32_t, uint32_t>> forbidden;
-        for (const auto& [reg, physical] : builder.virtualRegForbiddenPhysRegs())
-            for (const MicroReg value : physical)
-                forbidden.emplace_back(reg.packed, value.packed);
-        std::ranges::sort(forbidden);
+        const auto forbidden = builder.sortedVirtualRegForbiddenPhysRegPairs();
         out.appendLe32(static_cast<uint32_t>(forbidden.size()));
         for (const auto& [reg, value] : forbidden)
         {

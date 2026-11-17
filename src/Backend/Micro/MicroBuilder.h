@@ -1,4 +1,7 @@
 #pragma once
+#include <algorithm>
+#include <utility>
+#include <vector>
 #include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -90,6 +93,16 @@ public:
     // A nonempty table may contain unused labels; an empty table proves there are no label instructions.
     bool                                                       hasLabelReferences() const { return !labels_.empty(); }
     const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const;
+    SWC_FORCE_INLINE std::vector<std::pair<uint32_t, uint32_t>> sortedVirtualRegForbiddenPhysRegPairs() const
+    {
+        std::vector<std::pair<uint32_t, uint32_t>> result;
+        for (const auto& [virtualReg, physicalRegs] : virtualRegForbiddenPhysRegs())
+            for (const MicroReg physicalReg : physicalRegs)
+                result.emplace_back(virtualReg.packed, physicalReg.packed);
+
+        std::ranges::sort(result);
+        return result;
+    }
     const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const;
     void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
     void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);

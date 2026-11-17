@@ -329,6 +329,16 @@ impl Source
         return result
     }
 
+    // Resets cumulative acquisition and composition counters without reopening the source.
+    // The native capture handles, cached frame and last frame capture time are preserved.
+    mtd resetMetrics()
+    {
+        .composeMicroseconds = 0
+        .mirroredPixels = 0
+        for source in .sources do
+            source.metrics = SourceMetrics{}
+    }
+
     // Reopens a source after a display change or native access loss.
     mtd reopen() fail
     {

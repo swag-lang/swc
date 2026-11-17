@@ -94,6 +94,14 @@ using Core, Pixel
     Swag.require(firstMetrics.maxReadbackMicroseconds > 0 and
                  firstMetrics.maxReadbackMicroseconds <= firstMetrics.readbackMicroseconds and
                  firstMetrics.maxAcquireMicroseconds <= firstMetrics.acquireMicroseconds)
+    let firstCaptureTime = source.lastFrameCaptureMicroseconds()
+    source.resetMetrics()
+    let resetMetrics = source.metrics()
+    Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
+                 resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
+                 resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
+    Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     for 12
     {
         let fresh = expect source.grabInto(&image, copyUnchanged: false,

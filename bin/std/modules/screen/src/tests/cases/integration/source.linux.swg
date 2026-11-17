@@ -37,7 +37,7 @@ private func sharedSegmentCount()->u64 fail
     if not monitors.count do
         return
     let bounds = monitors[0].physicalBounds
-    var source = expect Source.openMonitor(0)
+    var source = expect Source.openMonitor(monitors[0])
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)

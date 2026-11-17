@@ -172,85 +172,6 @@ func releaseEngine()
     g_ViewerOwnsEngine = false
 }
 
-// Reads the PCM sample at `offset` as a level between -1 and 1, or 0 for an encoding that is not PCM.
-func sampleAt(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
-{
-    switch encoding
-    {
-    case .Pcm8:
-        return (cast(f32, bytes[offset]) - 128) / 128
-
-    case .Pcm16:
-        let raw = Math.make16(bytes[offset + 1], bytes[offset])
-        return cast(f32, cast #bit (s16, raw)) / 32768
-
-    case .Pcm24:
-        var raw = Math.make32(0, bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        if raw & 0x00800000 do
-            raw |= 0xFF000000
-        return cast(f32, cast #bit (s32, raw)) / 8388608
-
-    case .Pcm32:
-        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        return cast(f32, cast #bit (s32, raw)) / 2147483648
-
-    case .Float32:
-        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        return Math.clamp(cast #bit (f32, raw), -1, 1)
-    }
-
-    return 0
-}
-
-// Reduces an interleaved PCM payload to at most [[WaveformPointCount]] points, mixing its channels.
-func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
-{
-    var result: #returntype
-    if not bytes.count or not channels do
-        return result
-
-    var bytesPerSample = 4'u64
-    switch encoding
-    {
-    case .Pcm8:  bytesPerSample = 1
-    case .Pcm16: bytesPerSample = 2
-    case .Pcm24: bytesPerSample = 3
-    }
-
-    let bytesPerFrame = bytesPerSample * channels
-    let frameCount    = bytes.count / bytesPerFrame
-    let pointCount    = Math.min(frameCount, WaveformPointCount)
-    if not pointCount do
-        return result
-    result.resize(pointCount)
-
-    for point in pointCount
-    {
-        let first = point * frameCount / pointCount
-        let last  = Math.max((point + 1) * frameCount / pointCount, first + 1)
-        var peak  = 0'f32
-        var sum   = 0'f32
-        for frame in first until last
-        {
-            var mixed = 0'f32
-            for channel in channels
-            {
-                let offset = frame * bytesPerFrame + channel * bytesPerSample
-                mixed += sampleAt(bytes, offset, encoding)
-            }
-
-            mixed /= channels
-            let level = Math.abs(mixed)
-            peak = Math.max(peak, level)
-            sum  += level
-        }
-
-        result[point] = WaveformPoint{peak, sum / cast(f32, last - first)}
-    }
-
-    return result
-}
-
 // Formats the length of a sound for the host summary: milliseconds below one second, seconds with two decimals from there on.
 func durationText(seconds: f32)->String
 {
@@ -293,11 +214,11 @@ impl WaveformView
 // Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
 struct SoundLevels
 {
-    peak:      u32     // Largest sample magnitude, 32,768 at full scale.
-    squares:   f64     // Sum of the squared samples.
-    samples:   u64     // Samples measured, every channel counted.
-    fullScale: u64     // Samples at the top or bottom of the scale, where a louder signal clips.
-    ceiling:   s16     // Highest value the source can store, once widened to 16 bits.
+    peak:      u32             // Largest sample magnitude, 32,768 at full scale.
+    squares:   f64             // Sum of the squared samples.
+    samples:   u64             // Samples measured, every channel counted.
+    fullScale: u64             // Samples at the top or bottom of the scale, where a louder signal clips.
+    ceiling:   s16 = 32767     // Highest value the source can store, once widened to 16 bits.
 }
 
 impl SoundLevels

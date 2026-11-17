@@ -240,58 +240,50 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(Math.isEqualEpsilon(view.volumeSlider.value(), 0.4, 0.001))
 }
 
+// Reduces interleaved `samples` of `channels` channels to `pointCount` points in one chunk, the
+// way the viewer's worker reduces each chunk the decoder hands it.
+func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Array'Sound.WaveformPoint
+{
+    var result: Array'Sound.WaveformPoint
+    result.resize(pointCount)
+    var reducer = Sound.WaveformReducer{&result, samples.count / channels, pointCount, channels}
+    reducer.consume(samples)
+    reducer.finish()
+    Swag.require(reducer.readyCount == pointCount)
+    return result
+}
+
+// One point per frame reads the level of that frame, whatever its sign.
 #test
 {
+    var samples: Array's16
     let fixture = expect File.readAllText(waveformFixturePath())
-    Swag.require(Utf8.contains(fixture, "1.0") and Utf8.contains(fixture, "-1.0"))
-    let samples = Sound.buildWaveform([0'u8, 128'u8, 255'u8], .Pcm8, 1)
-    Swag.require(samples.count == 3)
-    Swag.require(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
-    Swag.require(samples[0].body == samples[0].peak)
-}
+    for line in Tokenize.split(fixture, '\n'u8)
+    {
+        let text = Latin1.trim(line)
+        if not text.count or text[0] == '#' do
+            continue
+        let value = expect StrConv.toF64(text)
+        samples.add(cast(s16, Math.clamp(Math.round(value * 32768), -32768, 32767)))
+    }
 
-#test
-{
-    let samples = Sound.buildWaveform([0'u8, 0x80'u8, 0'u8, 0'u8, 0xFF'u8, 0x7F'u8], .Pcm16, 1)
-    Swag.require(samples.count == 3)
-    Swag.require(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
-}
-
-// Packed samples retain their byte order and sign; floating samples are clamped after decoding.
-#test
-{
-    let pcm24: [7] u8 = [0xAA, 0x00, 0x00, 0x80, 0x00, 0x00, 0x40]
-    Swag.require(Sound.sampleAt(pcm24, 1, .Pcm24) == -1)
-    Swag.require(Sound.sampleAt(pcm24, 4, .Pcm24) == 0.5)
-
-    let pcm32: [9] u8 = [0xAA, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x40]
-    Swag.require(Sound.sampleAt(pcm32, 1, .Pcm32) == -1)
-    Swag.require(Sound.sampleAt(pcm32, 5, .Pcm32) == 0.5)
-
-    let floats: [12] u8 = [0x00, 0x00, 0x00, 0x3F,
-                           0x00, 0x00, 0x00, 0x40,
-                           0x00, 0x00, 0x00, 0xC0]
-    Swag.require(Sound.sampleAt(floats, 0, .Float32) == 0.5)
-    Swag.require(Sound.sampleAt(floats, 4, .Float32) == 1)
-    Swag.require(Sound.sampleAt(floats, 8, .Float32) == -1)
+    let points = reduceWaveform(samples.toSlice(), 1, samples.count)
+    Swag.require(points.count == 7)
+    Swag.require(points[0].peak == 0 and points[1].peak > 0.99 and points[4].peak == 1)
+    Swag.require(points[2].peak == 0.5 and points[3].peak == 0.5 and points[5].peak == 0.25)
+    Swag.require(points[1].body == points[1].peak)
 }
 
 // One slice covering several frames reports the loudest of them and the mean of them, and the two
-// are only equal when the slice is flat.
+// are only equal when the slice is flat. Channels are mixed before either is read.
 #test
 {
-    var payload: Array'u8
-    payload.resize(8)
-    for index in payload.count do
-        payload[index] = index == 0 ? 255'u8 : 128'u8
+    let mono = reduceWaveform([32767's16, 0, 0, 0], 1, 2)
+    Swag.require(mono[0].peak > 0.99 and mono[0].body > 0.49 and mono[0].body < 0.51)
+    Swag.require(mono[1].peak == 0 and mono[1].body == 0)
 
-    let samples = Sound.buildWaveform(payload.toSlice(), .Pcm8, 1)
-    Swag.require(samples.count == 8)
-    Swag.require(samples[0].peak > 0.99 and samples[0].body > 0.99)
-
-    let single = Sound.buildWaveform(payload.toSlice()[0 until 4], .Pcm8, 1)
-    Swag.require(single.count == 4)
-    Swag.require(single[0].peak > 0.99 and single[1].peak == 0)
+    let stereo = reduceWaveform([16384's16, 16384, -16384, 16384], 2, 2)
+    Swag.require(stereo[0].peak == 0.5 and stereo[1].peak == 0)
 }
 
 // Reads a recorded sound rather than a synthesized one. Its metadata and waveform must not depend
@@ -304,16 +296,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(sound.numChannels() == 1)
     Swag.require(sound.sampleStorageBits() == 8)
     Swag.require(sound.durationInSeconds() > 4.2 and sound.durationInSeconds() < 4.3)
-    let waveform = Sound.buildWaveform(sound.preloadedData(), sound.sampleEncoding(), sound.numChannels())
-    Swag.require(waveform.count == 4_096)
-    var visible: bool
-    for sample in waveform where sample.peak > 0.05 and sample.body > 0
-    {
-        visible = true
-        break
-    }
-
-    Swag.require(visible)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
@@ -329,6 +311,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(view.waveform.samples.count == 4_096)
     Swag.require(view.waveform.readyCount == view.waveform.samples.count)
     Swag.require(view.waveform.duration == view.duration)
+    var visible: bool
+    for sample in view.waveform.samples where sample.peak > 0.05 and sample.body > 0
+    {
+        visible = true
+        break
+    }
+
+    Swag.require(visible)
 }
 
 // Answers a sound that has been played through with the continuation stored on the view.

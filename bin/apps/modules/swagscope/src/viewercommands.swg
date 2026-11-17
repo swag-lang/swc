@@ -89,11 +89,11 @@ const LensFilesAlone  = 64'u64
 // The most lines of the open file the lens shows for a query, and the most of the file it reads
 // to find them.
 const LensLinesShown = 8'u64
+const LensFileLimit  = 8 * 1024 * 1024'u64
 
 // The viewers whose own lens source answers `:`, each with the positions it reads: rows, cells,
 // pages, instants, offsets or chapters. Text, code and Markdown are answered here, by their lines.
 const ViewersAnsweringPositions: [11] string = ["table", "xlsx", "ods", "pdf", "comic", "video", "sound", "hex", "binary", "epub", "subtitle"]
-const LensFileLimit = 8 * 1024 * 1024'u64
 
 impl ViewerWindow
 {
@@ -380,6 +380,7 @@ impl ViewerWindow
 
         let texts   = appStrings()
         let content = cast(string, bytes.toSlice())
+        let starts  = .lensLineStarts.toSlice()
 
         // A number after `:` is a line to go to, and a second one after another colon the column
         // there, counted in characters from 1.
@@ -397,17 +398,10 @@ impl ViewerWindow
         {
             let lineText = separator == Swag.U64.Max ? query : query[0 until separator]
             let wanted   = catch StrConv.toU64(lineText)
-            var line     = 1'u64
-            var start    = 0'u64
-            for at in content.count where line < wanted and content[at] == '\n'
-            {
-                line  += 1
-                start = at + 1
-            }
-
-            if not wanted or line != wanted do
+            if not wanted or wanted > starts.count do
                 return
 
+            let start   = starts[wanted - 1]
             let section = results.addSection(texts.lens_InFile)
             if separator == Swag.U64.Max
             {
@@ -444,40 +438,42 @@ impl ViewerWindow
             return
         }
 
-        // Every line holding the query, without regard to case; the first few stand as rows.
+        // Every line holding the query, without regard to case; the first few stand as rows. The
+        // whole file is searched at once and each hit named by the line it falls in, the search
+        // resuming at the next line, so a line counts once however often it holds the query.
         var section: *Lens.Section?
         var found = 0'u32
-        var line  = 1'u64
-        var start = 0'u64
-        for at in content.count + 1
+        var line  = 0'u64
+        var from  = 0'u64
+        while from < content.count
         {
-            if at < content.count and content[at] != '\n' do
-                continue
-            var end = at
+            let hit = Utf8.indexOf(content, query, from, .Latin1NoCase)
+            if hit == Swag.U64.Max do
+                break
+            while line + 1 < starts.count and starts[line + 1] <= hit do
+                line += 1
+
+            let start = starts[line]
+            var end   = line + 1 < starts.count ? starts[line + 1] - 1 : content.count
             if end > start and content[end - 1] == '\r' do
                 end -= 1
-            let text = content[start until end]
-            let hit  = Utf8.indexOf(text, query, comparisonType: .Latin1NoCase)
-            if hit != Swag.U64.Max
+            found += 1
+            if cast(u64, found) <= LensLinesShown
             {
-                found += 1
-                if cast(u64, found) <= LensLinesShown
+                if not section do
+                    section = results.addSection(texts.lens_InFile)
+                let length     = query.count
+                with let entry = section.addEntry(Latin1.trim(content[start until end]))
                 {
-                    if not section do
-                        section = results.addSection(texts.lens_InFile)
-                    let offset     = start + hit
-                    let length     = query.count
-                    with let entry = section.addEntry(Latin1.trim(text))
-                    {
-                        .lead      = Format.toString("%", line)
-                        .monoTitle = key == "code"
-                        .run       = func|window = me, offset, length|() { window.revealLensOffset(offset, length) }
-                    }
+                    .lead      = Format.toString("%", line + 1)
+                    .monoTitle = key == "code"
+                    .run       = func|window = me, hit, length|() { window.revealLensOffset(hit, length) }
                 }
             }
 
-            line  += 1
-            start = at + 1
+            if line + 1 >= starts.count do
+                break
+            from = starts[line + 1]
         }
 
         if section do
@@ -499,13 +495,14 @@ impl ViewerWindow
         discard instance.revealMatch(Viewer.SearchMatch{0, 0, offset, length}, text)
     }
 
-    // Returns the bytes of the open file the lens searches, read once per file and at most
-    // `LensFileLimit` of them.
+    // Returns the bytes of the open file the lens searches, read once per opening of the file and
+    // at most `LensFileLimit` of them, and notes where each of their lines starts, so that a line
+    // is reached by its number without counting the lines before it at every keystroke.
     mtd lensFileBytes()->const *Array'u8
     {
         if .lensBytesFile != .currentFile
         {
-            .lensBytes.clear()
+            .forgetLensFile()
             .lensBytesFile = .currentFile
             catch
             {
@@ -517,9 +514,27 @@ impl ViewerWindow
             {
                 .lensBytes.clear()
             }
+
+            // A line starts the file and each line feed starts another, even the last one.
+            .lensLineStarts.add(0)
+            var at = Utf8.indexOf(.lensBytes.toSlice(), '\n'rune)
+            while at != Swag.U64.Max
+            {
+                .lensLineStarts.add(at + 1)
+                at = Utf8.indexOf(.lensBytes.toSlice(), '\n'rune, at + 1)
+            }
         }
 
         return &.lensBytes
+    }
+
+    // Lets the lens read the open file again on its next question, as a file opened again or
+    // reloaded may have changed since.
+    mtd forgetLensFile()
+    {
+        .lensBytes.clear()
+        .lensLineStarts.clear()
+        .lensBytesFile.clear()
     }
 
     // Answers the lens with files to open: the recent ones, the ones beside the open file, and the

@@ -182,8 +182,9 @@ struct ViewerWindow
     // The viewer's commands float over the foot of the document while the pointer moves, and
     // leave once it rests; the search floats at the top while it is asked for.
     viewerBarShown:  bool
-    lensBytes:       Array'u8     // The open file as the lens searches it, read on its first question.
-    lensBytesFile:   String       // The file `lensBytes` holds.
+    lensBytes:       Array'u8      // The open file as the lens searches it, read on its first question.
+    lensBytesFile:   String        // The file `lensBytes` holds.
+    lensLineStarts:  Array'u64     // Offset in `lensBytes` of the start of each line.
     viewerBarTimer:  *Timer?
     pointerPosition: Math.Point
     searchShown:     bool

@@ -136,6 +136,61 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 }
 
+// The lens finds the lines of the open file as the file is now: each line holding the query once,
+// led by its number, and `:` with a number the start of that line. A reload reads the file again.
+#test
+{
+    func inFile(window: *ViewerWindow)->*Lens.Section?
+    {
+        for section in window.lens.results.sections where section!.label == appStrings().lens_InFile do
+            return section
+        return null
+    }
+
+    let fileName = Testing.tempFilePath("scope-lens-reload-", ".txt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "first ALPHA alpha\r\nsecond beta\r\nthird alpha\r\n")
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    window.lens.open("alpha")
+    host.finishAnimations()
+    let found = unwrap inFile(window)
+    Swag.require(found.count == 2 and found.entries.count == 2)
+    Swag.require(found.entries[0].lead == "1" and found.entries[0].title == "first ALPHA alpha")
+    Swag.require(found.entries[1].lead == "3" and found.entries[1].title == "third alpha")
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":4")
+    host.finishAnimations()
+    Swag.require((unwrap inFile(window)).entries[0].title == Format.toString(appStrings().lens_GoToLine, 4))
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":5")
+    host.finishAnimations()
+    Swag.require(inFile(window) == null)
+    window.lens.close()
+    host.finishAnimations()
+
+    discard expect File.writeAllText(fileName, "beta\nalpha first\nalpha\nmore\nlast\n")
+    window.reloadCurrentFile()
+    completeQueuedViewerFile(&host, window)
+    window.lens.open("alpha")
+    host.finishAnimations()
+    let reloaded = unwrap inFile(window)
+    Swag.require(reloaded.count == 2 and reloaded.entries[0].lead == "2" and reloaded.entries[1].lead == "3")
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":5")
+    host.finishAnimations()
+    Swag.require((unwrap inFile(window)).entries[0].title == Format.toString(appStrings().lens_GoToLine, 5))
+    window.lens.close()
+    host.finishAnimations()
+}
+
 // A search that found nothing in a document of pictures of pages says why: there are no words to
 // find, not none that match. A document with text keeps the plain answer.
 #test

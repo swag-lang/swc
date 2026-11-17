@@ -25,6 +25,92 @@ struct BorrowEscapePayload
     text: string = ""
 }
 
+interface BorrowEscapeInlineWriter
+{
+    mtd print(text: string)
+}
+
+struct BorrowEscapeInlineWriterImpl
+{
+    count: u32
+}
+
+impl BorrowEscapeInlineWriterImpl
+{
+    mtd write(text: string)
+    {
+        Swag.require(text == "short")
+        me.count += 1
+    }
+}
+
+impl BorrowEscapeInlineWriter for BorrowEscapeInlineWriterImpl
+{
+    mtd impl print(text: string)
+    {
+        me.write(text)
+    }
+}
+
+var borrowEscapeInlineStoredText: string?
+
+struct BorrowEscapeInlineStoringWriter {}
+
+impl BorrowEscapeInlineStoringWriter
+{
+    mtd store(text: string)
+    {
+        borrowEscapeInlineStoredText = text
+    }
+}
+
+impl BorrowEscapeInlineWriter for BorrowEscapeInlineStoringWriter
+{
+    mtd impl print(text: string)
+    {
+        me.store(text)
+    }
+}
+
+// A view into a local inline String stays valid through a non-retaining interface call.
+#test
+{
+    var writer: BorrowEscapeInlineWriterImpl
+    let callback: BorrowEscapeInlineWriter = writer
+    var owned: BorrowEscapeOwner
+    owned.buffer[0] = 's'u8
+    owned.buffer[1] = 'h'u8
+    owned.buffer[2] = 'o'u8
+    owned.buffer[3] = 'r'u8
+    owned.buffer[4] = 't'u8
+    owned.length    = 5
+    let rendered: string = owned
+
+    writer.write(rendered)
+    callback.print(rendered)
+    Swag.require(writer.count == 2)
+}
+
+// An interface that retains the view must still reject its local owner at the call site.
+func borrowEscapeInlineViewThroughInterface()
+{
+    var writer: BorrowEscapeInlineStoringWriter
+    let callback: BorrowEscapeInlineWriter = writer
+    var owned: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    owned.buffer[0] = 's'u8
+    owned.length    = 1
+    callback.print(owned)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeInlineViewThroughConcrete()
+{
+    var writer: BorrowEscapeInlineStoringWriter
+    var owned: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    owned.buffer[0] = 's'u8
+    owned.length    = 1
+    writer.store(owned)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
 func borrowEscapePayload()->BorrowEscapePayload
 {
     var owner: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}

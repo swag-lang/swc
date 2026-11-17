@@ -33,6 +33,8 @@ unavailable Erreur de lecture
 mono        mono
 stereo      stéréo
 channelCount % canaux
+oneSample   1 échantillon
+sampleCount % échantillons
 track       Piste %
 document    Document
 text        Texte
@@ -42,6 +44,10 @@ table       Tableau
 music       Musique
 binary      Binaire
 sampleSize  Taille d'échantillon
+levels      Niveaux
+samplePeak  Crête d'échantillon
+rmsLevel    Niveau RMS
+fullScale   Pleine échelle
 title       Titre
 author      Auteur
 bookmarks   Signets

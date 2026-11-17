@@ -280,7 +280,7 @@ impl Matrix4x4
 
     // Transforms a normal with the inverse transpose of this matrix's linear part.
     //
-    // This preserves perpendicularity under nonuniform scale; the matrix must be invertible.
+    // This preserves perpendicularity under nonuniform scale. The matrix must be affine and invertible.
     mtd const transformNormal(normal: Vector3)->Vector3
     {
         return .inverted().transposed().transformDirection(normal)

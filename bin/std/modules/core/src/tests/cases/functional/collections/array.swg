@@ -98,6 +98,15 @@ func assertConstArrayBorrows(values: const *Array's32)->s32
     return total
 }
 
+func(T) assertConstArrayEnds(values: const *Array'T)->T
+{
+    let front = values[].frontPtr()
+    let back  = values[].backPtr()
+    #assert(#typeof(front) == const *T)
+    #assert(#typeof(back) == const *T)
+    return front[] + back[]
+}
+
 #[Swag.Safety(.BoundCheck, true), Swag.Safety(.Overflow, false)]
 func callArrayPtr2(values: *Array's32, x, y, w: u64)
 {
@@ -556,6 +565,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     Swag.require(values.front() == 1)
     Swag.require(values.back() == 9)
+    Swag.require(assertConstArrayEnds(&values) == 10)
 
     values.reserve(0)
     Swag.require(values.isEmpty())

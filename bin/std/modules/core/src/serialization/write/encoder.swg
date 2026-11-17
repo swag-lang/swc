@@ -20,7 +20,9 @@ interface IEncoder
     // Starts writing the document to `result`.
     mtd start(result: *ConcatBuffer) fail
 
-    // Finishes writing the document.
+    // Finishes writing the document and reports errors detected during finalization.
+    //
+    // XML rejects unsupported value shapes and XML 1.0 forbidden characters here.
     mtd end() fail
 
     // Opens the field `val`.
@@ -125,18 +127,25 @@ impl Encoder
     // Starts serialization with a reflected root type.
     //
     // TagBin derives its document schema from [[Core.Serialization.Schema]] on `rootType`.
-    // Textual encoders ignore the additional type information.
+    // JSON ignores the type information; XML uses it to reject unsupported root shapes.
     mtd start(result: *ConcatBuffer, rootType: typeinfo) fail
     {
         #static if T == Write.TagBin do
             .serializer.setRootType(rootType)
+        #static if T == Write.Xml do
+            try .serializer.setRootType(rootType)
         try .start(result)
     }
 
-    // Finishes writing the document.
+    // Finishes writing the document and reports errors detected during finalization.
+    //
+    // XML rejects unsupported value shapes and XML 1.0 forbidden characters here.
     mtd end() fail
     {
-        .serializer.endRoot()
+        #static if T == Write.Xml do
+            try .serializer.endRoot()
+        else do
+            .serializer.endRoot()
     }
 
     // Writes the field or element `typeVal`, whose value is stored at `data`.
@@ -361,6 +370,11 @@ impl Encoder
     {
         Swag.assert(Reflection.isStruct(Swag.kindOf(value)))
         try .start(result, Swag.kindOf(value))
+        defer #fail
+        {
+            #static if T == Write.Xml do
+                .serializer.abortWrite()
+        }
         try .writeValue(value.buffer, Swag.kindOf(value))
         try .end()
     }
@@ -378,7 +392,10 @@ impl IEncoder for Encoder
 
     mtd impl end() fail
     {
-        .serializer.endRoot()
+        #static if T == Write.Xml do
+            try .serializer.endRoot()
+        else do
+            .serializer.endRoot()
     }
 
     mtd impl beginField(val: Swag.TypeValue) fail

@@ -289,6 +289,18 @@ func assertJsonPayload(value: JsonPayload)->bool
     catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, invalidEscape.toSlice()) as errInvalidEscapeOutcome
     let errInvalidEscape = errInvalidEscapeOutcome.value()
     Swag.require(errInvalidEscape != null)
+
+    const InvalidUnicodeEscapes = [
+        #raw """{"text":"\u12G4"}""",
+        #raw """{"text":"\uDC00"}""",
+        #raw """{"text":"\uD800"}""",
+        #raw """{"text":"\uD800\u0041"}"""]
+    for input in InvalidUnicodeEscapes
+    {
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.SyntaxError)
+    }
 }
 
 #test
@@ -300,7 +312,15 @@ func assertJsonPayload(value: JsonPayload)->bool
         "{\"id\":1} trailing",
         "{\"counts\":[1 2]}",
         "{\"counts\":[1,]}",
-        "{\"active\":truth}"]
+        "{\"active\":truth}",
+        "{\"unknown\":01}",
+        "{\"unknown\":-}",
+        "{\"unknown\":.5}",
+        "{\"unknown\":1.}",
+        "{\"unknown\":1e+}",
+        "{\"unknown\":truex}",
+        "{\"unknown\" 1,\"id\":2}",
+        "{\"unknown\":1\f,\"id\":2}"]
 
     for input in InvalidJson
     {

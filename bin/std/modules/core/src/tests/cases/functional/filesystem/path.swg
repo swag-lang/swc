@@ -3,6 +3,19 @@
 
 using Swag
 
+// Null path inputs retain their documented empty-result behavior.
+#test
+{
+    Swag.require(Path.rootName(null) == null)
+    Swag.require(Path.directoryName(null) == null)
+    Swag.require(Path.fileName(null) == null)
+    Swag.require(Path.fileNameWithoutExtension(null) == null)
+    Swag.require(Path.extension(null) == null)
+    Swag.require(not Path.hasExtension(null))
+    Swag.require(not Path.isRooted(null))
+    Swag.require(Path.combine(null, "src", null, "core.swg") == "src/core.swg")
+}
+
 // Lexical case-insensitive paths include case pairs outside Latin-1.
 #test
 {

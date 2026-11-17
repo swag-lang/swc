@@ -48,6 +48,10 @@ impl Panel
         loaded.track   = null
         .subtitleReady = true
         .selectSubtitle(.Sidecar, .manualSubtitleIndex)
+
+        // A replacement leaves as many attached files as before, so the sheet's snapshot is
+        // rebuilt rather than compared.
+        .informationReady = false
         .refreshInformation()
         .notePlaybackGesture()
     }

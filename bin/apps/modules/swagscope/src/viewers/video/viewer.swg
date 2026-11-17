@@ -804,7 +804,8 @@ private impl IWnd for Panel
 private impl Panel
 {
     // Refreshes the snapshot when progressive indexing discovers stream or track properties, and
-    // tells the host, whose sheet gives them.
+    // tells the host, whose sheet gives them. A change the counts do not show, such as a replaced
+    // subtitle file, clears `informationReady` first.
     mtd refreshInformation()
     {
         if not .video.isOpen() do
@@ -866,23 +867,35 @@ private impl Panel
             data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
         }
 
-        if subtitles do
-            data.add(.Subtitles, Format.toString("%", subtitles), group: true)
+        // The tracks the film carries come first, then the files attached beside it, numbered on
+        // as the track menu lists them; an attached file says where it comes from.
+        func addSubtitle(data: *MediaInfoData, number: u64, track: const *Subtitle.Track, origin: string)
+        {
+            var measures: Array'String
+            let language = knownLanguage(track.language)
+            var name     = String.from(track.name)
+            if name.isEmpty() do
+                name = language.isEmpty() ? trackText(number) : language
+            elif not language.isEmpty() do
+                measures.add(language)
+            measures.add(String.from(subtitleFormatText(track.format)))
+            measures.add(String.from(origin))
+            data.addTrack(number, name, joinMeasures(measures.toSlice()))
+        }
+
+        let sidecars = .subtitleOverlay.sidecars.count
+        if subtitles or sidecars do
+            data.add(.Subtitles, Format.toString("%", subtitles + sidecars), group: true)
         for index in subtitles
         {
             let track = .video.subtitleTrack(index)
             if not track do
                 continue
-            var measures: Array'String
-            let language = knownLanguage(track.language)
-            var name     = String.from(track.name)
-            if name.isEmpty() do
-                name = language.isEmpty() ? trackText(index + 1) : language
-            elif not language.isEmpty() do
-                measures.add(language)
-            measures.add(String.from(subtitleFormatText(track.format)))
-            data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
+            addSubtitle(&data, index + 1, track, "")
         }
+
+        for track, index in .subtitleOverlay.sidecars do
+            addSubtitle(&data, subtitles + index + 1, track, texts().ui_SubtitleSidecar)
 
         .information = #move data
         .services.informationChanged(me)

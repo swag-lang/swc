@@ -18,6 +18,37 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
     Swag.require(track.presentationAt(4).text.isEmpty())
 }
 
+// Cue starts are inclusive and cue ends are exclusive; a finished track has no next transition.
+#test
+{
+    let track = expect Subtitle.Track.decode("boundary.srt",
+        "1\n00:00:01,000 --> 00:00:02,000\nOnly cue\n")
+
+    let before = track.presentationAt(0.999)
+    Swag.require(before.text.isEmpty())
+    Swag.require(Math.isEqualEpsilon(before.nextChangeSeconds, 1, 0.0001))
+
+    let start = track.presentationAt(1)
+    Swag.require(start.text == "Only cue")
+    Swag.require(Math.isEqualEpsilon(start.nextChangeSeconds, 2, 0.0001))
+
+    let end = track.presentationAt(2)
+    Swag.require(end.text.isEmpty())
+    Swag.require(end.nextChangeSeconds == Swag.F64.Inf)
+}
+
+// Subtitle decoding rejects malformed timing and unknown document formats.
+#test
+{
+    var rejected: Swag.Error
+    discard catch Subtitle.Track.decode("reversed.srt",
+        "1\n00:00:02,000 --> 00:00:01,000\nInvalid cue\n") as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    discard catch Subtitle.Track.decode("unknown.caption", "plain text") as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+}
+
 // Module-owned tracks expose their text through caller-owned output storage.
 #test
 {

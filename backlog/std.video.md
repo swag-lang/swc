@@ -305,6 +305,16 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   and luma PSNR (49.89 and 47.64 dB). The timer includes X11 root readback, conversion,
   H.264 and MP4; painting and AAC are reported separately. This validates the software
   capture path on a virtual display, not a physical Windows desktop.
+  An incremental exact-YUV region check now also skips the repeated per-macroblock source/reference
+  comparisons when every luma and chroma sample in a region is unchanged. In alternating
+  baseline/candidate/candidate/baseline 4K X11 static-background runs at QP 28 and four slices,
+  capture/encode/MP4 averaged 3.71 seconds before and 2.79 seconds after (24.8% faster); all four
+  output MP4s were byte-identical (401,320 bytes, SHA-256 `e760ca2c...022fd99d`) with identical
+  decoded pictures and 49.89 dB luma PSNR. A full-screen changing 4K pair was 3% slower with the
+  candidate, within observed run variation. A 1080p chroma-only control averaged 9% slower because
+  it scans chroma across a luma-unchanged region before falling back to per-macroblock checks.
+  The gain therefore applies to regions unchanged in all three planes; it does not establish a
+  general throughput gain for changing scenes. Focused Release H.264 tests passed 8/8.
   On the same virtual root with a changing full-screen background, two QP 28 runs per slice
   count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
   7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,

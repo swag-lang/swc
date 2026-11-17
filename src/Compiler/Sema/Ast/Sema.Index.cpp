@@ -437,20 +437,23 @@ Result AstIndexListExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     const auto indexedView = sema.viewType(nodeExprRef);
     if (indexedView.typeRef().isInvalid())
         return Result::Continue;
-    TypeRef                 currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
-    SmallVector<AstNodeRef> arguments;
-    sema.ast().appendNodes(arguments, spanChildrenRef);
-    for (const AstNodeRef argumentRef : arguments)
+    TypeRef currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
+    const auto arguments = sema.ast().nodeSpan(spanChildrenRef);
+    for (auto chunk = arguments.chunksBegin(); chunk != arguments.chunksEnd(); ++chunk)
     {
-        if (currentTypeRef.isInvalid())
-            break;
-        currentTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), currentTypeRef);
-        if (argumentRef == childRef)
+        const auto chunkArguments = std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+        for (const AstNodeRef argumentRef : chunkArguments)
         {
-            bindArrayIndex(sema, currentTypeRef, childRef);
-            break;
+            if (currentTypeRef.isInvalid())
+                return Result::Continue;
+            currentTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), currentTypeRef);
+            if (argumentRef == childRef)
+            {
+                bindArrayIndex(sema, currentTypeRef, childRef);
+                return Result::Continue;
+            }
+            currentTypeRef = typeAfterSequentialIndex(sema, currentTypeRef, argumentRef);
         }
-        currentTypeRef = typeAfterSequentialIndex(sema, currentTypeRef, argumentRef);
     }
     return Result::Continue;
 }

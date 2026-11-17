@@ -7,7 +7,7 @@ using StaticApi
 func importedNonRetainingInterfaceKeepsInlineViewLocal()
 {
     var writer: DepBorrowNonRetainingWriter
-    let callback: DepBorrowWriter = writer
+    var callback: DepBorrowWriter = writer
     var bytes: [8] u8
     bytes[0] = 's'u8
     let text: string = cast(string, bytes)
@@ -24,7 +24,7 @@ func importedNonRetainingInterfaceKeepsInlineViewLocal()
 func importedRetainingInterfaceRejectsInlineView()
 {
     var writer: DepBorrowRetainingWriter
-    let callback: DepBorrowWriter = writer
+    var callback: DepBorrowWriter = writer
     var bytes: [8] u8     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     bytes[0] = 's'u8
     let text: string = cast(string, bytes)

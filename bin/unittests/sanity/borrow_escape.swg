@@ -89,6 +89,10 @@ impl BorrowEscapeInlineWriter for BorrowEscapeInlineStoringWriter
     writer.write(rendered)
     callback.print(rendered)
     Swag.require(writer.count == 2)
+
+    var mutableCallback: BorrowEscapeInlineWriter = writer
+    mutableCallback.print(rendered)
+    Swag.require(writer.count == 3)
 }
 
 // An interface that retains the view must still reject its local owner at the call site.
@@ -96,6 +100,16 @@ func borrowEscapeInlineViewThroughInterface()
 {
     var writer: BorrowEscapeInlineStoringWriter
     let callback: BorrowEscapeInlineWriter = writer
+    var owned: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    owned.buffer[0] = 's'u8
+    owned.length    = 1
+    callback.print(owned)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeInlineViewThroughMutableInterface()
+{
+    var writer: BorrowEscapeInlineStoringWriter
+    var callback: BorrowEscapeInlineWriter = writer
     var owned: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     owned.buffer[0] = 's'u8
     owned.length    = 1

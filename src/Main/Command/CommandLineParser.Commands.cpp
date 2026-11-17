@@ -48,7 +48,7 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Input, "all", "--config-file", "-cf",
         &cmdLine_->configFile,
-        "Read options from a config file before applying explicit CLI flags; resolve its relative paths from the config file directory",
+        "Read command-line options from a config file before applying explicit CLI flags; resolve its relative paths from the config file directory",
         false);
 
     add(HelpOptionGroup::Input, "all", "--directory", "-d",

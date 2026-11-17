@@ -32,6 +32,7 @@ struct Texts
     ui_Summary:          string = "% · % · % · % BPM · % · %"
     ui_Details:          string = "% · % · % · %"     // Tracks, meter, notes and length, at the foot of the score.
     ui_Channel:          string = "channel %"         // The channel a track plays on, under its name.
+    ui_Percussion:       string = "percussion"        // What the tenth channel plays, in the information sheet.
     ui_Presentation:     string = "Presentation"      // Option choosing how the score is laid out.
     ui_ByTrack:          string = "Tracks"            // One lane per track.
     ui_ByPitch:          string = "Piano Roll"        // One row per key.

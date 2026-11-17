@@ -149,9 +149,11 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.007 — Tracks and channels cannot be muted, soloed, regrouped, or understood
 
-- Evidence: the selector shows All Tracks or one track by note count. It cannot display track and
-  channel concurrently, mute/solo, rename session labels, color consistently, show ports/programs/
-  drum channels, or explain format 0 channel mixtures.
+- Evidence: the selector shows All Tracks or one track by note count. The information sheet lists
+  each lane of the roll, a track on one channel, with its channel, the General MIDI instrument of
+  the first program its track selects (the tenth channel reads as percussion) and its notes. It
+  cannot mute/solo, rename session labels, show ports, banks or later program changes, or explain
+  format 0 channel mixtures.
 - Next: introduce a track/channel matrix with stable colors and diagnostic mute/solo state independent
   of source events.
 - Done when: track and channel filters compose, mute/solo affect display and app.scope.midi.001 playback,

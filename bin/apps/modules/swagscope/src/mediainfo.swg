@@ -65,6 +65,7 @@ enum MediaInfoField
     Weight
     Embedding
     Columns
+    Tracks
     Bookmarks
     TextLayer
     Style
@@ -146,6 +147,7 @@ struct MediaInfoStrings
     weight:         string = "Weight"
     embedding:      string = "Embedding"
     columns:        string = "Columns"
+    tracks:         string = "Tracks"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -287,6 +289,7 @@ impl MediaInfoRow
         case .Weight:         return s.weight
         case .Embedding:      return s.embedding
         case .Columns:        return s.columns
+        case .Tracks:         return s.tracks
         case .Bookmarks:      return s.bookmarks
         case .TextLayer:      return s.textLayer
         case .Style:          return s.style

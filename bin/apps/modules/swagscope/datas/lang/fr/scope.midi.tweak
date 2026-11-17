@@ -26,6 +26,7 @@ ui_Notes         % notes
 ui_Summary       % · % · % · % BPM · % · %
 ui_Details       % · % · % · %
 ui_Channel       canal %
+ui_Percussion    percussions
 ui_Presentation  Présentation
 ui_ByTrack       Pistes
 ui_ByPitch       Piano-roll

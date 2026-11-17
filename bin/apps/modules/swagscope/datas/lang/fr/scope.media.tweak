@@ -66,6 +66,7 @@ genre       Genre
 weight      Graisse
 embedding   Incorporation
 columns     Colonnes
+tracks      Pistes
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

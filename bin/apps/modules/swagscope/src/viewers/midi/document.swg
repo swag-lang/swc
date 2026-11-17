@@ -32,6 +32,7 @@ struct Track
     eventCount: u64
     noteCount:  u64
     lastTick:   u64
+    program:    s32 = -1     // First General MIDI program the track selects, negative when it selects none.
 }
 
 // A tempo change, in microseconds per quarter note from `tick` on.
@@ -316,6 +317,10 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
             if data1 & 0x80 or data2 & 0x80 do
                 fail InvalidFormatError{Errors.mkString(texts().err_Event)}
             scan += count
+
+            // The first program a track selects names the instrument it plays.
+            if kind == 0xC and track.program < 0 do
+                track.program = cast(s32, data1)
 
             if kind == 0x8 or kind == 0x9
             {

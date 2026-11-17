@@ -314,6 +314,28 @@ impl Panel
         data.add(.Meter, .roll.document.meterChangesText())
         data.add(.KeySignature, .roll.document.keyChangesText())
 
+        // Each lane of the roll: its track, its channel, the instrument the track selects and its
+        // notes. The tenth channel is the drum kit whatever its program says.
+        if .roll.lanes.count
+        {
+            data.add(.Tracks, Format.toString("%", .roll.lanes.count), group: true)
+            for &lane, index in .roll.lanes
+            {
+                let track = &.roll.document.tracks[lane.track]
+                let name  = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
+                var notes = 0'u64
+                for &note in .roll.document.notes where note.track == lane.track and note.channel == lane.channel do
+                    notes += 1
+                var measures = Format.toString(texts().ui_Channel, cast(u32, lane.channel) + 1)
+                if lane.channel == 9 do
+                    measures += Format.toString(" · %", texts().ui_Percussion)
+                elif track.program >= 0 do
+                    measures += Format.toString(" · %", instrumentName(cast(u8, track.program)))
+                measures += Format.toString(" · %", noteCountText(notes))
+                data.addTrack(index + 1, name, measures)
+            }
+        }
+
         data.describe(sheet)
     }
 }

@@ -244,6 +244,7 @@ lens_GoToPage Aller à la page %
 lens_GoToOffset Aller au décalage %
 lens_GoToChapter Aller au chapitre %
 lens_GoToTime Aller à %
+cmd_CopyTime Copier l'instant %
 explore_Album Album
 explore_Tracks % titres
 explore_Play Lire

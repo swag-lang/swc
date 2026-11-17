@@ -1065,6 +1065,7 @@ private impl Panel
         entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, disabled: not ready)
         entries.add(strings.cmd_LoadSubtitles, .OpenFile, func|view = me|() { view.promptSubtitle() }, disabled: not ready or .subtitleLoad.started)
         entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(.currentSeconds())), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(view.currentSeconds())) }, disabled: not .hasFrame)
         entries.add(strings.cmd_CopyFrame, .Copy, func|view = me|() { view.copyFrame() }, disabled: not .hasFrame or .frameCopying, shortcut: Input.formatKeyShortcut(.Control, .C))
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem4))
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem6))

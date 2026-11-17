@@ -634,4 +634,20 @@ func soundInformation(bytes: const [..] u8)->String
                  not Utf8.contains(view.details.toString(), "0:00–"))
     view.seekSeconds(1.6)
     Swag.require(not view.followLoop())
+
+    // The lens copies the instant playback stands at, as the clock writes it.
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
+    entries.query = "copy"
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(appStrings().cmd_CopyTime, "0:01")
+    {
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found)
+    if Clipboard.isFake() do
+        Swag.require(Clipboard.getString() == "0:01", Clipboard.getString())
 }

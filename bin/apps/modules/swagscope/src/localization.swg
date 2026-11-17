@@ -237,6 +237,7 @@ struct AppStrings
     lens_GoToOffset:      string = "Go to Offset %"             // Lens row going to the byte offset typed after a colon.
     lens_GoToChapter:     string = "Go to Chapter %"            // Lens row going to the chapter typed after a colon.
     lens_GoToTime:        string = "Go to %"                    // Lens row moving playback to the instant typed after a colon.
+    cmd_CopyTime:         string = "Copy Time %"                // Lens command copying the instant a film or a recording stands at, as its clock writes it.
     cmd_Open:             string = "Open…"                      // Command choosing a file to open.
     cmd_OpenChosen:       string = "Open"                       // Command opening the item chosen in the explored folder.
     cmd_ExtractAll:       string = "Extract All…"               // Command extracting the whole explored archive to a folder.

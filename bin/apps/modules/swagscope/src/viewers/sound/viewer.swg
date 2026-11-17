@@ -849,6 +849,7 @@ impl Panel
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
 
         // A passage is looped between two points the reader marks while listening.
+        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready)
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
         if .loopStart >= 0 do

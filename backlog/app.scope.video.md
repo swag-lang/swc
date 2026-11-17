@@ -174,7 +174,8 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Evidence: Copy Frame, in the lens and on Ctrl+C, decodes the picture on screen again on a worker
   with a reader of its own, since the queue does not keep a picture once drawn, and puts it on the
   clipboard at the display size, scaled bilinearly from the coded size when they differ and
-  without subtitles. The copy carries no timestamp or frame number, and there is no Save Frame,
+  without subtitles. The lens also copies the instant playback stands at, as the clock writes it,
+  for the film and for a recording. The picture copy carries no timestamp or frame number, and there is no Save Frame,
   contact sheet or compare-two-frames command.
 - Next: add current-frame copy/save with explicit coded/display transform and color policy, then a
   bounded contact sheet for a selected range.

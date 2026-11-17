@@ -106,3 +106,29 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     Swag.require(Slice.equals(db.toSlice(), b))
     Swag.require(Slice.equals(dc.toSlice(), a))
 }
+
+// Deflate.init resets a direct encoder for a new stream while preserving the
+// already appended stream in the caller's result buffer.
+#test
+{
+    let first:  [7] u8 = [1, 3, 5, 7, 9, 11, 13]
+    let second: [9] u8 = [2, 4, 6, 8, 10, 12, 14, 16, 18]
+
+    var deflater: Compress.Deflate
+    var compressed: Array'u8
+    deflater.init(.NoCompression)
+    expect deflater.compress(&compressed, first)
+    let secondStart = compressed.count
+
+    deflater.init(.BestCompression)
+    expect deflater.compress(&compressed, second)
+
+    var inflater: Compress.Inflate
+    var decodedFirst: Array'u8
+    expect inflater.decompress(&decodedFirst, compressed.toSlice()[until secondStart])
+    Swag.require(Slice.equals(decodedFirst.toSlice(), first))
+
+    var decodedSecond: Array'u8
+    expect inflater.decompress(&decodedSecond, compressed.toSlice()[secondStart to])
+    Swag.require(Slice.equals(decodedSecond.toSlice(), second))
+}

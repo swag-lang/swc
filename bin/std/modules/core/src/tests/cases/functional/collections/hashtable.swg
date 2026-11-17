@@ -111,6 +111,11 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(not table.contains(1))
     Swag.require(table.tryFind(1) == null)
 
+    var emptyVisits = 0
+    for _, _ in table do
+        emptyVisits += 1
+    Swag.require(emptyVisits == 0)
+
     table.add(1, 10)
     table[1] = 11
     table[3] = 30

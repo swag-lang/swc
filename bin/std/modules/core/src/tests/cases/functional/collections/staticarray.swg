@@ -143,6 +143,32 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
+    var values: StaticArray'(s32, 5'u64)
+    let initialized = values.emplaceInitAddress(2)
+    Swag.require(initialized[0] == 0 and initialized[1] == 0)
+    initialized[0] = 1
+    initialized[1] = 2
+    values.add(3)
+    values.add(4)
+    values.add(5)
+
+    Swag.require(values.popBack() == 5)
+    values.removeBack()
+    values.add(4)
+    values.add(5)
+
+    values.removeAt(1)
+    Swag.require(Slice.equals(values.toSlice(), [1, 5, 3, 4]))
+    values.remove(3)
+    values.remove(99)
+    Swag.require(Slice.equals(values.toSlice(), [1, 5, 4]))
+    values.removeOrdered(5)
+    values.removeOrdered(99)
+    Swag.require(Slice.equals(values.toSlice(), [1, 4]))
+}
+
+#test
+{
     var values: StaticArray'(StaticArrayVisitProbe, 4'u64)
     values.add({value: 1})
     values.add({value: 2})
@@ -156,6 +182,29 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
     Swag.require(values[2].value == 13)
     Swag.require(visitStructStaticArray(&values) == 15)
     Swag.require(visitStructStaticArrayReverse(&values) == 28)
+}
+
+#test
+{
+    var values: StaticArray'(s32, 4'u64)
+    values.add(3)
+    values.add(5)
+    values.add(7)
+
+    var pairCount = 0'u64
+    var pairCode  = 0
+    for left, right, index in values.pairs()
+    {
+        Swag.require(index == pairCount)
+        pairCount += 1
+        pairCode = pairCode * 100 + left * 10 + right
+    }
+    Swag.require(pairCount == 2 and pairCode == 3557)
+
+    var empty: StaticArray'(s32, 2'u64)
+    for _, _, _ in empty.pairs()
+        do pairCount += 1
+    Swag.require(pairCount == 2)
 }
 
 #test
@@ -196,6 +245,23 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
     }
 
     Swag.require(StaticArrayDropCount == 4)
+}
+
+#test
+{
+    resetStaticArrayDropTrace()
+    var values: StaticArray'(StaticArrayDropTracked, 3'u64)
+    let initial = values.emplaceAddress(2)
+    initial[0].value = 1
+    initial[1].value = 2
+
+    values.clear()
+    Swag.require(values.isEmpty() and StaticArrayDropCount == 2)
+
+    let appended = values.emplaceInitAddress()
+    appended[0].value = 3
+    values.free()
+    Swag.require(values.isEmpty() and StaticArrayDropCount == 3)
 }
 
 // An element can be inserted back into its own array: the shift would otherwise overwrite it

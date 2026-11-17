@@ -40,6 +40,7 @@ enum class TokenIdKindE : uint32_t
     OpAssign          = 1 << 19, // = and every compound assignment
     StorageModifier   = 1 << 20, // late tls global
     PresenceAssertion = 1 << 22, // unwrap and the asserted-access postfix !
+    NativeArtifactCompilerFunc = 1 << 23,
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -148,21 +149,7 @@ struct Token
 
     // The compiler function blocks that turn into a symbol in the native artifact, as opposed
     // to the ones the compiler consumes itself ('#run', '#ast', '#message').
-    static bool isNativeArtifactCompilerFunc(TokenId id)
-    {
-        switch (id)
-        {
-            case TokenId::CompilerFuncTest:
-            case TokenId::CompilerFuncInit:
-            case TokenId::CompilerFuncDrop:
-            case TokenId::CompilerFuncMain:
-            case TokenId::CompilerFuncPreMain:
-                return true;
-
-            default:
-                return false;
-        }
-    }
+    static bool isNativeArtifactCompilerFunc(TokenId id) { return toKind(id).hasAll(TokenIdKindE::NativeArtifactCompilerFunc); }
 
     static bool isOpArithmetic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpArithmetic); }
     static bool isOpBitwise(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpBitwise); }

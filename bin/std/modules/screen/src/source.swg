@@ -109,6 +109,12 @@ struct Source
             cursorTargetStorage: u64
             cursorTargetReady:   bool
         }
+        #static if #os == Swag.TargetOs.Linux
+        {
+            x11TargetImage:   u64
+            x11TargetStorage: u64
+            x11TargetReady:   bool
+        }
     }
 }
 
@@ -257,10 +263,47 @@ impl Source
                 if native.options.x == .options.x and native.options.y == .options.y and
                    native.options.width == .options.width and native.options.height == .options.height
                 {
-                    let captured = try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
-                    if captured do
+                    let captured = try native.grabInto(&.composed, preserveOnTimeout: not copyUnchanged)
+                    let cached = &.pictures[0]
+                    let hasCachedFrame = cached.width == .options.width and
+                                         cached.height == .options.height and
+                                         cached.pixelFormat == .BGRA8
+                    var frameFresh = false
+                    if captured
+                    {
+                        frameFresh = not hasCachedFrame or
+                                     Memory.compare(cached.pixels.storage(), .composed.pixels.storage(),
+                                                    .composed.byteCount) != 0
+                        if frameFresh
+                        {
+                            Core.swap(cached, &.composed)
+                            native.metrics.acquiredFrames += 1
+                        }
+                        else
+                        {
+                            native.metrics.unchangedFrames += 1
+                        }
+                    }
+                    let targetReusable = .x11TargetReady and
+                                         target.width == .options.width and
+                                         target.height == .options.height and
+                                         target.pixelFormat == .BGRA8 and
+                                         cast(u64, target) == .x11TargetImage and
+                                         cast(u64, target.pixels.storage()) == .x11TargetStorage
+                    if (frameFresh or hasCachedFrame) and
+                       (frameFresh or copyUnchanged or not targetReusable)
+                    {
+                        if target.width != .options.width or target.height != .options.height or
+                           target.pixelFormat != .BGRA8 do
+                            target[] = Image.create(.options.width, .options.height, .BGRA8)
+                        copyFrameBytes(target.pixels.storage(), cached.pixels.storage(), target.byteCount)
+                        .x11TargetImage = cast(u64, target)
+                        .x11TargetStorage = cast(u64, target.pixels.storage())
+                        .x11TargetReady = true
+                    }
+                    if frameFresh do
                         .lastFrameCaptureTime = Time.monotonicMicroseconds()
-                    return captured
+                    return frameFresh
                 }
             }
         }
@@ -436,6 +479,11 @@ impl Source
         {
             for source in .sources do
                 try source[].reopen()
+        }
+#static if #os == Swag.TargetOs.Linux
+        {
+            for index in .pictures.count do
+                .pictures[index] = {}
         }
         .lastFrameCaptureTime = 0
         .lastFramePresentationTime = 0

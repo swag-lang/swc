@@ -14,6 +14,19 @@ impl Ray3
 {
     // Returns the point at parameter `distance` along this ray.
     mtd const pointAt(distance: f32)->Vector3 => .origin + .direction * distance
+
+    // Returns the nearest point on the forward ray to `point`.
+    mtd const closestPoint(point: Vector3)->Vector3
+    {
+        let lengthSquared = .direction.lengthSquared()
+        if lengthSquared == 0 do
+            return .origin
+        let parameter = Math.max(0'f32, (point - .origin).dot(.direction) / lengthSquared)
+        return .pointAt(parameter)
+    }
+
+    // Returns the squared distance from `point` to the forward ray.
+    mtd const distanceSquaredTo(point: Vector3)->f32 => .closestPoint(point).distanceSquaredTo(point)
 }
 
 // A plane represented by a unit normal and signed distance from the origin.
@@ -76,6 +89,17 @@ struct Sphere3
 
 impl Sphere3
 {
+    // Returns the nearest point in this sphere to `point`.
+    mtd const closestPoint(point: Vector3)->Vector3
+    {
+        Swag.assert(.radius >= 0)
+        let offset = point - .center
+        let distanceSquared = offset.lengthSquared()
+        if distanceSquared <= .radius * .radius or distanceSquared == 0 do
+            return point
+        return .center + offset * (.radius / sqrt(distanceSquared))
+    }
+
     // Returns whether `point` lies inside or on this sphere.
     mtd const contains(point: Vector3)->bool
     {

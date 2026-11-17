@@ -16,6 +16,8 @@ struct RemoteFreeShared
 {
     allocator: IAllocator
     addresses: [256] u64
+    ready:     u32
+    start:     u32
     nextWorker: u32
     errors:    u32
 }
@@ -23,6 +25,10 @@ struct RemoteFreeShared
 func remoteFreeWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*RemoteFreeShared, unwrap thread.userParam)
+    discard Swag.atomicAdd(&shared.ready, 1)
+    while Swag.atomicLoad(&shared.start) == 0 do
+        Threading.Thread.yield()
+
     let first  = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
     for offset in shared.addresses.count / 4
     {
@@ -145,6 +151,11 @@ func pageCommitWorker(thread: const *Threading.Thread)
         discard expect threads[i].init(&remoteFreeWorker, &shared)
         discard expect threads[i].start()
     }
+
+    while Swag.atomicLoad(&shared.ready) != threads.count do
+        Threading.Thread.yield()
+    discard Swag.atomicExchange(&shared.start, 1)
+
     for &thread in threads do
         thread.wait()
 

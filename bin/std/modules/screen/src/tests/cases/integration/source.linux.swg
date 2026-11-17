@@ -4,6 +4,27 @@
 
 using Core, Pixel
 
+private func warpPointer(capture: *X11Capture, x, y: s16)
+{
+    let warp = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(
+        unwrap capture.nativeLibrary(), "xcb_warp_pointer")
+    discard warp(unwrap capture.nativeConnection(), 0, capture.rootWindow(), 0, 0, 0, 0, x, y)
+}
+
+private func pointerPosition(capture: *X11Capture)->{x: s16, y: s16} fail
+{
+    let query = expect X11Capture.symbol'Linux.xcb_query_pointer_fn(
+        unwrap capture.nativeLibrary(), "xcb_query_pointer")
+    let replyQuery = expect X11Capture.symbol'Linux.xcb_query_pointer_reply_fn(
+        unwrap capture.nativeLibrary(), "xcb_query_pointer_reply")
+    let connection = unwrap capture.nativeConnection()
+    let reply = replyQuery(connection, query(connection, capture.rootWindow()), null)
+    if not reply do
+        fail Swag.SystemError{"cannot read the X11 pointer position"}
+    defer Linux.free(reply)
+    return {reply.root_x, reply.root_y}
+}
+
 private func openDescriptorCount()->u64
 {
     let directory = unwrap Linux.opendir("/proc/self/fd".buffer)
@@ -102,6 +123,21 @@ private func sharedSegmentCount()->u64 fail
                  firstMetrics.readbackMicroseconds > 0 and firstMetrics.maxReadbackMicroseconds > 0 and
                  firstMetrics.copyMicroseconds > 0 and firstMetrics.copiedPixels == 320 * 240)
 
+    Memory.set(image.pixels.storage(), 0x5A, image.byteCount)
+    let repeatedFresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(not repeatedFresh, "identical X11 pixels should not be a fresh frame")
+    for byte in image.pixels do
+        Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
+    let repeatedMetrics = source.metrics()
+    Swag.require(repeatedMetrics.acquiredFrames == 1 and repeatedMetrics.unchangedFrames == 1)
+
+    image = Image.create(8, 8, .RGBA8)
+    let replacementFresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(not replacementFresh and image.width == 320 and image.height == 240,
+                 "a replacement target should receive the cached X11 frame")
+    Swag.require(Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(),
+                                image.byteCount) == 0)
+
     let capture = source.sources[0].capture.nativeConnection()
     source.resetMetrics()
     let resetMetrics = source.metrics()
@@ -122,6 +158,28 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(image.pixels.storage() == storage)
     let secondMetrics = source.metrics()
     Swag.require(secondMetrics.acquiredFrames == 1 and secondMetrics.readbackMicroseconds > 0)
+}
+
+// XFixes cursor motion creates a fresh composed frame even when the desktop is static.
+#[Swag.TestTag("integration.host.linux")]
+#test
+{
+    var source = expect Source.open({0, 0, 320, 240, true})
+    let capture = &source.sources[0].capture
+    let original = expect pointerPosition(capture)
+    defer warpPointer(capture, original.x, original.y)
+
+    warpPointer(capture, 48, 48)
+    var image: Image
+    Swag.require(expect source.grabInto(&image, copyUnchanged: false))
+    var previous = Image.create(image.width, image.height, .BGRA8)
+    Memory.copy(previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+
+    warpPointer(capture, 240, 180)
+    let fresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(fresh, "cursor-only movement should create a fresh X11 frame")
+    Swag.require(Memory.compare(previous.pixels.storage(), image.pixels.storage(), image.byteCount) != 0,
+                 "cursor-only movement should change the composed X11 image")
 }
 
 // A failed reopen after a geometry change preserves the current connection and last delivered frame time.

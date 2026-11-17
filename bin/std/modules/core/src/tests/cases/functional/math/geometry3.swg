@@ -54,6 +54,12 @@ func expectNear(actual, expected: f32)
     expectVec3(planeHit.point, {0, 2, 0})
     Swag.require(not plane.intersect(Math.Geometry.Ray3{{0, 0, 0}, {1, 0, 0}}).intersects)
     Swag.require(not plane.intersect(Math.Geometry.Ray3{{0, 3, 0}, {0, 1, 0}}).intersects)
+
+    let ray = Math.Geometry.Ray3{{1, 0, 0}, {0, 2, 0}}
+    expectVec3(ray.closestPoint({3, 5, 0}), {1, 5, 0})
+    expectNear(ray.distanceSquaredTo({3, 5, 0}), 4)
+    expectVec3(ray.closestPoint({1, -2, 0}), ray.origin)
+    expectVec3(Math.Geometry.Ray3{{1, 2, 3}, Math.Vector3.Zero}.closestPoint({9, 9, 9}), {1, 2, 3})
 }
 
 #test
@@ -81,6 +87,8 @@ func expectNear(actual, expected: f32)
     let sphere = Math.Geometry.Sphere3{{0, 0, 0}, 2}
     Swag.require(sphere.contains({1, 1, 0}))
     Swag.require(not sphere.contains({2, 2, 0}))
+    expectVec3(sphere.closestPoint({3, 0, 0}), {2, 0, 0})
+    expectVec3(sphere.closestPoint({1, 0, 0}), {1, 0, 0})
     Swag.require(sphere.intersects(Math.Geometry.Sphere3{{3, 0, 0}, 1}))
     Swag.require(not sphere.intersects(Math.Geometry.Sphere3{{3.1, 0, 0}, 1}))
     Swag.require(sphere.intersects(bounds))

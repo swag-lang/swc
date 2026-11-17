@@ -36,18 +36,24 @@ private func quantizedRecordingPicture(shift: u64)->Image
                                                                  rateControl: &config)
     let pacer = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000_000, 90_000)
     var firstQp = 0'u32
+    var firstBytes = 0'u64
     for frame in 8'u64
     {
         let image = quantizedRecordingPicture(frame * 3)
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
-        if frame == 0 do
+        if frame == 0
+        {
             firstQp = recorder.videoQuantizationQp()
+            firstBytes = recorder.videoPacketByteCount()
+        }
     }
     expect recorder.repeatLastFrame(expect pacer.slotAt(8))
     let finalQp = recorder.videoQuantizationQp()
+    let finalBytes = recorder.videoPacketByteCount()
     expect recorder.end()
 
     Swag.require(recorder.videoFrameCount() == 9 and recorder.repeatedFrameCount() == 1)
+    Swag.require(firstBytes > 0 and finalBytes > firstBytes)
     Swag.require(firstQp >= config.minQp and finalQp > firstQp and finalQp <= config.maxQp)
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 9 and not summary.hasIncompleteTail)

@@ -86,7 +86,8 @@ frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothin
 The fragmented software H.264 recorder accepts [[Mp4.SoftwareVideoRateControl]] to steer its
 per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does
 not guarantee a per-frame bitrate or final file size; query
-`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot.
+`SoftwareRecording.videoQuantizationQp` to inspect the base QP selected for the latest video slot,
+and `SoftwareRecording.videoPacketByteCount` for the cumulative H.264 packet payload bytes accepted.
 
 ## Adding a format
 

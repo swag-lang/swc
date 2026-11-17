@@ -111,7 +111,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">Source.frameAgeMicroseconds</a></td><td><p>Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_grabInto">Source.grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
+<tr><td class="code-type"><a href="#Screen_Source_grabInto">Source.grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_lastFrameCaptureMicroseconds">Source.lastFrameCaptureMicroseconds</a></td><td><p>Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.</p>
 </td></tr>
@@ -170,7 +170,7 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">frameAgeMicroseconds</a></td><td><p>Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_grabInto">grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
+<tr><td class="code-type"><a href="#Screen_Source_grabInto">grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_lastFrameCaptureMicroseconds">lastFrameCaptureMicroseconds</a></td><td><p>Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.</p>
 </td></tr>
@@ -271,8 +271,8 @@
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L256">src</a></div>
-<p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
-<p>False means no new image is available yet, either because the desktop and cursor did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead. A reusable target stays untouched on a false return; a new or resized target receives a complete current frame. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. Windows cursor composition rebuilds the selected area each poll to account for pointer-only changes. The target remains owned by the caller.</p>
+<p>Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.</p>
+<p>False means the backend reports no new image yet, either because the selected image and cursor did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead. A reusable target stays untouched on a false return; a new or resized target receives a complete current frame. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. Windows cursor composition rebuilds the selected area each poll to account for pointer-only changes. The target remains owned by the caller.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grabInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, copyUnchanged: <span class="STpe">bool</span> = <span class="SKwd">true</span>,
              updateChangedOnly: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -618,7 +618,7 @@
 "v|Screen.SourceOptions.y|Screen_SourceOptions_y|Top edge in physical desktop pixels.",
 "f|Screen.Source.captureOptions|Screen_Source_captureOptions|Returns the physical desktop rectangle and cursor policy selected when this source was opened.",
 "f|Screen.Source.frameAgeMicroseconds|Screen_Source_frameAgeMicroseconds|Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one mic...",
-"f|Screen.Source.grabInto|Screen_Source_grabInto|Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.",
+"f|Screen.Source.grabInto|Screen_Source_grabInto|Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor...",
 "f|Screen.Source.lastFrameCaptureMicroseconds|Screen_Source_lastFrameCaptureMicroseconds|Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.",
 "f|Screen.Source.lastFramePresentationMicroseconds|Screen_Source_lastFramePresentationMicroseconds|Returns the display presentation time for the latest acquired frame, when the backend reports it.",
 "f|Screen.Source.metrics|Screen_Source_metrics|Returns cumulative native and composition timing since this source was opened.",

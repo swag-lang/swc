@@ -148,8 +148,14 @@ is the current scorecard.
 - Constant range loops over a fixed array also keep the exact exclusive range guard-free and
   retain a guard for an inclusive endpoint equal to the array extent. Both cases are covered
   by `Compiler_PrintMicroElidesProvenArrayLoopBoundChecks`.
-- Next: hoist a `late` check from a loop that does not assign it. Measure the affected loops
-  with guards enabled and disabled.
+- A first guarded `late` read inside a loop still leaves the check at the body read site on
+  every trip: `SemaInitFlow::walkLoopBody` analyzes the body once and does not carry that
+  fact across a loop that may execute zero times. A safe hoist must run only after the first
+  iteration is known to enter, then let the back-edge skip the check. Cover initialized and
+  unset values with nonzero counts, plus an unset value with a zero count that must not panic.
+- Next: implement that entry check for a narrow unconditional read with no writes, calls, or
+  escaping aliases that could change it, then measure the affected loops with guards enabled
+  and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
   the residual cost of runtime guards is measured on the affected loops with behavior
   preserved.

@@ -8,7 +8,8 @@ continues to own media frames and codecs, not desktop access.
 ### std.screen.001 — Define one live-screen source contract
 
 - Evidence: `Screen.Source` now owns native resources and writes reusable bottom-up BGRA8 for a
-  physical desktop area. `SourceMetrics` separates acquisition, readback, copying and composition;
+  physical desktop area. `SourceMetrics` separates acquisition, change detection, readback, copying
+  and composition;
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
   cached-frame copy for a recorder that will emit a held picture. `Source` exposes the monotonic

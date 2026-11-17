@@ -5,23 +5,15 @@ using Core, Pixel, Gui, Viewers
 
 func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
 
-// Go-to-time accepts its documented forms and rejects values that only look like timestamps.
+// Go-to-time reads the time as the lens does, from the start of the track and without an end: it
+// accepts its documented forms and rejects values that only look like timestamps.
 #test
 {
-    var seconds: f64
-    Swag.require(Captions.timeSeconds("90", &seconds) and seconds == 90)
-    Swag.require(Captions.timeSeconds("1:30", &seconds) and seconds == 90)
-    Swag.require(Captions.timeSeconds("1:02:03.5", &seconds) and seconds == 3_723.5)
-    Swag.require(not Captions.timeSeconds("", &seconds))
-    Swag.require(not Captions.timeSeconds("1:", &seconds))
-    Swag.require(not Captions.timeSeconds("1:2:3:4", &seconds))
-    Swag.require(not Captions.timeSeconds("-1", &seconds))
-    Swag.require(not Captions.timeSeconds("NaN", &seconds))
-    Swag.require(not Captions.timeSeconds("Infinity", &seconds))
-    Swag.require(not Captions.timeSeconds("1e308:00", &seconds))
-    Swag.require(not Captions.timeSeconds("1:60", &seconds))
-    Swag.require(not Captions.timeSeconds("1:99", &seconds))
-    Swag.require(not Captions.timeSeconds("1.5:30", &seconds))
+    func dialogSeconds(text: string)->f64 => Viewer.parseTimeAddress(text, 0, Swag.F64.Max)
+    Swag.require(dialogSeconds("90") == 90 and dialogSeconds("1:30") == 90)
+    Swag.require(dialogSeconds("1:02:03.5") == 3_723.5 and dialogSeconds("100:00:00") == 360_000)
+    for text in ["", "1:", "1:2:3:4", "-1", "NaN", "Infinity", "1e308:00", "1:60", "1:99", "1.5:30"] do
+        Swag.require(dialogSeconds(text) < 0, text)
 }
 
 // The cues read as a list: the keyboard moves through them, the readings say the current one, and

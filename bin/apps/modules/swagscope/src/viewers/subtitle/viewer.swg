@@ -657,6 +657,9 @@ impl Panel
     }
 
     // Asks for a time and reveals the first cue that has not ended by then, or the last cue.
+    //
+    // The time is read as the lens reads one, but from the start of the track and without an end:
+    // an instant past the last cue shows the last cue.
     mtd promptGoToTime()
     {
         let count = .track!.cueCount()
@@ -666,10 +669,9 @@ impl Panel
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        var seconds: f64
-        if not timeSeconds(dialog.text(), &seconds) do
-            return
-        .revealTime(seconds)
+        let seconds = Viewer.parseTimeAddress(dialog.text(), 0, Swag.F64.Max)
+        if seconds >= 0 do
+            .revealTime(seconds)
     }
 
     // Builds the reading list, the rhythm under it, and the time at the foot that asks for a time
@@ -720,40 +722,6 @@ impl Panel
         result.sheet.relayout()
         return result
     }
-}
-
-// Reports whether `text` is a time in one of the three forms the go-to-time dialog advertises, and stores its seconds in `result`.
-//
-// Once a colon is present, every field after the first is a base-60 component rather than an
-// unrestricted decimal number. `result` is left untouched when `text` is rejected.
-func timeSeconds(text: string, result: *f64)->bool
-{
-    let parts = Tokenize.split(text, ':'u8, removeEmpty: false)
-    if parts.isEmpty() or parts.count > 3 do
-        return false
-
-    var seconds = 0'f64
-    for part, index in parts
-    {
-        if not part.count do
-            return false
-        var parseErrorOutcome: Swag.Error
-        var value: #decltype(expect StrConv.toF64(part))
-        catch { value = try StrConv.toF64(part) } as parseErrorOutcome
-        let parseError = parseErrorOutcome.value()
-        if parseError != null or value < 0 or not Math.isFinite(value) do
-            return false
-        if index and value >= 60 do
-            return false
-        if index + 1 < parts.count and value != Math.floor(value) do
-            return false
-        seconds = seconds * 60 + value
-        if not Math.isFinite(seconds) do
-            return false
-    }
-
-    result[] = seconds
-    return true
 }
 
 // Creates the integrated timed-subtitle document view and connects it to the host.

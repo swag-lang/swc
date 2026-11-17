@@ -337,8 +337,17 @@ impl RollView
         .refreshLayout()
     }
 
-    mtd zoomIn()  => .applyZoom(.zoom * 1.5)
-    mtd zoomOut() => .applyZoom(.zoom / 1.5)
+    // Zooms to `target`, one step from the scale shown, unless the step heads past a limit the
+    // timeline already stands at. A step that changes nothing must leave the fit alone, or a score
+    // fitted at the smallest zoom would stop following the window.
+    mtd stepZoom(target: f32)
+    {
+        if target > .zoom ? .canZoomIn() : .canZoomOut() do
+            .applyZoom(target)
+    }
+
+    mtd zoomIn()  => .stepZoom(.zoom * 1.5)
+    mtd zoomOut() => .stepZoom(.zoom / 1.5)
 
     // Report whether a zoom step still widens or narrows the timeline, so the commands that take
     // one can read as unavailable at the limits instead of doing nothing.

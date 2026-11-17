@@ -819,10 +819,11 @@ impl Panel
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks)
 
-        // The tab stops answer a query rather than fill the empty lens; the options list them too.
+        // The tab stops and the encodings answer a query rather than fill the empty lens; the
+        // options list them too.
         for width in Viewer.TabWidths where entries.query.count do
             entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width)
-        for encoding in Encodings
+        for encoding in Encodings where entries.query.count
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
             entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)

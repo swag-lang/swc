@@ -64,6 +64,15 @@ using Core, Gui, Gui.Testing, Viewers
 
     Swag.require(panel.view.navigateToFragment("#"))
     Swag.require(outline.markedTarget() == headings[0].sourceOffset)
+
+    // A closed outline does not follow the page; it marks the heading in view as it opens again.
+    outline.toggle.setChecked(false)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(panel.view.revealFileOffset(headings[2].sourceOffset, ""))
+    Swag.require(outline.markedTarget() == headings[0].sourceOffset)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == headings[2].sourceOffset and chosen == 1)
 }
 
 // A page announces itself by how it opens, whatever its file is called, and nothing looser does.

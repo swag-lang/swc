@@ -56,11 +56,98 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     return image
 }
 
-// The archive and its image entries in natural reading order.
+// What the `ComicInfo.xml` of a book says of it: the common fields, as written.
+struct ComicInfo
+{
+    title:       String
+    series:      String
+    number:      String
+    volume:      String
+    writer:      String
+    penciller:   String
+    publisher:   String
+    year:        String
+    rightToLeft: bool     // The book is a manga read from right to left.
+}
+
+impl ComicInfo
+{
+    // Reads the fields of a `ComicInfo.xml` document; an unknown or damaged element is passed over.
+    func read(source: string)->ComicInfo
+    {
+        var result: #returntype
+        var scanner = Package.Scanner.create(source)
+        var token:  Package.Token
+        var depth   = 0'u32
+        var field:  String
+        while scanner.next(&token)
+        {
+            switch token.kind
+            {
+            case .Start:
+                if token.empty do
+                    break
+                depth += 1
+                if depth == 2 do
+                    field = #move token.name
+
+            case .End:
+                if depth do
+                    depth -= 1
+                field.clear()
+
+            case .Text:
+                if depth != 2 or field.isEmpty() do
+                    break
+                let text = Latin1.trim(token.text.toString())
+                switch field.toString()
+                {
+                case "Title":     result.title = text
+                case "Series":    result.series = text
+                case "Number":    result.number = text
+                case "Volume":    result.volume = text
+                case "Writer":    result.writer = text
+                case "Penciller": result.penciller = text
+                case "Publisher": result.publisher = text
+                case "Year":      result.year = text
+                case "Manga":     result.rightToLeft = text == "YesAndRightToLeft"
+                }
+            }
+        }
+
+        return result
+    }
+
+    // Reports whether the book says nothing the sheet writes.
+    mtd const isEmpty()->bool
+    {
+        for value in [.title.toString(), .series.toString(), .number.toString(), .volume.toString(), .writer.toString(), .penciller.toString(), .publisher.toString(), .year.toString()] where value.count do
+            return false
+        return true
+    }
+
+    // Appends what the book says of itself to the information sheet, under its own names.
+    mtd const describe(data: *MediaInfoData)
+    {
+        if not .title.isEmpty() do
+            data.add(.Title, .title)
+        if not .writer.isEmpty() do
+            data.add(.Author, .writer)
+        for row in [{name: "Series", value: .series.toString()}, {name: "Number", value: .number.toString()}, {name: "Volume", value: .volume.toString()},
+                    {name: "Penciller", value: .penciller.toString()}, {name: "Publisher", value: .publisher.toString()}, {name: "Year", value: .year.toString()}] where row.value.count do
+            data.addText(row.name, row.value)
+    }
+}
+
+// The largest `ComicInfo.xml` read; the metadata of a book is a few kilobytes.
+const ComicInfoLimit = 256'u64 * 1024
+
+// The archive and its image entries in natural reading order, with what the book says of itself.
 struct Book
 {
     archive: Archive.Zip
     pages:   Array'u64
+    info:    ComicInfo
 }
 
 impl Book
@@ -78,6 +165,17 @@ impl Book
 
         let archive = &result.archive
         result.pages.sort(func|archive|(a, b)->s32 => Latin1.compareNatural(archive.entries[a].path, archive.entries[b].path))
+
+        // A `ComicInfo.xml` at the root of the book describes it; one that cannot be read says nothing.
+        for &entry in result.archive.entries where not entry.isDirectory and
+                                                   entry.uncompressedSize <= ComicInfoLimit and
+                                                   Utf8.compare(entry.path, "ComicInfo.xml", .Latin1NoCase) == 0
+        {
+            let bytes = catch Archive.Zip.loadEntry(fileName, entry) { break }
+            result.info = ComicInfo.read(cast(string, bytes.toSlice()))
+            break
+        }
+
         return result
     }
 }
@@ -133,6 +231,9 @@ private impl IWnd for Panel
             return
         }
 
+        // A manga that says it reads from right to left turns its pages that way from the start.
+        if .book.info.rightToLeft do
+            .rightToLeft = true
         .refreshNavigation()
         .showPage(0)
         .services.loadingChanged(me)
@@ -362,6 +463,22 @@ private impl Panel
         entries.add(texts().ui_RightToLeft, .Sort, func|view = me|() { view.toggleReadingDirection() }, checked: .rightToLeft, shortcut: Input.formatKeyShortcut(.Control, .R))
     }
 
+    // Describes the book in the information sheet: its pages, then what its `ComicInfo.xml` says.
+    internal mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .book.pages.count do
+            return
+        var data: MediaInfoData
+        data.addFigure(.Pages, .book.pages.count == 1 ? String.from(texts().ui_OnePage) : Format.toString(texts().ui_Pages, .book.pages.count))
+        if not .book.info.isEmpty()
+        {
+            data.add(.Document, group: true)
+            .book.info.describe(&data)
+        }
+
+        data.describe(sheet)
+    }
+
     func create(host: Viewer.Host)->*Panel
     {
         let services    = host.services()
@@ -435,6 +552,7 @@ func createViewer(host: Viewer.Host)
     let view = Panel.create(host)
     host.attachView(view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.load.isPending() or view.extract.started or view.embedded.isLoading()

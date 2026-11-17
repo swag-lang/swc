@@ -9,3 +9,5 @@ ui_Details   Bande dessinée · page % sur %
 ui_GoToPage  Aller à la page
 ui_PageRange Saisissez un numéro de page entre 1 et %.
 err_NoPages  Cette bande dessinée ne contient aucune page lisible.
+ui_OnePage   1 page
+ui_Pages     % pages

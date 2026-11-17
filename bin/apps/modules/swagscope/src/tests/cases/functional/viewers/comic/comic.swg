@@ -134,3 +134,38 @@ using Core, Gui, Gui.Testing, Viewers
     window.lens.close()
     host.finishAnimations()
 }
+
+// A `ComicInfo.xml` at the root of the book is read for the information sheet, and a manga that
+// says it reads from right to left turns its pages that way from the start.
+#test
+{
+    let page = expect File.readAllBytes(scopeTestDataPath("viewer.png"))
+    const Info = """<?xml version="1.0"?>
+<ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Title>The Potion of Flight</Title>
+  <Series>Pepper &amp; Carrot</Series>
+  <Number>1</Number>
+  <Writer>David Revoy</Writer>
+  <Year>2014</Year>
+  <Manga>YesAndRightToLeft</Manga>
+</ComicInfo>"""
+    let bytes    = storedZipBytes([{name: "ComicInfo.xml", bytes: cast(const [..] u8, Info)}, {name: "01.png", bytes: page.toSlice()}, {name: "02.png", bytes: page.toSlice()}])
+    let fileName = Gui.Testing.tempFilePath("scope-comic-info-", ".cbz")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    let book = expect Comic.Book.load(fileName)
+    Swag.require(book.pages.count == 2 and book.info.title == "The Potion of Flight")
+    Swag.require(book.info.series == "Pepper & Carrot" and book.info.number == "1" and book.info.rightToLeft)
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.rightToLeft)
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "2 pages"), text)
+    Swag.require(Utf8.contains(text, "Title\nThe Potion of Flight") and Utf8.contains(text, "Author\nDavid Revoy"), text)
+    Swag.require(Utf8.contains(text, "Series\nPepper & Carrot") and Utf8.contains(text, "Year\n2014"), text)
+}

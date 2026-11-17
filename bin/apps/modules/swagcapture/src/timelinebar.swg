@@ -623,6 +623,7 @@ impl TimelineBar
             .audioReader = null
         }
 
+        .audioPath.clear()
         .silentPath.clear()
         .ownsAudioEngine = false
     }

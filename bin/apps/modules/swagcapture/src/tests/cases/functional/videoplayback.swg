@@ -185,3 +185,25 @@ using Swag, Core, Gui, Pixel, Video
     timeline.releaseCaptureMedia(document)
     Swag.require(timeline.silentPath.isEmpty())
 }
+
+// Switching captures disposes the old audio identity before the former document is removed.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let timeline = TimelineBar.create(f.main, &f.gui.root)
+    f.main.timeline = timeline
+    defer timeline.stop()
+    timeline.resize(800, TimelineHeight)
+    discard timeline.capture()
+    timeline.audioPath = "former.mp4"
+    timeline.silentPath = "former.mp4"
+
+    let current = Memory.new'Capture()
+    f.editView.setCapture(current)
+    f.capture = current
+    discard timeline.capture()
+    Swag.require(timeline.audioPath.isEmpty() and timeline.silentPath.isEmpty())
+}

@@ -314,6 +314,24 @@ namespace
 
         emitReturnWriteBack(builder, conv, ret, regBase);
     }
+
+    template <auto EmitCall>
+    SWC_FORCE_INLINE void emitPreparedSymbolCall(MicroBuilder& builder, const CallConvKind callConvKind, const Symbol* targetSymbol, const MicroReg targetReg, const ABICall::PreparedCall& preparedCall, const ABICall::Return& ret)
+    {
+        SWC_ASSERT(targetSymbol != nullptr);
+        SWC_UNUSED(targetReg);
+        if (preparedCall.stackAlignmentLog2)
+            return callAlignedSymbol(builder, callConvKind, targetSymbol, preparedCall, ret);
+
+        const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
+        const CallConv&               conv        = CallConv::get(callConvKind);
+
+        emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+        prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
+        (builder.*EmitCall)(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
+        emitReturnWriteBackIfNeeded(builder, conv, ret);
+        emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
+    }
 }
 
 void ABICall::loadCanonicalIntFromMemToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcBaseReg, uint64_t srcOffset, uint8_t numBits, bool isSigned)
@@ -942,19 +960,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
 void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
-    SWC_ASSERT(targetSymbol != nullptr);
-    SWC_UNUSED(targetReg);
-    if (preparedCall.stackAlignmentLog2)
-        return callAlignedSymbol(builder, callConvKind, targetSymbol, preparedCall, ret);
-
-    const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
-    const CallConv&               conv        = CallConv::get(callConvKind);
-
-    emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
-    builder.emitCallLocal(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
-    emitReturnWriteBackIfNeeded(builder, conv, ret);
-    emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
+    emitPreparedSymbolCall<&MicroBuilder::emitCallLocal>(builder, callConvKind, targetSymbol, targetReg, preparedCall, ret);
 }
 
 void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
@@ -964,19 +970,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const 
 
 void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
-    SWC_ASSERT(targetSymbol != nullptr);
-    SWC_UNUSED(targetReg);
-    if (preparedCall.stackAlignmentLog2)
-        return callAlignedSymbol(builder, callConvKind, targetSymbol, preparedCall, ret);
-
-    const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
-    const CallConv&               conv        = CallConv::get(callConvKind);
-
-    emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
-    builder.emitCallExtern(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
-    emitReturnWriteBackIfNeeded(builder, conv, ret);
-    emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
+    emitPreparedSymbolCall<&MicroBuilder::emitCallExtern>(builder, callConvKind, targetSymbol, targetReg, preparedCall, ret);
 }
 
 void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)

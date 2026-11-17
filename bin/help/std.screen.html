@@ -51,7 +51,7 @@
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Functions</span><span class="toc-count">11</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">12</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Screen_Source_captureOptions">Source.captureOptions</a></li>
@@ -63,6 +63,7 @@
 <li><a href="#Screen_Source_open">Source.open</a></li>
 <li><a href="#Screen_Source_openDesktop">Source.openDesktop</a></li>
 <li><a href="#Screen_Source_openMonitor">Source.openMonitor</a></li>
+<li><a href="#Screen_Source_openMonitorAt">Source.openMonitorAt</a></li>
 <li><a href="#Screen_Source_reopen">Source.reopen</a></li>
 <li><a href="#Screen_Source_resetMetrics">Source.resetMetrics</a></li>
 </ul>
@@ -123,6 +124,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_openMonitor">Source.openMonitor</a></td><td><p>Opens a source for one currently enumerated physical monitor.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_openMonitorAt">Source.openMonitorAt</a></td><td><p>Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_reopen">Source.reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_resetMetrics">Source.resetMetrics</a></td><td><p>Resets cumulative acquisition and composition counters without reopening the source.</p>
@@ -177,6 +180,8 @@
 <tr><td class="code-type"><a href="#Screen_Source_openDesktop">openDesktop</a></td><td><p>Opens a source for the current virtual desktop bounds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_openMonitor">openMonitor</a></td><td><p>Opens a source for one currently enumerated physical monitor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_openMonitorAt">openMonitorAt</a></td><td><p>Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_reopen">reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
 </td></tr>
@@ -248,35 +253,35 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_captureOptions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.captureOptions</span> <a class="api-item-permalink" href="#Screen_Source_captureOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L401">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_captureOptions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.captureOptions</span> <a class="api-item-permalink" href="#Screen_Source_captureOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L410">src</a></div>
 <p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">captureOptions</span>()-&gt;<span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L231">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L240">src</a></div>
 <p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 <p>False means no new image is available yet, either because the desktop and cursor did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead. A reusable target stays untouched on a false return; a new or resized target receives a complete current frame. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. Windows cursor composition rebuilds the selected area each poll to account for pointer-only changes. The target remains owned by the caller.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grabInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, copyUnchanged: <span class="STpe">bool</span> = <span class="SKwd">true</span>,
              updateChangedOnly: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_lastFrameCaptureMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFrameCaptureMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFrameCaptureMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L357">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_lastFrameCaptureMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFrameCaptureMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFrameCaptureMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L366">src</a></div>
 <p>Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.</p>
 <p>The value uses the same microsecond clock as <a href="std.core.html#Core_Time_monotonicMicroseconds">Core.Time.monotonicMicroseconds</a>. It records when <span class="code-inline">grabInto</span> received a fresh frame, not the display's presentation time, and remains unchanged when a grab returns false. With cursor composition enabled, cursor-only image changes also update it. A successful reopen resets it to zero; failed attempts preserve it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lastFrameCaptureMicroseconds</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_lastFramePresentationMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFramePresentationMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFramePresentationMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L361">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_lastFramePresentationMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFramePresentationMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFramePresentationMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L370">src</a></div>
 <p>Returns the display presentation time for the latest acquired frame, when the backend reports it. The value shares the monotonic microsecond clock; zero means the backend has no presentation time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lastFramePresentationMicroseconds</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L364">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L373">src</a></div>
 <p>Returns cumulative native and composition timing since this source was opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metrics</span>()-&gt;<span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L421">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L430">src</a></div>
 <p>Releases the native capture handles and cached frames on the opening thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
@@ -287,7 +292,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(options: <span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_openDesktop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.openDesktop</span> <a class="api-item-permalink" href="#Screen_Source_openDesktop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L177">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_openDesktop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.openDesktop</span> <a class="api-item-permalink" href="#Screen_Source_openDesktop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L186">src</a></div>
 <p>Opens a source for the current virtual desktop bounds.</p>
 <p>The rectangle includes gaps between monitors. It can fail when no desktop bounds are available. <span class="code-inline">includeCursor</span> requests pointer composition where supported and defaults to false.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openDesktop</span>(includeCursor: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
@@ -302,12 +307,17 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openMonitor</span>(monitor: <span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_Monitor">Monitor</a></span>, includeCursor: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L404">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_openMonitorAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.openMonitorAt</span> <a class="api-item-permalink" href="#Screen_Source_openMonitorAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L174">src</a></div>
+<p>Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openMonitorAt</span>(point: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>, includeCursor: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L413">src</a></div>
 <p>Reopens a source after a display change or native access loss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reopen</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_resetMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.resetMetrics</span> <a class="api-item-permalink" href="#Screen_Source_resetMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L392">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_resetMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.resetMetrics</span> <a class="api-item-permalink" href="#Screen_Source_resetMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L401">src</a></div>
 <p>Resets cumulative acquisition and composition counters without reopening the source. The native capture handles, cached frame and last frame capture time are preserved.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetMetrics</span>()</span></div>
 </section>
@@ -602,6 +612,7 @@
 "f|Screen.Source.open|Screen_Source_open|Opens a native source for one physical desktop area.",
 "f|Screen.Source.openDesktop|Screen_Source_openDesktop|Opens a source for the current virtual desktop bounds.",
 "f|Screen.Source.openMonitor|Screen_Source_openMonitor|Opens a source for one currently enumerated physical monitor.",
+"f|Screen.Source.openMonitorAt|Screen_Source_openMonitorAt|Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.",
 "f|Screen.Source.reopen|Screen_Source_reopen|Reopens a source after a display change or native access loss.",
 "f|Screen.Source.resetMetrics|Screen_Source_resetMetrics|Resets cumulative acquisition and composition counters without reopening the source.",
 ]);

@@ -14,6 +14,14 @@ using Core, Pixel
     let bounds = monitors[0].physicalBounds
     if bounds.width < 64 or bounds.height < 64 do
         return
+    let monitorX = cast(s32, bounds.x)
+    let monitorY = cast(s32, bounds.y)
+    let monitorWidth = cast(s32, bounds.width)
+    let monitorHeight = cast(s32, bounds.height)
+    let captureWidth = Math.min(256's32, monitorWidth)
+    let captureHeight = Math.min(256's32, monitorHeight)
+    let captureX = monitorX + (monitorWidth - captureWidth) / 2
+    let captureY = monitorY + (monitorHeight - captureHeight) / 2
 
     var cursor: CURSORINFO
     cursor.cbSize = #sizeof(CURSORINFO)
@@ -23,17 +31,14 @@ using Core, Pixel
     let originalY = cursor.ptScreenPos.y
     defer SetCursorPos(originalX, originalY)
 
-    var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
-                                     cast(s32, bounds.width), cast(s32, bounds.height), true})
-    SetCursorPos(cast(s32, bounds.x) + cast(s32, bounds.width / 4),
-                 cast(s32, bounds.y) + cast(s32, bounds.height / 4))
+    var source = expect Source.open({captureX, captureY, captureWidth, captureHeight, true})
+    SetCursorPos(captureX + captureWidth / 4, captureY + captureHeight / 4)
     var image: Image
     Swag.require(expect source.grabInto(&image))
     var previous = Image.create(image.width, image.height, image.pixelFormat)
     Memory.copy(previous.pixels.storage(), image.pixels.storage(), image.byteCount)
 
-    SetCursorPos(cast(s32, bounds.x) + cast(s32, bounds.width * 3 / 4),
-                 cast(s32, bounds.y) + cast(s32, bounds.height * 3 / 4))
+    SetCursorPos(captureX + captureWidth * 3 / 4, captureY + captureHeight * 3 / 4)
     let fresh = expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(fresh, "cursor movement should make the captured image fresh")
     Swag.require(Memory.compare(previous.pixels.storage(), image.pixels.storage(), image.byteCount) != 0,
@@ -44,7 +49,7 @@ using Core, Pixel
 
     image = Image.create(1, 1, .BGRA8)
     discard expect source.grabInto(&image, copyUnchanged: false)
-    Swag.require(image.width == cast(s32, bounds.width) and image.height == cast(s32, bounds.height))
+    Swag.require(image.width == captureWidth and image.height == captureHeight)
     Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
                                 image.byteCount) == 0,
                  "a replacement target should receive the current cursor-composited frame")
@@ -101,6 +106,11 @@ using Core, Pixel
                  selection.y == cast(s32, monitorBounds.y) and
                  selection.width == cast(s32, monitorBounds.width) and
                  selection.height == cast(s32, monitorBounds.height))
+    let pointSource = expect Source.openMonitorAt({monitorBounds.x + monitorBounds.width / 2,
+                                                    monitorBounds.y + monitorBounds.height / 2})
+    let pointOptions = pointSource.captureOptions()
+    Swag.require(pointOptions.x == selection.x and pointOptions.y == selection.y and
+                 pointOptions.width == selection.width and pointOptions.height == selection.height)
     let native = source.sources[0]
     Swag.require(expect native.beginGrab())
     Swag.require(native.pending)

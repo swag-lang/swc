@@ -38,6 +38,12 @@ private func sharedSegmentCount()->u64 fail
         return
     let bounds = monitors[0].physicalBounds
     var source = expect Source.openMonitor(monitors[0])
+    let pointSource = expect Source.openMonitorAt({bounds.x + bounds.width / 2,
+                                                    bounds.y + bounds.height / 2})
+    let pointOptions = pointSource.captureOptions()
+    Swag.require(pointOptions.x == cast(s32, bounds.x) and pointOptions.y == cast(s32, bounds.y) and
+                 pointOptions.width == cast(s32, bounds.width) and
+                 pointOptions.height == cast(s32, bounds.height))
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)

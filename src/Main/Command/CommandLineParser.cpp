@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Format/FormatOptionsLoader.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/FileSystem.h"
@@ -517,6 +518,11 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
 
     if (configPath.empty())
         return Result::Continue;
+
+    // A `.swc-format` holds formatter options, which `swc format` finds beside the sources by
+    // itself. Read as command-line options, its first key would only be reported as unknown.
+    if (configPath.filename() == fs::path(FormatOptionsLoader::CONFIG_FILE_NAME))
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_config_file_format_options, configPath);
 
     cmdLine_->configFile = configPath;
 

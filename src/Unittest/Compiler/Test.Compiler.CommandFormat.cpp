@@ -6,6 +6,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
@@ -46,6 +47,19 @@ namespace
         CompilerInstance compiler(ctx.global(), cmdLine);
         return compiler.run() == ExitCode::Success ? Result::Continue : Result::Error;
     }
+
+    Result parseFormatWithConfigFile(const TaskContext& ctx, CommandLine& cmdLine, const fs::path& configFile)
+    {
+        std::string configArg = configFile.string();
+        char        arg0[]    = "swc.dm";
+        char        arg1[]    = "format";
+        char        arg2[]    = "--config-file";
+        char*       argv[]    = {arg0, arg1, arg2, configArg.data()};
+
+        cmdLine.silent = true;
+        CommandLineParser parser(const_cast<Global&>(ctx.global()), cmdLine);
+        return parser.parse(std::size(argv), argv);
+    }
 }
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_FormatCommandHonorsExplicitDotPaths)
@@ -82,6 +96,35 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_FormatCommandHonorsExplicitDotPaths)
 
     SWC_RESULT(CompilerTestFile::readText(formatted, cacheFile));
     if (formatted != SOURCE)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// `--config-file` reads command-line options. A `.swc-format` holds formatter options instead, so it
+// is refused by name even when its keys happen to be command-line options too.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ConfigFileRefusesFormatterConfiguration)
+{
+    static constexpr std::string_view OPTIONS = "num-cores = 2\n";
+
+    FormatCommandTestDirectory testDir("ConfigFileRefusesFormatterConfiguration");
+
+    const fs::path optionsFile   = testDir.path() / "options.cfg";
+    const fs::path formatterFile = testDir.path() / ".swc-format";
+    SWC_RESULT(CompilerTestFile::writeText(optionsFile, OPTIONS));
+    SWC_RESULT(CompilerTestFile::writeText(formatterFile, OPTIONS));
+
+    CommandLine optionsCommand;
+    SWC_RESULT(parseFormatWithConfigFile(ctx, optionsCommand, optionsFile));
+    if (optionsCommand.numCores != 2)
+        return Result::Error;
+
+    // The refusal is the expected outcome, so its error does not count against the test.
+    const uint64_t                          errorsBefore = Stats::getNumErrors();
+    const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
+    CommandLine                             formatterCommand;
+    if (parseFormatWithConfigFile(ctx, formatterCommand, formatterFile) != Result::Error)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore + 1)
         return Result::Error;
 }
 SWC_TEST_END()

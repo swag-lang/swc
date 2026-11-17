@@ -65,21 +65,14 @@ class SymbolMap : public Symbol
     friend class SymbolStruct;
 
 public:
-    struct SourceRevision
-    {
-        StrongRef<SourceFile> fileRef  = StrongRef<SourceFile>::invalid();
-        uint64_t              revision = 0;
-    };
-
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
     Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
 
-    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision);
-    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap) { addUsingSymMap(ctx, symMap, {}); }
-    void copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler = nullptr) const;
+    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap);
+    void copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
 
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     const Symbol* findFirstNamespace(IdentifierRef idRef) const;
@@ -136,8 +129,7 @@ protected:
 
     struct UsingSymMap
     {
-        SymbolMap*         symbol = nullptr;
-        SourceRevision     sourceRevision;
+        SymbolMap*         symbol   = nullptr;
         const UsingSymMap* previous = nullptr;
     };
 

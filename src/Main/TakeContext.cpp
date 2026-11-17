@@ -7,17 +7,15 @@ SWC_BEGIN_NAMESPACE();
 
 TaskContext::TaskContext(const Global& global, const CommandLine& cmdLine) :
     global_(&global),
-    cmdLine_(&cmdLine),
-    editorService_(isEditorServiceCommand(cmdLine.command))
+    cmdLine_(&cmdLine)
 {
 }
 
 TaskContext::TaskContext(CompilerInstance& compInst) :
     compilerInstance_(&compInst)
 {
-    global_        = &compInst.global();
-    cmdLine_       = &compInst.cmdLine();
-    editorService_ = isEditorServiceCommand(cmdLine_->command);
+    global_  = &compInst.global();
+    cmdLine_ = &compInst.cmdLine();
 }
 
 TaskContext::TaskContext(const TaskContext& other) :
@@ -29,7 +27,6 @@ TaskContext::TaskContext(const TaskContext& other) :
     muteOutput_(other.muteOutput_),
     hasError_(other.hasError_),
     hasWarning_(other.hasWarning_),
-    editorService_(other.editorService_),
     state_(other.state_)
 {
 }
@@ -47,7 +44,6 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     muteOutput_       = other.muteOutput_;
     hasError_         = other.hasError_;
     hasWarning_       = other.hasWarning_;
-    editorService_    = other.editorService_;
     state_            = other.state_;
     genericNodeRunCache_.reset();
     genericInstanceNodeRunCache_.reset();

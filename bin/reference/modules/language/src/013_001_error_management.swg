@@ -329,8 +329,7 @@ choice, not part of the signature: callers handle the function's errors as usual
 It governs only the body it is written on. A function or a lambda declared inside that
 body spells its own handling, and a macro or a mixin cannot carry it, because its body
 belongs to the caller. An attribute block applies it to each function it holds; '#global'
-cannot apply it to a whole file. Editors that use the Swag language server show the
-implicit 'try' as a hint before each call it applies to.
+cannot apply it to a whole file.
 
 Use it for linear code where every step can fail and every failure ends the work:
 setup code, scripts, test scenarios. Code that builds state by hand and must undo it on

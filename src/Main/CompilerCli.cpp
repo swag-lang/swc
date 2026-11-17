@@ -5,8 +5,6 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
-#include "Main/EditorIndex.h"
-#include "Main/EditorService.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -61,20 +59,12 @@ ExitCode runCompilerCli(const int argc, char* argv[])
     }
 #endif
 
-    if (!isEditorServiceCommand(cmdLine.command) && EditorIndex::loadOverlays(cmdLine) != Result::Continue)
-        return ExitCode::ErrorCmdLine;
-
     ExitCode result;
-    if (isEditorServiceCommand(cmdLine.command))
-        result = runEditorService(global, cmdLine);
-    else
     {
         CompilerInstance compiler(global, cmdLine);
         result = compiler.run();
         if (compiler.optimizerStats())
             compiler.optimizerStats()->print(startupCtx);
-        if (!cmdLine.editorIndex.empty() && EditorIndex::write(compiler) != Result::Continue)
-            result = ExitCode::ErrorCommand;
     }
 
 #if SWC_DEV_MODE

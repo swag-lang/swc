@@ -45,7 +45,6 @@ file. Do not add status, dates, or progress summaries to the index.
 | [compiler.command.format.md](compiler.command.format.md) | Compiler `format` command |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace builds |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery and first use |
-| [compiler.language.service.md](compiler.language.service.md) | Compiler-backed editor services |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
 | [cpu.simd.md](cpu.simd.md) | SIMD compiler and consumer work |

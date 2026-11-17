@@ -1,6 +1,6 @@
 # Swag
 
-Compiler-backed language support and a dark theme for Swag in Visual Studio Code.
+Syntax highlighting, a dark theme, and build tasks for Swag in Visual Studio Code.
 
 # Screenshot
 
@@ -8,108 +8,24 @@ Compiler-backed language support and a dark theme for Swag in Visual Studio Code
 
 # Features
 
- - Syntax highlighting
- - Semantic highlighting of resolved types, functions, methods, parameters, fields, and variables,
-   with restrained styling for local and global variables
- - Hover types, including inferred types, and inferred variable type inlay hints
- - A faded `try` inlay hint before each call that a `#[Swag.Propagate]` function propagates
-   without spelling `try`
- - Go to Definition, Peek Definition, references within the analyzed module, and document symbols
- - Compiler diagnostics for open files, updated after edits without saving
+ - Syntax highlighting from a TextMate grammar checked against the compiler token catalog
  - Theme 'Swag Dark', which uses the same token colors as the generated documentation,
    so code reads the same in the editor and on the language reference
- - Build, rebuild, and format tasks using `swc` from PATH
+ - Build, rebuild, and format tasks using `swc` from PATH, with a problem matcher for
+   compiler diagnostics
+
+The extension runs no compiler in the background: it has no language server, and the
+compiler has no editor service. Diagnostics appear when a task runs.
 
 ## Setup
 
-The language server is disabled by default for now to avoid background analysis costs.
-Syntax highlighting, the theme, and build tasks remain available. Set
-`"swag.languageServer.enabled": true` to opt in to compiler-backed features.
-
-Use VS Code 1.82 or newer and a compiler built from this revision. The language server finds
-`swc` on PATH by default; no compiler path setting is required. If PATH was changed while
-VS Code was running, close all VS Code windows and start it again to pick up the new environment.
-Optionally set `swag.compilerPath` to an executable path to use a different compiler, such as
-the checkout's `bin/swc.dm.exe`. An older compiler without `--editor-index` cannot provide
-semantic features. Build tasks use `swc` from PATH.
+Use VS Code 1.82 or newer. The tasks launch `swc` from PATH; if PATH was changed while
+VS Code was running, close all VS Code windows and start it again to pick up the new
+environment.
 
 Run `npm ci`, open this directory in VS Code, and launch the `Extension` configuration with
 F5. In the development window, open a Swag module or an existing `.swg`/`.swgs` file.
-Enable VS Code's **Editor: Inlay Hints** setting to show inferred types beside declarations
-and the implicit `try` of `#[Swag.Propagate]` functions.
-To show hints only while holding `Ctrl+Alt`, set `"[swag]": { "editor.inlayHints.enabled": "offUnlessPressed" }`;
-use `onUnlessPressed` to show them by default and hide them while holding the keys.
-Use **Swag: Restart Language Server** after rebuilding the compiler. The **Swag Language
-Server** output channel contains the client log.
-
-`swag.languageServer.enabled` enables semantic features. `analysisDelay` (default 500 ms)
-and `analysisTimeout` (default 60 seconds) under `swag.languageServer` control background
-analysis. Compiler execution is enabled only in trusted workspaces: Swag semantic analysis
-can execute module setup and compile-time code. Syntax highlighting remains available in
-untrusted workspaces.
-
-## Analysis scope
-
-The server finds the nearest ancestor `module.swg` and analyzes that module; a file outside
-a module is analyzed on its own. Open buffers in that module replace the compiler's source
-contents in memory. Unsaved buffers, the editor index, and the requested module working/output
-directories live in a per-service system temporary directory. Dependencies use the compiler's
-usual caches. Generated standard-library APIs are discovered from `SWAG_PATH`, the selected
-compiler's adjacent `std` directory, or a checkout's `bin/std` tree, so imported standard types
-remain navigable without hand-entering an API root.
-The index contains this module's sources and only imported API files needed by referenced
-declarations, so unrelated dependency and runtime sources are not copied into editor snapshots.
-The language server uses standard LSP over stdio and can run independently of VS Code. From this
-directory, install its locked dependencies with `npm ci`, then configure another IDE's LSP client
-to launch `node <path-to-this-directory>/src/server.js --stdio`. Pass this initialization options
-object (or its equivalent in the client):
-
-```json
-{
-  "compilerPath": "swc",
-  "analysisDelay": 500,
-  "analysisTimeout": 60000
-}
-```
-
-`compilerPath` may be an absolute path to the compiler executable. The server supports standard
-LSP initialization, document synchronization, diagnostics, hover, definition, references, document
-symbols, semantic tokens, and inlay hints. Its LSP transport is separate from the compiler worker
-protocol.
-
-The server keeps one persistent compiler worker per analyzed module and compiler executable.
-Workers retain compiler state between snapshots and shut down after ten minutes without a request.
-Analyses are serialized and use at most six compiler workers; obsolete results are never
-published over a newer document version.
-
-Semantic features are returned for symbols the compiler resolved, even when other parts of the
-module have errors. Unresolved tokens keep TextMate highlighting, and navigation is available
-only when the compiler can map a definition to source. Implicit `try` hints require a successful
-module analysis. References cover the current module. Imports use the compiler's on-disk
-dependency state; unsaved edits in another module are not incorporated. Imported definitions
-currently navigate
-to generated API source when that is the source the compiler loaded. Generated expansions
-without a physical source mapping and ambiguous generic instances return no location.
-Completion, rename, original-source mappings for imported APIs, and incremental compilation
-are not implemented yet.
 
 ## Validation
 
-Run `npm test` for task discovery, TextMate grammar, semantic positions, shadowing, overlays,
-and analysis cancellation. After building the compiler, set `SWAG_TEST_COMPILER` to that
-checkout's executable and run `npm run test:integration` for the LSP lifecycle, inferred
-types, overload selection, cross-file definitions, unsaved edits, and diagnostic repair.
-
-The compiler worker protocol is versioned and described by `swc help service`: request markers are
-written to both output streams so clients can wait until compiler output is flushed. The bridge
-writes JSON with `version: 1`, source texts, and byte-based symbol occurrences using
-`swc sema --editor-index <file>`. Occurrences can identify methods, intrinsic functions,
-and fields declared by interfaces as well as structs. Variable occurrences may include
-`storage: "local"` or `storage: "global"` for semantic coloring; an occurrence whose source
-definition has no physical mapping can still be colored, but its `definition` is `null` and it
-does not support navigation. `--editor-overlay <file>` reads `SWAG-EDITOR-1\n`,
-followed by pairs of UTF-8 path and source strings. Each string is preceded by its decimal
-byte length and a newline; its exact bytes follow immediately, including for empty buffers.
-Source paths retain their identity. The index is converted to LSP UTF-16 positions by the
-server. IDEs should generally use the standard LSP server above; the compiler worker protocol is
-available to integrations that need the snapshot interface directly.
+Run `npm test` for task discovery, extension activation, and the TextMate grammar.

@@ -160,7 +160,7 @@ namespace
             return;
 
         SmallVector<const SymbolMap*> usingSymMaps;
-        symMap->copyUsingSymMaps(usingSymMaps, &sema.compiler());
+        symMap->copyUsingSymMaps(usingSymMaps);
 
         for (const SymbolMap* usingSymMap : usingSymMaps)
         {

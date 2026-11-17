@@ -384,8 +384,6 @@ public:
     static const Sema*      tryGetJobSema(const Job* job);
 
     SourceFile&              addFile(fs::path path, FileFlags flags);
-    std::vector<SourceFile*> beginEditorAnalysisRevision(std::span<SourceFile* const> inputFiles);
-    void                     updateEditorDependencies(SourceFile& sourceFile);
     SourceFile&              addLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     SourceFile&              file(FileRef ref) const;
     std::vector<SourceFile*> filesSnapshot() const;
@@ -401,8 +399,6 @@ public:
     const SourceFile*                       sourceViewFile(SourceViewRef ref) const;
     const SourceFile*                       sourceViewFile(const Symbol& symbol) const;
     const SourceFile*                       declaringSourceFile(const Symbol& symbol) const;
-    void                                    registerEditorSymbol(const Symbol& symbol, FileRef fileRef, uint64_t revision) const;
-    std::vector<const Symbol*>              editorSymbols(FileRef fileRef, uint64_t revision) const;
     bool                                    isImportedApiSource(const Symbol& symbol) const;
     const SourceFile*                       owningSourceFile(const SourceView& srcView) const;
     const SourceFile*                       owningSourceFile(const SourceView* srcView) const;
@@ -675,9 +671,6 @@ private:
     mutable std::shared_mutex                                                                     sourceStorageMutex_;
     mutable std::shared_mutex                                                                     sourceChecksumsMutex_;
     mutable std::unordered_map<fs::path, std::array<uint8_t, 32>>                                 sourceChecksums_;
-    mutable std::shared_mutex                                                                     editorSymbolsMutex_;
-    mutable std::unordered_map<FileRef, std::unordered_map<uint64_t, std::vector<const Symbol*>>> editorSymbols_;
-    std::unordered_map<FileRef, std::unordered_set<FileRef>>                                      editorDependencies_;
     mutable std::shared_mutex                                                                     nativeCodeSegmentMutex_;
     mutable std::shared_mutex                                                                     nativeSpecialFunctionsMutex_;
     mutable std::shared_mutex                                                                     nativeGlobalFunctionInitTargetsMutex_;

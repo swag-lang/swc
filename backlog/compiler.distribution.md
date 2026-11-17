@@ -238,26 +238,26 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   plan, interpret an intentional compiler error, locate the matching local reference entry, and
   distinguish a source error from an unavailable host capability without hard-coded Swag knowledge.
 - Related: compiler.command.doc.003, compiler.distribution.004, compiler.distribution.006,
-  compiler.distribution.009, compiler.language.service.001, compiler.language.service.002.
+  compiler.distribution.009, compiler.distribution.010.
 
-### compiler.distribution.010 — The distributed compiler does not expose a ready editor/agent endpoint
+### compiler.distribution.010 — The compiler answers no semantic question from the command line
 
-- Evidence: `swc service` runs a private stdio protocol that the Node LSP server in
-  `vscode/src/server.js` drives (spawned from `vscode/src/compiler.js`). A release user has
-  no documented `swc` command that speaks LSP, reports its compiler and payload versions, or
-  guarantees that hover documentation and imported standard APIs match the shipped payload.
-- Next: once compiler.language.service.001 provides a retained library service, add a
-  documented `swc lsp` command that speaks LSP over stdio. Its initialization response
-  identifies the compiler and payload versions, and its document links resolve to the local
-  documentation index of compiler.distribution.006.
-- Done when: an LSP client can start from a lone executable or a complete `bin/`
-  installation, discover the exact endpoint and version without repository files, open an
-  unsaved workspace document, receive diagnostics, completion and hover with local
-  documentation, and shut down without leaving release or cache state ambiguous.
-- Related: compiler.language.service.001, compiler.language.service.002,
-  compiler.language.service.006, compiler.language.service.003,
-  compiler.language.service.005, compiler.language.service.007, compiler.distribution.006,
-  compiler.distribution.008.
+- Evidence: the compiler has no editor service and no retained analysis process: an autonomous
+  caller compiles with one-shot commands. What a text search cannot answer still has no command:
+  the type of an expression, the overload a call selected, the exact signature of an imported
+  symbol, the callers of a function. Semantic analysis resolves each of them
+  (`NodePayload::resolveSymbols`); nothing prints them. A definition reached through an import
+  resolves to the generated API file, and a generated source view has no physical mapping.
+- Next: add a one-shot `swc query` beside `swc sema` that analyzes a module and answers one
+  question about a source position or a symbol as a record of the compiler.distribution.008
+  schema. Start with the type at a position and the definition of a name.
+- Done when: from a lone executable, one command each returns the resolved type, the selected
+  overload, the declaration at its original source location across modules and expansions, and
+  the references inside a workspace; no command retains a process, an unknown or ambiguous
+  position answers nothing rather than a plausible location, and cold latency rests on the
+  front-end caches of compiler.core.001 and compiler.core.006.
+- Related: compiler.core.001, compiler.core.002, compiler.core.006, compiler.core.117,
+  compiler.distribution.006, compiler.distribution.008.
 
 ### compiler.distribution.011 — No release gate proves the first-use contract
 

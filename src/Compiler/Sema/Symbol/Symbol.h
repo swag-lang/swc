@@ -102,7 +102,6 @@ enum class SymbolFlagsE : uint16_t
     ExcludedByCondition = 1 << 8,
     Private             = 1 << 9,
     ConstraintsResolved = 1 << 10,
-    EditorRetired       = 1 << 11,
     MachineCodeEmitted  = 1 << 12,
     MachineCodeReused   = 1 << 13,
     LoweredLeaf         = 1 << 14,
@@ -172,7 +171,6 @@ public:
     void setDeclared(TaskContext& ctx);
 
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
-    bool isEditorRetired() const noexcept { return flags_.has(SymbolFlagsE::EditorRetired); }
     void setIgnored(TaskContext& ctx) noexcept;
     bool isExcludedByCondition() const noexcept { return flags_.has(SymbolFlagsE::ExcludedByCondition); }
     void setExcludedByCondition(TaskContext& ctx) noexcept;
@@ -185,7 +183,6 @@ public:
 
     void registerCompilerIf(Sema& sema);
     void registerAttributes(Sema& sema);
-    void registerEditorSourceRevision(const TaskContext& ctx);
 
     SymbolMap*       ownerSymMap() noexcept { return ownerSymMap_; }
     const SymbolMap* ownerSymMap() const noexcept { return ownerSymMap_; }
@@ -268,11 +265,7 @@ public:
     template<typename T>
     static T* make(TaskContext& ctx, const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
     {
-        T* symbol = ctx.allocate<T>(decl, tokRef, idRef, flags);
-        if (ctx.isEditorService())
-            symbol->registerEditorSourceRevision(ctx);
-
-        return symbol;
+        return ctx.allocate<T>(decl, tokRef, idRef, flags);
     }
 
 protected:

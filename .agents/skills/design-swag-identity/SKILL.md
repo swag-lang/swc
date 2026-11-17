@@ -333,13 +333,6 @@ lexical colours:
 | keyword.control | `#C48FD0` | `SLgc` |
 | entity.name.function | `#E8A06A` | `SFct` |
 | entity.name.function.intrinsic | `#CBB45C` | `SItr` |
-| resolved namespace (VSCode semantic token) | `#94A3B8` | semantic token only |
-| resolved type, struct, interface, enum (VSCode semantic token) | `#56C2B3` | semantic token only |
-| resolved parameter (VSCode semantic token) | `#D5D5DD`, italic | semantic token only |
-| resolved method (VSCode semantic token) | `#D7A17F` | semantic token only |
-| resolved field, enum member (VSCode semantic token) | `#B8C4CC` | semantic token only |
-| resolved global variable (VSCode semantic token) | `#94A3B8` | semantic token only |
-| resolved intrinsic function or method (VSCode semantic token) | `#CBB45C` | semantic token only |
 | built-in `Swag` namespace | `#94A3B8` | `SNsp` |
 | entity.name.type, class | `#56C2B3` | `SCst` |
 | storage.type | `#E0B464` | `STpe` |
@@ -348,8 +341,7 @@ lexical colours:
 | preprocessor, attribute | `#9A9AA6` | `SCmp`, `SAtr` |
 | invalid | `#FF6666` | `SInv` |
 
-When you change one lexical surface, change the other two in the same commit. Semantic tokens
-only refine VSCode's colours when the language server resolves a symbol. The RichEdit lexer runs
+When you change one lexical surface, change the other two in the same commit. The RichEdit lexer runs
 these values through `Color.ensureContrast`, so the same hues stay legible on Encre and deepen on
 Papier. When the intrinsic catalogue changes, compare both lexers against `Tokens.Def.inc`.
 

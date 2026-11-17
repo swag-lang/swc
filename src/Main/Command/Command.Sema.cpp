@@ -60,10 +60,6 @@ namespace Command
             inputFiles.push_back(f);
         }
 
-        std::vector<SourceFile*> parseFiles = inputFiles;
-        if (isEditorServiceCommand(compiler.cmdLine().command))
-            parseFiles = compiler.beginEditorAnalysisRevision(inputFiles);
-
         // Parser
         const uint64_t         errorsBefore  = Stats::getNumErrors();
         const ParserJobOptions parserOptions = {
@@ -71,23 +67,20 @@ namespace Command
         };
         {
             SWC_SCHED_PHASE(jobMgr, "parse");
-            parseSourceFiles(ctx, parseFiles, parserOptions);
+            parseSourceFiles(ctx, inputFiles, parserOptions);
         }
         // Parsing consumes the dependency's already published API snapshot.
         // Semantic analysis can execute its native code, so join before it starts,
         // including when parsing reported an error that must drain the pipeline.
         if (compiler.completeWorkspaceDependency() != Result::Continue)
             return;
-        // An editor index can still use semantic data from files that parsed successfully.
-        // Files with parser errors are filtered below; regular compilation remains fail-fast.
-        const bool editorIndex = !compiler.cmdLine().editorIndex.empty();
-        if (Stats::getNumErrors() != errorsBefore && !editorIndex)
+        if (Stats::getNumErrors() != errorsBefore)
             return;
 
         // Filter files
         std::vector<SourceFile*> files;
-        files.reserve(parseFiles.size());
-        for (SourceFile* f : parseFiles)
+        files.reserve(inputFiles.size());
+        for (SourceFile* f : inputFiles)
         {
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
@@ -100,23 +93,9 @@ namespace Command
         }
 
         SmallVector<Ast*> moduleAsts;
-        moduleAsts.reserve(inputFiles.size());
-        if (isEditorServiceCommand(compiler.cmdLine().command))
-        {
-            for (SourceFile* f : inputFiles)
-            {
-                if (!f || !f->isEditorActive() || !f->ast().hasSourceView() || !f->ast().root().isValid() || f->hasError())
-                    continue;
-                const SourceView& srcView = f->ast().srcView();
-                if (!srcView.mustSkip() && srcView.runsSema())
-                    moduleAsts.push_back(&f->ast());
-            }
-        }
-        else
-        {
-            for (SourceFile* f : files)
-                moduleAsts.push_back(&f->ast());
-        }
+        moduleAsts.reserve(files.size());
+        for (SourceFile* f : files)
+            moduleAsts.push_back(&f->ast());
         SWC_SCHED_PHASE(jobMgr, "sema setup");
         Parser::finalizeAutoInlineCandidates(moduleAsts.span());
 
@@ -171,12 +150,6 @@ namespace Command
 
         if (compiler.validateAllocatorConfig(ctx) == Result::Error)
             return;
-
-        if (isEditorServiceCommand(compiler.cmdLine().command))
-        {
-            for (SourceFile* f : files)
-                compiler.updateEditorDependencies(*f);
-        }
 
         {
             SWC_SCHED_PHASE(jobMgr, "api export");

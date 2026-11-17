@@ -2,19 +2,9 @@
 
 ## Unreleased
 
-- Refine semantic highlighting for methods, intrinsic calls, interface fields, and symbols
-  without a navigable source definition.
-- Preserve resolved semantic information when other parts of the module have errors, and keep
-  analyzing files that parsed successfully after a sibling file has a syntax error.
-- Keep parameters and fields quiet, and tone down global variable color in Swag Dark.
-- Distinguish local and global variables in semantic tokens and the Swag Dark theme.
-- Add a compiler-backed language server with semantic highlighting, hover types, inferred
-  type hints, definition navigation, module references, document symbols, and diagnostics.
-- Analyze unsaved module buffers and discard results superseded by edits.
-- Add compiler selection and restart settings; require VS Code 1.82 or newer for language services.
-- Keep syntax highlighting available when workspace trust disables compiler execution.
-- Show a `try` inlay hint before each fallible call a `#[Swag.Propagate]` function propagates
-  implicitly.
+- Remove the compiler-backed language server, its settings, and its restart command. The
+  extension now provides syntax highlighting, the Swag Dark theme, and build tasks only.
+- Remove semantic token colors from Swag Dark; TextMate scopes carry every color.
 
 ## 0.0.170
 

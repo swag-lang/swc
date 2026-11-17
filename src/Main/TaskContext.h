@@ -29,7 +29,6 @@ public:
     const Global&           global() const { return *(global_); }
     const CommandLine&      cmdLine() const { return *(cmdLine_); }
     bool                    hasCompiler() const { return compilerInstance_ != nullptr; }
-    bool                    isEditorService() const { return editorService_; }
     CompilerInstance&       compiler() { return *(compilerInstance_); }
     const CompilerInstance& compiler() const { return *(compilerInstance_); }
 
@@ -101,7 +100,6 @@ private:
     bool muteOutput_       = false;
     bool hasError_         = false;
     bool hasWarning_       = false;
-    bool editorService_    = false;
 
     uint32_t  pendingJitItems_ = 0;
     TaskState state_;

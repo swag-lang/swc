@@ -2247,7 +2247,7 @@ func use(value: *s32?, count: u32)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshotAndEditorRevision)
+SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshot)
 {
     constexpr std::string_view         source = "func published()->s32 => 42\n";
     std::weak_ptr<const SourceContent> retained;
@@ -2281,13 +2281,7 @@ SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshotAndEditorRevision)
 
         snapshot.reset();
         second.setContent("func other() {}\n");
-        first.beginEditorRevision("func published()->s32 => 43\n");
-        if (retained.expired() || original.stringView() != source || first.sourceView() == source)
-            return Result::Error;
-        SWC_RESULT(first.loadContent(compilerCtx));
-        lexer.tokenize(compilerCtx, first.ast().srcView(), LexerFlagsE::Default);
-        parser.parse(compilerCtx, first.ast());
-        if (first.ast().root().isInvalid() || original.tokenString(TokenRef(1)) != "published")
+        if (retained.expired() || original.stringView() != source || original.tokenString(TokenRef(1)) != "published")
             return Result::Error;
     }
     if (!retained.expired())

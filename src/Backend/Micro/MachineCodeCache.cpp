@@ -442,7 +442,7 @@ namespace
 MachineCodeCache::MachineCodeCache(TaskContext& ctx, const SymbolFunction& function, const MicroBuilder& builder)
 {
     const CommandLine& command = ctx.cmdLine();
-    if (!function.decl() || command.optimizerStats || command.command == CommandKind::Syntax || builder.hasPrintPassOptions() || builder.backendBuildCfg().debugInfo || ctx.compiler().buildCfg().backend.debugInfo || isEditorServiceCommand(command.command))
+    if (!function.decl() || command.optimizerStats || command.command == CommandKind::Syntax || builder.hasPrintPassOptions() || builder.backendBuildCfg().debugInfo || ctx.compiler().buildCfg().backend.debugInfo)
         return;
 #if SWC_DEV_MODE
     if (command.devFull || command.validateMicro)

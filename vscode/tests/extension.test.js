@@ -4,70 +4,35 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function extension(trusted, enabled = true)
+test('activation registers the build task provider and nothing else', () =>
 {
-    const clients = [], events = {}, subscriptions = [];
-    let tasks = 0;
+    const registered = [], subscriptions = [];
     const disposable = {dispose() {}};
     const vscode = {
-        tasks: {registerTaskProvider: () => { ++tasks; return disposable; }},
-        workspace: {
-            isTrusted: trusted,
-            getConfiguration: () => ({get: (key, fallback) => key === 'languageServer.enabled' ? enabled : fallback}),
-            createFileSystemWatcher: () => disposable,
-            onDidGrantWorkspaceTrust: fn => { events.trust = fn; return disposable; },
-            onDidChangeConfiguration: fn => { events.configure = fn; return disposable; }
-        },
-        commands: {registerCommand: (name, fn) => { events.restart = fn; return disposable; }},
-        window: {showErrorMessage: message => assert.fail(message)}
+        tasks: {registerTaskProvider: (type, provider) => { registered.push({type, provider}); return disposable; }}
     };
-    class LanguageClient
-    {
-        constructor(id, name, serverOptions, clientOptions)
-        {
-            Object.assign(this, {serverOptions, clientOptions});
-            clients.push(this);
-        }
-        async start() { this.started = true; }
-        async dispose() { this.disposed = true; }
-    }
+    class TaskProvider {}
     const sandbox = {module: {exports: {}}, require: name =>
     {
         if (name === 'vscode') return vscode;
-        if (name === './src/providers') return {TaskProvider: class {}};
-        if (name === 'vscode-languageclient/node') return {LanguageClient, TransportKind: {ipc: 1}};
+        if (name === './src/providers') return {TaskProvider};
         assert.fail(name);
     }};
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../extension.js'), 'utf8'), sandbox);
-    return {api: sandbox.module.exports, clients, events, vscode,
-        context: {subscriptions, asAbsolutePath: value => path.resolve(__dirname, '..', value)}, tasks: () => tasks};
-}
 
-test('untrusted workspaces keep tasks but start no compiler-backed client', async () =>
-{
-    const harness = extension(false);
-    await harness.api.activate(harness.context);
-    assert.equal(harness.tasks(), 1);
-    assert.equal(harness.clients.length, 0);
-    harness.vscode.workspace.isTrusted = true;
-    await harness.events.trust();
-    assert.equal(harness.clients.length, 1);
-    assert.ok(harness.clients[0].started);
-    await harness.api.deactivate();
-    assert.ok(harness.clients[0].disposed);
+    sandbox.module.exports.activate({subscriptions});
+    assert.equal(registered.length, 1);
+    assert.equal(registered[0].type, 'swag-build');
+    assert.ok(registered[0].provider instanceof TaskProvider);
+    assert.deepEqual(subscriptions, [disposable]);
+    sandbox.module.exports.deactivate();
 });
 
-test('disabled language features do not start a client; restart disposes the previous client', async () =>
+test('the manifest ships no runtime dependency and no compiler-backed setting', () =>
 {
-    const disabled = extension(true, false);
-    await disabled.api.activate(disabled.context);
-    assert.equal(disabled.clients.length, 0);
-    const enabled = extension(true);
-    await enabled.api.activate(enabled.context);
-    await enabled.events.restart();
-    assert.equal(enabled.clients.length, 2);
-    assert.ok(enabled.clients[0].disposed);
-    assert.ok(enabled.clients[1].started);
-    assert.equal(enabled.clients[1].clientOptions.initializationOptions.compilerPath, 'swc');
-    await enabled.api.deactivate();
+    const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+    assert.equal(manifest.dependencies, undefined);
+    assert.equal(manifest.contributes.configuration, undefined);
+    assert.equal(manifest.contributes.commands, undefined);
+    assert.deepEqual(manifest.activationEvents, ['onTaskType:swag-build']);
 });

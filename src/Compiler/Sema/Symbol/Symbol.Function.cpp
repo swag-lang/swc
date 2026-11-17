@@ -458,9 +458,6 @@ namespace
         if (ownerMaps.size() == 1)
         {
             ownerMaps.front()->forEachSymbolById(symbol.idRef(), false, [&](const Symbol* candidateBase) {
-                if (candidateBase->isEditorRetired())
-                    return;
-
                 const auto* candidate = candidateBase->safeCast<SymbolFunction>();
                 if (candidate && isPublicApiExportedOverload(*candidate))
                     outOverloads.push_back(candidate);

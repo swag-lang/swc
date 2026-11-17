@@ -118,8 +118,6 @@ namespace
     {
         for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
-            if (cur->isEditorRetired())
-                continue;
             if (cur->isIgnored())
             {
                 if (!cur->isExcludedByCondition())
@@ -171,37 +169,28 @@ SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, Iden
 {
 }
 
-void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, const SourceRevision sourceRevision)
+void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap)
 {
     SWC_ASSERT(symMap != nullptr);
     const std::unique_lock lk(mutex_);
     const UsingSymMap*     head = usingSymMaps_.load(std::memory_order_relaxed);
     for (const UsingSymMap* existing = head; existing; existing = existing->previous)
     {
-        if (existing->symbol == symMap && existing->sourceRevision.fileRef == sourceRevision.fileRef && existing->sourceRevision.revision == sourceRevision.revision)
+        if (existing->symbol == symMap)
             return;
     }
 
-    auto* entry           = ctx.allocate<UsingSymMap>();
-    entry->symbol         = symMap;
-    entry->sourceRevision = sourceRevision;
-    entry->previous       = head;
+    auto* entry     = ctx.allocate<UsingSymMap>();
+    entry->symbol   = symMap;
+    entry->previous = head;
     usingSymMaps_.store(entry, std::memory_order_release);
 }
 
-void SymbolMap::copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler) const
+void SymbolMap::copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const
 {
     const size_t start = out.size();
     for (const UsingSymMap* entry = usingSymMaps_.load(std::memory_order_acquire); entry; entry = entry->previous)
-    {
-        if (compiler && entry->sourceRevision.fileRef.isValid())
-        {
-            const SourceFile& sourceFile = compiler->file(entry->sourceRevision.fileRef);
-            if (!sourceFile.isEditorActive() || sourceFile.revisionId() != entry->sourceRevision.revision)
-                continue;
-        }
         out.push_back(entry->symbol);
-    }
 
     // The published chain points backwards; lookup still sees insertion order and
     // keeps any entries the caller had already collected at the front.
@@ -346,12 +335,7 @@ Symbol* SymbolMap::tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& publis
     uint32_t       slot  = table ? tableSlot(*table, key, hash) : 0;
     Symbol*        head  = table && table->keys[slot].load(std::memory_order_acquire) ? table->heads[slot].load(std::memory_order_acquire) : nullptr;
     if (head && !acceptHomonyms)
-    {
-        if (!ctx.isEditorService())
-            return head;
-        if (Symbol* visible = const_cast<Symbol*>(firstVisibleSymbol(head, false)))
-            return visible;
-    }
+        return head;
 
     // Readers walk the published chain without the lock, so the symbol is complete, owner
     // included, before any link to it is stored.
@@ -529,12 +513,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
             {
                 Symbol* head = e->head.load(std::memory_order_relaxed);
                 if (!acceptHomonyms)
-                {
-                    if (!ctx.isEditorService())
-                        return head;
-                    if (Symbol* visible = const_cast<Symbol*>(firstVisibleSymbol(head, false)))
-                        return visible;
-                }
+                    return head;
 
                 count_.fetch_add(1, std::memory_order_relaxed);
                 symbol->setOwnerSymMap(this);
@@ -592,26 +571,6 @@ Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
     Symbol*      insertedSym = addSymbol(ctx, symbol, true);
     if (!insertedSym)
         return nullptr;
-
-    if (ctx.isEditorService())
-    {
-        Symbol* duplicate = nullptr;
-        for (Symbol* current = insertedSym; current; current = current->nextHomonym())
-        {
-            if (current != symbol && !current->isIgnored())
-            {
-                duplicate = current;
-                break;
-            }
-        }
-
-        if (!duplicate)
-            return symbol;
-
-        symbol->setIgnored(ctx);
-        SemaError::raiseAlreadyDefined(sema, symbol, duplicate);
-        return duplicate;
-    }
 
     if (insertedSym != symbol)
     {

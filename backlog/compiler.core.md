@@ -511,7 +511,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   behavior, compile-time execution and native behavior. Workspace regressions cover diamond
   dependencies, configuration and transitive API/body changes, stale/corrupt entries and
   concurrent publication under both compiler executables with real parallelism.
-- Related: compiler.core.002, compiler.core.006, compiler.language.service.001, compiler.language.service.003, compiler.core.030, compiler.optimization.107.
+- Related: compiler.core.002, compiler.core.006, compiler.distribution.010, compiler.core.030, compiler.optimization.107.
 ### compiler.core.002 — Front-end invalidation is module-wide
 
 - Evidence: front-end state is not persisted, so the compiler.core.004 `core_touch` workload
@@ -575,8 +575,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: `src/main.cpp` owns process setup and cleanup: allocator configuration, the Windows
   host exception hook, stdio flushing, and the PID-scoped sandbox. CLI parsing and command
-  dispatch live in `src/Main/CompilerCli.cpp`; the persistent stdio transport lives in
-  `src/Main/EditorService.cpp`. `CompilerInstance` remains the internal compilation entry point.
+  dispatch live in `src/Main/CompilerCli.cpp`. `CompilerInstance` remains the internal compilation
+  entry point.
   `Global` still stores process-static services, `CommandLine` is coupled to CLI configuration,
   and `swc.vcxproj` still builds one executable rather than a reusable library target.
 - Next: define a host-facing configuration and lifetime contract for diagnostics, cancellation,
@@ -749,3 +749,26 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   untyped `#sizeof` constant and repair the suite.
 - Done when: both reductions give the same answer on both hosts and the `sema` suite passes on
   Linux.
+
+### compiler.core.117 — Offer semantic cleanup edits with explicit preservation checks
+
+- Evidence: candidate cleanups (direct-return bodies, declaration-bound `with`, relay locals)
+  also match deliberate language-test syntax, owning locals and typed temporaries, which a
+  textual rewrite cannot safely remove. The formatter normalizes source shape but cannot
+  decide ownership, overload selection or evaluation effects.
+- Proposed contract: a compiler-backed suggestion produces a previewable, versioned source edit
+  only after proving the specific transformation preserves meaning. Start with expression bodies,
+  declaration-bound with and copyable relay returns. Preserve evaluation count/order, receiver
+  binding, contextual type, selected overload, lexical scope and destruction timing.
+  A single-use variable is a candidate, not proof of redundancy.
+- Boundaries: distinguish semantics-preserving cleanup from a diagnostic explaining a costly copy
+  and from a breaking language migration. Never turn a copy into a move, a required receiver into
+  an optional call, or a named owner into a temporary borrow automatically. Preserve comments and
+  do not rewrite intentional syntax fixtures as part of an unfiltered bulk operation.
+- Next: implement a semantic rewrite query on an ordinary compiler snapshot with a dry-run diff.
+  Prove positive and negative examples for each of the three initial transformations. Wider
+  API-family renames need an explicit migration, not a cleanup heuristic.
+- Done when: suggested edits apply only to the analyzed document version, are idempotent,
+  compile with the same relevant contracts, and regression tests reject transformations that
+  alter effects, ownership, overload resolution or scope. A CLI preview shows each edit before it applies.
+- Related: compiler.distribution.010; language.design.024 in [language.design.md](language.design.md).

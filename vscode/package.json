@@ -1,7 +1,7 @@
 {
   "name": "swag",
   "displayName": "Swag",
-  "description": "Language support for the Swag programming language",
+  "description": "Syntax highlighting, a dark theme, and build tasks for the Swag programming language",
   "version": "0.0.178",
   "publisher": "swag-lang",
   "icon": "images/swag_icon.png",
@@ -22,11 +22,9 @@
   ],
   "main": "./extension.js",
   "scripts": {
-    "test": "node --test tests",
-    "test:integration": "node --test integration"
+    "test": "node --test tests"
   },
   "activationEvents": [
-    "onLanguage:swag",
     "onTaskType:swag-build"
   ],
   "contributes": {
@@ -101,62 +99,15 @@
           "endsPattern": "Watching for file changes"
         }
       }
-    ],
-    "commands": [
-      {
-        "command": "swag.restartLanguageServer",
-        "title": "Swag: Restart Language Server"
-      }
-    ],
-    "configuration": {
-      "title": "Swag",
-      "properties": {
-        "swag.compilerPath": {
-          "type": "string",
-          "default": "swc",
-          "scope": "window",
-          "description": "Swag compiler executable with editor snapshot support. Defaults to swc on PATH; set a path only to use a different compiler."
-        },
-        "swag.languageServer.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable compiler-backed language features"
-        },
-        "swag.languageServer.analysisDelay": {
-          "type": "number",
-          "default": 500,
-          "minimum": 100,
-          "maximum": 10000,
-          "description": "Wait this many milliseconds after an edit before analyzing"
-        },
-        "swag.languageServer.analysisTimeout": {
-          "type": "number",
-          "default": 60000,
-          "minimum": 1000,
-          "maximum": 300000,
-          "description": "Cancel an analysis after this many milliseconds"
-        }
-      }
-    },
-    "configurationDefaults": {
-      "[swag]": {
-        "editor.semanticHighlighting.enabled": true
-      }
-    }
+    ]
   },
   "devDependencies": {
     "vscode-oniguruma": "2.0.1",
     "vscode-textmate": "9.3.2"
   },
-  "dependencies": {
-    "vscode-languageclient": "9.0.1",
-    "vscode-languageserver": "9.0.1",
-    "vscode-languageserver-textdocument": "1.0.11"
-  },
   "capabilities": {
     "untrustedWorkspaces": {
-      "supported": "limited",
-      "description": "Semantic analysis runs compiler and compile-time code only in trusted workspaces."
+      "supported": true
     },
     "virtualWorkspaces": false
   }

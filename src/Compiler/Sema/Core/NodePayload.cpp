@@ -922,10 +922,10 @@ void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& no
         return;
 
     const Symbol& symbol = *symbols.front();
-    if (!symbol.isValueExpr() && !retainEditorSymbols_)
+    if (!symbol.isValueExpr())
         return;
 
-    bool mayHide = retainEditorSymbols_ || !symbol.isPublic();
+    bool mayHide = !symbol.isPublic();
     for (const SymbolMap* owner = symbol.ownerSymMap(); owner && !mayHide; owner = owner->ownerSymMap())
         mayHide = owner->isStruct() || owner->isEnum();
     if (!mayHide)
@@ -936,15 +936,6 @@ void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& no
     const std::unique_lock lock(shard->foldedSourceSymbolsMutex);
     shard->foldedSourceSymbols.set(nodeRef, &symbol);
     shard->foldedSourceSymbolsCount.store(static_cast<uint32_t>(shard->foldedSourceSymbols.size()), std::memory_order_release);
-}
-
-void NodePayload::recordImplicitPropagation(AstNodeRef nodeRef)
-{
-    if (!retainEditorSymbols_)
-        return;
-
-    const std::unique_lock lock(implicitPropagationsMutex_);
-    implicitPropagations_.push_back(nodeRef);
 }
 
 const Symbol* NodePayload::foldedSourceSymbol(AstNodeRef nodeRef) const

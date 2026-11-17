@@ -290,19 +290,6 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     if (!groupEntries.empty())
         Logger::printFieldGroup(ctx, helpOptionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
 
-    if (command == "service")
-    {
-        entries.clear();
-        addInfoEntry(entries, "Launch", "swc service --module <path> --editor-overlay <buffers> --editor-index <snapshot>", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Transport", "Protocol 1: UTF-8 lines on stdin; READY and request markers appear on both output streams", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Analyze", "Send analyze<TAB><id> followed by a newline; await matching SWAG-EDITOR-SERVICE<TAB>1<TAB><id><TAB><exit-code> markers on both streams", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Shutdown", "Send shutdown and a newline, or close stdin; compiler output may appear between marker lines", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Overlay", "SWAG-EDITOR-1 followed by repeated decimal-byte-length/newline/UTF-8 path and buffer pairs", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Snapshot", "Version 1 JSON at --editor-index; complete is false when analysis reports errors", LogColor::Reset, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "LSP", "Other IDEs can launch node <extension>/src/server.js --stdio; see vscode/README.md", LogColor::Reset, 0, helpArgumentLabelColor());
-        Logger::printFieldGroup(ctx, "Editor service protocol", entries, nextHelpGroupStyle(hasPrintedGroup, 24));
-    }
-
     command_ = oldCommand;
 }
 

@@ -18,7 +18,6 @@ enum class CommandKind
     Format,
     Syntax,
     Sema,
-    Service,
     Doc,
     Unittest,
     Test,
@@ -54,7 +53,6 @@ inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
     {CommandKind::Smoke, "smoke", "Run native executables for bounded frames in isolation to check startup"},
-    {CommandKind::Service, "service", "Serve persistent compiler analysis requests for editor integrations"},
 #if SWC_HAS_UNITTEST
     {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
 #endif
@@ -102,7 +100,6 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
             return Runtime::CompilerCommand::Format;
         case CommandKind::Syntax:
         case CommandKind::Sema:
-        case CommandKind::Service:
         case CommandKind::Doc:
         case CommandKind::Unittest:
         case CommandKind::Build:
@@ -286,9 +283,6 @@ struct CommandLine
     fs::path                                                            modulePath;
     fs::path                                                            workspacePath;
     fs::path                                                            exportApiDir;
-    fs::path                                                            editorIndex;
-    fs::path                                                            editorOverlay;
-    std::shared_ptr<const std::unordered_map<std::string, std::string>> editorSources;
     fs::path                                                            docOutputDir;
     fs::path                                                            outDir;
     fs::path                                                            workDir;
@@ -318,8 +312,6 @@ constexpr std::string_view commandName(const CommandKind command)
             return "syntax";
         case CommandKind::Sema:
             return "sema";
-        case CommandKind::Service:
-            return "service";
         case CommandKind::Doc:
             return "doc";
         case CommandKind::Unittest:
@@ -337,11 +329,6 @@ constexpr std::string_view commandName(const CommandKind command)
     }
 
     SWC_UNREACHABLE();
-}
-
-inline bool isEditorServiceCommand(const CommandKind command)
-{
-    return command == CommandKind::Service;
 }
 
 inline Runtime::BuildCfgBackendKind effectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)

@@ -4,7 +4,6 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/EditorIndex.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -118,46 +117,6 @@ void SourceFile::setContent(const std::string_view content)
     sharedContent_.reset();
 }
 
-void SourceFile::beginEditorRevision(const std::string_view content, const bool force)
-{
-    SWC_ASSERT(nodePayloadContext_ != nullptr);
-    SWC_ASSERT(ast().hasSourceView());
-
-    if (!force && sourceView() == content)
-        return;
-
-    std::vector<char8_t> nextContent;
-    nextContent.reserve(content.size() + TRAILING_0);
-    nextContent.resize(content.size());
-    if (!content.empty())
-        std::memcpy(nextContent.data(), content.data(), content.size());
-
-    nextContent.insert(nextContent.end(), TRAILING_0, 0);
-
-    auto nextPayload = std::make_unique<NodePayload>();
-    nextPayload->retainEditorSymbols();
-
-    priorRevisions_.reserve(priorRevisions_.size() + 1);
-    PriorRevision previousRevision;
-    previousRevision.content       = std::move(content_);
-    previousRevision.sharedContent = std::move(sharedContent_);
-    previousRevision.nodePayload   = std::move(nodePayloadContext_);
-    previousRevision.revisionId    = revisionId_;
-
-    priorRevisions_.push_back(std::move(previousRevision));
-
-    content_            = std::move(nextContent);
-    nodePayloadContext_ = std::move(nextPayload);
-    ++revisionId_;
-
-    hasError_   = false;
-    hasWarning_ = false;
-    {
-        const std::scoped_lock lock(errorLinesMutex_);
-        errorLineRanges_.clear();
-    }
-}
-
 void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t lineEnd) const
 {
     if (!lineStart || !lineEnd)
@@ -202,17 +161,6 @@ void SourceFile::ensureSourceView(TaskContext& ctx)
 
 Result SourceFile::loadContent(TaskContext& ctx)
 {
-    if (!ctx.cmdLine().editorIndex.empty() && !ast().hasSourceView())
-        nodePayloadContext_->retainEditorSymbols();
-
-    if (content().empty() && ctx.cmdLine().editorSources)
-    {
-        const auto& sources = *ctx.cmdLine().editorSources;
-        const auto  it      = sources.find(EditorIndex::pathKey(path_));
-        if (it != sources.end())
-            setContent(it->second);
-    }
-
     if (!content().empty())
     {
         ensureSourceView(ctx);

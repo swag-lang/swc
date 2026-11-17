@@ -43,7 +43,6 @@ public:
     FileRef ref() const { return fileRef_; }
 
     const fs::path& path() const { return path_; }
-    uint64_t        revisionId() const { return revisionId_; }
 
     const Utf8& pathString() const;
     const Utf8& genericPathString() const;
@@ -60,8 +59,6 @@ public:
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void             addFlag(FileFlags flag) { flags_.add(flag); }
 
-    bool isEditorActive() const { return editorActive_; }
-    void setEditorActive(bool active) { editorActive_ = active; }
     bool isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
     bool isImportedApi() const { return flags_.has(FileFlagsE::ImportedApi); }
     bool mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
@@ -94,20 +91,10 @@ public:
 
     void   setContent(std::string_view content);
     void   setContent(std::shared_ptr<const SourceContent> content);
-    void   beginEditorRevision(std::string_view content, bool force = false);
     Result loadContent(TaskContext& ctx);
 
 private:
     void ensureSourceView(TaskContext& ctx);
-
-    struct PriorRevision
-    {
-        std::vector<char8_t>                 content;
-        std::shared_ptr<const SourceContent> sharedContent;
-        std::unique_ptr<NodePayload>         nodePayload;
-
-        uint64_t revisionId = 0;
-    };
 
     static constexpr size_t TRAILING_0 = SourceContent::TRAILING_0;
 
@@ -131,19 +118,13 @@ private:
 
     std::unique_ptr<NodePayload> nodePayloadContext_;
 
-    uint64_t revisionId_ = 0;
-
-    // Old revisions stay alive while retained symbols or source views still refer to them.
-    std::vector<PriorRevision> priorRevisions_;
-
     std::unique_ptr<Verify> unitTest_;
 
     mutable std::mutex                                 errorLinesMutex_;
     mutable std::vector<std::pair<uint32_t, uint32_t>> errorLineRanges_;
 
-    bool hasError_     = false;
-    bool hasWarning_   = false;
-    bool editorActive_ = true;
+    bool hasError_   = false;
+    bool hasWarning_ = false;
 };
 
 SWC_END_NAMESPACE();

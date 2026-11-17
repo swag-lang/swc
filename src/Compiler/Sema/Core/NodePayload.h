@@ -106,14 +106,8 @@ public:
 
     // Retain the source symbol when conversion or folding replaces its payload,
     // so exported bodies still expose dependencies named in the source. By default,
-    // keep symbols an export can hide (non-public or type-owned). Editor snapshots
-    // additionally retain public names and selected calls before folding/inlining.
+    // keep symbols an export can hide (non-public or type-owned).
     const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
-    void          retainEditorSymbols() { retainEditorSymbols_ = true; }
-
-    // Fallible expressions a 'Swag.Propagate' body handles as an unwritten 'try', in no
-    // particular order and possibly repeated. Only editor snapshots record them.
-    std::span<const AstNodeRef> implicitPropagations() const { return implicitPropagations_; }
 
 protected:
     Ast&       ast() { return ast_; }
@@ -241,7 +235,6 @@ private:
     AstNodeRef                     followSubstituteChain(AstNodeRef nodeRef) const;
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node);
-    void                           recordImplicitPropagation(AstNodeRef nodeRef);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* const> symbols);
     static void                    storePayload(AstNode& node, uint16_t bits, uint32_t ref);
     static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol* const> symbols);
@@ -254,12 +247,8 @@ private:
     const Shard* tryGetShard(uint32_t shardIdx) const;
 
     Ast              ast_;
-    SymbolNamespace* moduleNamespace_     = nullptr;
-    SymbolNamespace* fileNamespace_       = nullptr;
-    bool             retainEditorSymbols_ = false;
-
-    std::shared_mutex       implicitPropagationsMutex_;
-    std::vector<AstNodeRef> implicitPropagations_;
+    SymbolNamespace* moduleNamespace_ = nullptr;
+    SymbolNamespace* fileNamespace_   = nullptr;
 
     struct Shard
     {

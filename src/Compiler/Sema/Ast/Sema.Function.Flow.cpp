@@ -296,16 +296,10 @@ namespace
     }
 
     // Swag.Propagate accepts an unmarked fallible expression as an implicit try.
-    // Codegen already targets the nearest handler; record it for the editor.
+    // Codegen already targets the nearest handler.
     bool acceptFallibleExpression(Sema& sema)
     {
-        if (hasExplicitCallErrorHandler(sema))
-            return true;
-        if (!propagatesImplicitly(sema))
-            return false;
-
-        sema.recordImplicitPropagation(sema.curNodeRef());
-        return true;
+        return hasExplicitCallErrorHandler(sema) || propagatesImplicitly(sema);
     }
 
     // In a 'Swag.Propagate' body a written 'try' does what the unmarked call already does.

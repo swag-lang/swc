@@ -63,6 +63,8 @@ using Core, Gui, Pixel, Audio
     let viewport = host.surface.position
     window.setFullScreen(true)
     host.surface.showNormalAt(viewport)
+    Swag.require(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.appearance == .Light)
+    Swag.require(host.theme.colors.ground == ThemeColors.papierPalette().ground)
     window.applyLayout()
     window.revealViewerBar()
     window.layoutFloatingParts()

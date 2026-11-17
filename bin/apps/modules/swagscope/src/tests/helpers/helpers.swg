@@ -439,6 +439,7 @@ func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bo
     host.notify(.ThemeChanged)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.applyTheme(cast(u32, light ? AppearanceTheme.Light : AppearanceTheme.Dark))
     window.openFile(fileName)
     completeQueuedViewerFile(host, window)
     window.applyLayout()

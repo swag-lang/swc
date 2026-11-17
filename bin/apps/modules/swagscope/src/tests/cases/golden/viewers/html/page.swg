@@ -27,6 +27,10 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, file, false, 1280, 680)
     host.surface.setTitle("Reading.html")
+
+    // The resource URL contains the checkout path; its length is not part of this layout fixture.
+    window.currentFileSize = "634 bytes"
+    window.updateFileInfo(window.instances[window.activeChoiceIndex].details.toString())
     let panel = assume cast(*Html.Panel, window.currentView)
     Swag.require(panel.children.count == 1 and panel.children[0] == cast(*Wnd, panel.view))
     Swag.require(not window.currentSidePanelHost!.isLocallyVisible())

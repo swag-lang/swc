@@ -23,8 +23,12 @@ using Core, Gui, Pixel
         window.explorerActive = true
         expect host.app.setLanguage(language)
         host.notify(.LanguageChanged)
+
+        // These displayed levels describe the fixture, independently of native drive syntax.
         explorer.address.breadcrumb.clear()
-        explorer.address.setPath("Z:/Films")
+        explorer.address.breadcrumb.addItem("Z:/", tag: "Z:/")
+        explorer.address.breadcrumb.addItem("Films", tag: "Z:/Films")
+        explorer.address.setText("Z:/Films")
         explorer.address.refreshPath()
         explorer.title.setText("Films")
         explorer.entries.add({name: "A Film.mkv", path: "A Film.mkv", size: 2_400_000_000,

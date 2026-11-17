@@ -115,14 +115,19 @@ large-file work without editing, implicit network access, macros or source mutat
   rescanning the whole file synchronously.
 - Related: app.scope.text.006, app.scope.text.007, app.scope.text.010
 
-### app.scope.text.018 — Table values have no type inference or professional formatting
+### app.scope.text.018 — Table type inference is a fixed sample with no override or formatting
 
-- Evidence: every cell is a string. Numbers, dates, times, booleans, nulls, percentages, and units
-  cannot align, sort, filter, or format by their meaning; no type inference runs today.
-- Next: sample then incrementally refine a nullable column type with locale-independent parsing and
-  an explicit user override.
-- Done when: original text is always inspectable, inferred type/confidence and failures are
-  counted, numeric/date sorting is semantic, formats are configurable, and mixed columns degrade
+- Evidence: each column's kind (text, integer, decimal, or a date written year first) is inferred
+  from its first 128 rows and written under its name. A quantity column is aligned on the right in
+  mono, sorted by value, summed in the foot and profiled in the information sheet; its cells keep
+  their original text. A value past the sample that does not read as a quantity sorts with the
+  empty cells, and nothing counts it. Times, booleans, nulls, and units are not recognized, a date
+  sorts by its text, so only year-first dates order correctly, and the reader cannot correct a kind
+  or choose how values are formatted.
+- Next: refine the sampled kind over every row, counting the cells that contradict it, then add a
+  per-column kind override and chronological date comparison.
+- Done when: inferred kind and contradicting cells are counted, dates and times sort
+  chronologically, a kind can be overridden, formats are configurable, and mixed columns degrade
   safely to text.
 
 ### app.scope.text.022 — Diff and patch files read as plain text
@@ -465,13 +470,14 @@ large-file work without editing, implicit network access, macros or source mutat
   comments, newline policy, and encoding can be changed; detection confidence and parse warnings
   are visible; and the chosen dialect persists.
 
-### app.scope.text.017 — Table columns cannot be sorted, filtered, hidden, reordered, or frozen
+### app.scope.text.017 — Table columns cannot be filtered, hidden, reordered, or frozen
 
-- Evidence: the virtual list keeps one header visible but presents source row order and every
-  column unconditionally. Wide or noisy datasets cannot be reduced to the fields and records under
-  investigation.
-- Next: add a view index over source rows plus column presentation state, initially one stable sort,
-  value/text filters, visibility, width, order, and frozen leading columns.
+- Evidence: a click on a column's header sorts the rows on it through a view index over the source
+  rows, ascending then descending, quantities by value and words in natural order, empty cells last
+  and equal cells in file order. Every column is presented unconditionally and only one sorts at a
+  time. Wide or noisy datasets cannot be reduced to the fields and records under investigation.
+- Next: add column presentation state and composable value/text filters to that view index, then
+  visibility, width, order, frozen leading columns, and a secondary sort.
 - Done when: operations stay bounded through app.scope.text.015, source row numbers remain available,
   multi-column stable sort and composable filters can be cleared, and no operation rewrites the file.
 

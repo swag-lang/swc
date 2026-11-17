@@ -41,10 +41,11 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0, sta
     }
 
     // The same sheet the recorder opens, on the host's own application.
+    // Pin the available sound inputs so this composition is independent of the native backend.
     let width    = RecordHud.widthFor(limit, recorder.readoutLabel(), state == .Preparing, screenWidth: screenMode ? RecordHud.screenChoiceWidth(f.main) : 0)
     let height   = cast(s32, RecordHudHeight + (state == .Preparing ? f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding : 0))
     let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
-    with let hud = RecordHud.create(surface.wnd, recorder)
+    with let hud = RecordHud.create(surface.wnd, recorder, soundCaptureAvailable: true)
     {
         .dockStyle = .Center
     }
@@ -80,7 +81,7 @@ func testRenderScreenChoices()->Image
     let width    = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true, screenWidth: RecordHud.screenChoiceWidth(f.main))
     let height   = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
     let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
-    with let hud = RecordHud.create(surface.wnd, recorder)
+    with let hud = RecordHud.create(surface.wnd, recorder, soundCaptureAvailable: true)
     {
         .dockStyle = .Center
     }

@@ -254,8 +254,8 @@ impl RecordHud
         return {place.x - margin, place.y - margin, place.width + 2 * margin, place.height + 2 * margin}
     }
 
-    // Creates the pill of `recorder` in `parent`, with its commands.
-    func create(parent: *Wnd, recorder: *Recorder)->*RecordHud
+    // Creates the pill of `recorder` in `parent`, with the recording backend's sound capability.
+    func create(parent: *Wnd, recorder: *Recorder, soundCaptureAvailable: bool = #os == Swag.TargetOs.Windows)->*RecordHud
     {
         with let result = Wnd.create'RecordHud(parent)
         {
@@ -268,7 +268,7 @@ impl RecordHud
             {
                 if recorder.screenSelection do
                     .createScreenChoice()
-                .createPrepOptions()
+                .createPrepOptions(soundCaptureAvailable)
             }
 
             .hasCommands = true
@@ -528,7 +528,7 @@ impl RecordHud
     }
 
     // Keeps capture inputs beside the live target until the recording is started.
-    private mtd createPrepOptions()
+    private mtd createPrepOptions(soundCaptureAvailable: bool)
     {
         let options     = &.recorder.main.captureOptions
         let texts       = appStrings()
@@ -546,7 +546,7 @@ impl RecordHud
 
         .prepOptions.add(countdown)
 
-        #static if #os == Swag.TargetOs.Windows
+        if soundCaptureAvailable
         {
             with let microphone = createRecordOption(me, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
             {
@@ -562,8 +562,11 @@ impl RecordHud
 
             .prepOptions.add(system)
         }
-        else do
+        else
+        {
             .prepOptions.add(createRecordOption(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
+        }
+
         .qualityButton = createQualityOption(me, options)
     }
 }

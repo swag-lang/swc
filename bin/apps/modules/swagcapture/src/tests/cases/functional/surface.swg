@@ -79,6 +79,10 @@ internal func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = fa
     if caption do
         host.surface.updateFlags(Gui.SurfaceFlags.StandardWindow)
 
+    // The editor registers its capture keys with the desktop. A test must neither take them from
+    // the machine nor depend on whether the desktop grants them: keep them in the application.
+    host.app.setGlobalHotKeysEnabled(false)
+
     var monitors: Array'Env.Monitor
     let monitor = Math.Rectangle{0, 0, 1440, 900}
     monitors.add({bounds: monitor, workArea: monitor, scaleFactor: 1,

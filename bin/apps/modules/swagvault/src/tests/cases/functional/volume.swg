@@ -702,13 +702,14 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("paging")
     defer discard catch File.delete(path)
 
-    // The test format uses a 16 KiB header slot, so 300 ordinary nodes cross the same
-    // metadata-paging boundary without performing thousands of durable commits.
-    const FileCount = 300'u64
+    // Use the variable-length metadata field to cross the header boundary with a few nodes.
+    const FileCount = HeaderPlainSize / BlockSize + 1
+    let security: [BlockSize] u8 = [0x5A]
 
-    var volume = expect Volume.create(path, testPassword(), pagingContainerSize())
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
     for i in FileCount do
-        discard expect volume.createNode(Format.toString("\\entry_%.bin", i), false, FileAttributeNormal, emptyBytes())
+        discard expect volume.createNodePending(Format.toString("\\entry_%.bin", i), false, FileAttributeNormal, security)
+    expect volume.commit()
     volume.close()
 
     Swag.require(volume.metadataSize > HeaderPlainSize)
@@ -716,8 +717,11 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var reopened = expect Volume.open(path, testPassword())
     Swag.require(reopened.nodes.count == FileCount + 1)
-    for i in FileCount do
-        Swag.require(reopened.resolve(Format.toString("\\entry_%.bin", i)) != null)
+    for i in FileCount
+    {
+        let node = unwrap reopened.resolve(Format.toString("\\entry_%.bin", i))
+        Swag.require(Slice.equals(node.security.toSlice(), security))
+    }
 
     // Deleting everything gives the metadata pages back too.
     for i in FileCount

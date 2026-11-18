@@ -22,9 +22,8 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     window.applyLayout()
-    host.settleAnimations(window, 6)
 
-    var image = host.render(&host.surfaceWnd)
+    let image = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, Format.toString("%.%", name, dark ? "encre" : "papier"))
 }
 
@@ -146,8 +145,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     window.openVault("/vaults/example")
     window.lens.open()
     Swag.require(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
-    host.settleAnimations(window)
-    var image = host.render(&host.surfaceWnd)
+    let image = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "surface.lens.paper")
 }
 

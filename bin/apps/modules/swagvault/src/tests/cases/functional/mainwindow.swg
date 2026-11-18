@@ -6,17 +6,16 @@ using Swag, Core, Gui
 // A completed worker keeps its typed failure; the UI localizes it in the language active at presentation.
 #test
 {
-    var host: Testing.HeadlessHost
-    let window = testSetupMainWindow(&host)
-    defer discard catch g_App.setLanguage(ReferenceLanguage)
-    expect g_App.setLanguage(ReferenceLanguage)
+    var window: MainWindow
+    useReferenceVaultStrings()
+    defer expect g_App.setLanguage(ReferenceLanguage)
     let path = Testing.tempFilePath("vault-operation-", ".bin")
     defer discard catch File.delete(path)
 
     window.operation.kind = .Create
     window.operation.path = path
     window.operation.size = MinimumSize - 1
-    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.submit(func|window = &window|() { window.runOperation() })
     window.operation.task.wait()
     expect g_App.setLanguage("fr")
     let expectedFirst = Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
@@ -35,7 +34,7 @@ using Swag, Core, Gui
     expect g_App.setLanguage(ReferenceLanguage)
     window.operation.size = MinimumSize
     window.operation.progress.cancel()
-    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.submit(func|window = &window|() { window.runOperation() })
     window.operation.task.wait()
     scope
     {
@@ -52,10 +51,17 @@ using Swag, Core, Gui
 
     window.operation.error.reset()
     window.operation.kind = .Unmount
-    window.operation.task.submit(func|window|() { window.runOperation() })
+    window.operation.task.submit(func|window = &window|() { window.runOperation() })
     window.operation.task.wait()
     Swag.require(window.operation.error.isEmpty())
     window.operation.kind = .None
+}
+
+func useReferenceVaultStrings()
+{
+    Gui.registerLanguage("fr", "Français")
+    registerAppStrings(&g_App.resources)
+    expect g_App.setLanguage(ReferenceLanguage)
 }
 
 // Builds the real main window, at its smallest size, inside the frame of the shipped surface.
@@ -634,38 +640,29 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 // report; what the reader is shown comes from the string table.
 #test
 {
-    var host: Testing.HeadlessHost
-    discard testSetupMainWindow(&host)
-    defer discard catch g_App.setLanguage(ReferenceLanguage)
-
-    func messageFor(kind: ErrorKind)->String
-    {
-        var errOutcome: Swag.Error
-        catch raiseVolumeError(kind) as errOutcome
-        let err = errOutcome.value()
-        return caughtMessage(err)
-    }
+    useReferenceVaultStrings()
+    defer expect g_App.setLanguage(ReferenceLanguage)
 
     // The English diagnostic never reaches the reader, in either language.
-    Swag.require(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
-    Swag.require(messageFor(.Corrupted) == "The container is damaged.")
-    Swag.require(messageFor(.PasswordRequired) == "A password is required.")
-    Swag.require(messageFor(.Canceled) == "The operation stopped.")
-    Swag.require(messageFor(.General) == appStrings().msg_SystemError)
+    Swag.require(kindMessage(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
+    Swag.require(kindMessage(.Corrupted) == "The container is damaged.")
+    Swag.require(kindMessage(.PasswordRequired) == "A password is required.")
+    Swag.require(kindMessage(.Canceled) == "The operation stopped.")
+    Swag.require(kindMessage(.General) == appStrings().msg_SystemError)
 
     // Every way a container can refuse to open answers the same sentence: telling wrong access
     // from a damaged container is exactly what the format refuses to do.
-    Swag.require(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
+    Swag.require(kindMessage(.PasswordOrDamaged) != kindMessage(.Corrupted))
 
     expect g_App.setLanguage("fr")
-    Swag.require(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
-    Swag.require(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
-    Swag.require(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
-    Swag.require(messageFor(.General) == appStrings().msg_SystemError)
+    Swag.require(kindMessage(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
+    Swag.require(kindMessage(.PasswordRequired) == appStrings().msg_PasswordRequired)
+    Swag.require(kindMessage(.DiskFull) == appStrings().msg_ErrDiskFull)
+    Swag.require(kindMessage(.General) == appStrings().msg_SystemError)
 
     // A kind that means nothing to a reader reads as the generic damaged-container wording.
-    Swag.require(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
-    Swag.require(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
+    Swag.require(kindMessage(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
+    Swag.require(kindMessage(.NotDirectory) == appStrings().msg_ErrDamaged)
 }
 
 // A form with no password in it is a form that can act: an empty password is a vault that
@@ -761,7 +758,8 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 #test
 {
     var host: Testing.HeadlessHost
-    discard testSetupMainWindow(&host)
+    host.setup(520, 360)
+    registerAppStrings(&host.app.resources)
 
     let texts = appStrings()
 
@@ -773,7 +771,6 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(change.form.rows[0].field == cast(*Wnd, fields.replacement))
     Swag.require(change.form.rows[0].label.name.text == texts.ui_NewPassword)
     Swag.require(change.form.rows[1].field == cast(*Wnd, fields.confirm))
-    openAndDismiss(&host, change)
 
     let resize       = FormDlg.create(&host.surface, options)
     let resizeFields = buildVaultResizeForm(resize)
@@ -789,7 +786,6 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     resizeFields.keepCapacity.toggle()
     Swag.require(resizeFields.capacity.isEnabled())
     Swag.require(resizeFields.unit.isEnabled())
-    openAndDismiss(&host, resize)
 
     var currentFiles: Array'String
     currentFiles.add("C:\\keys\\first.key")
@@ -798,19 +794,6 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(keyFiles.form.rows.count == 1)
     Swag.require(keyFiles.form.rows[0].field == cast(*Wnd, keyFileFields))
     Swag.require(keyFileFields.samePaths(currentFiles.toSlice()))
-    openAndDismiss(&host, keyFiles)
-}
-
-// Opens `dialog`, backs straight out of it, and reports that the box really came up.
-//
-// Nothing here answers the form: what has to run is the box itself, because that is what measures
-// the surface against the fields it was given.
-func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
-{
-    host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    let modalResult = dialog.doModal()
-    Swag.require(modalResult == Dialog.BtnCancel)
-    Swag.require(host.autoHandled)
 }
 
 // Every change box ends up as tall as what it asks for, in every language.
@@ -821,12 +804,15 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 #test
 {
     var host: Testing.HeadlessHost
-    discard testSetupMainWindow(&host)
-    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    host.setup(520, 360)
+    registerAppStrings(&host.app.resources)
+    defer expect g_App.setLanguage(ReferenceLanguage)
 
     func assertFormFits(host: *Testing.HeadlessHost, dialog: *FormDlg)
     {
-        openAndDismiss(host, dialog)
+        host.clickModalButtonWhenShown(Dialog.BtnCancel)
+        let modalResult = dialog.doModal()
+        Swag.require(modalResult == Dialog.BtnCancel and host.autoHandled)
         let form   = dialog.form
         let needed = form.measure(Math.Point{form.position.width, 0}).preferred.y
         Swag.require(needed <= form.position.height + 0.5, "form does not fit inside its dialog")
@@ -834,8 +820,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     for &one in languages()
     {
-        expect g_App.setLanguage(one.tag)
-        host.notify(.LanguageChanged)
+        expect host.app.setLanguage(one.tag)
 
         var options: FormDlgOptions
 
@@ -1121,8 +1106,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 // A capacity is read back the way a reader wrote it, and refused when it says nothing.
 #test
 {
-    var host: Testing.HeadlessHost
-    discard testSetupMainWindow(&host)
+    useReferenceVaultStrings()
 
     Swag.require(capacityText(256 * 1024 * 1024) == "256 MiB")
     Swag.require(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")

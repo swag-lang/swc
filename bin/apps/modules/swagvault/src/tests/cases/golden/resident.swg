@@ -39,9 +39,8 @@ using Core, Gui, Pixel
     window.showPage(.Options, animate: false)
     window.applyLayout()
     window.optionsPage.scroll.setScrollPos(0, window.optionsPage.scroll.scrollSize.y)
-    host.settleAnimations(window)
+    let image = host.renderSettled(&host.surfaceWnd)
     Gui.Testing.assertContentFits(window.optionsPage)
-    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "resident.options.papier")
 }
 

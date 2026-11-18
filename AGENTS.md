@@ -25,14 +25,18 @@ only in the generated documentation.
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
 Build/test guidance is in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.bat`.
-For routine `bin/std` development feedback, use `tools/coverage.bat -DevMode` (`fast` by default),
-narrowed with `-Workspace` and `-Module` as needed. For `bin/apps` iteration, use `swc.exe` by
-default: omit `-DevMode` from `tools/coverage.bat` and omit `dm` from `tools/apps.bat` commands.
+For the repository health campaign and routine validation under `bin/`, use `swc.exe`
+with `-bc release`. For `bin/std` and `bin/apps` coverage, use
+`tools/coverage.bat -Configuration release` (`fast` by default), narrowed with
+`-Workspace` and `-Module` as needed. See [Prompt 1](backlog/repo.prompts.md#1-repository-health-reset)
+for the aggregate Windows and Linux sequence.
 After every Swag Capture change, finish by building its Release application in the main checkout:
 `tools\apps.bat build swagcapture -bc release`.
-Reserve `swc.dm.exe` for debugging compiler problems. `-Configuration` and `-bc` select the
-compiled program configuration independently of the compiler executable. Keep large scale-boundary
-tests in `stress`; run `goldens`, `parity`, and `full` only for the validation needs described in
+Use `swc.dm.exe` for a focused reproducer when a compiler defect is suspected.
+Use `-bc devmode` for a focused comparison when a failure may be specific to the Release program
+configuration. `-Configuration` and `-bc` select the compiled program configuration independently
+of the compiler executable. Keep large scale-boundary tests in `stress`. Run `goldens`, `parity`,
+and `full` only for the validation needs described in
 `validate-swag-changes`.
 Visual tests cover Encre and Papier across each application and shared control family. Use one
 palette per screenshot scenario and rotate palettes across sibling cases. Do not duplicate the

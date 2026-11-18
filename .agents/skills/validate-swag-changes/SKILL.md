@@ -26,26 +26,27 @@ Inspect the final diff and decide, in order:
 3. Which smallest behavioral boundary observes the change: one C++ test family, compiler source
    file, module test file, application consumer, smoke, generated diff, or golden.
 
-Do not confuse the first two axes. `dm` chooses the DevMode compiler executable; `-bc release`
-chooses the configuration of the Swag program that compiler builds. Application iteration uses
-`swc.exe` by default (`tools/apps.bat` without `dm`, or `coverage.bat` without `-DevMode`), while
-the program configuration remains a separate choice.
+`dm` chooses the DevMode compiler executable. `-bc release` chooses the configuration of the
+Swag program the compiler builds. The repository health campaign and routine validation under
+`bin/` use the Release compiler and explicitly select the Release program configuration.
+See [Prompt 1](../../../backlog/repo.prompts.md#1-repository-health-reset) for the shared Windows
+and Linux sequence.
 
 Write the intended validation before launching it. Add a surface only when the changed behavior
 can reach it.
 
 ## Choose The Compiler Executable
 
-- Use `swc.exe` by default when iterating on `bin/apps` applications. This exercises the compiler
-  that ships to users; choose the compiled program configuration separately with `-bc` or
-  `-Configuration`.
+- Use `swc.exe` by default for builds and tests under `bin/`. Select the compiled program
+  configuration separately with `-bc` or `-Configuration`.
 - Use the DevMode compiler (`swc.dm.exe`) when debugging compiler problems, including compiler
   source changes that need its assertions, validators, statistics or C++ unit tests. For compiler
   changes guarded by `SWC_DEV_MODE`, use DevMode; for Release-only branches, Release-only failures,
   or shipped compiler time, memory and size, use the Release compiler.
 - Treat a new possible deadlock, race, use-after-lifetime, or timing-dependent ordering as an
-  architecture change. Exercise both compiler executables with real parallelism and repeat the
-  focused reproducer when timing is part of the risk.
+  architecture change. Exercise the failing path with real parallelism and repeat the focused
+  reproducer when timing is part of the risk. Compare compiler executables if the evidence
+  points to a compiler defect.
 - Do not build the Release compiler merely because the program configuration is `release`.
 
 ## Choose Program Configurations
@@ -54,8 +55,8 @@ The registered presets are the contract:
 
 | Configuration | Relevant properties | Select it for |
 | --- | --- | --- |
-| `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; automatic inlining | the default path and optimized code that must retain guards |
-| `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, vectorization, FP, or guard-free behavior |
+| `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; automatic inlining | focused diagnosis of a Release-specific failure or a check that explicitly requires the guarded preset |
+| `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | repository health campaign and routine builds and tests under `bin/` |
 | `release-safe` | release optimization and static sanity; runtime safety guards; no allocator diagnostics; no unsafe nonfinite FP assumptions | Optimized shipped programs that retain located runtime checks |
 
 The `test` command enables `.Assert` by default in every preset; explicit local `Swag.Safety`
@@ -69,10 +70,10 @@ whole language suite merely to keep debug-information generation exercised.
 
 Apply these reductions:
 
-- Start with `devmode` when the code path exists in every preset.
-- For an optimization or micro-pass change, use `devmode` when it executes the pass. If the pass is self-gated by
-  vectorization, aggressive FP, or another Release-only decision, use `release` instead; add both
-  configurations only when both execute distinct relevant paths.
+- Start with `release` when the code path exists in every preset. Compare with `devmode`
+  on the smallest reproducer when the failure may depend on the Release program configuration.
+- For an optimization or micro-pass change, use `release` when it executes the pass. Add
+  another preset only when it exercises a distinct relevant path.
 - For runtime safety guards, use `devmode` and omit `release`, where those guards are disabled.
 - For static sanity analysis, one representative configuration is enough unless the rule reads a
   configuration value or interacts with optimized lowering.
@@ -90,8 +91,8 @@ functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider 
 the owning workspace and module:
 
 ```text
-tools\coverage.bat -DevMode -Suite fast -Workspace std -Module gui
-tools\coverage.bat -Suite fast -Workspace apps -Module swagscope
+tools\coverage.bat -Configuration release -Suite fast -Workspace std -Module gui
+tools\coverage.bat -Configuration release -Suite fast -Workspace apps -Module swagscope
 ```
 
 During a change, prefer the exact test file first; run the module's `fast` selection when several
@@ -101,9 +102,9 @@ test families or shared state changed. These modes do not replace the compiler s
 Tag a test `stress` when its contract depends on deliberately large synthetic inputs, scale limits,
 large corpora, dimensions, memory bounds or sustained streaming work. Keep its smallest useful
 functional counterpart in `fast` when one can prove the ordinary behavior. Run the changed stress
-boundary with `tools/coverage.bat -DevMode -Suite stress`, narrowed to its workspace, module and
-file; run the broader stress selection on a scheduled or cross-cutting pass. Do not tag a test as
-stress solely because it is new or somewhat slower.
+boundary with `tools/coverage.bat -Configuration release -Suite stress`, narrowed to its workspace,
+module and file. Run the broader stress selection on a scheduled or cross-cutting pass. Do not tag
+a test as stress solely because it is new or somewhat slower.
 
 GPU is the default renderer for all coverage suites and direct `HeadlessHost` tests. Pass
 `-Renderer cpu` to `tools/coverage.bat` or set `SWAG_TEST_RENDERER=cpu` for a direct compiler test
@@ -140,10 +141,10 @@ speedup or a guarantee that runtime performance cannot regress.
 ### Non-executable changes
 
 - Documentation-only compiler work (`src/Doc`, the `doc` command, or its private helpers): build
-  DevMode, run `tools/help.bat dm`, and inspect the generated HTML diff. Run no GUI
+  Release, run `tools/help.bat -bc release`, and inspect the generated HTML diff. Run no GUI
   campaign unless another command path changed.
 - Formatter-only compiler work (`src/Format`, the `format` command, or its private helpers): build
-  DevMode, run `swc format -d bin`, and inspect the source diff. That full `bin/` formatting result
+  Release, run `swc format -d bin`, and inspect the source diff. That full `bin/` formatting result
   is the test; do not add compiler suites or format unrelated repository trees.
 - Repository prose, backlog, or skill-only work: run the relevant static validator or search and
   inspect the diff. No compiler build is evidence for prose.
@@ -250,7 +251,7 @@ consumer that activates the changed behavior.
 - Every `#test` that records or compares a text or PNG golden must carry
   `#[Swag.TestTag("golden")]`. The tag, rather than the source filename or assertion helper, is
   what makes the test part of the complete golden campaign.
-- Run `tools/goldens.bat dm test` whenever the change can reach more golden owners than can
+- Run `tools/goldens.bat test -bc release` whenever the change can reach more golden owners than can
   be bounded confidently from the call path. Shared rendering, layout, typography, theme, icon,
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
@@ -258,14 +259,14 @@ consumer that activates the changed behavior.
 - A PNG golden is a CPU reference, identical on every machine: it is recorded, compared exactly
   and replaced from a CPU render and from nothing else. The launchers select the CPU renderer for
   every run that selects the `golden` tag, so run golden tests through
-  `tools/coverage.bat -DevMode -Suite goldens`, narrowed with `-Workspace`, `-Module` and
+  `tools/coverage.bat -Configuration release -Suite goldens`, narrowed with `-Workspace`, `-Module` and
   `-TestFile`, or through `tools/std.bat`/`tools/apps.bat ... --test-tag golden`. A golden test
   reached by a GPU run is not compared. Never add a golden, a file variant or a tolerance for one
   renderer. A test that renders with `RenderCpu` itself says so with `{cpuRendered: true}`.
 - What a GPU draws is checked by the renderer parity campaign, not by goldens: tests tagged
   `integration.renderer.opengl` draw one scene with both renderers and compare them through
   `Pixel.Testing.assertRenderersAgree`, whose tolerance follows local contrast so it holds on any
-  graphics device. Run `tools/coverage.bat -DevMode -Suite parity` when a renderer, a shader, a
+  graphics device. Run `tools/coverage.bat -Configuration release -Suite parity` when a renderer, a shader, a
   sampler or a paint primitive changes. A divergence is a defect: reduce it to a small parity
   scene, watch that scene fail, fix the renderer (the GPU is presumed right, so the CPU renderer
   is the one brought to it), keep the scene as the regression test, and record again the goldens

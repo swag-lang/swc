@@ -133,9 +133,10 @@ agent's in-flight code into the binary being validated.
 ## 1. Repository health reset
 
 ```
-Validate the repository on Windows first, then on native Linux. Use the same two-step build and
-test plan for every pass. Start with DevMode to find and fix failures. Once it is green, use
-Release to confirm the shipped compiler and program configuration.
+Validate the repository on Windows first, then on native Linux. Build the Release compiler
+and use it for all campaign builds and tests under bin/ with -bc release. Use the shared plan
+once per host. Treat compiler executable and program configuration as independent choices
+when diagnosing a failure.
 
 Execution order
 
@@ -148,19 +149,19 @@ Execution order
    Run tools\portability.bat once on Windows.
 
    Increment SWC_BUILD_NUM in src/Main/Version.h by one before the first build. Keep that
-   number for every pass and resumed session. Record each resulting compiler's hash.
-   Use checkout-local Windows compilers and native Linux compilers built from the same
+   number for both hosts and resumed sessions. Record each resulting Release compiler's hash.
+   Use the checkout-local Windows compiler and a native Linux compiler built from the same
    committed sources. Keep each host's build outputs and caches separate.
 
-2. Windows DevMode with -bc devmode. Run the shared build and test pass and resolve failures.
-3. Run repository maintenance once. Verify any checks it invalidates before moving on.
-4. Windows Release with -bc release. Repeat the shared pass, run Windows integrations, and
+2. On Windows, run shared step A to build the Release compiler and the bin/ workspaces.
+3. Run repository maintenance once with the Release compiler. Rebuild only targets whose
+   inputs changed during maintenance.
+4. On Windows, run shared step B, resolve failures, run Windows integrations, and
    commit the validated batch on master. Prefix campaign commits with [prompt 1].
 5. Run tools\linux.bat sync. Verify tools\linux.bat exec git rev-parse HEAD against the
    validated Windows commit. Linux starts after all required Windows checks pass.
-6. Linux DevMode with -bc devmode. Run the shared pass and resolve failures.
-7. Linux Release with -bc release. Repeat the shared pass and run Linux integrations.
-8. Verify the final revision. For a late correction, commit the fix on master and sync it
+6. On native Linux, run shared steps A and B, resolve failures and run Linux integrations.
+7. Verify the final revision. For a late correction, commit the fix on master and sync it
    to Linux. Repeat only affected maintenance and validation checks on each host. If Swag
    Capture changed, finish with tools\apps.bat build swagcapture -bc release in the main
    checkout. Run git diff --check and git status --short --branch. Finish when all required
@@ -168,57 +169,51 @@ Execution order
    master is clean.
 
 When a host is unavailable, finish independent work on the available host and record
-exactly which checks remain pending. Run an additional compiler/program configuration
-pairing only as a focused diagnostic for a concrete failure.
+exactly which checks remain pending.
 
 Shared build and test pass
 
-   A. Build the selected compiler incrementally, then build std, examples, apps and reference
+   A. Build the Release compiler incrementally, then build std, examples, apps and reference
       in that order. Start with the aggregate commands below. The
       workspaces handle dependency builds, including the runtime. Test-only fixtures,
       scripts and expected diagnostics are covered at the test or smoke boundary that
       knows how to validate them.
 
    B. Run the compiler suites, examples and reference, then the full module coverage.
-      The compiler launcher includes C++ in DevMode and runs lexer, parser, sema, jit,
-      safety, sanity, native and workspace fixtures. Run ordinary std and apps tests,
-      including stress, on GPU. Compare goldens on CPU once, using their tag. Clear
-      any parity-sweep or golden-continue override. Finish independent groups after a
-      failure, then narrow the failing or unvisited scope.
-
-   For the commands below, <cfg> is devmode or release. On Windows and in tool.py, <dm>
-   is the literal dm for a DevMode pass and is omitted for a Release pass.
+      Run lexer, parser, sema, jit, safety, sanity, native and workspace fixtures with the
+      Release compiler. The launcher schedules C++ unit tests only with the DevMode
+      compiler. Use those tests as a focused check for a suspected compiler defect.
+      Run ordinary std and apps tests, including stress, on GPU. Compare goldens on CPU once,
+      using their tag. Clear any parity-sweep or golden-continue override. Finish independent
+      groups after a failure, then narrow the failing or unvisited scope.
 
    On Windows, resolve MSBuild from PATH or the Visual Studio installation.
 
-     A. MSBuild.exe swc.sln /t:Build /m /p:Configuration=<DevMode or Release> /p:Platform=x64
-        tools\build.bat <dm> -bc <cfg>
-     B. tools\unittests.bat <dm> -bc <cfg> --keep-going
-        tools\examples.bat <dm> test -bc <cfg>
-        tools\reference.bat <dm> test -bc <cfg>
-        tools\coverage.bat <coverage-compiler> -Suite full -Configuration <cfg>
-        Use -DevMode for <coverage-compiler> in a DevMode pass and omit it in Release.
+     A. MSBuild.exe swc.sln /t:Build /m /p:Configuration=Release /p:Platform=x64
+        tools\build.bat -bc release
+     B. tools\unittests.bat -bc release --keep-going
+        tools\examples.bat test -bc release
+        tools\reference.bat test -bc release
+        tools\coverage.bat -Suite full -Configuration release
 
    In WSL 2
 
-     A. tools\linux.bat build             (DevMode)
-        tools\linux.bat --release build   (Release)
-        tools\linux.bat exec python3 tools/tool.py <workspace> <dm> build -bc <cfg>
+     A. tools\linux.bat --release build
+        tools\linux.bat exec python3 tools/tool.py <workspace> build -bc release
         Run the workspace command in order for std, examples, apps and reference.
-     B. tools\linux.bat exec python3 tools/tool.py unittests <dm> -bc <cfg> --keep-going
-        tools\linux.bat exec python3 tools/tool.py examples <dm> test -bc <cfg>
-        tools\linux.bat exec python3 tools/tool.py reference <dm> test -bc <cfg>
+     B. tools\linux.bat exec python3 tools/tool.py unittests -bc release --keep-going
+        tools\linux.bat exec python3 tools/tool.py examples test -bc release
+        tools\linux.bat exec python3 tools/tool.py reference test -bc release
         For std, then apps, run both selections with the shared tool:
-          tools\linux.bat exec env SWAG_TEST_RENDERER=gpu python3 tools/tool.py <workspace> <dm> test -bc <cfg> --test-tag !golden
-          tools\linux.bat exec python3 tools/tool.py <workspace> <dm> test -bc <cfg> --test-tag golden
+          tools\linux.bat exec env SWAG_TEST_RENDERER=gpu python3 tools/tool.py <workspace> test -bc release --test-tag !golden
+          tools\linux.bat exec python3 tools/tool.py <workspace> test -bc release --test-tag golden
         The golden selector uses CPU automatically.
 
    The WSL wrapper sets the compiler and runtime paths. The shared tool uses the Linux
    checkout's normal incremental outputs for both builds and tests. On a native Linux
    host, run the Python commands directly. Build with python3 tools/linux-build.py
-   --build-dir <external path> --configuration <cfg>, copy bin/runtime beside the compiler,
-   and set SWAG_PATH, SWC_DEVMODE_COMPILER and SWC_COMPILER to the corresponding checkout
-   and build paths.
+   --build-dir <external path> --configuration release, copy bin/runtime beside the compiler,
+   and set SWAG_PATH and SWC_COMPILER to the corresponding runtime and compiler paths.
 
 Failure diagnosis and reruns
 
@@ -230,18 +225,23 @@ Failure diagnosis and reruns
 
    Narrow only as far as needed to reproduce and diagnose the failure.
 
-   - For a workspace or suite, run tools\<workspace>.bat <dm> build|test -bc <cfg>, or
-     tools\unittests.bat <dm> <suite> -bc <cfg> --keep-going.
-   - For a module, run tools\<workspace>.bat <dm> build|test <module> -bc <cfg>.
+   - For a workspace or suite, run tools\<workspace>.bat build|test -bc release, or
+     tools\unittests.bat <suite> -bc release --keep-going.
+   - For a module, run tools\<workspace>.bat build|test <module> -bc release.
    - For a file, append --test-file <path fragment> to a workspace test. For a standalone
      compiler-suite input, use --file-filter <path fragment> on unittests instead.
    - For a case, use an existing sufficiently narrow --test-tag within the selected file,
      or reduce the case in a temporary reproducer while retaining the failing boundary.
      Check that filtered runs actually select the intended input or test.
 
-   Use the equivalent tool.py commands on Linux. Keep the host, compiler, program
-   configuration and relevant flags from the failure. Preserve runner checks for expected
-   diagnostics, exit codes and prerequisites. Keep fixtures silent and use ordinary assertions.
+   Use the equivalent tool.py commands on Linux. Reproduce using the failing host and Release
+   flags. If a compiler defect is suspected, switch only the focused reproducer to swc.dm.exe
+   on Windows or swc.dm on Linux. Keep -bc release when testing the same generated program.
+   If the failure may depend on the Release program configuration, use -bc devmode only for
+   that focused comparison, with the Release compiler unless it is also suspect. Confirm
+   the correction in Release and resume the campaign from the affected stage.
+   Use assertions and runner status to validate tests. Keep test code free of prints, log
+   checks and output files used as pass markers.
 
    Group failures by root cause. Fix them in batches, add focused regression coverage where
    needed, and verify the failing boundary first. Rebuild a compiler only when the batch
@@ -278,13 +278,13 @@ Host integrations
 
 Repository maintenance
 
-   - Run tools\format.bat dm, then clang-format on project-owned .cpp, .h and .inc files
+   - Run tools\format.bat, then clang-format on project-owned .cpp, .h and .inc files
       under src/, excluding vendored mimalloc. Review the diff and verify that a second pass
       of each formatter is idempotent.
-   - Run tools\help.bat dm to generate std and reference help. Review the diff and verify
-      idempotence with a second generation. On a Linux-only host, use DevMode format
+   - Run tools\help.bat -bc release to generate std and reference help. Review the diff and
+     verify idempotence with a second generation. On a Linux-only host, use Release format
       -d bin -d bench/src and doc --workspace <bin/std or bin/reference>
-      --doc-output-dir bin/help --rebuild.
+     --doc-output-dir bin/help --rebuild -bc release.
    - Review backlog entries and actionable TODO/FIXME/HACK/XXX markers. Keep the backlog
       limited to unresolved outcomes and remove completed or disproved entries. Clean only
       reviewed generated residue. Preserve canonical test output roots and pre-existing work.

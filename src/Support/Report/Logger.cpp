@@ -56,6 +56,16 @@ void Logger::print(const TaskContext& ctx, std::string_view message)
     std::cout << message;
 }
 
+void Logger::printAndFlush(const TaskContext& ctx, std::string_view message)
+{
+    if (ctx.cmdLine().silent || ctx.muteOutput())
+        return;
+
+    const ScopedLock lock(ctx.global().logger());
+    std::cout << message;
+    std::cout.flush();
+}
+
 void Logger::printStdErr(const std::string_view message)
 {
     const std::scoped_lock lock(stdErrMutex());

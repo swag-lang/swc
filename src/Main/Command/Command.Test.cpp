@@ -677,6 +677,7 @@ namespace
         for (const SymbolFunction* function : testFunctions)
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
+            Logger::printAndFlush(ctx, std::format("[swag.test] event=start executed={} failed={} name={}\n", executedTestCount, failedTestCount, testLocation));
             const bool testPassed   = runJitTestFunction(ctx, *function, &abandoned);
             if (!testPassed)
             {
@@ -690,6 +691,7 @@ namespace
             }
 
             executedTestCount++;
+            Logger::printAndFlush(ctx, std::format("[swag.test] event={} executed={} failed={} name={}\n", testPassed ? "pass" : "fail", executedTestCount, failedTestCount, testLocation));
             if (abandoned)
                 break;
         }

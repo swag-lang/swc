@@ -134,6 +134,7 @@ public:
     bool stagesDetailed() const { return stagesDetailed_; }
 
     static void print(const TaskContext& ctx, std::string_view message);
+    static void printAndFlush(const TaskContext& ctx, std::string_view message);
     static void printStdErr(std::string_view message);
 
     // A field prints as 'label: value', or as its value alone without a label, indented two spaces

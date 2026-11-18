@@ -2234,10 +2234,10 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
 
     const Os::ProcessRunOptions options{
         .capturedOutput            = &artifactOutput,
-        .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::print(*static_cast<const TaskContext*>(context), line); },
+        .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::printAndFlush(*static_cast<const TaskContext*>(context), line); },
         .forwardLineUserData       = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
-        .suppressForwardLinePrefix = "[swag.test]",
+        .suppressForwardLinePrefix = "[swag.test] executed=",
         .timeoutMs                 = timeoutMs,
     };
 

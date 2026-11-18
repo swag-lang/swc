@@ -9,7 +9,12 @@ func openMenuExplorer(host: *Testing.HeadlessHost, width = 1280'f32)->*ViewerWin
     host.setup(width, 720)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.onlineMovies = false
+    window.onlineMusic  = false
     window.openExplorer(scopeTestDataDirectory())
+    // Menu tests do not need thumbnails; names mode keeps media preview workers out of the host.
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Names)
     waitMenuExplorer(host, window)
     window.applyLayout()
     return window

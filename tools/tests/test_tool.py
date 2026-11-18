@@ -178,7 +178,7 @@ class ToolTests(unittest.TestCase):
             self.assertEqual(failed_check.expected_output, 'SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP')
 
     def test_workers_and_explicit_runtime_override(self):
-        for workers, expected in (('1', '1'), ('2', '2'), ('0', '3'), ('8', '3')):
+        for workers, expected in (('1', '1'), ('2', '2'), ('0', str(os.cpu_count() or 1)), ('8', '8')):
             self.invoke(['apps', 'dm', 'test', '--num-cores', workers])
             self.assertEqual(self.environment['SWAG_RUNTIME_THREADS'], expected)
             self.assertIn('--run-arg=--compiler-workers=' + expected, self.stages[0].command)

@@ -14,15 +14,11 @@ prices every series, so a three-second interpreter run and a twenty-millisecond 
 run each get a plan they can afford.
 
 A sample taken while somebody else kept more cores busy than the family's running median
-plus `machine.FOREIGN_EXCESS_CORES` is set aside, the driver waits for a quiet machine,
-and the sample is taken again.
-A sample still contended after every attempt is kept and flagged; the campaign counts
-them and refuses to publish when there are too many.
+plus `machine.FOREIGN_EXCESS_CORES` is kept and flagged.
 """
 import hashlib
 import random
 
-import machine
 import stats
 
 # A self-timed run cannot be twice as fast as its next fastest sample. Across every
@@ -79,7 +75,6 @@ class Series:
     def __init__(self, key):
         self.key = key
         self.samples = []
-        self.set_aside = []
         self.error = None
         self.plan = None
 
@@ -106,8 +101,6 @@ class Series:
 
     def as_dict(self):
         out = {"samples": self.samples}
-        if self.set_aside:
-            out["set_aside"] = self.set_aside
         if self.error:
             out["error"] = self.error
         if self.plan:
@@ -119,34 +112,7 @@ class Series:
         return out
 
 
-def guarded(take, waits, baseline, quiet_limit_s=machine.QUIET_WAIT_S, attempts=machine.SAMPLE_ATTEMPTS,
-            log=None, name=""):
-    """Take one sample, again while somebody else was using the machine.
-
-    `take()` returns a record carrying `foreign_cores`; `baseline` is the family's
-    machine.Baseline. Returns (record, set-aside records).
-    """
-    set_aside = []
-    for attempt in range(attempts):
-        record = take()
-        if not baseline.judge(record):
-            record["attempts"] = attempt + 1
-            baseline.accept(record)
-            return record, set_aside
-        set_aside.append(record)
-        quiet, waited, load = machine.wait_for_quiet(quiet_limit_s)
-        waits.append(waited)
-        if log:
-            log("  %-20s interference: %.1f foreign cores (limit %.1f), waited %.0f s for quiet%s"
-                % (name, record["foreign_cores"], record["foreign_limit"], waited,
-                   "" if quiet else ", machine still busy (%.1f)" % load))
-    record = set_aside.pop()
-    record["attempts"] = attempts
-    record["contended"] = True
-    return record, set_aside
-
-
-def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None, *, retry_interference=True):
+def run_rounds(units, take, plan_for, key, rng, baseline, log=None):
     """Sample every unit until each of its series has the evidence its plan asks for.
 
     units: list of tuples of runtime names. take(name, round) returns a record carrying
@@ -162,15 +128,11 @@ def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None, *, re
             if s.error:
                 continue
             try:
-                if retry_interference:
-                    record, set_aside = guarded(lambda: take(name, rnd), waits, baseline, log=log, name=name)
+                record = take(name, rnd)
+                if baseline.judge(record):
+                    record["contended"] = True
                 else:
-                    record, set_aside = take(name, rnd), []
-                    record["attempts"] = 1
-                    if baseline.judge(record):
-                        record["contended"] = True
-                    else:
-                        baseline.accept(record)
+                    baseline.accept(record)
             except SampleError as error:
                 s.error = str(error)
                 if log:
@@ -178,7 +140,6 @@ def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None, *, re
                 continue
             record["round"] = rnd
             s.samples.append(record)
-            s.set_aside.extend(dict(r, round=rnd) for r in set_aside)
             if s.plan is None:
                 s.plan = plan_for(name, record.get("wall_ms", record[key]))
 
@@ -200,10 +161,10 @@ def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None, *, re
             e = s.estimate()
             if s.error:
                 continue
-            log("  %-20s median %10.2f  %s  n=%-3d%s" % (
+            log("  %-20s median %10.2f  %s  n=%-3d" % (
                 name, e.value if e else (s.samples[0][key] if s.samples else 0.0),
                 ("+/-%.1f %%" % (100 * e.relative_halfwidth)) if e else "  (one sample)",
-                len(s.samples), ("  %d taken again" % len(s.set_aside)) if s.set_aside else ""))
+                len(s.samples)))
     return series
 
 

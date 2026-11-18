@@ -14,8 +14,7 @@ surface allocation, readback, and comparison stay outside the timed region. Ever
 result is compared byte for byte with the owned image produced by the one-worker control.
 The process increases its worker count from one to four and never needs to shrink the pool.
 
-Admit each build and run with the repository's machine-load check. The same benchmark source
-must be used on both sides of a comparison; do not run a timing measurement beside another build.
+The same benchmark source must be used on both sides of a comparison.
 
 On 2026-09-08, the same DevMode compiler built this Release program before and after replacing
 one raster band per worker with fixed sixteen-row blocks. Admission CPU load was 2% for both

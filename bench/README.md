@@ -57,15 +57,15 @@ complete successful collection is sealed. A sealed snapshot cannot be resumed or
 For a quick Linux runtime campaign across all twelve tasks, without a frozen reference:
 
 ```sh
-python bench/bench.py measure --quick --run --no-reference --swc /absolute/path/to/swc --swc-cores 3 --out /absolute/external/path/quick.json
+python bench/bench.py measure --quick --run --no-reference --swc /absolute/path/to/swc --out /absolute/external/path/quick.json
 ```
 
 This takes one sample per available runtime and writes no official history. `--run` still builds
 programs outside the measurement, but avoids the hello-build and full standard-library edit-loop
 sections (documentation generation can be lengthy even with `--quick`). Missing tools are skipped;
 build/check failures are retained in the raw result and make the command exit nonzero.
-Quick sweeps flag contention but never wait for quiet or retry an interfering sample; they
-validate the plumbing rather than estimate performance. Normal campaigns keep interference retries.
+Quick sweeps validate the plumbing rather than estimate performance. Campaigns record concurrent
+machine activity alongside every sample.
 
 For Linux campaigns, first build Swag with `tools/linux-build.py` into an external directory,
 then use `python bench/bench.py campaign --no-build --swc /absolute/path/to/swc`. Freeze a **Linux**
@@ -107,7 +107,7 @@ minutes on the benchmark laptop and needs it plugged in and otherwise idle. Othe
 | `py -3 bench/scripts/driver.py --tasks sort,nbody --out C:\tmp\c.json` | a partial sweep while working on one task; written to the file, never recorded |
 | `py -3 bench/scripts/driver.py --quick --tasks sort --no-reference` | the plumbing alone, without the reference |
 | `py -3 bench/scripts/reference.py show` / `verify` / `freeze NAME` | the frozen reference compiler, see below |
-| `py -3 bench/scripts/compile.py --against C:\baseline\swc.exe --swc-cores 6` | A/B of the edit-build loop between two compilers, records nothing |
+| `py -3 bench/scripts/compile.py --against C:\baseline\swc.exe` | A/B of the edit-build loop between two compilers, records nothing |
 | `py -3 bench/scripts/microdiff.py --base C:\baseline\swc.exe` | which functions and loops of the tasks two compilers generate differently |
 | `py -3 bench/workloads/allocator/run.py` | the allocator section alone |
 | `python -B -m unittest discover -s bench` | the harness's own tests, on synthetic data |
@@ -239,10 +239,7 @@ burst of pinned 40 ms runs kept about three more performance cores busy outside 
 antivirus, event-tracing collectors and the editor reacting to every process start. That load
 comes with our own launches, so each family of measurements (builds, runs, hello, loop) keeps a
 running median of its readings, and a sample is **contended** when it reads more than
-2.5 cores above that median. A contended sample is set aside, the driver waits up to 15 s for
-two quiet seconds, and the sample is taken again, up to four times. A sample still contended after
-that is kept and flagged; a campaign with more than 5 % of flagged samples is archived under
-`results\rejected` instead of recorded. Set-aside samples stay in the raw file.
+2.5 cores above that median. Contended samples stay in the record with their load measurement.
 
 The system counters advance in 15.6 ms ticks, so the estimate is coarse on short samples: it
 catches a visitor that keeps cores busy, not a single short burst. Excluding the benchmark
@@ -310,8 +307,7 @@ A ratio is **faster** when its whole interval is below 1, **slower** when it is 
 
 ### 8. The machine has to be in a known state
 
-A campaign refuses to start on battery or with battery saver on, waits for three consecutive
-quiet seconds (under 1.5 foreign cores) before starting, and warms up for thirty seconds on a
+A campaign refuses to start on battery or with battery saver on, and warms up for thirty seconds on a
 reference workload. It records the processor, memory, Windows build, power source and power
 mode at start and at end, the toolchain versions, the sampling seed, both compilers' digests
 and every sample with its interference reading. A campaign whose power state changed is
@@ -395,8 +391,8 @@ collection policy. These are short-lived program measurements, not warmed server
 | `../tools/bench.bat` | the entry point |
 | `scripts/campaign.py` | builds the compiler, measures, reports |
 | `scripts/driver.py` | one campaign |
-| `scripts/sampler.py` | rounds, pairs, stopping rules, interference retries |
-| `scripts/machine.py` | interference estimate, quiet waits, machine and power description |
+| `scripts/sampler.py` | rounds, pairs, and stopping rules |
+| `scripts/machine.py` | interference estimate, machine and power description |
 | `scripts/installs.py` | the private installation of the compiler under test and the frozen reference |
 | `scripts/reference.py`, `compilers/reference-<os>.json` | managing the reference, and the committed manifest of the current one |
 | `scripts/toolchains.py` | where each toolchain lives, how it builds and runs, its warm state |

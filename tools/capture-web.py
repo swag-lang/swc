@@ -194,11 +194,6 @@ def main():
                            SWAG_CAPTURE_WEB_DURATION=str(args.duration),
                            SWAG_CAPTURE_WEB_QUALITY=args.video_quality)
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)
-        # Admission is repeated by this explicit host runner immediately before compiling/testing.
-        check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'
-        result = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(check)], cwd=repo)
-        if result.returncode:
-            return result.returncode
         with (output / 'test.log').open('w', encoding='utf-8') as log:
             result = subprocess.run(command, cwd=repo, env=environment, stdout=log, stderr=subprocess.STDOUT)
         print((output / 'test.log').read_text(encoding='utf-8'), flush=True)

@@ -44,14 +44,11 @@ def main():
     build = args.build_dir.resolve()
     build_command = shlex.split((build / 'build-command.txt').read_text())
     objects = sorted(path for path in (build / 'src').rglob('*.o') if path != build / 'src/main.o')
-    admission = ['python3', str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
-    subprocess.run(admission, check=True)
     with tempfile.TemporaryDirectory(prefix='swc-elf-link-') as temporary:
         scratch = Path(temporary)
         binary = scratch / 'measure'
         subprocess.run([*build_command, str(Path(__file__).with_name('measure.cpp')), *map(str, objects),
                         '-pthread', '-rdynamic', '-ldl', '-o', str(binary)], check=True)
-        subprocess.run(admission, check=True)
         link_samples = []
         for mode in ('executable', 'shared'):
             for count in args.counts:
@@ -82,7 +79,6 @@ def main():
                                     ignore=shutil.ignore_patterns('.output', '.tmp'))
             installations[implementation] = installation
         compile_samples = []
-        subprocess.run(admission, check=True)
         for case in ('standalone', 'static', 'shared'):
             print(f'Measuring complete rebuild: {case}', flush=True)
             options_by_implementation = {}
@@ -94,7 +90,7 @@ def main():
                     environment = os.environ.copy()
                     environment.update(TMPDIR=str(installation), XDG_CACHE_HOME=str(installation / 'cache'),
                                        SWAG_PATH=str(installation), SWAG_RUNTIME_THREADS='3')
-                    options = ['--num-cores', '3', '--build-cfg', 'devmode', '--no-log-color']
+                    options = ['--num-cores', '0', '--build-cfg', 'devmode', '--no-log-color']
                     if case == 'standalone':
                         options += ['--file', str(fixture / 'main.swg'), '--artifact-name', 'standalone',
                                     '--artifact-kind', 'executable', '--out-dir', str(fixture / 'output'), '--work-dir', str(fixture / 'work')]

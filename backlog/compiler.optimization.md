@@ -58,7 +58,7 @@ identity, and cache cases belong in `bin/unittests/workspace`; runtime code shap
 compile-time behavior in `jit`; guarded paths in `safety` or `sanity`; graph, cache, IR, ABI,
 linker, and profile helpers in the corresponding C++ tests. Dedicated debug-information fixtures
 opt into `--debug`. Scheduling/publication changes also exercise both compiler executables and
-real parallelism. Follow shared load admission and six-worker limits for every command.
+real parallelism.
 
 Before the first transformation, establish baselines for small and large module graphs, deep wrapper
 chains, diamond dependencies, recursion, generics, callbacks, aggregate returns, and mixed source,

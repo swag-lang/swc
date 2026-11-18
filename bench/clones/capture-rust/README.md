@@ -56,8 +56,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $runner -Action run -OutputR
 The executable is at
 `$captureOutput/target/x86_64-pc-windows-msvc/release/swagcapture-rust-preview.exe`.
 Build artifacts, generated resources, screenshots and measurement reports stay
-outside the checkout. The launcher checks shared-machine headroom before each
-build, test or automated runtime scenario. Retry an unadmitted command later.
+outside the checkout.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File $runner -Action test -OutputRoot $captureOutput

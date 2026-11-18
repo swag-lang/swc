@@ -129,8 +129,7 @@ being compiled by it.
 
 ### repo.tooling.008 — Record module timings with load observed during each sample
 
-- Evidence: `bench/scripts/compile.py` has no module-only GUI, Pixel, or OGL workload, and admission is
-  checked only before a sample. A campaign starting during a sample therefore goes unrecorded;
+- Evidence: `bench/scripts/compile.py` has no module-only GUI, Pixel, or OGL workload. A campaign starting during a sample goes unrecorded;
   paired GUI samples of one compiler have varied more than fivefold. Two observations remain
   unexplained ([report](../bench/results/compilation/20260907/README.md)): a GUI resident and
   committed peak about 4–5% higher under fixed dependencies, and a roughly 2.5x `doc_std`
@@ -145,7 +144,7 @@ being compiled by it.
   pair of Pixel rebuilds took 27.2 s and 21.3 s. These are unpinned observations, not a
   historical comparison.
 - Next: add opt-in module-only workloads to the recorded compilation instrument and retain
-  both preflight admission and system CPU deltas across the timed process. Distinguish warm
+  system CPU deltas across the timed process. Distinguish warm
   dependencies (`--rebuild-module`), whole dependency rebuilds, pinned controls, and ordinary
   builds in the results.
   Repeat the GUI control under steady load, including the `--optimizer-stats` path, and isolate
@@ -153,5 +152,5 @@ being compiled by it.
   to explain the peak-memory difference, and investigate the `doc_std` slowdown under steady load,
   before setting a regression budget.
 - Done when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
-  timings and memory peaks, and a sample disturbed after admission is identified in the record.
+  timings and memory peaks, and a disturbed sample is identified in the record.
 - Related: compiler.optimization.029

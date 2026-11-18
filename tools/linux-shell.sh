@@ -19,7 +19,7 @@ release.bat() {
         --build-dir "$SWC_BUILD_DIR" \
         --configuration release \
         --cxx "${SWC_LINUX_CXX:-g++-14}" \
-        --jobs 3 "$@" || return $?
+        "$@" || return $?
 
     mkdir -p "$SWC_BUILD_DIR/release/runtime" &&
         cp -a "$SWAG_SOURCE/bin/runtime/." "$SWC_BUILD_DIR/release/runtime/"

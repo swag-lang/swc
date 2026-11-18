@@ -19,7 +19,7 @@ if not defined MSBUILD (
 
 
 pushd "%~dp0.."
-"%MSBUILD%" swc.sln /m:1 /p:Configuration=Release /p:Platform=x64
+"%MSBUILD%" swc.sln /m /p:Configuration=Release /p:Platform=x64
 set "BUILD_EXIT=%ERRORLEVEL%"
 popd
 

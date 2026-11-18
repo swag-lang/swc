@@ -49,10 +49,9 @@
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
         <SwcOutputDir>bin/</SwcOutputDir>
-        <!-- Use eight native compiler jobs by default. Override with SWC_COMPILE_JOBS or
-             -p:SwcCompileJobs=N when the available CPU or memory calls for another count. -->
+        <!-- Use every available processor by default; callers can override the count. -->
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
-        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">8</SwcCompileJobs>
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(NUMBER_OF_PROCESSORS)</SwcCompileJobs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>

@@ -2,7 +2,6 @@ r"""Exercise machine-code archives across compiler processes and changed inputs.
 
     py -3 bench/scripts/cachecheck.py --scratch C:\path\outside-checkout [--dm]
 
-Every compiler invocation has independent load admission and at most six workers.
 Fixtures, native outputs, private caches and logs stay in the supplied scratch root.
 """
 import argparse
@@ -18,7 +17,7 @@ import struct
 import subprocess
 import time
 
-from parsecache import ROOT, admit
+from parsecache import ROOT
 
 
 @contextmanager
@@ -176,9 +175,7 @@ def main():
     cache = temp / "swag/machine"
     checks = []
 
-    def invoke(label, expected="42 cached", rebuild=False, stats=False, config="devmode", cores=6, admission=True):
-        if admission:
-            admit()
+    def invoke(label, expected="42 cached", rebuild=False, stats=False, config="devmode", cores=0):
         output = run / label
         command = [str(compiler), "run", "-f", str(source), "--import-api-file", str(api),
                    "--num-cores", str(cores), "-bc", config, "-n", "consumer",
@@ -335,14 +332,13 @@ def main():
     finally:
         os.utime(compiler, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
 
-    # The two publishers share a six-worker budget and one admitted test scenario.
+    # The two publishers exercise simultaneous cache publication.
     for directory in [cache]:
         for path in directory.glob("*.bin"):
             assert path.resolve().parent == directory.resolve()
             path.unlink()
-    admit()
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        futures = [pool.submit(invoke, "publisher-" + str(i), cores=3, admission=False) for i in range(2)]
+        futures = [pool.submit(invoke, "publisher-" + str(i), cores=3) for i in range(2)]
         for future in futures:
             future.result()
     invoke("after-publication")

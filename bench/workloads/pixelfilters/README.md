@@ -1,6 +1,6 @@
 # Parallel pixel-filter overhead
 
-Run from the repository root after the machine-load admission check:
+Run from the repository root:
 
 ```powershell
 bin/swc.dm.exe run --num-cores 6 -f src/pixelfilters.swg --module-file bench/workloads/pixelfilters/module.swg -bc release
@@ -26,8 +26,6 @@ New-Item -ItemType Directory -Path $benchOutput, $benchWork | Out-Null
 bin/swc.dm.exe build --num-cores 6 -f src/pixelfilters.swg --module-file bench/workloads/pixelfilters/module.swg -bc release --out-dir $benchOutput --work-dir $benchWork
 & (Join-Path $benchOutput 'pixelfilters.exe')
 ```
-
-Admit the build and each executable run separately. Use a quiet machine for timing comparisons.
 
 Before runtime adaptation, on 2026-09-08, median one-worker/four-worker times in microseconds were:
 

@@ -51,7 +51,7 @@ is the current scorecard.
   `Compiler_NativePanicReleasesCapturedErrorsBeforeStop` and
   `Compiler_ExplicitExpectStopsThroughInlineExpansion`; both pass in the Linux DevMode C++
   filesystem suite. Windows has not been rechecked against these updated expectations.
-- Next: run `swc.dm unittest --dev-full --num-cores 3` on Windows and verify both fixtures report
+- Next: run `swc.dm unittest --dev-full` on Windows and verify both fixtures report
   the failed tally before the native process stops.
 - Done when: both fixtures pass with the terminal panic contract on Windows.
 

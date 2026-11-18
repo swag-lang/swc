@@ -1,6 +1,6 @@
 # ChaCha20 native partition scaling
 
-Run from the repository root after the machine-load admission check:
+Run from the repository root:
 
 ```powershell
 bin/swc.dm.exe test -f src/chacha20.test.swg --module-file bench/workloads/chacha20/module.swg -bc release --no-test-jit

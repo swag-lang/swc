@@ -13,8 +13,8 @@ of numbers, and both are ratios measured inside the same minutes:
     sample. This is the progress curve, and it needs no correction between campaigns
     because the reference is measured next to the compiler every time.
 
-Every sample is taken on a machine verified to be otherwise quiet while it ran (see
-machine.py), from the same warm toolchain state (see toolchains.py), in rounds whose order
+Every sample records the machine's concurrent work (see machine.py), from the same warm toolchain
+state (see toolchains.py), in rounds whose order
 is drawn at random (see sampler.py). README.md states the protocol in full.
 """
 import argparse
@@ -42,10 +42,6 @@ for _stream in (sys.stdout, sys.stderr):
 
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
-# A campaign whose accepted samples include more than this share still contended after
-# every retry measured a busy machine, and is archived instead of recorded.
-CONTENDED_LIMIT = 0.05
-QUIET_START_S = 600
 CALIBRATION_REPS = 7
 
 
@@ -77,7 +73,6 @@ class Campaign:
             self.installs["reference"] = reference
         self.quick = args.quick
         self.cores = args.swc_cores
-        self.waits = []
         self.rng, self.seed = sampler.campaign_rng(stamp, args.label)
         self.baselines = {family: machine.Baseline() for family in ("build", "run", "hello", "loop")}
 
@@ -149,8 +144,7 @@ class Campaign:
                 log("  %-20s BUILD ERROR %s" % (name, error.splitlines()[-1] if error else ""))
         names = [n for n in recipes if n not in errors]
         series = sampler.run_rounds(self.units(names), lambda n, _: self.build_sample(recipes[n]),
-                                    self.plan("build"), "wall_ms", self.rng, self.waits,
-                                    self.baselines["build"], log, retry_interference=not self.quick)
+                                    self.plan("build"), "wall_ms", self.rng, self.baselines["build"], log)
         out = {}
         for name, recipe in recipes.items():
             if name in errors:
@@ -173,8 +167,8 @@ class Campaign:
     def measure_runs(self, commands):
         series = sampler.run_rounds(self.units(list(commands)),
                                     lambda n, _: self.run_sample(*commands[n]),
-                                    self.plan("run"), "ms", self.rng, self.waits,
-                                    self.baselines["run"], log, retry_interference=not self.quick)
+                                    self.plan("run"), "ms", self.rng,
+                                    self.baselines["run"], log)
         out = {}
         for name, s in series.items():
             out[name] = s.as_dict()
@@ -203,8 +197,8 @@ class Campaign:
             if spec["state"]:
                 spec["state"].capture()
         series = sampler.run_rounds(self.units(list(specs)), lambda n, _: self.hello_sample(specs[n]),
-                                    self.plan("run"), "first_ms", self.rng, self.waits,
-                                    self.baselines["hello"], log, retry_interference=not self.quick)
+                                    self.plan("run"), "first_ms", self.rng,
+                                    self.baselines["hello"], log)
         return {name: s.as_dict() for name, s in series.items()}
 
     # ------------------------------------------------------------- edit loop
@@ -233,8 +227,8 @@ class Campaign:
                     log("  %s/%s: %s" % (wid, role, error))
             units = [tuple(r for r in ("subject", "reference") if r in jobs and r not in errors)]
             series = sampler.run_rounds([u for u in units if u], lambda n, _: self.loop_sample(jobs[n]),
-                                        self.plan("loop"), "wall_ms", self.rng, self.waits,
-                                        self.baselines["loop"], log, retry_interference=not self.quick)
+                                        self.plan("loop"), "wall_ms", self.rng,
+                                        self.baselines["loop"], log)
             out[wid] = {role: ({"error": errors[role]} if role in errors else series[role].as_dict())
                         for role in jobs}
             line = "  %-14s" % wid
@@ -301,7 +295,7 @@ def campaign_errors(results):
 def parse_args(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--swc", help="compiler under test (default: bin/swc.exe of this checkout)")
-    ap.add_argument("--swc-cores", type=int, default=3, help="cap Swag compiler workers; 0 = compiler default")
+    ap.add_argument("--swc-cores", type=int, default=0, help="set Swag compiler workers; 0 = compiler default")
     ap.add_argument("--warmup", type=int, default=30, help="seconds of reference workload before measuring")
     ap.add_argument("--label", default="", help="short note stored with this campaign")
     ap.add_argument("--quick", action="store_true", help="one sample of everything; proves the plumbing, records nothing")
@@ -390,13 +384,6 @@ def main(argv=None):
 
     versions = {name: machine.tool_version(cmd, env) for name, cmd in tc.version_commands(t).items()
                 if name not in gone}
-
-    if not args.quick:
-        quiet, waited, load = machine.wait_for_quiet(QUIET_START_S, seconds=3)
-        if not quiet:
-            log("the machine stayed busy for %d s (%.1f foreign cores); nothing was measured" % (waited, load))
-            return 1
-        log("machine quiet (%.1f foreign cores), starting" % load)
 
     calibration_id = next((name for name in ("cpp-clang-cl", "cpp-clang", "cpp-gcc")
                            if name in recipes and name not in gone), None)
@@ -489,7 +476,6 @@ def main(argv=None):
 
     results["calibration"]["probes"]["end"] = probe()
     results["quality"] = quality(results)
-    results["quality"]["quiet_waits_s"] = round(sum(campaign.waits), 1)
     results["quality"]["foreign_median_cores"] = {family: b.median() for family, b in campaign.baselines.items()}
     results["meta"] = history.describe(swc, args.label, {
         "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
@@ -506,9 +492,8 @@ def main(argv=None):
     results["meta"]["toolchains"] = versions
 
     q = results["quality"]
-    log("samples: %d accepted, %d taken again after interference, %d still contended (%.1f %%), "
-        "%.0f s waited for quiet" % (q["accepted"], q["set_aside"], q["contended"], 100 * q["contended_share"],
-                                     q["quiet_waits_s"]))
+    log("samples: %d accepted, %d contended (%.1f %%)" %
+        (q["accepted"], q["contended"], 100 * q["contended_share"]))
     if args.out:
         write_campaign(args.out, results)
         log("raw campaign also written to %s" % args.out)
@@ -531,15 +516,14 @@ def main(argv=None):
         log("no reference: nothing recorded, a campaign without its reference cannot be compared")
         return 0
 
-    rejected = q["contended_share"] > CONTENDED_LIMIT or problem or machine.power_problem(
+    rejected = problem or machine.power_problem(
         results["meta"]["machine"]["power_end"])
     folder = os.path.join(os.path.dirname(history.HISTORY), "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
     write_campaign(raw, results)
     if rejected:
-        log("campaign archived in results/rejected/%s.json and NOT recorded: the machine was busy or "
-            "changed power state" % stamp)
+        log("campaign archived in results/rejected/%s.json and NOT recorded: the power state changed" % stamp)
         return 0
     log("raw campaign written to results/%s.json" % stamp)
     entries = history.append(results)

@@ -79,7 +79,7 @@ class LinuxCampaignTests(unittest.TestCase):
 
     def test_expected_sema_diagnostics_use_one_worker(self):
         normal, errors = self.plan('sema')
-        self.assertEqual(normal.command[normal.command.index('--num-cores') + 1], '3')
+        self.assertEqual(normal.command[normal.command.index('--num-cores') + 1], '0')
         self.assertEqual(errors.command[errors.command.index('--num-cores') + 1], '1')
         self.assertIn('--sema-only', errors.command)
 
@@ -91,17 +91,10 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertGreater(stage.command.index('--test-jit'), stage.command.index('--no-test-jit'))
         self.assertNotIn('--no-test-native', stage.command)
 
-    def run_stage(self, code, timeout=5, admission='default', **options):
+    def run_stage(self, code, timeout=5, **options):
         stage = RUNNER['Stage']('probe', [sys.executable, '-c', code], **options)
         with redirect_stdout(io.StringIO()):
-            if admission == 'default':
-                admission = [sys.executable, '-c', 'pass']
-            return RUNNER['run_stage'](stage, self.root, os.environ.copy(), timeout, admission)
-
-    def test_cloud_stage_can_skip_local_machine_admission(self):
-        with patch.object(RUNNER['subprocess'], 'run', side_effect=AssertionError('admission ran')):
-            result = self.run_stage('print("cloud stage")', admission=None)
-        self.assertEqual(result['status'], 'passed')
+            return RUNNER['run_stage'](stage, self.root, os.environ.copy(), timeout)
 
     @unittest.skipUnless(sys.platform == "linux", "Linux process-tree cleanup")
     def test_timeout_stops_detached_native_child(self):
@@ -130,7 +123,7 @@ class LinuxCampaignTests(unittest.TestCase):
             # Measure timeout cleanup only after the fixture has created the process tree.
             # Interpreter startup and filesystem latency are not the behavior under test.
             with patch.object(RUNNER['subprocess'], 'Popen', side_effect=start_ready_process):
-                result = self.run_stage(code, timeout=1, admission=None)
+                result = self.run_stage(code, timeout=1)
             self.assertEqual(result['status'], 'timeout')
             self.assertEqual(result['returncode'], 124)
             pid = int(pid_file.read_text())
@@ -154,20 +147,6 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertNotIn('--rebuild', stage.command)
         focused, = self.plan('std', module='core')
         self.assertIn('--rebuild', focused.command)
-
-    @unittest.skipUnless(sys.platform == "linux", "Linux artifact-cache release")
-    def test_waiting_admission_keeps_staged_files(self):
-        fixture = self.root / 'fixture.bin'
-        fixture.write_bytes(b'fixture contents')
-        counter = self.root / 'admission-count'
-        admission = (f'from pathlib import Path; p = Path({str(counter)!r}); '
-                     f'count = int(p.read_text()) if p.exists() else 0; '
-                     f'p.write_text(str(count + 1)); raise SystemExit(2 if count == 0 else 0)')
-        code = f'from pathlib import Path; assert Path({str(counter)!r}).read_text() == "2"'
-        with patch.object(RUNNER['time'], 'sleep'):
-            result = self.run_stage(code, admission=[sys.executable, '-c', admission])
-        self.assertEqual(result['status'], 'passed')
-        self.assertEqual(fixture.read_bytes(), b'fixture contents')
 
     def test_nonzero_status_preserves_log_and_fails(self):
         result = self.run_stage('print("fixture failure"); raise SystemExit(7)')

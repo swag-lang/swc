@@ -609,7 +609,7 @@ def _mirror_sources(src, dst):
                 shutil.copyfile(os.path.join(folder, name), target)
 
 
-def make_compiler_workloads(install, cores=0, admit=None, tag=None, machine_archive=None):
+def make_compiler_workloads(install, cores=0, tag=None, machine_archive=None):
     """(id -> workload) for the edit-build loop of one installation.
 
     A workload is a timed command plus an untimed `prepare` that puts the tree in the
@@ -632,8 +632,6 @@ def make_compiler_workloads(install, cores=0, admit=None, tag=None, machine_arch
     env = {"TEMP": temp, "TMP": temp, "SWAG_PATH": install.root}
 
     def warm(run_env):
-        if admit:
-            admit()
         result = subprocess.run(build_core, cwd=install.root, env=run_env, capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError("warm core build failed (exit %d):\n%s" %
@@ -668,8 +666,6 @@ def make_compiler_workloads(install, cores=0, admit=None, tag=None, machine_arch
             rm(delta_std)
             shutil.copytree(install.std, delta_std, ignore=shutil.ignore_patterns(".output", ".tmp", ".git"))
             rm(delta_source)
-            if admit:
-                admit()
             result = subprocess.run(build_std_delta, cwd=install.root, env=run_env, capture_output=True, text=True)
             if result.returncode:
                 raise RuntimeError("warm core_delta build failed (exit %d):\n%s" %

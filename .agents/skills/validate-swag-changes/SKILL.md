@@ -9,20 +9,6 @@ Prove the behavior that moved with the cheapest boundary that can observe it. Do
 campaign mechanically from changed paths and do not run every configuration by habit. Scheduled
 full campaigns provide periodic breadth; change validation provides precise evidence.
 
-Follow the machine-load admission rules in
-[modify-swag-codebase](../modify-swag-codebase/SKILL.md) before each build or test run on a local
-computer. In a managed cloud workspace, use the Linux helper's `--skip-machine-load-admission`
-option and do not wait on local-machine thresholds. The local concurrency rule does not apply to
-isolated cloud builds and tests.
-
-Also follow its Swag compiler CPU bound: every validation command driven by `swc.exe` or
-`swc.dm.exe` uses at most three workers through `--num-cores 3`. This does not limit native C++
-compilation while building either executable. For MSVC builds, also apply the process and per-
-`cl.exe` thread limits in `modify-swag-codebase`, including `/cgthreads1`; do not assume that the
-Swag worker limit or `/MP` alone bounds native CPU use. For a repository tool script, cap both the
-compiler executing the script and the compiler processes the tool starts, as described there.
-Choosing a focused test reduces scope; it does not replace either worker limit.
-
 Follow the external scratch-directory rule in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md) for every campaign: logs, temporary
 workspaces, before/after snapshots, compiler copies, and experimental outputs stay outside the
@@ -212,8 +198,7 @@ across modules uses the workspace suite.
   Keep the real windows, compositor, and event loop in the test boundary. Keep functional,
   golden, external integration and stress tests in their respective `cases/<type>/` directories;
   keep application journeys in `cases/journeys/` and desktop input journeys in `cases/desktop/`. Filenames
-  end in `.swg` without a type suffix. Tags select execution and do not replace local-machine load
-  admission.
+  end in `.swg` without a type suffix. Tags select execution.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete
   reference for syntax changes, shared reference infrastructure, or cross-page declarations.

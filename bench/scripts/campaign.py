@@ -75,8 +75,8 @@ def main():
                     help="1 sample, no warm-up; smoke test, not recorded")
     ap.add_argument("--no-build", action="store_true",
                     help="require and measure bin/swc.exe without building")
-    ap.add_argument("--swc-cores", type=int, default=3,
-                    help="cap Swag compiler workers; 0 uses the compiler default")
+    ap.add_argument("--swc-cores", type=int, default=0,
+                    help="set Swag compiler workers; 0 uses the compiler default")
     ap.add_argument("--out", help="also retain raw results and incomplete checkpoints at this path")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate the page from the existing history, measure nothing")

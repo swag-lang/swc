@@ -3,7 +3,6 @@ import os
 import random
 import sys
 import unittest
-from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
 
@@ -17,31 +16,22 @@ def quiet_record(value, foreign=1.0):
 
 class RoundTests(unittest.TestCase):
     def test_quick_sweep_keeps_one_busy_sample_without_waiting_and_preserves_failures(self):
-        calls, waits = [], []
+        calls = []
         def take(name, rnd):
             calls.append(name)
             if name == "bad":
                 raise sampler.SampleError("exit=3")
             return quiet_record(10.0, 99.0)
-        with mock.patch.object(machine, "wait_for_quiet", side_effect=AssertionError("quick sweeps cannot wait")):
-            series = sampler.run_rounds([("a", "ref"), ("bad",)], take, sampler.quick_plan,
-                                        "ms", random.Random(1), waits, machine.Baseline(), retry_interference=False)
+        series = sampler.run_rounds([("a", "ref"), ("bad",)], take, sampler.quick_plan,
+                                    "ms", random.Random(1), machine.Baseline())
         self.assertCountEqual(calls, ["a", "ref", "bad"])
-        self.assertEqual(waits, [])
         self.assertEqual(series["bad"].error, "exit=3")
         for name in ("a", "ref"):
             self.assertEqual(len(series[name].samples), 1)
             self.assertTrue(series[name].samples[0]["contended"])
-            self.assertEqual(series[name].samples[0]["attempts"], 1)
-            self.assertEqual(series[name].set_aside, [])
-
-    def setUp(self):
-        patcher = mock.patch.object(machine, "wait_for_quiet", return_value=(True, 0.0, 0.5))
-        patcher.start()
-        self.addCleanup(patcher.stop)
 
     def run_units(self, units, take, plan):
-        return sampler.run_rounds(units, take, lambda name, pilot: plan, "ms", random.Random(1), [],
+        return sampler.run_rounds(units, take, lambda name, pilot: plan, "ms", random.Random(1),
                                   machine.Baseline())
 
     def test_pairs_share_every_round(self):
@@ -76,25 +66,15 @@ class RoundTests(unittest.TestCase):
         self.assertEqual(series["bad"].error, "exit=3")
         self.assertEqual(len(series["good"].samples), 3)
 
-    def test_a_visitor_is_set_aside_and_measured_again(self):
-        readings = iter([1.0] * 6 + [9.0, 1.2] + [1.0] * 20)
+    def test_a_contended_sample_is_kept_and_flagged(self):
+        readings = iter([1.0] * 6 + [9.0, 1.2])
 
         def take(name, rnd):
             return quiet_record(10.0, next(readings))
         series = self.run_units([("a",)], take, sampler.Plan(8, 8, 1.0, 10 ** 9))
         s = series["a"]
         self.assertEqual(len(s.samples), 8)
-        self.assertEqual(len(s.set_aside), 1)
-        self.assertEqual(s.set_aside[0]["foreign_cores"], 9.0)
-        self.assertFalse(any(x.get("contended") for x in s.samples))
-
-    def test_a_sample_still_contended_is_kept_and_flagged(self):
-        readings = iter([1.0] * 5 + [9.0] * machine.SAMPLE_ATTEMPTS + [1.0] * 10)
-        series = self.run_units([("a",)], lambda name, rnd: quiet_record(10.0, next(readings)),
-                                sampler.Plan(6, 6, 1.0, 10 ** 9))
-        s = series["a"]
-        self.assertEqual(sum(1 for x in s.samples if x.get("contended")), 1)
-        self.assertEqual(len(s.set_aside), machine.SAMPLE_ATTEMPTS - 1)
+        self.assertEqual([x["foreign_cores"] for x in s.samples if x.get("contended")], [9.0])
 
 
 class BaselineTests(unittest.TestCase):

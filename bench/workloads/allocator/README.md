@@ -20,8 +20,7 @@ bin/swc.exe build -f src/allocbench.swg --module-file bench/workloads/allocator/
 ```
 
 Executables and intermediates go to a directory under the system temporary directory unless
-`--out` says otherwise. Admit every build and run with the repository's machine-load check, and
-use a quiet machine: the multi-thread workloads move with scheduling.
+`--out` says otherwise. The multi-thread workloads move with scheduling.
 
 | workload | what it does |
 | --- | --- |

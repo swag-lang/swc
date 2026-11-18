@@ -5,10 +5,10 @@ compiler directly; launching a tool no longer compiles a Swag script first. Buil
 once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
 Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
-`bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
-Pass `--num-cores` to change compiler parallelism. Workspace tests inherit this count for their
-runtime pool and application child compilers, capped at three; zero uses that cap. `SWAG_RUNTIME_THREADS`
-overrides the test runtime pool. Other compiled programs manage their own runtime threads.
+`bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls detect the available
+processor count. Pass `--num-cores` to change compiler parallelism. Workspace tests inherit this
+count for their runtime pool and application child compilers. `SWAG_RUNTIME_THREADS` overrides the
+test runtime pool. Other compiled programs manage their own runtime threads.
 Compiler options can be forwarded after the command and module.
 
 For application iteration, use the default `bin\swc.exe` by omitting `dm` or `-DevMode`. Reserve
@@ -32,9 +32,8 @@ python3 tools/tool.py tests dm
 
 The default compiler is the checkout's `bin/swc[.exe]` or `bin/swc.dm[.exe]` with `dm`.
 `SWC_COMPILER` and `SWC_DEVMODE_COMPILER` can select an external installation with its runtime.
-These direct commands use normal workspace outputs and caches. Tests default to three compiler
-workers; explicit compiler options retain precedence. Runtime and child-compiler worker defaults
-are capped at three, and an existing `SWAG_RUNTIME_THREADS` is preserved.
+These direct commands use normal workspace outputs and caches. Tests detect the available processor
+count; explicit compiler options retain precedence. An existing `SWAG_RUNTIME_THREADS` is preserved.
 The complete `tests` campaign includes C++ tests with `dm`, then every compiler input suite,
 workspace fixtures, standard modules, examples, applications and reference tests. It stops on
 failure and preserves the failing exit status. Dynamic-library fixtures use the host extension;
@@ -101,13 +100,9 @@ use Xvfb/Openbox/Picom as described below.
 python3 tools/linux-build.py --build-dir /absolute/path/outside/checkout --configuration devmode
 ```
 
-On local computers, the builder admits work from current shared CPU and memory pressure. In a
-managed cloud workspace, add `--skip-machine-load-admission`; local-machine load thresholds do not
-apply there.
-
 This incremental GNU Make build reuses the compiler source inventory in `swc.vcxproj` and selects
 Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
-`--jobs 1` through `--jobs 3`, and checks local machine load before invoking Make. Objects,
+`--jobs` (default: detected processor count). Objects,
 dependency files, the precompiled header and the executable remain under the supplied build
 directory.
 DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
@@ -144,9 +139,9 @@ the runtime and invoke Linux workspaces directly:
 mkdir -p /absolute/build/devmode/runtime
 cp -a bin/runtime/. /absolute/build/devmode/runtime/
 SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build \
-  --workspace bin/std --workspace-module pixel --num-cores 3
+  --workspace bin/std --workspace-module pixel
 SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
-  --workspace bin/std --workspace-module pixel --num-cores 3 \
+  --workspace bin/std --workspace-module pixel \
   --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
 ```
 
@@ -156,18 +151,18 @@ compiler's `--os windows` emits PE output, but cannot execute arbitrary Windows 
 Windows modules for compile-time evaluation.
 
 `linux-build.py --target windows` builds the Release Windows compiler with LLVM-MinGW, using the
-same source manifest and three-job limit. It links the C++ runtime into the compiler; only Windows
+same source manifest. It links the C++ runtime into the compiler; only Windows
 system DLLs are needed to run it. Install LLVM-MinGW and Wine outside the checkout, then use:
 
 ```sh
 python3 tools/linux-build.py --build-dir /absolute/build --configuration release \
-  --target windows --cxx /absolute/llvm-mingw/bin/x86_64-w64-mingw32-clang++ --jobs 3
+  --target windows --cxx /absolute/llvm-mingw/bin/x86_64-w64-mingw32-clang++
 mkdir -p /absolute/build/windows/release/runtime
 cp -a bin/runtime/. /absolute/build/windows/release/runtime/
 SWAG_PATH='Z:\absolute\repo\bin' WindowsSdkDir='Z:\absolute\windows-sdk' \
   WindowsSDKVersion=10.0.26100.0 wine /absolute/build/windows/release/swc.exe build \
   --workspace 'Z:\absolute\repo\bin\apps' --workspace-module swagscope \
-  -bc release --num-cores 3 --rebuild
+  -bc release --rebuild
 ```
 
 Use the version directory present under the SDK's `Lib` directory. Both `um/x64` and `ucrt/x64`
@@ -193,9 +188,6 @@ python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
 
-On local computers, each test stage waits for shared-machine admission. In a managed cloud
-workspace, add `--skip-machine-load-admission` to skip this local-only check.
-
 To run the complete campaign, provide both compiler executables. The C++ stage uses DevMode;
 all other stages use the selected main compiler (Release is recommended for applications):
 
@@ -213,13 +205,10 @@ The sandbox workspace fixture runs in JIT; the dynamic-library consumer first bu
 fixture and receives its absolute path. The script fixture checks its expected output marker.
 
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
-folder. It isolates caches with `TMPDIR` and caps compiler/runtime workers at three.
+folder. It isolates caches with `TMPDIR`.
 Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
-When local admission requests a wait, the launcher can release its inactive artifact file cache
-without deleting files or weakening the CPU and memory thresholds. On local computers, each
-compiler invocation has a fresh load-admission check and a 900-second timeout
-(`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native tests
-that create separate sessions.
+Each compiler invocation has a 900-second timeout (`--timeout` overrides it). Timeout cleanup stops
+the owned process tree, including native tests that create separate sessions.
 Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
 on success or failure. `--output-dir` must not exist and must be outside the checkout. Without
 it, a new temporary directory is retained. `--keep-going` continues independent stages after
@@ -278,15 +267,10 @@ python3 tools/linux-host.py --configuration devmode
 python3 tools/linux-host.py --configuration release
 ```
 
-On local computers, the host launcher checks load before each build and test. In a managed cloud
-workspace, pass `--skip-machine-load-admission`.
-
 This focused Linux x86-64 boundary builds the implemented C++ host services
 adapters with a C++23 compiler and library (GCC 14 or later), then runs their native tests.
 Use `--cxx /path/to/compiler` to select the compiler. The current baseline is glibc 2.36 and
-Linux 5.9 with pidfds, subreapers and `close_range` permitted. Python 3, procfs, and cgroup v2 are needed
-for local-machine load admission; the launcher checks independently before building and testing
-and stops with exit code 2 when the local machine needs to wait. Compilation is sequential. Builds
+Linux 5.9 with pidfds, subreapers and `close_range` permitted. Compilation is sequential. Builds
 and fixtures use a temporary directory outside the checkout and are removed on completion.
 
 The tests cover executable-page publication and patching, page protection, concurrent proximity
@@ -307,9 +291,6 @@ These are host-test build modes, not Swag program configurations. This launcher 
 `swc`, execute Swag sources, or establish Linux target-ABI support. See
 [the capability inventory](../bin/PORTABILITY.md#host-capability-inventory) and
 [the portability backlog](../backlog/platform.portability.md) for the remaining boundaries.
-
-The admission check's host/container pressure cases run with
-`python3 tools/tests/test_linux_host_admission.py` after a fresh machine-load check.
 
 ## Workspaces
 
@@ -370,7 +351,7 @@ unlocked and dismiss the screen saver: DXGI cannot duplicate its output while th
 is active, and the full-screen scenario stops after three failed source reads.
 `capture-web-source.py --input <1080p-movie> --output <external-source.mp4> --start 30`
 prepares an eight-second native-resolution excerpt and reference sound with PyAV and NumPy,
-using three codec threads. One reproducible source is Blender Foundation's
+using the codec's automatic thread selection. One reproducible source is Blender Foundation's
 [Sintel trailer](https://download.blender.org/durian/trailer/sintel_trailer-1080p.mp4).
 Download and generate this media outside the checkout; it is not shipped with the application.
 
@@ -382,9 +363,9 @@ tests override the library artifact kind only for the selected test module; depe
 their normal library artifacts. Add `--test-jit --no-test-native` to exercise the JIT explicitly.
 Compiler JIT suites and reference tests retain their existing execution modes.
 Workspace test launchers set `SWAG_RUNTIME_THREADS` from
-`--num-cores`, capped at three, unless that environment variable is already defined. The setting
-is local to the launcher and its children. Application helper processes inherit the same capped
-count when testing the entire application workspace.
+`--num-cores`, or the detected processor count, unless that environment variable is already
+defined. The setting is local to the launcher and its children. Application helper processes
+inherit the same count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
 For a selected workspace module, `--rebuild-module` forces only that module and reuses
@@ -441,8 +422,7 @@ tools\coverage.bat -DevMode -Suite full
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
-Each workspace reports elapsed wall time including compilation. Shared-machine admission rules
-apply on local computers; managed cloud workspaces use the Linux skip-admission option. Integration
+Each workspace reports elapsed wall time including compilation. Integration
 tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
 
@@ -562,8 +542,8 @@ artifact-layout and cache-invalidation probes. The integration launcher accepts 
 per run.
 
 `unittests.bat` applies `-bc` to Swag programs only; internal C++ tests use the DevMode compiler's
-own configuration. Parallel C++ fixtures and their child compilers inherit `--num-cores`, capped
-at three workers. Fixtures that specifically test sequential behavior keep one worker.
+own configuration. Parallel C++ fixtures and their child compilers inherit `--num-cores`.
+Fixtures that specifically test sequential behavior keep one worker.
 The workspace suite builds its dynamically loaded DLL before running its
 consumer. Runner option routing, failure propagation, and fixture ordering are covered by
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/unittests.ps1`.
@@ -606,9 +586,8 @@ still required before release.
 
 `tools/devmode.bat` builds the DevMode compiler. `tools/release.bat` is an owner-only full-machine
 build entry point.
-The C++ project uses eight compilation jobs by default; `tools/devmode.bat` keeps code-generation
-threads at one per compiler process. Both compiler build scripts accept `SWC_COMPILE_JOBS` for a
-different native job count.
+The C++ project uses the detected processor count for compilation jobs by default.
+Both compiler build scripts accept `SWC_COMPILE_JOBS` for a different native job count.
 
 DevMode keeps assertions, compiler validators, race checks, allocator checks and C++ tests.
 Fields maintained only for debugger inspection are disabled by default in both compiler builds.

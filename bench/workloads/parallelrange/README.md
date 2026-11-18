@@ -13,8 +13,7 @@ One-worker controls run before four-worker measurements, so the process never ne
 its pool. The arithmetic has a loop-carried dependency and its result reaches the checked buffer.
 The concentrated cases keep most of their cost inside one of the old scheduler's static blocks.
 
-Admit every build and run with the repository's machine-load check. Compare the same source and
-compiler on a quiet machine before and after a runtime change; timing is evidence for these
+Compare the same source and compiler before and after a runtime change; timing is evidence for these
 workloads, not a portable performance assertion.
 
 On 2026-09-08, the same DevMode compiler built this Release program with the previous static

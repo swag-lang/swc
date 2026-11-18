@@ -43,8 +43,8 @@ param(
     [switch] $Sweep,
     [ValidateSet('devmode', 'release')]
     [string] $Configuration = 'devmode',
-    [ValidateRange(1, 3)]
-    [int] $Workers = 3
+    [ValidateRange(0, 2147483647)]
+    [int] $Workers = 0
 )
 
 $ErrorActionPreference = 'Stop'

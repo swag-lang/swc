@@ -7,7 +7,6 @@ stay outside the checkout. This is a test-source utility, not a Capture dependen
 import argparse
 from fractions import Fraction
 from pathlib import Path
-import subprocess
 import sys
 
 
@@ -26,10 +25,6 @@ def main():
         parser.error('--output already exists')
     if args.start < 0:
         parser.error('--start must be nonnegative')
-    check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'
-    result = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(check)], cwd=repo)
-    if result.returncode:
-        return result.returncode
     import av
     import numpy as np
 
@@ -44,7 +39,7 @@ def main():
             movie.seek(int(args.start / stream.time_base), stream=stream)
             with av.open(str(target), 'w', format='mp4') as output:
                 video = output.add_stream('libx264', rate=rate,
-                                          options={'preset': 'veryfast', 'crf': '20', 'threads': '3'})
+                                          options={'preset': 'veryfast', 'crf': '20'})
                 video.width, video.height, video.pix_fmt = 1920, 1080, 'yuv420p'
                 audio = output.add_stream('aac', rate=48000)
                 audio.layout, audio.bit_rate = 'stereo', 192000

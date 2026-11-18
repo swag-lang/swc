@@ -17,7 +17,7 @@ function Assert-Calls([string[]] $Calls, [string[]] $Prefixes, [string] $What) {
     if ($Calls.Count -ne $Prefixes.Count) { throw "$What dispatched $($Calls.Count) commands: $Calls" }
     for ($index = 0; $index -lt $Prefixes.Count; $index++) {
         if (!$Calls[$index].StartsWith($Prefixes[$index])) { throw "$What ran '$($Calls[$index])', expected '$($Prefixes[$index])'." }
-        if (!$Calls[$index].Contains('--num-cores 3')) { throw "$What lost the worker bound: $($Calls[$index])" }
+        if (!$Calls[$index].Contains('--num-cores 0')) { throw "$What lost automatic worker selection: $($Calls[$index])" }
     }
 }
 

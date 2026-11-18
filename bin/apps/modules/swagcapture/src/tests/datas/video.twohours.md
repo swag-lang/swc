@@ -25,7 +25,6 @@ points, exercises undo/redo, adds timed annotations, and exports unchanged, trim
 and resized media. It checks output picture/sample counts, decodability, compressed packet
 identity, and preservation of the original. Screenshots, exports, timings and logs remain in the
 printed external evidence directory. `--output` selects a new directory outside the checkout.
-The runner performs machine-load admission before each test command.
 
 To deliberately replace both maintained fixture files with the current native encoders:
 

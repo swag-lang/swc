@@ -16,8 +16,7 @@ converter, whose SIMD chroma reads exceeded the visible plane. The pixel module'
 `yuv.parallel.test.swg` checks every pixel against scalar color arithmetic, across all three
 matrices and both ranges, with odd dimensions and padded strides.
 
-Admit each command with the repository's machine-load check. Do not benchmark beside another
-build. On 2026-09-08, the same DevMode compiler built the Release program before and after
+On 2026-09-08, the same DevMode compiler built the Release program before and after
 replacing worker-sized bands with runtime-scheduled row pairs and restricting SIMD chroma reads
 to eight bytes. Admission CPU load was 5% for both runs. Medians, in microseconds:
 

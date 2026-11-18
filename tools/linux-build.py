@@ -29,13 +29,13 @@ def main():
     parser.add_argument('--configuration', choices=('devmode', 'release'), default='devmode')
     parser.add_argument('--target', choices=('linux', 'windows'), default='linux', help='compiler executable OS; Windows needs LLVM-MinGW and release')
     parser.add_argument('--cxx', default='c++', help='GCC 14+ for Linux, LLVM-MinGW x86_64-w64-mingw32-clang++ for Windows')
-    parser.add_argument('--jobs', type=int, choices=range(1, 4), default=3)
+    parser.add_argument('--jobs', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--keep-going', action='store_true', help='compile independent sources after an error; the build still fails')
-    parser.add_argument('--skip-machine-load-admission', action='store_true',
-                        help='skip local-machine admission in a managed cloud workspace')
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
         parser.error('the compiler host must be Linux x86-64')
+    if args.jobs < 1:
+        parser.error('--jobs needs a positive count')
     windows = args.target == 'windows'
     if windows and (args.configuration != 'release' or args.cxx == 'c++'):
         parser.error('--target windows needs --configuration release and --cxx pointing to LLVM-MinGW x86_64-w64-mingw32-clang++')
@@ -107,9 +107,7 @@ def main():
               '\t' + recipe([args.cxx, *map(str, objects), '-pthread', *link_flags, '-o', str(binary)]), '',
               '-include ' + ' '.join(make_path(obj.with_suffix('.d')) for obj in objects)]
     write_changed(makefile, '\n'.join(rules) + '\n')
-    if not args.skip_machine_load_admission:
-        subprocess.run([sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)
-    # Ignore inherited make jobserver/options so this command honors its explicit worker cap.
+    # Ignore inherited make jobserver/options so this command honors --jobs.
     environment = os.environ.copy()
     environment.pop('MAKEFLAGS', None)
     environment.pop('MFLAGS', None)

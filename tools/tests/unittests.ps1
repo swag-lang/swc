@@ -44,8 +44,46 @@ public static class CompilerProbe
             foreach (string arg in args)
                 if (arg == "-bc" || arg.StartsWith("--build-cfg"))
                     return 13;
-        if (call.Contains("import_core_without_using.swgs"))
-            Console.WriteLine("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN");
+
+        const string libraryPrefix = "--run-arg=--dynamic-runtime-library=";
+        string library = Array.Find(args, arg => arg.StartsWith(libraryPrefix, StringComparison.Ordinal));
+        if (library != null)
+        {
+            string dependency = Path.Combine(Path.GetDirectoryName(library.Substring(libraryPrefix.Length)),
+                                             "runtime_context_dynamic_dep.dll");
+            if (!File.Exists(dependency) || File.ReadAllText(dependency) != "probe dependency")
+                return 14;
+            Console.WriteLine("SWAG_DYNAMIC_DEP_INIT\nSWAG_DYNAMIC_LIB_INIT\nSWAG_DYNAMIC_DEP_PREMAIN\nSWAG_DYNAMIC_LIB_PREMAIN\nSWAG_DYNAMIC_LIB_DROP\nSWAG_DYNAMIC_DEP_DROP");
+        }
+
+        int testNamespace = Array.IndexOf(args, "--module-namespace");
+        if (testNamespace >= 0)
+        {
+            switch (args[testNamespace + 1])
+            {
+                case "NativeFailedDrop": Console.WriteLine("SWAG_NATIVE_DROP_PANIC"); return 5;
+                case "NativeAbandonedTest":
+                case "JitAbandonedTest": Console.WriteLine("SWAG_TEST_PANIC_STARTED"); return 5;
+                case "JitFailedInit": Console.WriteLine("SWAG_JIT_INIT_PANIC"); return 5;
+                case "JitFailedPreMain": Console.WriteLine("SWAG_JIT_PREMAIN_PANIC"); return 5;
+                case "JitFailedDrop": Console.WriteLine("SWAG_JIT_DROP_PANIC"); return 5;
+            }
+        }
+
+        if (args.Length != 0)
+        {
+            switch (Path.GetFileName(args[args.Length - 1]))
+            {
+                case "import_png.swgs": Console.WriteLine("SWAG_IMPORTED_PNG_RAN"); break;
+                case "import_core_without_using.swgs": Console.WriteLine("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN"); break;
+                case "lifecycle_order.swgs": Console.WriteLine("SWAG_LIFECYCLE_ORDER_RAN"); break;
+                case "lifecycle_failed_drop.swgs": Console.WriteLine("SWAG_SECOND_DROP_RAN"); return 5;
+                case "lifecycle_failed_main.swgs": Console.WriteLine("SWAG_DROP_AFTER_MAIN_RAN"); return 5;
+                case "lifecycle_failed_init.swgs":
+                case "lifecycle_failed_premain.swgs": Console.WriteLine("SWAG_SCRIPT_DROP\nSWAG_DEP_DROP"); return 5;
+                case "lifecycle_failed_check.swgs": Console.WriteLine("SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP"); return 5;
+            }
+        }
         return 0;
     }
 }
@@ -77,19 +115,26 @@ public static class CompilerProbe
     }
 
     foreach ($configuration in @('release', 'devmode')) {
+        $output = Join-Path $scratch 'bin\unittests\workspace\.output'
+        $dependency = Join-Path $output "runtime_context_dynamic_dep\shared-library\$configuration\x86_64"
+        $library = Join-Path $output "runtime_context_dynamic_dll\shared-library\$configuration\x86_64"
+        $null = New-Item -ItemType Directory -Path $dependency, $library
+        [IO.File]::WriteAllText((Join-Path $dependency 'runtime_context_dynamic_dep.dll'), 'probe dependency')
+
         Invoke-Suite @('dm', 'workspace', '-bc', $configuration, '--num-cores', '1') 0
         Assert-Call 0 "build`t--workspace"
         Assert-Call 0 "--workspace-module`truntime_context_dynamic_dll"
         Assert-Call 0 "--build-cfg`t$configuration"
         Assert-Call 0 "--num-cores`t1"
-        Assert-Call 1 "--workspace-module`truntime_context_dynamic_consumer"
-        Assert-Call 1 "shared-library\$configuration\x86_64\runtime_context_dynamic_dll.dll"
+        Assert-Call 1 "--workspace-module`tlifecycle_script_dep"
+        Assert-Call 2 "--workspace-module`truntime_context_dynamic_consumer"
+        Assert-Call 2 "shared-library\$configuration\x86_64\runtime_context_dynamic_dll.dll"
         Assert-Call 3 "--num-cores`t1"
     }
     Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "build`t--workspace"
     if ($calls.Count -ne 1) { throw 'Workspace tests continued after fixture preparation failed.' }
     Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "test`t--workspace"
-    if ($calls.Count -ne 2) { throw 'Workspace tests continued after the consumer failed.' }
+    if ($calls.Count -ne 3) { throw 'Workspace tests continued after the consumer failed.' }
     Write-Output 'Compiler suite runner: 15 regression cases passed.'
 }
 finally {

@@ -4,8 +4,7 @@ Prepare the devmode standard-library artifacts (gui and its dependencies), then:
     py -3 bench/scripts/parsecache.py --scratch C:\path\outside-checkout --against C:\baseline\swc.exe --reps 9
 
 Defaults to the checkout-local Release compiler; --compiler selects a frozen copy.
-Uses six workers, fresh output directories,
-private caches, load admission before every invocation, and alternating A/B order.
+Uses fresh output directories, private caches, and alternating A/B order.
 Dependency production is outside the timer. Does not update benchmark history.
 """
 import argparse
@@ -16,7 +15,6 @@ import re
 from pathlib import Path
 import statistics
 import struct
-import subprocess
 import time
 
 import process as winproc
@@ -54,20 +52,6 @@ SOURCES = {
 }
 """,
 }
-
-
-def admit(max_cpu=65):
-    script = ROOT / ".agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1"
-    while True:
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-MaxCpuPercent", str(max_cpu)],
-            capture_output=True, text=True)
-        if result.returncode == 0:
-            return
-        if "wait" not in result.stdout:
-            raise RuntimeError(result.stdout + result.stderr)
-        print("Waiting for machine headroom", flush=True)
-        time.sleep(15)
 
 
 def api_files(module, resource_root):
@@ -116,13 +100,12 @@ def main():
     parser.add_argument("--compiler", type=Path, default=ROOT / "bin/swc.exe",
                         help="select a candidate compiler, optionally frozen outside the checkout")
     parser.add_argument("--against-arg", action="append", default=[])
-    parser.add_argument("--max-cpu", type=int, default=15)
     parser.add_argument("--unused-records", type=int, default=0,
                         help="seed unused archive entries outside the timer (default: 0)")
     args = parser.parse_args()
     scratch = args.scratch.resolve()
-    if scratch.is_relative_to(ROOT) or args.reps < 1 or not 1 <= args.max_cpu <= 65:
-        parser.error("Use an external scratch directory, at least one pair, and --max-cpu between 1 and 65")
+    if scratch.is_relative_to(ROOT) or args.reps < 1:
+        parser.error("Use an external scratch directory and at least one pair")
     if not 0 <= args.unused_records <= (64 * 1024 * 1024 - 16) // 69:
         parser.error("--unused-records needs a count that fits the 64 MiB archive limit")
     scratch.mkdir(parents=True, exist_ok=True)
@@ -155,8 +138,7 @@ def main():
         "baseline_sha256": hashlib.sha256(baseline.read_bytes()).hexdigest(),
         "baseline_args": args.against_arg,
         "sample_labels": {"off": "preserved baseline compiler", "warm": "candidate automatic caches"},
-        "workers": 6,
-        "admission_max_cpu": args.max_cpu,
+        "workers": "automatic",
         "runtime_files": len(runtime_files),
         "runtime_bytes": sum(path.stat().st_size for path in runtime_files),
         "synthetic_unused_records": args.unused_records,
@@ -175,7 +157,7 @@ def main():
     def measure(name, label, bypass=False):
         source = run_root / (name + ".swg")
         output = run_root / label
-        command = [str(baseline if bypass else compiler), args.kind, "-f", str(source), "--num-cores", "6"]
+        command = [str(baseline if bypass else compiler), args.kind, "-f", str(source), "--num-cores", "0"]
         command += ["-bc", "devmode"]
         for module in MODULES[name]:
             command += ["--import-api-module", module]
@@ -183,7 +165,6 @@ def main():
             command += ["-n", "consumer", "-od", str(output), "-wd", str(output)]
         if bypass:
             command += args.against_arg
-        admit(args.max_cpu)
         result = winproc.run(command, cwd=str(run_root), env=env, pin=True)
         (run_root / (label + ".log")).write_text(
             result["stdout"] + result["stderr"], encoding="utf-8")
@@ -191,7 +172,6 @@ def main():
             raise RuntimeError(f"{label}: compilation failed; see {run_root / (label + '.log')}")
         # Execute each pilot artifact separately, outside the timed compilation.
         if args.kind == "build" and label.endswith(("-populate", "-reuse")):
-            admit(args.max_cpu)
             run_command = command.copy()
             run_command[1] = "run"
             native = winproc.run(run_command, cwd=str(run_root), env=env, pin=True)

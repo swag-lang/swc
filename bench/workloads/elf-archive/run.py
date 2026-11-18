@@ -30,14 +30,12 @@ def main():
     objects = [obj for obj in objects if obj != build / 'src/main.o']
     if not objects:
         parser.error('no compiler objects found')
-    subprocess.run(['python3', str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)
     with tempfile.TemporaryDirectory(prefix='swc-elf-archive-') as scratch:
         scratch = Path(scratch)
         binary = scratch / 'measure'
         command = [build_command[0], *flags, str(Path(__file__).with_name('measure.cpp')), *map(str, objects),
                    '-pthread', '-rdynamic', '-ldl', '-o', str(binary)]
         subprocess.run(command, check=True)
-        subprocess.run(['python3', str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)
         rows = []
         samples = []
         for count in args.counts:

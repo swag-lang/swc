@@ -44,7 +44,7 @@ The full rebuild benchmark compares the preserved compiler with the integrated o
 a standalone generic program, a static dependency workspace and a transitive shared
 workspace. It forces source rebuilds, includes parsing/code generation/dependency linking,
 and validates program output outside timing. Each compiler has isolated sources,
-resources, workspaces and caches. Compiler workers are capped at three.
+resources, workspaces and caches.
 
 One warm-up per side precedes seven measured repetitions by default. Execution order
 alternates, and the JSON retains every sample, compiler binary digests and tool versions.

@@ -26,8 +26,7 @@ Build separately when preparing a timing run, then use the same `run` command ab
 bin/swc.dm.exe build -f src/parallelcache.swg --module-file bench/workloads/parallelcache/module.swg -bc release
 ```
 
-Admit every build and run with the repository's machine-load check. Use a quiet machine for
-timing comparisons; the benchmark does not assert a duration or a portable speedup.
+The benchmark does not assert a duration or a portable speedup.
 
 On 2026-09-08, the same benchmark and DevMode compiler built a Release program first with the
 previous single-slot lookup, then with bounded probing and uncached cost sampling:

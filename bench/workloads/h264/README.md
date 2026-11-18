@@ -23,8 +23,7 @@ Pass several paths after `--input` to process a corpus with the same dimensions 
 All pictures and QPs run in one native invocation, with shared standard libraries staged by the
 compiler's `run` command. This avoids recompiling the driver for every point.
 
-Follow the repository's build/test load admission on a shared local machine. Keep other builds
-and benchmarks idle while measuring encode times. `--quality-only` omits timing results and can
+`--quality-only` omits timing results and can
 collect deterministic size, PSNR and SSIM while other builds are running: every input picture is
 encoded, without wall-clock pacing or dropped slots. The Swag compiler, runtime and x264 use three
 workers. The default four slices and 120-picture key interval are held constant for comparison;

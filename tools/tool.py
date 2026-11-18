@@ -60,8 +60,8 @@ def without_options(options, names):
 
 
 def runtime_workers(options):
-    value = option_value(options, ('-j', '--num-cores'), '3')
-    return str(min(int(value), 3)) if value.isdecimal() and int(value) > 0 else '3'
+    value = option_value(options, ('-j', '--num-cores'), '0')
+    return str(int(value)) if value.isdecimal() and int(value) > 0 else str(os.cpu_count() or 1)
 
 
 def selects_goldens(options):
@@ -79,7 +79,7 @@ def module_names(workspace):
 def cpp_stage(compiler, options, full=True):
     options = without_options(options, ('-bc', '--build-cfg'))
     options = [option for option in options if option.split('=', 1)[0] not in ('--rebuild', '--rebuild-module')]
-    return Stage('cpp', [str(compiler), 'unittest', *(['--dev-full'] if full else []), '--num-cores', '3', *options])
+    return Stage('cpp', [str(compiler), 'unittest', *(['--dev-full'] if full else []), '--num-cores', '0', *options])
 
 
 def source_stages(compiler, bin_root, suite, options, output_root=None):
@@ -96,7 +96,7 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
     stages = []
     for directory in directories:
         # The expected-error semantic corpus depends on deterministic cross-file analysis.
-        workers = '1' if directory == 'errors/sema' else '3'
+        workers = '1' if directory == 'errors/sema' else '0'
         stage_options = without_options(options, ('-j', '--num-cores')) if directory == 'errors/sema' else options
         command = [str(compiler), 'test', '--directory', str(bin_root / 'unittests' / directory),
                    '--module-namespace', suite.capitalize(), '--artifact-kind', 'executable',
@@ -110,7 +110,7 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
 def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None, script=True, execution=None):
     workspace = bin_root / 'unittests/workspace'
     cfg = option_value(options, ('-bc', '--build-cfg'), 'devmode')
-    workers = option_value(options, ('-j', '--num-cores'), '3')
+    workers = option_value(options, ('-j', '--num-cores'), '0')
     extension = '.dll' if windows else '.so'
     library = workspace / '.output/runtime_context_dynamic_dll/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dll' + extension)
     dynamic_dependency = workspace / '.output/runtime_context_dynamic_dep/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dep' + extension)
@@ -154,7 +154,7 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         if module == 'lifecycle_native_consumer':
             expected_output = ('SWAG_DEP_INIT\nSWAG_NATIVE_INIT\nSWAG_DEP_PREMAIN\n'
                                'SWAG_NATIVE_PREMAIN\nSWAG_NATIVE_TEST\nSWAG_NATIVE_DROP\nSWAG_DEP_DROP')
-        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires,
+        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '0', *options], requires,
                             expected_output=expected_output))
     if script:
         failed_drop = workspace / 'native_failed_drop'
@@ -236,7 +236,7 @@ def module_stage(compiler, bin_root, workspace, action, module, options, *, chil
             command += ['--artifact-kind', 'executable']
     if workspace == 'apps' and action != 'build' and (not module or child_compiler):
         command += ['--run-arg=--compiler=' + str(compiler), '--run-arg=--compiler-workers=' + runtime_workers(options)]
-    return Stage(workspace + ('-' + module if module else ''), [*command, '--num-cores', '3', *options])
+    return Stage(workspace + ('-' + module if module else ''), [*command, '--num-cores', '0', *options])
 
 
 def compiler_stages(compiler, bin_root, suite, options, *, devmode=False, windows=False):

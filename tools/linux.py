@@ -22,7 +22,6 @@ export SWAG_PATH="$source/bin"
 export SWC_BUILD_DIR="$build"
 export SWC_COMPILER="$build/release/swc"
 export SWC_DEVMODE_COMPILER="$build/devmode/swc.dm"
-export SWAG_RUNTIME_THREADS=3
 export TMPDIR="$(dirname "$source")/tmp"
 export PATH="$build/release:$build/devmode:$PATH"
 mkdir -p "$TMPDIR"
@@ -43,7 +42,7 @@ case "$action" in
         exec git merge --ff-only FETCH_HEAD
         ;;
     build)
-        python3 tools/linux-build.py --build-dir "$build" --configuration "$configuration" --cxx "${SWC_LINUX_CXX:-g++-14}" --jobs 3 "$@"
+        python3 tools/linux-build.py --build-dir "$build" --configuration "$configuration" --cxx "${SWC_LINUX_CXX:-g++-14}" "$@"
         mkdir -p "$build/$configuration/runtime"
         cp -a bin/runtime/. "$build/$configuration/runtime/"
         ;;
@@ -70,11 +69,6 @@ def main():
     if args.action in ('shell', 'sync') and args.arguments:
         parser.error(f'{args.action} does not accept extra arguments')
     root = Path(__file__).resolve().parent.parent
-    if args.action in ('build', 'test'):
-        check = root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'
-        result = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(check)])
-        if result.returncode:
-            return result.returncode
     command = ['wsl.exe', '--distribution', os.environ.get('SWC_WSL_DISTRO', 'Ubuntu-24.04'),
                '--exec', 'bash', '-c', SESSION, 'swag-linux',
                os.environ.get('SWC_WSL_SOURCE', ''), os.environ.get('SWC_WSL_BUILD', ''), str(root),

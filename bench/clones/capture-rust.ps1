@@ -26,10 +26,6 @@ $configuration = if ($Profile -eq 'release') { 'release' } else { 'debug' }
 $binary = Join-Path $env:CARGO_TARGET_DIR "x86_64-pc-windows-msvc/$configuration/swagcapture-rust-preview.exe"
 $profileArgs = if ($Profile -eq 'release') { @('--release') } else { @() }
 
-function Admit-Work {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1')
-    if ($LASTEXITCODE -ne 0) { throw 'Machine load did not admit this command. Retry when resources are available.' }
-}
 function Invoke-Cargo([string[]] $Arguments) {
     & cargo @Arguments
     if ($LASTEXITCODE -ne 0) { throw "Cargo failed with exit code $LASTEXITCODE." }
@@ -50,16 +46,14 @@ function Invoke-App([string[]] $Arguments, [bool] $Visible = $false, [int] $Time
 Push-Location $project
 try {
     switch ($Action) {
-        build { Admit-Work; Invoke-Cargo (@('build', '--locked', '--timings') + $profileArgs) }
-        test { Admit-Work; Invoke-Cargo (@('test', '--locked') + $profileArgs) }
+        build { Invoke-Cargo (@('build', '--locked', '--timings') + $profileArgs) }
+        test { Invoke-Cargo (@('test', '--locked') + $profileArgs) }
         run { Invoke-App $AppArgs $true }
         import-settings {
-            Admit-Work
             if (-not $SettingsPath) { $SettingsPath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Swag Capture/settings.scc' }
             Invoke-App @('--import-settings', $SettingsPath)
         }
         smoke {
-            Admit-Work
             Invoke-App (@('--demo', '--smoke', '--frames', '30', '--data-dir', (Join-Path $OutputRoot 'smoke-data'),
                 '--report', (Join-Path $OutputRoot 'smoke.json'), '--screenshot', (Join-Path $OutputRoot 'native.png')) + $AppArgs)
             $report = Get-Content -Raw (Join-Path $OutputRoot 'smoke.json') | ConvertFrom-Json
@@ -67,7 +61,6 @@ try {
             if (-not (Test-Path (Join-Path $OutputRoot 'native.png'))) { throw 'The native renderer did not produce its screenshot.' }
         }
         startup-smoke {
-            Admit-Work
             Invoke-App (@('--smoke', '--frames', '30', '--report', (Join-Path $OutputRoot 'startup.json'),
                 '--screenshot', (Join-Path $OutputRoot 'startup.png')) + $AppArgs)
             $report = Get-Content -Raw (Join-Path $OutputRoot 'startup.json') | ConvertFrom-Json
@@ -76,7 +69,6 @@ try {
             if (-not (Test-Path (Join-Path $OutputRoot 'startup.png'))) { throw 'Startup did not produce its screenshot.' }
         }
         audit-library {
-            Admit-Work
             Invoke-App (@('--audit-library', '--report', (Join-Path $OutputRoot 'library-audit.json')) + $AppArgs) $false 300
             $entries = Get-Content -Raw (Join-Path $OutputRoot 'library-audit.json') | ConvertFrom-Json
             $errors = @($entries | Where-Object { $_.error })
@@ -84,7 +76,6 @@ try {
             $errors | Group-Object error | Select-Object Count, Name
         }
         library-smoke {
-            Admit-Work
             Invoke-App (@('--smoke', '--library-smoke', '--frames', '30', '--report', (Join-Path $OutputRoot 'library-smoke.json'),
                 '--screenshot', (Join-Path $OutputRoot 'library.png')) + $AppArgs) $false 180
             $report = Get-Content -Raw (Join-Path $OutputRoot 'library-smoke.json') | ConvertFrom-Json
@@ -95,7 +86,6 @@ try {
             $report | Select-Object library_entries, library_previews_loaded, working_set_bytes, ui_update_p95_ms
         }
         capture-smoke {
-            Admit-Work
             Invoke-App (@('--smoke', '--capture-smoke', '--frames', '30', '--data-dir', (Join-Path $OutputRoot 'capture-smoke-data'),
                 '--report', (Join-Path $OutputRoot 'capture-smoke.json'), '--screenshot', (Join-Path $OutputRoot 'capture-result.png')) + $AppArgs) $false 90
             $report = Get-Content -Raw (Join-Path $OutputRoot 'capture-smoke.json') | ConvertFrom-Json
@@ -104,25 +94,20 @@ try {
             $report.capture_checks
         }
         render {
-            Admit-Work
             Invoke-App (@('--render-ui', (Join-Path $OutputRoot 'encre.png'), '--data-dir', (Join-Path $OutputRoot 'render-encre')) + $AppArgs)
-            Admit-Work
             Invoke-App (@('--render-ui', (Join-Path $OutputRoot 'papier.fr.png'), '--light', '--french', '--data-dir', (Join-Path $OutputRoot 'render-papier')) + $AppArgs)
         }
         measure {
             # Warm dependencies and complete the application once, outside measured samples.
-            Admit-Work
             Invoke-Cargo (@('build', '--locked') + $profileArgs)
             $records = @()
             for ($i = 0; $i -lt $Samples; $i++) {
                 # Only the application's package is removed. Libraries stay compiled.
                 Invoke-Cargo (@('clean', '-p', 'swagcapture-rust') + $profileArgs)
-                Admit-Work
                 $watch = [Diagnostics.Stopwatch]::StartNew()
                 Invoke-Cargo (@('build', '--locked', '--offline', '--timings') + $profileArgs)
                 $watch.Stop()
                 $records += [pscustomobject]@{ kind = 'application-rebuild-and-link'; sample = $i; milliseconds = $watch.Elapsed.TotalMilliseconds }
-                Admit-Work
                 $watch.Restart()
                 Invoke-Cargo (@('build', '--locked', '--offline') + $profileArgs)
                 $watch.Stop()
@@ -143,11 +128,9 @@ try {
                 scope = 'Application rebuild with cached dependencies, resource compilation and final static link; not a library-free compiler measurement.'
             }
             $report | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 (Join-Path $OutputRoot 'build-measurements.json')
-            Admit-Work
             Invoke-App @('--benchmark', '--objects', '120', '--frames', '600', '--data-dir', (Join-Path $OutputRoot 'benchmark-data'), '--report', (Join-Path $OutputRoot 'runtime-measurements.json'))
         }
         package {
-            Admit-Work
             if (-not (Test-Path -LiteralPath $binary)) { throw 'Build the application first.' }
             & py -3 (Join-Path $project 'inspect-pe.py') $binary --output (Join-Path $OutputRoot 'pe-imports.json')
             if ($LASTEXITCODE -ne 0) { throw 'The executable imports a non-system DLL.' }

@@ -21,9 +21,7 @@ import argparse
 import os
 import shutil
 import statistics
-import subprocess
 import sys
-import time
 
 import installs
 import toolchains as tc
@@ -34,12 +32,10 @@ AVAILABLE_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "hello_build",
                        "core_delta", "doc_std", "format_tree"]
 
 
-def measure(workload, env, admit=None):
+def measure(workload, env):
     env = env | workload.get("env", {})
     if workload["prepare"]:
         workload["prepare"](env)
-    if admit:
-        admit()
     r = winproc.run(workload["cmd"], cwd=workload["cwd"], env=env)
     if r["exit"] != 0:
         raise SystemExit("%s failed: exit=%d\n%s" % (" ".join(workload["cmd"]), r["exit"],
@@ -60,25 +56,6 @@ def make_hello_workload(install, cores):
             "what": "hello world, source to linked executable"}
 
 
-def make_admitter():
-    script = os.path.join(tc.worktree(), ".agents", "skills", "modify-swag-codebase",
-                          "scripts", "check-machine-load.ps1" if os.name == "nt" else "check-machine-load.py")
-
-    def admit():
-        while True:
-            result = subprocess.run(
-                (["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script] if os.name == "nt" else [sys.executable, script]),
-                capture_output=True, text=True)
-            if result.returncode == 0:
-                return
-            if result.returncode != 2:
-                raise RuntimeError(result.stdout + result.stderr)
-            print("Waiting for compiler headroom", flush=True)
-            time.sleep(15)
-
-    return admit
-
-
 def summary(samples):
     wall = [s["wall_ms"] for s in samples]
     cpu = [s["cpu_ms"] for s in samples]
@@ -97,8 +74,6 @@ def main():
     ap.add_argument("--machine-archive", help="seed core_delta with this machine-code archive")
     ap.add_argument("--swc-cores", type=int, default=0,
                     help="explicit compiler worker cap (default: compiler-selected)")
-    ap.add_argument("--admit", action="store_true",
-                    help="check shared-machine load before every compiler invocation")
     args = ap.parse_args()
     tc.prepare_sources()
 
@@ -120,11 +95,10 @@ def main():
 
     toolchains = tc.discover()
     env = tc.build_env(toolchains)
-    admit = make_admitter() if args.admit else None
     plans = {}
     for tag, path in binaries:
         install = installs.beside(path, "compile_" + tag)
-        plans[tag] = tc.make_compiler_workloads(install, args.swc_cores, admit, machine_archive=args.machine_archive)
+        plans[tag] = tc.make_compiler_workloads(install, args.swc_cores, machine_archive=args.machine_archive)
         if "hello_build" in ids:
             plans[tag]["hello_build"] = make_hello_workload(install, args.swc_cores)
     samples = {tag: {wid: [] for wid in ids} for tag, _ in binaries}
@@ -139,7 +113,7 @@ def main():
         order = binaries if rnd % 2 == 0 else binaries[::-1]
         for tag, _ in order:
             for wid in ids:
-                r = measure(plans[tag][wid], env, admit)
+                r = measure(plans[tag][wid], env)
                 samples[tag][wid].append(r)
                 print("  round %d %s %-13s wall=%9.1f ms  cpu=%9.1f ms  commit=%6.1f MiB  ws=%6.1f MiB"
                       % (rnd + 1, tag, wid, r["wall_ms"], r["cpu_ms"],

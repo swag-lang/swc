@@ -1,6 +1,6 @@
 # Argon2 native lane scaling
 
-Run from the repository root, after the machine-load admission check:
+Run from the repository root:
 
 ```powershell
 bin/swc.dm.exe test -f src/argon2.test.swg --module-file bench/workloads/argon2/module.swg -bc release --no-test-jit

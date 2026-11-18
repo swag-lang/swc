@@ -16,8 +16,7 @@ process start). That load comes and goes with our own launches, so no fixed limi
 separate it from a visitor. Each family of measurements therefore keeps a running median
 of its own readings, and a sample is contended when it exceeds that median by more than
 FOREIGN_EXCESS_CORES: a visitor arriving, not the background the measurement causes.
-A contended sample is set aside and taken again once the machine is quiet; the set-aside
-sample stays in the record.
+A contended sample stays in the record with its measured load.
 """
 import collections
 import ctypes
@@ -41,11 +40,6 @@ FOREIGN_EXCESS_CORES = 2.5
 FOREIGN_CEILING_CORES = 8.0
 BASELINE_WINDOW = 60
 BASELINE_MIN = 5
-# A machine is called quiet when a whole second stays under this.
-QUIET_LIMIT_CORES = 1.5
-QUIET_SECONDS = 2
-SAMPLE_ATTEMPTS = 4
-QUIET_WAIT_S = 15
 
 
 def _busy_ms():
@@ -102,31 +96,6 @@ class Baseline:
 
     def median(self):
         return statistics.median(self.values) if self.values else None
-
-
-def foreign_load(window_s=1.0):
-    """Cores somebody else kept busy over `window_s`, while nothing of ours runs."""
-    busy0, self0, t0 = _busy_ms(), _self_cpu_ms(), time.perf_counter()
-    time.sleep(window_s)
-    busy1, self1, t1 = _busy_ms(), _self_cpu_ms(), time.perf_counter()
-    if busy0 is None or busy1 is None:
-        return 0.0
-    return max(0.0, ((busy1 - busy0) - (self1 - self0)) / ((t1 - t0) * 1000.0))
-
-
-def wait_for_quiet(limit_s, seconds=QUIET_SECONDS, limit_cores=QUIET_LIMIT_CORES):
-    """Wait until `seconds` consecutive seconds stay under `limit_cores`.
-
-    Returns (quiet, waited seconds, last load)."""
-    start = time.time()
-    calm = 0
-    load = 0.0
-    while time.time() - start < limit_s:
-        load = foreign_load(1.0)
-        calm = calm + 1 if load < limit_cores else 0
-        if calm >= seconds:
-            return True, time.time() - start, load
-    return False, time.time() - start, load
 
 
 # ------------------------------------------------------------------ the machine

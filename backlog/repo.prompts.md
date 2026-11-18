@@ -73,8 +73,7 @@ do not rebuild or retest after each edit or failed hypothesis. Inspect the diff 
 batch, then build only the executable needed for that behavior, if one changed, and run the
 smallest focused check that can catch its regression. Rebuild sooner only when the next edit
 depends on current compiler output, generated code, a crash, or a diagnostic. Reverted trials need
-no validation. Follow validate-swag-changes and machine-load admission for every build or test on
-a local computer. Managed cloud workspaces are exempt from local-machine admission.
+no validation. Follow validate-swag-changes for every build or test.
 
 Commit each retained, focused-validated batch in its worktree. Integrate the first validated code
 batch into local `master` promptly, then integrate coherent groups at most every four to six
@@ -89,12 +88,9 @@ five retained batches, after a change whose risk specifically calls for them, an
 claim that depends on them. They are not gates for every low-risk batch or intermediate merge. A
 focused failure must be reduced and fixed before retention; do not carry a known regression into
 `master`.
-When optional validation or measurement is delayed by machine load, continue source investigation
-or the next independent edit instead of waiting through repeated admission rounds.
-
 Keep `SWC_BUILD_NUM` unchanged for ordinary compiler changes. Isolate or clear affected caches
 when an older binary's artifacts would make validation unsafe. Keep temporary logs and probes
-outside the checkout, and use the checkout-local compiler with the repository worker cap.
+outside the checkout, and use the checkout-local compiler.
 
 Several agents may run different campaigns at once.
 Integrate in this order:
@@ -114,8 +110,7 @@ Integrate in this order:
 
 Keep validation evidence tied to the revision actually tested: a conflict-free merge does not
 prove the combined revision green. Investigate concrete failures when found and retain the broad
-validation milestones above, without making them a gate for every merge. Admit concurrent builds
-and tests separately from measured machine load; isolated worktrees do not isolate CPU or memory.
+validation milestones above, without making them a gate for every merge.
 
 Fix every concrete defect, failing test, regression, broken consumer, or incorrect contract found
 during the campaign, regardless of which prompt or agent introduced it. Reduce it, repair its root
@@ -152,9 +147,7 @@ Code failures always come first; documentation, backlog, and hygiene follow once
 show the code is green.
 
 Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
-other skill only when the work enters its scope. Build and test admission applies on local computers
-only; managed cloud workspaces are exempt from local-machine load checks. Cap each compiler at three
-workers (`--num-cores 3` on the compiler and on the tool), or a lower stage-specific limit, and use
+other skill only when the work enters its scope. Use
 checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
 `SWC_BUILD_NUM` unchanged.
 
@@ -171,8 +164,8 @@ corrupt, isolate or clear only that set and record why. A full workspace clean o
 `/t:Rebuild` requires evidence that a focused rebuild cannot repair the affected state; preview
 every clean target first. Never run `tools/release.bat` for this campaign.
 
-After a completed code batch, build incrementally (`/t:Build`, `/m:1`,
-`SwcCompileJobs=3`) only the compiler the batch affects. A Swag-stage `--rebuild` does not rebuild
+After a completed code batch, build incrementally (`/t:Build`) only the compiler the batch affects.
+A Swag-stage `--rebuild` does not rebuild
 C++ objects; use it only when that stage's artifacts need regeneration. Do not clean or rebuild
 from scratch after a later fix unless a newly diagnosed defect makes that necessary.
 
@@ -196,9 +189,7 @@ DIAGNOSE AND FIX IN BATCHES; DO NOT REPEAT GREEN WORK
   compile after each discovery, edit, agent result or commit.
 - Have one integrator control writes and build barriers. Parallel agents may inspect independent
   logs, files and platforms and prepare patches outside the checkout. Merge their related fixes
-  before the next build. Do not run heavy local builds concurrently merely to keep agents busy;
-  admit each through the shared-machine load check and account for contention between Windows
-  and WSL. Prefer one compiler configuration for focused diagnosis, then build the other only
+  before the next build. Prefer one compiler configuration for focused diagnosis, then build the other only
   when the batch is stable or that configuration has distinct behavior.
 - Start walking the ladder to discover failures, stopping at the first failing input. From that
   stage, run the unvisited independent files, modules or configurations once to collect its full

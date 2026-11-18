@@ -16,8 +16,7 @@ Its accounting granularity is visible in the samples: a reported zero means belo
 accounting quantum, not zero processor instructions. Windows sleep resolution can also extend
 the nominal half-second duration.
 
-Admit each command with the repository's machine-load check and avoid concurrent builds while
-measuring. On 2026-09-08, the same DevMode compiler built this Release program before and after
+On 2026-09-08, the same DevMode compiler built this Release program before and after
 replacing repeated spin/yield joins with a short spin followed by a condition wait. Admission CPU
 load was 5% before and 6% after. Medians, in microseconds:
 

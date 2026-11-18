@@ -307,6 +307,14 @@ suite boundary, show its pass/fail result, tick or mark that row, then state the
 launching it. If an aggregate command is used, extract and report every individual runner stage as
 its own row; a single aggregate success must not hide the sequence.
 
+At every new phase, suite, workspace, configuration, or host step, show the campaign checklist
+again with completed rows checked, the current row marked `IN PROGRESS`, and all later rows still
+pending. Keep the complete ordered plan visible in every progress update, even when only one row
+changed. For each row, state the compiler executable/build and the target program configuration
+separately; explain what the command is building or testing and why that row belongs at this point.
+For example, `swc.dm.exe` is the DevMode compiler, while `-bc release` selects the Swag program
+configuration being built or tested. Never describe both merely as "DevMode" or "Release".
+
 PROGRESS STATUS
 
 Maintain separate ledgers for selected `#test` cases and non-test validation checks. The test

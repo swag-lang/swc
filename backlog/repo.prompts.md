@@ -141,9 +141,11 @@ next action while it remains unresolved; delete it when complete, disproved, or 
 Never use backlog entries as this campaign's log.
 
 You are running a repository-wide health reset on swc. Windows and native Linux validation are
-both required. On each platform, first build all of `bin/` in both program configurations, then
-cover its tests. Minimize elapsed time by collecting independent failures, fixing them in batches,
-and reusing valid build and test results.
+both required for completion, but run them in sequence. Finish the full Windows build and test
+matrix first. Start Linux builds and tests only after every required Windows check is green. If
+Windows has failures, collect the independent Windows failures, fix them in batches, and rerun the
+affected Windows checks before starting Linux. This avoids repeating shared failures on both hosts.
+Minimize elapsed time by fixing failures in batches and reusing valid build and test results.
 Code failures always come first; documentation, backlog, and hygiene follow once focused checks
 show the code is green.
 
@@ -169,17 +171,21 @@ After recording the starting baseline and before the first build or test, increm
 identity change. Record the old and new values and keep the new value through all batches and
 resumed sessions of the same campaign.
 
-Start on the current host. On Windows, build `bin\swc.dm.exe` first with incremental MSBuild
-(`/t:Build`, `Configuration=DevMode`) and use native Linux compilers under WSL 2 for Linux checks.
-Use `tools\linux.bat build` for DevMode and `tools\linux.bat --release build` when Release is needed.
+Start on Windows when available. Build `bin\swc.dm.exe` first with incremental MSBuild
+(`/t:Build`, `Configuration=DevMode`). Do not start Linux validation until the Windows matrix is
+green. Then use native Linux compilers under WSL 2 for Linux checks. Use `tools\linux.bat build`
+for DevMode and `tools\linux.bat --release build` when Release is needed. If Windows is unavailable,
+continue Linux work and record the pending Windows checks; this exception does not apply when
+Windows checks have failed.
 On a Linux cloud host, build and validate Linux directly with `tools/linux-build.py` and
 `tools/linux-tests.py`. Use an external build directory, copy `bin/runtime` beside each compiler
 after building it, and set `SWAG_PATH` to this checkout's `bin/` for direct workspace commands.
 Use native Windows for the Windows checks when it is available. Continue Linux work
 when Windows is unavailable, and record the pending Windows checks for a later session.
 
-Build DevMode first on each host. Build Release for that host just before the first check that
-uses it. Use the same committed sources and build number across hosts. When using the separate
+Build DevMode first on Windows. Build Release just before its first Windows check. Only after all
+required Windows checks pass, build Linux DevMode and build Linux Release just before its first
+Linux check. Use the same committed sources and build number across hosts. When using the separate
 WSL checkout, commit the coherent batch on `master`, run `tools\linux.bat sync`, and verify the
 revision before validating. Keep the source checkouts, compiler binaries, caches, and build
 outputs separate by host. Preserve any pre-existing local work when synchronizing.
@@ -197,21 +203,24 @@ PHASE 1 — BUILD ALL OF BIN IN DEVMODE AND RELEASE
    Use the suite's compilation boundary for test inputs that need test mode. Check deliberately
    invalid inputs against their expected diagnostics and keep generated documentation out of the
    build inventory.
-2. On each host, use its DevMode compiler to attempt the full applicable inventory in
-   `-bc devmode` and `-bc release` before running tests on that host. Record results per host,
-   target, and configuration. Continue through every independently buildable target. Use
+2. On Windows, use its DevMode compiler to attempt the full applicable inventory in
+   `-bc devmode` and `-bc release` before running Windows tests. Record results per target and
+   configuration. Continue through every independently buildable target. Run the Linux build
+   inventory only after the required Windows checks are green. Use
    `tools\build.bat` or individual workspace launchers on Windows, and the shared workspace
    commands in `tools/tool.py` with the WSL or native Linux compiler on Linux. If an aggregate
    build stops, cover its unvisited modules and standalone inputs individually. Record dependents
    that a failed prerequisite blocks and retry them after the prerequisite is fixed.
-3. Gather unexpected diagnostics from both configurations and the available hosts. Group them
-   by root cause and make each shared correction once. Complete the compiler fixes for the round
-   together, then rebuild each affected DevMode compiler once, on the host that needs it. Reuse
-   the compiler when the batch changes only Swag inputs or workspace launchers.
-4. Recheck failed, blocked, and invalidated targets in both configurations. Carry forward green
-   results whose inputs are still valid. Continue collecting independent failures on each pass.
-   Begin tests on a host once its build inventory is green in both configurations. Keep the
-   artifacts for the test phase and continue collecting independent failures on the other host.
+3. Gather unexpected diagnostics from both Windows configurations and group them by root cause.
+   Fix and validate Windows failures before starting Linux. Once Windows is green, gather Linux
+   diagnostics and fix any remaining host-specific or shared failures. Complete each compiler
+   fix batch together, then rebuild each affected DevMode compiler once on the host that needs it.
+   Reuse the compiler when the batch changes only Swag inputs or workspace launchers.
+4. Recheck failed, blocked, and invalidated Windows targets in both configurations. Carry forward
+   green results whose inputs are still valid and continue collecting independent Windows
+   failures. Begin Windows tests once its build inventory is green in both configurations. Start
+   Linux checks only after all required Windows checks are green; then apply the same build-before-
+   test order on Linux.
 
 REQUIRED VALIDATION MATRIX
 
@@ -228,18 +237,22 @@ REQUIRED VALIDATION MATRIX
     DevMode binary and needs one valid result per compiler build and applicable input set.
   - Package the VSCode extension with `tools\vsix.bat` on Windows and inspect the result.
 
-The commands define the coverage. Run them whole for unvisited groups when that is efficient,
-or use their individual suites, modules, and integration commands. Schedule prerequisites first.
+The commands define the coverage. Run Windows groups first, using individual suites, modules, and
+integration commands for unvisited checks after a failure. Defer every Linux command until the
+Windows matrix is green. Then run the Linux groups whole for unvisited coverage when efficient.
+Schedule prerequisites first.
 Prefer DevMode for discovery and defer building the Release compiler until its first check.
 
 PHASE 2 — DIAGNOSE AND FIX TEST FAILURES IN BATCHES
 
-- After the build phase on a host, run the remaining independent checks and collect failures
-  across hosts before starting a fix batch. Use the Windows or Linux test runner's `--keep-going`
-  where useful. These runners continue independent stages,
+- After the Windows build phase, run the remaining independent Windows checks and collect their
+  failures before starting a fix batch. Use the Windows test runner's `--keep-going` where useful.
+  These runners continue independent stages,
   so use individual suite, module, or integration commands to reach cases left unvisited
   within a failed stage. Record blocked checks and resume them once their prerequisites pass.
-  Stop a check early only when its remaining results would be invalid or misleading.
+  Stop a check early only when its remaining results would be invalid or misleading. Do not run
+  Linux checks while any required Windows check is failing or incomplete; after the Windows matrix
+  is green, run the Linux matrix and collect any remaining failures there.
 - Before rebuilding, inspect source, logs, diffs and existing artifacts and reduce the collected
   failures with the current binary. Group fixes by root cause, finish and review the related
   edits together, then rebuild the affected compiler once if the next check needs it. If a

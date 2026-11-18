@@ -235,13 +235,36 @@ REQUIRED VALIDATION MATRIX
     `release`. Under WSL use `tools\linux.bat test all` or `tools\linux.bat --release test all`
     with `--build-cfg devmode` or `--build-cfg release` as applicable. The C++ suite uses the
     DevMode binary and needs one valid result per compiler build and applicable input set.
-  - Package the VSCode extension with `tools\vsix.bat` on Windows and inspect the result.
 
 The commands define the coverage. Run Windows groups first, using individual suites, modules, and
 integration commands for unvisited checks after a failure. Defer every Linux command until the
 Windows matrix is green. Then run the Linux groups whole for unvisited coverage when efficient.
 Schedule prerequisites first.
 Prefer DevMode for discovery and defer building the Release compiler until its first check.
+
+PROGRESS STATUS
+
+Maintain a validation ledger with one unit for each required host, compiler build, program
+configuration, validation scope, and finalization check. Report campaign progress after each
+completed or stopped validation command, after each fix-and-rerun batch, and at least every
+30 minutes during long work. Use this compact form:
+
+```text
+Avancement : X/Y contrôles requis validés (Z %)
+Windows : ...
+Linux : ...
+En cours : ...
+Échecs ou blocages : ...
+Prochaine étape : ...
+```
+
+Calculate `Z` as the integer percentage of green ledger units (`floor(100 * X / Y)`). Count only
+checks that are green for the current source and applicable compiler/program configuration.
+Failed, blocked, pending, and running units do not count as green. If a source change invalidates a
+previously green unit, remove it from `X` until it passes again. Add newly discovered required
+units to `Y` and state the updated denominator. Never estimate progress from elapsed time, CPU
+load, output volume, or number of commands. Keep the next action and all remaining gates visible in
+every update; a percentage alone is not a status.
 
 PHASE 2 — DIAGNOSE AND FIX TEST FAILURES IN BATCHES
 

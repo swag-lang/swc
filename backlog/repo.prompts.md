@@ -140,78 +140,135 @@ before adding a new, actionable issue. Update an existing entry only when new ev
 next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
 Never use backlog entries as this campaign's log.
 
-You are running a repository-wide health reset on swc: diagnose failures with the ladder, fix
-them at their root, prepare the final tree, then execute one complete ladder and leave a clean,
-current, all-green baseline.
+You are running a repository-wide health reset on swc. Windows and native Linux validation are
+both required. On each platform, first build all of `bin/` in both program configurations, then
+cover its tests. Minimize elapsed time by collecting independent failures, fixing them in batches,
+and reusing valid build and test results.
 Code failures always come first; documentation, backlog, and hygiene follow once focused checks
 show the code is green.
 
 Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
-other skill only when the work enters its scope. Use
-checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
-`SWC_BUILD_NUM` unchanged.
+other skill only when the work enters its scope. Use compilers built from the campaign checkout
+for the host being validated.
 
-START ON MASTER, RECORD THE BASELINE - ONCE
+START ON MASTER, INCREMENT THE BUILD NUMBER, THEN BUILD DEVMODE
 
 Work directly on `master` in the main checkout. Record the starting commit,
 `git status --short --branch`, and the toolchain versions. Preserve and record any pre-existing
 local change; never reset it away.
 
-Record the hashes of both checkout-local compilers and check whether their existing objects and
-artifacts belong to this checkout and source revision. Reuse a sound baseline; do not discard
-working artifacts merely to create a clean start. If a specific cache or object set is stale or
+Record the hosts, toolchains, and hashes of the available compiler binaries. Check whether their
+existing objects and artifacts belong to this checkout and source revision. Reuse a sound
+baseline and its working artifacts. If a specific cache or object set is stale or
 corrupt, isolate or clear only that set and record why. A full workspace clean or compiler
 `/t:Rebuild` requires evidence that a focused rebuild cannot repair the affected state; preview
 every clean target first. Never run `tools/release.bat` for this campaign.
 
-After a completed code batch, build incrementally (`/t:Build`) only the compiler the batch affects.
-A Swag-stage `--rebuild` does not rebuild
-C++ objects; use it only when that stage's artifacts need regeneration. Do not clean or rebuild
-from scratch after a later fix unless a newly diagnosed defect makes that necessary.
+After recording the starting baseline and before the first build or test, increment
+`SWC_BUILD_NUM` in `src/Main/Version.h` by one. This is the campaign's compiler version and cache
+identity change. Record the old and new values and keep the new value through all batches and
+resumed sessions of the same campaign.
 
-FINAL EXHAUSTIVE LADDER — RUN ONCE AFTER THE FINISHING STEPS BELOW
+Start on the current host. On Windows, build `bin\swc.dm.exe` first with incremental MSBuild
+(`/t:Build`, `Configuration=DevMode`) and use native Linux compilers under WSL 2 for Linux checks.
+Use `tools\linux.bat build` for DevMode and `tools\linux.bat --release build` when Release is needed.
+On a Linux cloud host, build and validate Linux directly with `tools/linux-build.py` and
+`tools/linux-tests.py`. Use an external build directory, copy `bin/runtime` beside each compiler
+after building it, and set `SWAG_PATH` to this checkout's `bin/` for direct workspace commands.
+Use native Windows for the Windows checks when it is available. Continue Linux work
+when Windows is unavailable, and record the pending Windows checks for a later session.
 
-  1. `tools\build.bat dm -bc release`, then repeat with `-bc devmode`.
-  2. `tools\tests.bat dm -bc release`, then repeat with `-bc devmode`; run
-     `tools\integrations.bat dm opengl -bc release` and `windows` or `smoke`
-     separately when an interactive desktop is available.
-  3. `tools\tests.bat -bc release` and `tools\integrations.bat` for the Release
-     compiler, with each program configuration selected explicitly.
-  4. `tools\vsix.bat` - package the VSCode extension and inspect the result.
+Build DevMode first on each host. Build Release for that host just before the first check that
+uses it. Use the same committed sources and build number across hosts. When using the separate
+WSL checkout, commit the coherent batch on `master`, run `tools\linux.bat sync`, and verify the
+revision before validating. Keep the source checkouts, compiler binaries, caches, and build
+outputs separate by host. Preserve any pre-existing local work when synchronizing.
 
-DIAGNOSE AND FIX IN BATCHES; DO NOT REPEAT GREEN WORK
+After a completed code batch, rebuild only the affected compiler executable needed by the next
+check. A Swag-stage `--rebuild` does not rebuild C++ objects; use it only when that stage's
+artifacts need regeneration. Do not clean or rebuild from scratch after a later fix unless a
+newly diagnosed defect makes that necessary.
 
-- Before starting a build, collect the known failures and remaining unvisited independent inputs
-  for that subsystem. Inspect source, logs, diffs and existing artifacts first. Reduce failures
-  with the current binary; reserve an early build for a question that genuinely requires new
-  compiler output. Record each root cause and owning files in a short batch plan. Complete and
-  review all related edits, fixtures and header changes before crossing one build barrier. Do not
-  compile after each discovery, edit, agent result or commit.
+PHASE 1 — BUILD ALL OF BIN IN DEVMODE AND RELEASE
+
+1. Inventory the buildable inputs under `bin/` that the later tests use. Cover every module in
+   the standard library, examples, applications, and reference workspaces, the runtime through
+   its consumers, and the standalone programs and buildable fixtures used by the suites.
+   Use the suite's compilation boundary for test inputs that need test mode. Check deliberately
+   invalid inputs against their expected diagnostics and keep generated documentation out of the
+   build inventory.
+2. On each host, use its DevMode compiler to attempt the full applicable inventory in
+   `-bc devmode` and `-bc release` before running tests on that host. Record results per host,
+   target, and configuration. Continue through every independently buildable target. Use
+   `tools\build.bat` or individual workspace launchers on Windows, and the shared workspace
+   commands in `tools/tool.py` with the WSL or native Linux compiler on Linux. If an aggregate
+   build stops, cover its unvisited modules and standalone inputs individually. Record dependents
+   that a failed prerequisite blocks and retry them after the prerequisite is fixed.
+3. Gather unexpected diagnostics from both configurations and the available hosts. Group them
+   by root cause and make each shared correction once. Complete the compiler fixes for the round
+   together, then rebuild each affected DevMode compiler once, on the host that needs it. Reuse
+   the compiler when the batch changes only Swag inputs or workspace launchers.
+4. Recheck failed, blocked, and invalidated targets in both configurations. Carry forward green
+   results whose inputs are still valid. Continue collecting independent failures on each pass.
+   Begin tests on a host once its build inventory is green in both configurations. Keep the
+   artifacts for the test phase and continue collecting independent failures on the other host.
+
+REQUIRED VALIDATION MATRIX
+
+  - Phase 1 builds in `devmode` and `release` on Windows and Linux.
+  - Windows DevMode compiler suites and workspace tests from `tools\tests.bat dm` in both program
+    configurations. Include OpenGL integration in `release` and separate `windows` or `smoke`
+    integration checks when an interactive desktop is available.
+  - Windows Release compiler suites and workspace tests from `tools\tests.bat -bc release` and
+    the Release compiler integrations, with each program configuration selected explicitly.
+  - Linux compiler and workspace coverage from `tools/linux-tests.py all --keep-going` with
+    Linux DevMode in both program configurations and Linux Release in program configuration
+    `release`. Under WSL use `tools\linux.bat test all` or `tools\linux.bat --release test all`
+    with `--build-cfg devmode` or `--build-cfg release` as applicable. The C++ suite uses the
+    DevMode binary and needs one valid result per compiler build and applicable input set.
+  - Package the VSCode extension with `tools\vsix.bat` on Windows and inspect the result.
+
+The commands define the coverage. Run them whole for unvisited groups when that is efficient,
+or use their individual suites, modules, and integration commands. Schedule prerequisites first.
+Prefer DevMode for discovery and defer building the Release compiler until its first check.
+
+PHASE 2 — DIAGNOSE AND FIX TEST FAILURES IN BATCHES
+
+- After the build phase on a host, run the remaining independent checks and collect failures
+  across hosts before starting a fix batch. Use the Windows or Linux test runner's `--keep-going`
+  where useful. These runners continue independent stages,
+  so use individual suite, module, or integration commands to reach cases left unvisited
+  within a failed stage. Record blocked checks and resume them once their prerequisites pass.
+  Stop a check early only when its remaining results would be invalid or misleading.
+- Before rebuilding, inspect source, logs, diffs and existing artifacts and reduce the collected
+  failures with the current binary. Group fixes by root cause, finish and review the related
+  edits together, then rebuild the affected compiler once if the next check needs it. If a
+  focused check exposes another defect, collect it with the remaining independent failures
+  for the next batch.
 - Have one integrator control writes and build barriers. Parallel agents may inspect independent
   logs, files and platforms and prepare patches outside the checkout. Merge their related fixes
-  before the next build. Prefer one compiler configuration for focused diagnosis, then build the other only
-  when the batch is stable or that configuration has distinct behavior.
-- Start walking the ladder to discover failures, stopping at the first failing input. From that
-  stage, run the unvisited independent files, modules or configurations once to collect its full
-  failure set. Do not repeat green inputs to gather diagnostics. Fix that set as one coherent batch.
-  If a focused check reveals another defect in the same subsystem, add it to the open batch and
-  finish its edits before another build when its reproducer can be understood from existing output.
-- At a build barrier, run the smallest incremental MSBuild `/t:Build` for affected compiler
-  configurations. Check the log's compiled C++ translation units: source-only edits should touch
-  those units, while shared-header edits may fan out. Investigate an unexpected full compile or
-  PCH rebuild before proceeding. Then run isolated-cache or forced-artifact focused checks for
-  the owning compiler suite and consumer. A standard-module fix gets its module and affected
-  consumers. A launcher fix gets its own unit tests and the exact failing command. A test,
-  fixture, golden or application-local fix gets its owning test file or module. Do not restart
-  the full ladder here.
-- Keep a gate ledger keyed by compiler binary hash, program configuration, test scope and source
-  inputs. A later edit invalidates only results that consume those inputs; a change in a compiler
-  or standard module does not, by itself, call for repeating every unrelated suite. A runner must
-  not skip a gate merely because its name once passed on an older binary or source revision.
-- Once the retained code fixes are stable and the finishing steps below are complete, run the
-  exhaustive ladder above once. If a final gate fails, fix its root and rerun that gate plus any
-  later or earlier gates that consume the changed inputs. Do not restart at step 1 by category
-  alone. The final ladder still verifies both compiler executables and both program configurations.
+  before the next build. On Windows check the incremental MSBuild log. On Linux check the
+  incremental Make log. Investigate unexpected full compilation or precompiled header rebuilds.
+- Follow the dependency graph when choosing reruns. Rebuild the changed module and any
+  consumers whose inputs or behavior can be affected. Reuse current prerequisites and their
+  green checks. For example, a GUI-only fix does not require rebuilding Pixel or rerunning its
+  tests just because GUI depends on it. For a launcher fix, run its own tests and the exact
+  failing command. For a fixture or application-local fix, start with its owning file or module.
+- Classify each batch as Windows-only, Linux-only, or shared using the changed inputs and their
+  dependency paths. A Linux-only batch invalidates only affected Linux checks, and a Windows-only
+  batch only affected Windows checks. Apply a shared fix once and rerun its affected checks on
+  each host. A differently named binary, a new commit, or a change in the other host's results
+  is insufficient evidence of invalidation on its own.
+- Track each required build or test unit by host, compiler binary hash, program configuration,
+  scope, source inputs, and relevant dependencies. Keep green results with unchanged inputs. If the
+  compiler binary changes, record why a previous result still applies to the changed code path
+  or rerun the check. Where the impact cannot be bounded, revalidate the full affected scope.
+  Use current incremental artifacts by default and force only the target whose stale output
+  would otherwise hide the change.
+- After each batch and after the finishing steps, use the ledger to run only failed, blocked,
+  unvisited, or invalidated units that are now ready. The matrix is complete once every required
+  unit has a green result that applies to the final tree. A late failure opens another batch
+  and does not restart the matrix.
 - Before the first expensive stage, estimate each build and gate from recent timings. Plan the
   remaining work in batches so compiler builds and broad checks serve distinct decisions. Respect
   any time limit set for the current session; if the work cannot fit, retain the gate ledger and
@@ -230,14 +287,16 @@ downstream, a C++ test for an internal seam), update the documentation the fix t
 by removing its nondeterminism. Never disable or weaken a test, broaden a timeout, or promote a
 golden that was not reviewed and proved correct.
 
-PREPARE THE FINAL TREE BEFORE THE EXHAUSTIVE LADDER
+PREPARE THE FINAL TREE AND CLOSE THE VALIDATION MATRIX
 
 Once focused code checks are green (a newly exposed code failure takes priority again at any point):
-  1. Format: `tools\format.bat dm`, and clang-format every project-owned `.cpp`,
-     `.h`, `.inc` under `src/` (not vendored mimalloc). A second pass of both must change nothing;
-     review the diff.
-  2. Generate: `tools\help.bat dm`; review the tracked changes; a second run must
-     change nothing. Fix a nondeterministic generator, never its output by hand.
+  1. Format with `tools\format.bat dm` on Windows or DevMode `format -d bin -d bench/src` on Linux.
+     Run clang-format on the project-owned `.cpp`, `.h`, and `.inc` files under `src/`, excluding
+     vendored mimalloc. A second pass of both formatters must change nothing. Review the diff.
+  2. Generate help with `tools\help.bat dm` on Windows. On Linux, run DevMode
+     `doc --workspace <workspace> --doc-output-dir bin/help --rebuild` for `bin/std` and
+     `bin/reference`. Review the tracked changes and verify that a second run changes nothing.
+     Fix a nondeterministic generator, never its output by hand.
   3. Backlog and markers: make every backlog entry true against the current code, delete what
      is done or invalid, keep the file invariants documented in `backlog/README.md`, and
      resolve or properly record every actionable TODO/FIXME/HACK/XXX marker. Exclude intentional
@@ -252,18 +311,21 @@ Once focused code checks are green (a newly exposed code failure takes priority 
 
 THE CAMPAIGN ENDS ONLY WHEN
 
-The ladder, formatting, and generation are green for the final code; no defect
-found during the campaign remains open or relabeled; the backlog is truthful; and every change is
-committed on `master` with a clean working tree. A genuine external blocker is reported precisely
-and means the reset is incomplete, not green.
+Both build configurations and the required validation matrix are green on Windows and Linux
+for the final code. Formatting and generation are green, every defect found during the campaign
+is resolved, the backlog is truthful, and every change is committed on `master` with a clean
+working tree. If a host or its prerequisites are unavailable, finish the independent checks
+and record the pending host checks, revision, build number, and exact commands. The reset remains
+incomplete until those checks pass. Resume the same campaign without incrementing the build
+number again.
 
 REPORT
 
-Keep a compact table with one row per ladder gate and one row per failure batch; include the
-command/scope and result, plus the root cause and focused rerun for failures. Do not log helper
-commands or repeat successful rows after a later fix. At the end give the final commits, gate
-results, backlog changes, formatting and generation results, removed residue, and any blocker. Say
-"ready for new work" only when every end condition holds.
+Keep a compact table with one row per host and build configuration, validation group, and failure
+batch. Include the command/scope and result, plus the root cause and focused rerun for failures.
+Do not log helper commands or repeat successful rows after a later fix. At the end give the compiler version change,
+final commits, gate results, backlog changes, formatting and generation results, removed residue,
+and any blocker. Say "ready for new work" only when every end condition holds.
 ```
 
 ---

@@ -472,30 +472,25 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     waitForVideoFrame(previous)
     Swag.require(previous.video.isOpen() and previous.playing)
 
-    // Leave each decoder running before replacing it. A queue that grew on the decoder thread
-    // through storage owned by the GUI allocator would surface, after several ordinary zaps, as
-    // Memory.realloc(16, 8).
+    // Replace each decoder while it still owns its playback queue. Repeated replacements
+    // exercise allocation and retirement on the actual decoder thread.
     for 8
     {
-        for 12
-        {
-            Threading.Thread.sleep(1'ms)
-            previous.updatePlayback()
-        }
+        Swag.require(previous.hasFrame and previous.decode.isPending())
 
         window.openFile(fileName, remember: false)
         Swag.require(window.currentView == previous)
-        var attempts: u32
-        while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
-        {
-            Threading.Thread.sleep(1'ms)
-            host.pump()
-            if window.startupTimer do
-                host.fireTimer(window.startupTimer)
-            attempts += 1
-        }
+        Swag.require(window.startupTimer != null)
+        host.fireTimer(window.startupTimer)
+        window.choiceLoad.task.wait()
+        host.pump()
+        Swag.require(previous.retireRequested)
+        previous.decode.wait()
+        previous.frameCopy.wait()
+        completeViewerWindowClassification(&host, window)
 
         Swag.require(window.outgoingView == previous and window.currentView == previous)
+        Swag.require(previous.retired and not previous.video.isOpen())
         Swag.require(not previous.isPendingDestroy)
         let incoming = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
         Swag.require(incoming != previous)

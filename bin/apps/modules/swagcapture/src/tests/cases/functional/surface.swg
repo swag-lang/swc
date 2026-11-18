@@ -117,9 +117,6 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         capture.selection.add(0)
     }
 
-    main.editWnd.editView.setCapture(capture)
-    main.quickWnd.setDefault()
-
     if dark do
         host.theme.setDark()
     else do
@@ -127,8 +124,9 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
+    main.quickWnd.initializeDefaults()
+    main.editWnd.editView.setCapture(capture)
     main.applyLayout()
-    main.updateState()
     host.finishAnimations()
     return main
 }

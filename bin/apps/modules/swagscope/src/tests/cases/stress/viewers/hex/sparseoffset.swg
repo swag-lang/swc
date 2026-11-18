@@ -12,11 +12,26 @@ using Core, Pixel, Gui, Viewers
     const FarOffset = 0x1_0000_0100'u64
     scope
     {
-        var stream = expect File.open(file, .CreateNew, .ReadWrite, .Zero)
+        #static if #os == Swag.TargetOs.Windows
+        {
+            scope
+            {
+                // NTFS otherwise allocates and zeroes the gap when the file grows.
+                let path   = Utf16.toZeroTerminated(file)
+                let handle = expect Win32.CreateFileW(path.buffer, Win32.GENERIC_WRITE, 0, null,
+                                                      Win32.CREATE_NEW, Win32.FILE_ATTRIBUTE_NORMAL, null)
+                defer Win32.CloseHandle(handle)
+                var returned: Win32.DWORD
+                let sparse = Win32.DeviceIoControl(handle, Win32.FSCTL_SET_SPARSE, null, 0, null, 0, &returned, null)
+                Swag.require(sparse != 0)
+            }
+        }
+
+        let mode: File.FileMode = #os == Swag.TargetOs.Windows ? .Open : .CreateNew
+        var stream = expect File.open(file, mode, .ReadWrite, .Zero)
         expect stream.writeAll([0x41'u8, 0x42'u8])
         expect stream.seek(.Begin, FarOffset)
         expect stream.writeAll([0xDE'u8, 0xAD'u8, 0xBE'u8, 0xEF'u8])
-        stream.close()
     }
 
     var host: Testing.HeadlessHost

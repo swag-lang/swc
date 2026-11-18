@@ -577,7 +577,8 @@ impl QuickWnd
 {
     // Drops the unknown entries of every quick style set, refills the empty ones with their
     // defaults, and makes the first entry of each set the model of its tool.
-    mtd setDefault()
+    // Populates the preset collections and tool models before the editor syncs its controls.
+    mtd initializeDefaults()
     {
         for mode in EditMode
         {
@@ -600,6 +601,11 @@ impl QuickWnd
         .main.updateModel(.qsText.forms[0])
         .main.updateModel(.qsDraw.forms[0])
         .main.updateModel(.qsCallout.forms[0])
+    }
+
+    mtd setDefault()
+    {
+        .initializeDefaults()
         .updateQuickStyles(forceRebuild: true)
         .main.updateState()
     }

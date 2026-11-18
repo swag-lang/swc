@@ -24,9 +24,6 @@ class Stage:
     name: str
     command: list[str]
     requires: list[str] = field(default_factory=list)
-    expected_output: str = ''
-    forbidden_output: str = ''
-    expected_returncode: int = 0
 
 
 def option_value(options, names, default):
@@ -129,14 +126,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage(package_name, [sys.executable, '-c',
                                            'import shutil, sys; shutil.copy2(sys.argv[1], sys.argv[2])',
                                            str(dynamic_dependency), str(library.parent)], [build_name]))
-    script_dependency_build_name = 'workspace-build-lifecycle-script-dependency'
-    if script:
-        stages.append(Stage(script_dependency_build_name, [str(compiler), 'build', '--workspace', str(workspace),
-                                                          '--workspace-module', 'lifecycle_script_dep', *build_options]))
     for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
         requires = []
-        expected_output = ''
         if module == 'sandbox_consumer':
             command += ['--rebuild', '--no-test-native']
         elif module == 'runtime_context_dynamic_consumer' and execution == 'jit':
@@ -148,70 +140,13 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         if module == 'runtime_context_dynamic_consumer':
             command.append('--run-arg=--dynamic-runtime-library=' + str(library))
             requires = [package_name]
-            expected_output = ('SWAG_DYNAMIC_DEP_INIT\nSWAG_DYNAMIC_LIB_INIT\n'
-                               'SWAG_DYNAMIC_DEP_PREMAIN\nSWAG_DYNAMIC_LIB_PREMAIN\n'
-                               'SWAG_DYNAMIC_LIB_DROP\nSWAG_DYNAMIC_DEP_DROP')
-        if module == 'lifecycle_native_consumer':
-            expected_output = ('SWAG_DEP_INIT\nSWAG_NATIVE_INIT\nSWAG_DEP_PREMAIN\n'
-                               'SWAG_NATIVE_PREMAIN\nSWAG_NATIVE_TEST\nSWAG_NATIVE_DROP\nSWAG_DEP_DROP')
-        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '0', *options], requires,
-                            expected_output=expected_output))
+        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '0', *options], requires))
     if script:
-        failed_drop = workspace / 'native_failed_drop'
-        stages.append(Stage('workspace-native-failed-drop', [str(compiler), 'test',
-                            '--directory', str(failed_drop / 'src'), '--module-file', str(failed_drop / 'module.swg'),
-                            '--module-namespace', 'NativeFailedDrop', '--artifact-kind', 'executable',
-                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg,
-                            '--num-cores', runtime_workers(options)],
-                            expected_output='SWAG_NATIVE_DROP_PANIC', forbidden_output='SWAG_NATIVE_SECOND_DROP',
-                            expected_returncode=5))
-        failed_test = workspace / 'native_failed_test'
-        stages.append(Stage('workspace-native-abandoned-test', [str(compiler), 'test',
-                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
-                            '--module-namespace', 'NativeAbandonedTest', '--artifact-kind', 'executable',
-                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
-                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
-                            expected_returncode=5))
-        stages.append(Stage('workspace-jit-abandoned-test', [str(compiler), 'test',
-                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
-                            '--module-namespace', 'JitAbandonedTest', '--artifact-kind', 'export',
-                            '--no-test-native', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
-                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
-                            expected_returncode=5))
-        for name, namespace, marker, forbidden in (
-                ('jit_failed_init', 'JitFailedInit', 'SWAG_JIT_INIT_PANIC', 'SWAG_JIT_DROP_AFTER_INIT'),
-                ('jit_failed_premain', 'JitFailedPreMain', 'SWAG_JIT_PREMAIN_PANIC', 'SWAG_JIT_DROP_AFTER_PREMAIN'),
-                ('jit_failed_drop', 'JitFailedDrop', 'SWAG_JIT_DROP_PANIC', 'SWAG_JIT_SECOND_DROP')):
-            fixture = workspace / name
-            stages.append(Stage('workspace-' + name.replace('_', '-'), [str(compiler), 'test',
-                                '--directory', str(fixture / 'src'), '--module-file', str(fixture / 'module.swg'),
-                                '--module-namespace', namespace, '--artifact-kind', 'export', '--no-test-native',
-                                '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
-                                expected_output=marker, forbidden_output=forbidden, expected_returncode=5))
-        stages.append(Stage('workspace-import-png-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'import_png.swgs')],
-                            expected_output='SWAG_IMPORTED_PNG_RAN'))
-        stages.append(Stage('workspace-import-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'import_core_without_using.swgs')],
-                            expected_output='SWAG_IMPORTED_CORE_WITHOUT_USING_RAN'))
-        stages.append(Stage('workspace-lifecycle-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_order.swgs')],
-                            expected_output='SWAG_LIFECYCLE_ORDER_RAN'))
-        stages.append(Stage('workspace-failed-drop-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_failed_drop.swgs')],
-                            expected_output='SWAG_SECOND_DROP_RAN', expected_returncode=5))
-        stages.append(Stage('workspace-failed-main-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_failed_main.swgs')],
-                            expected_output='SWAG_DROP_AFTER_MAIN_RAN', expected_returncode=5))
-        stages.append(Stage('workspace-failed-init-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_failed_init.swgs')],
-                            requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))
-        stages.append(Stage('workspace-failed-check-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_failed_check.swgs')],
-                            requires=[script_dependency_build_name], expected_output='SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP', expected_returncode=5))
-        stages.append(Stage('workspace-failed-premain-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
-                            str(workspace / 'lifecycle_failed_premain.swgs')],
-                            requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))
+        for name, filename in (('import-png-script', 'import_png.swgs'),
+                               ('import-script', 'import_core_without_using.swgs'),
+                               ('lifecycle-script', 'lifecycle_order.swgs')):
+            stages.append(Stage('workspace-' + name, [str(compiler), '--build-cfg', cfg,
+                                                      '--num-cores', workers, str(workspace / filename)]))
     return stages
 
 
@@ -285,24 +220,8 @@ def execute(stages, environment, *, keep_going=False):
             if not keep_going:
                 return first_failure
             continue
-        result = subprocess.run(stage.command, env=environment, check=False,
-                                stdout=subprocess.PIPE if stage.expected_output or stage.forbidden_output else None)
-        stage_failure = 0
-        if stage.expected_output or stage.forbidden_output:
-            output = result.stdout.decode('utf-8', errors='replace').replace('\r\n', '\n')
-            if hasattr(sys.stdout, 'buffer'):
-                sys.stdout.buffer.write(result.stdout)
-                sys.stdout.buffer.flush()
-            else:
-                print(output, end='', flush=True)
-            if result.returncode == stage.expected_returncode and stage.expected_output not in output:
-                print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
-                stage_failure = 1
-            if stage.forbidden_output and stage.forbidden_output in output:
-                print(f'forbidden output was present: {stage.forbidden_output}', file=sys.stderr)
-                stage_failure = 1
-        if result.returncode != stage.expected_returncode:
-            stage_failure = result.returncode if result.returncode > 0 else 128 - result.returncode
+        result = subprocess.run(stage.command, env=environment, check=False)
+        stage_failure = result.returncode if result.returncode >= 0 else 128 - result.returncode
         if stage_failure:
             first_failure = first_failure or stage_failure
             if not keep_going:

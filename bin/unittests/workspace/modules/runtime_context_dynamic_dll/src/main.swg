@@ -34,7 +34,6 @@ private func argumentFingerprint(arguments: const [..] string)->u64
 {
     g_InitCount += 1
     Swag.assert(RuntimeCtxDynamicDep.dependencyIsLive())
-    Swag.print("SWAG_DYNAMIC_LIB_INIT\n")
     #static if #os == Swag.TargetOs.Linux
     {
         let arguments = Swag.args()
@@ -46,13 +45,11 @@ private func argumentFingerprint(arguments: const [..] string)->u64
 #premain
 {
     g_PreMainCount += 1
-    Swag.print("SWAG_DYNAMIC_LIB_PREMAIN\n")
 }
 
 #drop
 {
     Swag.assert(RuntimeCtxDynamicDep.dependencyIsLive())
-    Swag.print("SWAG_DYNAMIC_LIB_DROP\n")
     #static if #os == Swag.TargetOs.Linux
     {
         // Unloading the provider still sees the executable's original argument storage.

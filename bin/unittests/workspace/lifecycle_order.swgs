@@ -17,16 +17,16 @@ var sequence: u32
 #main
 {
     Swag.require(sequence == 2)
+    sequence = 3
+}
+
+#drop
+{
+    Swag.require(sequence == 4)
 }
 
 #drop
 {
     Swag.require(sequence == 3)
-    Swag.print("SWAG_LIFECYCLE_ORDER_RAN\n")
-}
-
-#drop
-{
-    Swag.require(sequence == 2)
-    sequence = 3
+    sequence = 4
 }

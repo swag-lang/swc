@@ -38,5 +38,4 @@ func checkImportedPng()
 #main
 {
     checkImportedPng()
-    Swag.print("SWAG_IMPORTED_PNG_RAN\n")
 }

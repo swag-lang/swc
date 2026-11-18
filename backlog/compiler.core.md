@@ -672,39 +672,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.104 — Align module drop-hook order across native, script and JIT execution
 
-- Earlier evidence: `NativeBackendBuilder` sorted drop functions by source position, while
-  `NativeArtifactBuilder` and `Command.Build` invoke the list forwards. The lifecycle reference
-  (`002_010_module_lifecycle.swg`) promises the reverse of the corresponding initialization
-  sequence. Reversing dependency modules alone does not establish the order of hooks inside one
-  module. Native artifacts, scripts and JIT tests now run multiple drop hooks in reverse
-  source-location order, with passing Linux regressions for each path. The script regression
-  failed on the preceding compiler and passes with the correction. A script now attempts every
-  remaining drop hook after one panics, while still exiting with an error; a failing-script
-  regression requires the later hook's output marker. A failed script `#main` now also runs
-  its drop hooks and dependency shutdown before returning the failure; a separate script
-  regression checks for the drop marker after that panic. Failed script `#init` and `#premain`
-  now also run module drop hooks and release dependencies whose initialization completed.
-  Both expected-failure fixtures lacked their drop marker before the correction. A dedicated
-  shared-library dependency now records that its `#drop` follows the script's `#drop`
-  after either failure, while the original error exit remains. The JIT test runner now stops
-  shutdown hooks after an uncaught panic in `#init`, `#premain`, or `#drop`, because the panic
-  abandons `defer` cleanup and the remaining hooks can touch invalid state. Dedicated failing
-  JIT fixtures show the preceding compiler ran those hooks and the corrected compiler does not.
-  A native executable that imports the shared-library lifecycle fixture now records dependency
-  `#init/#premain` before its own hooks and its own `#drop` before the dependency's `#drop`. A
-  native `#drop` panic exits with an error before later hooks can touch abandoned state.
-  A dynamically loaded library with a shared-library dependency previously ran the dependency's
-  `#premain` before its own `#init`. Dynamic acquisition now completes every `#init` before
-  the dependency and library `#premain` hooks; closing the last reference drops the library
-  before its dependency. The dynamic consumer checks the complete order and repeated loading.
-  The reference documents this order and the boundary after an uncaught native or JIT panic.
-  A recoverable `Swag.check` failure in a script `#init` now has a regression that allocates a
-  byte, verifies and frees it in `#drop`, then observes the imported shared dependency's `#drop`.
-  The script still exits with an error. This checks resource access before hosted cleanup.
-- Next: verify resource release on ordinary failed hooks before restoring JIT test data or
-  unloading generated code, including dynamically loaded dependencies.
-- Done when: the documented order is observed consistently by every execution mode, including
-  failed test and failed-hook paths, with regression tests that record the complete sequence.
+- Evidence: a recoverable hook failure leaves resources valid for drop hooks. An uncaught
+  native or JIT panic can abandon `defer` cleanup, so later hooks can touch invalid state.
+  The distinction matters at the boundary that restores JIT test data or unloads generated code.
+- Next: verify resource release on recoverable hook failures at that boundary, including
+  dynamically loaded dependencies.
+- Done when: assertions at the owning boundary verify resource release and the documented
+  drop order for failed tests and hooks.
 
 ### compiler.core.106 — Resolve nested functions in runtime startup code
 

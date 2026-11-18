@@ -4,7 +4,7 @@
 using Swag, Core
 
 // Exercises zoom over large shadowed annotations at a desktop-sized viewport.
-// An optional SCC path lets the same sequence profile a reported slow capture.
+// An optional SCC path exercises the same sequence on a saved capture.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -48,10 +48,7 @@ using Swag, Core
     discard f.gui.render(f.main)
     f.editView.setZoom(0.56)
     f.gui.fireTimer(f.editView.zoomTimer)
-    var watch: Time.Stopwatch
-    watch.start()
     discard f.gui.render(f.main)
-    Console.print("zoom initial: ", watch.elapsedMilliseconds(), " ms\n")
     Swag.require(f.capture.formCaches.count >= 2)
     for i in 0 until 2
     {
@@ -72,16 +69,11 @@ using Swag, Core
         let firstZoom  = first.zoom
         let secondZoom = second.zoom
         f.editView.setZoom(zoom, mouseCenter: true)
-        watch.restart()
         discard f.gui.render(f.main)
-        let preview = watch.elapsedMilliseconds()
         Swag.require(first.zoom == firstZoom and second.zoom == secondZoom)
         f.gui.fireTimer(f.editView.zoomTimer)
-        watch.restart()
         discard f.gui.render(f.main)
-        let settled = watch.elapsedMilliseconds()
         Swag.require(first.shadow.contentTarget!.colorBuffer.handle == firstShadow and
                      second.shadow.contentTarget!.colorBuffer.handle == secondShadow)
-        Console.print("zoom ", zoom, ": preview ", preview, " ms; settled ", settled, " ms\n")
     }
 }

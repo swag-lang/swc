@@ -215,11 +215,11 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(ConstantValue_AcceptsEmptySlicesBeforeElementLayout)
 {
     static SymbolStruct incompleteElementType{nullptr, {}, {}, {}};
-    const TypeRef     elementTypeRef = ctx.typeMgr().addType(TypeInfo::makeStruct(&incompleteElementType));
-    const auto        emptyBytes     = std::span<const std::byte>{};
-    const ConstantValue owned        = ConstantValue::makeSlice(ctx, elementTypeRef, emptyBytes);
-    const ConstantValue borrowed     = ConstantValue::makeSliceBorrowed(ctx, elementTypeRef, emptyBytes);
-    const ConstantValue counted      = ConstantValue::makeSliceCounted(ctx, elementTypeRef, emptyBytes, 0);
+    const TypeRef       elementTypeRef = ctx.typeMgr().addType(TypeInfo::makeStruct(&incompleteElementType));
+    const auto          emptyBytes     = std::span<const std::byte>{};
+    const ConstantValue owned          = ConstantValue::makeSlice(ctx, elementTypeRef, emptyBytes);
+    const ConstantValue borrowed       = ConstantValue::makeSliceBorrowed(ctx, elementTypeRef, emptyBytes);
+    const ConstantValue counted        = ConstantValue::makeSliceCounted(ctx, elementTypeRef, emptyBytes, 0);
 
     for (const ConstantValue* value : {&owned, &borrowed, &counted})
     {

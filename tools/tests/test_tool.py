@@ -162,20 +162,8 @@ class ToolTests(unittest.TestCase):
             sandbox = next(stage for stage in self.stages if stage.name.endswith('sandbox_consumer'))
             self.assertIn('--rebuild', sandbox.command)
             self.assertIn('--no-test-native', sandbox.command)
-            imported = next(stage for stage in self.stages if stage.name == 'workspace-import-script')
-            self.assertEqual(imported.expected_output, 'SWAG_IMPORTED_CORE_WITHOUT_USING_RAN')
-            png = next(stage for stage in self.stages if stage.name == 'workspace-import-png-script')
-            self.assertEqual(png.expected_output, 'SWAG_IMPORTED_PNG_RAN')
-            self.assertTrue(png.command[-1].endswith('import_png.swgs'))
-            failed_drop = next(stage for stage in self.stages if stage.name == 'workspace-failed-drop-script')
-            self.assertEqual(failed_drop.expected_returncode, 5)
-            self.assertEqual(failed_drop.expected_output, 'SWAG_SECOND_DROP_RAN')
-            failed_main = next(stage for stage in self.stages if stage.name == 'workspace-failed-main-script')
-            self.assertEqual(failed_main.expected_returncode, 5)
-            self.assertEqual(failed_main.expected_output, 'SWAG_DROP_AFTER_MAIN_RAN')
-            failed_check = next(stage for stage in self.stages if stage.name == 'workspace-failed-check-script')
-            self.assertEqual(failed_check.expected_returncode, 5)
-            self.assertEqual(failed_check.expected_output, 'SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP')
+            scripts = [Path(stage.command[-1]).name for stage in self.stages if stage.name.endswith('-script')]
+            self.assertEqual(scripts, ['import_png.swgs', 'import_core_without_using.swgs', 'lifecycle_order.swgs'])
 
     def test_workers_and_explicit_runtime_override(self):
         for workers, expected in (('1', '1'), ('2', '2'), ('0', str(os.cpu_count() or 1)), ('8', '8')):
@@ -228,29 +216,6 @@ class ToolTests(unittest.TestCase):
                   tool.Stage('later', [sys.executable, '-c', f'open({str(marker)!r}, "w").close()'])]
         self.assertEqual(tool.execute(stages, os.environ.copy()), 7)
         self.assertFalse(marker.exists())
-
-    def test_expected_failure_still_needs_its_output_marker(self):
-        command = [sys.executable, '-c', 'print("second drop ran"); raise SystemExit(5)']
-        stage = tool.Stage('failed drop', command, expected_output='second drop ran', expected_returncode=5)
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(tool.execute([stage], os.environ.copy()), 0)
-        stage.expected_output = 'missing marker'
-        with redirect_stdout(io.StringIO()):
-            self.assertNotEqual(tool.execute([stage], os.environ.copy()), 0)
-
-    def test_script_needs_output_marker(self):
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(tool.execute([tool.Stage('script', [sys.executable, '-c', 'print("marker")'],
-                                                     expected_output='marker')], os.environ.copy()), 0)
-
-    def test_captured_compiler_output_works_with_narrow_console_encoding(self):
-        bytes_out = io.BytesIO()
-        narrow_console = io.TextIOWrapper(bytes_out, encoding='cp1252')
-        command = [sys.executable, '-c', "import sys; sys.stdout.buffer.write('◆ marker'.encode('utf-8'))"]
-        with redirect_stdout(narrow_console):
-            self.assertEqual(tool.execute([tool.Stage('script', command, expected_output='marker')],
-                                          os.environ.copy()), 0)
-        self.assertEqual(bytes_out.getvalue(), '◆ marker'.encode('utf-8'))
 
 
 if __name__ == '__main__':

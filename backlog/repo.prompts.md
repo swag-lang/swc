@@ -133,330 +133,171 @@ agent's in-flight code into the binary being validated.
 ## 1. Repository health reset
 
 ```
-Prefix every commit of this campaign with [prompt 1].
+Validate the repository on Windows first, then on native Linux. Use the same two-step build and
+test plan for every pass. Start with DevMode to find and fix failures. Once it is green, use
+Release to confirm the shipped compiler and program configuration.
 
-Backlog: keep only unresolved outcomes and the minimum evidence needed for their next action. Search
-before adding a new, actionable issue. Update an existing entry only when new evidence changes its
-next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
-Never use backlog entries as this campaign's log.
+Execution order
 
-You are running a repository-wide health reset on swc. Windows and native Linux validation are
-both required for completion, but run them in sequence. Finish the full Windows build and test
-matrix first. Start Linux builds and tests only after every required Windows check is green. If
-Windows has failures, collect the independent Windows failures, fix them in batches, and rerun the
-affected Windows checks before starting Linux. This avoids repeating shared failures on both hosts.
-Minimize elapsed time by fixing failures in batches and reusing valid build and test results.
-Code failures always come first; documentation, backlog, and hygiene follow once focused checks
-show the code is green.
+1. Prepare once.
 
-Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
-other skill only when the work enters its scope. Use compilers built from the campaign checkout
-for the host being validated.
+   Read AGENTS.md, modify-swag-codebase, validate-swag-changes, and the applicable launcher
+   guidance in tools/README.md. Work in the main checkout on master. Record the starting
+   commit, git status, existing local changes, and toolchain versions. Preserve local work.
+   Keep logs outside the checkout and reuse valid incremental objects and caches.
+   Run tools\portability.bat once on Windows.
 
-START ON MASTER, INCREMENT THE BUILD NUMBER, THEN BUILD DEVMODE
+   Increment SWC_BUILD_NUM in src/Main/Version.h by one before the first build. Keep that
+   number for every pass and resumed session. Record each resulting compiler's hash.
+   Use checkout-local Windows compilers and native Linux compilers built from the same
+   committed sources. Keep each host's build outputs and caches separate.
 
-Work directly on `master` in the main checkout. Record the starting commit,
-`git status --short --branch`, and the toolchain versions. Preserve and record any pre-existing
-local change; never reset it away.
+2. Windows DevMode with -bc devmode. Run the shared build and test pass and resolve failures.
+3. Run repository maintenance once. Verify any checks it invalidates before moving on.
+4. Windows Release with -bc release. Repeat the shared pass, run Windows integrations, and
+   commit the validated batch on master. Prefix campaign commits with [prompt 1].
+5. Run tools\linux.bat sync. Verify tools\linux.bat exec git rev-parse HEAD against the
+   validated Windows commit. Linux starts after all required Windows checks pass.
+6. Linux DevMode with -bc devmode. Run the shared pass and resolve failures.
+7. Linux Release with -bc release. Repeat the shared pass and run Linux integrations.
+8. Verify the final revision. For a late correction, commit the fix on master and sync it
+   to Linux. Repeat only affected maintenance and validation checks on each host. If Swag
+   Capture changed, finish with tools\apps.bat build swagcapture -bc release in the main
+   checkout. Run git diff --check and git status --short --branch. Finish when all required
+   checks apply to the final committed tree, all discovered defects are resolved, and
+   master is clean.
 
-Record the hosts, toolchains, and hashes of the available compiler binaries. Check whether their
-existing objects and artifacts belong to this checkout and source revision. Reuse a sound
-baseline and its working artifacts. If a specific cache or object set is stale or
-corrupt, isolate or clear only that set and record why. A full workspace clean or compiler
-`/t:Rebuild` requires evidence that a focused rebuild cannot repair the affected state; preview
-every clean target first. Never run `tools/release.bat` for this campaign.
+When a host is unavailable, finish independent work on the available host and record
+exactly which checks remain pending. Run an additional compiler/program configuration
+pairing only as a focused diagnostic for a concrete failure.
 
-After recording the starting baseline and before the first build or test, increment
-`SWC_BUILD_NUM` in `src/Main/Version.h` by one. This is the campaign's compiler version and cache
-identity change. Record the old and new values and keep the new value through all batches and
-resumed sessions of the same campaign.
+Shared build and test pass
 
-Start on Windows when available. Build `bin\swc.dm.exe` first with incremental MSBuild
-(`/t:Build`, `Configuration=DevMode`). Do not start Linux validation until the Windows matrix is
-green. Then use native Linux compilers under WSL 2 for Linux checks. Use `tools\linux.bat build`
-for DevMode and `tools\linux.bat --release build` when Release is needed. If Windows is unavailable,
-continue Linux work and record the pending Windows checks; this exception does not apply when
-Windows checks have failed.
-On a Linux cloud host, build and validate Linux directly with `tools/linux-build.py` and
-`tools/linux-tests.py`. Use an external build directory, copy `bin/runtime` beside each compiler
-after building it, and set `SWAG_PATH` to this checkout's `bin/` for direct workspace commands.
-Use native Windows for the Windows checks when it is available. Continue Linux work
-when Windows is unavailable, and record the pending Windows checks for a later session.
+   A. Build the selected compiler incrementally, then build std, examples, apps and reference
+      in that order. Start with the aggregate commands below. The
+      workspaces handle dependency builds, including the runtime. Test-only fixtures,
+      scripts and expected diagnostics are covered at the test or smoke boundary that
+      knows how to validate them.
 
-Build DevMode first on Windows. Build Release just before its first Windows check. Only after all
-required Windows checks pass, build Linux DevMode and build Linux Release just before its first
-Linux check. Use the same committed sources and build number across hosts. When using the separate
-WSL checkout, commit the coherent batch on `master`, run `tools\linux.bat sync`, and verify the
-revision before validating. Keep the source checkouts, compiler binaries, caches, and build
-outputs separate by host. Preserve any pre-existing local work when synchronizing.
+   B. Run the compiler suites, examples and reference, then the full module coverage.
+      The compiler launcher includes C++ in DevMode and runs lexer, parser, sema, jit,
+      safety, sanity, native and workspace fixtures. Run ordinary std and apps tests,
+      including stress, on GPU. Compare goldens on CPU once, using their tag. Clear
+      any parity-sweep or golden-continue override. Finish independent groups after a
+      failure, then narrow the failing or unvisited scope.
 
-After a completed code batch, rebuild only the affected compiler executable needed by the next
-check. A Swag-stage `--rebuild` does not rebuild C++ objects; use it only when that stage's
-artifacts need regeneration. Do not clean or rebuild from scratch after a later fix unless a
-newly diagnosed defect makes that necessary.
+   For the commands below, <cfg> is devmode or release. On Windows and in tool.py, <dm>
+   is the literal dm for a DevMode pass and is omitted for a Release pass.
 
-PHASE 1 — BUILD ALL OF BIN IN DEVMODE AND RELEASE
+   On Windows, resolve MSBuild from PATH or the Visual Studio installation.
 
-1. Inventory the buildable inputs under `bin/` that the later tests use. Cover every module in
-   the standard library, examples, applications, and reference workspaces, the runtime through
-   its consumers, and the standalone programs and buildable fixtures used by the suites.
-   Use the suite's compilation boundary for test inputs that need test mode. Check deliberately
-   invalid inputs against their expected diagnostics and keep generated documentation out of the
-   build inventory.
-2. On Windows, use its DevMode compiler to attempt the full applicable inventory in
-   `-bc devmode` and `-bc release` before running Windows tests. Record results per target and
-   configuration. Continue through every independently buildable target. Run the Linux build
-   inventory only after the required Windows checks are green. Use
-   `tools\build.bat` or individual workspace launchers on Windows, and the shared workspace
-   commands in `tools/tool.py` with the WSL or native Linux compiler on Linux. If an aggregate
-   build stops, cover its unvisited modules and standalone inputs individually. Record dependents
-   that a failed prerequisite blocks and retry them after the prerequisite is fixed.
-3. Gather unexpected diagnostics from both Windows configurations and group them by root cause.
-   Fix and validate Windows failures before starting Linux. Once Windows is green, gather Linux
-   diagnostics and fix any remaining host-specific or shared failures. Complete each compiler
-   fix batch together, then rebuild each affected DevMode compiler once on the host that needs it.
-   Reuse the compiler when the batch changes only Swag inputs or workspace launchers.
-4. Recheck failed, blocked, and invalidated Windows targets in both configurations. Carry forward
-   green results whose inputs are still valid and continue collecting independent Windows
-   failures. Begin Windows tests once its build inventory is green in both configurations. Start
-   Linux checks only after all required Windows checks are green; then apply the same build-before-
-   test order on Linux.
+     A. MSBuild.exe swc.sln /t:Build /m /p:Configuration=<DevMode or Release> /p:Platform=x64
+        tools\build.bat <dm> -bc <cfg>
+     B. tools\unittests.bat <dm> -bc <cfg> --keep-going
+        tools\examples.bat <dm> test -bc <cfg>
+        tools\reference.bat <dm> test -bc <cfg>
+        tools\coverage.bat <coverage-compiler> -Suite full -Configuration <cfg>
+        Use -DevMode for <coverage-compiler> in a DevMode pass and omit it in Release.
 
-REQUIRED VALIDATION MATRIX
+   In WSL 2
 
-  - Phase 1 builds in `devmode` and `release` on Windows and Linux.
-  - Windows DevMode compiler suites and workspace tests from `tools\tests.bat dm` in both program
-    configurations. Include OpenGL integration in `release` and separate `windows` or `smoke`
-    integration checks when an interactive desktop is available.
-  - Windows Release compiler suites and workspace tests from `tools\tests.bat -bc release` and
-    the Release compiler integrations, with each program configuration selected explicitly.
-  - Linux compiler and workspace coverage from `tools/linux-tests.py all --keep-going` with
-    Linux DevMode in both program configurations and Linux Release in program configuration
-    `release`. Under WSL use `tools\linux.bat test all` or `tools\linux.bat --release test all`
-    with `--build-cfg devmode` or `--build-cfg release` as applicable. The C++ suite uses the
-    DevMode binary and needs one valid result per compiler build and applicable input set.
+     A. tools\linux.bat build             (DevMode)
+        tools\linux.bat --release build   (Release)
+        tools\linux.bat exec python3 tools/tool.py <workspace> <dm> build -bc <cfg>
+        Run the workspace command in order for std, examples, apps and reference.
+     B. tools\linux.bat exec python3 tools/tool.py unittests <dm> -bc <cfg> --keep-going
+        tools\linux.bat exec python3 tools/tool.py examples <dm> test -bc <cfg>
+        tools\linux.bat exec python3 tools/tool.py reference <dm> test -bc <cfg>
+        For std, then apps, run both selections with the shared tool:
+          tools\linux.bat exec env SWAG_TEST_RENDERER=gpu python3 tools/tool.py <workspace> <dm> test -bc <cfg> --test-tag !golden
+          tools\linux.bat exec python3 tools/tool.py <workspace> <dm> test -bc <cfg> --test-tag golden
+        The golden selector uses CPU automatically.
 
-The commands define the coverage. Run Windows groups first, using individual suites, modules, and
-integration commands for unvisited checks after a failure. Defer every Linux command until the
-Windows matrix is green. Then run the Linux groups whole for unvisited coverage when efficient.
-Schedule prerequisites first.
-Prefer DevMode for discovery and defer building the Release compiler until its first check.
+   The WSL wrapper sets the compiler and runtime paths. The shared tool uses the Linux
+   checkout's normal incremental outputs for both builds and tests. On a native Linux
+   host, run the Python commands directly. Build with python3 tools/linux-build.py
+   --build-dir <external path> --configuration <cfg>, copy bin/runtime beside the compiler,
+   and set SWAG_PATH, SWC_DEVMODE_COMPILER and SWC_COMPILER to the corresponding checkout
+   and build paths.
 
-EXECUTION PLAN — PUBLISH AND TICK ONE ROW AT A TIME
+Failure diagnosis and reruns
 
-Before running the campaign, publish this ordered checklist in the progress report and expand each
-inventory/workspace row into the actual targets or modules discovered by the runner. A row is one
-suite, one module, or one required check in one compiler/program configuration. Keep passed rows
-checked across updates; show failed, blocked, running, and pending rows explicitly. Never rerun a
-checked row unless a source change invalidated it or another matrix configuration is required. Do
-not start the next phase while the current phase has unresolved failures.
+   Start each pass at the aggregate level. If it fails, use the existing output to find
+   the failing workspace or compiler suite. Continue independent checks and collect
+   failures before editing. The Windows aggregate build stops at the first failing
+   workspace. Resume the unvisited workspaces with their aggregate build commands.
+   After a failed test stage, use the runner output to identify any unvisited coverage.
 
-1. Windows DevMode compiler — full build inventory, before tests:
-   - [ ] Record the buildable target inventory used by the campaign.
-   - [ ] Build every target with `-bc devmode`; one row per target.
-   - [ ] Build every target with `-bc release`; one row per target.
-   - [ ] Fix Windows build failures in batches and retick only affected targets in both configs.
-2. Windows DevMode compiler — compiler suites and workspace tests:
-   - [ ] C++ unit suite once with the DevMode compiler.
-   - [ ] `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, and `native` suites at
-     `-bc devmode`; one row per suite.
-   - [ ] Compiler `workspace` fixtures at `-bc devmode`.
-   - [ ] `std`, `examples`, `apps`, and `reference` at `-bc devmode`; expand into one row per
-     workspace module (and the reference suite), excluding VSCode/VSIX packaging.
-   - [ ] Repeat the source suites, compiler workspace fixtures, and all four workspace groups at
-     `-bc release`; keep one row per suite/module. Do not repeat the C++ suite solely because the
-     Swag program configuration changed.
-3. Windows Release compiler — build immediately before its checks, then tests:
-   - [ ] Build the Release compiler.
-   - [ ] Run `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, and `native` at `-bc devmode`,
-     one row per suite; run compiler `workspace` fixtures at `-bc devmode`.
-   - [ ] Run `std`, `examples`, `apps`, and `reference` at `-bc devmode`, one row per module and
-     reference suite; exclude VSCode/VSIX packaging.
-   - [ ] Repeat those source suites, compiler fixtures, and workspace modules at `-bc release`,
-     one row per suite/module. Do not repeat a C++ suite that does not use the Release compiler.
-4. Windows integrations, after the compiler/workspace test phases:
-   - [ ] OpenGL integration in Release program configuration.
-   - [ ] Each applicable Windows integration suite.
-   - [ ] Each applicable smoke check when its required interactive environment is available.
-5. Windows closeout:
-   - [ ] Formatting check.
-   - [ ] `clang-format` check.
-   - [ ] Help generation, then a second generation/diff check for idempotence.
-   - [ ] Backlog and repository hygiene review; inspect `git status` and commit each retained fix.
-6. Linux — start only after every required Windows build, test, integration, and closeout row is
-   green. Build and test in this order:
-   - [ ] Linux DevMode compiler build.
-   - [ ] Linux DevMode compiler: full build inventory at `-bc devmode`, one row per target.
-   - [ ] Linux DevMode compiler: full build inventory at `-bc release`, one row per target.
-   - [ ] Linux DevMode compiler: C++ suite and compiler/workspace tests at `-bc devmode`;
-     tick each compiler suite and workspace/module separately.
-   - [ ] Linux DevMode compiler: compiler/workspace tests at `-bc release`; tick each suite and
-     workspace/module separately (do not repeat C++ only for the program configuration).
-   - [ ] Linux Release compiler build.
-   - [ ] Linux Release compiler: required compiler/workspace tests at `-bc release`; tick each
-     suite and workspace/module separately.
-   - [ ] Linux integrations required by the matrix; report unavailable host capabilities as
-     blocked with the specific missing prerequisite.
-7. Final closeout:
-   - [ ] Resolve every failed or blocked required row, or report the concrete external blocker.
-   - [ ] Confirm all required rows are green on the current source and the working tree is clean.
-   - [ ] Commit all retained campaign fixes with the `[prompt 1]` prefix.
+   Narrow only as far as needed to reproduce and diagnose the failure.
 
-After publishing this checklist, report only the next active row(s) and their exact scope. At every
-suite boundary, show its pass/fail result, tick or mark that row, then state the next row before
-launching it. If an aggregate command is used, extract and report every individual runner stage as
-its own row; a single aggregate success must not hide the sequence.
+   - For a workspace or suite, run tools\<workspace>.bat <dm> build|test -bc <cfg>, or
+     tools\unittests.bat <dm> <suite> -bc <cfg> --keep-going.
+   - For a module, run tools\<workspace>.bat <dm> build|test <module> -bc <cfg>.
+   - For a file, append --test-file <path fragment> to a workspace test. For a standalone
+     compiler-suite input, use --file-filter <path fragment> on unittests instead.
+   - For a case, use an existing sufficiently narrow --test-tag within the selected file,
+     or reduce the case in a temporary reproducer while retaining the failing boundary.
+     Check that filtered runs actually select the intended input or test.
 
-At every new phase, suite, workspace, configuration, or host step, show the campaign checklist
-again with completed rows checked, the current row marked `IN PROGRESS`, and all later rows still
-pending. Keep the complete ordered plan visible in every progress update, even when only one row
-changed. For each row, state the compiler executable/build and the target program configuration
-separately; explain what the command is building or testing and why that row belongs at this point.
-For example, `swc.dm.exe` is the DevMode compiler, while `-bc release` selects the Swag program
-configuration being built or tested. Never describe both merely as "DevMode" or "Release".
+   Use the equivalent tool.py commands on Linux. Keep the host, compiler, program
+   configuration and relevant flags from the failure. Preserve runner checks for expected
+   diagnostics, exit codes and prerequisites. Keep fixtures silent and use ordinary assertions.
 
-PROGRESS STATUS
+   Group failures by root cause. Fix them in batches, add focused regression coverage where
+   needed, and verify the failing boundary first. Rebuild a compiler only when the batch
+   changes its inputs, and use the existing incremental build. Rerun failed, newly
+   unblocked, unvisited and invalidated work. A workspace-only fix ordinarily affects its
+   own checks and any affected consumers. Broaden reruns when the change can reach shared
+   behavior or the impact is uncertain. Keep independent green evidence. Investigate
+   intermittent failures with a bounded reproducer. Review a golden mismatch before any
+   promotion.
 
-Maintain separate ledgers for selected `#test` cases and non-test validation checks. The test
-ledger counts each selected test case once per required host/compiler/program-configuration run;
-keep reruns visible separately and do not let them inflate the number of unique test cases
-completed. Determine the test denominator from the selected test inventory or runner discovery
-before reporting a percentage. If that denominator is not yet known, report the exact completed
-count and say that the percentage is pending discovery; never substitute the number of validation
-gates for test progress. A running test command must report its live `executed/selected` count,
-failures, and current `filename:line` when available.
+Host integrations
 
-Track builds, integrations, formatting, help generation, and other required non-test checks in a
-separate validation ledger. Report both dimensions after each completed or stopped validation
-command, after each fix-and-rerun batch, and at least every 30 minutes during long work. Use this
-compact form:
+   Run these once per host, after its Release pass. Select GPU rendering for these commands
+   and use a compatible graphical session.
 
-Before starting a validation phase, publish its ordered checklist with one row for every compiler
-suite, workspace, program configuration, host integration, and finalization command required by
-the matrix. Keep those rows in execution order. Mark a row green only when that exact suite or
-check completes successfully on the current source; mark failures and blocked rows explicitly.
-Never replace several suite results with one broad "campaign" tick. For workspace runs, report the
-workspace and module scope from the runner summary. Do not restart a green row unless a source
-change invalidated it or the matrix requires a distinct compiler/program configuration.
+   On Windows, run these in order.
 
-```text
-Tests : X/Y cas uniques exécutés (Z %) — échecs : N
-Contrôles hors tests : A/B validés (C %)
-Windows : ...
-Linux : ...
-En cours : commande; tests exécutés/total; fichier:ligne
-Échecs ou blocages : ...
-Prochaine étape : ...
-```
+     tools\std.bat test -bc release --test-tag integration.renderer.opengl
+     tools\std.bat test -bc release --test-tag integration.host.windows
+     tools\integrations.bat smoke -bc release
 
-Calculate each percentage independently with integer rounding down. Count a test case as executed
-only after its pass or fail event; count failures as executed and list them separately. If the full
-test denominator is not available yet, do not invent one: give the exact live count and obtain the
-denominator from the selected inventory or runner summary as soon as available. Count a non-test
-check as validated only when green for the current source and applicable compiler/program
-configuration. Failed, blocked, pending, and running non-test checks do not count as validated. If
-a source change invalidates earlier evidence, remove the affected cases/checks from completed
-counts until rerun. Add newly discovered required cases/checks to their own denominator and state
-the updated denominator. Never estimate progress from elapsed time, CPU load, output volume, or
-number of commands. Keep the next action and remaining work visible in every update; percentages
-alone are not a status.
+   On Linux, run these in order.
 
-PHASE 2 — DIAGNOSE AND FIX TEST FAILURES IN BATCHES
+     tools\linux.bat exec python3 tools/tool.py std test -bc release --test-tag integration.renderer.opengl
+     tools\linux.bat exec python3 tools/tool.py std test -bc release --test-tag integration.host.linux
+     tools\linux.bat exec python3 tools/tool.py examples smoke -bc release
+     tools\linux.bat exec python3 tools/tool.py apps smoke -bc release
 
-- After the Windows build phase, run the remaining independent Windows checks and collect their
-  failures before starting a fix batch. Use the Windows test runner's `--keep-going` where useful.
-  These runners continue independent stages,
-  so use individual suite, module, or integration commands to reach cases left unvisited
-  within a failed stage. Record blocked checks and resume them once their prerequisites pass.
-  Stop a check early only when its remaining results would be invalid or misleading. Do not run
-  Linux checks while any required Windows check is failing or incomplete; after the Windows matrix
-  is green, run the Linux matrix and collect any remaining failures there.
-- Before rebuilding, inspect source, logs, diffs and existing artifacts and reduce the collected
-  failures with the current binary. Group fixes by root cause, finish and review the related
-  edits together, then rebuild the affected compiler once if the next check needs it. If a
-  focused check exposes another defect, collect it with the remaining independent failures
-  for the next batch.
-- Have one integrator control writes and build barriers. Parallel agents may inspect independent
-  logs, files and platforms and prepare patches outside the checkout. Merge their related fixes
-  before the next build. On Windows check the incremental MSBuild log. On Linux check the
-  incremental Make log. Investigate unexpected full compilation or precompiled header rebuilds.
-- Follow the dependency graph when choosing reruns. Rebuild the changed module and any
-  consumers whose inputs or behavior can be affected. Reuse current prerequisites and their
-  green checks. For example, a GUI-only fix does not require rebuilding Pixel or rerunning its
-  tests just because GUI depends on it. For a launcher fix, run its own tests and the exact
-  failing command. For a fixture or application-local fix, start with its owning file or module.
-- Classify each batch as Windows-only, Linux-only, or shared using the changed inputs and their
-  dependency paths. A Linux-only batch invalidates only affected Linux checks, and a Windows-only
-  batch only affected Windows checks. Apply a shared fix once and rerun its affected checks on
-  each host. A differently named binary, a new commit, or a change in the other host's results
-  is insufficient evidence of invalidation on its own.
-- Track each required build or test unit by host, compiler binary hash, program configuration,
-  scope, source inputs, and relevant dependencies. Keep green results with unchanged inputs. If the
-  compiler binary changes, record why a previous result still applies to the changed code path
-  or rerun the check. Where the impact cannot be bounded, revalidate the full affected scope.
-  Use current incremental artifacts by default and force only the target whose stale output
-  would otherwise hide the change.
-- After each batch and after the finishing steps, use the ledger to run only failed, blocked,
-  unvisited, or invalidated units that are now ready. The matrix is complete once every required
-  unit has a green result that applies to the final tree. A late failure opens another batch
-  and does not restart the matrix.
-- Before the first expensive stage, estimate each build and gate from recent timings. Plan the
-  remaining work in batches so compiler builds and broad checks serve distinct decisions. Respect
-  any time limit set for the current session; if the work cannot fit, retain the gate ledger and
-  exact open batch for continuation. Do not replay green gates or launch another broad pass merely
-  to gather diagnostics. Report an unfinished reset as incomplete, never as green.
-- For an intermittent failure, use a bounded, focused reproducer with diagnostic capture. Do not
-  loop an entire application suite to wait for chance. If the failure remains unexplained, keep
-  it open and report the reset as incomplete; a green retry is not a repair.
+   The tag selections start at the standard workspace level. The smoke commands check
+   bounded startup for examples and apps, plus scripts on Windows. If a smoke command
+   stops early, resume unvisited groups, then select individual targets as needed.
+   Record missing prerequisites as blockers. Add a specialized integration when a
+   discovered failure or changed contract needs it.
 
-FIX, DO NOT EXPLAIN AWAY
+Repository maintenance
 
-Every failure is yours, whoever introduced it: reduce it, fix the owning subsystem, add the
-regression test at the real boundary (a `bin/unittests` case for a compiler defect exposed
-downstream, a C++ test for an internal seam), update the documentation the fix touches, and rerun.
-"Pre-existing", "flaky", and "unrelated" are not reasons to leave a defect. A flaky test is fixed
-by removing its nondeterminism. Never disable or weaken a test, broaden a timeout, or promote a
-golden that was not reviewed and proved correct.
+   - Run tools\format.bat dm, then clang-format on project-owned .cpp, .h and .inc files
+      under src/, excluding vendored mimalloc. Review the diff and verify that a second pass
+      of each formatter is idempotent.
+   - Run tools\help.bat dm to generate std and reference help. Review the diff and verify
+      idempotence with a second generation. On a Linux-only host, use DevMode format
+      -d bin -d bench/src and doc --workspace <bin/std or bin/reference>
+      --doc-output-dir bin/help --rebuild.
+   - Review backlog entries and actionable TODO/FIXME/HACK/XXX markers. Keep the backlog
+      limited to unresolved outcomes and remove completed or disproved entries. Clean only
+      reviewed generated residue. Preserve canonical test output roots and pre-existing work.
 
-PREPARE THE FINAL TREE AND CLOSE THE VALIDATION MATRIX
+Progress and final report
 
-Once focused code checks are green (a newly exposed code failure takes priority again at any point):
-  1. Format with `tools\format.bat dm` on Windows or DevMode `format -d bin -d bench/src` on Linux.
-     Run clang-format on the project-owned `.cpp`, `.h`, and `.inc` files under `src/`, excluding
-     vendored mimalloc. A second pass of both formatters must change nothing. Review the diff.
-  2. Generate help with `tools\help.bat dm` on Windows. On Linux, run DevMode
-     `doc --workspace <workspace> --doc-output-dir bin/help --rebuild` for `bin/std` and
-     `bin/reference`. Review the tracked changes and verify that a second run changes nothing.
-     Fix a nondeterministic generator, never its output by hand.
-  3. Backlog and markers: make every backlog entry true against the current code, delete what
-     is done or invalid, keep the file invariants documented in `backlog/README.md`, and
-     resolve or properly record every actionable TODO/FIXME/HACK/XXX marker. Exclude intentional
-     lexer fixtures, data labels, and literal strings; do not rewrite them as cleanup. Do not
-     delegate or edit test inputs under a running suite.
-  4. Hygiene: remove exact, reviewed residue (scratch files, stale `.actual.*`, crash dumps,
-     misplaced `.output` folders other than `bin/unittests/.output` and
-     `bin/unittests/workspace/.output`, line-ending-only changes). Resolve every recursive target
-     and verify that it is inside the intended workspace before removal. Never run a broad clean.
-     If automatic review rejects a deletion, stop retrying that target through alternate commands;
-     report its exact path and the rejection, then continue independent work.
+   Keep one progress row per aggregate command with its host, compiler, program configuration
+   and status. Expand that row only for failures, blockers, or unvisited coverage. Record
+   the current command and the next one. When reporting test counts, use runner evidence
+   and count reruns separately. Keep validation checks separate from test-case totals.
 
-THE CAMPAIGN ENDS ONLY WHEN
-
-Both build configurations and the required validation matrix are green on Windows and Linux
-for the final code. Formatting and generation are green, every defect found during the campaign
-is resolved, the backlog is truthful, and every change is committed on `master` with a clean
-working tree. If a host or its prerequisites are unavailable, finish the independent checks
-and record the pending host checks, revision, build number, and exact commands. The reset remains
-incomplete until those checks pass. Resume the same campaign without incrementing the build
-number again.
-
-REPORT
-
-Keep a compact table with one row per host and build configuration, validation group, and failure
-batch. Include the command/scope and result, plus the root cause and focused rerun for failures.
-Do not log helper commands or repeat successful rows after a later fix. At the end give the compiler version change,
-final commits, gate results, backlog changes, formatting and generation results, removed residue,
-and any blocker. Say "ready for new work" only when every end condition holds.
+   Report the final revision and build number, the result of each pass, the focused reruns,
+   and any blockers. If work remains, record the exact next command and resume from it.
 ```
 
 ---

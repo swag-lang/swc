@@ -202,7 +202,7 @@ JIT, safety, sanity, native, every compiler workspace fixture, and every module 
 apps and reference. `compiler` selects only the compiler suites and workspace fixtures.
 The command builders are shared with `tool.py` and the Windows batch entry points.
 The sandbox workspace fixture runs in JIT; the dynamic-library consumer first builds its shared
-fixture and receives its absolute path. The script fixture checks its expected output marker.
+fixture and receives its absolute path. Script fixtures use assertions and the process exit status.
 
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
 folder. It isolates caches with `TMPDIR`.

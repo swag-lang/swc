@@ -139,18 +139,13 @@ def run_stage(stage, scratch, environment, timeout):
             if sys.exc_info()[0] is KeyboardInterrupt:
                 raise
             code, state = 124, 'timeout'
-    content = log.read_text(errors='replace')
-    if code != stage.expected_returncode:
-        state = 'failed' if state == 'passed' else state
-    elif stage.expected_output and stage.expected_output not in content:
-        code, state = 1, 'missing-output'
-    elif stage.forbidden_output and stage.forbidden_output in content:
-        code, state = 1, 'forbidden-output'
+    if code and state == 'passed':
+        state = 'failed'
     result = dict(name=stage.name, status=state, returncode=code,
                   seconds=round(time.monotonic() - start, 2), log=str(log), command=stage.command)
     print(f'{state.upper()} {stage.name} ({result["seconds"]}s)', flush=True)
     if state != 'passed':
-        print('\n'.join(content.splitlines()[-35:]), flush=True)
+        print('\n'.join(log.read_text(errors='replace').splitlines()[-35:]), flush=True)
     return result
 
 

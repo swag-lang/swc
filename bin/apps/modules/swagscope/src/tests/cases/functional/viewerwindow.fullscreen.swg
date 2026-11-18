@@ -36,8 +36,12 @@ using Core, Gui
     Swag.require(window.fullScreen)
     host.keyPress(.Escape)
 
+    window.onlineMovies = false
+    window.onlineMusic  = false
     window.openExplorer(scopeTestDataDirectory())
-    completeExplorer(&host, unwrap window.explorer)
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Names)
+    completeExplorer(&host, explorer)
     Swag.require(window.isExploring() and button.isVisible())
     host.clickWnd(button)
     Swag.require(window.fullScreen)

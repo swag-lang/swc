@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHeap.h"
@@ -208,6 +209,23 @@ SWC_TEST_BEGIN(ConstantManager_AcceptsEmptyBorrowedSlicePayloads)
         return Result::Error;
     if (!stored.getSlice().empty() || stored.getSliceCount() != 0)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantValue_AcceptsEmptySlicesBeforeElementLayout)
+{
+    static SymbolStruct incompleteElementType{nullptr, {}, {}, {}};
+    const TypeRef     elementTypeRef = ctx.typeMgr().addType(TypeInfo::makeStruct(&incompleteElementType));
+    const auto        emptyBytes     = std::span<const std::byte>{};
+    const ConstantValue owned        = ConstantValue::makeSlice(ctx, elementTypeRef, emptyBytes);
+    const ConstantValue borrowed     = ConstantValue::makeSliceBorrowed(ctx, elementTypeRef, emptyBytes);
+    const ConstantValue counted      = ConstantValue::makeSliceCounted(ctx, elementTypeRef, emptyBytes, 0);
+
+    for (const ConstantValue* value : {&owned, &borrowed, &counted})
+    {
+        if (!value->isSlice() || !value->getSlice().empty() || value->getSliceCount() != 0)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

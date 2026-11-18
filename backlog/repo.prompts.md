@@ -258,6 +258,14 @@ separate validation ledger. Report both dimensions after each completed or stopp
 command, after each fix-and-rerun batch, and at least every 30 minutes during long work. Use this
 compact form:
 
+Before starting a validation phase, publish its ordered checklist with one row for every compiler
+suite, workspace, program configuration, host integration, and finalization command required by
+the matrix. Keep those rows in execution order. Mark a row green only when that exact suite or
+check completes successfully on the current source; mark failures and blocked rows explicitly.
+Never replace several suite results with one broad "campaign" tick. For workspace runs, report the
+workspace and module scope from the runner summary. Do not restart a green row unless a source
+change invalidated it or the matrix requires a distinct compiler/program configuration.
+
 ```text
 Tests : X/Y cas uniques exécutés (Z %) — échecs : N
 Contrôles hors tests : A/B validés (C %)

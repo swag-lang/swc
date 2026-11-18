@@ -44,7 +44,7 @@ using Core, Pixel, Gui, Viewers
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
         let requested = view.pendingSeekOffset
         Swag.require(view.pendingSeek and view.read.wasCancelled())
-        discard host.render(view)
+        host.paint(view)
         Swag.require(view.residentStart == previousStart)
         completeTextReads(&host, view)
         Swag.require(not view.pendingSeek)

@@ -19,7 +19,7 @@ const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
     f.setup(520, 380)
     defer f.shutdown()
     let arrow = testAddArrow(f.capture, 50, 50, 150, 120)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     let cache    = unwrap f.capture.findFormCache(arrow)
     let target   = unwrap cache.shadow.contentTarget
     var mask     = f.editView.app().renderer.readRenderTarget(target, 0, 0, target.colorBuffer.width, target.colorBuffer.height)
@@ -38,12 +38,12 @@ const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
 
     arrow.paintShadow = false
     f.capture.invalidateFormCache(arrow)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.shadow.contentTarget == null)
 
     arrow.paintShadow = true
     f.capture.invalidateFormCache(arrow)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.shadow.contentTarget != null and cache.shadow.contentTarget.colorBuffer.handle != shadowTexture)
 }
 
@@ -128,7 +128,7 @@ func testPopulate(capture: *Capture)
     f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
 
     f.editView.setZoom(2)
     let captureRect = f.editView.getCaptureRect()
@@ -169,7 +169,7 @@ func testPopulate(capture: *Capture)
     polygon.borderSize  = 23
 
     f.editView.setZoom(4)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     let cache = unwrap f.capture.findFormCache(polygon)
     Swag.require(cache.clipped)
     let view = f.editView.clientRect()
@@ -187,25 +187,25 @@ func testPopulate(capture: *Capture)
     f.gui.moveMouse({260, 190})
     f.editView.setZoom(4.1, mouseCenter: true)
     Swag.require(f.editView.zoomTimer != null)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
     f.editView.setZoom(4.2, mouseCenter: true)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
     f.gui.fireTimer(f.editView.zoomTimer)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.zoom == 4.2)
 
     f.editView.setZoom(4.1, mouseCenter: true)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.zoom == 4.2)
     f.gui.fireTimer(f.editView.zoomTimer)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.zoom == 4.1)
 
     let oldOrigin = cache.origin
     f.editView.scrollPos.x += 40
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(cache.origin.x != oldOrigin.x)
 }
 
@@ -234,7 +234,7 @@ func testPopulate(capture: *Capture)
         .paintShadow = false
     }
 
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     var exported = f.capture.toImage()
 
     // The middle of the stem: half red over the blue capture, with no white under it.
@@ -255,7 +255,7 @@ func testPopulate(capture: *Capture)
     let moved = testAddImage(f.capture, 20, 20, 60, 40)
     moved.kind = .Pixelate
     discard testAddShape(f.capture, 120, 20, 50, 30)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
 
     let stillCache = unwrap f.capture.findFormCache(still)
     let movedCache = unwrap f.capture.findFormCache(moved)
@@ -280,7 +280,7 @@ func testPopulate(capture: *Capture)
     var f: HeadlessFixture
     f.setup(520, 380)
     defer f.shutdown()
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     let handle = f.capture.backTexture.handle
     let serial = f.capture.serialBackTexture
 
@@ -296,7 +296,7 @@ func testPopulate(capture: *Capture)
 
     f.capture.backImg      = Image.create(200, 100, .BGRA8)
     f.capture.dirtyBackImg = true
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(f.capture.backTexture.width == 200 and f.capture.serialBackTexture == serial + 2)
 }
 
@@ -308,7 +308,7 @@ func testPopulate(capture: *Capture)
     f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
 
     let text      = f.capture.forms[4]
     let textCache = unwrap f.capture.findFormCache(text)
@@ -319,7 +319,7 @@ func testPopulate(capture: *Capture)
     Swag.require(f.editView.isEditingText())
     Swag.require(textCache.dirty and not shape.dirty)
 
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(not textCache.dirty)
 
     f.editView.endTextEdit(keep: false)

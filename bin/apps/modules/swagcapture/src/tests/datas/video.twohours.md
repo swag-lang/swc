@@ -23,8 +23,8 @@ python tools/capture-video.py
 It opens the SCC through the library, seeks and plays near two hours, changes and saves trim
 points, exercises undo/redo, adds timed annotations, and exports unchanged, trimmed, annotated,
 and resized media. It checks output picture/sample counts, decodability, compressed packet
-identity, and preservation of the original. Screenshots, exports, timings and logs remain in the
-printed external evidence directory. `--output` selects a new directory outside the checkout.
+identity, and preservation of the original. Exports and logs remain in the external directory
+reported by the launcher. `--output` selects a new directory outside the checkout.
 
 To deliberately replace both maintained fixture files with the current native encoders:
 

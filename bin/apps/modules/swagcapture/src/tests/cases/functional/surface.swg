@@ -474,7 +474,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     host.runFrames(1)
     Swag.require(size.text() == "72")
 
-    discard host.render(main)
+    host.paint(main)
     var fontSize: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
         fontSize = item
@@ -558,7 +558,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     let face = unwrap main.miniBar.faceButton
     let size = unwrap main.miniBar.sizeButton
     Swag.require(face.position.height == size.position.height and face.arrowPosition == size.arrowPosition)
-    discard host.render(main)
+    host.paint(main)
     host.pump()
     var font: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
@@ -619,7 +619,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     Swag.require(host.surfaceWnd.groundHitTest != null)
 
     // The picture is placed by its first paint.
-    discard host.render(main)
+    host.paint(main)
 
     let picture = capture.paintRect
     let origin  = view.surfaceRect()

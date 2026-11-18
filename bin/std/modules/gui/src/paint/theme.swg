@@ -83,6 +83,8 @@ private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "meiryo.ttc", "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf"]
 
 private var g_DefaultThemeImages: ThemeImages
+private var g_EmbeddedFontFaces: HashTable'(string, *TypeFace)
+private var g_EmbeddedFontFacesLock: Swag.Mutex
 
 // Registers the embedded theme art and fonts as the fallback providers of `bundle`.
 //
@@ -128,15 +130,28 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string)->*TypeFac
         }
     }
 
-    let embedded = try res.load(name)
-    return try TypeFace.create(name, embedded.toSlice())
+    for &entry in res.embedded where entry.name == name
+    {
+        let bytes = unwrap entry.bytes
+        if entry.zlibCompressed do
+            return try embeddedFontTypeFace(name, bytes, entry.uncompressedSize)
+        return try TypeFace.create(name, bytes)
+    }
+
+    fail Errors.FileNotFoundError{fileName: Errors.mkString(name)}
 }
 
 private func embeddedFontTypeFace(name: string, compressed: const [..] u8, uncompressedSize: u64)->*TypeFace fail
 {
+    Sync.scopedLock(&g_EmbeddedFontFacesLock)
+    if let found = g_EmbeddedFontFaces.tryFind(name) do
+        return found.value
+
     var zlib: Compress.ZLib
     let bytes = try zlib.decompress(compressed, uncompressedSize)
-    return try TypeFace.create(name, bytes.toSlice())
+    let face  = try TypeFace.create(name, bytes.toSlice())
+    g_EmbeddedFontFaces.add(name, face)
+    return face
 }
 
 // Returns the typeface compiled into the module that is closest to a shape.

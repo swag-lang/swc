@@ -5,7 +5,7 @@ using Core, Gui, Pixel, Video
 
 // Open and play near two hours, then trim almost the whole recording through editor commands.
 // The copied interior packets prove the application chose its fast path, not a full transcode.
-#[Swag.TestTag("stress"), Swag.TestTag("integration.application.journey")]
+#[Swag.TestTag("integration.capture.longvideo")]
 #test
 {
     var workspace: LongVideoWorkspace
@@ -71,7 +71,7 @@ using Core, Gui, Pixel, Video
 }
 
 // A short annotated tail must decode only that sound range, then export and reopen exactly.
-#[Swag.TestTag("stress"), Swag.TestTag("integration.application.journey")]
+#[Swag.TestTag("integration.capture.longvideo")]
 #test
 {
     var workspace: LongVideoWorkspace

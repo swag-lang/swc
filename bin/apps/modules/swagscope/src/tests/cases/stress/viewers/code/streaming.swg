@@ -22,10 +22,10 @@ using Core, Pixel, Gui, Viewers
         .applyLayout()
     }
 
-    discard host.render(view)
+    host.paint(view)
     view.updateEstimatedHeight()
     Swag.require(view.revealOffset(source.length / 2, ""))
-    discard host.render(view)
+    host.paint(view)
     view.updateEstimatedHeight()
     let viewport = view.editor.paddedClientRect()
 
@@ -49,7 +49,7 @@ using Core, Pixel, Gui, Viewers
             view.editor.setScrollPosition(Math.Point{0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
             if view.residentStart != residentBefore
             {
-                discard host.render(view)
+                host.paint(view)
                 view.updateEstimatedHeight()
             }
 
@@ -65,7 +65,7 @@ using Core, Pixel, Gui, Viewers
     {
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
-        discard host.render(view)
+        host.paint(view)
         Swag.require(not view.pendingSeek)
         Swag.require(view.editor.scrollPosition().y >= view.residentOffsetY - 1)
         Swag.require(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)

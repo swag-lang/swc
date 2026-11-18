@@ -91,11 +91,13 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     defer Sound.releaseEngine()
 
     let registry = createViewerPluginRegistry()
+    var host: Testing.HeadlessHost
+    let window = createFramedViewerWindow(&host, false)
     for plugin in registry.plugins where plugin.key != "archive"
     {
-        let file   = viewerRegistryFixturePath(plugin.smokeFixture)
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, file, false)
+        let file = viewerRegistryFixturePath(plugin.smokeFixture)
+        window.openFile(file, remember: false)
+        completeQueuedViewerFile(&host, window)
         Swag.require(window.choices.count != 0, plugin.key.toString())
         for choice, index in window.choices where choice.key == plugin.key
         {

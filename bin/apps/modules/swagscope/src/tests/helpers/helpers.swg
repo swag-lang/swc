@@ -410,12 +410,8 @@ func shipFrame(host: *Testing.HeadlessHost)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
 }
 
-// Opens `fileName` in the shipped frame at a compact test viewport, in Encre or in Papier, and lets
-// the viewer finish loading. Tests about a larger viewport pass its dimensions explicitly.
-//
-// The strip floats over the document with the glyph, the name and the window buttons, so a
-// picture of the window is judged whole against its charter picture.
-func openFramedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
+// Builds the shipped frame at the test viewport, ready to open a document.
+func createFramedViewerWindow(host: *Testing.HeadlessHost, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
 {
     host.setup(width, height)
     if fallbackFaces.count do
@@ -432,6 +428,13 @@ func openFramedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.applyTheme(cast(u32, light ? AppearanceTheme.Light : AppearanceTheme.Dark))
+    return window
+}
+
+// Opens `fileName` in the shipped frame and lets the viewer finish loading.
+func openFramedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
+{
+    let window = createFramedViewerWindow(host, light, width, height, fallbackFaces)
     window.openFile(fileName)
     completeQueuedViewerFile(host, window)
     window.applyLayout()
@@ -466,7 +469,7 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 func picturedViewer(fileName: string, light: bool, golden: string, width = 960, height = 600)
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, fileName, light, width, height)
+    let window = openFramedViewerWindow(&host, fileName, light, width, height)
     if window.choices[window.activeChoiceIndex].key == "image"
     {
         let view = assume cast(*Picture.Panel, window.currentView)
@@ -493,7 +496,7 @@ func picturedViewer(fileName: string, light: bool, golden: string, width = 960, 
 // Opens `fileName` in the viewer named `key` rather than the one it opens in.
 func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light: bool)->*ViewerWindow
 {
-    let window = framedViewerWindow(host, fileName, light)
+    let window = openFramedViewerWindow(host, fileName, light)
     for choice, index in window.choices where choice.key == key
     {
         window.selectViewer(cast(u32, index))

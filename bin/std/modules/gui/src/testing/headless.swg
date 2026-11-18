@@ -726,6 +726,18 @@ impl HeadlessHost
         .app.setMotionPreference(reduced ? .Reduced : .Full)
     }
 
+    // Paints the requested window, or the host root when `wnd` is null.
+    //
+    // Drains queued work first and checks the surface for paint failures. Use
+    // [[Gui.Testing.HeadlessHost.render]] when the test needs to inspect the pixels.
+    mtd paint(wnd: *Wnd? = null)
+    {
+        .pump()
+        .surface.invalidate()
+        .surface.paintWnd(wnd orelse &.root)
+        Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
+    }
+
     // Paints the complete hosted tree and returns owned BGRA pixels.
     //
     // Pending events are drained first so layout and widget state match the image. The returned
@@ -738,10 +750,7 @@ impl HeadlessHost
     // whose main window owns the surface renders itself through this.
     mtd render(wnd: *Wnd)->Pixel.Image
     {
-        .pump()
-        .surface.invalidate()
-        .surface.paintWnd(wnd)
-        Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
+        .paint(wnd)
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 

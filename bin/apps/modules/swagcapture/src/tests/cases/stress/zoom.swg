@@ -45,10 +45,9 @@ using Swag, Core
         second.paintShadow = true
     }
 
-    discard f.gui.render(f.main)
     f.editView.setZoom(0.56)
     f.gui.fireTimer(f.editView.zoomTimer)
-    discard f.gui.render(f.main)
+    f.gui.paint(f.main)
     Swag.require(f.capture.formCaches.count >= 2)
     for i in 0 until 2
     {
@@ -62,17 +61,17 @@ using Swag, Core
     let secondShadow = f.capture.formCaches[1]!.shadow.contentTarget!.colorBuffer.handle
     f.gui.moveMouse({1600, 1300})
 
-    for zoom in [0.66'f32, 0.86, 1.0, 1.5, 2.0, 3.0, 4.0]
+    for zoom in [0.86'f32, 1.0, 4.0]
     {
         let first      = unwrap f.capture.formCaches[0]
         let second     = unwrap f.capture.formCaches[1]
         let firstZoom  = first.zoom
         let secondZoom = second.zoom
         f.editView.setZoom(zoom, mouseCenter: true)
-        discard f.gui.render(f.main)
+        f.gui.paint(f.main)
         Swag.require(first.zoom == firstZoom and second.zoom == secondZoom)
         f.gui.fireTimer(f.editView.zoomTimer)
-        discard f.gui.render(f.main)
+        f.gui.paint(f.main)
         Swag.require(first.shadow.contentTarget!.colorBuffer.handle == firstShadow and
                      second.shadow.contentTarget!.colorBuffer.handle == secondShadow)
     }

@@ -34,7 +34,7 @@ using Core, Pixel
         host.mouseWheel({360, 240}, -1)
         let revealed = view.revealHeading(offsets[index])
         Swag.require(revealed)
-        discard host.render(view)
+        host.paint(view)
         Swag.require(not view.hasPendingTarget and
                      not view.pendingSeek and
                      not view.waitingScroll and
@@ -53,7 +53,7 @@ using Core, Pixel
         for 64 where view.isLoading() do
             host.fireTimers()
         host.finishAnimations()
-        discard host.render(view)
+        host.paint(view)
         Swag.require(view.scroll.scrollPosition() == position)
 
         // Crossing the new resident boundary must move by the wheel distance, without a jump
@@ -66,7 +66,7 @@ using Core, Pixel
             host.mouseWheel({360, 240}, delta)
             for 2
             {
-                discard host.render(view)
+                host.paint(view)
                 host.finishAnimations()
             }
 
@@ -80,10 +80,10 @@ using Core, Pixel
     // A reverse overlap must still expose byte zero, with no gap or stalled wheel above it.
     let away = view.revealHeading(offsets[2_000])
     Swag.require(away)
-    discard host.render(view)
+    host.paint(view)
     let nearStart = view.revealHeading(offsets[2])
     Swag.require(nearStart)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.blocks[0].sourceOffset == offsets[2])
     for 4
     {
@@ -91,7 +91,7 @@ using Core, Pixel
         for block in view.blocks where block.sourceOffset == offsets[2] do
             before = block.wnd.surfaceRect().y
         host.mouseWheel({360, 240}, 1)
-        discard host.render(view)
+        host.paint(view)
         host.finishAnimations()
         for block in view.blocks where block.sourceOffset == offsets[2]
         {

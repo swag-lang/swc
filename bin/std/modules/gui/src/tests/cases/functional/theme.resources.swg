@@ -10,6 +10,10 @@ using Swag, Core, Pixel
     let fixedFace   = expect Gui.embeddedTypeFace(true, .Regular)
     Swag.require(defaultFace.familyName() == "Inter")
     Swag.require(fixedFace.familyName() == "Roboto Mono")
+    var host: Testing.HeadlessHost
+    host.setup(80, 60)
+    Swag.require(host.theme.res.defaultTypeFaceR == defaultFace and
+                 host.theme.res.defaultFsTypeFaceR == fixedFace)
 }
 
 // Warm the embedded cache first, then open the same resource folder after two different edits.
@@ -98,4 +102,10 @@ using Swag, Core, Pixel
     third.app.resources.addFolder(root.toString())
     third.setup(80, 60)
     Swag.require(third.theme.res.defaultTypeFaceR == regular)
+
+    discard expect File.writeAllText(path, "invalid font")
+    var fallback: Testing.HeadlessHost
+    fallback.app.resources.addFolder(root.toString())
+    fallback.setup(80, 60)
+    Swag.require(fallback.theme.res.defaultTypeFaceR == (expect Gui.embeddedTypeFace(false, .Regular)))
 }

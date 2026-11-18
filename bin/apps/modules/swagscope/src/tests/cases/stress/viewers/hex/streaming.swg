@@ -68,14 +68,14 @@ const StreamedFileSize = Hex.WindowSize * 32 + 1234'u64
     let view = hexTestViewer(&host, fileName, 900, 560)
     Swag.require(view.grid.doc.fileSize == StreamedFileSize)
     Swag.require(view.grid.topRow == 0 and view.grid.caret == 0)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.grid.doc.window.count <= Hex.WindowSize)
 
     host.focus(view.grid)
     host.keyPress(.End, .Control)
     Swag.require(view.grid.caret == StreamedFileSize - 1)
     Swag.require(view.grid.topRow == view.grid.maxTopRow())
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.grid.doc.window.count <= Hex.WindowSize)
     Swag.require(view.grid.doc.byteAt(view.grid.caret) == cast(u8, ((StreamedFileSize - 1) & 0xFF)))
 

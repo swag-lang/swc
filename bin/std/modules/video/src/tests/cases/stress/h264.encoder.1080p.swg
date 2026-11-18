@@ -462,35 +462,40 @@ func runQpStress(width, height: s32) fail
     var qp28TextureY:         f64
     for qp in [0'u32, 28, 36]
     {
+        let path = videoTempPath("h264-qp-stress", "mp4")
+        defer discard catch File.delete(path)
+        var encoder = try H264.Encoder.create(width, height, 60, qp)
+        var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
+        try writer.addPacket(try encoder.encode(&base, 0, 1_500))
+        var textureBytes: u64
         for &target, scene in targets
         {
-            let path = videoTempPath("h264-qp-stress", "mp4")
-            defer discard catch File.delete(path)
-            var encoder = try H264.Encoder.create(width, height, 60, qp)
-            var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
-            try writer.addPacket(try encoder.encode(&base, 0, 1_500))
-            let packet = try encoder.encode(target, 1_500, 1_500)
-            let packetBytes = packet.bytes.count
+            let packet = try encoder.encode(target, (scene + 1) * 1_500, 1_500)
+            if scene == 2 do
+                textureBytes = packet.bytes.count
             try writer.addPacket(packet)
-            try writer.end()
+        }
 
-            var reader = try Reader.open(path)
-            var decoded: PlanarFrame
-            try reader.decodeFramePlanesInto(&decoded, 0)
-            if qp == 0 do
-                requireStressPicture(&base, &decoded)
-            else
-            {
-                let quality = qpStressQuality(&base, &decoded)
-                Swag.require(quality.yPsnr >= 18.0 and quality.uvPsnr >= 18.0)
-            }
+        try writer.end()
+        var reader = try Reader.open(path)
+        var decoded: PlanarFrame
+        try reader.decodeFramePlanesInto(&decoded, 0)
+        if qp == 0 do
+            requireStressPicture(&base, &decoded)
+        else
+        {
+            let quality = qpStressQuality(&base, &decoded)
+            Swag.require(quality.yPsnr >= 18.0 and quality.uvPsnr >= 18.0)
+        }
 
-            try reader.decodeFramePlanesInto(&decoded, 1)
+        for &target, scene in targets
+        {
+            try reader.decodeFramePlanesInto(&decoded, scene + 1)
             if qp == 0
             {
                 requireStressPicture(target, &decoded)
                 if scene == 2 do
-                    losslessTextureBytes = packetBytes
+                    losslessTextureBytes = textureBytes
                 continue
             }
 
@@ -499,16 +504,16 @@ func runQpStress(width, height: s32) fail
             if scene != 2 do
                 continue
 
-            Swag.require(packetBytes < losslessTextureBytes)
+            Swag.require(textureBytes < losslessTextureBytes)
             if qp == 28
             {
-                qp28TextureBytes = packetBytes
+                qp28TextureBytes = textureBytes
                 qp28TextureY     = quality.yPsnr
                 Swag.require(quality.yPsnr >= 30.0 and quality.uvPsnr >= 30.0)
             }
             else
             {
-                Swag.require(packetBytes < qp28TextureBytes and quality.yPsnr < qp28TextureY)
+                Swag.require(textureBytes < qp28TextureBytes and quality.yPsnr < qp28TextureY)
                 Swag.require(quality.yPsnr >= 27.0 and quality.uvPsnr >= 30.0)
             }
         }
@@ -637,8 +642,10 @@ func qpStressIdrScene(source: const *Nv12Frame, qp: u32)->u64 fail
 // Uniform screen deltas exercise single-DC CAVLC; texture exercises the general path.
 func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
 {
-    let base   = try encoderStressTiles(0, width, height)
-    var source = try encoderStressTiles(0, width, height)
+    let base    = try encoderStressTiles(0, width, height)
+    var source  = try encoderStressTiles(0, width, height)
+    var encoder = try H264.Encoder.create(width, height, 60, qp)
+    let key     = try encoder.encode(&base, 0, 1_500)
     if mode == 0
     {
         // Quantized IDR reconstruction can differ from the raw source. Build
@@ -646,9 +653,8 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
         // truly constant while the tiled picture remains non-flat.
         let anchorPath = videoTempPath("h264-qp-cavlc-anchor", "mp4")
         defer discard catch File.delete(anchorPath)
-        var anchorEncoder = try H264.Encoder.create(width, height, 60, qp)
-        var anchorWriter  = try Mp4.FragmentedWriter.create(anchorPath, width, height, 90_000, anchorEncoder.decoderConfig())
-        try anchorWriter.addPacket(try anchorEncoder.encode(&base, 0, 1_500))
+        var anchorWriter = try Mp4.FragmentedWriter.create(anchorPath, width, height, 90_000, encoder.decoderConfig())
+        try anchorWriter.addPacket(key)
         try anchorWriter.end()
         var anchorReader = try Reader.open(anchorPath)
         var anchor: PlanarFrame
@@ -669,9 +675,8 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
 
     let path = videoTempPath("h264-qp-cavlc", "mp4")
     defer discard catch File.delete(path)
-    var encoder = try H264.Encoder.create(width, height, 60, qp)
-    var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
-    try writer.addPacket(try encoder.encode(&base, 0, 1_500))
+    var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
+    try writer.addPacket(key)
     let packet   = try encoder.encode(&source, 1_500, 1_500)
     let checksum = Hash.Crc32.compute(packet.bytes)
     try writer.addPacket(packet)

@@ -181,13 +181,13 @@ using Swag, Core
     let expectedLine = view.theme().createDefaultFont(view.documentStyle.bodyFontSize).height * view.documentStyle.lineHeight
     Swag.require(view.scroll.verticalScrollStep == expectedLine)
     host.keyPress(Input.Key.Down)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(not view.hasPendingTarget and not view.waitingScroll)
     Swag.require(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
     host.keyPress(Input.Key.Up)
     Swag.require(view.scroll.scrollPosition().y == 0)
     host.keyPress(Input.Key.PageDown)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(not view.hasPendingTarget and not view.waitingScroll)
     let pagePosition = view.scroll.scrollPosition().y
     Swag.require(pagePosition > expectedLine)
@@ -196,12 +196,12 @@ using Swag, Core
 
     let before = view.scroll.scrollPosition()
     host.keyPress(Input.Key.End)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(not view.hasUnloadedSource())
     Swag.require(not view.jumpToEnd)
     Swag.require(view.scroll.scrollPosition().y > before.y)
     host.keyPress(Input.Key.Home)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.residentStart == 0)
     Swag.require(view.scroll.scrollPosition().y == 0)
 }

@@ -31,7 +31,7 @@ impl IAllocator for LibraryRejectAllocator
     let wasDirty = g_DirtyList
     defer g_DirtyList = wasDirty
     g_DirtyList = false
-    discard f.gui.render(lib)
+    f.gui.paint(lib)
 
     let scroll = lib.captureHost
     Swag.require(scroll.scrollSize.y > scroll.position.height)
@@ -1247,7 +1247,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     let wasDirty = g_DirtyList
     defer g_DirtyList = wasDirty
     g_DirtyList = false
-    discard f.gui.render(lib)
+    f.gui.paint(lib)
 
     let view   = lib.view
     let scroll = view.scrollWnd
@@ -1266,7 +1266,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     for rows - 1
     {
         testLibraryKey(wnd, ActionLibSel.Down)
-        discard f.gui.render(lib)
+        f.gui.paint(lib)
         Swag.require(shown(view))
         let top = scroll.scrollPosition().y
         Swag.require(top - previous <= view.items[view.focusItem].rect.height + LibraryRowGap + 0.5)
@@ -1278,7 +1278,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     for rows - 1
     {
         testLibraryKey(wnd, ActionLibSel.Up)
-        discard f.gui.render(lib)
+        f.gui.paint(lib)
         Swag.require(shown(view))
     }
 

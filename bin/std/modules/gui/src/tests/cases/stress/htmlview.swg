@@ -372,6 +372,6 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     view.resize(320, 240)
     view.applyLayout()
     view.rebuild()
-    discard host.render(view)
+    host.paint(view)
     Swag.require(Utf8.contains(view.document.textContent(0).toString(), "deep text"))
 }

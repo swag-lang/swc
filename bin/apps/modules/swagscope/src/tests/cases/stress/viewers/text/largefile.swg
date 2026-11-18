@@ -26,7 +26,7 @@ using Core, Pixel, Gui, Viewers
         .applyLayout()
     }
 
-    discard host.render(view)
+    host.paint(view)
     view.updateEstimatedHeight()
 
     view.setInitialFocus(view.editor)
@@ -64,12 +64,12 @@ using Core, Pixel, Gui, Viewers
 
     host.keyPress(Input.Key.End)
     completeTextReads(&host, view)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.residentStart > 0)
     Swag.require(view.editor.scrollPosition().y > 0)
     host.keyPress(Input.Key.Home)
     completeTextReads(&host, view)
-    discard host.render(view)
+    host.paint(view)
     Swag.require(view.residentStart == 0 and not view.pendingSeek)
     Swag.require(view.editor.selectionEnd().lineIndex == 0)
     Swag.require(view.editor.scrollPosition().y == 0)
@@ -100,7 +100,7 @@ using Core, Pixel, Gui, Viewers
         .applyLayout()
     }
 
-    discard host.render(view)
+    host.paint(view)
     view.updateEstimatedHeight()
 
     view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.85})
@@ -164,7 +164,7 @@ using Core, Pixel, Gui, Viewers
     let textView = assume cast(*PlainText.Panel, window.currentView)
     Swag.require(textView.editor.selectedText() == query)
     Swag.require(textView.bytesRead < textView.fileSize)
-    discard host.render(textView)
+    host.paint(textView)
     textView.updateEstimatedHeight()
     Swag.require(textView.editor.scrollableClientRect().height > textView.editor.paddedClientRect().height)
 }

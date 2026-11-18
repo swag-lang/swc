@@ -29,19 +29,19 @@ using Swag, Core
         host.setReducedMotion(index % 4 < 2)
         view.scroll.setScrollPos(0, view.virtualHeight * (index % 2 == 0 ? 0.7 : 0.3))
         if index < 4 do
-            discard host.render(view)
+            host.paint(view)
         let position = view.scroll.scrollPosition().y
         host.mouseWheel({360, 240}, delta)
         if index % 4 >= 2 do
             host.advanceAnimations(0.04)
-        discard host.render(view)
+        host.paint(view)
         Swag.require(not view.waitingScroll and not view.hasPendingTarget and view.retainedBlocks.isEmpty(), Format.toString("gesture=% waiting=% pending=% retained=%", index, view.waitingScroll, view.hasPendingTarget, view.retainedBlocks.count).toString())
 
         // A glide held at a resident boundary resumes after that paint, with its own endpoint.
         for 2
         {
             host.finishAnimations()
-            discard host.render(view)
+            host.paint(view)
         }
 
         Swag.require(Math.abs(view.scroll.scrollPosition().y - position + delta * view.scroll.verticalScrollStep * 3) <= 1)
@@ -75,7 +75,7 @@ using Swag, Core
     host.moveMouse({360, 240})
     Swag.require(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
     view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
-    discard host.render(view)
+    host.paint(view)
     for 1_024 where view.isLoading() do
         host.fireTimers()
     Swag.require(host.app.mouseEnterWnd == null)
@@ -113,11 +113,11 @@ using Swag, Core
     for modifiers in [Input.KeyModifiers.None, Input.KeyModifiers.Control]
     {
         host.keyPress(.End, modifiers)
-        discard host.render(view)
+        host.paint(view)
         Swag.require(not view.hasUnloadedSource() and not view.jumpToEnd and not view.hasPendingTarget)
         Swag.require(Math.abs(view.scroll.scrollPosition().y + viewport.height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
         host.keyPress(.Home, modifiers)
-        discard host.render(view)
+        host.paint(view)
         Swag.require(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
     }
 
@@ -125,7 +125,7 @@ using Swag, Core
     {
         let before = view.scroll.scrollPosition().y
         host.keyPress(key, index == 5 ? .Shift : .None)
-        discard host.render(view)
+        host.paint(view)
         let distance  = index < 2 ? line : page
         let direction = index % 2 == 0 ? 1 : -1
         Swag.require(Math.abs(view.scroll.scrollPosition().y - before - distance * direction) <= 1)
@@ -134,7 +134,7 @@ using Swag, Core
 
     host.keyPress(.End)
     host.keyPress(.Home)
-    discard host.render(view)
+    host.paint(view)
     for 64 where view.isLoading() do
         host.fireTimers()
     Swag.require(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)

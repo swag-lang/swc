@@ -45,7 +45,7 @@ def main():
                                 'capture.fixture.generate=true', '--run-timeout', '60'])
         if result:
             return result
-    return run('tools', ['--test-file', 'longvideo.workspace.swg', '--test-tag', 'stress',
+    return run('tools', ['--test-file', 'longvideo.workspace.swg', '--test-tag', 'integration.capture.longvideo',
                          '--run-arg', f'swag.sandbox={sandbox}', '--run-timeout', '90'])
 
 

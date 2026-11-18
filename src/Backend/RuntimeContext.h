@@ -37,20 +37,20 @@ namespace Runtime
 
     struct ValueBorrowRecord
     {
-        ValueBorrowRecord*        next;
-        ValueBorrowRecord*        previous;
-        const void*               address;
-        uint64_t                  size;
-        uint64_t                  threadId;
-        const SourceCodeLocation* location;
+        ValueBorrowRecord* next;
+        ValueBorrowRecord* previous;
+        const void*        address;
+        uint64_t           size;
+        uint64_t           threadId;
+        uint64_t           sequence;
     };
 
-    // The runtime's private 'ValueBorrowExtent': the address range every open borrow lies in.
+    // The runtime's private 'ValueBorrowExtent': the conservative range covering all open borrows.
     // Generated write guards skip the runtime call for a write outside it.
     struct ValueBorrowExtent
     {
         uint64_t low;
-        uint64_t high; // Zero while no borrow is open
+        uint64_t high; // Zero until the first borrow is published
     };
 
     struct Context

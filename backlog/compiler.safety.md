@@ -97,14 +97,18 @@ is the current scorecard.
   DevMode Gaussian pass exceeded 300 seconds with the default worker pool, while a single
   worker completed the scene. Small `Vector4` arithmetic repeatedly enters and leaves the
   same registry. Packed SIMD channel arithmetic removes that pressure from this renderer,
-  but ordinary parallel value calls still need a scalable guard. A sharded prototype passes
-  128 native borrow tests, including cross-thread writes, but its permanently widened extent
-  and empty-registry write cost need measurement before adopting that runtime design.
+  and address-based registry shards reduce contention for ordinary parallel value calls.
+  On the Vault form-fit case with the original presentation path, the sharded registry
+  reduced the DevMode case from 90.2 s to 4.1 s with the host worker budget. The one-worker
+  sample moved from 3.0 s to 8.0 s. The conservative extent stays widened after the last
+  borrow closes, so the generated guards may call the runtime even while the registry is empty.
 - Next: repeat the paired fixture on a quiet machine with an unchanged A/A control.
   Attribute the application's loop checks, argument copies,
   cold failure-call layout and per-value-parameter borrow registration before choosing another
-  change. Include parallel small-value arithmetic, shard collisions, and writes after the last
-  borrow closes; retain cross-thread conflicts and panic checkpoints. Checking a writing
+  change. Isolate the one-worker cost of retaining the conservative extent, compare it with
+  shard bookkeeping, and measure writes after the last borrow closes. Include parallel
+  small-value arithmetic and shard collisions. Retain cross-thread conflicts and panic
+  checkpoints. Checking a writing
   function's own ranges inline still needs a runtime entry that
   reports a conflict. Tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,

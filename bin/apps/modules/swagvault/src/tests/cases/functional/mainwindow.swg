@@ -168,11 +168,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var room = page.clientRect().height
     if window.hintLine.isLocallyVisible() do
         room = Math.min(room, window.hintLine.position.y)
-    if column.position.bottom() > room + 0.5
-    {
-        Console.println("page column does not fit: ends at ", column.position.bottom(), ", page holds ", room)
-        Swag.require(false)
-    }
+    Swag.require(column.position.bottom() <= room + 0.5, "page column does not fit")
 }
 
 // The window is built in the reference language, on the list, whatever the language of the account.
@@ -833,11 +829,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         openAndDismiss(host, dialog)
         let form   = dialog.form
         let needed = form.measure(Math.Point{form.position.width, 0}).preferred.y
-        if needed > form.position.height + 0.5
-        {
-            Console.println("form does not end inside its box: needs ", needed, ", box holds ", form.position.height)
-            Swag.require(false)
-        }
+        Swag.require(needed <= form.position.height + 0.5, "form does not fit inside its dialog")
     }
 
     for &one in languages()

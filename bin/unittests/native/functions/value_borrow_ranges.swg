@@ -66,3 +66,35 @@ func removeInner(value: Small, target: *Small)->u8
     let caught = Swag.catchPanic(func|&value|() { discard removeInner(value, &value) })
     Swag.require(caught.raised and value.bytes[0] == 0)
 }
+
+// A 64 KiB boundary can fall inside either operand of the overlap check.
+#test
+{
+    const RegionSize = 64 * 1024'u64
+    var storage: [3 * RegionSize] u8
+    let boundary = (cast(u64, &storage[0]) + 2 * RegionSize) & ~(RegionSize - 1)
+    let crossing = cast(*Small, boundary - 48)
+
+    for index in [0'u64, 95]
+    {
+        let caught = Swag.catchPanic(func|crossing, index|() { discard mutateSmall(crossing[], crossing, index) })
+        Swag.require(caught.raised and crossing.bytes[index] == 0)
+        crossing.bytes[index] = 29
+        Swag.require(crossing.bytes[index] == 29)
+    }
+
+    #[Swag.NoInline]
+    func clearSmall(value: Small, target: *Small)->u8
+    {
+        target[] = {}
+        return value.bytes[0]
+    }
+
+    let before = cast(*Small, boundary - 96)
+    let after  = cast(*Small, boundary)
+    for value in [before, after]
+    {
+        let caught = Swag.catchPanic(func|value, crossing|() { discard clearSmall(value[], crossing) })
+        Swag.require(caught.raised and crossing.bytes[0] == 29 and crossing.bytes[95] == 29)
+    }
+}

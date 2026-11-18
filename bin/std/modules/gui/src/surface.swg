@@ -625,21 +625,13 @@ impl Surface
             .cancelNativePresentation()
         if not .paintToRenderTarget(root) do
             return false
-        if .app.renderer.needsNativeWindow() do
-            return .presentRenderTarget(publish: false)
-        return true
+        return .presentRenderTarget(publish: false)
     }
 
     internal mtd presentPreparedFrame()
     {
-        if .app.renderer.needsNativeWindow()
-        {
+        if .app.renderer.needsNativeWindow() do
             .publishNativePresentation()
-            return
-        }
-
-        .app.renderer.begin(.rc)
-        discard .presentRenderTarget()
     }
 
     private mtd paintToRenderTarget(root: *Wnd)->bool
@@ -778,27 +770,28 @@ impl Surface
         if tracing do
             traceWatch.restart()
 
-        let native       = .app.renderer.needsNativeWindow()
-        let asynchronous = native and publish and .canQueueNativePresentation()
+        let native = .app.renderer.needsNativeWindow()
         var deferred: bool
-        var prepared     = true
-        if native and not (.isDisabled and .app.fadeDisabledSurface)
+        var prepared = true
+
+        // Offscreen consumers read the painted target directly.
+        if native
         {
-            // The surface already contains the complete premultiplied frame. Read that target
-            // directly, rather than submitting another full-window texture copy first.
-            .colorDisabled = Argb.White
-            deferred       = asynchronous and .queueNativePresentation(&.rt)
-            if not deferred do
-                prepared = .prepareNativePresentation(&.rt)
-        }
-        else
-        {
-            prepared = .copyRenderTargetForPresentation()
-            if prepared and native
+            let asynchronous = publish and .canQueueNativePresentation()
+            var target = &.rt
+            if .isDisabled and .app.fadeDisabledSurface
             {
-                deferred = asynchronous and .queueNativePresentation(&.presentationTarget)
+                prepared = .tintRenderTargetForPresentation()
+                target   = &.presentationTarget
+            }
+            else do
+                .colorDisabled = Argb.White
+
+            if prepared
+            {
+                deferred = asynchronous and .queueNativePresentation(target)
                 if not deferred do
-                    prepared = .prepareNativePresentation(&.presentationTarget)
+                    prepared = .prepareNativePresentation(target)
             }
         }
 
@@ -826,11 +819,10 @@ impl Surface
         return true
     }
 
-    // Disabled surfaces need the tinting pass; software surfaces retain their ordinary blit.
-    private mtd copyRenderTargetForPresentation()->bool
+    // Applies the disabled tint to the native presentation target.
+    private mtd tintRenderTargetForPresentation()->bool
     {
-        // Paint render target to screen. This pass copies physical texels one to
-        // one, so it runs unscaled: destination and source are both device pixels.
+        // Tint one texel per pixel at the native drawable's device scale.
         .painter.begin()
         .painter.setContentScale(1)
         .painter.setDefaultShader(.Simple)
@@ -838,39 +830,22 @@ impl Surface
         .painter.setInterpolationMode(.Pixel)
         .painter.setBlendingMode(.Copy)
 
-        // If surface is disabled, blend to disabled blit color
-        var color: Color
-        if .isDisabled and .app.fadeDisabledSurface
-        {
-            .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .paintDeltaSeconds)
-            color          = .colorDisabled
-            .isDirty       = true
-            .dirtyRect.clear()
-        }
-        else
-        {
-            color = Argb.White
-            .colorDisabled = Argb.White
-        }
+        .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .paintDeltaSeconds)
+        .isDirty       = true
+        .dirtyRect.clear()
 
         let dstRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
 
-        .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
+        .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, .colorDisabled)
         .painter.end()
 
-        if .app.renderer.needsNativeWindow() and not .bindNativePresentationTarget() do
+        if not .bindNativePresentationTarget() do
             return false
+        defer .app.renderer.unbindRenderTarget()
         catch .app.renderer.draw(&.painter)
         {
             .renderFailure = Errors.message(Swag.err)
-            if .app.renderer.needsNativeWindow() do
-                .app.renderer.unbindRenderTarget()
             return false
-        }
-
-        if .app.renderer.needsNativeWindow()
-        {
-            .app.renderer.unbindRenderTarget()
         }
 
         return true

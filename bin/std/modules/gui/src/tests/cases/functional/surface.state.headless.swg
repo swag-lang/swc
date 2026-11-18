@@ -3,6 +3,23 @@
 
 using Core
 
+// A disabled headless surface finishes its paint without scheduling a native fade repaint.
+#test
+{
+    var cpu: RenderCpu
+    var app: Application
+    app.setRenderer(&cpu)
+
+    let surface = expect app.createSurface(0, 0, 160, 96)
+    surface.show()
+    surface.disable()
+    surface.paint()
+
+    Swag.require(surface.isDisabled and not surface.isDirty)
+    let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, 160, 96)
+    Swag.require(image.isValid())
+}
+
 // Minimizing a normal surface preserves its latest bounds and defers repaints until restoration.
 #test
 {

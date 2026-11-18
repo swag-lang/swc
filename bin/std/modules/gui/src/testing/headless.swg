@@ -53,7 +53,7 @@ struct HeadlessHost
     public
     {
         app:          Application     // Application driven by the host.
-        renderer:     RenderCpu       // Software reference backend; `app.renderer` exposes the selected backend.
+        renderer:     RenderCpu       // Software renderer exposed by `app.renderer`.
         surface:      Surface         // Offscreen surface the host renders through.
         surfaceWnd:   SurfaceWnd      // Root window of that surface.
         root:         Wnd             // Root view a test builds its tree under.
@@ -85,7 +85,6 @@ struct HeadlessHost
     autoSawButton:      bool
     autoButtonIds:      Array'String
     lastCommandStorage: String
-    gpuRenderer:        RenderOgl
 }
 
 impl HeadlessHost
@@ -98,9 +97,7 @@ impl HeadlessHost
     // `width` and `height` are logical units. `dpiScale` above one renders the same
     // logical tree into a proportionally larger physical target, like a surface on a
     // scaled display; the window tree and input stay logical either way.
-    // `SWAG_TEST_RENDERER=cpu` uses [[Pixel.RenderCpu]]; unset or `gpu` uses
-    // [[Pixel.RenderOgl]] with invisible context hosts. An unavailable GPU fails setup rather
-    // than silently changing the backend. Access the selected renderer through `app.renderer`.
+    // The host renders through [[Pixel.RenderCpu]] without initializing a graphics device.
     //
     // What the host draws does not depend on the fonts of the machine. Its font cache never
     // falls back to an installed face: a character the interface faces lack comes from two small
@@ -119,18 +116,7 @@ impl HeadlessHost
         // strings rather than from whatever the last one was doing.
         discard catch applyLanguage(&.app.resources, ReferenceLanguage)
 
-        let backend = Env.variable("SWAG_TEST_RENDERER")
-        Swag.require(backend == "" or backend == "cpu" or backend == "gpu", "SWAG_TEST_RENDERER accepts cpu or gpu")
-        if backend != "cpu"
-        {
-            .gpuRenderer.setOffscreen()
-            .app.setRenderer(&.gpuRenderer)
-        }
-        else
-        {
-            .app.setRenderer(&.renderer)
-        }
-
+        .app.setRenderer(&.renderer)
         .app.setMotionPreference(.Reduced)
         .app.deterministicStreaming = true
 
@@ -300,7 +286,7 @@ impl HeadlessHost
     //
     // The code under test may read its own module-global Application (theme, renderer,
     // options) while events flow through the host; both applications then share the host's
-    // selected backend, theme, and style instead of rebuilding resources.
+    // CPU renderer, theme, and style instead of rebuilding resources.
     mtd bindApplication(app: *Application)
     {
         app.setRenderer(.app.renderer)
@@ -740,7 +726,7 @@ impl HeadlessHost
         .app.setMotionPreference(reduced ? .Reduced : .Full)
     }
 
-    // Paints the complete hosted tree with the selected renderer and returns owned BGRA pixels.
+    // Paints the complete hosted tree and returns owned BGRA pixels.
     //
     // Pending events are drained first so layout and widget state match the image. The returned
     // image has the requested host dimensions; callers own it and may compare, encode, or inspect it.

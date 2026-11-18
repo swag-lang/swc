@@ -534,20 +534,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: cache growth cannot invalidate an image being uploaded, reset/lifetime rules are
   explicit, and the concurrency boundary has a native regression test.
 
-### std.gui.062 — Reduce GPU setup cost in short headless tests
-
-- Evidence: `HeadlessHost` creates an OpenGL context, shaders, buffers and atlas uploads for
-  every GPU host, including layout-only tests. On the same 283 functional Scope tests,
-  offscreen OpenGL took 107 seconds versus 83 seconds with CPU hosts in workspace runs.
-  Isolated Capture runs with 211 tests benefited instead (28 seconds versus 35 seconds).
-  A blanket GPU default does not minimize feedback; compare isolated runs at equal load.
-- Next: time context creation, shader initialization, uploads, drawing and readback separately.
-  Evaluate bounded context/program reuse for headless hosts, preserving concurrent-host
-  isolation, deterministic initial state and explicit resource cleanup. Do not share mutable
-  renderer state or keep unowned test textures alive between tests.
-- Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
-  parity, multi-host teardown and cross-test resource/state isolation covered.
-
 ### std.gui.063 — Copied files have not been pasted into a Linux file manager
 
 - Evidence: the Linux `text/uri-list` of `Clipboard.setFiles` builds, and the isolated X11

@@ -183,9 +183,9 @@ Shared build and test pass
       Run lexer, parser, sema, jit, safety, sanity, native and workspace fixtures with the
       Release compiler. The launcher schedules C++ unit tests only with the DevMode
       compiler. Use those tests as a focused check for a suspected compiler defect.
-      Run ordinary std and apps tests, including stress, on GPU. Compare goldens on CPU once,
-      using their tag. Clear any parity-sweep or golden-continue override. Finish independent
-      groups after a failure, then narrow the failing or unvisited scope.
+      Run ordinary, stress and golden tests together. Headless fixtures always render on CPU.
+      Clear any golden-continue override. Finish independent groups after a failure, then narrow
+      the failing or unvisited scope.
 
    On Windows, resolve MSBuild from PATH or the Visual Studio installation.
 
@@ -204,10 +204,8 @@ Shared build and test pass
      B. tools\linux.bat exec python3 tools/tool.py unittests -bc release --keep-going
         tools\linux.bat exec python3 tools/tool.py examples test -bc release
         tools\linux.bat exec python3 tools/tool.py reference test -bc release
-        For std, then apps, run both selections with the shared tool:
-          tools\linux.bat exec env SWAG_TEST_RENDERER=gpu python3 tools/tool.py <workspace> test -bc release --test-tag !golden
-          tools\linux.bat exec python3 tools/tool.py <workspace> test -bc release --test-tag golden
-        The golden selector uses CPU automatically.
+        For std, then apps, run the full workspace once:
+          tools\linux.bat exec python3 tools/tool.py <workspace> test -bc release
 
    The WSL wrapper sets the compiler and runtime paths. The shared tool uses the Linux
    checkout's normal incremental outputs for both builds and tests. On a native Linux
@@ -254,8 +252,8 @@ Failure diagnosis and reruns
 
 Host integrations
 
-   Run these once per host, after its Release pass. Select GPU rendering for these commands
-   and use a compatible graphical session.
+   Run these once per host, after its Release pass. Use a compatible graphical session for
+   native application and OpenGL integration tests.
 
    On Windows, run these in order.
 

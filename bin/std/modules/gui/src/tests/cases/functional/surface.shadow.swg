@@ -31,12 +31,7 @@ using Swag, Core, Pixel
             host.app.frameTrace.batches = 0
             host.surface.invalidateRect({50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
-            Swag.require(host.app.frameTrace.batches == withBorder)
-
-            var simpleCopy: bool
-            for command in host.surface.painter.commandBuffer where command.op is .SetDefaultShader and command.defaultShader.id == .Simple do
-                simpleCopy = true
-            Swag.require(simpleCopy)
+            Swag.require(withBorder != 0 and host.app.frameTrace.batches == withBorder)
         }
     }
 }

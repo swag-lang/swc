@@ -43,6 +43,7 @@ impl IWnd for SettledPaintWnd
     {
         var host: Testing.HeadlessHost
         host.setup(48, 32)
+        Swag.require(host.app.renderer is RenderCpu and not host.app.renderer.needsNativeWindow())
         host.setReducedMotion(false)
         let view = Wnd.create'SettledPaintWnd(&host.root, {0, 0, 48, 32})
 

@@ -10,7 +10,6 @@ struct ImageGoldenOptions
     {
         maxChannelDelta:    u8       // Maximum absolute difference accepted for each ARGB channel.
         maxDifferentPixels: u64      // Maximum number of pixels allowed outside the channel tolerance.
-        cpuRendered:        bool     // Whether the image comes from the CPU renderer whatever renderer the run selected.
         acceptEdgeChoice:   bool     // Whether a renderer comparison accepts a boundary between two areas sitting one pixel off.
     }
 }
@@ -163,16 +162,8 @@ func assertRenderersAgree(cpu, gpu: const *Image, name: string, options: ImageGo
 // `<name>.actual.png`, reports its first differing pixel, and fails the test through
 // [[Swag.check]], which lets it compare its other goldens.
 //
-// An image is a CPU render when the run selected that renderer (`SWAG_TEST_RENDERER=cpu`, which
-// the launchers set for every golden run) or when
-// [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the test rendered it with the CPU
-// backend itself. Any other image comes from a GPU host: it is not compared, and the first one
-// of a run says so. What a GPU draws is checked against the CPU by the renderer parity tests,
-// through [[Pixel.Testing.assertRenderersAgree]].
-//
-// The parity sweep (`SWAG_TEST_PARITY_SWEEP=1`) turns a GPU-hosted golden scene into such a
-// check: the image is compared with the CPU golden under the parity tolerance, and never
-// recorded. It is a way to find a divergence in a real scene, to reduce into a parity test.
+// GUI headless hosts produce CPU pixels. Tests that compare renderers explicitly use
+// [[Pixel.Testing.assertRenderersAgree]].
 //
 // [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
 // limits default to exact comparison. The check remains active when Pixel is built as a release
@@ -184,26 +175,6 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
 {
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
-    if not options.cpuRendered and Env.variable("SWAG_TEST_RENDERER") != "cpu"
-    {
-        if Env.variable("SWAG_TEST_PARITY_SWEEP") != "1"
-        {
-            reportGpuGoldenSkipped()
-            return
-        }
-
-        let reference = catch Image.load(path.toString())
-        {
-            Console.println("[parity] no CPU golden to sweep ", name, " against")
-            return
-        }
-
-        // A real scene sizes its pictures as the layout asks, ties included.
-        var sweep = options
-        sweep.acceptEdgeChoice = true
-        assertRenderersAgree(&reference, image, name, sweep, loc)
-        return
-    }
 
     if not File.exists(path)
     {
@@ -255,18 +226,6 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
     }
 
     return result
-}
-
-private var g_GpuGoldenSkipReported: bool
-
-// Says once per run that PNG goldens were left alone because a GPU host drew the images.
-private func reportGpuGoldenSkipped()
-{
-    if g_GpuGoldenSkipReported do
-        return
-    g_GpuGoldenSkipReported = true
-    Console.println("[golden] PNG goldens are compared on the CPU renderer only: this run draws on a GPU,")
-    Console.println("         so it leaves them alone. Run golden tests with SWAG_TEST_RENDERER=cpu.")
 }
 
 // Levels each channel of a GPU image may be off by anywhere, for rounding in blending.

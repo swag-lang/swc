@@ -402,23 +402,21 @@ image references and driver parity checks. It runs existing tests and retains th
 image tolerance or golden is changed by choosing a suite.
 
 ```text
-tools\coverage.bat -DevMode
-tools\coverage.bat -Workspace apps -Module swagscope
-tools\coverage.bat -Suite gpu -Workspace apps -Module swagscope
-tools\coverage.bat -DevMode -Suite stress
-tools\coverage.bat -DevMode -Suite goldens
-tools\coverage.bat -DevMode -Suite parity
-tools\coverage.bat -DevMode -Suite full
+tools\coverage.bat -Configuration release
+tools\coverage.bat -Configuration release -Workspace apps -Module swagscope
+tools\coverage.bat -Configuration release -Suite stress
+tools\coverage.bat -Configuration release -Suite goldens
+tools\coverage.bat -Configuration release -Suite parity
+tools\coverage.bat -Configuration release -Suite full
 ```
 
 | Suite | Backend and coverage | Environment / frequency |
 | --- | --- | --- |
-| `fast` (default) | GPU hosts by default; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
-| `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
-| `stress` | Selected GPU or CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Every `golden` test, on the CPU renderer whatever `-Renderer` says, compared exactly | Rendering changes and scheduled runs, on any machine |
+| `fast` (default) | Ordinary standard-module and application tests, excluding `golden` and `stress` | Workstation or CI, frequent iteration |
+| `stress` | Tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
+| `goldens` | Every `golden` test, using CPU references | Rendering changes and scheduled runs, on any machine |
 | `parity` | Tests tagged `integration.renderer.opengl`: one scene drawn by the CPU and the GPU renderer, compared with a contrast-following tolerance | GPU machine, renderer changes and scheduled runs |
-| `full` | All standard-module and application tests and stress on the selected renderer, then the goldens on CPU | Complete functional/visual pass before integration |
+| `full` | Ordinary, stress and golden tests together, with CPU rendering for headless fixtures | Complete functional and visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
@@ -426,24 +424,19 @@ Each workspace reports elapsed wall time including compilation. Integration
 tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
 
-`HeadlessHost` uses GPU hosts by default. `-Renderer cpu` opts into CPU rendering for CI or cloud
-machines without a usable graphics device; direct compiler test commands can set
-`SWAG_TEST_RENDERER=cpu`. GPU uses an invisible drawable and render targets, with no desktop
-presentation. OpenGL must initialize successfully; there is no automatic CPU fallback. Pixel's
-explicit CPU renderer tests continue testing CPU in either environment.
+`HeadlessHost` always uses `RenderCpu`. This also applies to direct compiler invocations.
+Native application scenarios and dedicated OpenGL integrations create their own graphics
+contexts through the code under test.
 
 Two campaigns own what the screen looks like, and they do not overlap.
 
 **Goldens render on CPU, always.** A PNG golden is a CPU reference: only the CPU renderer draws
-the same pixels on every machine, so a golden is recorded, compared exactly and replaced from a
-CPU render and from nothing else. The launchers select the CPU renderer for every run that selects
-the `golden` tag, whatever `-Renderer` or `SWAG_TEST_RENDERER` says. A mismatch leaves
-`<name>.actual.png` to review and promote with `goldens.bat accept`. A golden test reached by a
-GPU run, such as an unfiltered `std.bat test gui`, is not compared and says so once.
+the same pixels on every machine. Record and compare goldens from CPU images. A mismatch leaves
+`<name>.actual.png` to review and promote with `goldens.bat accept`.
 
 ```text
-tools\coverage.bat -DevMode -Suite goldens
-tools\coverage.bat -DevMode -Suite goldens -Workspace std -Module gui -TestFile menu.swg
+tools\coverage.bat -Configuration release -Suite goldens
+tools\coverage.bat -Configuration release -Suite goldens -Workspace std -Module gui -TestFile menu.swg
 ```
 
 **Parity compares the renderers.** Tests tagged `integration.renderer.opengl` draw one scene with
@@ -458,21 +451,9 @@ test. Neither is a reference: a real divergence is fixed in the renderer, the GP
 right, and the scene that showed it stays as its regression test.
 
 ```text
-tools\coverage.bat -DevMode -Suite parity
-tools\coverage.bat -DevMode -Suite parity -Workspace std -Module pixel -TestFile sampling.ogl.swg
-tools\coverage.bat -Suite parity -Sweep -Workspace apps -Module swagcapture
+tools\coverage.bat -Configuration release -Suite parity
+tools\coverage.bat -Configuration release -Suite parity -Workspace std -Module pixel -TestFile sampling.ogl.swg
 ```
-
-`-Sweep` is how a divergence is found in a real scene: after the dedicated tests, every golden
-scene is drawn on the GPU and compared with its CPU reference under the same tolerance, without
-recording anything. A scene it reports is not yet a test. Reduce what differs to a small scene in
-a parity test of the module that owns the primitive, watch it fail, fix the renderer, and keep it.
-
-The sweep also accepts a boundary between two areas that sits exactly one pixel off. A picture
-drawn in pixel mode shows that where a pixel centre maps onto a texel boundary, a tie OpenGL
-leaves to the implementation, and a real layout cannot avoid such sizes. The price is a blind
-spot: the sweep does not see a filled shape whose edge moved by one pixel. A dedicated parity
-scene keeps the strict comparison and is built to contain no tie, with odd picture sizes.
 
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.

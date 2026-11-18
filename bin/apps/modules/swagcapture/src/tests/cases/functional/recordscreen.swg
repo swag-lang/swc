@@ -64,24 +64,15 @@ impl Recorder
                  menuSurface.position.width >= firstMenu.position.width and
                  menuSurface.position.height >= firstMenu.position.height)
 
-    // Offscreen GPU hosts cannot route an OS click to a second native surface. The CPU host
-    // exercises the pointer path; both hosts check the selection event.
-    if Env.variable("SWAG_TEST_RENDERER") == "cpu"
-    {
-        f.gui.fireTimer(hud.screenChoices.watch)
-        Swag.require(firstMenu.mouseCapture() == firstMenu)
-        var point = firstMenu.localToSurface(Math.Point{firstMenu.clientRect().horzCenter(),
-                                                        firstMenu.items[1]!.pos + firstMenu.items[1]!.size * 0.5})
-        menuSurface.surfaceToScreen(&point)
-        f.gui.click(point)
-        Swag.require(firstMenu.isModalEnded())
-        f.gui.fireTimer(hud.screenChoices.watch)
-        Swag.require(hud.screenChoices == null)
-    }
-    else
-    {
-        firstMenu.sigCommandSelected.call(firstMenu, "record.screen.1")
-    }
+    f.gui.fireTimer(hud.screenChoices.watch)
+    Swag.require(firstMenu.mouseCapture() == firstMenu)
+    var point = firstMenu.localToSurface(Math.Point{firstMenu.clientRect().horzCenter(),
+                                                    firstMenu.items[1]!.pos + firstMenu.items[1]!.size * 0.5})
+    menuSurface.surfaceToScreen(&point)
+    f.gui.click(point)
+    Swag.require(firstMenu.isModalEnded())
+    f.gui.fireTimer(hud.screenChoices.watch)
+    Swag.require(hud.screenChoices == null)
 
     Swag.require(recorder.screenIndex == 1)
     Swag.require(recorder.area == f.main.monitors[1].physicalBounds)
@@ -96,22 +87,15 @@ impl Recorder
     Swag.require(hud.screenChoices != null)
     let secondMenu = hud.screenChoices.menu
     Swag.require(secondMenu.surface != surface and secondMenu.items.count == 3 and secondMenu.items[1]!.checked)
-    if Env.variable("SWAG_TEST_RENDERER") == "cpu"
-    {
-        f.gui.fireTimer(hud.screenChoices.watch)
-        Swag.require(secondMenu.mouseCapture() == secondMenu)
-        var point = secondMenu.localToSurface(Math.Point{secondMenu.clientRect().horzCenter(),
-                                                         secondMenu.items[2]!.pos + secondMenu.items[2]!.size * 0.5})
-        secondMenu.surface!.surfaceToScreen(&point)
-        f.gui.click(point)
-        Swag.require(secondMenu.isModalEnded())
-        f.gui.fireTimer(hud.screenChoices.watch)
-        Swag.require(hud.screenChoices == null)
-    }
-    else
-    {
-        secondMenu.sigCommandSelected.call(secondMenu, AllScreensChoiceId)
-    }
+    f.gui.fireTimer(hud.screenChoices.watch)
+    Swag.require(secondMenu.mouseCapture() == secondMenu)
+    point = secondMenu.localToSurface(Math.Point{secondMenu.clientRect().horzCenter(),
+                                                  secondMenu.items[2]!.pos + secondMenu.items[2]!.size * 0.5})
+    secondMenu.surface!.surfaceToScreen(&point)
+    f.gui.click(point)
+    Swag.require(secondMenu.isModalEnded())
+    f.gui.fireTimer(hud.screenChoices.watch)
+    Swag.require(hud.screenChoices == null)
 
     Swag.require(recorder.screenIndex == Swag.U64.Max)
     Swag.require(recorder.area == Math.Rectangle{0, 0, 2000, 600})

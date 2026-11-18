@@ -45,7 +45,7 @@ func assertVideoTimelineEndpoints(light: bool, golden: string)
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    assertVideoRendererGolden(&image, golden)
+    Pixel.Testing.assertImageGolden(&image, golden)
 }
 
 func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, dpiScale: f32, golden: string)
@@ -65,18 +65,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    var options: Pixel.Testing.ImageGoldenOptions
-    if Env.variable("SWAG_TEST_RENDERER") != "cpu"
-    {
-        if golden == "viewer.video.subtitle.background" do
-            options.maxDifferentPixels = 1
-        elif golden == "viewer.video.subtitle.outline.large.hidpi" or
-             golden == "viewer.video.subtitle.shadow.large.hidpi" or
-             golden == "viewer.video.subtitle.background.large.hidpi" do
-            options.maxChannelDelta = 4
-    }
-
-    assertVideoRendererGolden(&image, golden, options)
+    Pixel.Testing.assertImageGolden(&image, golden)
 }
 
 // Film shares the window title, bottom facts and persistent command panel. Hover adds
@@ -103,7 +92,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.settleAnimations(window, 4)
 
     var rest = host.render(&host.surfaceWnd)
-    assertVideoRendererGolden(&rest, "viewer.video.ink")
+    Pixel.Testing.assertImageGolden(&rest, "viewer.video.ink")
 
     // The first movement brings the veils, the next one reads a time on the timeline.
     let timeline   = view.timeline.surfaceRect()
@@ -114,20 +103,20 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     view.veilsHeld = true
     host.settleAnimations(window, 4)
     var hover = host.render(&host.surfaceWnd)
-    assertVideoRendererGolden(&hover, "viewer.video.hover.ink")
+    Pixel.Testing.assertImageGolden(&hover, "viewer.video.hover.ink")
 
     // Muting leaves the chosen level in place while the volume control turns inactive.
     view.setMuted(true)
     Swag.require(not view.volumeSlider.isEnabled())
     var muted = host.renderSettled(&host.surfaceWnd)
-    assertVideoRendererGolden(&muted, "viewer.video.muted.ink")
+    Pixel.Testing.assertImageGolden(&muted, "viewer.video.muted.ink")
     view.setMuted(false)
 
     // Returning to Explorer adds a leading action; the film's own title uses its new inset.
     window.returnExplorerCaptionButton.show()
     Swag.require(not host.surfaceWnd.titleHidden)
     var returning = host.renderSettled(&host.surfaceWnd)
-    assertVideoRendererGolden(&returning, "viewer.video.return.ink")
+    Pixel.Testing.assertImageGolden(&returning, "viewer.video.return.ink")
 }
 
 // The playhead and its outline stay whole when the track is at its first or last frame.
@@ -202,7 +191,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         {
             Swag.require(sheet.page.rows.count == 5 and sheet.page.rows[1].value == "1.5×")
             var first = host.render()
-            assertVideoRendererGolden(&first, "viewer.video.options")
+            Pixel.Testing.assertImageGolden(&first, "viewer.video.options")
             Swag.require(sheet.activateRow(Film.texts().ui_OptionSpeed))
             host.finishAnimations()
         }
@@ -210,7 +199,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         {
             Swag.require(sheet.page.rows[5].checked)
             var speeds = host.render()
-            assertVideoRendererGolden(&speeds, "viewer.video.options.speed")
+            Pixel.Testing.assertImageGolden(&speeds, "viewer.video.options.speed")
             sheet.close()
         }
 

@@ -57,19 +57,6 @@ class ToolTests(unittest.TestCase):
         self.assertFalse(list(folder.glob('*.actual.png')))
         self.assertFalse(list(folder.glob('*.actual.txt')))
 
-    def test_golden_tests_always_render_on_cpu(self):
-        for options in (['--test-tag', 'golden'], ['--test-tag=golden'], ['--test-file', 'menu.swg', '--test-tag', 'golden']):
-            self.assertEqual(self.invoke(['std', 'test', 'gui', *options], environment={'SWAG_TEST_RENDERER': 'gpu'}), 0)
-            self.assertEqual(self.environment['SWAG_TEST_RENDERER'], 'cpu')
-        sweep = {'SWAG_TEST_RENDERER': 'gpu', 'SWAG_TEST_PARITY_SWEEP': '1'}
-        self.assertEqual(self.invoke(['std', 'test', 'gui', '--test-tag', 'golden'], environment=sweep), 0)
-        self.assertEqual(self.environment['SWAG_TEST_RENDERER'], 'gpu')
-        for options in ([], ['--test-tag', '!golden'], ['--test-tag', 'stress']):
-            self.assertEqual(self.invoke(['std', 'test', 'gui', *options], environment={'SWAG_TEST_RENDERER': 'gpu'}), 0)
-            self.assertEqual(self.environment['SWAG_TEST_RENDERER'], 'gpu')
-            self.assertEqual(self.invoke(['std', 'test', 'gui', *options]), 0)
-            self.assertNotIn('SWAG_TEST_RENDERER', self.environment)
-
     def test_empty_golden_accept_and_invalid_action(self):
         output = io.StringIO()
         with redirect_stdout(output):

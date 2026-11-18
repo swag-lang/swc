@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     let image = renderCpu(&renderParityScene)
-    Testing.assertImageGolden(&image, "render.parity.portable", {cpuRendered: true})
+    Testing.assertImageGolden(&image, "render.parity.portable")
 }
 
 // The deterministic CPU backend is the reviewable reference for measured strokes too.
@@ -15,7 +15,7 @@ using Swag, Core
 {
     func scene(renderer: IRenderer)->Image => renderStrokeParityScene(renderer)
     let image = renderCpu(&scene)
-    Testing.assertImageGolden(&image, "render.parity.stroke", {cpuRendered: true})
+    Testing.assertImageGolden(&image, "render.parity.stroke")
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.
@@ -23,7 +23,7 @@ using Swag, Core
 #test
 {
     let image = renderCpu(&renderTextParityScene)
-    Testing.assertImageGolden(&image, "render.parity.text", {cpuRendered: true})
+    Testing.assertImageGolden(&image, "render.parity.text")
 }
 
 // The CPU backend makes composite layer output deterministic and reviewable.
@@ -31,5 +31,5 @@ using Swag, Core
 #test
 {
     let image = renderCpu(&renderLayerParityScene)
-    Testing.assertImageGolden(&image, "render.parity.layer", {cpuRendered: true})
+    Testing.assertImageGolden(&image, "render.parity.layer")
 }

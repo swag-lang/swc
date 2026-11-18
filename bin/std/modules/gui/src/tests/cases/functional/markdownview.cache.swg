@@ -18,8 +18,10 @@ using Swag, Core, Pixel
     view.applyLayout()
     let inline = unwrap view.blocks[0].inline
 
-    let first = host.render(view)
-    Swag.require(inline.renderLayer.contentTarget != null)
+    let first         = host.render(view)
+    let firstVertices = host.surface.painter.vertexBuffer.count
+    let target        = inline.renderLayer.contentTarget
+    Swag.require(target != null)
     var hasInk: bool
     for pixel in first.pixels where pixel != first.pixels[0]
     {
@@ -28,10 +30,10 @@ using Swag, Core, Pixel
     }
 
     Swag.require(hasInk)
-    let second   = host.render(view)
-    let commands = host.surface.painter.commandBuffer.count
+    let second = host.render(view)
+    Swag.require(inline.renderLayer.contentTarget == target)
+    Swag.require(host.surface.painter.vertexBuffer.count < firstVertices)
     Swag.require(Slice.equals(first.pixels.toSlice(), second.pixels.toSlice()))
-    Swag.require(commands < 80)
 }
 
 // Scrolling retains one screen behind the reader, then releases older block textures.

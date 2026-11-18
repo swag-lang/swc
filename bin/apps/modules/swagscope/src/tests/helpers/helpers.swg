@@ -52,14 +52,6 @@ func assertScopeImageGolden(image: const *Pixel.Image, name: string)
     Pixel.Testing.assertImageGolden(image, name)
 }
 
-// Film captures share the one CPU reference every other golden has. A GPU host scales the frame
-// through its own filter, so what it draws is compared against that reference, never recorded
-// beside it.
-func assertVideoRendererGolden(image: const *Pixel.Image, name: string, options: Pixel.Testing.ImageGoldenOptions = {})
-{
-    Pixel.Testing.assertImageGolden(image, name, options)
-}
-
 // Verifies that an information-band control keeps its breathing room outside its own frame.
 func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
 {
@@ -464,7 +456,7 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 
 // Each viewer in the window the application ships, at the size of its picture, so its golden is
 // judged whole against the picture of the charter.
-func picturedViewer(fileName: string, light: bool, golden: string, width = 960, height = 600, options: Pixel.Testing.ImageGoldenOptions = {})
+func picturedViewer(fileName: string, light: bool, golden: string, width = 960, height = 600)
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, fileName, light, width, height)
@@ -488,7 +480,7 @@ func picturedViewer(fileName: string, light: bool, golden: string, width = 960, 
         Swag.require(window.siblings.count == 2 and window.siblingIndex == 0)
     }
 
-    photographViewer(&host, window, golden, options)
+    photographViewer(&host, window, golden)
 }
 
 // Opens `fileName` in the viewer named `key` rather than the one it opens in.
@@ -507,18 +499,11 @@ func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light:
 }
 
 // Photographs `window` at rest.
-func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string, options: Pixel.Testing.ImageGoldenOptions = {})
+func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string)
 {
     window.applyLayout()
     var image = host.renderSettled(window)
-    Pixel.Testing.assertImageGolden(&image, golden, options)
-}
-
-func picturedGoldenOptions(maxDifferentPixels: u64)->Pixel.Testing.ImageGoldenOptions
-{
-    if Env.variable("SWAG_TEST_RENDERER") == "cpu" do
-        return {}
-    return {maxDifferentPixels: maxDifferentPixels}
+    Pixel.Testing.assertImageGolden(&image, golden)
 }
 
 func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)

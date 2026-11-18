@@ -6,9 +6,9 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image", options: picturedGoldenOptions(600))
+    picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image")
     picturedViewer(picturedFixture("viewer.csv"), true, "pictured.table.paper")
-    picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper", options: picturedGoldenOptions(512))
+    picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper")
     picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper", 1280, 800)
 
     var binaryHost: Testing.HeadlessHost

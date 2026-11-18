@@ -1,10 +1,9 @@
-# Check suite selection, failure propagation, and environment isolation without compiling.
+# Check suite selection and failure propagation without compiling.
 $ErrorActionPreference = 'Stop'
 $scratchBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $scratch = Join-Path $scratchBase ('swag coverage ' + [Guid]::NewGuid().ToString('N'))
 $oldLog = $env:SWAG_COVERAGE_LOG
 $oldFailure = $env:SWAG_COVERAGE_FAILURE
-$oldRenderer = $env:SWAG_TEST_RENDERER
 
 function Invoke-Launcher([string[]] $Options, [int] $ExpectedExit = 0) {
     Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
@@ -28,7 +27,7 @@ try {
     foreach ($tool in @('std', 'apps', 'goldens')) {
         @"
 @echo off
-echo $tool^|%SWAG_TEST_RENDERER%^|%* >>"%SWAG_COVERAGE_LOG%"
+echo $tool^|%* >>"%SWAG_COVERAGE_LOG%"
 if "%SWAG_COVERAGE_FAILURE%"=="$tool" exit /b 7
 exit /b 0
 "@ | Set-Content -LiteralPath (Join-Path $tools "$tool.bat")
@@ -48,40 +47,28 @@ exit /b 0
 
     $env:SWAG_COVERAGE_LOG = Join-Path $scratch 'calls.txt'
     $env:SWAG_COVERAGE_FAILURE = $null
-    $env:SWAG_TEST_RENDERER = 'original'
+    $calls = Invoke-Launcher @('-Suite', 'fast', '-Configuration', 'release')
+    Assert-Calls $calls @('std|test --test-tag !golden --test-tag !stress', 'apps|test --test-tag !golden --test-tag !stress') 'The fast pass'
 
-    foreach ($suite in @('fast', 'gpu')) {
-        $calls = Invoke-Launcher @('-DevMode', '-Suite', $suite)
-        Assert-Calls $calls @('std|gpu|dm test --test-tag !golden --test-tag !stress', 'apps|gpu|dm test --test-tag !golden --test-tag !stress') "Suite $suite"
-    }
+    # The full pass includes goldens in the same invocation as the rest of each workspace.
+    Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Configuration', 'release')) @('std|test -bc release ', 'apps|test -bc release ') 'The full pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Workspace', 'apps', '-Module', 'swagscope', '-Configuration', 'release')) @('apps|test swagscope -bc release ') 'The full module pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens')) @('goldens|test') 'The golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps')) @('apps|test swagscope --test-tag golden ') 'The workspace golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps', '-Module', 'swagscope', '-TestFile', 'explorer.swg')) @('apps|test swagscope --test-tag golden --test-file explorer.swg ') 'The focused golden campaign'
 
-    # Goldens render on CPU whatever the caller selected, and a full pass runs them apart.
-    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'goldens')) @('goldens|cpu|dm test') 'The golden campaign'
-    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'full')) @('std|gpu|dm test --test-tag !golden ', 'apps|gpu|dm test --test-tag !golden ', 'goldens|cpu|dm test') 'The full pass'
-    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps')) @('apps|cpu|test swagscope --test-tag golden ') 'The workspace golden campaign'
-    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps', '-Module', 'swagscope', '-TestFile', 'explorer.swg')) @('apps|cpu|test swagscope --test-tag golden --test-file explorer.swg ') 'The focused golden campaign'
-
-    # Parity runs on a GPU, in the modules that own renderer comparison tests.
-    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'parity')) @('std|gpu|dm test pixel --test-tag integration.renderer.opengl ') 'The parity campaign'
-    $null = Invoke-Launcher @('-Suite', 'parity', '-Renderer', 'cpu') 1
-
-    # The sweep draws the golden scenes on the GPU after the dedicated tests, and only for parity.
-    Assert-Calls (Invoke-Launcher @('-Suite', 'parity', '-Sweep', '-Workspace', 'apps')) @('apps|gpu|test swagscope --test-tag golden ') 'The parity sweep'
-    $null = Invoke-Launcher @('-Suite', 'goldens', '-Sweep') 1
-    if ($env:SWAG_TEST_PARITY_SWEEP) { throw 'The sweep selection escaped the launcher.' }
-
-    $calls = Invoke-Launcher @('-DevMode', '-Renderer', 'cpu')
-    Assert-Calls $calls @('std|cpu|dm test', 'apps|cpu|dm test') 'The explicit CPU campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'parity')) @('std|test pixel --test-tag integration.renderer.opengl ') 'The parity campaign'
+    $null = Invoke-Launcher @('-Suite', 'gpu') 1
+    $null = Invoke-Launcher @('-Renderer', 'gpu') 1
+    $null = Invoke-Launcher @('-Suite', 'parity', '-Sweep') 1
 
     $env:SWAG_COVERAGE_FAILURE = 'std'
     $calls = Invoke-Launcher @('-Suite', 'fast') 1
     if (!($calls | Where-Object { $_.StartsWith('apps|') })) { throw 'A failure prevented the remaining workspace from running.' }
-    if ($env:SWAG_TEST_RENDERER -ne 'original') { throw 'Renderer selection escaped the launcher.' }
-    Write-Output 'Coverage runner: suite selection, CPU goldens, parity discovery, failure propagation and environment isolation passed.'
+    Write-Output 'Coverage runner: suite selection, parity discovery and failure propagation passed.'
 } finally {
     $env:SWAG_COVERAGE_LOG = $oldLog
     $env:SWAG_COVERAGE_FAILURE = $oldFailure
-    $env:SWAG_TEST_RENDERER = $oldRenderer
     $resolved = [IO.Path]::GetFullPath($scratch)
     if (!$resolved.StartsWith($scratchBase, [StringComparison]::OrdinalIgnoreCase)) { throw 'Scratch path escaped the temporary directory.' }
     Remove-Item -LiteralPath $resolved -Recurse -Force

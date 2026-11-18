@@ -31,5 +31,5 @@ using Core, Pixel, Gui, Viewers
     }
 
     Swag.require(view.details == "0x10 – 0x1C · 13 bytes selected")
-    photographViewer(&host, window, "pictured.hex", picturedGoldenOptions(8))
+    photographViewer(&host, window, "pictured.hex")
 }

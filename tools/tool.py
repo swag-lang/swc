@@ -61,14 +61,6 @@ def runtime_workers(options):
     return str(int(value)) if value.isdecimal() and int(value) > 0 else str(os.cpu_count() or 1)
 
 
-def selects_goldens(options):
-    """Says whether the test options select the golden tests: those always render on CPU."""
-    for index, option in enumerate(options):
-        if option == '--test-tag=golden' or (option == '--test-tag' and options[index + 1:index + 2] == ['golden']):
-            return True
-    return False
-
-
 def module_names(workspace):
     return sorted(path.name for path in (workspace / 'modules').iterdir() if path.is_dir())
 
@@ -294,11 +286,6 @@ def main(arguments=None):
         stages = [module_stage(compiler, bin_root, tool, action, module, arguments)]
     if action == 'test':
         environment.setdefault('SWAG_RUNTIME_THREADS', runtime_workers(arguments))
-        # A PNG golden is a CPU reference, so a golden run draws on CPU whatever the caller set.
-        # The parity sweep is the one exception: it draws the golden scenes on a GPU to look for
-        # renderer divergences, and compares without ever recording.
-        if selects_goldens(arguments) and environment.get('SWAG_TEST_PARITY_SWEEP') != '1':
-            environment['SWAG_TEST_RENDERER'] = 'cpu'
     result = execute(stages, environment, keep_going=keep_going)
     if result == 0 and windows and tool == 'apps' and action == 'build':
         package_vault(bin_root, module, arguments)

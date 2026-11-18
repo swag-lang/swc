@@ -38,6 +38,8 @@ configuration. `-Configuration` and `-bc` select the compiled program configurat
 of the compiler executable. Keep large scale-boundary tests in `stress`. Run `goldens`, `parity`,
 and `full` only for the validation needs described in
 `validate-swag-changes`.
+Headless tests and goldens use the CPU renderer. Native application tests and OpenGL integrations
+use the graphics path they exercise.
 Visual tests cover Encre and Papier across each application and shared control family. Use one
 palette per screenshot scenario and rotate palettes across sibling cases. Do not duplicate the
 same composition in both themes; test palette roles and contrast with assertions instead.

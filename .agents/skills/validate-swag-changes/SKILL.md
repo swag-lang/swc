@@ -86,7 +86,7 @@ Apply these reductions:
 
 ### Use The Development Coverage Modes
 
-For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects GPU-hosted
+For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects headless
 functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider feedback run to
 the owning workspace and module:
 
@@ -106,15 +106,11 @@ boundary with `tools/coverage.bat -Configuration release -Suite stress`, narrowe
 module and file. Run the broader stress selection on a scheduled or cross-cutting pass. Do not tag
 a test as stress solely because it is new or somewhat slower.
 
-GPU is the default renderer for all coverage suites and direct `HeadlessHost` tests. Pass
-`-Renderer cpu` to `tools/coverage.bat` or set `SWAG_TEST_RENDERER=cpu` for a direct compiler test
-command in CI/cloud environments without a usable graphics device. Golden tests are the exception:
-they always render on CPU, whatever renderer a suite selects. Use `goldens` for the golden
-campaign, complete when shared rendering behavior can reach snapshots beyond a confidently
-bounded set. Use `parity` for the tests tagged `integration.renderer.opengl`, which compare the
-CPU and GPU renderers on the same scene. Reserve `full` for scheduled complete standard-module
-and application coverage, including golden and stress tests; it does not include privileged or
-external integration campaigns.
+`HeadlessHost` always uses the CPU renderer in coverage suites and direct compiler tests.
+Use `goldens` when changes can reach snapshots beyond a confidently bounded set.
+`full` selects ordinary, golden and stress tests in one pass per workspace. Run native application
+and OpenGL integrations explicitly. The `parity` suite selects tests tagged
+`integration.renderer.opengl` that exercise the renderers directly.
 
 ### Generated-code optimizations
 
@@ -256,13 +252,9 @@ consumer that activates the changed behavior.
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
   without promoting them.
-- A PNG golden is a CPU reference, identical on every machine: it is recorded, compared exactly
-  and replaced from a CPU render and from nothing else. The launchers select the CPU renderer for
-  every run that selects the `golden` tag, so run golden tests through
+- A PNG golden is a CPU reference. Record, compare and replace it using CPU pixels. Run golden tests through
   `tools/coverage.bat -Configuration release -Suite goldens`, narrowed with `-Workspace`, `-Module` and
-  `-TestFile`, or through `tools/std.bat`/`tools/apps.bat ... --test-tag golden`. A golden test
-  reached by a GPU run is not compared. Never add a golden, a file variant or a tolerance for one
-  renderer. A test that renders with `RenderCpu` itself says so with `{cpuRendered: true}`.
+  `-TestFile`, or through `tools/std.bat`/`tools/apps.bat ... --test-tag golden`.
 - What a GPU draws is checked by the renderer parity campaign, not by goldens: tests tagged
   `integration.renderer.opengl` draw one scene with both renderers and compare them through
   `Pixel.Testing.assertRenderersAgree`, whose tolerance follows local contrast so it holds on any
@@ -270,12 +262,8 @@ consumer that activates the changed behavior.
   sampler or a paint primitive changes. A divergence is a defect: reduce it to a small parity
   scene, watch that scene fail, fix the renderer (the GPU is presumed right, so the CPU renderer
   is the one brought to it), keep the scene as the regression test, and record again the goldens
-  the fix moves. `-Suite parity -Sweep` finds such divergences in real scenes: it draws the golden
-  scenes on the GPU and compares them with their CPU references without recording. What it
-  reports is a lead to reduce, never the regression test itself. The sweep accepts a boundary one
-  pixel off, because a real layout draws pictures at sizes where a pixel centre meets a texel
-  boundary and OpenGL leaves that side to the implementation; a dedicated parity scene stays
-  strict and avoids such ties, with odd picture sizes and positions off the pixel centres.
+  the fix moves. Keep dedicated parity scenes strict by using odd picture sizes and positions off
+  pixel centres where needed to avoid ties at a texel boundary.
 - A golden mismatch fails its test through `Swag.check`, which lets the test go on: one run
   writes every `.actual` a change moved, and the run stays red until each is promoted or fixed.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside

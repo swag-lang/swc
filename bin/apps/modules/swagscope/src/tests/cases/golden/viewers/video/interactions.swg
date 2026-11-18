@@ -41,7 +41,7 @@ using Core, Pixel, Gui, Viewers
     view.showPlaybackHelp()
     Swag.require(view.helpLine != null and view.helpLine.isLocallyVisible())
     var image = host.renderSettled(&host.surfaceWnd)
-    assertVideoRendererGolden(&image, "viewer.video.shortcuts.ink")
+    Pixel.Testing.assertImageGolden(&image, "viewer.video.shortcuts.ink")
     for 3 do
         view.notePlaybackGesture()
     Swag.require(not view.helpLine.isLocallyVisible())

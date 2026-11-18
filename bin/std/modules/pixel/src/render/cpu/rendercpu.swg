@@ -208,10 +208,26 @@ private struct RasterBatch
     paintImage:  *Image?                // Storage of a bound texture paint, resolved once.
     paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
     atlas:       const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
+    subRect:     SubRectSampler
 
-    blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.
+    blurTaps:        const [*] BlurTap?     // Texture blur taps owned by the active draw call.
+    blurTapCount:    u64
+    blurWeights:     const [*] f32?     // Backdrop weights owned by the active draw call.
     blurWeightCount: u64
     backdropPixels:  const [*] Math.Simd.F32x4?     // Logical top-down samples prepared once for a Gaussian pass.
+}
+
+private struct SubRectSampler
+{
+    origin, size, span, sharpWidth: Vector2
+    minX, minY, maxX, maxY:          s32
+    nearest, sharp:                 bool
+}
+
+private struct BlurTap
+{
+    offset: f32
+    weight: f32
 }
 
 private struct FontLinearSample
@@ -506,9 +522,8 @@ private impl RenderCpu
 
     func bilinearColor(c00, c10, c01, c11: Color, tx, ty: f32)->Color
     {
-        const One = 65536.0'f32
-        let wx = cast(u32, (Math.saturate(tx) * One))
-        let wy = cast(u32, (Math.saturate(ty) * One))
+        let wx = bilinearWeight(tx)
+        let wy = bilinearWeight(ty)
 
         var top, bottom, result: Color
         top.a    = lerpByte(c00.a, c10.a, wx)
@@ -524,6 +539,53 @@ private impl RenderCpu
         result.g = lerpByte(top.g, bottom.g, wy)
         result.b = lerpByte(top.b, bottom.b, wy)
         return result
+    }
+
+    #[Swag.Inline]
+    func lerpBgra8(c0, c1, weight: u32)->u32
+    {
+        const Lanes = 0x000000FF000000FF'u64
+        const Pair  = 0x00FF00FF'u64
+        let a       = cast(u64, c0)
+        let b       = cast(u64, c1)
+        let inverse = 65536 - cast(u64, weight)
+
+        // Keep the two 16.16 products in separate 32-bit lanes so neither carries into the other.
+        let blueRed0    = (a | (a << 16)) & Lanes
+        let blueRed1    = (b | (b << 16)) & Lanes
+        let greenAlpha0 = ((a >> 8) | (a << 8)) & Lanes
+        let greenAlpha1 = ((b >> 8) | (b << 8)) & Lanes
+        let blueRed     = ((blueRed0 * inverse + blueRed1 * weight) >> 16) & Lanes
+        let greenAlpha  = ((greenAlpha0 * inverse + greenAlpha1 * weight) >> 16) & Lanes
+        return cast(u32, ((blueRed | (blueRed >> 16)) & Pair) |
+                         (((greenAlpha | (greenAlpha >> 16)) & Pair) << 8))
+    }
+
+    #[Swag.Inline]
+    func bilinearWeight(fraction: f32)->u32 => cast(u32, (Math.saturate(fraction) * 65536.0))
+
+    #[Swag.Inline]
+    func loadBgra8(row: const [*] u8, x: s32)->u32
+    {
+        let pixel = cast(const [*] u32, row)[x]
+        #static if Core.BIG_ENDIAN do
+            return Swag.byteSwap(pixel)
+        else do
+            return pixel
+    }
+
+    #[Swag.Inline]
+    func sampleBgra8Bilinear(image: *Image, x0, x1, y0, y1: s32, wx, wy: u32)->Color
+    {
+        let pixels = image.pixels.storage()
+        let stride = cast(u64, image.rowStride)
+        let top    = pixels + cast(u64, (image.height - y0 - 1)) * stride
+        let c0     = lerpBgra8(loadBgra8(top, x0), loadBgra8(top, x1), wx)
+        if wy == 0 or y0 == y1 do
+            return Color.fromArgb(c0)
+        let bottom = pixels + cast(u64, (image.height - y1 - 1)) * stride
+        let c1     = lerpBgra8(loadBgra8(bottom, x0), loadBgra8(bottom, x1), wx)
+        return Color.fromArgb(lerpBgra8(c0, c1, wy))
     }
 
     func modFloor(value, divisor: s32)->s32
@@ -886,12 +948,12 @@ private impl RenderCpu
             vv = Math.saturate(vv)
         }
 
-        let fx = uu * image.width - 0.5
-        let fy = (1.0 - vv) * image.height - 0.5
-        let x0 = cast(s32, Math.floor(fx))
-        let y0 = cast(s32, Math.floor(fy))
-        let tx = fx - Math.floor(fx)
-        let ty = fy - Math.floor(fy)
+        let fx     = uu * image.width - 0.5
+        let fy     = (1.0 - vv) * image.height - 0.5
+        let floorX = Math.floor(fx)
+        let floorY = Math.floor(fy)
+        let tx     = fx - floorX
+        let ty     = fy - floorY
 
         func coord(value, size: s32, wrap: bool)->s32
         {
@@ -900,19 +962,19 @@ private impl RenderCpu
             return Math.clamp(value, 0, size - 1)
         }
 
-        if image.pixelFormat == .BGRA8
-        {
-            let f00 = fetchBgra8(image, coord(x0, image.width, repeat), coord(y0, image.height, repeat))
-            let f10 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
-            let f01 = fetchBgra8(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
-            let f11 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0 + 1, image.height, repeat))
-            return bilinearColor(f00, f10, f01, f11, tx, ty)
-        }
+        let baseX = cast(s32, floorX)
+        let baseY = cast(s32, floorY)
+        let x0    = coord(baseX, image.width, repeat)
+        let x1    = coord(baseX + 1, image.width, repeat)
+        let y0    = coord(baseY, image.height, repeat)
+        let y1    = coord(baseY + 1, image.height, repeat)
+        if image.pixelFormat == .BGRA8 do
+            return sampleBgra8Bilinear(image, x0, x1, y0, y1, bilinearWeight(tx), bilinearWeight(ty))
 
-        let c00 = readPixel(image, coord(x0, image.width, repeat), coord(y0, image.height, repeat))
-        let c10 = readPixel(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
-        let c01 = readPixel(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
-        let c11 = readPixel(image, coord(x0 + 1, image.width, repeat), coord(y0 + 1, image.height, repeat))
+        let c00 = readPixel(image, x0, y0)
+        let c10 = readPixel(image, x1, y0)
+        let c01 = readPixel(image, x0, y1)
+        let c11 = readPixel(image, x1, y1)
         return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
@@ -982,23 +1044,17 @@ private impl RenderCpu
                      b: cast(u8, Math.round(Math.clamp(b, 0.0, 255.0)))}
     }
 
-    func sampleSubRect(image: *Image, paintPos: Vector2, p: const *BrushBinding, contentScale: f32)->Color
+    func sampleSubRect(image: *Image, paintPos: Vector2, sampler: const *SubRectSampler)->Color
     {
-        let minX = cast(s32, p.texturePixelBounds.x)
-        let minY = cast(s32, p.texturePixelBounds.y)
-        let maxX = cast(s32, p.texturePixelBounds.z)
-        let maxY = cast(s32, p.texturePixelBounds.w)
-        let dstW = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
-        let dstH = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
-        let tx   = Math.saturate((paintPos.x - p.boundRect.x) / dstW)
-        let ty   = Math.saturate((paintPos.y - p.boundRect.y) / dstH)
-        var px   = cast(f32, minX) + tx * cast(f32, (maxX - minX + 1)) - 0.5
-        var py   = cast(f32, minY) + ty * cast(f32, (maxY - minY + 1)) - 0.5
+        let tx = Math.saturate((paintPos.x - sampler.origin.x) / sampler.size.x)
+        let ty = Math.saturate((paintPos.y - sampler.origin.y) / sampler.size.y)
+        var px = cast(f32, sampler.minX) + tx * sampler.span.x - 0.5
+        var py = cast(f32, sampler.minY) + ty * sampler.span.y - 0.5
 
-        if p.interpolationMode == .Pixel and contentScale == 1
+        if sampler.nearest
         {
-            let x = Math.clamp(nearestTexel(px + 0.5), minX, maxX)
-            let y = Math.clamp(nearestTexel(py + 0.5), minY, maxY)
+            let x = Math.clamp(nearestTexel(px + 0.5), sampler.minX, sampler.maxX)
+            let y = Math.clamp(nearestTexel(py + 0.5), sampler.minY, sampler.maxY)
 
             // The presentation blit runs through here for every surface pixel.
             if image.pixelFormat == .BGRA8 do
@@ -1006,35 +1062,32 @@ private impl RenderCpu
             return readPixel(image, x, y)
         }
 
-        px = Math.clamp(px, cast(f32, minX), cast(f32, maxX))
-        py = Math.clamp(py, cast(f32, minY), cast(f32, maxY))
-        let x0 = cast(s32, Math.floor(px))
-        let y0 = cast(s32, Math.floor(py))
-        let x1 = Math.min(x0 + 1, maxX)
-        let y1 = Math.min(y0 + 1, maxY)
-        var fx = px - Math.floor(px)
-        var fy = py - Math.floor(py)
+        px = Math.clamp(px, cast(f32, sampler.minX), cast(f32, sampler.maxX))
+        py = Math.clamp(py, cast(f32, sampler.minY), cast(f32, sampler.maxY))
+        let floorX = Math.floor(px)
+        let floorY = Math.floor(py)
+        let x0     = cast(s32, floorX)
+        let y0     = cast(s32, floorY)
+        let x1     = Math.min(x0 + 1, sampler.maxX)
+        let y1     = Math.min(y0 + 1, sampler.maxY)
+        var fx     = px - floorX
+        var fy     = py - floorY
 
         // Sharp bilinear (see the OpenGL base shader): pixel mode at a fractional
         // content scale keeps one device pixel of smoothing at each texel boundary
         // instead of dropping texels or smearing one-texel tile borders.
-        if p.interpolationMode == .Pixel
+        if sampler.sharp
         {
-            let texelsPerUnitX = cast(f32, (maxX - minX + 1)) / dstW
-            let texelsPerUnitY = cast(f32, (maxY - minY + 1)) / dstH
-            let wx             = Math.clamp(texelsPerUnitX / contentScale, 0.0001, 1.0)
-            let wy             = Math.clamp(texelsPerUnitY / contentScale, 0.0001, 1.0)
-            fx = Math.saturate((fx - 0.5) / wx + 0.5)
-            fy = Math.saturate((fy - 0.5) / wy + 0.5)
+            fx = Math.saturate((fx - 0.5) / sampler.sharpWidth.x + 0.5)
+            fy = Math.saturate((fy - 0.5) / sampler.sharpWidth.y + 0.5)
         }
 
         if image.pixelFormat == .BGRA8
         {
-            let f00 = fetchBgra8(image, x0, y0)
-            let f10 = fetchBgra8(image, x1, y0)
-            let f01 = fetchBgra8(image, x0, y1)
-            let f11 = fetchBgra8(image, x1, y1)
-            return bilinearColor(f00, f10, f01, f11, fx, fy)
+            return sampleBgra8Bilinear(image,
+                                       Math.clamp(x0, 0, image.width - 1), Math.clamp(x1, 0, image.width - 1),
+                                       Math.clamp(y0, 0, image.height - 1), Math.clamp(y1, 0, image.height - 1),
+                                       bilinearWeight(fx), bilinearWeight(fy))
         }
 
         let c00 = readPixel(image, x0, y0)
@@ -1047,7 +1100,7 @@ private impl RenderCpu
     // Inline the sampler and byte reads into the convolution: a captured callback here
     // otherwise adds an indirect call for every tap of every blurred pixel.
     #[Swag.Inline]
-    func backdropChannels(color: Color)->Math.Simd.F32x4
+    func normalizedChannels(color: Color)->Math.Simd.F32x4
     {
         return cast(Math.Simd.F32x4, [cast(f32, color.r), cast(f32, color.g), cast(f32, color.b), cast(f32, color.a)]) / 255.0
     }
@@ -1057,7 +1110,7 @@ private impl RenderCpu
     {
         if pixels do
             return pixels[cast(u64, y) * cast(u64, params.width) + cast(u64, x)]
-        return backdropChannels(fetchBgra8(image, x, y))
+        return normalizedChannels(fetchBgra8(image, x, y))
     }
 
     #[Swag.Inline]
@@ -1130,7 +1183,7 @@ private impl RenderCpu
             let luminance = sum[0] * 0.2126 + sum[1] * 0.7152 + sum[2] * 0.0722
             let gray      = cast(Math.Simd.F32x4, [luminance, luminance, luminance, 1.0])
             sum = gray + (sum - gray) * params.saturation
-            let tint = backdropChannels(params.tint)
+            let tint = normalizedChannels(params.tint)
             sum = sum * (1 - tint[3]) + tint * tint[3]
         }
 
@@ -1142,26 +1195,20 @@ private impl RenderCpu
 
     mtd sampleBlur(batch: *RasterBatch, image: *Image, u, v: f32)->Color
     {
-        let radius = Math.max(.blurRadius, 0.0)
-        if radius <= 0.000001 do
+        if batch.blurTapCount == 0 do
             return sampleLinear(image, u, v, false)
 
-        var a, r, g, b: f32
-        var offset = -radius
-        for i in batch.blurWeightCount
+        var sum: Math.Simd.F32x4
+        let horizontal = .blurAxis == 0
+        for i in batch.blurTapCount
         {
-            let su     = .blurAxis == 0 ? u + offset / image.width : u
-            let sv     = .blurAxis == 0 ? v : v + offset / image.height
-            let sample = sampleLinear(image, su, sv, false)
-            let weight = batch.blurWeights![i]
-            a      += cast(f32, sample.a) / 255.0 * weight
-            r      += cast(f32, sample.r) / 255.0 * weight
-            g      += cast(f32, sample.g) / 255.0 * weight
-            b      += cast(f32, sample.b) / 255.0 * weight
-            offset += 1.0
+            let tap = batch.blurTaps![i]
+            let su  = horizontal ? u + tap.offset : u
+            let sv  = horizontal ? v : v + tap.offset
+            sum    += normalizedChannels(sampleLinear(image, su, sv, false)) * tap.weight
         }
 
-        return Color.fromArgbF32(a, r, g, b)
+        return Color.fromArgbF32(sum[3], sum[0], sum[1], sum[2])
     }
 
     mtd sampleResolve(image: *Image, u, v: f32)->Color
@@ -1293,7 +1340,7 @@ private impl RenderCpu
                     return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode)
                 }
 
-                return sampleSubRect(image, paintPos, &.paint, .contentScale)
+                return sampleSubRect(image, paintPos, &batch.subRect)
             }
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
@@ -2225,6 +2272,8 @@ private impl RenderCpu
         batch.solidPaint      = not .paintOn or .paint.type == .SolidColor
         batch.paintImage      = null
         batch.paintPlanar     = null
+        batch.blurTaps        = null
+        batch.blurTapCount    = 0
         batch.blurWeights     = null
         batch.blurWeightCount = 0
         if .paintOn and .paint.type == .Texture
@@ -2235,6 +2284,27 @@ private impl RenderCpu
                 batch.paintImage = &storage.image
                 if storage.planar.width > 0 do
                     batch.paintPlanar = &storage.planar
+            }
+        }
+
+        if batch.paintImage and not batch.paintPlanar and .paint.uvMode == .FillSubRect and
+           .program != CpuProgram_Blur and .program != CpuProgram_Resolve and .program != CpuProgram_Backdrop
+        {
+            let p                 = &.paint
+            let sampler           = &batch.subRect
+            sampler.origin        = {p.boundRect.x, p.boundRect.y}
+            sampler.size          = {Math.max(p.boundRect.z - p.boundRect.x, 0.000001), Math.max(p.boundRect.w - p.boundRect.y, 0.000001)}
+            sampler.minX          = cast(s32, p.texturePixelBounds.x)
+            sampler.minY          = cast(s32, p.texturePixelBounds.y)
+            sampler.maxX          = cast(s32, p.texturePixelBounds.z)
+            sampler.maxY          = cast(s32, p.texturePixelBounds.w)
+            sampler.span          = {cast(f32, (sampler.maxX - sampler.minX + 1)), cast(f32, (sampler.maxY - sampler.minY + 1))}
+            sampler.nearest       = p.interpolationMode == .Pixel and .contentScale == 1
+            sampler.sharp         = p.interpolationMode == .Pixel and not sampler.nearest
+            if sampler.sharp
+            {
+                sampler.sharpWidth.x = Math.clamp((sampler.span.x / sampler.size.x) / .contentScale, 0.0001, 1.0)
+                sampler.sharpWidth.y = Math.clamp((sampler.span.y / sampler.size.y) / .contentScale, 0.0001, 1.0)
             }
         }
 
@@ -2474,25 +2544,26 @@ private impl RenderCpu
         if .tryCopyTextureRect(&batch) or .tryResolveTextureRect(&batch) do
             return
 
-        // The blur kernel depends only on the active shader radius. Building it once here
-        // removes pow/exp from every tap of every pixel while preserving the exact tap order.
+        // Both the Gaussian weights and the normalized tap offsets are constant over the draw.
+        var blurTaps: Array'BlurTap
         var blurWeights: Array'f32
-        if .program == CpuProgram_Blur
+        if .program == CpuProgram_Blur and batch.paintImage
         {
             let radius = Math.max(.blurRadius, 0.0)
             if radius > 0.000001
             {
-                let rr     = radius * radius
-                let w0     = 0.5135 / Math.pow(radius, 0.96)
-                var offset = -radius
+                let rr       = radius * radius
+                let w0       = 0.5135 / Math.pow(radius, 0.96)
+                let axisSize = .blurAxis == 0 ? batch.paintImage.width : batch.paintImage.height
+                var offset   = -radius
                 while offset <= radius
                 {
-                    blurWeights.add(w0 * Math.exp((-offset * offset) / (2.0 * rr)))
+                    blurTaps.add({offset / axisSize, w0 * Math.exp((-offset * offset) / (2.0 * rr))})
                     offset += 1.0
                 }
 
-                batch.blurWeights     = blurWeights.storage()
-                batch.blurWeightCount = blurWeights.count
+                batch.blurTaps     = blurTaps.storage()
+                batch.blurTapCount = blurTaps.count
             }
         }
 
@@ -2667,7 +2738,7 @@ private impl RenderCpu
             {
                 let row = samples.storage() + cast(u64, y) * cast(u64, width)
                 for x in width do
-                    row[x] = backdropChannels(fetchBgra8(source, x, y))
+                    row[x] = normalizedChannels(fetchBgra8(source, x, y))
             }
 
             prepared.backdropPixels = samples.storage()

@@ -86,7 +86,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
     let view   = assume cast(*Epub.Panel, window.currentView)
     Swag.require(view.contents.count == 3 and view.outline.headings.count == 3)
     view.selectContents(2)
@@ -108,7 +108,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
     let view   = assume cast(*Epub.Panel, window.currentView)
     var chosen = 0
     view.outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
@@ -136,7 +136,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let window  = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
     let view    = assume cast(*Epub.Panel, window.currentView)
     let outline = view.outline
     view.followLink("one.xhtml#passage")
@@ -158,7 +158,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
     let view   = assume cast(*Epub.Panel, window.currentView)
     view.followLink("two.xhtml#arrival")
     completeQueuedViewerFile(&host, window)
@@ -183,34 +183,11 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(navigation.entries.count == 1 and navigation.entries[0].title == "Chapter")
 }
 
-// A colon and a chapter number in the lens turn to that chapter; one past the last offers nothing.
+// The lens turns to a numbered chapter and its chapter rows stop at the ends of the spine.
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
-    let view   = assume cast(*Epub.Panel, window.currentView)
-    window.lens.open(":2")
-    host.finishAnimations()
-    let section = unwrap window.lens.results.sections[0]
-    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2) and section.entries[0].lead == "2")
-    section.entries[0].run!()
-    window.lens.close()
-    host.finishAnimations()
-    completeQueuedViewerFile(&host, window)
-    Swag.require(view.chapter == 1)
-
-    window.lens.open(":3")
-    host.finishAnimations()
-    Swag.require(window.lens.results.sections.isEmpty())
-    window.lens.close()
-    host.finishAnimations()
-}
-
-// The chapter rows of the lens stop at the ends of the spine, as the chapter buttons do.
-#test
-{
-    var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
     let view   = assume cast(*Epub.Panel, window.currentView)
     Swag.require(view.chapter == 0 and view.book.chapters.count == 2)
 
@@ -242,8 +219,22 @@ using Core, Gui, Gui.Testing, Viewers
     let first = chapterRows(window, &host)
     Swag.require(not first.previous and first.next)
 
-    view.showChapter(1)
+    window.lens.open(":2")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2) and section.entries[0].lead == "2")
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
     completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1)
+
     let last = chapterRows(window, &host)
     Swag.require(last.previous and not last.next)
+
+    window.lens.open(":3")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
 }

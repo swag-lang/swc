@@ -23,8 +23,6 @@ using Swag, Core
     g_Library.files  = expect Library.enumerateSupportedFiles(folder)
     g_Library.loaded = true
     Swag.require(not g_Library.files.isEmpty())
-    var watch: Time.Stopwatch
-    watch.start()
     main.swapLibraryMode()
     main.libWnd.view.thread.wait()
     host.finishAnimations()
@@ -32,20 +30,9 @@ using Swag, Core
     Swag.require(view.allItems.count == g_Library.files.count)
     for item in view.allItems do
         Swag.require(item!.loaded)
-    Console.print("Corpus items: ", view.allItems.count, "; load ms: ", watch.elapsedMilliseconds(), "\n")
-
-    for 8 do
-        discard host.render(main)
     let count = view.allItems.count
-    watch.restart()
-    for 4
-    {
-        main.swapLibraryMode()
-        main.swapLibraryMode()
-        host.finishAnimations()
-        discard host.render(main)
-        Swag.require(view.allItems.count == count and not g_UpdatingLib)
-    }
-
-    Console.print("Four warm library returns with off-screen painting, ms: ", watch.elapsedMilliseconds(), "\n")
+    main.swapLibraryMode()
+    main.swapLibraryMode()
+    host.finishAnimations()
+    Swag.require(view.allItems.count == count and not g_UpdatingLib)
 }

@@ -52,8 +52,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     return result
 }
 
-// The shape inspector's scrollbar takes pointer input inside its wide target and leaves the
-// window resize edge free. The gesture is sent through the actual inspector and property grid.
+// The shape inspector aligns its style choices and routes scrollbar input away from the resize edge.
 #test
 {
     var f: HeadlessFixture
@@ -63,6 +62,16 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.main.editMode = .Shape
     prop.selectionHasChanged()
     f.gui.pump()
+
+    let shapes = testFindStyleButtons(prop, appStrings().act_Shape)
+    let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
+    Swag.require(shapes.count == 3 and dashes.count == 4)
+    for i in shapes.count
+    {
+        let shape = shapes[i].surfaceRect()
+        let dash  = dashes[i].surfaceRect()
+        Swag.require(shape.x == dash.x and shape.width == dash.width)
+    }
 
     let body = unwrap prop.parent
     body.resize(body.position.width, 260)
@@ -90,28 +99,6 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.mouseDown(edge)
     Swag.require(f.gui.app.mouseCapture() != scroll)
     f.gui.mouseUp(edge)
-}
-
-// Shape and dash choices share the same cell grid in the inspector.
-#test
-{
-    var f: HeadlessFixture
-    f.setup()
-    defer f.shutdown()
-    let prop = testSetupPropWnd(&f)
-    f.main.editMode = .Shape
-    prop.selectionHasChanged()
-    f.gui.pump()
-
-    let shapes = testFindStyleButtons(prop, appStrings().act_Shape)
-    let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
-    Swag.require(shapes.count == 3 and dashes.count == 4)
-    for i in shapes.count
-    {
-        let shape = shapes[i].surfaceRect()
-        let dash  = dashes[i].surfaceRect()
-        Swag.require(shape.x == dash.x and shape.width == dash.width)
-    }
 }
 
 // Editing a tool's defaults with no selection leaves the document clean.

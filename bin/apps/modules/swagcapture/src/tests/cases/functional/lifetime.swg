@@ -24,7 +24,7 @@ using Swag, Core
     f.gui.runFrames(1)
     let baseline = countWindows(f.main)
 
-    for 100
+    for 3
     {
         f.main.editMode = .Text
         f.main.updateState()

@@ -975,75 +975,42 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     return false
 }
 
-// Each corner rounds by its own radius. A box that rounds one corner keeps the other three
-// square rather than taking the largest radius everywhere.
+// HTML boxes paint individual corner radii, differently colored sides, and a uniform rounded border.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
 
-    var source: String = "<style>body { margin: 0; background: #ffffff }"
-    source += ".box { width: 100px; height: 60px; background: #ff0000; border-radius: 0 24px 0 0 }"
-    source += "</style><div class=\"box\"></div>"
-
-    let view = HtmlView.createText(&host.root, source.toString())
-    view.resize(200, 120)
-    view.applyLayout()
-    view.rebuild()
-    var image = host.render(view)
+    func renderBox(host: *Testing.HeadlessHost, style: string)->Image
+    {
+        let source = Format.toString("<style>body { margin: 0; background: #ffffff } div { width: 100px; height: 60px; % }</style><div></div>", style)
+        let view = HtmlView.createText(&host.root, source.toString())
+        defer view.destroyNow()
+        view.resize(200, 120)
+        view.applyLayout()
+        view.rebuild()
+        return host.render(view)
+    }
 
     // Only the top-right corner is cut away.
-    Swag.require(image.pixelColor(2, 2).argb == 0xFFFF0000)
-    Swag.require(image.pixelColor(97, 2).argb == 0xFFFFFFFF)
-    Swag.require(image.pixelColor(2, 57).argb == 0xFFFF0000)
-    Swag.require(image.pixelColor(97, 57).argb == 0xFFFF0000)
-}
+    let corner = renderBox(&host, "background: #ff0000; border-radius: 0 24px 0 0")
+    Swag.require(corner.pixelColor(2, 2).argb == 0xFFFF0000)
+    Swag.require(corner.pixelColor(97, 2).argb == 0xFFFFFFFF)
+    Swag.require(corner.pixelColor(2, 57).argb == 0xFFFF0000)
+    Swag.require(corner.pixelColor(97, 57).argb == 0xFFFF0000)
 
-// A rounded box whose sides carry different colours keeps each side's own colour. One stroke
-// cannot do that, so such a box is drawn side by side, with square corners as the documented
-// approximation.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(200, 120)
-
-    var source: String = "<style>body { margin: 0; background: #ffffff }"
-    source += ".box { width: 100px; height: 60px; background: #ffffff; border-radius: 10px;"
-    source += " border-top: 6px solid #ff0000; border-right: 6px solid #00ff00;"
-    source += " border-bottom: 6px solid #0000ff; border-left: 6px solid #ffff00 }"
-    source += "</style><div class=\"box\"></div>"
-
-    let view = HtmlView.createText(&host.root, source.toString())
-    view.resize(200, 120)
-    view.applyLayout()
-    view.rebuild()
-    var image = host.render(view)
-
-    Swag.require(image.pixelColor(50, 2).argb == 0xFFFF0000)
-    Swag.require(image.pixelColor(2, 30).argb == 0xFFFFFF00)
-    Swag.require(image.pixelColor(109, 30).argb == 0xFF00FF00)
-    Swag.require(image.pixelColor(50, 69).argb == 0xFF0000FF)
-}
-
-// A box whose four sides agree is still drawn as one rounded ring, on every side.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(200, 120)
-
-    var source: String = "<style>body { margin: 0; background: #ffffff }"
-    source += ".box { width: 100px; height: 60px; background: #ffffff;"
-    source += " border: 6px solid #0000ff; border-radius: 12px }"
-    source += "</style><div class=\"box\"></div>"
-
-    let view = HtmlView.createText(&host.root, source.toString())
-    view.resize(200, 120)
-    view.applyLayout()
-    view.rebuild()
-    var image = host.render(view)
+    // Different border colors remain visible on their respective sides.
+    let sides = renderBox(&host, """background: #ffffff; border-radius: 10px;
+                                    border-top: 6px solid #ff0000; border-right: 6px solid #00ff00;
+                                    border-bottom: 6px solid #0000ff; border-left: 6px solid #ffff00""")
+    Swag.require(sides.pixelColor(50, 2).argb == 0xFFFF0000)
+    Swag.require(sides.pixelColor(2, 30).argb == 0xFFFFFF00)
+    Swag.require(sides.pixelColor(109, 30).argb == 0xFF00FF00)
+    Swag.require(sides.pixelColor(50, 69).argb == 0xFF0000FF)
 
     // Every side is painted inside its own band; antialiasing decides the exact edge, so the
     // band is scanned rather than one pixel of it pinned.
+    var image = renderBox(&host, "background: #ffffff; border: 6px solid #0000ff; border-radius: 12px")
     Swag.require(columnHasColor(&image, 56, 0, 6, 0xFF0000FF))
     Swag.require(rowHasColor(&image, 36, 0, 6, 0xFF0000FF))
     Swag.require(rowHasColor(&image, 36, 106, 112, 0xFF0000FF))

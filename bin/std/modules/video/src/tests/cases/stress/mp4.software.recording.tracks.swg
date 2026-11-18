@@ -30,8 +30,6 @@ using Swag, Core, Audio, Pixel
                                                                    1_600.0 * frame / 48_000.0)))
     }
 
-    var watch: Time.Stopwatch
-    watch.start()
     var audioBlocks = 0'u64
     for frame in 60'u64
     {
@@ -47,10 +45,6 @@ using Swag, Core, Audio, Pixel
     }
 
     expect recorder.end()
-    watch.stop()
-    Console.printf("Software MP4 four audio tracks 1080p60: % us for 60 video and % audio packets\n",
-                   watch.elapsedMicroseconds(),
-                   (audioBlocks + 1) * 4)
     Swag.require(recorder.videoFrameCount() == 60 and recorder.audioTrackCount() == 4)
     for index in 4'u32
     {

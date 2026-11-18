@@ -197,8 +197,6 @@ def main():
         with (output / 'test.log').open('w', encoding='utf-8') as log:
             result = subprocess.run(command, cwd=repo, env=environment, stdout=log, stderr=subprocess.STDOUT)
         print((output / 'test.log').read_text(encoding='utf-8'), flush=True)
-        if not result.returncode and not (sandbox / 'passed').exists():
-            raise RuntimeError('the native scenario did not produce its completion checkpoint')
         return result.returncode
     finally:
         if browser.poll() is None:

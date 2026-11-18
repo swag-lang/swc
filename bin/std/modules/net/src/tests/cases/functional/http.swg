@@ -10,6 +10,13 @@ struct HttpServerFixture
     response:      string
 }
 
+struct HttpTimeoutFixture
+{
+    late listener:        *TcpListener
+    late requestFinished: *Sync.Event
+    received:             bool
+}
+
 func serveHttp(thread: const *Threading.Thread)
 {
     let fixture = cast(*HttpServerFixture, unwrap thread.userParam)
@@ -34,28 +41,32 @@ func serveHttp(thread: const *Threading.Thread)
     }
 }
 
-func stallHttp(thread: const *Threading.Thread)
-{
-    let listener = cast(*TcpListener, unwrap thread.userParam)
-    var stream   = expect listener.accept()
-    var buffer: [1024] u8
-    discard expect stream.read(buffer)
-    Threading.Thread.sleep(8's)
-}
-
 // A peer that accepts a connection but never sends a response reaches the receive timeout.
 #test
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
+    var requestFinished: Sync.Event
+    requestFinished.init(manual: false)
+    var fixture = HttpTimeoutFixture{listener: &listener, requestFinished: &requestFinished}
+
+    func stallHttp(thread: const *Threading.Thread)
+    {
+        let peer   = cast(*HttpTimeoutFixture, unwrap thread.userParam)
+        var stream = expect peer.listener.accept()
+        var buffer: [1024] u8
+        peer.received = (expect stream.read(buffer)) > 0
+        peer.requestFinished.wait()
+    }
+
     var thread: Threading.Thread
-    expect thread.init(&stallHttp, &listener)
+    expect thread.init(&stallHttp, &fixture)
     expect thread.start()
     var error: Swag.Error
-    let started = Time.monotonicMilliseconds()
     discard catch Http.get("127.0.0.1", endpoint.port, "/", false, {timeoutMs: 100}) as error
-    let elapsed = Time.monotonicMilliseconds() - started
+    requestFinished.signal()
     thread.wait()
+    Swag.require(fixture.received)
     Swag.require(error.value() is NetworkError)
     if error.value() is NetworkError as networkError
     {
@@ -64,8 +75,6 @@ func stallHttp(thread: const *Threading.Thread)
         else do
             Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
     }
-
-    Swag.require(elapsed < 7_000)
 }
 
 #test

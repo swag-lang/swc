@@ -1,7 +1,7 @@
 """Exercise the editor with a synthetic two-hour SCC/MP4, without recording the desktop.
 
-Keeps exported clips, native editor screenshots, timing measurements and a test log outside
-the checkout. Requires Windows and an interactive desktop. No browser or audio device is needed.
+Keeps exported clips and a test log outside the checkout. Requires Windows and an interactive
+desktop. No browser or audio device is needed.
 """
 
 import argparse
@@ -45,11 +45,8 @@ def main():
                                 'capture.fixture.generate=true', '--run-timeout', '60'])
         if result:
             return result
-    result = run('tools', ['--test-file', 'longvideo.workspace.swg', '--test-tag', 'stress',
-                           '--run-arg', f'swag.sandbox={sandbox}', '--run-timeout', '90'])
-    if not result and not (sandbox / 'twohours-tools.txt').is_file():
-        raise RuntimeError('the native scenario did not produce its timing checkpoint')
-    return result
+    return run('tools', ['--test-file', 'longvideo.workspace.swg', '--test-tag', 'stress',
+                         '--run-arg', f'swag.sandbox={sandbox}', '--run-timeout', '90'])
 
 
 if __name__ == '__main__':

@@ -73,10 +73,8 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     var error: Swag.Error
     discard catch Http.get("localhost", port, "/partial", false) as error
     Swag.require(error.value() is NetworkError)
-    let started = Time.monotonicMilliseconds()
     discard catch Http.get("localhost", port, "/slow", false, {timeoutMs: 100}) as error
-    let elapsed = Time.monotonicMilliseconds() - started
-    Swag.require(error.value() is NetworkError and elapsed < 2000)
+    Swag.require(error.value() is NetworkError)
     if error.value() is NetworkError as networkError do
         Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
 }

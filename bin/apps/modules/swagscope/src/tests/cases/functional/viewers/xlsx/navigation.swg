@@ -17,7 +17,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.xlsx"), false)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.xlsx"), false)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
     Swag.require(view.sheet == 2 and view.visible.count == 2 and view.sheetLabel.text() == "2 / 2")
     Swag.require(not view.nextButton.isEnabled() and view.previousButton.isEnabled())
@@ -46,7 +46,7 @@ using Core, Gui, Gui.Testing, Viewers
     let path = formattedWorkbookVariant("xl/workbook.xml", " sheetId=", " state=\"veryHidden\" sheetId=")
     defer discard catch File.delete(path)
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, path, true)
+    let window = openFramedViewerWindow(&host, path, true)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
     Swag.require(view.grid == null and view.visible.isEmpty() and view.status.text() == Xlsx.texts().ui_AllHidden)
     Swag.require(not view.previousButton.isEnabled() and not view.nextButton.isEnabled())
@@ -60,7 +60,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.xlsx"), true, 560, 400)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.xlsx"), true, 560, 400)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     let view = assume cast(*Xlsx.Panel, window.currentView)
     view.setShowHidden(true)
@@ -81,7 +81,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.monthly-budget.xlsx"), true)
+    let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.monthly-budget.xlsx"), true)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
     view.setTextMode(true)
 
@@ -97,7 +97,7 @@ using Core, Gui, Gui.Testing, Viewers
 
     // An OpenDocument spreadsheet is read by the same workbook panel and answers alike.
     var odsHost: HeadlessHost
-    let odsWindow = framedViewerWindow(&odsHost, scopeTestDataPath("viewer.ods"), true)
+    let odsWindow = openFramedViewerWindow(&odsHost, scopeTestDataPath("viewer.ods"), true)
     odsWindow.lens.open(":a1")
     odsHost.finishAnimations()
     Swag.require((unwrap odsWindow.lens.results.sections[0]).entries[0].title == Format.toString(Xlsx.texts().ui_GoToCell, "A1"))

@@ -22,7 +22,6 @@ namespace Integration
     const PreviewMountArgument    = "--integration-preview-mount"
     const ContainerSize           = 64'u64 * 1024 * 1024
     const LargeMoveSize           = 16'u64 * 1024 * 1024 + 37
-    const MaximumRenameDurationMs = 5000'u64
     const FileAttributeReadOnly   = 0x00000001'u32
     const FileAttributeNormal     = 0x00000080'u32
     const MoveReplaceExisting     = 0x00000001'u32
@@ -392,14 +391,10 @@ namespace Integration
         trace("FS: large file move between directories")
         var largePayload = createPayload(LargeMoveSize)
         File.writeAllBytes(largeSource, largePayload.toSlice())
-        var renameTimer: Time.Stopwatch
-        renameTimer.start()
         movePath(largeSource, largeDestination)
-        renameTimer.stop()
         let movedLargeStream = File.openRead(largeDestination)
         let movedSize        = movedLargeStream.size()
         movedLargeStream.close()
-        verify(renameTimer.elapsedMilliseconds() < MaximumRenameDurationMs, "moving a large file between directories must not stall the filesystem host")
         verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")

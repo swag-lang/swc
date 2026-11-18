@@ -415,7 +415,7 @@ func shipFrame(host: *Testing.HeadlessHost)
 //
 // The strip floats over the document with the glyph, the name and the window buttons, so a
 // picture of the window is judged whole against its charter picture.
-func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
+func openFramedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
 {
     host.setup(width, height)
     if fallbackFaces.count do
@@ -435,6 +435,13 @@ func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bo
     window.openFile(fileName)
     completeQueuedViewerFile(host, window)
     window.applyLayout()
+    return window
+}
+
+// Also paints the initial frame for tests that inspect rendered content or its caches.
+func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
+{
+    let window = openFramedViewerWindow(host, fileName, light, width, height, fallbackFaces)
     host.settleAnimations(window, 4)
     return window
 }

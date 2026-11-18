@@ -25,10 +25,8 @@ using Core, Gui, Pixel
 
     var watch: Time.Stopwatch
     watch.start()
-    var menuWatch:     Time.Stopwatch
-    var menuFrameSeen: bool
     var stage:         u32
-    app.sigFrame += func|app = &app, &stage, &watch, &menuWatch, &menuFrameSeen, &chosen|(_)
+    app.sigFrame += func|app = &app, &stage, &watch, &chosen|(_)
     {
         Swag.require(watch.elapsedMilliseconds() < 15_000, "folder-history journey exceeded its deadline")
         if stage == 2 do
@@ -53,9 +51,7 @@ using Core, Gui, Pixel
             Swag.require(dialog.browser.pathBar.breadcrumb.toolTip.isEmpty())
             for 2
             {
-                stage         = 1
-                menuFrameSeen = false
-                menuWatch.restart()
+                stage = 1
                 dialog.browser.historyButton.sigPressed.call(dialog.browser.historyButton)
                 Swag.require(stage == 2 and dialog.selectedPath() == chosen)
             }
@@ -66,12 +62,6 @@ using Core, Gui, Pixel
         {
             Swag.require(menu.items.count == 2)
             Swag.require(menu.items[0]!.icon.color == app.theme.colors.arc)
-            if not menuFrameSeen
-            {
-                menuFrameSeen = true
-                Console.println("Folder history first frame: ", menuWatch.elapsedMilliseconds(), " ms")
-            }
-
             if not (expect Testing.verifyNativePresentation(unwrap dialog.surface)) do
                 return
             stage = 2

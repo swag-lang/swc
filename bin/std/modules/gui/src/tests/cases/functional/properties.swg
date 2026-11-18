@@ -138,27 +138,12 @@ impl IPropertyNotify for PropHeadlessRoData
     }
 }
 
-// Properties.addStruct reflects a struct into one item per field (+ a section item).
+// The grid creates an implicit section and one row per field, then clears its rows and selection.
 #test
 {
+    var data: PropHeadlessData
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
-    prop.addStruct(data)
-
-    // 1 implicit section item + 3 fields.
-    Swag.require(prop.items.count == 4)
-    Swag.require(prop.items[0]!.flags.has(.Section))
-}
-
-// Public configuration methods keep their observable state synchronized, and clear makes the
-// control reusable without retaining rows or selection state.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(260, 320)
-    var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.setEditorWidth(280)
     prop.setUsingFieldsLast(true)
@@ -169,6 +154,7 @@ impl IPropertyNotify for PropHeadlessRoData
     Swag.require(prop.usingFieldsLast)
     Swag.require(not prop.revertButtonsVisible)
     Swag.require(prop.items.count == 4)
+    Swag.require(prop.items[0]!.flags.has(.Section))
 
     prop.focusNavigation()
     Swag.require(prop.selItem != null)
@@ -233,13 +219,12 @@ impl IPropertyNotify for PropHeadlessRoData
     Swag.require(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
 }
 
-// Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
-// highlight over the editable rows (clamped), Home/End jump to the ends.
+// Keyboard navigation reaches the editable rows and returns focus to the grid after editing.
 #test
 {
+    var data: PropHeadlessData
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
 
@@ -260,19 +245,8 @@ impl IPropertyNotify for PropHeadlessRoData
     Swag.require(prop.selItem == prop.items[1])
     host.keyPress(Input.Key.End)
     Swag.require(prop.selItem == prop.items[3])
-}
 
-// Enter starts editing the selected row (focuses its editor); Escape returns to
-// navigation mode (focus back on the grid).
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(260, 320)
-    var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
-    prop.addStruct(data)
-
-    prop.focusNavigation()     // selItem = count row
+    host.keyPress(Input.Key.Home)
     host.keyPress(Input.Key.Return)
     Swag.require(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
 

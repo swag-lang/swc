@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// Measures pitched top-down readback into a bottom-up virtual-desktop image.
+// A pitched virtual-desktop copy flips the rows and preserves the destination padding.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -12,7 +12,6 @@ using Swag, Core
     const SourcePitch      = Width * 4 + 256
     const DestinationPitch = Width * 4 + 128
     const RowBytes         = Width * 4
-    const Iterations       = 16'u64
     var source:    Array'u8
     var output:    Array'u8
     var reference: Array'u8
@@ -25,29 +24,13 @@ using Swag, Core
         Memory.set(source.storage() + row * SourcePitch, cast(u8, row % 256), RowBytes)
 
     let outputBottom = output.storage() + (Height - 1) * DestinationPitch
-    var watch: Time.Stopwatch
-    watch.start()
-    for Iterations do
-        copyMappedBgraRows(outputBottom, DestinationPitch, source.storage(), SourcePitch, RowBytes, Height)
-    watch.stop()
-    let parallelMicros = watch.elapsedMicroseconds()
+    copyMappedBgraRows(outputBottom, DestinationPitch, source.storage(), SourcePitch, RowBytes, Height)
 
     let referenceBottom = reference.storage() + (Height - 1) * DestinationPitch
-    watch.restart()
-    for Iterations
-    {
-        for row in Height do
-            Memory.copy(referenceBottom - row * DestinationPitch,
-                        source.storage() + row * SourcePitch,
-                        RowBytes)
-    }
-
-    watch.stop()
-    let serialMicros = watch.elapsedMicroseconds()
+    for row in Height do
+        Memory.copy(referenceBottom - row * DestinationPitch,
+                    source.storage() + row * SourcePitch,
+                    RowBytes)
 
     Swag.require(Slice.equals(output.toSlice(), reference.toSlice()))
-    Console.printf("Virtual desktop pitched BGRA copy: parallel % us, serial % us for % frames\n",
-                   parallelMicros,
-                   serialMicros,
-                   Iterations)
 }

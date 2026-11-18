@@ -54,8 +54,6 @@ using Swag, Core, Audio, Pixel
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 2,
                                                                                        audio.decoderConfig()})
-    var watch: Time.Stopwatch
-    watch.start()
     var audioBlocks = 0'u64
     for frame in 60'u64
     {
@@ -84,10 +82,6 @@ using Swag, Core, Audio, Pixel
                                                audio.lastPacketStartSample(), 1_024, true})
     Swag.require(not (expect audio.finish(&drain)))
     expect writer.end()
-    watch.stop()
-    Console.printf("Software MP4 scrolling 4K60: % us for 60 video and % audio packets\n",
-                   watch.elapsedMicroseconds(),
-                   audio.packetCount())
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 60 and summary.audioTracks.count == 1)

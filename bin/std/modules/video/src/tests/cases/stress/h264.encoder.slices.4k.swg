@@ -25,87 +25,7 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
     return result
 }
 
-// Reports 4K IDR/P encode and Reader decode costs with one, four or eight row-band slices.
-#[Swag.TestTag("stress")]
-#test
-{
-    let first   = expect sliceStressFrame(0)
-    let changed = expect sliceStressFrame(1)
-    for count in [1'u32, 4, 8]
-    {
-        let path = videoTempPath("h264-encoder-slices-4k", "mp4")
-        defer discard catch File.delete(path)
-        var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: 28, sliceCount: count)
-        var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
-        var watch: Time.Stopwatch
-        watch.start()
-        let idr = expect encoder.encode(&first, 0, 3_000)
-        watch.stop()
-        let idrMicros = watch.elapsedMicroseconds()
-        let idrBytes  = idr.bytes.count
-        expect writer.addPacket(idr)
-        watch.restart()
-        let p = expect encoder.encode(&changed, 3_000, 3_000)
-        watch.stop()
-        let pMicros = watch.elapsedMicroseconds()
-        let pBytes  = p.bytes.count
-        expect writer.addPacket(p)
-        watch.restart()
-        let staticPicture = expect encoder.encode(&changed, 6_000, 3_000)
-        watch.stop()
-        let staticMicros = watch.elapsedMicroseconds()
-        let staticBytes  = staticPicture.bytes.count
-        expect writer.addPacket(staticPicture)
-        watch.restart()
-        let held = expect encoder.repeatPrevious(9_000, 3_000)
-        watch.stop()
-        let heldMicros = watch.elapsedMicroseconds()
-        let heldBytes  = held.bytes.count
-        expect writer.addPacket(held)
-        expect writer.end()
-
-        var reader = expect Reader.open(path)
-        Swag.require(reader.frameCount() == 4)
-        var decoded: PlanarFrame
-        watch.restart()
-        expect reader.decodeFramePlanesInto(&decoded, 0)
-        watch.stop()
-        let decodeIdrMicros = watch.elapsedMicroseconds()
-        watch.restart()
-        expect reader.decodeFramePlanesInto(&decoded, 1)
-        watch.stop()
-        let decodePMicros = watch.elapsedMicroseconds()
-        var staticDecoded: PlanarFrame
-        expect reader.decodeFramePlanesInto(&staticDecoded, 2)
-        var heldPicture: PlanarFrame
-        watch.restart()
-        expect reader.decodeFramePlanesInto(&heldPicture, 3)
-        watch.stop()
-        let decodeHeldMicros = watch.elapsedMicroseconds()
-        Swag.require(decoded.width == 3840 and decoded.height == 2160)
-        Swag.require(Slice.equals(decoded.luma.toSlice(), staticDecoded.luma.toSlice()))
-        Swag.require(Slice.equals(decoded.chromaB.toSlice(), staticDecoded.chromaB.toSlice()))
-        Swag.require(Slice.equals(decoded.chromaR.toSlice(), staticDecoded.chromaR.toSlice()))
-        Swag.require(Slice.equals(decoded.luma.toSlice(), heldPicture.luma.toSlice()))
-        Swag.require(Slice.equals(decoded.chromaB.toSlice(), heldPicture.chromaB.toSlice()))
-        Swag.require(Slice.equals(decoded.chromaR.toSlice(), heldPicture.chromaR.toSlice()))
-        Console.printf("H264 4K % slices: IDR % us/% bytes, P % us/% bytes, static % us/% bytes, held % us/% bytes, Reader IDR % us/P % us/held % us\n",
-                       count,
-                       idrMicros,
-                       idrBytes,
-                       pMicros,
-                       pBytes,
-                       staticMicros,
-                       staticBytes,
-                       heldMicros,
-                       heldBytes,
-                       decodeIdrMicros,
-                       decodePMicros,
-                       decodeHeldMicros)
-    }
-}
-
-// Repeated changing pictures expose sustained cost at Capture's two lossy settings.
+// A 4K changing picture and its held copies decode identically across the supported slice layouts.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -113,28 +33,33 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
     let changed = expect sliceStressFrame(1)
     for qp in [18'u32, 28]
     {
-        for count in [4'u32, 8]
+        for count in [1'u32, 4, 8]
         {
+            let path = videoTempPath("h264-encoder-slices-4k", "mp4")
+            defer discard catch File.delete(path)
             var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: qp, sliceCount: count)
-            discard expect encoder.encode(&first, 0, 3_000)
-            discard expect encoder.encode(&changed, 3_000, 3_000)
-            var watch: Time.Stopwatch
-            watch.start()
-            var totalBytes: u64
-            for index in 100'u64
-            {
-                let picture = index % 2 ? &changed : &first
-                let packet  = expect encoder.encode(picture, (index + 2) * 3_000, 3_000)
-                totalBytes += packet.bytes.count
-            }
+            var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
+            expect writer.addPacket(expect encoder.encode(&first, 0, 3_000))
+            expect writer.addPacket(expect encoder.encode(&changed, 3_000, 3_000))
+            expect writer.addPacket(expect encoder.encode(&first, 6_000, 3_000))
+            expect writer.addPacket(expect encoder.encode(&changed, 9_000, 3_000))
+            expect writer.addPacket(expect encoder.encode(&changed, 12_000, 3_000))
+            expect writer.addPacket(expect encoder.repeatPrevious(15_000, 3_000))
+            expect writer.end()
 
-            watch.stop()
-            Console.printf("H264 4K QP % % slices: 100 changing P pictures % us/% bytes\n",
-                           qp,
-                           count,
-                           watch.elapsedMicroseconds(),
-                           totalBytes)
-            Swag.require(totalBytes > 0)
+            var reader = expect Reader.open(path)
+            Swag.require(reader.frameCount() == 6)
+            var changedPicture: PlanarFrame
+            expect reader.decodeFramePlanesInto(&changedPicture, 3)
+            Swag.require(changedPicture.width == 3840 and changedPicture.height == 2160)
+            var held: PlanarFrame
+            for index in [4'u64, 5]
+            {
+                expect reader.decodeFramePlanesInto(&held, index)
+                Swag.require(Slice.equals(changedPicture.luma.toSlice(), held.luma.toSlice()))
+                Swag.require(Slice.equals(changedPicture.chromaB.toSlice(), held.chromaB.toSlice()))
+                Swag.require(Slice.equals(changedPicture.chromaR.toSlice(), held.chromaR.toSlice()))
+            }
         }
     }
 }

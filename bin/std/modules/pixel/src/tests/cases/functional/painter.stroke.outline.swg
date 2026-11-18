@@ -112,8 +112,9 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
 
     // And the head carries the contour the shaft carries.
     let borderedAll = outlineTestSpan(bordered, HeadX, whiteOnly: false)
-    Swag.require(borderedCore.top - borderedAll.top == 4)
-    Swag.require(borderedAll.bottom - borderedCore.bottom == 4)
+    let upper = borderedCore.top - borderedAll.top
+    let lower = borderedAll.bottom - borderedCore.bottom
+    Swag.require(upper == 4 and lower == 4, Format.toString("arrowhead contour occupies % pixels above and % below", upper, lower))
 }
 
 // A contoured dashed stroke keeps the dash pattern of the stroke itself.

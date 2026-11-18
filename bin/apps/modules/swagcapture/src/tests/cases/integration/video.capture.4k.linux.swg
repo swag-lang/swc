@@ -29,30 +29,17 @@ private func has4KDesktop()->bool fail
                             Format.toString("swag-capture-4k60-%.mp4", Guid64.random()).toString())
     defer discard catch File.delete(path)
     var session = expect VideoCaptureSession.create(path, {0, 0, Width, Height}, expect FrameRate.create(60, 1), false)
-    var watch: Time.Stopwatch
-    watch.start()
     for frame in 60'u64 do
         Swag.require(expect session.captureAt(frame * 16_667))
     expect session.end()
-    watch.stop()
-    Console.printf("Real X11 software MP4 4K60: % us for 60 frames, % bytes\n",
-                   watch.elapsedMicroseconds(),
-                   (expect File.info(path)).size)
-    let encodedAt = Time.monotonicMicroseconds()
     Swag.require(session.frameCount() == 60 and session.repeatedFrameCount() == 0)
     var reader   = expect Reader.open(path)
-    let openedAt = Time.monotonicMicroseconds()
     Swag.require(reader.frameCount() == 60 and reader.audioTrackCount() == 0)
     var decoded: PlanarFrame
     expect reader.decodeFramePlanesInto(&decoded, 59)
-    let decodedAt = Time.monotonicMicroseconds()
     var expected: Nv12Frame
     expect expected.convertFrom(&session.picture)
     Swag.require(Slice.equals(decoded.luma.toSlice(), expected.luma()))
-    Console.printf("Real X11 4K60 validation: open % us, last-frame decode % us, compare % us\n",
-                   openedAt - encodedAt,
-                   decodedAt - openedAt,
-                   Time.monotonicMicroseconds() - decodedAt)
 }
 
 // Measures the same 4K screen acquisition while encoding a live stereo AAC track.
@@ -79,8 +66,6 @@ private func has4KDesktop()->bool fail
                                                                     1_500.0 * frame / 48_000.0)))
     }
 
-    var watch: Time.Stopwatch
-    watch.start()
     var audioBlocks = 0'u64
     for frame in 60'u64
     {
@@ -93,9 +78,6 @@ private func has4KDesktop()->bool fail
     }
 
     expect session.end()
-    watch.stop()
-    Console.printf("Real X11 software MP4 4K60 with AAC: % us for 60 frames and 48 sound packets\n",
-                   watch.elapsedMicroseconds())
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 60 and summary.audioTracks.count == 1)
     Swag.require(summary.audioTracks[0].packetCount == 48 and not summary.hasIncompleteTail)
@@ -195,9 +177,6 @@ private func has4KDesktop()->bool fail
                                                                     1_500.0 * frame / 48_000.0)))
     }
 
-    var paintMicros = 0'u64
-    var videoMicros = 0'u64
-    var soundMicros = 0'u64
     var audioBlocks = 0'u64
     if localized
     {
@@ -208,7 +187,6 @@ private func has4KDesktop()->bool fail
 
     for frame in 60'u64
     {
-        let paintStart = Time.monotonicMicroseconds()
         if localized
         {
             if frame
@@ -238,24 +216,17 @@ private func has4KDesktop()->bool fail
             checkedDynamicX11(connection, check, put(connection, 2, x11.rootWindow(), gc, cast(u16, Tile), cast(u16, Tile), destinationX, destinationY, 0, x11.rootDepth(), cast(u32, tile.count), tile.storage()))
         }
 
-        paintMicros += Time.monotonicMicroseconds() - paintStart
 
-        let videoStart = Time.monotonicMicroseconds()
         Swag.require(expect session.captureAt(frame * 16_667))
-        videoMicros += Time.monotonicMicroseconds() - videoStart
-        let soundStart = Time.monotonicMicroseconds()
         while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
         {
             expect session.addAudioFrames(Swag.makeSlice(&samples[0], samples.count))
             audioBlocks += 1
         }
 
-        soundMicros += Time.monotonicMicroseconds() - soundStart
     }
 
-    let finalizeStart = Time.monotonicMicroseconds()
     expect session.end()
-    let finalizeMicros = Time.monotonicMicroseconds() - finalizeStart
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 60 and
@@ -278,22 +249,6 @@ private func has4KDesktop()->bool fail
         Swag.require(decoded.width == Width and
                      decoded.height == Height and
                      decoded.luma.count == cast(u64, Width) * Height)
-        var expected: Nv12Frame
-        expect expected.convertFrom(&session.picture)
-        let sourceY      = expected.luma()
-        var squaredError = 0'u64
-        for index in sourceY.count
-        {
-            let error = cast(s32, sourceY[index]) - cast(s32, decoded.luma[index])
-            squaredError += cast(u64, error * error)
-        }
-
-        let mse  = cast(f64, squaredError) / cast(f64, sourceY.count)
-        let psnr = mse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / mse)
-        if localized do
-            Console.printf("Localized X11 4K60 final-frame luma PSNR: % dB\n", psnr)
-        else do
-            Console.printf("Dynamic X11 4K60 final-frame luma PSNR: % dB\n", psnr)
     }
 
     let sound = unwrap reader.audioTrack(0)
@@ -305,24 +260,4 @@ private func has4KDesktop()->bool fail
         return true
     })
     Swag.require(pcm.count == 47 * 1_024 * 2)
-    if localized do
-        Console.printf("Localized X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                       quantizationQp,
-                       sliceCount,
-                       paintMicros,
-                       videoMicros,
-                       soundMicros,
-                       finalizeMicros,
-                       (expect File.info(path)).size,
-                       path)
-    else do
-        Console.printf("Dynamic X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                       quantizationQp,
-                       sliceCount,
-                       paintMicros,
-                       videoMicros,
-                       soundMicros,
-                       finalizeMicros,
-                       (expect File.info(path)).size,
-                       path)
 }

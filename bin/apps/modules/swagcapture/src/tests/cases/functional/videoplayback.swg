@@ -3,6 +3,15 @@
 
 using Swag, Core, Gui, Pixel, Video
 
+func waitForPlaybackBuffer(timeline: *TimelineBar)
+{
+    while not timeline.decoder.isBuffered()
+    {
+        Swag.require(not timeline.decoder.hasFailed())
+        Threading.Thread.yield()
+    }
+}
+
 // Reaching the end of a short sound track must not freeze the remaining video pictures.
 #test
 {
@@ -35,14 +44,8 @@ using Swag, Core, Gui, Pixel, Video
     f.main.timeline = timeline
     timeline.togglePlay()
     defer timeline.stop()
-    var event   = TimerEvent{timer: unwrap timeline.playTimer}
-    let readyBy = Time.monotonicMicroseconds() + 2_000_000
-    while not timeline.decoder.isBuffered() and not timeline.decoder.hasFailed()
-    {
-        Swag.require(Time.monotonicMicroseconds() < readyBy, "video prefetch did not finish")
-        Threading.Thread.sleep(1'ms)
-    }
-
+    var event = TimerEvent{timer: unwrap timeline.playTimer}
+    waitForPlaybackBuffer(timeline)
     timeline.IWnd.onTimerEvent(&event)
     Swag.require(timeline.audioReader != null and timeline.audioVoices[0] != null)
     let sound = unwrap timeline.audioReader.audioTrack(0)
@@ -52,12 +55,11 @@ using Swag, Core, Gui, Pixel, Video
 
     timeline.playFrom  = 0
     timeline.playStart = Time.monotonicMicroseconds() - 700_000
-    let frameBy = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead < 7
     {
-        Swag.require(Time.monotonicMicroseconds() < frameBy, "video prefetch did not reach frame seven")
+        Swag.require(timeline.isPlaying() and not timeline.decoder.hasFailed())
         timeline.IWnd.onTimerEvent(&event)
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.yield()
     }
 
     Swag.require(f.capture.playhead >= 7 and timeline.isPlaying())
@@ -70,12 +72,11 @@ using Swag, Core, Gui, Pixel, Video
     timeline.audioClockLast = sound.timelineStartSeconds() + voice.playbackPositionSeconds()
     timeline.playFrom       = 0
     timeline.playStart      = Time.monotonicMicroseconds() - 800_000
-    let nextBy = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead < 8
     {
-        Swag.require(Time.monotonicMicroseconds() < nextBy, "video prefetch did not reach frame eight")
+        Swag.require(timeline.isPlaying() and not timeline.decoder.hasFailed())
         timeline.IWnd.onTimerEvent(&event)
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.yield()
     }
 
     Swag.require(f.capture.playhead >= 8)
@@ -92,12 +93,11 @@ using Swag, Core, Gui, Pixel, Video
     timeline.seek(timeline.trackX(frames.timeOf(2) + 1_000))
     Swag.require(timeline.seekTimer != null and f.capture.playhead >= 8)
     var seekEvent = TimerEvent{timer: timeline.seekTimer}
-    let seekBy    = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead != 2
     {
-        Swag.require(Time.monotonicMicroseconds() < seekBy, "paused video seek did not finish")
+        Swag.require(timeline.seekTimer != null and not timeline.decoder.hasFailed())
         timeline.IWnd.onTimerEvent(&seekEvent)
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.yield()
     }
 
     Swag.require(not timeline.isPlaying() and timeline.seekTimer == null and f.capture.playbackPlanar)
@@ -105,12 +105,7 @@ using Swag, Core, Gui, Pixel, Video
     timeline.seek(timeline.trackX(frames.timeOf(4) + 1_000))
     timeline.togglePlay()
     Swag.require(timeline.seekTimer == null and timeline.isPlaying() and timeline.decoder.firstFrame == 4)
-    let replayBy = Time.monotonicMicroseconds() + 2_000_000
-    while not timeline.decoder.isBuffered()
-    {
-        Swag.require(Time.monotonicMicroseconds() < replayBy, "video did not buffer after a pending seek")
-        Threading.Thread.sleep(1'ms)
-    }
+    waitForPlaybackBuffer(timeline)
 
     var replayEvent = TimerEvent{timer: timeline.playTimer}
     timeline.IWnd.onTimerEvent(&replayEvent)
@@ -162,14 +157,8 @@ using Swag, Core, Gui, Pixel, Video
     func playUntilClockStarts(timeline: *TimelineBar)
     {
         timeline.togglePlay()
-        var event   = TimerEvent{timer: unwrap timeline.playTimer}
-        let readyBy = Time.monotonicMicroseconds() + 2_000_000
-        while not timeline.decoder.isBuffered()
-        {
-            Swag.require(Time.monotonicMicroseconds() < readyBy, "video prefetch did not finish")
-            Threading.Thread.sleep(1'ms)
-        }
-
+        var event = TimerEvent{timer: unwrap timeline.playTimer}
+        waitForPlaybackBuffer(timeline)
         timeline.IWnd.onTimerEvent(&event)
         Swag.require(timeline.playStart != 0)
     }

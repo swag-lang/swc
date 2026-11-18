@@ -72,9 +72,7 @@ func observeViewerPlacement(app: *Application)
         }
 
         let previous = surface.position
-        watch.restart()
         window.sendCommandEvent(ViewerCommands.FullScreen)
-        Console.println("Full-screen entry (us): ", watch.elapsedMicroseconds())
         Swag.require(window.fullScreen and not surface.isMaximized)
         Swag.require(surface.position == Env.monitorForRectangle(normal).physicalBounds)
         Swag.require(IsWindowVisible(surface.win32Handle()))
@@ -82,9 +80,7 @@ func observeViewerPlacement(app: *Application)
         assertViewerNativeBounds(surface)
         Swag.require(window.currentView!.padding.y == 0 and window.documentHost.padding.y == 0)
 
-        watch.restart()
         window.sendCommandEvent(ViewerCommands.FullScreen)
-        Console.println("Full-screen exit (us): ", watch.elapsedMicroseconds())
         Swag.require(not window.fullScreen and surface.isMaximized == fromMaximized)
         Swag.require(surface.position == previous)
         Swag.require(IsWindowVisible(surface.win32Handle()))

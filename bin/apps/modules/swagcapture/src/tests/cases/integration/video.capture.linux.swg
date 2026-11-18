@@ -42,7 +42,6 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
 #[Swag.TestTag("integration.capture.x11")]
 #test
 {
-    let started = Time.monotonicMicroseconds()
     var window  = expect Env.createWindow({identifier: "capture-video-source",
                                            title: "Video capture fixture",
                                            width: 64, height: 48,
@@ -56,7 +55,6 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     defer discard catch File.delete(path)
     var source   = expect ScreenFrameSource.create(false, 10, 20, 64, 48)
     var recorder = expect Mp4.SoftwareRecording.create(path, 64, 48, 90_000, 48_000, 1)
-    let openedAt = Time.monotonicMicroseconds()
     let pacer    = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000_000, 90_000)
 
     var picture: Image
@@ -79,11 +77,9 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
                                                             1_000.0 * frame / 48_000.0)))
     expect recorder.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
     expect recorder.end()
-    let encodedAt = Time.monotonicMicroseconds()
     Swag.require(recorder.videoFrameCount() == 3 and recorder.repeatedFrameCount() == 1)
 
     var reader = expect Reader.open(path)
-    let readAt = Time.monotonicMicroseconds()
     Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 1)
     var decoded: PlanarFrame
     expect reader.decodeFramePlanesInto(&decoded, 0)
@@ -105,11 +101,6 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     for sample in pcm do
         power += cast(f64, sample) * sample
     Swag.require(Math.sqrt(power / pcm.count) > 3_000)
-    Console.printf("X11 software MP4 integration: setup % us, encode % us, open % us, decode % us\n",
-                   openedAt - started,
-                   encodedAt - openedAt,
-                   readAt - encodedAt,
-                   Time.monotonicMicroseconds() - readAt)
 }
 
 // The app session repeats missed slots and recovers from a failed screen read with AAC sound.

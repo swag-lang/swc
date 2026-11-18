@@ -3,7 +3,7 @@
 
 using Swag, Core, Pixel
 
-private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
+private func paintCaptureWindow(window: *Env.Window, pixel: u32)
 {
     let drawable = expect window.xcbDrawable()
     let library  = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
@@ -21,7 +21,7 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
     Swag.require(cleared == null)
 }
 
-// Reports warmed-up frame acquisition on the active X11 server without image allocation.
+// Grabbing another frame on the active X11 server reuses the destination storage.
 #[Swag.TestTag("integration.capture.x11")]
 #test
 {
@@ -33,21 +33,9 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
     expect source.grabInto(&frame)
     let storage = frame.pixels.storage()
 
-    let iterations = width >= 3840 and height >= 2160 ? 16'u64 : 64'u64
-    var watch: Time.Stopwatch
-    watch.start()
-    for iterations do
-        expect source.grabInto(&frame)
-    watch.stop()
-
+    expect source.grabInto(&frame)
     Swag.require(frame.pixels.storage() == storage)
     Swag.require(frame.pixels[3] == 255)
-    Console.printf("X11 BGRA8 % by %: % us for % frames (% us/frame)\n",
-                   width,
-                   height,
-                   watch.elapsedMicroseconds(),
-                   iterations,
-                   watch.elapsedMicroseconds() / iterations)
 }
 
 // Narrow captures exercise both a vector group and the scalar remainder of a row.
@@ -89,8 +77,8 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
     expect bottom.setPosition(width - 80, height - 60)
     expect top.show()
     expect bottom.show()
-    paintBenchmarkWindow(&top, 0xFF0000)
-    paintBenchmarkWindow(&bottom, 0x0000FF)
+    paintCaptureWindow(&top, 0xFF0000)
+    paintCaptureWindow(&bottom, 0x0000FF)
     var fallback = expect X11Capture.create()
     fallback.disableSharedMemory()
     var shared = expect X11Capture.create()
@@ -102,7 +90,6 @@ private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
     Swag.require(Memory.compare(expected.pixels.storage(), actual.pixels.storage(), expected.byteCount) == 0)
     Swag.require(actual.pixelColor(14, 16).argb == Argb.Red)
     Swag.require(actual.pixelColor(width - 76, height - 56).argb == Argb.Blue)
-    Console.printf("X11 MIT-SHM % by %: %\n", width, height, shared.usesSharedMemory() ? "enabled" : "fallback")
 }
 
 // Replacing a segment for a larger capture keeps the connection usable.

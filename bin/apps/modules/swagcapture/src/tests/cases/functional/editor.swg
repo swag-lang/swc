@@ -27,7 +27,7 @@ using Swag, Core
     }
 }
 
-// Editor drags should create forms through the real EditView/Capture mouse path.
+// Editor drags create forms through the same pointer path with or without Shift.
 #test
 {
     var f: HeadlessFixture
@@ -46,22 +46,11 @@ using Swag, Core
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
     Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)
     Swag.require(f.capture.canUndo())
-}
 
-// The headless host mirrors modifier keys into event state, so Shift-constrained
-// creation follows the same path as an interactive square/ellipse drag.
-#test
-{
-    var f: HeadlessFixture
-    f.setup()
-    defer f.shutdown()
-    f.main.editMode = .Shape
-    f.dragImage({20, 30}, {80, 70}, modifiers: Input.KeyModifiers.Shift)
-
-    Swag.require(f.capture.forms.count == 1)
-
-    let shape = assume cast(*FormShape, f.capture.forms[0])
-    Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
+    f.dragImage({120, 30}, {180, 70}, modifiers: Input.KeyModifiers.Shift)
+    Swag.require(f.capture.forms.count == 2)
+    let square = assume cast(*FormShape, f.capture.forms[1])
+    Gui.Testing.assertRect(square.IForm.boundRect(), 120, 30, 60, 60)
 }
 
 // Moving a selected form through mouse capture pushes undo, and the registered

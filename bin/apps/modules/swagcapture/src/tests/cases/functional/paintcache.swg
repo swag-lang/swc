@@ -80,8 +80,7 @@ func testPopulate(capture: *Capture)
     discard testAddShape(capture, 140, 105, 45, 30, .Highlight)
 }
 
-// A repaint that changed nothing draws every form from its retained rendering and must
-// reproduce the first, cache-filling render exactly.
+// Cached repaints stay correct when the capture is unchanged, a form moves, or text is edited.
 #test
 {
     var f: HeadlessFixture
@@ -92,18 +91,8 @@ func testPopulate(capture: *Capture)
     var cold = f.gui.render(f.main)
     var warm = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&cold, &warm, "paintcache.warm")
-}
 
-// A translation keeps the retained rendering and only moves its quad; the composite
-// must still equal a forced from-scratch render of every form.
-#test
-{
-    var f: HeadlessFixture
-    f.setup(520, 380)
-    defer f.shutdown()
-    testPopulate(f.capture)
-    discard f.gui.render(f.main)
-
+    // Moving a form reuses its layer and translates its quad.
     f.capture.selection.add(0)
     with let u = f.capture.newUndo(.OffsetSelection)
     {
@@ -117,6 +106,18 @@ func testPopulate(capture: *Capture)
     f.capture.invalidateAllFormCaches()
     var fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &moved, "paintcache.moved", CrossBakeTolerance)
+
+    // Editing the text must invalidate its layer before the next paint.
+    f.capture.selection.clear()
+    f.capture.selection.add(4)
+    let edit = f.capture.newUndo(.SetText)
+    edit.text = "Edited"
+    f.capture.pushUndo(edit)
+
+    var edited = f.gui.render(f.main)
+    f.capture.invalidateAllFormCaches()
+    fresh = f.gui.render(f.main)
+    Pixel.Testing.assertImagesNear(&fresh, &edited, "paintcache.edited", CrossBakeTolerance)
 }
 
 // A zoom first draws the retained renderings scaled, then sharpens a few forms per
@@ -137,35 +138,18 @@ func testPopulate(capture: *Capture)
                  captureRect.bottom() <= f.editView.position.height)
     Swag.require(f.editView.zoomTimer != null)
     f.gui.fireTimer(f.editView.zoomTimer)
-    for 12 do
-        discard f.gui.render(f.main)
+    var settled: Pixel.Image
+    for 12
+    {
+        settled = f.gui.render(f.main)
+        if not f.capture.cacheNeedsRefine do
+            break
+    }
     Swag.require(not f.capture.cacheNeedsRefine)
 
-    var settled = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()
     var fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &settled, "paintcache.zoom", CrossBakeTolerance)
-}
-
-// A content change through the undo timeline re-renders the touched form: the repaint
-// right after the edit must already match a forced from-scratch render.
-#test
-{
-    var f: HeadlessFixture
-    f.setup(520, 380)
-    defer f.shutdown()
-    testPopulate(f.capture)
-    discard f.gui.render(f.main)
-
-    f.capture.selection.add(4)
-    let u = f.capture.newUndo(.SetText)
-    u.text = "Edited"
-    f.capture.pushUndo(u)
-
-    var edited = f.gui.render(f.main)
-    f.capture.invalidateAllFormCaches()
-    var fresh = f.gui.render(f.main)
-    Pixel.Testing.assertImagesNear(&fresh, &edited, "paintcache.edited", CrossBakeTolerance)
 }
 
 // A form larger than the editor retains the visible part at the current zoom.

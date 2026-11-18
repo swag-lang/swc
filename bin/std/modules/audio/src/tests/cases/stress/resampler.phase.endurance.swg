@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// Simulates four hours of phase updates. It does not run the filter or stream real PCM.
+// Exercises the filter and its final phase carry at the end of a four-hour input.
 func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
 {
     const Rate         = 48_000'u64
@@ -18,11 +18,19 @@ func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
     let historyCount        = resampler.history.count
     let coefficientCount    = resampler.coefficients.count
 
-    // No output samples are needed to test the clock. A zero-channel test fixture makes emit
-    // skip only the filter; end still advances positionFrame and positionPart for every frame.
-    resampler.channels       = 0
-    resampler.receivedFrames = InputFrames
+    // The prefix is silent, so the initialized history already holds its samples.
+    // Start with 48 samples of lookahead, as the streaming filter does between input blocks.
+    let prefixFrames = referenceFrames - 128
+    let prefixPhase  = prefixFrames * resampler.step
+    resampler.positionFrame  = prefixPhase / FractionUnit
+    resampler.positionPart   = prefixPhase % FractionUnit
+    resampler.receivedFrames = resampler.positionFrame + 48
+    var tail: [256] f32
+    Swag.require(resampler.receivedFrames < InputFrames)
+    let tailCount = InputFrames - resampler.receivedFrames
+    Swag.require(tailCount <= tail.count)
     var output: Array'f32
+    expect resampler.addFrames(Swag.makeSlice(&tail[0], tailCount), &output)
     expect resampler.end(&output)
 
     let accumulated = resampler.positionFrame * FractionUnit + resampler.positionPart
@@ -32,7 +40,9 @@ func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
     Swag.require(Math.abs(errorFrames) < 48)     // Forty-eight samples at 48 kHz are one millisecond.
     Swag.require(resampler.positionFrame >= InputFrames)
     Swag.require(accumulated - InputFrames * FractionUnit < resampler.step)
-    Swag.require(output.isEmpty() and output.capacity == 0)
+    Swag.require(output.count == actualFrames - prefixFrames)
+    for sample in output do
+        Swag.require(sample == 0)
     Swag.require(resampler.history.count == historyCount and resampler.history.capacity == historyCapacity)
     Swag.require(resampler.coefficients.count == coefficientCount and resampler.coefficients.capacity == coefficientCapacity)
 }

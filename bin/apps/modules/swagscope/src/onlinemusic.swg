@@ -31,9 +31,11 @@ struct MusicSearch
     groups: Array'OnlineMusic
 }
 
+private const MusicBrainzHost = "musicbrainz.org"
+
 struct MusicSource
 {
-    apiHost: string = "musicbrainz.org"
+    apiHost: string = MusicBrainzHost
     apiPort: u16    = 443
     artHost: string = "coverartarchive.org"
     artPort: u16    = 443
@@ -360,16 +362,20 @@ impl OnlineMusic
         let cached = cachedMusic(tags, source, chosenId)
         if not cached.id.isEmpty() do
             return cached
-        while g_LastMusicRequest and Time.monotonicMilliseconds() - g_LastMusicRequest < 1100
+        if source.apiHost == MusicBrainzHost
         {
-            if Swag.isCancelled() do
-                return {}
-            Threading.Thread.sleep(100'ms)
+            while g_LastMusicRequest and Time.monotonicMilliseconds() - g_LastMusicRequest < 1100
+            {
+                if Swag.isCancelled() do
+                    return {}
+                Threading.Thread.sleep(100'ms)
+            }
         }
 
         if Swag.isCancelled() do
             return {}
-        g_LastMusicRequest = Time.monotonicMilliseconds()
+        if source.apiHost == MusicBrainzHost do
+            g_LastMusicRequest = Time.monotonicMilliseconds()
         var options: Http.GetOptions
         options.userAgent    = "Swag Scope (https://github.com/swag-lang/swc)"
         options.timeoutMs    = 5_000

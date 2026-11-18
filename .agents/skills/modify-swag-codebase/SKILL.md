@@ -190,6 +190,9 @@ Three test surfaces exist, and they are not interchangeable:
 - Add relevant tests for every new Swag language feature under the appropriate `bin/unittests` folder.
 - Put C++ unit tests in `src/Unittest`.
 - Keep each individual test below 40 seconds of runtime, excluding compilation time.
+- Judge a test by assertions on its result. Measure execution time outside the test runner's cases.
+  Use timestamps or a controlled clock as inputs when testing time-dependent behavior. Let the
+  launcher enforce hang timeouts.
 - Exercise behavior at its real boundary instead of manufacturing a source test for a command-line, linker, backend, runtime, or internal-only path.
 
 ### Lay Out A Module's Tests The Same Way Every Time

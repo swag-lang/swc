@@ -242,6 +242,71 @@ Windows matrix is green. Then run the Linux groups whole for unvisited coverage 
 Schedule prerequisites first.
 Prefer DevMode for discovery and defer building the Release compiler until its first check.
 
+EXECUTION PLAN — PUBLISH AND TICK ONE ROW AT A TIME
+
+Before running the campaign, publish this ordered checklist in the progress report and expand each
+inventory/workspace row into the actual targets or modules discovered by the runner. A row is one
+suite, one module, or one required check in one compiler/program configuration. Keep passed rows
+checked across updates; show failed, blocked, running, and pending rows explicitly. Never rerun a
+checked row unless a source change invalidated it or another matrix configuration is required. Do
+not start the next phase while the current phase has unresolved failures.
+
+1. Windows DevMode compiler — full build inventory, before tests:
+   - [ ] Record the buildable target inventory used by the campaign.
+   - [ ] Build every target with `-bc devmode`; one row per target.
+   - [ ] Build every target with `-bc release`; one row per target.
+   - [ ] Fix Windows build failures in batches and retick only affected targets in both configs.
+2. Windows DevMode compiler — compiler suites and workspace tests:
+   - [ ] C++ unit suite once with the DevMode compiler.
+   - [ ] `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, and `native` suites at
+     `-bc devmode`; one row per suite.
+   - [ ] Compiler `workspace` fixtures at `-bc devmode`.
+   - [ ] `std`, `examples`, `apps`, and `reference` at `-bc devmode`; expand into one row per
+     workspace module (and the reference suite), excluding VSCode/VSIX packaging.
+   - [ ] Repeat the source suites, compiler workspace fixtures, and all four workspace groups at
+     `-bc release`; keep one row per suite/module. Do not repeat the C++ suite solely because the
+     Swag program configuration changed.
+3. Windows Release compiler — build immediately before its checks, then tests:
+   - [ ] Build the Release compiler.
+   - [ ] Run `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, and `native` at `-bc devmode`,
+     one row per suite; run compiler `workspace` fixtures at `-bc devmode`.
+   - [ ] Run `std`, `examples`, `apps`, and `reference` at `-bc devmode`, one row per module and
+     reference suite; exclude VSCode/VSIX packaging.
+   - [ ] Repeat those source suites, compiler fixtures, and workspace modules at `-bc release`,
+     one row per suite/module. Do not repeat a C++ suite that does not use the Release compiler.
+4. Windows integrations, after the compiler/workspace test phases:
+   - [ ] OpenGL integration in Release program configuration.
+   - [ ] Each applicable Windows integration suite.
+   - [ ] Each applicable smoke check when its required interactive environment is available.
+5. Windows closeout:
+   - [ ] Formatting check.
+   - [ ] `clang-format` check.
+   - [ ] Help generation, then a second generation/diff check for idempotence.
+   - [ ] Backlog and repository hygiene review; inspect `git status` and commit each retained fix.
+6. Linux — start only after every required Windows build, test, integration, and closeout row is
+   green. Build and test in this order:
+   - [ ] Linux DevMode compiler build.
+   - [ ] Linux DevMode compiler: full build inventory at `-bc devmode`, one row per target.
+   - [ ] Linux DevMode compiler: full build inventory at `-bc release`, one row per target.
+   - [ ] Linux DevMode compiler: C++ suite and compiler/workspace tests at `-bc devmode`;
+     tick each compiler suite and workspace/module separately.
+   - [ ] Linux DevMode compiler: compiler/workspace tests at `-bc release`; tick each suite and
+     workspace/module separately (do not repeat C++ only for the program configuration).
+   - [ ] Linux Release compiler build.
+   - [ ] Linux Release compiler: required compiler/workspace tests at `-bc release`; tick each
+     suite and workspace/module separately.
+   - [ ] Linux integrations required by the matrix; report unavailable host capabilities as
+     blocked with the specific missing prerequisite.
+7. Final closeout:
+   - [ ] Resolve every failed or blocked required row, or report the concrete external blocker.
+   - [ ] Confirm all required rows are green on the current source and the working tree is clean.
+   - [ ] Commit all retained campaign fixes with the `[prompt 1]` prefix.
+
+After publishing this checklist, report only the next active row(s) and their exact scope. At every
+suite boundary, show its pass/fail result, tick or mark that row, then state the next row before
+launching it. If an aggregate command is used, extract and report every individual runner stage as
+its own row; a single aggregate success must not hide the sequence.
+
 PROGRESS STATUS
 
 Maintain separate ledgers for selected `#test` cases and non-test validation checks. The test

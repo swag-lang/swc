@@ -244,27 +244,41 @@ Prefer DevMode for discovery and defer building the Release compiler until its f
 
 PROGRESS STATUS
 
-Maintain a validation ledger with one unit for each required host, compiler build, program
-configuration, validation scope, and finalization check. Report campaign progress after each
-completed or stopped validation command, after each fix-and-rerun batch, and at least every
-30 minutes during long work. Use this compact form:
+Maintain separate ledgers for selected `#test` cases and non-test validation checks. The test
+ledger counts each selected test case once per required host/compiler/program-configuration run;
+keep reruns visible separately and do not let them inflate the number of unique test cases
+completed. Determine the test denominator from the selected test inventory or runner discovery
+before reporting a percentage. If that denominator is not yet known, report the exact completed
+count and say that the percentage is pending discovery; never substitute the number of validation
+gates for test progress. A running test command must report its live `executed/selected` count,
+failures, and current `filename:line` when available.
+
+Track builds, integrations, formatting, help generation, and other required non-test checks in a
+separate validation ledger. Report both dimensions after each completed or stopped validation
+command, after each fix-and-rerun batch, and at least every 30 minutes during long work. Use this
+compact form:
 
 ```text
-Avancement : X/Y contrôles requis validés (Z %)
+Tests : X/Y cas uniques exécutés (Z %) — échecs : N
+Contrôles hors tests : A/B validés (C %)
 Windows : ...
 Linux : ...
-En cours : ...
+En cours : commande; tests exécutés/total; fichier:ligne
 Échecs ou blocages : ...
 Prochaine étape : ...
 ```
 
-Calculate `Z` as the integer percentage of green ledger units (`floor(100 * X / Y)`). Count only
-checks that are green for the current source and applicable compiler/program configuration.
-Failed, blocked, pending, and running units do not count as green. If a source change invalidates a
-previously green unit, remove it from `X` until it passes again. Add newly discovered required
-units to `Y` and state the updated denominator. Never estimate progress from elapsed time, CPU
-load, output volume, or number of commands. Keep the next action and all remaining gates visible in
-every update; a percentage alone is not a status.
+Calculate each percentage independently with integer rounding down. Count a test case as executed
+only after its pass or fail event; count failures as executed and list them separately. If the full
+test denominator is not available yet, do not invent one: give the exact live count and obtain the
+denominator from the selected inventory or runner summary as soon as available. Count a non-test
+check as validated only when green for the current source and applicable compiler/program
+configuration. Failed, blocked, pending, and running non-test checks do not count as validated. If
+a source change invalidates earlier evidence, remove the affected cases/checks from completed
+counts until rerun. Add newly discovered required cases/checks to their own denominator and state
+the updated denominator. Never estimate progress from elapsed time, CPU load, output volume, or
+number of commands. Keep the next action and remaining work visible in every update; percentages
+alone are not a status.
 
 PHASE 2 — DIAGNOSE AND FIX TEST FAILURES IN BATCHES
 

@@ -12,20 +12,32 @@ struct ExplorerListingLoad
     error:           String
     sortColumn:      u32
     descending:      bool
+    watcher:         Directory.Watcher
+    restartWatch:    bool
 }
 
 impl ExplorerListingLoad
 {
     mtd start(path, folder: string, sortColumn: u32, descending: bool, owner: *Wnd)
     {
-        .path       = path
-        .folder     = folder
-        .sortColumn = sortColumn
-        .descending = descending
+        let replaceWatch = .restartWatch or .path != path or not .watcher.isOpen()
+        .path         = path
+        .folder       = folder
+        .sortColumn   = sortColumn
+        .descending   = descending
+        .restartWatch = false
         .error.clear()
         let operation = me
-        .submit(func|operation|()
+        .submit(func|operation, replaceWatch|()
         {
+            // Subscribe before enumerating so changes during the scan can trigger another one.
+            if replaceWatch
+            {
+                operation.watcher.close()
+                if Directory.exists(operation.path) do
+                    operation.watcher = catch Directory.watch(operation.path)
+            }
+
             catch
             {
                 operation.result = try ExplorerListing.load(operation.path)
@@ -38,6 +50,19 @@ impl ExplorerListingLoad
             }
         },
                 owner)
+    }
+
+    // Polled only while the listing worker is idle, so the stream has one owner at a time.
+    mtd pollChanges()->bool
+    {
+        let batch = catch .watcher.next(0)
+        {
+            .restartWatch = true
+            return true
+        }
+
+        .restartWatch = batch.status == .Overflow or batch.status == .Cancelled
+        return .restartWatch or not batch.changes.isEmpty()
     }
 
     // Keeps folders first, then orders the members by the chosen field and naturally by name.

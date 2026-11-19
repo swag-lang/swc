@@ -103,6 +103,70 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
+// An external edit updates the current folder, keeping the filter, selection and history.
+#test
+{
+    let folder = Testing.tempFilePath("scope-folder-watch-", "")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let kept    = Path.combine(folder, "keep.txt")
+    let added   = Path.combine(folder, "new.txt")
+    let renamed = Path.combine(folder, "renamed.txt")
+    expect File.writeAllText(kept, "old")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(folder)
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Details)
+    completeExplorer(&host, explorer)
+    Swag.require(explorer.entries.count == 1 and explorer.watchTimer != null)
+    window.showSearch()
+    window.searchBox.setText(".txt")
+    explorer.selected = 0
+
+    func waitForRefresh(host: *Testing.HeadlessHost, explorer: *Explorer)
+    {
+        for 200
+        {
+            host.fireTimer(explorer.watchTimer)
+            if explorer.load.started
+            {
+                completeExplorer(host, explorer)
+                return
+            }
+
+            Threading.Thread.sleep(5'ms)
+        }
+
+        Swag.require(false, "the folder watcher did not request a refresh")
+    }
+
+    expect File.writeAllText(added, "new")
+    expect File.writeAllText(kept, "updated text")
+    waitForRefresh(&host, explorer)
+    Swag.require(explorer.entries.count == 2 and explorer.entries[0].size == 12)
+    Swag.require(explorer.selected == 0 and explorer.filter.text() == ".txt")
+
+    expect File.move(renamed, added)
+    expect File.delete(kept)
+    waitForRefresh(&host, explorer)
+    Swag.require(explorer.entries.count == 1 and explorer.entries[0].name == "renamed.txt")
+    Swag.require(explorer.selected == Swag.U64.Max and explorer.history.entries.count == 1)
+
+    // F5 also works when a window control outside the file listing holds focus.
+    expect File.writeAllText(added, "new")
+    let epoch = explorer.previewEpoch
+    host.focus(window.searchBox)
+    host.keyPress(.F5)
+    completeExplorer(&host, explorer)
+    Swag.require(explorer.previewEpoch != epoch and explorer.entries.count == 2)
+    Swag.require(window.searchBox.text() == ".txt" and explorer.history.entries.count == 1)
+    window.closeFile()
+    Swag.require(explorer.watchTimer == null and window.keyShortcut(.None, .F5) == ViewerCommands.Reload)
+}
+
 // A click on a packaged book or comic opens its reader rather than the archive explorer.
 #test
 {

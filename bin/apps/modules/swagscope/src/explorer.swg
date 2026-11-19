@@ -126,6 +126,8 @@ struct Explorer
     requested:       String
     requestedFolder: String
     load:            ExplorerListingLoad
+    watchTimer:      *Timer?
+    refreshPending:  bool
     previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
     generation:      u64
     selected:        u64 = Swag.U64.Max
@@ -765,6 +767,8 @@ impl Explorer
     mtd setShown(visible: bool)
     {
         .show(visible)
+        .window.registerKeyShortcut(.None, .F5, visible ? ViewerCommands.Refresh : ViewerCommands.Reload)
+        .updateWatchTimer()
         .window.teachHints(visible)
         .showMediaInfo()
         .window.updateSearchAvailability()
@@ -1046,6 +1050,7 @@ impl Explorer
         .pendingOpen     = Swag.U64.Max
         .requested       = path
         .requestedFolder = folder
+        .refreshPending  = false
         if remember do
             .history.push(Format.toString("%\n%", path, folder))
         .window.refreshExplorerCaption()
@@ -1067,9 +1072,33 @@ impl Explorer
     // media on shares whose timestamps do not change when their contents do.
     mtd forceRefresh()
     {
+        if .requested.isEmpty() do
+            return
         .previewEpoch = Time.Timestamp.utcNow().ticks
         .previewSettings.clear()
-        .navigate(.listing.path, .folder, false)
+        if .load.started do
+            .refreshPending = true
+        else do
+            .reloadListing()
+    }
+
+    private mtd reloadListing()
+    {
+        .leave()
+        .startListing()
+    }
+
+    private mtd updateWatchTimer()
+    {
+        if not .isLocallyVisible() do
+            .stopTimer(&.watchTimer)
+        elif not .load.started
+        {
+            if not .load.watcher.isOpen() do
+                .stopTimer(&.watchTimer)
+            elif not .watchTimer do
+                .watchTimer = .addTimer(250'ms)
+        }
     }
 
     mtd clearCaches(root: string = "")
@@ -2093,6 +2122,18 @@ impl IWnd for Explorer
 {
     mtd impl onResizeEvent(_: *ResizeEvent) => .layoutTools()
 
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .watchTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if not .load.started and .load.pollChanges() do
+            .reloadListing()
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if .cacheClear.claim(evt)
@@ -2128,12 +2169,14 @@ impl IWnd for Explorer
             if .load.path != .requested or
                .load.folder != .requestedFolder or
                .load.sortColumn != .sortColumn or
-               .load.descending != .descending
+               .load.descending != .descending or .refreshPending
             {
+                .refreshPending = false
                 .startListing()
                 return
             }
 
+            .updateWatchTimer()
             if not error.isEmpty()
             {
                 .setStatus("")
@@ -2142,6 +2185,12 @@ impl IWnd for Explorer
                 .scroll.hide()
                 .failure.show()
                 return
+            }
+
+            if not .restoringView and Path.equals(.listing.path, listing.path) and .folder == .requestedFolder
+            {
+                .restoredView  = ExplorerFolderState.capture(me)
+                .restoringView = true
             }
 
             .failure.hide()
@@ -2299,7 +2348,6 @@ impl IWnd for Explorer
 
         switch evt.key
         {
-        case .F5:                                  .forceRefresh()
         case .L where evt.modifiers.has(.Control): .address.beginEdit()
         case .D where evt.modifiers.has(.Alt):     .address.beginEdit()
         case .Left where evt.modifiers.has(.Alt):  .goBack()

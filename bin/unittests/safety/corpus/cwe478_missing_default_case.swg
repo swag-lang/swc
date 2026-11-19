@@ -28,7 +28,7 @@ enum Signal
 
 // --- Faults ---
 
-// GAP language.design.001 - a plain switch covering only part of an enum compiles with no
+// GAP compiler.ai.001 - a plain switch covering only part of an enum compiles with no
 // error and no warning: 'Pause' reaches nothing. Kept LIVE, because falling through a switch
 // is defined behavior - the point being pinned is that nothing says anything.
 func handleWithoutDefault(signal: Signal)->s32
@@ -40,7 +40,7 @@ func handleWithoutDefault(signal: Signal)->s32
     case .Stop:  handled = 2
     }
 
-    return handled     // GAP language.design.001: 'Pause' silently yields 0
+    return handled     // GAP compiler.ai.001: 'Pause' silently yields 0
 }
 
 #test

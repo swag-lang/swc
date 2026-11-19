@@ -450,6 +450,6 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   case transitions and the `kind` tests into `is` and `switch`; run the PDF tests and the Swag
   Scope PDF viewer tests.
 - Done when: an item holds only its own kind's storage, and the PDF module and viewer tests pass.
-- Related: language.design.002.
+- Related: compiler.ai.016.
 
 ---

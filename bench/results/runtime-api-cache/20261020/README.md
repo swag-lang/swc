@@ -116,5 +116,5 @@ variants even with unchanged source, so warm reuse can still publish an archive.
 
 This establishes a reusable machine-code layer. It does not establish a serialized
 semantic module interface or eliminate the runtime's front-end fixed cost. Those
-remaining outcomes stay in `compiler.core.030`, `compiler.core.006` and
-`compiler.core.001` in the compiler backlog.
+remaining outcomes stay in `compiler.core.030`, `compiler.ai.046` and
+`compiler.ai.045` in the compiler backlog.

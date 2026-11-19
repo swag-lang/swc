@@ -43,7 +43,7 @@ func wrappedNegativeIndex(offset: s64)->s32
     #run wrappedNegativeIndex(opaqueS64(-1))
 }
 
-// GAP compiler.safety.006 - a block pointer walks below its allocation with no diagnostic
+// GAP compiler.ai.020 - a block pointer walks below its allocation with no diagnostic
 // and no guard: pointer arithmetic carries neither provenance nor extent. Left commented
 // because it really does read before the buffer.
 //

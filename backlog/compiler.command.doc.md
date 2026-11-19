@@ -31,48 +31,23 @@ not the discovery.
 - Done when: a query typed on any page can lead to a symbol declared in another module of the
   workspace, while every other page stays one self-contained file.
 
-### compiler.command.doc.001 — Code examples in documentation are rendered, never compiled
-
-- Evidence: every ```` ```swag ```` fence goes through `DocMarkdown::renderCodeBlock`, which
-  only syntax-colors it. Nothing compiles it, so examples such as the worked example in the
-  `truetype` module header ([module.swg](../bin/std/modules/truetype/module.swg)) are
-  unchecked.
-- Next: synthesize one `#test` per documentation example and compile and run it with the
-  module's tests, with an explicit marker for a fence that must not be compiled.
-- Done when: every unmarked ```` ```swag ```` example in `bin/` is compiled and run by the test
-  suite, and a broken example fails with a location inside its documentation comment.
-- Elsewhere: rustdoc compiles and runs every example; Go compiles `Example` functions and
-  checks their output.
-
-### compiler.command.doc.003 — There is no serializable documentation model
-
-- Evidence: the pipeline collects `DocItem`/`DocOverload` ([DocTypes.h](../src/Doc/DocTypes.h))
-  and renders straight to HTML, so nothing else can consume it. `--export-api-dir` publishes
-  the public surface as Swag source, but not the items with their documentation and links.
-- Next: define a versioned serialization of the collected model, with stable item identity,
-  kind, signature, documentation, links and source location, and emit it from `swc doc`
-  beside the HTML.
-- Done when: a documentation run can write the serialized model, its item identities stay
-  stable across runs on unchanged sources, and a test reads it back.
-- Related: compiler.command.doc.004, compiler.command.doc.005
-
 ### compiler.command.doc.004 — No public-API diff consumes the documentation model
 
 - Evidence: no tool compares two public surfaces without scraping HTML.
-- Next: once compiler.command.doc.003 publishes stable item identities and signatures,
+- Next: once compiler.ai.050 publishes stable item identities and signatures,
   compare two serialized models and report additions, removals and signature changes.
 - Done when: a command reports source-compatible additions, removals and changes between two
   serialized models, with a test for each kind.
-- Related: compiler.command.doc.003
+- Related: compiler.ai.050
 
 ### compiler.command.doc.005 — No documentation-coverage report
 
 - Evidence: nothing reports undocumented public symbols.
-- Next: report undocumented public symbols from the compiler.command.doc.003 model, with a
+- Next: report undocumented public symbols from the compiler.ai.050 model, with a
   warning contract that can be enforced independently of API diffing.
 - Done when: `swc doc` lists or warns on every undocumented public symbol of a module, and a
   test covers a documented and an undocumented declaration.
-- Related: compiler.command.doc.003, compiler.command.doc.004
+- Related: compiler.ai.050, compiler.command.doc.004
 
 ### compiler.command.doc.006 — Attribute the remaining semantic and JIT cost of documentation
 
@@ -90,8 +65,8 @@ not the discovery.
   then decide whether a doc-mode fast path exists.
 - Done when: `swc doc --workspace bin/std` no longer pays for JIT emission or lowering its
   pages do not need, or the attribution shows that no doc-mode fast path exists and the
-  remaining cost is left to compiler.core.002 and compiler.core.003.
-- Related: compiler.core.002, compiler.core.003
+  remaining cost is left to compiler.ai.044 and compiler.core.003.
+- Related: compiler.ai.044, compiler.core.003
 
 ### compiler.command.doc.009 — Filtering to a child reference page asserts while building the table of contents
 

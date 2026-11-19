@@ -62,10 +62,10 @@ file. Do not add status, dates, or progress summaries to the index.
 | [app.scope.xml.md](app.scope.xml.md) | Swag Scope XML viewer |
 | [app.vault.md](app.vault.md) | Swag Vault |
 | [clones.md](clones.md) | Independent application clones |
+| [compiler.ai.md](compiler.ai.md) | Swag AI-first migration |
 | [compiler.command.doc.md](compiler.command.doc.md) | Compiler `doc` command |
 | [compiler.command.format.md](compiler.command.format.md) | Compiler `format` command |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace builds |
-| [compiler.distribution.md](compiler.distribution.md) | Release delivery and first use |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization and generated-code performance |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
 | [cpu.simd.md](cpu.simd.md) | SIMD compiler and consumer work |

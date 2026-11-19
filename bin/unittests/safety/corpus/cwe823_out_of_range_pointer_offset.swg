@@ -19,7 +19,7 @@ using Corpus
 
 // --- Faults ---
 
-// GAP compiler.safety.006 - walking a block pointer past its allocation, then reading. No
+// GAP compiler.ai.020 - walking a block pointer past its allocation, then reading. No
 // static proof and no runtime guard. Left commented because it really does read out of
 // bounds and would take the compiler's own heap with it.
 //
@@ -36,7 +36,7 @@ using Corpus
 //     Swag.assert(walkPastEnd(opaqueU64(100)) == 0)
 // }
 
-// GAP compiler.safety.006 - indexing a block pointer with any offset is unchecked, whether
+// GAP compiler.ai.020 - indexing a block pointer with any offset is unchecked, whether
 // or not the pointer itself moved.
 //
 // func indexFarPastEnd(index: u64)->s32
@@ -46,7 +46,7 @@ using Corpus
 //     return cursor[index]
 // }
 
-// GAP compiler.safety.006 - an integer becomes a pointer with no ceremony, which is the
+// GAP compiler.ai.020 - an integer becomes a pointer with no ceremony, which is the
 // widest of all the routes: nothing about the value has to have come from an allocation.
 //
 // func forgePointer(address: u64)->s32

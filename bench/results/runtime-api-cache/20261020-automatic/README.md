@@ -21,7 +21,7 @@ The parse-image prototype, its public option, AST allocation tracking and dedica
 serialization helpers/tests have been removed. Source loading, lexing, parsing,
 semantic analysis and initial IR generation still run. The cache skips backend
 optimization, register allocation and encoding. Resolved semantic interfaces and
-lookup before IR generation remain separate work in `compiler.core.001` and
+lookup before IR generation remain separate work in `compiler.ai.045` and
 `compiler.core.030`.
 
 ## Comparison

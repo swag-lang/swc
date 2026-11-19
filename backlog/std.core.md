@@ -272,7 +272,7 @@ new module rather than growth inside `core`.
   `AtomicValue` rather than a wrapper call on its address.
 - Done when: one atomic family remains, its name is not a workaround, and no consumer reaches
   atomic storage through an ordinary pointer.
-- Related: language.parallelism.001, language.parallelism.005
+- Related: language.parallelism.001, compiler.ai.029
 
 ### std.core.025 — A dependency graph of tasks is written by hand
 
@@ -338,7 +338,7 @@ new module rather than growth inside `core`.
   loops of the regex benchmark tasks, and migrate only if layout and loops do not regress.
 - Done when: the regex types state their forms as tagged unions without a benchmark regression,
   or the measurement rejects the change and this entry is removed.
-- Related: language.design.002.
+- Related: compiler.ai.016.
 
 ### std.core.037 — Format.toString ignores arguments its format does not use
 

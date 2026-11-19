@@ -605,7 +605,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `cast(*void)`.
 - Done when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
-- Related: compiler.safety.006
+- Related: compiler.ai.020
 
 ### platform.portability.078 — Complete Linux FUSE and session integration
 

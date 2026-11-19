@@ -141,7 +141,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.
-- Related: compiler.core.003, compiler.core.004, compiler.core.006.
+- Related: compiler.core.003, compiler.core.004, compiler.ai.046.
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
@@ -360,7 +360,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.
 - Next: extend reuse to debug information, and move lookup ahead of IR generation using the
-  compiler.core.001/002 fingerprints rather than a second dependency graph. Measure an
+  compiler.ai.045 and compiler.ai.044 fingerprints rather than a second dependency graph. Measure an
   adaptive size threshold so that hashing and archiving a small function never costs more
   than its micro passes.
 - Done when: a body-only edit regenerates only the changed function and the functions whose
@@ -368,7 +368,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   and warm builds produce byte-identical cache entries and reject compiler, target,
   configuration, ABI, API and optimization changes. The compiler.core.004 edit-build
   workloads show a material win with no measurable clean-build regression.
-- Related: compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
+- Related: compiler.ai.045, compiler.ai.044, compiler.core.004, compiler.core.030.
 
 ### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
 
@@ -410,89 +410,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: add Release variants of the three `core` workloads to `make_compiler_workloads`.
 - Done when: the edit-build loop is measured in Release and DevMode against the reference, and
   every result names its mode.
-- Related: compiler.core.002, compiler.core.005, compiler.core.007, repo.tooling.007.
-
-### compiler.core.006 — Reuse analyzed prelude state
-
-- Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
-  a module or script. Machine-code archives amortize backend emission, but original runtime
-  source loading, lexing, parsing and semantic analysis still repeat for each instance.
-- Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
-- Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
-- Related: compiler.core.001, compiler.core.004, compiler.core.016.
-### compiler.core.001 — Replace generated dependency source with a reusable module interface
-
-- Evidence: `CompilerInstance::appendImportedApiSnapshot` creates an `ImportedApi` source
-  file for every published API source. `Command::sema` sends those files through
-  `parseSourceFiles`, declaration sema, and full sema in each consumer. Dependency source
-  snapshots and native artifact reuse do not preserve the resolved interface for a consumer
-  that needs recompilation. `canDelayImportedFunctionBody` already defers eligible free
-  function bodies, but excludes methods, interface implementations and other
-  context-sensitive cases. Restoring methods' declaration contexts is insufficient by itself:
-  delayed `ConcatBuffer.addBytes` and `reserveInPlace` can remain unresolved when native/JIT
-  preparation waits on their semantic completion through allocation-failure reporting.
-  Repeated closure application remains a local lead: a per-consumer capture set improves
-  a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
-  overall in Release despite neutral setup timing.
-  Parse-image prototypes still required original source loading and a fresh semantic pass;
-  their read and reconstruction costs did not establish a whole-command gain.
-  `MachineCodeCache` preserves supported compiled bodies, while imported declaration and
-  type resolution remain fresh.
-- Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
-  work separately from consumer sources on a small consumer, a large module graph, and a
-  diamond dependency, including consumers of the core, pixel and gui API closures. Compare
-  cold and warm imports with both compiler executables. Use
-  that baseline to prototype a versioned binary interface for resolved non-generic
-  declarations; retain the source import path for unsupported declarations while expanding
-  coverage. Before widening lazy imported methods, close body materialization across cyclic
-  method/free-function calls, then verify both compile-time execution and native presolve.
-  Account for whole-command effects before adopting per-capture closure deduplication.
-- Interface contract: preserve namespace and overload membership, exported and supporting
-  symbols, canonical type identity, layouts, constants and default arguments, attributes
-  including safety/borrow contracts, interface implementations, ABI/link identities, and
-  source provenance. Index declarations for selective materialization without hiding
-  overloads or implementations from lookup. Keep generic templates and required
-  inline/macro/mixin bodies in separately indexed sections; instantiate or expand them in
-  the consumer context when required. Resolved ordinary bodies can later use the typed-body
-  representation from compiler.optimization.107. Importing metadata must not replay module
-  setup or compile-time side effects; requested compile-time calls retain their execution
-  behavior. Keep readable `.swg` export for inspection and compatibility.
-- Ownership: compiler instances own their identifier, type and constant managers, and symbols
-  point into mutable ASTs. Serialize stable interface-local identities and remap them into
-  the consumer; do not persist raw pointers or share live semantic state across consumers.
-  Reuse immutable interface bytes within a workspace invocation, with consumer-owned
-  materialization and generic-instance state.
-- Cache/publication: validate format and compiler identity, target/ABI, relevant configuration,
-  exported content including required bodies, and transitive interface fingerprints. Publish
-  the interface with the matching API/native artifact generation under the existing
-  publication protocol. Reject partial, corrupt or incompatible entries; use a complete
-  matching source API or rebuild rather than mixing generations.
-- Done when: supported workspace imports skip API lexing, parsing and declaration sema;
-  complete coverage removes the generated-source import path from ordinary builds. Warm
-  imports show lower wall time and peak memory on the measured consumers. Fresh and reused
-  paths preserve diagnostics, source locations, overload resolution, generic/inline/macro
-  behavior, compile-time execution and native behavior. Workspace regressions cover diamond
-  dependencies, configuration and transitive API/body changes, stale/corrupt entries and
-  concurrent publication under both compiler executables with real parallelism.
-- Related: compiler.core.002, compiler.core.006, compiler.distribution.010, compiler.core.030, compiler.optimization.107.
-### compiler.core.002 — Front-end invalidation is module-wide
-
-- Evidence: front-end state is not persisted, so the compiler.core.004 `core_touch` workload
-  rebuilds every file of the module. The AST is not an immutable parse cache. Semantic
-  analysis replaces expressions and appends generated nodes to the per-file AST, and
-  `SourceFile::setContent` rejects a change once an AST owns the source view. The editor
-  session reuses unaffected files through conservative file-to-file dependencies, but it
-  does not compare the public interfaces each file observed. Append-only symbol maps also
-  keep retired declaration ASTs alive.
-- Next: separate an immutable per-file parse result from semantic substitutions. Then persist
-  lexical, parsed and semantic state per file, keyed by source content, relevant
-  configuration and fingerprints of the imported public symbols the file observed.
-- Done when: a private-body edit reanalyzes only the changed file and its semantic
-  dependents. A public-signature change invalidates every consumer that observed it.
-  Adding, removing or renaming a file, or changing configuration or compiler version,
-  invalidates the correct state. `core_touch` lands far below `core_rebuild`, and
-  equivalent-result tests cover clean and incremental workspace builds.
-- Related: compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
+- Related: compiler.ai.044, compiler.core.005, compiler.core.007, repo.tooling.007.
 
 ### compiler.core.016 — Tool scripts recompile on every invocation
 
@@ -508,7 +426,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   diagnostics, forwarded arguments, environment, output and exit code. Tests cover
   transitive loads, imports, configuration changes, corrupt entries and concurrent
   population.
-- Related: compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
+- Related: compiler.ai.045, compiler.ai.044, compiler.ai.046, platform.portability.080.
 
 ### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
 
@@ -667,26 +585,3 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   the impact on existing size arithmetic and overload selection before changing the rule.
 - Done when: the reference states the rule and semantic fixtures check it on Linux and
   Windows.
-
-### compiler.core.117 — Offer semantic cleanup edits with explicit preservation checks
-
-- Evidence: candidate cleanups (direct-return bodies, declaration-bound `with`, relay locals)
-  also match deliberate language-test syntax, owning locals and typed temporaries, which a
-  textual rewrite cannot safely remove. The formatter normalizes source shape but cannot
-  decide ownership, overload selection or evaluation effects.
-- Proposed contract: a compiler-backed suggestion produces a previewable, versioned source edit
-  only after proving the specific transformation preserves meaning. Start with expression bodies,
-  declaration-bound with and copyable relay returns. Preserve evaluation count/order, receiver
-  binding, contextual type, selected overload, lexical scope and destruction timing.
-  A single-use variable is a candidate, not proof of redundancy.
-- Boundaries: distinguish semantics-preserving cleanup from a diagnostic explaining a costly copy
-  and from a breaking language migration. Never turn a copy into a move, a required receiver into
-  an optional call, or a named owner into a temporary borrow automatically. Preserve comments and
-  do not rewrite intentional syntax fixtures as part of an unfiltered bulk operation.
-- Next: implement a semantic rewrite query on an ordinary compiler snapshot with a dry-run diff.
-  Prove positive and negative examples for each of the three initial transformations. Wider
-  API-family renames need an explicit migration, not a cleanup heuristic.
-- Done when: suggested edits apply only to the analyzed document version, are idempotent,
-  compile with the same relevant contracts, and regression tests reject transformations that
-  alter effects, ownership, overload resolution or scope. A CLI preview shows each edit before it applies.
-- Related: compiler.distribution.010; language.design.024 in [language.design.md](language.design.md).

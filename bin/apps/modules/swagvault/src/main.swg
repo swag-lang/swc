@@ -33,6 +33,7 @@ const ApplicationId     = "swagvault"
         Env.exit(copyError == null ? 0 : 1)
     }
 
+    let launchFile = vaultLaunchFile(Env.arguments())
     var instance: Env.SessionInstance
 
     // A sandboxed smoke has its own state and must never wake the user's running window.
@@ -40,11 +41,18 @@ const ApplicationId     = "swagvault"
     if not try instance.acquire(ApplicationId)
     {
         // The first instance may still be constructing its surface after acquiring presence.
-        for 250
+        if launchFile.isEmpty()
         {
-            if Surface.sendCustomMessage(surfaceId, ShowWindowMessage, 0) do
-                return
-            Threading.Thread.sleep(20'ms)
+            for 250
+            {
+                if Surface.sendCustomMessage(surfaceId, ShowWindowMessage, 0) do
+                    return
+                Threading.Thread.sleep(20'ms)
+            }
+        }
+        elif try forwardVaultLaunch(surfaceId, launchFile)
+        {
+            return
         }
 
         fail Swag.SystemError{"the running Swag Vault instance did not respond"}
@@ -67,6 +75,12 @@ const ApplicationId     = "swagvault"
     let mainWindow = MainWindow.create(surface.wnd)
 
     mainWindow.initialize()
+    if not launchFile.isEmpty()
+    {
+        mainWindow.resident.activate()
+        mainWindow.queueVaultLaunch(launchFile)
+    }
+
     mainWindow.resident.start()
     discard g_App.run()
 }

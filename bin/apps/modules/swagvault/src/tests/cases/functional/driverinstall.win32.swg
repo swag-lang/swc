@@ -1,6 +1,8 @@
 #global if #command == Swag.CompilerCommand.Test and WINDOWS
 #global private
 
+using Core, Gui
+
 // The installer receives a native Windows path even when the executable path uses slashes.
 #test
 {
@@ -20,6 +22,24 @@
     window.mountContainer()
     Swag.require(host.autoHandled and window.operation.kind == .None)
     Swag.require(window.needsDriverChoice() and not window.preferPortableWinFsp)
+}
+
+// Launching a passwordless vault proceeds to driver setup without submitting the mount form.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let path   = Testing.tempFilePath("vault launch driver-", ".container-data")
+    defer discard catch File.delete(path)
+    var volume = expect Volume.create(path, "", MinimumSize)
+    volume.close()
+
+    window.openLaunchVault(path)
+    Swag.require(window.operation.kind == .CheckLaunchAccess)
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    window.finishOperation()
+    Swag.require(host.autoHandled and window.operation.kind == .None)
+    Swag.require(window.chosenLockedPath() == path.toString() and window.mountButton.isEnabled())
 }
 
 // Staying portable survives a state round trip and leaves installation in Options and the lens.

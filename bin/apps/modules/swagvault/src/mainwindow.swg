@@ -6,6 +6,7 @@ enum OperationKind
     None
     Create
     Mount
+    CheckLaunchAccess
     InstallDriver
     Unmount
     Resize
@@ -176,6 +177,7 @@ struct VaultOperation
     removesPassword:   bool     // Whether a password change leaves its password field empty.
     accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
     fromStartup:       bool     // Whether the mount came from the startup list rather than from the list of vaults.
+    fromLaunch:        bool     // Whether the mount is trying empty access for a file passed at launch.
     securityEpoch:     u64      // Security-event generation at which this mount started.
     securityStopped:   bool     // Whether a security event interrupted this mount.
 
@@ -201,6 +203,7 @@ impl VaultOperation
         .removesPassword   = false
         .accessChange      = .Password
         .fromStartup       = false
+        .fromLaunch        = false
         .securityStopped   = false
         .camouflageOnly    = false
         .size              = 0
@@ -295,6 +298,8 @@ struct MainWindow
     startupQueue:    Array'StartupVault
     startupWaiting:  String     // Protected startup vault unfolded in the list for its access, or empty.
     startupTimer:    *Timer?
+    launchTimer:     *Timer?
+    launchPath:      String
     securityTimer:   *Timer?
     securityMonitor: AutoUnmountMonitor
 
@@ -997,6 +1002,8 @@ impl MainWindow
 
         .stopTimer(&.operation.timer)
         .stopTimer(&.startupTimer)
+        .stopTimer(&.launchTimer)
+        .launchPath.clear()
         .stopTimer(&.securityTimer)
         .securityMonitor.stop()
 
@@ -1061,6 +1068,14 @@ impl IWnd for MainWindow
         {
             .resident.activate()
         }
+        elif evt.kind == .CustomMessage and evt.messageId == OpenVaultMessage and not .shuttingDown
+        {
+            let path = receiveVaultLaunch(evt.param)
+            if path.isEmpty() do
+                return
+            .queueVaultLaunch(path)
+            .resident.activate()
+        }
     }
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
@@ -1118,12 +1133,22 @@ impl IWnd for MainWindow
             else do
                 .reportProgress()
         }
-        elif evt.timer == .startupTimer
+        elif evt.timer == .startupTimer and .operation.kind == .None
         {
             // One shot: the queue drains through the operations that finish, not through
             // this timer.
             .stopTimer(&.startupTimer)
             .pumpStartupQueue()
+        }
+        elif evt.timer == .launchTimer
+        {
+            // A launch waits for an existing operation or dialog to finish before changing selection.
+            if .operation.kind == .None and not .resident.batch and not .surface!.isDisabled
+            {
+                .stopTimer(&.launchTimer)
+                let path = #move .launchPath
+                .openLaunchVault(path)
+            }
         }
         elif evt.timer == .securityTimer
         {

@@ -1,6 +1,6 @@
 #global if WINDOWS and #hastag("vault.integration")
 
-using Core, Win32
+using Core, Gui, Win32
 
 namespace Integration
 {
@@ -663,11 +663,40 @@ namespace Integration
     }
 
     #[Swag.Propagate]
+    func runAutomaticLaunchMount(box: *Sandbox) fail
+    {
+        let path   = Path.combine(box.root, "launch without access.vault")
+        var volume = Volume.create(path, "", MinimumSize)
+        volume.close()
+
+        var host: Testing.HeadlessHost
+        host.setup(cast(f32, MainWindow.MinWidth), cast(f32, MainWindow.MinHeight))
+        host.bindApplication(&g_App)
+        registerAppStrings(&g_App.resources)
+        g_App.setStatePath(Path.combine(box.root, "launch-settings.scc"))
+        let window = MainWindow.create(&host.surfaceWnd)
+        window.preferPortableWinFsp = true
+
+        window.openLaunchVault(path)
+        verify(window.operation.kind == .Mount, "launch must start mounting without submitting the form")
+        host.clickModalButtonWhenShown(Dialog.BtnOk)
+        window.finishOperation()
+        verify(window.isMounted(path), "launch must publish a drive for a vault without access")
+        let drive = unwrap window.mountedDrives.find(path)
+        verify(Directory.exists(driveRoot(drive.drive)), "the automatically mounted drive must be visible to Windows")
+
+        window.unmountVault(path)
+        window.finishOperation()
+        verify(not window.isMounted(path), "the automatically mounted drive must unmount normally")
+    }
+
+    #[Swag.Propagate]
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
         verify(not WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
         verifyRuntimeIsolation()
+        runAutomaticLaunchMount(box)
         Console.println("Swag Vault integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
         trace(Format.toString("SANDBOX: %", box.root))

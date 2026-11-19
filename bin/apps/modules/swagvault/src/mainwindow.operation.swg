@@ -438,6 +438,17 @@ impl MainWindow
             return
         }
 
+        if .operation.kind == .CheckLaunchAccess
+        {
+            var volume = catch Volume.open(.operation.path, "", readOnly: true) as .operation.error
+            {
+                return
+            }
+
+            volume.close()
+            return
+        }
+
         defer .operation.hiddenAccess.clear()
         var hiddenCredential: VaultCredential
         if .operation.createHidden or .operation.protectHidden
@@ -464,7 +475,7 @@ impl MainWindow
 
         switch #complete .operation.kind
         {
-        case .None, .InstallDriver:
+        case .None, .CheckLaunchAccess, .InstallDriver:
             return
 
         case .Create:
@@ -595,26 +606,50 @@ impl MainWindow
         .stopTimer(&.operation.timer)
         .showBusy(false)
 
-        let resumeMount = .operation.kind == .InstallDriver and
-                          operationError == null and
-                          not .operation.path.isEmpty() and
-                          .operation.path == .chosenPath and
-                          .page == .List
+        let checkingLaunch = .operation.kind == .CheckLaunchAccess
+        let resumeMount    = (checkingLaunch or .operation.kind == .InstallDriver) and
+                             operationError == null and
+                             not .operation.path.isEmpty() and
+                             .operation.path == .chosenPath and
+                             .page == .List and
+                             (not checkingLaunch or (.launchPath.isEmpty() and not .resident.isHidden()))
+        var needsAccess = false
+        if operationError is Error as error where checkingLaunch or .operation.fromLaunch do
+            needsAccess = error.kind == .PasswordOrDamaged
+
         switch #complete .operation.kind
         {
-        case .None:          return
-        case .Create:        .finishCreate(operationError)
-        case .Mount:         .finishMount(operationError)
-        case .InstallDriver: .finishDriverInstall(operationError)
-        case .Unmount:       .finishUnmount(operationError)
-        case .Resize:        .finishResize(operationError)
-        case .ChangeAccess:  .finishAccessChange(operationError)
+        case .None:
+            return
+
+        case .Create:
+            .finishCreate(operationError)
+
+        case .Mount, .CheckLaunchAccess:
+            if needsAccess do
+                .setStatus(.Ready)
+            elif not checkingLaunch or operationError != null do
+                .finishMount(operationError)
+
+        case .InstallDriver:
+            .finishDriverInstall(operationError)
+
+        case .Unmount:
+            .finishUnmount(operationError)
+
+        case .Resize:
+            .finishResize(operationError)
+
+        case .ChangeAccess:
+            .finishAccessChange(operationError)
         }
 
         .operation.forgetRequest()
         .showOperation()
         .refreshActions()
         .resident.refreshTray()
+        if needsAccess and .chosenLockedPath().count != 0 do
+            .mountPassword.setFocus()
         if resumeMount
         {
             .mountContainer()

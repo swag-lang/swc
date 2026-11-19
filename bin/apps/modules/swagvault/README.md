@@ -47,6 +47,11 @@ data. See the [container format](format.md) and the
 
 ## Mounting and runtime files
 
+Drop a container onto `swagvault.exe` in Windows Explorer or pass its path as the first file argument.
+Vault brings its window forward and mounts the container if it opens without a password or key file.
+For a protected container, Vault unfolds its mount form so you can enter the access details and
+confirm the mount. Both workflows apply when Vault is already running in the notification area.
+
 The packaged application includes the WinFsp runtime, the official `winfsp.msi`, its shared Swag
 dependencies, and the required licence notices. Keep those files beside the executable.
 

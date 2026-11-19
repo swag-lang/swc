@@ -83,6 +83,32 @@ using Core, Gui, Pixel, Win32
     window.sendEvent(&activation)
     Swag.require(not surface.isHidden)
     window.resident.hideWindow()
+
+    let path = Testing.tempFilePath("vault launch é-", ".container-data")
+    defer discard catch File.delete(path)
+    let keyPath = Testing.tempFilePath("vault launch key-", ".bin")
+    defer discard catch File.delete(keyPath)
+    discard expect File.writeAllText(keyPath, "key file")
+    var access: VaultAccess
+    access.keyFiles.add(keyPath)
+    let credential = expect access.derive()
+    var volume     = expect Volume.create(path, credential.toSlice(), MinimumSize)
+    volume.close()
+    let forwarded = expect forwardVaultLaunch("vault-resident-journey", path)
+    Swag.require(forwarded and not surface.isHidden)
+    var launchWatch: Time.Stopwatch
+    launchWatch.start()
+    while window.chosenLockedPath() != path.toString() or window.operation.kind != .None
+    {
+        Swag.require(launchWatch.elapsedMilliseconds() < 5000, "vault launch did not select the container")
+        g_App.runFrame()
+    }
+
+    Swag.require(window.list.card.panel.isLocallyVisible())
+    Swag.require(window.mountPassword.isEmpty() and window.statusMessage == .Ready)
+    Swag.require(window.mountedDrives.drives.isEmpty() and window.mountButton.isEnabled())
+
+    window.resident.hideWindow()
     window.resident.setEnabled(false)
     Swag.require(not surface.isHidden and not surface.hasTrayIcon())
 

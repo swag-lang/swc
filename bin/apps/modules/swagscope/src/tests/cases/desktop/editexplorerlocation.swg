@@ -3,12 +3,10 @@
 
 using Core, Gui
 
-// The native caption leaves the location clickable, and a rejected address stays editable.
-#[Swag.TestTag("integration.desktop.input")]
-#test
+// Release the input driver and path temporaries before dropping the native application.
+#[Swag.NoInline]
+func editExplorerLocation(journey: *ScopeJourney)
 {
-    var journey: ScopeJourney
-    journey.setup()
     let first = Path.combine(journey.root, "First")
     let next  = Path.combine(journey.root, "Next folder")
     expect Directory.create(first)
@@ -20,7 +18,7 @@ using Core, Gui
     var input = Testing.DesktopInput.create(&journey.app, journey.surface)
     let address = explorer.address
     let crumb = address.breadcrumb
-    let point = crumb.localToSurface(crumb.items.back().bodyRect.center())
+    let point = crumb.localToSurface(crumb.items.backPtr().bodyRect.center())
     input.moveTo(crumb, point)
     var screen = point
     journey.surface.surfaceToScreen(&screen)
@@ -37,4 +35,13 @@ using Core, Gui
     input.shortcut(.Return, .None)
     journey.waitFor("edited folder", func|explorer, next = next.toString()|()->bool => not explorer.load.started and Path.equals(explorer.listing.path, next))
     Swag.require(not address.edit.isLocallyVisible())
+}
+
+// The native caption leaves the location clickable, and a rejected address stays editable.
+#[Swag.TestTag("integration.desktop.input")]
+#test
+{
+    var journey: ScopeJourney
+    journey.setup()
+    editExplorerLocation(&journey)
 }

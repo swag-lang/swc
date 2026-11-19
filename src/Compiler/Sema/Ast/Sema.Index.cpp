@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -76,15 +75,11 @@ namespace
         return SemaHelpers::unwrapAliasRefType(sema.ctx(), indexedView.typeRef());
     }
 
-    Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef, bool slice = false)
+    Result setupIndexBoundCheck(Sema& sema, AstNodeRef nodeRef, const TypeInfo& indexedType, const SourceCodeRef& codeRef, IdentifierManager::RuntimeFunctionKind reportFunction = IdentifierManager::RuntimeFunctionKind::IndexPanic)
     {
         if (!indexedType.isIndexable() && !indexedType.isSimd())
             return Result::Continue;
-        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::BoundCheck, codeRef));
-        const auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
-        if (!slice && payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
-            return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::IndexPanic, codeRef);
-        return Result::Continue;
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::BoundCheck, codeRef, reportFunction);
     }
 
     uint32_t resolveMaxSequentialIndexCount(Sema& sema, TypeRef indexedTypeRef)
@@ -309,7 +304,7 @@ namespace
         // A slice asks for a length, so both bounds have to stay in order and inside the source.
         // Element indexing arms the same guard further down; this path returns early and used to
         // hand out a view built from an unchecked subtraction.
-        SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, node.codeRef(), /*slice=*/true));
+        SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, node.codeRef(), IdentifierManager::RuntimeFunctionKind::SliceBoundsPanic));
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(sema.node(sema.curNodeRef()));

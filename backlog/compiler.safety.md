@@ -43,6 +43,18 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.037 — Check the inclusive slice end before normalizing it
+
+- Evidence: with runtime bound checks on, a four-element array sliced at runtime as
+  `values[0 to Swag.U64.Max]` yields an empty slice when the upper bound is passed through a
+  `#[Swag.NoInline]` function parameter. [Slice lowering](../src/Compiler/CodeGen/Ast/CodeGen.Index.cpp)
+  adds one in 64 bits before checking ordering and containment, so the exclusive end wraps to
+  zero and both checks pass.
+- Next: check the evaluated inclusive end before the addition can hide it. Exercise the maximum
+  unsigned end, a start of zero, and valid empty exclusive slices in JIT and native execution.
+- Done when: a guarded slice cannot pass containment by wrapping its end, and valid endpoints
+  retain their current meaning.
+
 ### compiler.safety.032 — Confirm native terminal-expect reporting on Windows
 
 - Evidence: commit `017485df` changed the fixtures to match the safe contract: a terminal panic

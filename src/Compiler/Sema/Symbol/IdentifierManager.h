@@ -40,6 +40,8 @@ public:
         Panic,
         SafetyPanic,
         IndexPanic,
+        SliceBoundsPanic,
+        LoopCountPanic,
 
         ValueBorrowWrite,
         ValueBorrowLeave,
@@ -199,6 +201,8 @@ public:
         RuntimePanic,
         RuntimeSafetyPanic,
         RuntimeIndexPanic,
+        RuntimeSliceBoundsPanic,
+        RuntimeLoopCountPanic,
 
         RuntimeValueBorrowWrite,
         RuntimeValueBorrowLeave,

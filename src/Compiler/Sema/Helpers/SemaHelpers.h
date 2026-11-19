@@ -103,7 +103,7 @@ namespace SemaHelpers
     Result          attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName, bool allowBoundStorageTypeMismatch = false);
     Result          attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
 
-    Result setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
+    Result setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef, IdentifierManager::RuntimeFunctionKind reportFunction = IdentifierManager::RuntimeFunctionKind::Count);
     bool   isLateInitAccess(Sema& sema, AstNodeRef nodeRef);
     bool   hasLateReadGuard(Sema& sema, AstNodeRef nodeRef);
     void   clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);

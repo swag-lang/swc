@@ -721,9 +721,19 @@ func injectStatement(statement: #code) { #inject(statement) }
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Compiler_IndexFaultReportsEvaluatedValuesInEveryRunMode)
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_BoundsFaultsReportEvaluatedValuesInEveryRunMode)
 {
-    static constexpr std::string_view BODY = R"SWAG(#global private
+    struct FaultCase
+    {
+        std::string_view name;
+        std::string_view source;
+        std::string_view invocation;
+        std::string_view message;
+        std::string_view location;
+    };
+
+    static constexpr FaultCase cases[] = {
+        {"index", R"SWAG(#global private
 
 #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
 func read(index: s32)
@@ -732,59 +742,88 @@ func read(index: s32)
     discard values[index]
 }
 
-)SWAG";
+)SWAG",
+         "    read(-7)", "index -7 is outside the collection of length 3", "7:20"},
+        {"slice", R"SWAG(#global private
+
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func read(start, end: u64)
+{
+    var values: [4] s32 = [4, 5, 6, 7]
+    discard values[start to end]
+}
+
+)SWAG",
+         "    read(2, 8)", "slice 2 to 8 (exclusive end 9) exceeds source length 4", "7:13"},
+        {"count", R"SWAG(#global private
+
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func read(count: s32)
+{
+    for count do
+        Swag.print("ran loop body\n")
+}
+
+)SWAG",
+         "    read(-3)", "loop count -3 is negative", "6:9"},
+    };
+
     const RecoveryTestDirectory directory;
-    for (const std::string_view mode : {"script", "jit", "native"})
+    for (const FaultCase& fault : cases)
     {
-        const bool     script     = mode == "script";
-        const bool     native     = mode == "native";
-        const fs::path workingDir = directory.path() / mode;
-        const fs::path sourcePath = workingDir / (script ? "bounds.swgs" : "bounds.swg");
-        std::string source(BODY);
-        source += script ? "#main\n" : "#test\n";
-        source += "{\n";
-        if (script)
-            source += "    if Swag.jit() do Swag.panic(\"script flags changed\", #curlocation)\n";
-        source += R"SWAG(    read(-7)
-    Swag.print("resumed after index fault\n")
+        for (const std::string_view mode : {"script", "jit", "native"})
+        {
+            const bool     script     = mode == "script";
+            const bool     native     = mode == "native";
+            const fs::path workingDir = directory.path() / fault.name / mode;
+            const fs::path sourcePath = workingDir / (script ? "bounds.swgs" : "bounds.swg");
+            std::string source(fault.source);
+            source += script ? "#main\n" : "#test\n";
+            source += "{\n";
+            if (script)
+                source += "    if Swag.jit() do Swag.panic(\"script flags changed\", #curlocation)\n";
+            source += fault.invocation;
+            source += R"SWAG(
+    Swag.print("resumed after safety fault\n")
 }
 )SWAG";
-        if (script)
-            source += R"SWAG(
+            if (script)
+                source += R"SWAG(
 #drop { Swag.print("ran script drop\n") }
 )SWAG";
-        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+            SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
-        if (script)
-        {
-            args.emplace_back(sourcePath);
-        }
-        else
-        {
-            args.insert(args.begin(), "test");
-            args.insert(args.end(), {"--file", Utf8(sourcePath), "--out-dir", Utf8(workingDir / "out"),
-                                     "--work-dir", Utf8(workingDir / "work")});
-            if (native)
-                args.insert(args.end(), {"--no-test-jit", "--artifact-kind", "executable"});
+            std::vector<Utf8> args = {"-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+            if (script)
+            {
+                args.emplace_back(sourcePath);
+            }
             else
-                args.insert(args.end(), {"--no-test-native", "--no-output"});
-        }
+            {
+                args.insert(args.begin(), "test");
+                args.insert(args.end(), {"--file", Utf8(sourcePath), "--out-dir", Utf8(workingDir / "out"),
+                                         "--work-dir", Utf8(workingDir / "work")});
+                if (native)
+                    args.insert(args.end(), {"--no-test-jit", "--artifact-kind", "executable"});
+                else
+                    args.insert(args.end(), {"--no-test-native", "--no-output"});
+            }
 
-        uint32_t                    exitCode = 0;
-        std::string                 output;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, workingDir, &options);
-        const auto                  cause  = output.find("index -7 is outside the collection of length 3");
-        const std::string_view      span   = script ? "bounds.swgs:7:20" : "bounds.swg:7:20";
-        if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
-            cause == std::string::npos || output.find("index -7 is outside the collection of length 3", cause + 1) != std::string::npos ||
-            !output.contains(span) || output.contains("resumed after index fault") || output.contains("exit(-666)") ||
-            (script && !output.contains("ran script drop")) ||
-            (native ? !output.contains("executed=1 failed=1") : !output.contains("error[safety_err_runtime]")))
-        {
-            std::println(stderr, "[index fault, {}] result={}, exit={}\n{}", mode, static_cast<uint32_t>(result), exitCode, output);
-            return Result::Error;
+            uint32_t                    exitCode = 0;
+            std::string                 output;
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+            const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, workingDir, &options);
+            const auto                  cause  = output.find(fault.message);
+            const std::string           span   = std::format("{}:{}", sourcePath.filename().string(), fault.location);
+            if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
+                cause == std::string::npos || output.find(fault.message, cause + 1) != std::string::npos ||
+                !output.contains(span) || output.contains("resumed after safety fault") || output.contains("exit(-666)") ||
+                (script && !output.contains("ran script drop")) ||
+                (native ? !output.contains("executed=1 failed=1") : !output.contains("error[safety_err_runtime]")))
+            {
+                std::println(stderr, "[{} fault, {}] result={}, exit={}\n{}", fault.name, mode, static_cast<uint32_t>(result), exitCode, output);
+                return Result::Error;
+            }
         }
     }
 }

@@ -77,6 +77,10 @@ internal struct NativeSurface
     clientResizePending: bool
     clientLayoutScale:   f32
 
+    inDiscretePlacement:  bool
+    presentingPlacement:  bool
+    placementOrigin:      POINT
+
     presentationDC:     HDC
     presentationBitmap: HBITMAP
     presentationPixels: *u8?
@@ -296,6 +300,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCCALCSIZE:
+            if wParam and surface.inDiscretePlacement
+            {
+                let params = cast(const *NCCALCSIZE_PARAMS, cast #bit (u64, lParam))
+                surface.presentDiscretePlacement(params.rgrc[0])
+            }
             return 0
 
         case WM_NCHITTEST:
@@ -329,7 +338,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
-            if not surface.initializing do
+            if not surface.initializing and not surface.inDiscretePlacement do
                 surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
             EndPaint(hWnd, &ps)
 
@@ -433,7 +442,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // the rectangle by newDpi/oldDpi, assuming an old-DPI size) would
             // double-scale it. Keep the requested rectangle and relayout at the new scale.
             surface.clientResizePending = true
-            if surface.inAppPlacement do
+            if surface.inAppPlacement or surface.inDiscretePlacement do
                 return 0
 
             // An interactive move adopts the suggested physical rectangle. The next
@@ -467,6 +476,8 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             }
 
             surface.clientResizePending = true
+            if surface.inDiscretePlacement do
+                return 0
             if surface.inDesktopLoop
             {
                 let width  = cast(s32, LOWORD(lParam))
@@ -600,6 +611,57 @@ private impl Surface
 
 impl Surface
 {
+    private mtd const canPresentPlacement()->bool =>
+        not .isHidden and not .initializing and not .isMinimized and not .wnd.isPendingDestroy and not .inDesktopLoop
+
+    private mtd presentDiscretePlacement(bounds: RECT)
+    {
+        // A layered update can reenter WM_NCCALCSIZE. The enclosing placement owns the frame.
+        if .presentingPlacement or not .canPresentPlacement() do
+            return
+
+        let width  = bounds.right - bounds.left
+        let height = bounds.bottom - bounds.top
+        if width <= 0 or height <= 0 do
+            return
+
+        let destination = Math.Rectangle{cast(f32, bounds.left), cast(f32, bounds.top), cast(f32, width), cast(f32, height)}
+        let scale       = Env.monitorForRectangle(destination).scaleFactor
+        if .presentedFrame and not .isDirty and destination == .position and scale == .clientLayoutScale do
+            return
+
+        .placementOrigin     = {bounds.left, bounds.top}
+        .presentingPlacement = true
+        defer .presentingPlacement = false
+        .position.x = destination.x
+        .position.y = destination.y
+        if scale != .dpiScale do
+            .setDpiScaleRaw(scale)
+        .clientLayoutScale = .dpiScale
+        .presentedFrame    = false
+        .sendResizeEvent(destination.width, destination.height)
+
+        // Render at the proposed size before USER32 exposes it. The layered call
+        // publishes the destination rectangle and its pixels together.
+        .paintWnd(.wnd)
+    }
+
+    private mtd finishDiscretePlacement()
+    {
+        .inDiscretePlacement = false
+
+        // Reconcile the committed client even if native placement produced no size message.
+        .clientResizePending = true
+        if .inDesktopLoop do
+            return
+        .applyPendingNativeResize()
+        if .canPresentPlacement()
+        {
+            .paintWnd(.wnd)
+            discard ValidateRect(.hWnd, null)
+        }
+    }
+
     private mtd applyPendingNativeResize()
     {
         if not .clientResizePending or .isMinimized do
@@ -715,9 +777,14 @@ impl Surface
 
         let source = POINT{}
         let blend = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
-        let update = UPDATELAYEREDWINDOWINFO{cbSize: cast(u32, #sizeof(UPDATELAYEREDWINDOWINFO)),
+        var update = UPDATELAYEREDWINDOWINFO{cbSize: cast(u32, #sizeof(UPDATELAYEREDWINDOWINFO)),
                                             psize: &size, hdcSrc: .presentationDC, pptSrc: &source,
                                             pblend: &blend, dwFlags: ULW_ALPHA | ULW_EX_NORESIZE, prcDirty: &dirty}
+        if .presentingPlacement
+        {
+            update.pptDst  = &.placementOrigin
+            update.dwFlags = ULW_ALPHA
+        }
         if not UpdateLayeredWindowIndirect(.hWnd, &update) do
             return false
         .presentedTinted = tinted
@@ -1232,8 +1299,10 @@ impl Surface
             }
 
             .applyNativeDwmStyle()
-            ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+            .inDiscretePlacement = true
+            defer .finishDiscretePlacement()
             .invalidate()
+            ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
             return
         }
 
@@ -1247,12 +1316,14 @@ impl Surface
         }
 
         .applyNativeDwmStyle()
+        .inDiscretePlacement = true
+        defer .finishDiscretePlacement()
+        .invalidate()
         // Maximize the current window first. Changing its normal rectangle while it is
         // still normal would move it there before USER32 applies the maximized state.
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
         var placement = .nativePlacement(.restoredPosition, SW_SHOWMAXIMIZED)
         catch SetWindowPlacement(.hWnd, &placement)
-        .invalidate()
     }
 
     // Leaves a maximized or minimized state and places the surface, in one native transaction.
@@ -1280,9 +1351,11 @@ impl Surface
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
+        .inDiscretePlacement = true
+        defer .finishDiscretePlacement()
+        .invalidate()
         var placement = .nativePlacement(clampPos, SW_SHOWNORMAL)
         catch SetWindowPlacement(.hWnd, &placement)
-        .invalidate()
     }
 
     // Restores a minimized or maximized surface to its normal bounds.

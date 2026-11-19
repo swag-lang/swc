@@ -44,9 +44,11 @@ prove it. Operating-system integrations live in
 
 - Evidence: Windows presents a premultiplied bitmap to a layered window using a fixed offscreen
   WGL drawable. Linux X11 copies the retained target to an EGL back buffer before swapping.
-  Both redraw dirty regions in a retained GPU target. Resize and placement paint at the
-  committed geometry through the ordinary surface renderer. Presentation comparisons check
-  the settled result.
+  Both redraw dirty regions in a retained GPU target. Windows live resize paints at the
+  committed geometry on the application clock. For maximize and restore, the native client
+  calculation publishes the proposed bounds and matching bitmap together. Presentation
+  comparisons check the settled result, and the Windows placement regression checks that the
+  new bitmap is ready before the client calculation returns.
   Existing desktop captures at 12–30 fps cannot exclude a one-refresh artifact.
 - A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came

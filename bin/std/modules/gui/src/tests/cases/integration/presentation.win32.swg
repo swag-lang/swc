@@ -39,8 +39,6 @@ using Core, Pixel, Win32, Ogl
     Swag.require(GetWindowRect(surface.win32Handle(), &bounds))
     Swag.require(bounds.left == 60 and bounds.top == 50 and bounds.right == 480 and bounds.bottom == 330)
     surface.showNormalAt({75, 60, 399, 271})
-    Swag.require(not surface.presentedFrame)
-    app.runFrame()
     Swag.require(not surface.isDirty)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 

@@ -54,12 +54,34 @@ struct PlacementObservation
     expected:           Math.Rectangle
     watchBounds:        bool
     intermediateBounds: u32
+    surface:            *Surface?
+    calculationDepth:    u32
+    preparedFrames:     u32
 }
 
 #[Swag.CallingConvention(.C)]
 func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: UINT_PTR, data: DWORD_PTR)->LRESULT
 {
     let observation = cast(*PlacementObservation, data)
+    if msg == WM_NCCALCSIZE and wParam and observation.surface
+    {
+        let params = cast(const *NCCALCSIZE_PARAMS, cast #bit (u64, lParam))
+        let bounds = params.rgrc[0]
+        let old    = params.rgrc[2]
+        let width  = bounds.right - bounds.left
+        let height = bounds.bottom - bounds.top
+        let outerResize = observation.calculationDepth == 0 and
+                          (width != old.right - old.left or height != old.bottom - old.top)
+
+        observation.calculationDepth += 1
+        defer observation.calculationDepth -= 1
+        let result = DefSubclassProc(hWnd, msg, wParam, lParam)
+        if outerResize and observation.surface.presentedFrame and
+           observation.surface.rc.width == width and observation.surface.rc.height == height do
+            observation.preparedFrames += 1
+        return result
+    }
+
     if msg == WM_WINDOWPOSCHANGING
     {
         let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
@@ -144,33 +166,43 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     }
 }
 
-// Discrete placements lay out the new client without drawing until the ordinary frame.
+// The layer already has the proposed frame when USER32 finishes calculating the client.
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application
     let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-discrete-placement-test")
     surface.show()
+    let window = surface.win32Handle()
+    var observation = PlacementObservation{surface: surface}
+    Swag.require(SetWindowSubclass(window, &observePlacement, 1, cast(u64, &observation)))
+    defer discard RemoveWindowSubclass(window, &observePlacement, 1)
 
+    var paints = 0
+    surface.wnd.view.hookOnEvent = func|&paints|(_, evt)->bool
+    {
+        if evt is PaintEvent do
+            paints += 1
+        return false
+    }
     let normal = surface.position
     surface.showMaximized()
 
     var client: RECT
-    Swag.require(GetClientRect(surface.win32Handle(), &client))
+    Swag.require(GetClientRect(window, &client))
     Swag.require(surface.isMaximized)
     Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
-    Swag.require(not surface.presentedFrame and surface.isDirty)
-    app.runFrame()
-    Swag.require(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
+    Swag.require(observation.preparedFrames == 1)
+    Swag.require(paints == 1)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
     surface.showNormal()
-    Swag.require(GetClientRect(surface.win32Handle(), &client))
+    Swag.require(GetClientRect(window, &client))
     Swag.require(not surface.isMaximized)
     Swag.require(surface.position == normal)
     Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
-    Swag.require(not surface.presentedFrame and surface.isDirty)
-    app.runFrame()
+    Swag.require(observation.preparedFrames == 2)
+    Swag.require(paints == 2)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 }
 

@@ -191,6 +191,32 @@ func opaqueIdx(v: u64)->u64
     Swag.require(value == 0)
 }
 
+#test
+{
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func readSigned(index: s64)
+    {
+        var values: [1] s32 = [0]
+        discard values[index]
+    }
+
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func readUnsigned(index: u64)
+    {
+        var storage: [1] s32 = [0]
+        let values = Swag.makeSlice(&storage[0], 0)
+        discard values[index]
+    }
+
+    let negative = Swag.catchPanic(func||() { readSigned(Swag.S64.Min) })
+    Swag.require(negative.raised)
+    Swag.require(negative.message() == "index -9223372036854775808 is outside the collection of length 1")
+
+    let maximum = Swag.catchPanic(func||() { readUnsigned(Swag.U64.Max) })
+    Swag.require(maximum.raised)
+    Swag.require(maximum.message() == "index 18446744073709551615 is outside the collection of length 0")
+}
+
 // In-bound accesses (constant and dynamic) must not panic
 #test
 {

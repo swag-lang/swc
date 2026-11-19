@@ -39,6 +39,7 @@ public:
         FailedCast,
         Panic,
         SafetyPanic,
+        IndexPanic,
 
         ValueBorrowWrite,
         ValueBorrowLeave,
@@ -197,6 +198,7 @@ public:
         RuntimeFailedCast,
         RuntimePanic,
         RuntimeSafetyPanic,
+        RuntimeIndexPanic,
 
         RuntimeValueBorrowWrite,
         RuntimeValueBorrowLeave,

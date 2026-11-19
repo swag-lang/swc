@@ -785,21 +785,20 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
-### compiler.ai.035 — Report the same runtime fault in scripts, JIT tests and native tests
+### compiler.ai.035 — Report runtime faults with the same evidence in every run mode
 
-- Evidence: one dynamic out-of-bounds index reports a located generic safety error in a JIT
-  test, a panic and stack in a native test, and a panic followed by a misleading
-  `compile-time error` about `exit(-666)` in a `#main` script.
-  [The check](../src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L799) already holds the index
-  and length. [The runtime](../bin/runtime/error.swg#L1010) and
-  [JIT exception bridge](../src/Backend/JIT/JIT.cpp#L322) currently lose the original fault
-  identity on some paths.
-- Next: carry the fault kind, original location and operands through the runtime boundary.
-  Route script panics as runtime failures and keep the test identity or user-code stack where
-  useful. Start with an index fault and preserve the original signed index and effective bound.
-- Done when: identical faults have the same cause, decisive values and source location on all
-  three paths, while a real compile-time failure is distinguishable. Check Linux and Windows
-  and preserve the termination and cleanup contract.
+- Evidence: [the index-fault fixture](../src/Unittest/Compiler/Test.Compiler.Failure.cpp)
+  checks the evaluated index, effective length and source location in scripts, JIT tests and
+  native tests. The [slice and loop guards](../src/Compiler/CodeGen/Core/CodeGenSafety.cpp)
+  still omit operands, and a slice failure can combine an inverted range with an end that
+  exceeds the source length.
+- Next: report the failing relation and evaluated bounds for slice and loop faults. Keep the
+  distinction between the source's inclusive end and the normalized exclusive end visible.
+  Run the existing index-fault and script-phase fixtures on Windows.
+- Done when: a fault identifies its operation, decisive values and original source location
+  across all three paths, with test identity or a user-code stack where available. A
+  compile-time panic remains distinguishable from a script runtime panic, and termination
+  and cleanup still follow the existing contract.
 - Related: compiler.ai.040, compiler.ai.042, compiler.safety.032.
 
 ### compiler.ai.036 — Trace fallthrough in nested control flow and suppress diagnostic cascades

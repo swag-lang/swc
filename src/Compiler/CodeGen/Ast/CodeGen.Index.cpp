@@ -165,7 +165,7 @@ namespace
         return fallbackTypeRef;
     }
 
-    MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
+    MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits, bool* outIndexSigned = nullptr)
     {
         CodeGenNodePayload indexPayload = codeGen.payload(indexRef);
         TypeRef            indexTypeRef = CodeGenExprView::payloadTypeRef(codeGen, indexPayload, indexRef);
@@ -175,6 +175,8 @@ namespace
         const TypeInfo& indexType = codeGen.typeMgr().get(indexTypeRef);
         outIndexBits              = CodeGenTypeHelpers::copyBits(indexType);
         const bool indexSigned    = indexType.isIntSigned();
+        if (outIndexSigned)
+            *outIndexSigned = indexSigned;
 
         if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
             return indexPayload.reg;
@@ -406,9 +408,10 @@ namespace
 
     Result emitIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexedNodeRef, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
     {
-        auto           indexBits = MicroOpBits::B64;
-        const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
-        SWC_RESULT(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg));
+        auto           indexBits   = MicroOpBits::B64;
+        bool           indexSigned = false;
+        const MicroReg indexReg    = materializeIndexReg(codeGen, indexRef, indexBits, &indexSigned);
+        SWC_RESULT(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg, indexSigned));
 
         MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedNodeRef, indexedType, indexedPayload);
 

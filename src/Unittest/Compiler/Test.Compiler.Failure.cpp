@@ -721,6 +721,101 @@ func injectStatement(statement: #code) { #inject(statement) }
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_IndexFaultReportsEvaluatedValuesInEveryRunMode)
+{
+    static constexpr std::string_view BODY = R"SWAG(#global private
+
+#[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+func read(index: s32)
+{
+    var values: [3] s32 = [4, 5, 6]
+    discard values[index]
+}
+
+)SWAG";
+    const RecoveryTestDirectory directory;
+    for (const std::string_view mode : {"script", "jit", "native"})
+    {
+        const bool     script     = mode == "script";
+        const bool     native     = mode == "native";
+        const fs::path workingDir = directory.path() / mode;
+        const fs::path sourcePath = workingDir / (script ? "bounds.swgs" : "bounds.swg");
+        std::string source(BODY);
+        source += script ? "#main\n" : "#test\n";
+        source += "{\n";
+        if (script)
+            source += "    if Swag.jit() do Swag.panic(\"script flags changed\", #curlocation)\n";
+        source += R"SWAG(    read(-7)
+    Swag.print("resumed after index fault\n")
+}
+)SWAG";
+        if (script)
+            source += R"SWAG(
+#drop { Swag.print("ran script drop\n") }
+)SWAG";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+
+        std::vector<Utf8> args = {"-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (script)
+        {
+            args.emplace_back(sourcePath);
+        }
+        else
+        {
+            args.insert(args.begin(), "test");
+            args.insert(args.end(), {"--file", Utf8(sourcePath), "--out-dir", Utf8(workingDir / "out"),
+                                     "--work-dir", Utf8(workingDir / "work")});
+            if (native)
+                args.insert(args.end(), {"--no-test-jit", "--artifact-kind", "executable"});
+            else
+                args.insert(args.end(), {"--no-test-native", "--no-output"});
+        }
+
+        uint32_t                    exitCode = 0;
+        std::string                 output;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, workingDir, &options);
+        const auto                  cause  = output.find("index -7 is outside the collection of length 3");
+        const std::string_view      span   = script ? "bounds.swgs:7:20" : "bounds.swg:7:20";
+        if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
+            cause == std::string::npos || output.find("index -7 is outside the collection of length 3", cause + 1) != std::string::npos ||
+            !output.contains(span) || output.contains("resumed after index fault") || output.contains("exit(-666)") ||
+            (script && !output.contains("ran script drop")) ||
+            (native ? !output.contains("executed=1 failed=1") : !output.contains("error[safety_err_runtime]")))
+        {
+            std::println(stderr, "[index fault, {}] result={}, exit={}\n{}", mode, static_cast<uint32_t>(result), exitCode, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicIdentifiesTheExecutionPhase)
+{
+    const RecoveryTestDirectory directory;
+    for (const bool compileTime : {false, true})
+    {
+        const fs::path sourcePath = directory.path() / "panic.swgs";
+        const std::string_view hook = compileTime ? "#run" : "#main";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, std::format("{} {{ Swag.panic(\"phase probe\", #curlocation) }}\n", hook)));
+        const std::vector<Utf8>   args = {"--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+        const std::string_view      expected = compileTime
+                                                  ? "error[sema_err_compiler_panic]: compiler panic: phase probe"
+                                                  : "error[safety_err_runtime_panic]: runtime panic: phase probe";
+        if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
+            !output.contains("panic.swgs:1:") || !output.contains(expected) || output.contains("exit(-666)"))
+        {
+            std::println(stderr, "[{} panic] result={}, exit={}\n{}", hook, static_cast<uint32_t>(result), exitCode, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

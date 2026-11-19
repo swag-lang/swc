@@ -59,7 +59,7 @@ namespace CodeGenSafety
     Result emitLifecyclePoisonLoop(CodeGen& codeGen, MicroReg addrReg, MicroReg countReg, uint64_t elementSizeInBytes);
     Result emitLifecycleInvalidate(CodeGen& codeGen, MicroReg addrReg, TypeRef typeRef, AstNodeRef sourceRef);
 
-    Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg);
+    Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg, bool indexSigned);
     Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType);
     Result emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowReg, MicroReg endExclusiveReg, MicroReg sourceCountReg);
     Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);

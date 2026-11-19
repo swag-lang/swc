@@ -94,27 +94,24 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
     }
 
-    Result emitRuntimePanicCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, std::string_view message)
+    Result emitRuntimePanicCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, std::span<const MicroReg> reportArgs)
     {
         codeGen.function().addCallDependency(&runtimeFunction);
-        SWC_ASSERT(runtimeFunction.parameters().size() == 2);
+        const auto& parameters = runtimeFunction.parameters();
+        SWC_ASSERT(parameters.size() == reportArgs.size() + 1);
 
-        const CallConvKind callConvKind = runtimeFunction.callConvKind();
-        const CallConv&    callConv     = CallConv::get(callConvKind);
+        const CallConv& callConv = CallConv::get(runtimeFunction.callConvKind());
 
         SmallVector<ABICall::PreparedArg> preparedArgs;
-        preparedArgs.reserve(2);
-
-        const ConstantRef messageCstRef = CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), message);
-        SWC_ASSERT(messageCstRef.isValid());
-        const auto messageArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, messageCstRef);
-        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);
+        preparedArgs.reserve(parameters.size());
+        for (size_t i = 0; i < reportArgs.size(); ++i)
+            CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, parameters[i]->typeRef(), reportArgs[i]);
 
         ConstantRef sourceLocCstRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, node));
         SWC_ASSERT(sourceLocCstRef.isValid());
         const auto sourceLocArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
-        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);
+        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, parameters.back()->typeRef(), sourceLocArg.reg);
 
         CodeGenCallHelpers::emitPreparedCall(codeGen, runtimeFunction, callConv, preparedArgs);
 
@@ -125,6 +122,15 @@ namespace
             codeGen.builder().emitTrap();
 
         return Result::Continue;
+    }
+
+    Result emitRuntimePanicCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, std::string_view message)
+    {
+        const ConstantRef messageCstRef = CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), message);
+        SWC_ASSERT(messageCstRef.isValid());
+        const auto messageArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, messageCstRef);
+        const std::array reportArgs = {messageArg.reg};
+        return emitRuntimePanicCall(codeGen, runtimeFunction, node, reportArgs);
     }
 
     Result emitRuntimeDiagnosticCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, const DiagnosticId diagId)
@@ -796,7 +802,7 @@ bool CodeGenSafety::hasOverflowRuntimeSafety(const CodeGen& codeGen)
     return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Overflow);
 }
 
-Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg)
+Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg, bool indexSigned)
 {
     if (!indexedType.isIndexable() && !indexedType.isSimd())
         return Result::Continue;
@@ -808,7 +814,9 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     if (isProvenArrayLoopIndex(codeGen, indexRef, indexedType))
         return Result::Continue;
 
-    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    // The same expression can also feed a loop guard, which still uses the
+    // two-argument panic entry point stored on the node.
+    SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::IndexPanic);
     SWC_ASSERT(panicFunction != nullptr);
 
     MicroBuilder&       builder     = codeGen.builder();
@@ -816,7 +824,10 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(indexReg, countReg, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, inBoundsRef);
-    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(indexRef), DiagnosticId::safety_err_bound_check));
+    const MicroReg signedReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(signedReg, ApInt(indexSigned ? 1 : 0, 8), MicroOpBits::B8);
+    const std::array reportArgs = {indexReg, countReg, signedReg};
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(indexRef), reportArgs));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;
 }

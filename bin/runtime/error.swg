@@ -1026,7 +1026,7 @@ func panic(message: string?, loc: SourceCodeLocation)
 
     // Under the compiler, let it report the panic: it knows more about the code that raised it,
     // and it abandons the run instead of continuing it.
-    if Swag.jit()
+    if Swag.jit() or cxt.compilerRaise
     {
         __raiseException666(message, loc, .Panic)
         unreachable
@@ -1039,9 +1039,10 @@ func panic(message: string?, loc: SourceCodeLocation)
 #[Swag.Safety(.All, false), Swag.NoReturn]
 func safetyPanic(message: string, loc: SourceCodeLocation)
 {
-    // An explicit catch owns recovery in JIT execution just as it does in native code.
-    // Uncaught safety failures still use the compiler's source diagnostic.
-    if Swag.jit() and not Swag.getContext().panicCatch
+    // An explicit catch owns recovery in every mode. A script also runs its panic
+    // hook before reporting if it has one, just as a native program does.
+    let cxt = Swag.getContext()
+    if not cxt.panicCatch and (Swag.jit() or (cxt.compilerRaise and not cxt.panic))
     {
         __valueBorrowReset()
         __raiseException666(message, loc, .Safety)
@@ -1049,6 +1050,23 @@ func safetyPanic(message: string, loc: SourceCodeLocation)
     }
 
     Swag.panic(message, loc)
+}
+
+#[Swag.Safety(.All, false), Swag.NoReturn]
+func __indexPanic(index: u64, length: u64, signedIndex: bool, loc: SourceCodeLocation)
+{
+    const prefix = "index "
+    const middle = " is outside the collection of length "
+
+    // Space for both full-width integers and the conversion helpers' terminator.
+    var buffer: [prefix.count + 20 + middle.count + 20 + 1] u8
+    let message: [*] u8 = &buffer[0]
+    Swag.memcpy(message, prefix.buffer, prefix.count)
+    let digits     = message + prefix.count
+    let afterIndex = signedIndex ? __itoa(digits, cast #bit (s64, index)) : __utoa(digits, index)
+    Swag.memcpy(afterIndex, middle.buffer, middle.count)
+    let end = __utoa(afterIndex + middle.count, length)
+    Swag.safetyPanic(Swag.makeString(message, cast(u64, end - message)), loc)
 }
 
 #[Swag.NoReturn]

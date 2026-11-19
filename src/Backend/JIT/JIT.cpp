@@ -2111,7 +2111,13 @@ namespace
         DecodedRuntimeException decodedException;
         decodeCompilerDiagnosticException(platformExceptionPointers, decodedException);
 
-        const RuntimeExceptionDiagnosticInfo info = runtimeExceptionDiagnosticInfo(decodedException.kind);
+        RuntimeExceptionDiagnosticInfo info = runtimeExceptionDiagnosticInfo(decodedException.kind);
+        // Scripts run in the JIT with program runtime flags. A panic there belongs to
+        // the running program, while a panic during #run belongs to compilation.
+        const auto* runtimeContext = CompilerInstance::runtimeContextFromTls();
+        if (decodedException.kind == Runtime::ExceptionKind::Panic && runtimeContext && runtimeContext->runtimeFlags == Runtime::RuntimeFlags::Zero)
+            info.diagId = DiagnosticId::safety_err_runtime_panic;
+
         *outErrorKind                             = info.errorKind;
         outExceptionAction                        = info.exceptionAction;
 

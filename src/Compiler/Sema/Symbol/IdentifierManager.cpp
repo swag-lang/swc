@@ -148,6 +148,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeValueBorrowWrite, .str = "__valueBorrowWrite"},
 
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "Swag.safetyPanic"},
+        {.name = PredefinedName::RuntimeIndexPanic, .str = "__indexPanic"},
 
         {.name = PredefinedName::RuntimeAs, .str = "__borrowAnyValue"},
         {.name = PredefinedName::RuntimeDynamicCast, .str = "__dynamicCast"},
@@ -208,6 +209,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowWrite)] = predefined(PredefinedName::RuntimeValueBorrowWrite);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)] = predefined(PredefinedName::RuntimeSafetyPanic);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IndexPanic)]  = predefined(PredefinedName::RuntimeIndexPanic);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]               = predefined(PredefinedName::RuntimeAs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::DynamicCast)]      = predefined(PredefinedName::RuntimeDynamicCast);

@@ -176,12 +176,6 @@ namespace
         return std::isalpha(uch) || ch == '_';
     }
 
-    bool isAsciiIdentifierTail(const char ch)
-    {
-        const unsigned char uch = static_cast<unsigned char>(ch);
-        return std::isalnum(uch) || ch == '_';
-    }
-
     bool isLiteralSuffixAnchor(const char ch)
     {
         const unsigned char uch = static_cast<unsigned char>(ch);

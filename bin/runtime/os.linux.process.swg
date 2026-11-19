@@ -165,7 +165,8 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     // A check records failure without unwinding the native test's active frame.
     if kind == .Check and not Swag.jit() and Swag.__testCheckFailed(message, loc) do
         return
-    if not Swag.jit()
+    let hostedPanic = context.compilerRaise and (kind == .Panic or kind == .Safety)
+    if not Swag.jit() and not hostedPanic
     {
         var msg = message
         if not msg

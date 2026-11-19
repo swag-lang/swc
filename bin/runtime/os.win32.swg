@@ -673,7 +673,8 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
 {
     // JIT assertions normally raise an exception for the compiler to report. An active panic
     // catcher owns the assertion, so route it through the same hook as a native assertion.
-    if kind == .Assert and Swag.getContext().panicCatch do
+    let cxt = Swag.getContext()
+    if kind == .Assert and cxt.panicCatch do
         Swag.panic(message, loc)
 
     // A failed check belongs to the running test, which goes on. The compiler running a JIT
@@ -684,7 +685,8 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
     // hooks), instead of dying silently on an unhandled SEH exception.
-    if not Swag.jit()
+    let hostedPanic = cxt.compilerRaise and (kind == .Panic or kind == .Safety)
+    if not Swag.jit() and not hostedPanic
     {
         var msg = message
         if not msg
@@ -701,7 +703,6 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
         Swag.panic(msg, loc)
     }
 
-    let cxt = Swag.getContext()
     cxt.exceptionLoc       = loc
     cxt.exceptionParams[0] = cast(const *void, &cxt.exceptionLoc)
     cxt.exceptionParams[1] = cast(const *void?, message.buffer)

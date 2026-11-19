@@ -881,9 +881,10 @@ struct SIZE
     }
 }
 
-const AC_SRC_OVER  = 0'u8
-const AC_SRC_ALPHA = 1'u8
-const ULW_ALPHA    = 2'u32
+const AC_SRC_OVER     = 0'u8
+const AC_SRC_ALPHA    = 1'u8
+const ULW_ALPHA       = 2'u32
+const ULW_EX_NORESIZE = 8'u32
 
 const HWND_BROADCAST   = cast(HWND, 0xFFFF'u64)
 const SMTO_ABORTIFHUNG = 0x0002

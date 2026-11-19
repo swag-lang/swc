@@ -29,7 +29,7 @@ struct FrameTrace
     totalUs:   u64     // Whole frames, from `beginFrame` to `endFrame`.
     recordUs:  u64     // Recording the hierarchy and the chrome into the painter.
     targetUs:  u64     // Submitting the recorded frame to the adapter as the render-target pass.
-    presentUs: u64     // Copying that target to the back buffer.
+    presentUs: u64     // Transferring that target to the native window.
     swapUs:    u64     // Handing that buffer to the display, which is where a frame waits for it.
     frames:    u64     // Frames the totals cover.
     warmedUp:  u64     // Frames already dropped as warm-up.

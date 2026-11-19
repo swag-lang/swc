@@ -618,11 +618,12 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
-        if .paintToRenderTarget(root) do
-            discard .presentRenderTarget()
+        var paintedRect: Math.Rectangle
+        if .paintToRenderTarget(root, &paintedRect) do
+            discard .presentRenderTarget(paintedRect)
     }
 
-    private mtd paintToRenderTarget(root: *Wnd)->bool
+    private mtd paintToRenderTarget(root: *Wnd, paintedRect: *Math.Rectangle)->bool
     {
         root.flushLayout()
         if not .createRT() do
@@ -750,6 +751,7 @@ impl Surface
         }
 
         .renderFailure.clear()
+        paintedRect[] = physClip
 
         .paintTargetUs = 0
         .paintArea     = 0
@@ -770,7 +772,7 @@ impl Surface
             .app.renderer.end()
     }
 
-    private mtd presentRenderTarget()->bool
+    private mtd presentRenderTarget(paintedRect: Math.Rectangle)->bool
     {
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
@@ -799,7 +801,7 @@ impl Surface
             else do
                 .colorDisabled = Argb.White
 
-            if not (catch .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height))
+            if not (catch .presentNativeTarget(target, paintedRect, dimmed or opacity < 1))
             {
                 .renderFailure = "OpenGL could not copy the window presentation target"
                 .finishFrameWithoutPresent()

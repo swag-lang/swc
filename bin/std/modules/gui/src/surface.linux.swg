@@ -247,6 +247,11 @@ impl Surface
     // The window manager applies opacity after EGL swaps.
     internal mtd frameOpacity()->f32 => 1
 
+    internal mtd presentNativeTarget(target: const *Pixel.RenderTarget, _: Math.Rectangle, _: bool)->bool fail
+    {
+        return try .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height)
+    }
+
     internal mtd applyNativeTitle()
     {
         if .windowId == 0 do

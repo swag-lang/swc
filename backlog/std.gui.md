@@ -20,9 +20,9 @@ prove it. Operating-system integrations live in
 
 ### std.gui.054 — Measure wheel-to-display latency under CPU contention
 
-- Evidence: ordinary frames keep the retained content in an OpenGL target, blit it to the native
-  back buffer, and swap on the window thread. The swap can wait for the driver and compositor.
-  Message round-trip probes do not measure wheel-to-display latency.
+- Evidence: ordinary frames keep the content in an OpenGL target and present on the window
+  thread. The native presenter can wait for the driver and compositor. Message round-trip
+  probes do not measure wheel-to-display latency.
 - Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
   while the CPU is busy, with Typora remaining fluid on the same document under that load;
   the slowdown affects the entire application, not only Markdown.
@@ -42,10 +42,11 @@ prove it. Operating-system integrations live in
 
 ### std.gui.057 — Validate GPU presentation across displays and live resizing
 
-- Evidence: Windows now presents via a double-buffered WGL window with DWM alpha composition.
-  Linux X11 uses EGL. Both redraw dirty regions in a retained GPU target and copy the complete
-  visible rectangle on the GPU before swapping. Resize and placement paint at the committed
-  geometry through the ordinary surface renderer. Window-buffer comparisons check the settled result.
+- Evidence: Windows presents a premultiplied bitmap to a layered window using a fixed offscreen
+  WGL drawable. Linux X11 copies the retained target to an EGL back buffer before swapping.
+  Both redraw dirty regions in a retained GPU target. Resize and placement paint at the
+  committed geometry through the ordinary surface renderer. Presentation comparisons check
+  the settled result.
   Existing desktop captures at 12–30 fps cannot exclude a one-refresh artifact.
 - A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
@@ -443,6 +444,24 @@ preview. Validate requested settings against the capabilities supplied by platfo
   border. Cross-thread `SetWindowPos` probes and median-only round trips do not measure
   physical-drag latency. Repeated right-border drags on the Windows host still show occasional
   gaps of about one second between native geometry updates, followed by the correct final size.
+- On the Intel Arc Windows host at 150% scale, a physical Swag Scope drag spent up to 2.83 s
+  between `WM_WINDOWPOSCHANGING` and `WM_WINDOWPOSCHANGED`. Window layout and recording did not
+  account for those gaps. Disabling swap-interval synchronization or adding an explicit
+  GPU/compositor wait still left multi-second pauses. A layered-bitmap prototype kept redrawing
+  during the drag, but one presentation took 134 ms.
+- A sustained `SetWindowPos` sweep of a visible test window reproduced geometry stalls without
+  mouse input. The driver hung during the baseline sweep, with a native geometry call taking
+  9.68 s and Windows logging the USB graphics dock going offline (event 10111). The sweep was
+  stopped. Use an isolated graphics test host for sustained load. Keep short physical drags
+  as the input-to-display benchmark.
+- The presenter now gives the visible HWND a layered bitmap and keeps the WGL drawable
+  offscreen at a fixed size. The modal application clock publishes the latest committed size
+  while the drag continues. The bitmap retains capacity across adjacent sizes and reads only
+  the damaged pixels for an ordinary partial paint.
+- On a private Win32 desktop with Mesa llvmpipe, the native GUI tests cover intermediate and
+  final drag sizes, buffer reuse, partial paints and opacity. The Swag Scope placement test
+  passes its fullscreen and restore transitions on the same software renderer. The physical
+  adapter's input-to-display latency remains unmeasured with this presenter.
 - Next: measure input-to-present latency during physical drag and discrete maximize or
   full-screen changes with the window-thread renderer. Compare any cheaper native presentation
   backend under platform.portability.066 against this baseline. Before moving rendering off

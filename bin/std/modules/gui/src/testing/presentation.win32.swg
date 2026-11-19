@@ -2,12 +2,12 @@
 #global namespace Testing
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Pixel, Ogl
+using Core, Pixel
 
-// Compares the WGL front buffer with its completed OpenGL render target.
+// Compares the bitmap published to Windows with its completed OpenGL render target.
 //
 // Call on the window thread between event-loop frames. Returns false until a frame has
-// appeared in the front buffer. Fails if the surface has no OpenGL renderer or rendering
+// been published. Fails if the surface has no OpenGL renderer or rendering
 // or pixel inspection fails.
 //
 // This reads the GPU synchronously and is intended for smoke checkpoints. For composition
@@ -30,25 +30,16 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     if not expected.isValid() do
         fail Errors.InvalidFormatError{Errors.mkString("cannot read the GPU target for presentation verification")}
 
-    var actual = Image.create(width, height, .BGRA8)
-    var readFramebuffer, readBuffer: GLint
-    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFramebuffer)
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)
-    glGetIntegerv(GL_READ_BUFFER, &readBuffer)
-    defer
+    let pixels    = cast(const [*] u8, unwrap surface.presentationPixels)
+    let stride    = cast(u64, surface.presentationWidth) * 4
+    let rowBytes  = cast(u64, width) * 4
+    let firstRow  = cast(u64, surface.presentationHeight - height)
+    let reference = expected.pixels.toSlice()
+    for row in cast(u64, height)
     {
-        glReadBuffer(cast(GLenum, readBuffer))
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, readFramebuffer))
-    }
-
-    glReadBuffer(GL_FRONT)
-    glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, actual.pixels.storage())
-    if glGetError() != GL_NO_ERROR do
-        fail Errors.InvalidFormatError{Errors.mkString("cannot read the WGL front buffer")}
-
-    for index in expected.byteCount
-    {
-        if Math.abs(cast(s32, actual.pixels[index]) - expected.pixels[index]) > 1 do
+        let actual = Swag.makeSlice(pixels + (firstRow + row) * stride, rowBytes)
+        let offset = row * rowBytes
+        if not Slice.equals(actual, reference[offset until offset + rowBytes]) do
             return false
     }
 

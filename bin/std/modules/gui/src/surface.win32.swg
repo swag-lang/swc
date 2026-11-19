@@ -76,6 +76,13 @@ internal struct NativeSurface
     // The desktop can deliver several sizes before the next application clock frame.
     clientResizePending: bool
     clientLayoutScale:   f32
+
+    presentationDC:     HDC
+    presentationBitmap: HBITMAP
+    presentationPixels: *u8?
+    presentationWidth:  s32
+    presentationHeight: s32
+    presentedTinted:    bool
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -326,10 +333,8 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
             EndPaint(hWnd, &ps)
 
-            // USER32 suspends the application loop during a border drag. Its paint message
-            // marks the first opportunity to draw at the latest size on the owning thread.
-            if surface.inDesktopLoop and surface.isSizing and surface.clientResizePending and not surface.isHidden do
-                surface.paint()
+            // Publish from the application clock, including its timer inside USER32's
+            // sizing loop. Several native size messages can share one paint and transfer.
             return 0
 
         case WM_NCRBUTTONDOWN:
@@ -533,7 +538,7 @@ private impl Surface
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
             wc.cbWndExtra    = #sizeof(*void?)
-            wc.style         = CS_OWNDC | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
+            wc.style         = CS_DBLCLKS
             wc.lpfnWndProc   = cast(&winProc)
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
             wc.hIcon         = hIcon
@@ -544,7 +549,9 @@ private impl Surface
         var winFlags = 0'u32
         winFlags |= WS_POPUP | WS_CLIPCHILDREN
 
-        var winFlagsEx = 0'u32
+        // A layered window receives premultiplied pixels from a fixed offscreen OpenGL
+        // drawable. Resizing the HWND then leaves the driver's drawable allocations alone.
+        var winFlagsEx = WS_EX_LAYERED
         if flags & .ToolWindow do
             winFlagsEx |= WS_EX_TOOLWINDOW
         if flags & .TopMost
@@ -573,7 +580,6 @@ private impl Surface
             catch SetWindowPos(result.hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING)
         }
 
-        result.enablePerPixelAlpha()
         result.applyNativeDwmStyle()
         result.registerDropTarget()
     }
@@ -581,6 +587,7 @@ private impl Surface
     internal mtd destroyNative()
     {
         .destroyRendering()
+        .releasePresentationBitmap()
         if not .hWnd do
             return
 
@@ -642,16 +649,115 @@ impl Surface
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
 
-    // An empty blur region asks DWM to compose the WGL framebuffer's alpha without blurring.
-    private mtd enablePerPixelAlpha()
+    private mtd releasePresentationBitmap()
     {
-        let region = CreateRectRgn(0, 0, -1, -1)
-        defer if region do
-            catch DeleteObject(cast(HGDIOBJ, region))
-        var blur = DWM_BLURBEHIND{dwFlags: DWM_BB_ENABLE | DWM_BB_BLURREGION,
-                                  fEnable: TRUE,
-                                  hRgnBlur: region}
-        discard DwmEnableBlurBehindWindow(.hWnd, &blur)
+        if .presentationDC do
+            catch DeleteDC(.presentationDC)
+        if .presentationBitmap do
+            catch DeleteObject(cast(HGDIOBJ, .presentationBitmap))
+        .presentationDC     = null
+        .presentationBitmap = null
+        .presentationPixels = null
+    }
+
+    private mtd createPresentationBitmap() fail
+    {
+        // Use the same high-water bounds as the retained OpenGL target. Dragging within
+        // those bounds reuses both allocations, even when the client shrinks and grows.
+        let width = .rt.colorBuffer.width
+        let height = .rt.colorBuffer.height
+        let dc = try CreateCompatibleDC(null)
+        defer #fail catch DeleteDC(dc)
+
+        var info: BITMAPINFO
+        info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+        info.bmiHeader.biWidth       = width
+        info.bmiHeader.biHeight      = height
+        info.bmiHeader.biPlanes      = 1
+        info.bmiHeader.biBitCount    = 32
+        info.bmiHeader.biCompression = BI_RGB
+        var pixels: *u8?
+        let bitmap = try CreateDIBSection(null, &info, cast(DIB_RGB_COLORS), &pixels, null, 0)
+        if not SelectObject(dc, cast(HGDIOBJ, bitmap))
+        {
+            let error = GetLastError()
+            catch DeleteObject(cast(HGDIOBJ, bitmap))
+            try failWinError(error)
+        }
+
+        .releasePresentationBitmap()
+        .presentationDC     = dc
+        .presentationBitmap = bitmap
+        .presentationPixels = pixels
+        .presentationWidth  = width
+        .presentationHeight = height
+    }
+
+    internal mtd presentNativeTarget(target: const *Pixel.RenderTarget, paintedRect: Math.Rectangle, tinted: bool)->bool fail
+    {
+        let size   = SIZE{.rc.width, .rc.height}
+        let bounds = Math.Rectangle{0, 0, cast(f32, size.cx), cast(f32, size.cy)}
+        var rect   = Math.Rectangle.intersect(paintedRect, bounds)
+        if not .presentationBitmap or .presentationWidth < size.cx or .presentationHeight < size.cy
+        {
+            try .createPresentationBitmap()
+            rect = bounds
+        }
+        // Tints can change the complete frame while the controls repaint only part of it.
+        if not .presentedFrame or tinted or .presentedTinted do
+            rect = bounds
+        if rect.isEmpty() do
+            return true
+
+        let dirty = RECT{cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.right()), cast(s32, rect.bottom())}
+        if not .readPresentationPixels(target, dirty) do
+            return false
+
+        let source = POINT{}
+        let blend = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+        let update = UPDATELAYEREDWINDOWINFO{cbSize: cast(u32, #sizeof(UPDATELAYEREDWINDOWINFO)),
+                                            psize: &size, hdcSrc: .presentationDC, pptSrc: &source,
+                                            pblend: &blend, dwFlags: ULW_ALPHA | ULW_EX_NORESIZE, prcDirty: &dirty}
+        if not UpdateLayeredWindowIndirect(.hWnd, &update) do
+            return false
+        .presentedTinted = tinted
+        return true
+    }
+
+    private mtd readPresentationPixels(target: const *Pixel.RenderTarget, dirty: RECT)->bool
+    {
+        var framebuffer, buffer, alignment, rowLength, skipRows, skipPixels: GLint
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &framebuffer)
+        glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &buffer)
+        glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+        glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+        glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+        glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+        defer
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, framebuffer))
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, buffer))
+            glPixelStorei(GL_PACK_ALIGNMENT, alignment)
+            glPixelStorei(GL_PACK_ROW_LENGTH, rowLength)
+            glPixelStorei(GL_PACK_SKIP_ROWS, skipRows)
+            glPixelStorei(GL_PACK_SKIP_PIXELS, skipPixels)
+        }
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, target.handle))
+        glReadBuffer(GL_COLOR_ATTACHMENT0)
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+        glPixelStorei(GL_PACK_ALIGNMENT, 4)
+        glPixelStorei(GL_PACK_ROW_LENGTH, .presentationWidth)
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
+
+        // Both the FBO and the DIB count rows from the bottom. Their visible client starts
+        // at the top of the allocation, and each may have a different amount of spare space.
+        let offset = (cast(u64, .presentationHeight - dirty.bottom) * cast(u64, .presentationWidth) + cast(u64, dirty.left)) * 4
+        let pixels = cast([*] u8, unwrap .presentationPixels) + offset
+        glReadPixels(dirty.left, target.colorBuffer.height - dirty.bottom,
+                     dirty.right - dirty.left, dirty.bottom - dirty.top, GL_BGRA, GL_UNSIGNED_BYTE, pixels)
+        return glGetError() == GL_NO_ERROR
     }
 
     internal mtd frameOpacity()->f32 => .opacity
@@ -1058,12 +1164,8 @@ impl Surface
         .invalidate()
         .wnd.applyLayout(.size())
 
-        // Render the first complete frame into the back buffer *before* the window
-        // becomes visible. Otherwise ShowWindow composites the still-empty (black)
-        // GL surface, and the user sees a black flash until the first runFrame()
-        // paint completes (which is slow on the first frame because of the lazy
-        // font/glyph generation it triggers). Painting while still hidden means the
-        // window appears already showing correct content.
+        // Publish the first complete bitmap while the window is hidden. First paint can
+        // initialize fonts and glyphs, so keep that work outside the visible transition.
         .paint()
 
         if not .app.renderer.needsNativeWindow()

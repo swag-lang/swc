@@ -4,7 +4,7 @@
 
 using Core, Pixel, Win32, Ogl
 
-// Swap a window-backed OpenGL frame for full paints, partial paints and native placements.
+// Publish full paints, partial paints and native placements through the window bitmap.
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
@@ -12,21 +12,23 @@ using Core, Pixel, Win32, Ogl
     var icon = Image.create(16, 16, .RGBA8)
     icon.clear()
     app.setAppIcon(#move icon)
-    let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-wgl-presentation-test")
+    let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-layered-presentation-test")
     let button  = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
-    Swag.require(not (GetWindowLongPtrW(surface.win32Handle(), GWL_EXSTYLE) & WS_EX_LAYERED))
+    Swag.require(GetWindowLongPtrW(surface.win32Handle(), GWL_EXSTYLE) & WS_EX_LAYERED)
     surface.show()
     Swag.require(app.appGlyph(16).isValid())
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
     app.frameTrace.enabled = true
     surface.isDirty = false
-    surface.invalidateRect(button.surfaceRect())
+    // Change the paint output while keeping this test independent of relayout.
+    button.name.set("Changed")
+    button.invalidate()
     surface.paint()
     Swag.require(surface.paintArea < cast(u64, surface.rc.width) * cast(u64, surface.rc.height))
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
-    // A full back-buffer swap retains all pixels even after a partial redraw.
+    // A size change publishes a complete bitmap after a partial redraw.
     surface.setPosition({60, 50, 420, 280})
     Swag.require(surface.position == {60, 50, 420, 280})
     Swag.require(not surface.presentedFrame)
@@ -42,7 +44,7 @@ using Core, Pixel, Win32, Ogl
     Swag.require(not surface.isDirty)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
-    // A failed submission schedules a complete repaint and leaves the previous swap visible.
+    // A failed submission schedules a complete repaint and leaves the previous frame visible.
     var inject = true
     surface.wnd.view.hookOnEvent = func|&inject|(_, evt)->bool
     {

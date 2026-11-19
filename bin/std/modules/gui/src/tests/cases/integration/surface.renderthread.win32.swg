@@ -117,16 +117,18 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     Swag.require(surface.position == bounds)
 }
 
-// The window's rendering context must stay on its owner thread. Delegating synchronous WGL
-// calls to another thread lets drawable reallocation overlap USER32's geometry transaction;
-// the driver can then stall for seconds even when the surface contains no controls.
+// The owner thread keeps one fixed OpenGL drawable while the visible HWND resizes.
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application
     let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test")
     let context = Ogl.wglGetCurrentContext()
+    let drawable = Ogl.wglGetCurrentDC()
     Swag.require(context != null, "the window owner must own the default OpenGL context")
+    let windowDC = GetDC(surface.win32Handle())
+    defer ReleaseDC(surface.win32Handle(), windowDC)
+    Swag.require(drawable and windowDC and drawable != windowDC)
 
     var processId: u32
     let owner = GetWindowThreadProcessId(surface.win32Handle(), &processId)
@@ -137,6 +139,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
         surface.setPosition(Math.Rectangle{40, 40, cast(f32, (320 + step * 2)), 180})
         surface.paint()
         Swag.require(Ogl.wglGetCurrentContext() == context)
+        Swag.require(Ogl.wglGetCurrentDC() == drawable)
         Swag.require(surface.rt.colorBuffer.isValid())
     }
 }
@@ -193,12 +196,22 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     app.runClockFrame()
     Swag.require(surface.rc.width == 653 and surface.rc.height == 403)
     Swag.require(expect Testing.verifyNativePresentation(surface))
+    let bitmap = surface.presentationBitmap
+
+    // A shrink during the same gesture reuses the larger allocation and publishes its own
+    // top-left rectangle without moving or resizing the HWND a second time.
+    expect SetWindowPos(window, null, 0, 0, 619, 389, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+    app.runClockFrame()
+    Swag.require(surface.rc.width == 619 and surface.rc.height == 389)
+    Swag.require(surface.presentationBitmap == bitmap)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 
     expect SetWindowPos(window, null, 0, 0, 655, 401, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
     discard SendMessageW(window, WM_EXITSIZEMOVE, 0, 0)
-    Swag.require(not surface.isSizing and surface.rc.width == 653)
+    Swag.require(not surface.isSizing and surface.rc.width == 619)
     app.runFrame()
     Swag.require(surface.rc.width == 655 and surface.rc.height == 401)
+    Swag.require(surface.presentationBitmap == bitmap)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 }
 

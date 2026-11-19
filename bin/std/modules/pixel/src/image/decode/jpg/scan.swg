@@ -14,7 +14,7 @@ impl Decoder
         Swag.assert(blkX < cb.blockNumX)
         Swag.assert(blkY < cb.blockNumY)
         let block = cast(u64, blkY) * cast(u64, cb.blockNumX) + cast(u64, blkX)
-        return cast([*] s16, (cb.pdata.storage() + block * cast(u64, cb.blockSize)))
+        return cb.values.storage() + block * 64
     }
 
     mtd loadNextRow() fail
@@ -29,27 +29,14 @@ impl Decoder
             for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
-
-                let q   = .quant[.compQuant[componentId]].storage()
-                var pAC = coeffBufGetp(.acCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
-                let pDC = coeffBufGetp(.dcCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
-
-                p[0] = pDC[0]
-                Memory.copy(&p[1], &pAC[1], 63'u64 * #sizeof(s16))
-
-                var i = 63
-                while i > 0
+                let q           = .quant[.compQuant[componentId]].storage()
+                let samples     = coeffBufGetp(.coefficients[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
+                for row in 8
                 {
-                    if p[Zag[cast(u32, i)]] do
-                        break
-                    i -= 1
-                }
-
-                while i >= 0
-                {
-                    if p[Zag[cast(u32, i)]] do
-                        p[Zag[cast(u32, i)]] *= q[cast(u32, i)]
-                    i -= 1
+                    let offset       = row * 8
+                    let weights      = Math.Simd.load(q + offset)
+                    let coefficients = Math.Simd.load(samples + offset)
+                    Math.Simd.store(p + offset, coefficients * weights)
                 }
 
                 p += 64

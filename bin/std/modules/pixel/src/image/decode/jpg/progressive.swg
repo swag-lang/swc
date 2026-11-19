@@ -9,16 +9,13 @@ using Swag, Core, Core.Errors
 
 impl Decoder
 {
-    func coeffBufOpen(blkNumX, blkNumY, blkLenX, blkLenY: s32)->CoeffBuf
+    func coeffBufOpen(blkNumX, blkNumY: s32)->CoeffBuf
     {
         with var result: #returntype
         {
             .blockNumX = blkNumX
             .blockNumY = blkNumY
-            .blockLenX = blkLenX
-            .blockLenY = blkLenY
-            .blockSize = blkLenX * blkLenY * cast(s32, #sizeof(s16))
-            .pdata.resize(cast(u64, .blockSize) * blkNumX * blkNumY)
+            .values.resize(cast(u64, blkNumX) * blkNumY * 64)
         }
 
         return result
@@ -26,7 +23,7 @@ impl Decoder
 
     mtd decodeBlockDcFirst(cmpId: u32, blkX, blkY: s32) fail
     {
-        var p = coeffBufGetp(.dcCoeffs[cmpId], blkX, blkY)
+        var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
         var s = .huffDecode(&.h[.compDcTab[cmpId]])
         if s != 0
         {
@@ -42,7 +39,7 @@ impl Decoder
     {
         if .getBits2(1)
         {
-            var p = coeffBufGetp(.dcCoeffs[cmpId], blkX, blkY)
+            var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
             p[0] |= (1's16 << .successiveLow)
         }
     }
@@ -55,7 +52,7 @@ impl Decoder
             return
         }
 
-        var p = coeffBufGetp(.acCoeffs[cmpId], blkX, blkY)
+        var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
 
         for var k = .spectralStart; k <= .spectralEnd; k += 1
         {
@@ -99,7 +96,7 @@ impl Decoder
     {
         let p1 = 1 << .successiveLow
         let m1 = -1 << .successiveLow
-        var p  = coeffBufGetp(.acCoeffs[cmpId], blkX, blkY)
+        var p  = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
         var k  = .spectralStart
         if .eobRun == 0
         {
@@ -283,11 +280,8 @@ impl Decoder
 
     mtd initProgressive() fail
     {
-        for i in .compsInFrame
-        {
-            .dcCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 1, 1)
-            .acCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 8, 8)
-        }
+        for i in .compsInFrame do
+            .coefficients[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i])
 
         for
         {
@@ -305,6 +299,16 @@ impl Decoder
 
         if .lastMarkerSynthetic do
             fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
+
+        // The entropy scan stores coefficients in natural order. Reorder each table once so
+        // dequantization can multiply an entire row of a block in one operation.
+        for &table in .quant where not table.isEmpty()
+        {
+            var natural: [64] s16
+            for i in 64 do
+                natural[Zag[i]] = table[i]
+            Memory.copy(table.storage(), &natural[0], #sizeof(natural))
+        }
 
         .compsInScan = .compsInFrame
         for i in .compsInFrame do

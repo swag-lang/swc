@@ -11,7 +11,7 @@ impl ViewerWindow
         .queueFile(.currentFile, remember: false, preserveReading: true)
     }
 
-    // Opens `fileName` after the surface has had a chance to paint its first frame.
+    // Queues `fileName`, giving the window a chance to paint its first frame on startup.
     mtd queueFile(fileName: string,
                   remember = true,
                   preserveReading = false,
@@ -54,7 +54,14 @@ impl ViewerWindow
         }
 
         .updateLoadingIndicator()
-        if not .startupTimer do
+        if .startupTimer do
+            return
+
+        // Start the JPEG classification while the outgoing view is still on screen.
+        if .currentView and not .choiceLoad.started and not .awaitingRetirement and
+           Viewers.Picture.isJpegExtension(Path.lowercaseExtension(.pendingFile)) do
+            .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
+        else do
             .startupTimer = .addTimer(1'ms)
     }
 

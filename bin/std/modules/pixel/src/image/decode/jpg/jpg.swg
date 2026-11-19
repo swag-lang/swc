@@ -61,12 +61,9 @@ private
 
     struct CoeffBuf
     {
-        pdata:     Array'u8
+        values:    Array's16
         blockNumX: s32
         blockNumY: s32
-        blockLenX: s32
-        blockLenY: s32
-        blockSize: s32
     }
 
     #[Swag.Incomplete]
@@ -234,9 +231,8 @@ internal struct Decoder
         blockMcuY:   [MaxComponents] s32
         component:   [MaxBlocksPerMcu] (*u32?)
         lastDcVal:   [MaxComponents] s32
-        dcCoeffs:    [MaxComponents] CoeffBuf
-        acCoeffs:    [MaxComponents] CoeffBuf
 
+        coefficients: [MaxComponents] CoeffBuf
         huffNum:    [MaxHuffTables] Array'u8
         huffVal:    [MaxHuffTables] Array'u8
         quant:      [MaxQuantTables] Array's16

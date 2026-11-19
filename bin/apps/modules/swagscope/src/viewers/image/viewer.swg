@@ -30,6 +30,8 @@ func viewerPlugin()->Viewer.Plugin
 private const InfoWidth      = Viewer.ZoomSlotWidth
 private const SvgRasterLimit = 2048.0
 
+func isJpegExtension(extension: string)->bool => extension == ".jpg" or extension == ".jpeg"
+
 private func commandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 private func imageSetCommandWidth(metrics: const *ThemeMetrics, animated: bool)->f32 =>
     Viewer.pageControlWidth(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16 + 128 + 12 +
@@ -109,9 +111,7 @@ func loadViewerDrawing(fileName: string)->Svg.Drawing fail
     return try Svg.Drawing.parse(cast(string, region.bytes()))
 }
 
-// Loads an image for the viewer: SVG as a vector drawing, anything else through the movie decoder,
-// keeping the frames only for an animation. Also fills the facts and information rows shown beside
-// it.
+// Loads an image for the viewer and fills the facts shown beside it.
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: #returntype
@@ -128,44 +128,60 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
     else
     {
-        try result.movie.load(fileName)
-        try result.movie.prepareCache()
-        let frame    = &result.movie.frame
-        let animated = result.movie.frameCount > 1
-
-        // A camera stores a portrait photograph on its side and records how to stand it up. A
-        // still picture is turned once here, so every reading of it, rotations included, starts
-        // upright.
-        var shown = frame
-        if not animated
+        let jpeg = isJpegExtension(extension)
+        var originalMetadata: Array'ImageMetadata
+        // JPEG has one still frame. Decode straight into the picture the view will own.
+        if jpeg
         {
-            result.image = frame[]
-            result.image.orient(Exif.orientationOf(frame.metadata.toSlice()))
-            shown = &result.image
+            result.image = try Image.load(fileName)
+            let orientation = Exif.orientationOf(result.image.metadata.toSlice())
+            if orientation != 1
+            {
+                // The information sheet shows the encoded orientation, even after the pixels
+                // are upright and their own orientation tag has been reset.
+                originalMetadata = result.image.metadata
+                result.image.orient(orientation)
+            }
+        }
+        else
+        {
+            try result.movie.load(fileName)
+            try result.movie.prepareCache()
+            if result.movie.frameCount == 1
+            {
+                result.image = result.movie.frame
+                result.image.orient(Exif.orientationOf(result.image.metadata.toSlice()))
+            }
         }
 
+        let frameCount = Math.max(1, result.movie.frameCount)
+        let animated   = frameCount > 1
+        let shown      = animated ? &result.movie.frame : &result.image
         result.facts.width  = Format.toString("%", shown.width)
         result.facts.height = Format.toString("%", shown.height)
-        result.facts.bits   = frame.bitsPerPixel
-        result.facts.frames = result.movie.frameCount
+        result.facts.bits   = shown.bitsPerPixel
+        result.facts.frames = frameCount
 
         // Adding information can move what 'result' holds: read the frame first.
         let dimensions  = Format.toString("% × % px", shown.width, shown.height)
-        let pixelFormat = Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false)
-        let depth       = Format.toString("%", frame.bitsPerPixel)
+        let pixelFormat = Reflection.enumName(PixelFormat, &shown.pixelFormat, fullyQualified: false)
+        let depth       = Format.toString("%", shown.bitsPerPixel)
         var transparency: String
-        if not animated and frame.pixelFormat.hasAlpha() do
+        if not animated and shown.pixelFormat.hasAlpha() do
             transparency = transparencyText(shown)
         result.information.add(.Dimensions, dimensions)
         result.information.add(.PixelFormat, pixelFormat)
         result.information.add(.Depth, depth)
         if animated do
-            result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
+            result.information.add(.Frames, Format.toString("%", frameCount))
         if transparency.count do
             result.information.add(.Transparency, transparency)
 
-        result.information.addImageMetadata(result.movie.frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
-        if result.movie.frameCount <= 1 do
+        var metadata = result.movie.frame.metadata.toSlice()
+        if jpeg do
+            metadata = originalMetadata.isEmpty() ? result.image.metadata.toSlice() : originalMetadata.toSlice()
+        result.information.addImageMetadata(metadata, extension == ".png" or extension == ".apng")
+        if result.movie.frameCount == 1 do
             result.movie.clear()
     }
 

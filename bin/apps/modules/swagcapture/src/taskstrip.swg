@@ -6,7 +6,7 @@ const TaskStripTitleRoom = 48.0
 
 // The repeated capture and output gestures of the window, set in its top strip.
 //
-// Image, video and the library stand after the command menu, where work comes in; the output of the
+// Capture and the library stand after the command menu, where work comes in; the output of the
 // picture stands before the window buttons, where it goes out, its copy as the one primary
 // action of the editor. The title keeps the room between the two. Without a strip, as on a
 // surface that has none, the same two groups stand in a band of the same height at the top of
@@ -22,7 +22,6 @@ struct TaskStrip
         leading:         *StackLayoutCtrl     // Capture, its modes, and the library.
         trailing:        *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
         captureChoice:   *IconButton          // The chevron that opens the capture modes.
-        videoButton:     *IconButton          // Opens video area selection without the long command label.
         libraryButton:   *IconButton          // Swaps between the editor and the library.
         saveButton:      *IconButton          // Saves the picture under a chosen name.
         shortcutPanel:   *FloatingPanel       // Unavailable capture keys, anchored below Capture.
@@ -40,8 +39,6 @@ impl IWnd for TaskStrip
         switch evt.kind
         {
         case .LanguageChanged:
-            .videoButton.setQuietText(appStrings().ui_MediaVideo)
-            .videoButton.toolTip = appStrings().act_RecordVideo
             .frozenButton.setQuietText(appStrings().ui_Frozen)
             .shortcutWarning.setQuietText(appStrings().ui_ShortcutsUnavailable)
             .itf.onLayout()
@@ -83,9 +80,8 @@ impl IWnd for TaskStrip
 
         // The words of both groups and a title share the strip while they fit; the title is
         // centred on the window, so each group leaves half of its room on its side. Past that,
-        // Video and the library keep their glyphs and give up their words, which their tips still
-        // say, then the save control does; Capture always names what it takes again, and Copy is
-        // the primary action.
+        // the library keeps its glyph and moves its words to its tip, then the save control does
+        // the same. Capture keeps its full name, and Copy is the primary action.
         var leadingSize, trailingSize: Math.Point
         for words in [2'u32, 1, 0]
         {
@@ -155,14 +151,8 @@ impl TaskStrip
             else do
                 button.updateFlags(add: .IconOnly)
             button.toolTip = tip
-
-            // A control sized to its words is sized again; one that follows its command is
-            // measured from its content by the group.
-            if button.preferredSize.x > 0 do
-                button.resize(Math.ceil(button.itf.measureContent({}).x), button.position.height)
         }
 
-        show(.videoButton, level >= 2, appStrings().act_RecordVideo)
         show(.libraryButton, level >= 2, level >= 2 ? "" : appStrings().act_Library)
         show(.saveButton, level >= 1, level >= 1 ? "" : .saveButton.name.text)
     }
@@ -197,16 +187,6 @@ impl TaskStrip
             .margin.x    = -main.themeMetrics().wnd_CaptionActionGap
             .setIcon(.theme().icon(.ChevronDown))
             .sigPressed += func|main|(button) { main.showCaptureMenu(button) }
-        }
-
-        with result.videoButton = IconButton.createQuiet(result.leading, menu: false)
-        {
-            .owner       = main
-            .focusPolicy = .None
-            .toolTip     = appStrings().act_RecordVideo
-            .setIcon(kindIcon(main, .theme(), .Video))
-            .setQuietText(appStrings().ui_MediaVideo)
-            .sigPressed += func|main|(_) { main.postCommandEvent(ActionCapture.RecordVideo) }
         }
 
         with result.libraryButton = IconButton.createQuiet(result.leading, ActionGlobal.ShowLibrary, menu: false)

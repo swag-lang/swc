@@ -721,7 +721,7 @@ the screen to its work.
 
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
   selection and the inspector at the right (foldable). Its compact task controls stand in the top
-  strip, with no band of their own: capture, a compact Video action and the library after the command glyph, where work
+  strip, with no band of their own: capture and the library after the command glyph, where work
   comes in; Save Image… and Copy Image, the editor's one primary action, before the window
   buttons, where it goes out; the title centred between the two. The library leaves the output
   out. The picture's own resize handles show only while the pointer is near its edges, so at rest

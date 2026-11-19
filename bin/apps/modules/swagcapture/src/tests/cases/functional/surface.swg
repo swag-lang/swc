@@ -237,10 +237,10 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
         let leading  = main.taskStrip.leading
         let trailing = main.taskStrip.trailing
-        Swag.require(leading.children.count == 4 and trailing.children.count == 2)
+        Swag.require(leading.children.count == 3 and trailing.children.count == 2)
         Swag.require(leading.children[0].name == appStrings().act_CaptureArea)
-        Swag.require(leading.children[2] == main.taskStrip.videoButton)
-        Swag.require(main.taskStrip.videoButton.text() == appStrings().ui_MediaVideo)
+        Swag.require(leading.children[1] == main.taskStrip.captureChoice)
+        Swag.require(leading.children[2] == main.taskStrip.libraryButton)
         Swag.require(not main.taskStrip.shortcutPanel.isLocallyVisible())
         Swag.require(not main.taskStrip.frozenPanel.isLocallyVisible())
         Swag.require(trailing.children[0].name == appStrings().act_SaveImage)
@@ -280,7 +280,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         }
     }
 
-    host.clickWnd(main.taskStrip.leading.children[3])
+    host.clickWnd(main.taskStrip.libraryButton)
     host.pump()
     Swag.require(main.libraryMode)
     Swag.require(not main.taskStrip.trailing.isLocallyVisible())
@@ -1750,9 +1750,8 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
 }
 
 // A long name for the last capture, as recording the active window or one screen with its size
-// gives in French, still leaves the title its room at the minimum width: Video and the library
-// keep their glyphs and give up their words to their tips, and the save control then does, while
-// Capture keeps its whole name.
+// gives in French, still leaves the title its room at the minimum width. The library and save
+// controls can move their words to their tips, while Capture keeps its whole name.
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -1800,7 +1799,7 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
     expect main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
     main.updateState()
     main.applyLayout()
-    Swag.require(not strip.videoButton.flags.has(.IconOnly) and not strip.libraryButton.flags.has(.IconOnly))
+    Swag.require(not strip.libraryButton.flags.has(.IconOnly))
 }
 
 // A change of language reaches every text of the editor at once, without waiting for another

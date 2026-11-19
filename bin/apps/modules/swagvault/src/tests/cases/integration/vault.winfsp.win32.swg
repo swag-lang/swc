@@ -722,6 +722,12 @@ namespace Integration
         host.acceptModalFileDialog(path)
         verify(window.runCommand(VaultCommands.OpenFile) and host.autoHandled, "the open command must accept the selected vault")
         verifyAutomaticMount(&host, window, path)
+
+        window.privacyMode = false
+        window.addVault(path)
+        window.refreshVaults()
+        host.clickWnd(unwrap window.list.rowOf(path))
+        verifyAutomaticMount(&host, window, path)
     }
 
     #[Swag.Propagate]

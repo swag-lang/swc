@@ -885,8 +885,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.list.rows[2].position.y >= window.list.card.panel.position.bottom())
 
     // Choosing the mounted one folds the card: a mounted vault has nothing to unlock.
-    window.chooseVault(PictureMountedPath)
+    host.clickWnd(mounted)
     Swag.require(not window.list.card.panel.isLocallyVisible())
+    Swag.require(window.chosenPath == PictureMountedPath and window.automaticMountTimer == null)
 }
 
 // The list opens with its title, the two ways to another vault at the end of its line, then the
@@ -1276,6 +1277,33 @@ func finishAutomaticMountRequest(host: *Testing.HeadlessHost, window: *MainWindo
     Swag.require(window.chosenPath.isEmpty() and window.vaults.isEmpty())
     Swag.require(host.dropFilesOnWnd(window, [path.toString()], allowed: .Move) == DropEffect.None)
     Swag.require(window.automaticMountTimer == null)
+}
+
+// Activating a remembered protected vault opens its access form.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let path   = createProtectedVaultFixture()
+    defer discard catch File.delete(path)
+
+    window.privacyMode = false
+    window.addVault(path)
+    window.refreshVaults()
+    let row = unwrap window.list.rowOf(path)
+    host.clickWnd(row)
+    finishAutomaticMountRequest(&host, window)
+
+    Swag.require(window.chosenLockedPath() == path.toString())
+    Swag.require(window.list.card.panel.isLocallyVisible() and window.mountPassword.hasFocus())
+    Swag.require(window.mountButton.isEnabled() and window.statusMessage == .Ready)
+
+    window.foldVault()
+    host.finishAnimations()
+    row.setFocus()
+    host.keyPress(Input.Key.Return)
+    finishAutomaticMountRequest(&host, window)
+    Swag.require(window.chosenLockedPath() == path.toString() and window.mountPassword.hasFocus())
 }
 
 // A saved startup choice asks for hidden access again; neither its bytes nor the protection of a

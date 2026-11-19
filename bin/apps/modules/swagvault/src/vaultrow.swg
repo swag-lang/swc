@@ -6,9 +6,8 @@ using Core, Gui, Pixel
 // it opens; under the pointer or the keyboard its ground rises and the chevron is joined by the
 // word of what choosing it does. A mounted one stands on the surface ground, the way an open thing
 // does, with the live dot: its drive, set large at its right, opens it, a thread under its words
-// says how full it is, and the way to close it stands last. Choosing a locked vault unfolds it into
-// the card that unlocks it; the list lays that card over this row, whose header reuses the same
-// drawing.
+// says how full it is, and the way to close it stands last. A vault that needs access unfolds into
+// its unlock card. The list lays that card over the row and reuses the row drawing for its header.
 struct VaultRow
 {
     using wnd: Wnd
@@ -191,6 +190,14 @@ impl VaultRow
         let space    = Format.toString(appStrings().ui_DriveFree, capacityText(drive.availableBytes), capacityText(drive.totalBytes))
         painter.drawString(left, monoFont.opticalLineTop(room.y + SpaceY), space, monoFont, colors.faintText)
     }
+
+    private mtd activateVault()
+    {
+        if .window.isMounted(.path) do
+            .window.chooseVault(.path)
+        else do
+            .window.queueAutomaticMount(.path)
+    }
 }
 
 impl IWnd for VaultRow
@@ -268,7 +275,7 @@ impl IWnd for VaultRow
             .invalidate()
 
         case .Pressed where evt.button == .Left:
-            .window.chooseVault(.path)
+            .activateVault()
 
         case .Pressed where evt.button == .Right:
             .window.chooseVault(.path)
@@ -289,13 +296,13 @@ impl IWnd for VaultRow
         .invalidate()
     }
 
-    // Enter chooses the row the keyboard is on, as a click does.
+    // Enter activates the focused row, as a click does.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind == .Pressed and evt.key == .Return
         {
-            .window.chooseVault(.path)
+            .activateVault()
             evt.accepted = true
         }
     }

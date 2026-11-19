@@ -277,7 +277,7 @@ impl Decoder
 
     mtd transformRow()
     {
-        var psrcPtr = unwrap .blockSeg[0]
+        var psrcPtr = cast([*] s16, .quantBuf.storage())
         var pdstPtr = unwrap .pSampleBuf
 
         for .maxBlocksPerRow

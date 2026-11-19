@@ -191,6 +191,25 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertJpgPixelNear(img, 202'u8, 200'u8, 192'u8, 8'u8)
 }
 
+// A wide scan line can exceed 65,535 pixels after padding to whole MCUs.
+#test
+{
+    const sizes: [2] {width: s32, height: s32} = [{65_528, 9}, {9, 8_193}]
+    for size in sizes
+    {
+        var source = Image.create(size.width, size.height, .BGR8)
+        fillSolidImage(&source, 24, 96, 180, 255)
+        let encoded = expect source.encode("large.jpg")
+        let bytes = encoded.toArray()
+        let image = expect Image.decode("large.jpg", bytes.toSlice())
+        Swag.require(image.width == size.width and image.height == size.height)
+        let corner = image.pixelColor(image.width - 1, image.height - 1)
+        assertNearByte(corner.b, 24, 4)
+        assertNearByte(corner.g, 96, 4)
+        assertNearByte(corner.r, 180, 4)
+    }
+}
+
 // Metadata-only decode must populate dimensions without allocating pixels.
 #test
 {

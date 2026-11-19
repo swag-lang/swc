@@ -10,13 +10,10 @@ using Swag, Core, Core.Errors
 private
 {
     const InBufSize       = 4096
-    const MaxHeight       = 8192
-    const MaxWidth        = 8192
     const MaxComponents   = 4
     const MaxQuantTables  = 4
     const MaxHuffTables   = 8
-    const MaxBocksPerMcu  = 10
-    const MaxBlocksPerRow = 6144
+    const MaxBlocksPerMcu = 10
     const MaxCompsInScan  = 4
     const GrayScale       = 0
     const YH1V1           = 1
@@ -225,18 +222,17 @@ internal struct Decoder
         compSampV:   [MaxComponents] s32
         compQuant:   [MaxComponents] u32
         compIdent:   [MaxComponents] s32
-        blockSeg:    [MaxBlocksPerRow] ([*] s16?)
         compList:    [MaxCompsInScan] u32
         compDcTab:   [MaxComponents] s32
         compAcTab:   [MaxComponents] s32
         compBlocksH: [MaxComponents] s32
         compBlocksV: [MaxComponents] s32
-        mcuOrg:      [MaxBocksPerMcu] u32
+        mcuOrg:      [MaxBlocksPerMcu] u32
         h:           [MaxHuffTables] HuffTables
-        dcHuffSeg:   [MaxBocksPerMcu] (*HuffTables?)
-        acHuffSeg:   [MaxBocksPerMcu] (*HuffTables?)
+        dcHuffSeg:   [MaxBlocksPerMcu] (*HuffTables?)
+        acHuffSeg:   [MaxBlocksPerMcu] (*HuffTables?)
         blockMcuY:   [MaxComponents] s32
-        component:   [MaxBocksPerMcu] (*u32?)
+        component:   [MaxBlocksPerMcu] (*u32?)
         lastDcVal:   [MaxComponents] s32
         dcCoeffs:    [MaxComponents] CoeffBuf
         acCoeffs:    [MaxComponents] CoeffBuf
@@ -286,12 +282,13 @@ impl Decoder
     {
         var scanLineOfs: *void?
         var scanLineLen: u32
+        let stride = cast(u64, .imageSizeX) * 3
 
         // Gray scale (1BPP)
         if .compsInFrame == 1
         {
             var pdest = buf
-            pdest += (.imageSizeY - 1) * .imageSizeX * 3
+            pdest += cast(u64, (.imageSizeY - 1)) * stride
             for
             {
                 if try .decode(&scanLineOfs, &scanLineLen) do
@@ -308,20 +305,20 @@ impl Decoder
                     psrc      += 1
                 }
 
-                pdest -= .imageSizeX * 3
+                pdest -= stride
             }
         }
         // 3 BPP
         else
         {
             var pdest = buf
-            pdest += (.imageSizeY - 1) * .imageSizeX * 3
+            pdest += cast(u64, (.imageSizeY - 1)) * stride
             for
             {
                 if try .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, cast(*void, unwrap scanLineOfs), cast(u64, .imageSizeX) * 3)
-                pdest -= .imageSizeX * 3
+                Memory.copy(pdest, cast(*void, unwrap scanLineOfs), stride)
+                pdest -= stride
             }
         }
     }
@@ -335,6 +332,7 @@ internal impl IImageDecoder for Decoder
     {
         var result: #returntype
         try .init(buffer, options)
+        try options.checkImage(.imageSizeX, .imageSizeY, .BGR8)
         try .start()
 
         // Creates image

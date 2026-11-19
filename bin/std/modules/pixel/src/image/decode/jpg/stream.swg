@@ -356,9 +356,9 @@ impl Decoder
         .imageSizeY = .getBits1(16)
         .imageSizeX = .getBits1(16)
 
-        if (.imageSizeY < 1) or (.imageSizeY > MaxHeight) do
+        if .imageSizeY == 0 do
             fail InvalidFormatError{"bad height"}
-        if (.imageSizeX < 1) or (.imageSizeX > MaxWidth) do
+        if .imageSizeX == 0 do
             fail InvalidFormatError{"bad width"}
 
         .compsInFrame = .getBits1(8)

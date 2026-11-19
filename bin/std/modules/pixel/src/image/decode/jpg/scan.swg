@@ -13,14 +13,15 @@ impl Decoder
     {
         Swag.assert(blkX < cb.blockNumX)
         Swag.assert(blkY < cb.blockNumY)
-        return cast([*] s16, (cast([*] u8, cb.pdata.storage()) + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX)))
+        let block = cast(u64, blkY) * cast(u64, cb.blockNumX) + cast(u64, blkX)
+        return cast([*] s16, (cb.pdata.storage() + block * cast(u64, cb.blockSize)))
     }
 
     mtd loadNextRow() fail
     {
         var blockMcuX: [MaxComponents] s32
 
-        var rowBlock = 0'u32
+        var p = cast([*] s16, .quantBuf.storage())
         for .mcusPerRow
         {
             var blockMcuOfsX = 0
@@ -29,7 +30,6 @@ impl Decoder
             {
                 let componentId = .mcuOrg[mcuBlock]
 
-                var p   = unwrap .blockSeg[rowBlock]
                 let q   = .quant[.compQuant[componentId]].storage()
                 var pAC = coeffBufGetp(.acCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
                 let pDC = coeffBufGetp(.dcCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
@@ -52,7 +52,7 @@ impl Decoder
                     i -= 1
                 }
 
-                rowBlock += 1
+                p += 64
                 if .compsInScan == 1
                 {
                     blockMcuX[componentId] += 1
@@ -150,7 +150,7 @@ impl Decoder
 
     mtd decodeNextRow() fail
     {
-        var rowBlock = 0
+        var p = cast([*] s16, .quantBuf.storage())
         for .mcusPerRow
         {
             if .restartInterval and (.restartsLeft == 0) do
@@ -159,7 +159,6 @@ impl Decoder
             for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
-                var p = unwrap .blockSeg[rowBlock]
                 let q = .quant[.compQuant[componentId]].storage()
 
                 var s = .huffDecode(&.h[.compDcTab[componentId]])
@@ -214,7 +213,7 @@ impl Decoder
                     k += 1
                 }
 
-                rowBlock += 1
+                p += 64
             }
 
             .restartsLeft -= 1
@@ -409,6 +408,9 @@ impl Decoder
             fail UnsupportedFormatError{"unsupported color space"}
         }
 
+        if .maxBlocksPerMcu > MaxBlocksPerMcu do
+            fail UnsupportedFormatError{"JPEG MCU has too many blocks"}
+
         .maxMcusPerRow = (.imageSizeX + (.maxMcuSizeX - 1)) / .maxMcuSizeX
         .maxMcusPerCol = (.imageSizeY + (.maxMcuSizeY - 1)) / .maxMcuSizeY
 
@@ -417,7 +419,8 @@ impl Decoder
         else do
             .destBytesPerPixel = 3
 
-        .destBytesPerScanLine     = ((.imageSizeX + 15) & 0xFFF0) * .destBytesPerPixel
+        // Conversion writes whole MCUs, including padding at the right edge.
+        .destBytesPerScanLine     = .maxMcusPerRow * .maxMcuSizeX * .destBytesPerPixel
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
         .scanLine0.resize(cast(u64, .destBytesPerScanLine) + 8)
@@ -429,15 +432,8 @@ impl Decoder
         Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
-        if .maxBlocksPerRow > MaxBlocksPerRow do
-            fail InvalidFormatError{"assertion error"}
-
         .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
         Memory.clear(.quantBuf.storage(), .quantBuf.count)
-        for i in .maxBlocksPerRow
-        {
-            .blockSeg[i] = cast([*] s16, (cast([*] u8, .quantBuf.storage()) + i * 64 * #sizeof(s16)))
-        }
 
         // The conversions read whole vectors, so the last sample of a row is followed by enough
         // slack for a sixteen-byte read that starts on it.

@@ -28,17 +28,38 @@ file. Do not add status, dates, or progress summaries to the index.
 | File | Area |
 | --- | --- |
 | [app.capture.md](app.capture.md) | Swag Capture |
+| [app.scope.archive.md](app.scope.archive.md) | Swag Scope archive viewer |
 | [app.scope.audio.md](app.scope.audio.md) | Swag Scope audio viewer |
-| [app.scope.binary.md](app.scope.binary.md) | Swag Scope structured-binary and container viewer |
-| [app.scope.document.md](app.scope.document.md) | Swag Scope document viewers |
+| [app.scope.binary.md](app.scope.binary.md) | Swag Scope structured binary viewer |
+| [app.scope.code.md](app.scope.code.md) | Swag Scope code viewer |
+| [app.scope.comic.md](app.scope.comic.md) | Swag Scope comic book viewer |
+| [app.scope.config.md](app.scope.config.md) | Swag Scope configuration viewer |
+| [app.scope.diff.md](app.scope.diff.md) | Swag Scope diff viewer |
+| [app.scope.docx.md](app.scope.docx.md) | Swag Scope DOCX viewer |
+| [app.scope.epub.md](app.scope.epub.md) | Swag Scope EPUB viewer |
 | [app.scope.font.md](app.scope.font.md) | Swag Scope font viewer |
 | [app.scope.hexa.md](app.scope.hexa.md) | Swag Scope hexadecimal viewer |
+| [app.scope.html.md](app.scope.html.md) | Swag Scope HTML viewer |
 | [app.scope.image.md](app.scope.image.md) | Swag Scope image viewer |
+| [app.scope.json.md](app.scope.json.md) | Swag Scope JSON viewer |
+| [app.scope.log.md](app.scope.log.md) | Swag Scope log viewer |
+| [app.scope.markdown.md](app.scope.markdown.md) | Swag Scope Markdown viewer |
 | [app.scope.md](app.scope.md) | Swag Scope shell and document lifecycle |
 | [app.scope.midi.md](app.scope.midi.md) | Swag Scope MIDI viewer |
-| [app.scope.text.md](app.scope.text.md) | Swag Scope text and code viewers |
+| [app.scope.notebook.md](app.scope.notebook.md) | Swag Scope notebook viewer |
+| [app.scope.odp.md](app.scope.odp.md) | Swag Scope ODP viewer |
+| [app.scope.ods.md](app.scope.ods.md) | Swag Scope ODS viewer |
+| [app.scope.odt.md](app.scope.odt.md) | Swag Scope ODT viewer |
+| [app.scope.pdf.md](app.scope.pdf.md) | Swag Scope PDF viewer |
+| [app.scope.pptx.md](app.scope.pptx.md) | Swag Scope PPTX viewer |
+| [app.scope.rtf.md](app.scope.rtf.md) | Swag Scope RTF viewer |
+| [app.scope.subtitle.md](app.scope.subtitle.md) | Swag Scope subtitle viewer |
+| [app.scope.table.md](app.scope.table.md) | Swag Scope table viewer |
+| [app.scope.text.md](app.scope.text.md) | Swag Scope plain text viewer |
 | [app.scope.video.md](app.scope.video.md) | Swag Scope video viewer |
 | [app.scope.viewers.md](app.scope.viewers.md) | Contracts shared by Swag Scope viewers |
+| [app.scope.xlsx.md](app.scope.xlsx.md) | Swag Scope XLSX viewer |
+| [app.scope.xml.md](app.scope.xml.md) | Swag Scope XML viewer |
 | [app.vault.md](app.vault.md) | Swag Vault |
 | [clones.md](clones.md) | Independent application clones |
 | [compiler.command.doc.md](compiler.command.doc.md) | Compiler `doc` command |

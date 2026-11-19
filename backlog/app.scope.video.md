@@ -167,7 +167,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Done when: arbitrary supported sidecars can be attached/reloaded/detached, encoding and FPS
   policy are visible, primary and secondary tracks can coexist, parse warnings link to cues, and
   language preference persists without hiding other tracks.
-- Related: app.scope.text.012, app.scope.text.013
+- Related: app.scope.subtitle.002, app.scope.subtitle.003
 
 ### app.scope.video.011 — A frame cannot be copied, saved, or compared
 

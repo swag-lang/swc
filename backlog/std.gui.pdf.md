@@ -68,7 +68,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   resolver; expose URI targets as data and keep every action unexecuted.
 - Done when: a link annotation reports its page bounds and local destination, URI or explicit
   unsupported-target result, with direct/named destination and malformed-action fixtures.
-- Related: std.gui.pdf.003, app.scope.document.013
+- Related: std.gui.pdf.003, app.scope.pdf.003
 
 ### std.gui.pdf.038 — PdfView has no facing-page layout
 

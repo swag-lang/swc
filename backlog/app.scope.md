@@ -6,9 +6,30 @@ in [platform.portability.md](platform.portability.md). Work
 owned by a viewer lives in the corresponding domain:
 
 - [app.scope.viewers.md](app.scope.viewers.md) — shared viewer contracts, coverage, and product scope
-- [app.scope.text.md](app.scope.text.md) — basic text, code, subtitle, table, diff, and log viewers
-- [app.scope.document.md](app.scope.document.md) — Markdown, HTML, PDF, Office Open XML, and ebook viewers
-- [app.scope.binary.md](app.scope.binary.md) — structured binary and container viewer
+- [app.scope.text.md](app.scope.text.md) — plain text and shared source reading
+- [app.scope.code.md](app.scope.code.md) — source code viewer
+- [app.scope.subtitle.md](app.scope.subtitle.md) — subtitle viewer
+- [app.scope.table.md](app.scope.table.md) — table viewer
+- [app.scope.diff.md](app.scope.diff.md) — planned diff and patch viewer
+- [app.scope.log.md](app.scope.log.md) — planned log viewer
+- [app.scope.json.md](app.scope.json.md) — planned JSON and JSON Lines viewer
+- [app.scope.xml.md](app.scope.xml.md) — planned XML viewer
+- [app.scope.config.md](app.scope.config.md) — planned configuration viewer
+- [app.scope.comic.md](app.scope.comic.md) — comic book viewer
+- [app.scope.docx.md](app.scope.docx.md) — DOCX viewer
+- [app.scope.epub.md](app.scope.epub.md) — EPUB viewer
+- [app.scope.html.md](app.scope.html.md) — HTML viewer
+- [app.scope.markdown.md](app.scope.markdown.md) — Markdown viewer
+- [app.scope.notebook.md](app.scope.notebook.md) — planned Jupyter notebook viewer
+- [app.scope.odp.md](app.scope.odp.md) — ODP viewer
+- [app.scope.ods.md](app.scope.ods.md) — ODS viewer
+- [app.scope.odt.md](app.scope.odt.md) — ODT viewer
+- [app.scope.pdf.md](app.scope.pdf.md) — PDF viewer
+- [app.scope.pptx.md](app.scope.pptx.md) — PPTX viewer
+- [app.scope.rtf.md](app.scope.rtf.md) — RTF viewer
+- [app.scope.xlsx.md](app.scope.xlsx.md) — XLSX viewer
+- [app.scope.binary.md](app.scope.binary.md) — structured binary viewer
+- [app.scope.archive.md](app.scope.archive.md) — archive viewer
 - [app.scope.hexa.md](app.scope.hexa.md) — hexadecimal viewer
 - [app.scope.image.md](app.scope.image.md) — image viewer
 - [app.scope.audio.md](app.scope.audio.md) — sound viewer
@@ -108,7 +129,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   reduce their decode work while retaining a useful representative image.
 - Done when: representative formats meet the first-preview and UI frame budgets without losing
   useful preview content.
-- Related: app.scope.viewers.004, app.scope.viewers.009, app.scope.document.001
+- Related: app.scope.viewers.004, app.scope.viewers.009, app.scope.markdown.001
 
 ### app.scope.005 — Film matching needs correction and broader coverage
 

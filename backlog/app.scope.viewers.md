@@ -18,7 +18,9 @@ viewer packages, helper binaries, or network service required to open supported 
 
 1. Deepen the shipped document readers, especially DOCX layout and styles, XLSX grid and cell
    formatting, PPTX slide geometry, EPUB navigation, and CBZ page handling. Keep the true reading
-   surface ahead of each package's raw archive view. See [app.scope.document.md](app.scope.document.md).
+   surface ahead of each package's raw archive view. See the backlogs for
+   [DOCX](app.scope.docx.md), [XLSX](app.scope.xlsx.md), [PPTX](app.scope.pptx.md),
+   [EPUB](app.scope.epub.md), and [CBZ](app.scope.comic.md).
 2. Make the shipped readers dependable across representative real files: partial PDF pages,
    cancellation, navigation, search, first-content latency, memory bounds, and explicit failures.
    See [std.gui.pdf.md](std.gui.pdf.md) and the fixture matrix. Verify Encre and Papier across
@@ -112,7 +114,7 @@ viewer packages, helper binaries, or network service required to open supported 
 - Done when: atomic replacement, append, truncation, deletion, and permission loss are
   distinguished; stale search results are retired; reload can preserve a valid logical position;
   and each viewer states whether live following is supported.
-- Related: app.scope.hexa.008, app.scope.text.023
+- Related: app.scope.hexa.008, app.scope.log.001
 
 ### app.scope.viewers.006 — File facts have no common host-wide inspection contract
 
@@ -182,6 +184,34 @@ viewer packages, helper binaries, or network service required to open supported 
   work promptly, the overlay names the current phase, and cancellation never becomes an error.
 - Related: app.scope.hexa.006, std.gui.pdf.029
 
+### app.scope.viewers.016 — Whole-file search has no inspectable result set or context projection
+
+- Evidence: shared search supports case, whole-word, and regular-expression matching across the
+  whole file, but exposes only one highlighted occurrence and a current/total counter. There is no
+  retained matching-line view, surrounding context or whole-file match overview.
+- Next: publish the streamed match index as a virtual result pane with configurable context lines
+  and an optional matches-only projection over immutable source ranges.
+- Done when: results show line, byte offset, matched text, and bounded before/after context;
+  activating a row reveals the source; the overview represents the whole file; duplicate or
+  overlapping matches remain unambiguous; context can be expanded locally; and closing the pane
+  releases its index without changing the file.
+
+### app.scope.viewers.017 — Regular-expression search has no declared resource budget
+
+- Evidence: the generic file path reads chunks on timers but retains the complete source before
+  evaluating a regular expression on the GUI thread. This preserves cross-chunk matches and
+  document anchors at the cost of unbounded source retention. `Viewer.collectTextMatches` already
+  skips zero-width matches and returns non-overlapping spans. `Parser.RegExp` has bounded DFA
+  caches and a 20-million-step backtracking budget, but the viewer has no cumulative query memory,
+  result-count or cancellation contract and cannot distinguish exhaustion from no match.
+- Next: move evaluation behind a cancellable, budgeted query operation, retaining the existing
+  anchor and nonzero-span semantics, and add adversarial plus boundary-spanning fixtures.
+- Done when: regex compilation and matching have explicit time, memory, stack, and result
+  limits; cancellation meets a measured latency; zero-length and overlapping matches advance
+  deterministically; boundary-spanning results are correct or the documented maximum look-behind
+  is enforced; and exhaustion is reported separately from no match.
+- Related: app.scope.viewers.016, app.scope.viewers.004, app.scope.viewers.009
+
 ### app.scope.viewers.001 — Select-all in a streamed document silently means the resident window
 
 - Evidence: the basic text and `Code` viewers use `RichEditCtrl`; Ctrl+A selects only their
@@ -218,6 +248,47 @@ viewer packages, helper binaries, or network service required to open supported 
 
 ---
 
+### app.scope.viewers.018 — Reading marks and notes have no document-independent home
+
+- Evidence: PDF, EPUB, Markdown, HTML and Office readers have selection or location models but
+  no read-only-source highlight and note store. [Okular](https://docs.kde.org/stable_kf6/en/okular/okular/annotations.html)
+  annotates many document formats; [calibre](https://manual.calibre-ebook.com/viewer.html)
+  groups book highlights by chapter. Writing marks into every input format would create a separate
+  editing and compatibility contract.
+- Next: define stable location anchors and a versioned local sidecar store for highlights, notes
+  and named bookmarks, starting with EPUB and PDF; expose source change/conflict status.
+- Done when: marks survive reopen and layout changes across supported readers, navigate back to
+  the intended content, can be exported, and never silently alter an original document.
+- Related: app.scope.epub.001, app.scope.viewers.003
+
+### app.scope.viewers.019 — Text documents have no read-aloud path
+
+- Evidence: [Okular](https://docs.kde.org/stable_kf6/en/okular/okular/menutools.html),
+  [Acrobat Reader](https://helpx.adobe.com/uk/acrobat/using/reading-pdfs-reflow-accessibility-features.html)
+  and [calibre](https://manual.calibre-ebook.com/viewer.html) can speak document text. Swag Scope
+  exposes no such action or spoken-position cue across its text-bearing viewers.
+- Next: establish one reading-order and sentence-position contract, first for EPUB and tagged PDF;
+  choose a built-in Swag speech path or an operating-system facility already present on the host,
+  without a downloaded voice, helper executable or viewer dependency.
+- Done when: supported documents can speak current selection or continue from the reading position,
+  highlight the spoken passage, pause and resume, and clearly report when the host has no voice;
+  opening and visual reading never depend on speech availability.
+- Related: app.scope.epub.001, std.gui.pdf.042, app.scope.viewers.014
+
+### app.scope.viewers.020 — Container previews have no shared provenance or resource budget
+
+- Evidence: Archive extracts stored and Deflate ZIP members into temporary files and opens them
+  through `EmbeddedViewer`. That host uses the complete registry, including Archive, so its model
+  is not restricted to one container level. Each child shows a member title, but there is no
+  composed container path, source byte-range/compression provenance, or shared extraction budget
+  across descendants. RIFF, SCC, and Binary report assets do not use this child-file contract.
+- Next: replace the temporary-path-only seam with a virtual child-file contract carrying parent
+  identity, member path, source offset, compression, sizes, checksum, and a shared resource budget.
+- Done when: nested supported content retains its complete container path and parent route,
+  decompression work and resident bytes are bounded across levels, traversal names cannot choose
+  output paths, and raw extraction remains an explicit action.
+- Related: app.scope.archive.001
+
 ## Format coverage
 
 `Today` uses **full** for a dedicated renderer, **structure** for a decoded `Binary` tree,
@@ -229,31 +300,31 @@ viewer packages, helper binaries, or network service required to open supported 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | Plain text | `.txt` | full, streamed | addresses, gutter, non-resident ranges | [app.scope.text.002](app.scope.text.md) |
-| Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.text.040](app.scope.text.md) |
+| Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.config.002](app.scope.config.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
-| Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | rendered and raw text with filterable heading outline | current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
-| HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
-| JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
-| XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.text.038](app.scope.text.md) |
-| YAML and TOML | `.yaml` `.yml` `.toml` | code and raw text | typed tree and paths | [app.scope.text.039](app.scope.text.md) |
-| Diff and patch | `.diff` `.patch` | text | parsed files/hunks, intraline and side-by-side views | [app.scope.text.022](app.scope.text.md) |
-| Log | `.log` | text | entries, start-at-tail/follow, queries, structured fields, timelines | [app.scope.text.023](app.scope.text.md), [app.scope.text.034](app.scope.text.md) |
-| Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
-| Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
-| PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
-| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.document.020](app.scope.document.md) |
-| XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.document.025](app.scope.document.md) |
-| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
-| ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.document.032](app.scope.document.md) |
-| ODS | `.ods` | native sheets, saved formatted values, inherited cell paint and common geometry | complete number styles, drawings, exact geometry and search | [app.scope.document.032](app.scope.document.md) |
-| ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list, text and notes modes | complete drawings, master placeholders and lazy slides | [app.scope.document.032](app.scope.document.md) |
+| Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.code.001](app.scope.code.md) |
+| Markdown | `.md` `.markdown` | rendered and raw text with filterable heading outline | current-section tracking, synchronized source, resource diagnostics | [app.scope.markdown.001](app.scope.markdown.md) |
+| HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.html.002](app.scope.html.md), [HTML roadmap](std.gui.html.md) |
+| JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.json.001](app.scope.json.md) |
+| XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.xml.001](app.scope.xml.md) |
+| YAML and TOML | `.yaml` `.yml` `.toml` | code and raw text | typed tree and paths | [app.scope.config.001](app.scope.config.md) |
+| Diff and patch | `.diff` `.patch` | text | parsed files/hunks, intraline and side-by-side views | [app.scope.diff.001](app.scope.diff.md) |
+| Log | `.log` | text | entries, start-at-tail/follow, queries, structured fields, timelines | [app.scope.log.001](app.scope.log.md), [app.scope.log.002](app.scope.log.md) |
+| Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.subtitle.001](app.scope.subtitle.md) |
+| Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.table.001](app.scope.table.md), [app.scope.table.002](app.scope.table.md) |
+| PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.pdf.001](app.scope.pdf.md), [app.scope.pdf.002](app.scope.pdf.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
+| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.docx.001](app.scope.docx.md) |
+| XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.xlsx.001](app.scope.xlsx.md) |
+| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.pptx.001](app.scope.pptx.md) |
+| ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.odt.001](app.scope.odt.md) |
+| ODS | `.ods` | native sheets, saved formatted values, inherited cell paint and common geometry | complete number styles, drawings, exact geometry and search | [app.scope.ods.001](app.scope.ods.md) |
+| ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list, text and notes modes | complete drawings, master placeholders and lazy slides | [app.scope.odp.001](app.scope.odp.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
-| EPUB | `.epub` | chapters, EPUB 2/3 contents, passage-preserving zoom/columns and back/forward | book search, persistent position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
-| Comic book | `.cbz` | natural-order single image pages, page jump and optional right-to-left keys | spreads, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
-| RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
+| EPUB | `.epub` | chapters, EPUB 2/3 contents, passage-preserving zoom/columns and back/forward | book search, persistent position, paged/flow reading | [app.scope.epub.001](app.scope.epub.md), [app.scope.epub.002](app.scope.epub.md) |
+| Comic book | `.cbz` | natural-order single image pages, page jump and optional right-to-left keys | spreads, continuous scroll and saved position | [app.scope.comic.001](app.scope.comic.md) |
+| RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.rtf.001](app.scope.rtf.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
-| Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
+| Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.notebook.001](app.scope.notebook.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
 #### Images
@@ -292,8 +363,8 @@ viewer packages, helper binaries, or network service required to open supported 
 | WebAssembly | `.wasm` | structure | — | — |
 | RIFF | `.wav` `.avi` | structure | — | — |
 | Swag chunk container | `.scc` | structure through `Core.Scc` | — | — |
-| ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested provenance, archive-wide integrity, encrypted/variant policy | [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.015](app.scope.binary.md) |
-| Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.binary.010](app.scope.binary.md) |
+| ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested provenance, archive-wide integrity, encrypted/variant policy | [app.scope.viewers.020](app.scope.viewers.md), [app.scope.archive.002](app.scope.archive.md) |
+| Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.archive.001](app.scope.archive.md) |
 | TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [app.scope.font.001](app.scope.font.md) |
 | CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF1 font engine | CFF specimen registration; WOFF1 viewer routing; WOFF2 support | [app.scope.font.013](app.scope.font.md), std.truetype.002 |
 | Program databases | `.pdb` | signature | MSF streams and CodeView match | [app.scope.binary.014](app.scope.binary.md) |

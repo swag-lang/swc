@@ -6,9 +6,8 @@ measured against the readers it competes with — Typora, the VS Code preview, a
 rendering — with CommonMark plus GFM as the reference for what a document means, while staying
 what the whole document family is: an offline, script-free, network-free viewer.
 
-The engine lives beside its widget inside `gui`; application-level zoom stays in
-[app.scope.text.md](app.scope.text.md), shared printing in
-[app.scope.viewers.md](app.scope.viewers.md), and shell thumbnail integration in
+The engine lives beside its widget inside `gui`. Application-level zoom and printing live in
+[app.scope.viewers.md](app.scope.viewers.md). Shell thumbnail integration lives in
 [platform.portability.md](platform.portability.md).
 [README.md](README.md) has the whole layout.
 
@@ -40,7 +39,7 @@ The engine lives beside its widget inside `gui`; application-level zoom stays in
   and route TOC and local-link activation through the existing heading/reveal operations.
 - Done when: TOC entries, in-document fragments and footnote references reach their targets
   in both `createText` and streamed files, with duplicate headings and unloaded targets covered.
-- Related: app.scope.document.001
+- Related: app.scope.markdown.001
 
 ### std.gui.markdown.010 — No opt-in smart punctuation
 

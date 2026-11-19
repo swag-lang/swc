@@ -2,8 +2,8 @@
 
 This backlog covers the structured, read-only report under
 `bin/apps/modules/swagscope/src/viewers/binary`. Format decoders turn bounded file bytes into a
-hierarchical Field / Value / Offset / Meaning report with previews; the entries below turn that
-report into a professional inspection workflow.
+hierarchical Field / Value / Offset / Meaning report with previews. Archive browsing lives in
+[app.scope.archive.md](app.scope.archive.md).
 
 ### app.scope.binary.001 — Structured reports cannot be filtered by field semantics
 
@@ -28,47 +28,6 @@ report into a professional inspection workflow.
 - Done when: paired trees show added/removed/changed/moved rows, irrelevant offsets can be
   ignored explicitly, raw-byte differences remain reachable, and comparison stays bounded.
 - Related: app.scope.hexa.003, app.scope.001
-
-### app.scope.binary.008 — Container previews have no shared provenance or resource budget
-
-- Evidence: Archive extracts stored and Deflate ZIP members into temporary files and opens them
-  through `EmbeddedViewer`. That host uses the complete registry, including Archive, so its model
-  is not restricted to one container level. Each child shows a member title, but there is no
-  composed container path, source byte-range/compression provenance, or shared extraction budget
-  across descendants. RIFF, SCC, and Binary report assets do not use this child-file contract.
-- Next: replace the temporary-path-only seam with a virtual child-file contract carrying parent
-  identity, member path, source offset, compression, sizes, checksum, and a shared resource budget.
-- Done when: nested supported content retains its complete container path and parent route,
-  decompression work and resident bytes are bounded across levels, traversal names cannot choose
-  output paths, and raw extraction remains an explicit action.
-- Related: app.scope.binary.010
-
-### app.scope.binary.010 — Archive browsing stops at ZIP
-
-- Evidence: the dedicated Archive viewer lists a complete ZIP tree, verifies CRC-32, extracts
-  stored and Deflate entries under a bounded preview size, and hands the selected entry to the
-  normal viewer registry. `tar`, `gzip`, `xz`, `zstd`, `7z`, RAR, CAB, and MSI remain signature-only,
-  and archive-wide integrity testing has no separate operation.
-- Next: after the current ZIP quality gate in app.scope.binary.015, separate the tree and entry
-  model from ZIP, then add bounded `tar` and single-stream `gzip` through that shared model.
-- Done when: ZIP, TAR, and GZIP share one browsing surface and provenance contract, nested
-  compression is bounded, and adding another archive family does not fork the viewer UI.
-- Related: app.scope.binary.008, app.scope.binary.015
-
-### app.scope.binary.015 — ZIP reading lacks a complete variant and integrity contract
-
-- Evidence: ZIP and ZIP64 expose a tree and verify CRC-32 while opening bounded stored/Deflate
-  members. Encrypted entries, split archives, unsupported methods and oversized entries currently
-  stop with an explanation; there is no archive-wide test report. [7-Zip](https://www.7-zip.org/)
-  also handles encrypted ZIP and a broad archive family, but extending families before the ZIP
-  reader is dependable would dilute the existing reading contract.
-- Next: test ZIP32/ZIP64, data descriptors, Unicode paths, duplicate names, damaged directories,
-  encryption and size limits with real licensed archives; add a cancellable Test Archive report,
-  then decide which encrypted and compression variants can be decoded natively in Swag.
-- Done when: every advertised ZIP variant opens and verifies correctly, unsupported variants are
-  identified precisely, a full-archive check reports individual failures without unbounded
-  extraction, and member previews retain their provenance.
-- Related: app.scope.binary.008, app.scope.viewers.009
 
 ### app.scope.binary.014 — A program database is only identified
 

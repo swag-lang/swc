@@ -54,12 +54,17 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     var host: Testing.HeadlessHost
     host.setup(1280, 720, 1.5)
     shipFrame(&host)
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+
+    // Complete first-show initialization before measuring the windowed layout.
+    host.surface.show()
+    window.applyTheme(cast(u32, AppearanceTheme.Dark))
     let fileName = scopeTestDataPath("markdown.images.md")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let padding  = window.documentHost.padding
     let viewport = host.surface.position
+    Swag.require(padding.y > 0 and padding.y == window.stripInset())
     window.setFullScreen(true)
 
     // Keep the virtual monitor fixed; the desktop monitor belongs to the machine running the test.
@@ -82,6 +87,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     assertScopeImageGolden(&image, "viewer.markdown.fullscreen")
     window.setFullScreen(false)
     Swag.require(window.documentHost.padding == padding and window.documentPanel.backgroundStyle == .View)
+    Swag.require(window.appearanceButton.appearanceTheme == .Dark)
 }
 
 // Zoom gestures share the menu's bounded scale and the next document keeps the preference.

@@ -10,9 +10,11 @@ class Symbol;
 class SymbolFunction;
 class SymbolStruct;
 class SymbolVariable;
+class Ast;
 class Sema;
 class TypeInfo;
 struct AstSwitchStmt;
+struct AstSwitchCaseStmt;
 struct SemaNodeView;
 
 // Records the originating node for each case constant in runtime and static switches.
@@ -50,7 +52,11 @@ namespace SemaSwitch
 
     // An enum's #complete or a default arm guarantees a match. Expressionless
     // switches do not record firstDefaultRef, so inspect their unguarded cases.
-    bool alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
+    bool       alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
+    AstNodeRef selectedCompilerSwitchBody(Sema& sema, AstNodeRef switchRef);
+
+    bool usesDynamicDispatch(Sema& sema, const AstSwitchStmt& switchStmt, TypeRef typeRef);
+    bool fallthroughTestsCase(const Ast& ast, const AstSwitchCaseStmt& caseStmt, bool dynamicDispatch);
 }
 
 struct SwitchPayload

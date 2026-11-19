@@ -686,6 +686,12 @@ Result AstCompilerSwitch::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+AstNodeRef SemaSwitch::selectedCompilerSwitchBody(Sema& sema, AstNodeRef switchRef)
+{
+    const auto* payload = sema.semaPayload<CompilerSwitchSemaPayload>(switchRef);
+    return payload ? payload->selectedBodyRef : AstNodeRef::invalid();
+}
+
 Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     SemaHelpers::pushConstExprRequirement(sema, childRef);

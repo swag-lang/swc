@@ -60,6 +60,30 @@ func completeSwitchFallthrough(dir: Direction)->s32     // swc-expected-error {{
     }
 }
 
+// A fallthrough that resumes testing can miss every remaining case, even after a default.
+func typedFallthroughMiss(value: const any)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch value
+    {
+    case bool: return 1
+    default:   fallthrough     // swc-expected-note {{sema_note_function_continues}}
+    case s32:  return 2
+    }
+}
+
+func bindingFallthroughMiss(value: *s32?, flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch
+    {
+    default:
+        if flag do
+            fallthrough     // swc-expected-note {{sema_note_function_continues}}
+        else do
+            return 1
+    case let item = value: return item[]
+    }
+}
+
 func nestedLoopExit(ready, waiting: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
     if ready     // swc-expected-note {{sema_note_condition_false_continues}}
@@ -131,6 +155,51 @@ func matchingBindingContinues(value: s32)->s32     // swc-expected-error {{sema_
     }
 }
 
+// An exit before a return can bypass it and leave the function.
+func namedScopeExit(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    scope(Done)
+    {
+        while flag
+        {
+            break to Done     // swc-expected-note {{sema_note_function_continues}}
+        }
+        return 1
+    }
+}
+
+func switchCaseExit(flag: bool, value: s32)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch value
+    {
+    case 0:     // swc-expected-note {{sema_note_switch_case_continues}}
+        if flag do
+            break
+        return 1
+    default:
+        return 2
+    }
+}
+
+func inactiveStaticIfReturn()->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    #static if false
+    {
+        return 1
+    }
+}
+
+func inactiveStaticSwitchReturn()->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    #static switch 1
+    {
+    case 0:
+        return 1
+    default:
+        discard 0
+    }
+}
+
 func lambdaWithoutReturn()->s32
 {
     let fn: func(bool)->s32 = func(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
@@ -183,6 +252,55 @@ func switchWithFallthrough(value: s32)->s32
     }
 }
 
+func typedFallthroughWithFallback(value: const any)->s32
+{
+    switch value
+    {
+    case bool: fallthrough
+    case s32:  return 2
+    default:   return 3
+    }
+}
+
+func typedFallthroughWithTrueGuard(value: const any)->s32
+{
+    switch value
+    {
+    default:  fallthrough
+    case s32: return 1
+    default where true: return 2
+    }
+}
+
+func bindingFallthroughWithTrueCase(value: *s32?)->s32
+{
+    switch
+    {
+    default:   fallthrough
+    case let item = value: return item[]
+    case true: return 2
+    }
+}
+
+func deadFallthroughAfterDefault(value: const any)->s32
+{
+    switch value
+    {
+    default:   return 1
+    case bool: fallthrough
+    case s32:  return 2
+    }
+}
+
+func valueFallthroughSkipsGuard(value: s32)->s32
+{
+    switch value
+    {
+    default: fallthrough
+    case 0 where false: return 1
+    }
+}
+
 func expressionBody(value: s32)->s32 => value + 1
 
 func loopWithoutBreak()->s32
@@ -217,6 +335,65 @@ func nestedBreak()->s32
     }
 }
 
+func breakToInnerScope(flag: bool)->s32
+{
+    scope(Done)
+    {
+        scope(Done)
+        {
+            if flag do
+                break to Done
+            return 1
+        }
+        return 2
+    }
+}
+
+func excludedScopedBreak()->s32
+{
+    scope(Done)
+    {
+        #static if false
+        {
+            break to Done
+        }
+        return 3
+    }
+}
+
+func excludedGuardBreaks(values: const [..] s32)->s32
+{
+    scope(Done)
+    {
+        for 0 do
+            break to Done
+
+        for value in values where false
+        {
+            discard value
+            break to Done
+        }
+
+        if var bound = 1 where false
+        {
+            discard bound
+            break to Done
+        }
+
+        return 5
+    }
+}
+
+func excludedLoopBreak()->s32
+{
+    for
+    {
+        if false do
+            break
+        return 4
+    }
+}
+
 func endsInUnreachable(flag: bool)->s32
 {
     if flag do
@@ -246,6 +423,10 @@ func voidNeedsNothing(flag: bool)
     Swag.require(loopWithoutBreak() == 1)
     Swag.require(whileTrueWithoutBreak() == 1)
     Swag.require(nestedBreak() == 1)
+    Swag.require(breakToInnerScope(false) == 1 and breakToInnerScope(true) == 2)
+    Swag.require(excludedScopedBreak() == 3)
+    Swag.require(excludedLoopBreak() == 4)
+    Swag.require(excludedGuardBreaks([1]) == 5)
     Swag.require(endsInUnreachable(true) == 1)
     Swag.require((catch endsInFail(true)) == 1)
 }

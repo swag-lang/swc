@@ -108,39 +108,6 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
     }
 
-    bool isDynamicStructSwitch(CodeGen& codeGen, TypeRef typeRef, const SwitchStmtCodeGenPayload& switchState)
-    {
-        if (typeRef.isInvalid())
-            return false;
-        const TypeInfo& type = codeGen.typeMgr().get(typeRef);
-        if (!SemaSwitch::isDynamicType(codeGen.sema(), type))
-            return false;
-        if (!type.isValuePointer())
-            return true;
-        for (const auto& [caseRef, caseState] : switchState.caseStates)
-        {
-            const auto* payload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(caseRef);
-            if (!payload)
-                continue;
-            for (const auto& expr : payload->expressions)
-                if (expr.castRef.isValid())
-                    return true;
-        }
-        return false;
-    }
-
-    bool switchCaseNeedsTestBeforeEntry(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
-    {
-        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
-        if (caseNode.conditionBindingRef(codeGen.ast()).isValid())
-            return true;
-        const SwitchStmtCodeGenPayload* switchState = codeGen.safeNodePayload<SwitchStmtCodeGenPayload>(switchRef);
-        if (!switchState || !switchState->dynamicStructSwitch)
-            return false;
-
-        return caseNode.spanExprRef.isValid();
-    }
-
     // The bytes a case compares against, when the case is a string the compiler already knows.
     std::optional<std::string_view> knownCaseText(CodeGen& codeGen, AstNodeRef caseExprRef)
     {
@@ -1349,7 +1316,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         const bool                taggedSubject  = semaSwitch && semaSwitch->taggedUnion && semaSwitch->exprTypeRef != exprView.typeRef();
         const TypeInfo&           compareType    = taggedSubject ? codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), semaSwitch->exprTypeRef) : SemaHelpers::aliasEnumType(codeGen.sema(), exprView);
         const TypeRef             compareTypeRef = compareType.typeRef();
-        if (isDynamicStructSwitch(codeGen, compareTypeRef, *switchState))
+        if (SemaSwitch::usesDynamicDispatch(codeGen.sema(), *this, compareTypeRef))
             return initializeDynamicStructSwitchState(codeGen, *switchState, compareTypeRef, compareType, exprPayload);
 
         const MicroOpBits compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
@@ -1548,7 +1515,9 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(caseRef));
     MicroBuilder&       builder     = codeGen.builder();
-    const MicroLabelRef targetLabel = switchCaseNeedsTestBeforeEntry(codeGen, switchRef, itCase->second.nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
+    const auto&         nextCase    = codeGen.node(itCase->second.nextCaseRef).cast<AstSwitchCaseStmt>();
+    const bool          testCase    = SemaSwitch::fallthroughTestsCase(codeGen.ast(), nextCase, switchState->dynamicStructSwitch);
+    const MicroLabelRef targetLabel = testCase ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);
     return Result::Continue;
 }

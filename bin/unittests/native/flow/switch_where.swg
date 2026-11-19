@@ -199,3 +199,40 @@ func fallthroughIntoType(value: const any, calls: *s32)->s32
     Swag.require(fallthroughIntoType(5's32, &calls) == 10)
     Swag.require(calls == 1)
 }
+
+// A failed test after fallthrough resumes after the switch, even if its default ran first.
+func typedFallthroughAfterDefault(value: const any)->s32
+{
+    switch value
+    {
+    case bool: return 1
+    default:   fallthrough
+    case s32:  return 2
+    }
+    return 3
+}
+
+func bindingFallthroughAfterDefault(value: *s32?, advance: bool)->s32
+{
+    switch
+    {
+    default:
+        if advance do
+            fallthrough
+        else do
+            return 1
+    case let item = value: return item[]
+    }
+    return 3
+}
+
+#test
+{
+    var value = 5
+    Swag.require(typedFallthroughAfterDefault(true) == 1)
+    Swag.require(typedFallthroughAfterDefault(7.5) == 3)
+    Swag.require(typedFallthroughAfterDefault(2) == 2)
+    Swag.require(bindingFallthroughAfterDefault(null, false) == 1)
+    Swag.require(bindingFallthroughAfterDefault(null, true) == 3)
+    Swag.require(bindingFallthroughAfterDefault(&value, true) == 5)
+}

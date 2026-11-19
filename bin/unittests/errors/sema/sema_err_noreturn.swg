@@ -28,6 +28,17 @@ func reachesEnd(flag: bool)     // swc-expected-error {{sema_err_noreturn_reache
 }
 
 #[Swag.NoReturn]
+func breaksPastNoReturnCall(flag: bool)     // swc-expected-error {{sema_err_noreturn_reaches_end}}
+{
+    scope(Done)
+    {
+        if flag do
+            break to Done     // swc-expected-note {{sema_note_function_continues}}
+        stop()
+    }
+}
+
+#[Swag.NoReturn]
 func returnsOnOnePath(flag: bool)
 {
     if flag do

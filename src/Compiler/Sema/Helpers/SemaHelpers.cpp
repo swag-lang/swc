@@ -873,45 +873,6 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
 
 namespace
 {
-    bool compoundStopsLocalFlow(Sema& sema, SpanRef childrenRef, SemaHelpers::LocalFlowStop stop)
-    {
-        if (!sema.ast().hasSpan(childrenRef))
-            return false;
-
-        const auto children = sema.ast().nodeSpan(childrenRef);
-        if (!children.size())
-            return false;
-
-        // Block checks need only the final statement; function checks accept any exit.
-        if (stop != SemaHelpers::LocalFlowStop::Function)
-            return SemaHelpers::stopsLocalFlow(sema, sema.ast().nthNode(childrenRef, children.size() - 1), stop);
-
-        for (auto chunk = children.chunksBegin(); chunk != children.chunksEnd(); ++chunk)
-        {
-            for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
-            {
-                if (SemaHelpers::stopsLocalFlow(sema, childRef, stop))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool endsWithFallthrough(Sema& sema, AstNodeRef bodyRef)
-    {
-        if (bodyRef.isInvalid())
-            return false;
-
-        const auto&  body  = sema.node(bodyRef).cast<AstSwitchCaseBody>();
-        const size_t count = sema.ast().spanSize(body.spanChildrenRef);
-        if (!count)
-            return false;
-
-        const AstNodeRef lastRef = sema.ast().nthNode(body.spanChildrenRef, count - 1);
-        return lastRef.isValid() && sema.node(lastRef).is(AstNodeId::FallThroughStmt);
-    }
-
     bool callsNoReturnFunction(Sema& sema, AstNodeRef callRef)
     {
         const SemaNodeView view = sema.viewSymbol(callRef);
@@ -921,183 +882,453 @@ namespace
         return view.sym()->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::NoReturn);
     }
 
-} // namespace
+    bool stopsAtFunctionExit(Sema& sema, AstNodeRef nodeRef, const AstNode& node)
+    {
+        switch (node.id())
+        {
+            case AstNodeId::ReturnStmt:
+            case AstNodeId::FailExpr:
+            case AstNodeId::UnreachableStmt:
+                return true;
+
+            case AstNodeId::IntrinsicCallExpr:
+                return node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic || callsNoReturnFunction(sema, nodeRef);
+
+            case AstNodeId::CallExpr:
+                return callsNoReturnFunction(sema, nodeRef);
+
+            default:
+                return false;
+        }
+    }
+
+    struct ScopeExit
+    {
+        AstNodeRef scopeRef;
+        ScopeExit* parent;
+        AstNodeRef breakRef;
+    };
+
+    struct FlowTargets
+    {
+        AstNodeRef* breakRef       = nullptr;
+        ScopeExit*  scopes         = nullptr;
+        AstNodeRef* fallthroughRef = nullptr;
+    };
+
+    // Follow local continuation and record jumps at their destination. A return
+    // later in a sequence cannot cover paths that jump past that sequence.
+    class FunctionFlow
+    {
+    public:
+        explicit FunctionFlow(Sema& sema) :
+            sema_(sema)
+        {
+        }
+
+        bool continues(AstNodeRef nodeRef, FlowTargets targets = {});
+        AstNodeRef switchFallthrough(AstNodeRef switchRef, FlowTargets targets = {});
+        AstNodeRef loopExitBreak(AstNodeRef bodyRef, ScopeExit* scopes = nullptr);
+        AstNodeRef scopeExitBreak(AstNodeRef scopeRef, FlowTargets targets = {});
+
+    private:
+        Sema& sema_;
+
+        bool continuesSequence(AstNodeRef nodeRef, SpanRef childrenRef, FlowTargets targets);
+        bool continuesBranch(AstNodeRef conditionRef, AstNodeRef thenRef, AstNodeRef elseRef, FlowTargets targets);
+        bool continuesLoop(AstNodeRef conditionRef, AstNodeRef bodyRef, FlowTargets targets);
+        bool isFalseCondition(AstNodeRef conditionRef) const;
+        bool caseTestAlwaysMatches(const AstSwitchCaseStmt& caseStmt, bool expressionless) const;
+    };
+
+    bool FunctionFlow::isFalseCondition(AstNodeRef conditionRef) const
+    {
+        return conditionRef.isValid() && sema_.viewConstant(conditionRef).cstRef() == sema_.cstMgr().cstFalse();
+    }
+
+    bool FunctionFlow::continuesSequence(AstNodeRef nodeRef, SpanRef childrenRef, FlowTargets targets)
+    {
+        if (!sema_.ast().hasSpan(childrenRef))
+            return true;
+
+        const auto children = sema_.ast().nodeSpan(childrenRef);
+        for (auto chunk = children.chunksBegin(); chunk != children.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (!sema_.isImplicitCodeBlockArg(nodeRef, childRef) && !continues(childRef, targets))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool FunctionFlow::continuesBranch(AstNodeRef conditionRef, AstNodeRef thenRef, AstNodeRef elseRef, FlowTargets targets)
+    {
+        if (conditionRef.isValid())
+        {
+            const SemaNodeView condition = sema_.viewConstant(conditionRef);
+            if (condition.cst() && condition.cst()->isBool())
+                return continues(condition.cst()->getBool() ? thenRef : elseRef, targets);
+        }
+
+        // Visit both branches even if the first one continues. Either can jump out of a scope.
+        const bool thenContinues = continues(thenRef, targets);
+        const bool elseContinues = continues(elseRef, targets);
+        return thenContinues || elseContinues;
+    }
+
+    bool FunctionFlow::continuesLoop(AstNodeRef conditionRef, AstNodeRef bodyRef, FlowTargets targets)
+    {
+        const ConstantRef condition = conditionRef.isValid() ? sema_.viewConstant(conditionRef).cstRef() : sema_.cstMgr().cstTrue();
+        if (condition == sema_.cstMgr().cstFalse())
+            return true;
+
+        const AstNodeRef breakRef = loopExitBreak(bodyRef, targets.scopes);
+        return condition != sema_.cstMgr().cstTrue() || breakRef.isValid();
+    }
+
+    AstNodeRef FunctionFlow::loopExitBreak(AstNodeRef bodyRef, ScopeExit* scopes)
+    {
+        AstNodeRef breakRef;
+        continues(bodyRef, {&breakRef, scopes});
+        return breakRef;
+    }
+
+    AstNodeRef FunctionFlow::scopeExitBreak(AstNodeRef scopeRef, FlowTargets targets)
+    {
+        const auto& scope = sema_.node(scopeRef).cast<AstScopeStmt>();
+        ScopeExit   exit{scopeRef, targets.scopes, {}};
+        continues(scope.nodeBodyRef, {targets.breakRef, &exit});
+        return exit.breakRef;
+    }
+
+    bool FunctionFlow::caseTestAlwaysMatches(const AstSwitchCaseStmt& caseStmt, bool expressionless) const
+    {
+        if (caseStmt.spanExprRef.isInvalid())
+            return true;
+        if (!expressionless || caseStmt.conditionBindingRef(sema_.ast()).isValid())
+            return false;
+
+        const auto conditions = sema_.ast().nodeSpan(caseStmt.spanExprRef);
+        for (auto chunk = conditions.chunksBegin(); chunk != conditions.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef conditionRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (sema_.viewConstant(conditionRef).cstRef() == sema_.cstMgr().cstTrue())
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    AstNodeRef FunctionFlow::switchFallthrough(AstNodeRef switchRef, FlowTargets targets)
+    {
+        const auto& switchStmt = sema_.node(switchRef).cast<AstSwitchStmt>();
+        AstNodeRef  witness;
+        if (!SemaSwitch::alwaysMatchesACase(sema_, switchRef, switchStmt))
+        {
+            if (!targets.scopes)
+                return switchRef;
+            witness = switchRef;
+        }
+
+        const auto* payload         = sema_.semaPayload<SwitchPayload>(switchRef);
+        const bool  dynamicDispatch = payload && SemaSwitch::usesDynamicDispatch(sema_, switchStmt, payload->exprTypeRef);
+
+        bool       canTest = true;
+        AstNodeRef fallthroughRef;
+        AstNodeRef resumedTestRef;
+        SmallVector<AstNodeRef> cases;
+        sema_.ast().appendNodes(cases, switchStmt.spanChildrenRef);
+        for (const AstNodeRef childRef : cases)
+        {
+            if ((witness.isValid() && !targets.scopes) || (!canTest && fallthroughRef.isInvalid()))
+                break;
+
+            const AstNodeRef caseRef = sema_.resolvedNodeRef(childRef);
+            if (caseRef.isInvalid())
+                continue;
+            const auto* caseStmt = sema_.node(caseRef).safeCast<AstSwitchCaseStmt>();
+            if (!caseStmt)
+                continue;
+
+            bool entersBody = fallthroughRef.isValid();
+            if (entersBody && SemaSwitch::fallthroughTestsCase(sema_.ast(), *caseStmt, dynamicDispatch))
+            {
+                // This jump resumes the remaining case tests, even if an earlier
+                // default already ended the original search.
+                canTest        = true;
+                resumedTestRef = fallthroughRef;
+                entersBody     = false;
+            }
+
+            const ConstantRef guard = caseStmt->nodeWhereRef.isValid() ? sema_.viewConstant(caseStmt->nodeWhereRef).cstRef() : sema_.cstMgr().cstTrue();
+            entersBody = entersBody || (canTest && guard != sema_.cstMgr().cstFalse());
+            if (canTest && guard == sema_.cstMgr().cstTrue() && caseTestAlwaysMatches(*caseStmt, switchStmt.nodeExprRef.isInvalid()))
+            {
+                canTest = false;
+                resumedTestRef.setInvalid();
+            }
+
+            fallthroughRef.setInvalid();
+            if (!entersBody)
+                continue;
+
+            AstNodeRef breakRef;
+            const bool caseContinues = continues(caseStmt->nodeBodyRef, {&breakRef, targets.scopes, &fallthroughRef});
+            if (witness.isInvalid() && (caseContinues || breakRef.isValid()))
+                witness = caseRef;
+        }
+        return witness.isValid() ? witness : resumedTestRef;
+    }
+
+    bool FunctionFlow::continues(AstNodeRef nodeRef, FlowTargets targets)
+    {
+        if (nodeRef.isInvalid())
+            return true;
+
+        const AstNode& node = sema_.node(nodeRef);
+        switch (node.id())
+        {
+            case AstNodeId::BreakStmt:
+                if (targets.breakRef && targets.breakRef->isInvalid())
+                    *targets.breakRef = nodeRef;
+                return false;
+
+            case AstNodeId::ScopedBreakStmt:
+            {
+                const auto* payload = sema_.semaPayload<ScopedBreakSemaPayload>(nodeRef);
+                for (ScopeExit* scope = targets.scopes; payload && scope; scope = scope->parent)
+                {
+                    if (scope->scopeRef == payload->targetScopeRef)
+                    {
+                        if (scope->breakRef.isInvalid())
+                            scope->breakRef = nodeRef;
+                        break;
+                    }
+                }
+                return false;
+            }
+
+            case AstNodeId::FallThroughStmt:
+                if (targets.fallthroughRef && targets.fallthroughRef->isInvalid())
+                    *targets.fallthroughRef = nodeRef;
+                return false;
+
+            case AstNodeId::ContinueStmt:
+                return false;
+
+            case AstNodeId::IfStmt:
+            {
+                const auto& branch = node.cast<AstIfStmt>();
+                return continuesBranch(branch.nodeConditionRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, targets);
+            }
+
+            case AstNodeId::IfVarDecl:
+            {
+                const auto& branch = node.cast<AstIfVarDecl>();
+                if (isFalseCondition(branch.nodeWhereRef))
+                    return continues(branch.nodeElseBlockRef, targets);
+
+                return continuesBranch({}, branch.nodeIfBlockRef, branch.nodeElseBlockRef, targets);
+            }
+
+            case AstNodeId::CompilerIf:
+            {
+                const auto& branch = node.cast<AstCompilerIf>();
+                const SemaNodeView condition = sema_.viewConstant(branch.nodeConditionRef);
+                return !condition.cst() || continues(condition.cst()->getBool() ? branch.nodeIfBlockRef : branch.nodeElseBlockRef, targets);
+            }
+
+            case AstNodeId::CompilerSwitch:
+                return continues(SemaSwitch::selectedCompilerSwitchBody(sema_, nodeRef), targets);
+
+            case AstNodeId::CompilerFunc:
+            case AstNodeId::CompilerShortFunc:
+            case AstNodeId::CompilerInject:
+            {
+                // Generated statements run in the enclosing function. Ordinary
+                // inline calls have their own return boundary.
+                const AstNodeRef generatedRef = sema_.resolvedNodeRef(nodeRef);
+                return generatedRef == nodeRef || continues(generatedRef, targets);
+            }
+
+            case AstNodeId::SwitchStmt:
+                return switchFallthrough(nodeRef, targets).isValid();
+
+            case AstNodeId::InfiniteLoopStmt:
+                return continuesLoop({}, node.cast<AstInfiniteLoopStmt>().nodeBodyRef, targets);
+
+            case AstNodeId::WhileStmt:
+            {
+                const auto& loop = node.cast<AstWhileStmt>();
+                return continuesLoop(loop.nodeExprRef, loop.nodeBodyRef, targets);
+            }
+
+            case AstNodeId::ForCStyleStmt:
+            {
+                const auto& loop = node.cast<AstForCStyleStmt>();
+                return continuesLoop(loop.nodeExprRef, loop.nodeBodyRef, targets);
+            }
+
+            case AstNodeId::ForStmt:
+            {
+                if (!targets.scopes)
+                    return true;
+
+                const auto&        loop  = node.cast<AstForStmt>();
+                const SemaNodeView count = sema_.viewConstant(loop.nodeExprRef);
+                const bool         empty = count.cst() && count.cst()->isInt() && count.cst()->getInt().isZero();
+                if (!empty && !isFalseCondition(loop.nodeWhereRef))
+                    loopExitBreak(loop.nodeBodyRef, targets.scopes);
+                return true;
+            }
+
+            case AstNodeId::ForeachStmt:
+            {
+                const auto& loop = node.cast<AstForeachStmt>();
+                if (targets.scopes && !isFalseCondition(loop.nodeWhereRef))
+                    loopExitBreak(loop.nodeBodyRef, targets.scopes);
+                return true;
+            }
+
+            case AstNodeId::AttributeList:
+                return continues(node.cast<AstAttributeList>().nodeBodyRef, targets);
+
+            case AstNodeId::TopLevelBlock:
+                return continuesSequence(nodeRef, node.cast<AstTopLevelBlock>().spanChildrenRef, targets);
+
+            case AstNodeId::EmbeddedBlock:
+                return continuesSequence(nodeRef, node.cast<AstEmbeddedBlock>().spanChildrenRef, targets);
+
+            case AstNodeId::FunctionBody:
+                return continuesSequence(nodeRef, node.cast<AstFunctionBody>().spanChildrenRef, targets);
+
+            case AstNodeId::SwitchCaseBody:
+                return continuesSequence(nodeRef, node.cast<AstSwitchCaseBody>().spanChildrenRef, targets);
+
+            case AstNodeId::ElseStmt:
+                return continuesSequence(nodeRef, node.cast<AstElseStmt>().spanChildrenRef, targets);
+
+            case AstNodeId::ElseIfStmt:
+                return continuesSequence(nodeRef, node.cast<AstElseIfStmt>().spanChildrenRef, targets);
+
+            case AstNodeId::ScopeStmt:
+            {
+                const auto& scope = node.cast<AstScopeStmt>();
+                if (scope.tokNameRef.isInvalid())
+                    return continues(scope.nodeBodyRef, targets);
+
+                ScopeExit  exit{nodeRef, targets.scopes, {}};
+                targets.scopes = &exit;
+                const bool bodyContinues = continues(scope.nodeBodyRef, targets);
+                return bodyContinues || exit.breakRef.isValid();
+            }
+
+            case AstNodeId::WithStmt:
+                return continues(node.cast<AstWithStmt>().nodeBodyRef, targets);
+
+            case AstNodeId::WithVarDecl:
+                return continues(node.cast<AstWithVarDecl>().nodeBodyRef, targets);
+
+            case AstNodeId::ErrorManagementStmt:
+            {
+                const auto& guard = node.cast<AstErrorManagementStmt>();
+                continues(guard.nodeBodyRef, targets);
+                continues(guard.nodeHandlerRef, targets);
+                // The error path may resume after the statement.
+                return true;
+            }
+
+            default:
+                return !stopsAtFunctionExit(sema_, nodeRef, node);
+        }
+    }
+
+    bool compoundStopsBlockFlow(Sema& sema, SpanRef childrenRef)
+    {
+        if (!sema.ast().hasSpan(childrenRef))
+            return false;
+
+        const size_t count = sema.ast().spanSize(childrenRef);
+        return count && SemaHelpers::stopsLocalFlow(sema, sema.ast().nthNode(childrenRef, count - 1));
+    }
+}
 
 AstNodeRef SemaHelpers::findLoopExitBreak(Sema& sema, AstNodeRef bodyRef)
 {
-    if (bodyRef.isInvalid())
-        return AstNodeRef::invalid();
+    return FunctionFlow(sema).loopExitBreak(bodyRef);
+}
 
-    // Nested loops and switches own their own unlabelled breaks.
-    const AstNode& node = sema.node(bodyRef);
-    switch (node.id())
-    {
-        case AstNodeId::BreakStmt:
-            return bodyRef;
-
-        case AstNodeId::WhileStmt:
-        case AstNodeId::ForeachStmt:
-        case AstNodeId::ForCStyleStmt:
-        case AstNodeId::ForStmt:
-        case AstNodeId::InfiniteLoopStmt:
-        case AstNodeId::SwitchStmt:
-        case AstNodeId::FunctionDecl:
-        case AstNodeId::FunctionExpr:
-        case AstNodeId::ClosureExpr:
-            return AstNodeRef::invalid();
-
-        default:
-            break;
-    }
-
-    SmallVector<AstNodeRef> children;
-    node.collectChildrenFromAst(children, sema.ast());
-    for (const AstNodeRef childRef : children)
-    {
-        const AstNodeRef breakRef = findLoopExitBreak(sema, childRef);
-        if (breakRef.isValid())
-            return breakRef;
-    }
-    return AstNodeRef::invalid();
+AstNodeRef SemaHelpers::findScopeExitBreak(Sema& sema, AstNodeRef scopeRef)
+{
+    return FunctionFlow(sema).scopeExitBreak(scopeRef);
 }
 
 AstNodeRef SemaHelpers::findSwitchFallthrough(Sema& sema, AstNodeRef switchRef)
 {
-    const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-    if (!SemaSwitch::alwaysMatchesACase(sema, switchRef, switchStmt))
-        return switchRef;
-
-    SmallVector<AstNodeRef> cases;
-    sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
-    const auto end = std::remove_if(cases.begin(), cases.end(), [&](AstNodeRef childRef) { return childRef.isInvalid() || sema.node(childRef).isNot(AstNodeId::SwitchCaseStmt); });
-    cases.resize(static_cast<size_t>(end - cases.begin()));
-    if (cases.empty())
-        return switchRef;
-
-    for (size_t i = 0; i < cases.size(); ++i)
-    {
-        const AstNodeRef bodyRef = sema.node(cases[i]).cast<AstSwitchCaseStmt>().nodeBodyRef;
-        if (stopsLocalFlow(sema, bodyRef, LocalFlowStop::Function))
-            continue;
-
-        // Fallthrough reaches the next case, which is checked separately.
-        if (i + 1 < cases.size() && endsWithFallthrough(sema, bodyRef))
-            continue;
-
-        return cases[i];
-    }
-
-    return AstNodeRef::invalid();
+    return FunctionFlow(sema).switchFallthrough(switchRef);
 }
 
 bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop)
 {
+    if (stop == LocalFlowStop::Function)
+        return !FunctionFlow(sema).continues(nodeRef);
+
     if (nodeRef.isInvalid())
         return false;
 
     const AstNode& node = sema.node(nodeRef);
     switch (node.id())
     {
-        case AstNodeId::ReturnStmt:
-        case AstNodeId::FailExpr:
-            return true;
-
         case AstNodeId::BreakStmt:
         case AstNodeId::ContinueStmt:
         case AstNodeId::FallThroughStmt:
-            return stop != LocalFlowStop::Function;
-
-        case AstNodeId::UnreachableStmt:
             return true;
-
-        case AstNodeId::IntrinsicCallExpr:
-            if (node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic)
-                return true;
-
-            return callsNoReturnFunction(sema, nodeRef);
-
-        case AstNodeId::CallExpr:
-            return callsNoReturnFunction(sema, nodeRef);
 
         case AstNodeId::IfStmt:
         {
-            const auto& ifStmt = node.cast<AstIfStmt>();
-            return ifStmt.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifStmt.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifStmt.nodeElseBlockRef, stop);
+            const auto& branch = node.cast<AstIfStmt>();
+            return stopsLocalFlow(sema, branch.nodeIfBlockRef) && stopsLocalFlow(sema, branch.nodeElseBlockRef);
         }
 
         case AstNodeId::IfVarDecl:
         {
-            const auto& ifVarDecl = node.cast<AstIfVarDecl>();
-            return ifVarDecl.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef, stop);
+            const auto& branch = node.cast<AstIfVarDecl>();
+            return stopsLocalFlow(sema, branch.nodeIfBlockRef) && stopsLocalFlow(sema, branch.nodeElseBlockRef);
         }
 
-        // A case break leaves the switch, so test case bodies for function exits.
         case AstNodeId::SwitchStmt:
             return findSwitchFallthrough(sema, nodeRef).isInvalid();
 
-        case AstNodeId::InfiniteLoopStmt:
-            return stop == LocalFlowStop::Function && findLoopExitBreak(sema, node.cast<AstInfiniteLoopStmt>().nodeBodyRef).isInvalid();
-
-        case AstNodeId::WhileStmt:
-        {
-            if (stop != LocalFlowStop::Function)
-                return false;
-
-            const auto& whileStmt = node.cast<AstWhileStmt>();
-            if (sema.viewConstant(whileStmt.nodeExprRef).cstRef() != sema.cstMgr().cstTrue())
-                return false;
-
-            return findLoopExitBreak(sema, whileStmt.nodeBodyRef).isInvalid();
-        }
-
-        // Attributes change the policy around their body, not its control flow.
         case AstNodeId::AttributeList:
-            return stopsLocalFlow(sema, node.cast<AstAttributeList>().nodeBodyRef, stop);
+            return stopsLocalFlow(sema, node.cast<AstAttributeList>().nodeBodyRef);
 
         case AstNodeId::EmbeddedBlock:
-            return compoundStopsLocalFlow(sema, node.cast<AstEmbeddedBlock>().spanChildrenRef, stop);
+            return compoundStopsBlockFlow(sema, node.cast<AstEmbeddedBlock>().spanChildrenRef);
 
         case AstNodeId::FunctionBody:
-            return compoundStopsLocalFlow(sema, node.cast<AstFunctionBody>().spanChildrenRef, stop);
+            return compoundStopsBlockFlow(sema, node.cast<AstFunctionBody>().spanChildrenRef);
 
         case AstNodeId::SwitchCaseBody:
-            return compoundStopsLocalFlow(sema, node.cast<AstSwitchCaseBody>().spanChildrenRef, stop);
+            return compoundStopsBlockFlow(sema, node.cast<AstSwitchCaseBody>().spanChildrenRef);
 
         case AstNodeId::ElseStmt:
-            return compoundStopsLocalFlow(sema, node.cast<AstElseStmt>().spanChildrenRef, stop);
+            return compoundStopsBlockFlow(sema, node.cast<AstElseStmt>().spanChildrenRef);
 
         case AstNodeId::ElseIfStmt:
-            return compoundStopsLocalFlow(sema, node.cast<AstElseIfStmt>().spanChildrenRef, stop);
+            return compoundStopsBlockFlow(sema, node.cast<AstElseIfStmt>().spanChildrenRef);
 
-        // Only a named scope can be left by 'break to', so an unnamed one is just its body.
         case AstNodeId::ScopeStmt:
         {
-            const auto& scopeStmt = node.cast<AstScopeStmt>();
-            if (scopeStmt.tokNameRef.isInvalid())
-                return stopsLocalFlow(sema, scopeStmt.nodeBodyRef, stop);
-            if (stop != LocalFlowStop::Function)
-                return false;
-            return stopsLocalFlow(sema, scopeStmt.nodeBodyRef, stop);
-        }
-
-        // These statements contain bodies but are not block-level jumps.
-        // Inspect them only for function exits, avoiding false unreachable reports.
-        case AstNodeId::WithStmt:
-        case AstNodeId::CompilerIf:
-        case AstNodeId::CompilerSwitch:
-        case AstNodeId::CompilerSwitchCase:
-        {
-            if (stop != LocalFlowStop::Function)
-                return false;
-
-            SmallVector<AstNodeRef> children;
-            node.collectChildrenFromAst(children, sema.ast());
-
-            return std::ranges::any_of(children, [&](AstNodeRef childRef) { return stopsLocalFlow(sema, childRef, stop); });
+            const auto& scope = node.cast<AstScopeStmt>();
+            return scope.tokNameRef.isInvalid() && stopsLocalFlow(sema, scope.nodeBodyRef);
         }
 
         default:
-            return false;
+            return stopsAtFunctionExit(sema, nodeRef, node);
     }
 }
 

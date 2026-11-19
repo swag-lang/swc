@@ -1117,7 +1117,13 @@ namespace
     FallthroughStep describeFallthrough(Sema& sema, AstNodeRef statementRef)
     {
         const AstNode& statement = sema.node(statementRef);
-        if (const auto* ifStmt = statement.safeCast<AstIfStmt>())
+        if (statement.is(AstNodeId::ScopeStmt))
+        {
+            const AstNodeRef breakRef = SemaHelpers::findScopeExitBreak(sema, statementRef);
+            if (breakRef.isValid())
+                return {DiagnosticId::sema_note_function_continues, breakRef, {}};
+        }
+        else if (const auto* ifStmt = statement.safeCast<AstIfStmt>())
         {
             const SemaNodeView condition = sema.viewConstant(ifStmt->nodeConditionRef);
             const auto         branch    = continuingBranch(sema, ifStmt->nodeIfBlockRef, ifStmt->nodeElseBlockRef, condition.cst());
@@ -1144,7 +1150,12 @@ namespace
             if (caseRef == statementRef)
                 return {DiagnosticId::sema_note_switch_miss_continues, statementRef, {}};
             if (caseRef.isValid())
-                return {DiagnosticId::sema_note_switch_case_continues, caseRef, sema.node(caseRef).cast<AstSwitchCaseStmt>().nodeBodyRef};
+            {
+                const AstNode& exit = sema.node(caseRef);
+                if (exit.is(AstNodeId::FallThroughStmt))
+                    return {DiagnosticId::sema_note_function_continues, caseRef, {}};
+                return {DiagnosticId::sema_note_switch_case_continues, caseRef, exit.cast<AstSwitchCaseStmt>().nodeBodyRef};
+            }
         }
         else if (const auto* loop = statement.safeCast<AstWhileStmt>())
         {

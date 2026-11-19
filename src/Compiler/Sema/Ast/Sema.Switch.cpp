@@ -476,6 +476,39 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     return SemaSwitch::checkEnumExhaustive(sema, payload->seen, payload->exprTypeRef, sema.curNodeRef());
 }
 
+bool SemaSwitch::usesDynamicDispatch(Sema& sema, const AstSwitchStmt& switchStmt, TypeRef typeRef)
+{
+    if (typeRef.isInvalid())
+        return false;
+
+    const TypeInfo& type = sema.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(sema.ctx());
+    if (!isDynamicType(sema, type))
+        return false;
+    if (!type.isValuePointer())
+        return true;
+
+    // A dynamic pointer used only in value comparisons uses ordinary pointer dispatch.
+    SmallVector<AstNodeRef> cases;
+    sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
+    for (const AstNodeRef caseRef : cases)
+    {
+        const auto* payload = sema.semaPayload<DynamicStructSwitchCasePayload>(sema.resolvedNodeRef(caseRef));
+        if (!payload)
+            continue;
+        for (const auto& expr : payload->expressions)
+        {
+            if (expr.castRef.isValid())
+                return true;
+        }
+    }
+    return false;
+}
+
+bool SemaSwitch::fallthroughTestsCase(const Ast& ast, const AstSwitchCaseStmt& caseStmt, bool dynamicDispatch)
+{
+    return caseStmt.conditionBindingRef(ast).isValid() || (dynamicDispatch && caseStmt.spanExprRef.isValid());
+}
+
 bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt)
 {
     const auto* payload = sema.semaPayload<SwitchPayload>(switchRef);

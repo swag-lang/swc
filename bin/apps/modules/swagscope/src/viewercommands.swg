@@ -45,6 +45,9 @@ namespace ViewerCommands
     const Refresh           = "scope.explore.refresh"
     const ClearCaches       = "scope.explore.clearCaches"
     const EditLocation      = "scope.explore.location"
+    const CopyLocation      = "scope.explore.location.copy"
+    const OpenSystemFolder  = "scope.explore.location.openSystem"
+    const RevealArchive     = "scope.explore.location.revealArchive"
     const SortName          = "scope.explore.sort.name"
     const SortType          = "scope.explore.sort.type"
     const SortSize          = "scope.explore.sort.size"
@@ -149,7 +152,8 @@ impl ViewerWindow
                                                                     ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                                                                       ViewerCommands.ClearCaches,
-                                                                      ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
+                                                                      ViewerCommands.EditLocation, ViewerCommands.CopyLocation, ViewerCommands.OpenSystemFolder, ViewerCommands.RevealArchive,
+                                                                      ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                                                                       ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending,
                                                                       ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
                                                                       ViewerCommands.FilterAudio, ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
@@ -691,27 +695,27 @@ impl ViewerWindow
         case ViewerCommands.OpenDefault:
             name   = texts.ui_MenuOpenDefault
             icon   = .commandGlyph(.OpenExternal)
-            hidden = not hasFile
+            hidden = .fileActionPath().count == 0
 
         case ViewerCommands.OpenWith:
             name   = texts.ui_MenuOpenWith
             icon   = .commandGlyph(.OpenExternal)
-            hidden = not hasFile
+            hidden = .fileActionPath().count == 0
 
         case ViewerCommands.Locate:
             name   = texts.ui_MenuLocate
             icon   = .commandGlyph(.Folder)
-            hidden = not hasFile
+            hidden = .fileActionPath().count == 0
 
         case ViewerCommands.CopyPath:
             name   = texts.ui_MenuCopyPath
             icon   = .commandGlyph(.Copy)
-            hidden = not hasFile
+            hidden = .fileActionPath().count == 0
 
         case ViewerCommands.CopyName:
             name   = texts.ui_MenuCopyName
             icon   = .commandGlyph(.Copy)
-            hidden = not hasFile
+            hidden = .fileActionPath().count == 0
 
         case ViewerCommands.Forget:
             name   = texts.ui_MenuForget
@@ -867,6 +871,21 @@ impl ViewerWindow
             name   = texts.cmd_EditLocation
             icon   = .commandGlyph(.Edit)
             hidden = not exploring
+
+        case ViewerCommands.CopyLocation:
+            name   = texts.explore_CopyLocation
+            icon   = .commandGlyph(.Copy)
+            hidden = not exploring or .explorer!.listing.path.isEmpty()
+
+        case ViewerCommands.OpenSystemFolder:
+            name   = texts.explore_OpenSystemFolder
+            icon   = .commandGlyph(.OpenExternal)
+            hidden = not exploring or .explorer!.listing.isArchive or .explorer!.listing.path.isEmpty()
+
+        case ViewerCommands.RevealArchive:
+            name   = texts.explore_RevealArchive
+            icon   = .commandGlyph(.Folder)
+            hidden = not exploring or .explorer!.nativeArchivePath().count == 0
 
         case ViewerCommands.SortName, ViewerCommands.SortType,
              ViewerCommands.SortSize, ViewerCommands.SortModified:
@@ -1033,8 +1052,8 @@ impl ViewerWindow
     // Returns `icon` at the size of a glyph leading a row of the lens or a menu.
     private mtd commandGlyph(icon: ThemeIcons)->Icon => .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
 
-    // Runs one command of the window, and reports whether it was one.
-    mtd runCommand(id: WndId)->bool
+    // Runs a window command. A path supplied by a context menu takes precedence over the selection.
+    mtd runCommand(id: WndId, contextPath: string? = null)->bool
     {
         let hasFile = not .currentFile.isEmpty()
         switch id
@@ -1079,20 +1098,11 @@ impl ViewerWindow
         case ViewerCommands.NextFile:
             .navigate(1)
 
-        case ViewerCommands.OpenDefault:
-            .openCurrentFileDefault()
-
-        case ViewerCommands.OpenWith where hasFile:
-            Env.openFileWith(.currentFile)
-
-        case ViewerCommands.Locate where hasFile:
-            Env.showInFileExplorer(.currentFile)
-
-        case ViewerCommands.CopyPath where hasFile:
-            Clipboard.setString(.currentFile)
-
-        case ViewerCommands.CopyName where hasFile:
-            Clipboard.setString(Path.fileName(.currentFile) orelse .currentFile.toString())
+        case ViewerCommands.OpenDefault, ViewerCommands.OpenWith, ViewerCommands.Locate,
+             ViewerCommands.CopyPath, ViewerCommands.CopyName:
+            let path = contextPath orelse .fileActionPath()
+            if path.count do
+                .runFileAction(id, path)
 
         case ViewerCommands.Forget where hasFile:
             .forgetRecent(.currentFile.toString())
@@ -1162,7 +1172,7 @@ impl ViewerWindow
             .setPlayMode(.Shuffle)
 
         default:
-            return .runExplorerCommand(id)
+            return .runExplorerCommand(id, contextPath)
         }
 
         return true
@@ -1178,7 +1188,7 @@ impl ViewerWindow
     }
 
     // Runs one command of the explored folder, and reports whether it was one.
-    private mtd runExplorerCommand(id: WndId)->bool
+    private mtd runExplorerCommand(id: WndId, contextPath: string?)->bool
     {
         if not .explorer do
             return false
@@ -1202,6 +1212,21 @@ impl ViewerWindow
 
         case ViewerCommands.EditLocation:
             explorer.address.beginEdit()
+
+        case ViewerCommands.CopyLocation:
+            let path = contextPath ? String.from(contextPath) : explorer.locationText()
+            if not path.isEmpty() do
+                Clipboard.setString(path)
+
+        case ViewerCommands.OpenSystemFolder:
+            let path = contextPath orelse (explorer.listing.isArchive ? "" : explorer.listing.path.toString())
+            if path.count do
+                Env.openFile(path)
+
+        case ViewerCommands.RevealArchive:
+            let path = contextPath orelse explorer.nativeArchivePath()
+            if path.count do
+                Env.showInFileExplorer(path)
 
         case ViewerCommands.FilterAll, ViewerCommands.FilterVideos,
              ViewerCommands.FilterImages, ViewerCommands.FilterAudio,

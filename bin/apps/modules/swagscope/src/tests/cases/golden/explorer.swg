@@ -18,7 +18,7 @@ using Core, Gui, Pixel
     completeExplorer(&host, explorer)
     explorer.address.breadcrumb.clear()
     explorer.address.breadcrumb.addItem("viewer.archive.zip")
-    explorer.address.breadcrumb.addItem("docs")
+    explorer.address.breadcrumb.addItem("docs", hasArrow: false)
     explorer.address.refreshPath()
     for &entry in explorer.entries do
         entry.attempted = true

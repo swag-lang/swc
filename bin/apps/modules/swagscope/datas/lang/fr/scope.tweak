@@ -89,6 +89,9 @@ explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément
 explore_Count % éléments
 explore_NotFound Emplacement introuvable
+explore_CopyLocation Copier l’emplacement actuel
+explore_OpenSystemFolder Ouvrir dans le gestionnaire de fichiers
+explore_RevealArchive Afficher l’archive dans son dossier
 explore_MediaOptions Options des informations de médias en ligne
 ui_GeneralOptions Options générales…
 ui_GeneralOptionsTitle Options

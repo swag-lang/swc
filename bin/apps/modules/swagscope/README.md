@@ -30,6 +30,11 @@ information sheet.
 Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows its path, filter and quiet layout
 menus in one row. The menus choose the order and presentation: names, sortable details, or
 small, medium and large thumbnails. ZIP files use the same navigation.
+Click the current folder in the title bar or press Ctrl+L to edit the location. Enter opens the
+typed path and Escape restores the breadcrumbs. A missing location leaves the field open for
+correction. Right-click a breadcrumb, row or thumbnail to copy its path or use the system file
+manager. For entries inside an archive, the menu copies their archive path and can reveal the
+archive on disk.
 Every tile has the same size and the grid fills the page: a mixed folder shows each file on a
 tile a little wider than tall, a folder of films its posters upright, with the name and one mono
 line of facts under each. A slash or Ctrl+F opens the search strip above the page. The filename

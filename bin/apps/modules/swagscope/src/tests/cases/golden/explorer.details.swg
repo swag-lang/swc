@@ -27,7 +27,7 @@ using Core, Gui, Pixel
         // These displayed levels describe the fixture, independently of native drive syntax.
         explorer.address.breadcrumb.clear()
         explorer.address.breadcrumb.addItem("Z:/", tag: "Z:/")
-        explorer.address.breadcrumb.addItem("Films", tag: "Z:/Films")
+        explorer.address.breadcrumb.addItem("Films", hasArrow: false, tag: "Z:/Films")
         explorer.address.setText("Z:/Films")
         explorer.address.refreshPath()
         explorer.title.setText("Films")

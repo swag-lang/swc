@@ -24,7 +24,7 @@ using Core, Gui, Pixel
     explorer.setMode(.Names)
     explorer.address.breadcrumb.clear()
     explorer.address.breadcrumb.addItem("Swag Vault")
-    explorer.address.breadcrumb.addItem("Private")
+    explorer.address.breadcrumb.addItem("Private", hasArrow: false)
     explorer.address.refreshPath()
     window.applyLayout()
     Swag.require(window.privacy.caption!.isLocallyVisible())

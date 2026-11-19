@@ -211,11 +211,16 @@ impl ViewerWindow
         .showFileActions(.currentFile, position)
     }
 
-    // Opens the current file with the handler registered by the operating system.
-    mtd openCurrentFileDefault()
+    // Keeps file actions on the selection while the Explorer is on screen.
+    mtd fileActionPath()->string
     {
-        if not .currentFile.isEmpty() do
-            discard Env.openFile(.currentFile)
+        if not .isExploring() do
+            return .currentFile
+        let explorer = unwrap .explorer
+        if explorer.listing.isArchive or explorer.load.started or explorer.selected >= explorer.entries.count do
+            return ""
+        let item = &explorer.entries[explorer.selected]
+        return item.directory ? "" : item.path.toString()
     }
 
     // Builds what one file offers, wherever the reader pointed at it.
@@ -234,14 +239,19 @@ impl ViewerWindow
     }
 
     // Shows what one file offers, wherever the reader pointed at it.
-    private mtd showFileActions(fileName: string, position: Math.Point)
+    internal mtd showFileActions(fileName: string, position: Math.Point)
     {
         let menu = .createFileActionsMenu()
 
-        let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
+        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
         if not chosen do
             return
 
+        discard .runCommand(chosen, contextPath: fileName)
+    }
+
+    internal mtd runFileAction(chosen: WndId, fileName: string)
+    {
         switch chosen
         {
         case ViewerCommands.Locate:      Env.showInFileExplorer(fileName)

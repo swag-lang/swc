@@ -35,6 +35,72 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.require(not explorer.load.started)
 }
 
+// Context actions follow the clicked breadcrumb or entry in both listing presentations.
+#test
+{
+    let scratch = Testing.tempFilePath("scope-explorer-path-", "")
+    let root = Path.combine(scratch, "Parent")
+    let folder = Path.combine(root, "Folder")
+    let file = Path.combine(folder, "File.txt")
+    expect Directory.create(scratch)
+    defer discard catch Directory.delete(scratch, recurse: true)
+    expect Directory.create(root)
+    expect Directory.create(folder)
+    expect File.writeAllText(file, "A file to locate")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    shipFrame(&host)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(folder)
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Names)
+    waitMenuExplorer(&host, window)
+    window.applyLayout()
+
+    var postedActions: u32
+    window.hookOnEvent = func|&postedActions|(_, evt)
+    {
+        if evt is CommandEvent as command where command.id == ViewerCommands.CopyLocation or command.id == ViewerCommands.CopyPath do
+            postedActions += 1
+        return false
+    }
+    defer window.hookOnEvent = null
+
+    let breadcrumb = explorer.address.breadcrumb
+    for index in breadcrumb.items.count - 2 until breadcrumb.items.count
+    {
+        var point = breadcrumb.localToSurface(breadcrumb.items[index].bodyRect.center())
+        host.surface.surfaceToScreen(&point)
+        Swag.require(host.mouseTargetAt(point) == breadcrumb)
+        host.clickPopupMenuItemWhenShown(ViewerCommands.CopyLocation)
+        host.click(point, .Right)
+        let intended = index + 1 == breadcrumb.items.count ? folder : root
+        Swag.require(host.autoHandled)
+        Swag.require(Path.equals(Clipboard.getString(), intended), Format.toString("copied %, expected %", Clipboard.getString(), intended))
+    }
+
+    for mode in [ExplorerMode.Details, .Medium]
+    {
+        explorer.setMode(mode)
+        window.applyLayout()
+        var point = mode == .Details ? explorer.list.listView.localToSurface(Math.Point{50, explorer.list.lineHeight() * 0.5}) :
+                                       explorer.grid.localToSurface(explorer.grid.tileRect(0).center())
+        host.surface.surfaceToScreen(&point)
+        host.clickPopupMenuItemWhenShown(ViewerCommands.CopyPath)
+        host.click(point, .Right)
+        Swag.require(host.autoHandled and Path.equals(Clipboard.getString(), file))
+        Swag.require(window.currentFile.isEmpty())
+    }
+    Swag.require(postedActions == 0)
+
+    window.sendCommandEvent(ViewerCommands.CopyLocation)
+    Swag.require(Path.equals(Clipboard.getString(), folder))
+    window.sendCommandEvent(ViewerCommands.CopyPath)
+    Swag.require(Path.equals(Clipboard.getString(), file))
+    Swag.require(postedActions == 2)
+}
+
 // Chooses `id` in the popup that `button` opens, through the shipped opener and modal path.
 func chooseInQuietMenu(host: *Testing.HeadlessHost, window: *ViewerWindow, button: *IconButton, id: WndId)
 {

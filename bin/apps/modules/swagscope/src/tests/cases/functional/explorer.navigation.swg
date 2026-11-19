@@ -83,17 +83,19 @@ using Core, Gui, Pixel
 
     // A location typed in the address reaches a folder inside the archive as well as the archive's
     // own folder, with or without the quotes a copied path comes between.
-    explorer.navigateTyped(Format.toString("\"%/data\"", explorer.listing.path))
+    Swag.require(explorer.navigateTyped(Format.toString("\"%/data\"", explorer.listing.path)))
     Swag.require(explorer.requested == explorer.listing.path and explorer.requestedFolder == "data/")
     explorer.load.wait()
     host.pump()
-    let folder = unwrap Path.directoryName(archive)
-    explorer.navigateTyped(Format.toString("  %  ", folder))
-    Swag.require(explorer.requested == folder and explorer.requestedFolder.isEmpty())
+    Swag.require(not explorer.navigateTyped(Format.toString("%/missing folder", explorer.listing.path)))
+    Swag.require(explorer.requestedFolder == "data/")
+    let folder = expect Path.absolute(unwrap Path.directoryName(archive))
+    Swag.require(explorer.navigateTyped(Format.toString("  %  ", folder)))
+    Swag.require(Path.equals(explorer.requested, folder) and explorer.requestedFolder.isEmpty(),
+                 Format.toString("requested %/%; expected %", explorer.requested, explorer.requestedFolder, folder))
     explorer.load.wait()
     host.pump()
-    explorer.navigateTyped(Path.combine(folder, "no such folder"))
-    Swag.require(explorer.status.text() == appStrings().explore_NotFound)
+    Swag.require(not explorer.navigateTyped(Path.combine(folder, "no such folder")))
 }
 
 // Opening the folder history in the lens reads saved entries without probing their volumes or last files.
@@ -120,6 +122,7 @@ using Core, Gui, Pixel
     {
         var host: Testing.HeadlessHost
         host.setup(ViewerWindow.MinWidth, 680)
+        shipFrame(&host)
         if light do
             host.theme.setLight()
         host.notify(.ThemeChanged)
@@ -132,7 +135,9 @@ using Core, Gui, Pixel
         let address = explorer.address
         Swag.require(address.breadcrumb.items.count == 2)
         Swag.require(address.breadcrumb.items[0].name == Root)
+        Swag.require(address.breadcrumb.items[0].hasArrow)
         Swag.require(address.breadcrumb.items[1].name == "Films")
+        Swag.require(not address.breadcrumb.items[1].hasArrow)
         Swag.require(address.breadcrumb.scrollPos.x == 0)
         Swag.require(address.isLocallyVisible())
         Swag.require(not explorer.title.isLocallyVisible())
@@ -140,6 +145,7 @@ using Core, Gui, Pixel
         Swag.require(information.x > window.clientRect().width / 2)
         Swag.require(window.backCaptionButton.surfaceRect().right() < information.x)
         var point = address.breadcrumb.localToSurface(address.breadcrumb.items.back().bodyRect.center())
+        Swag.require(address.focusPolicy == .Click)
         host.surface.surfaceToScreen(&point)
         host.click(point)
         Swag.require(address.edit.isLocallyVisible() and address.edit.text() == location)

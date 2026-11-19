@@ -90,6 +90,9 @@ struct AppStrings
     explore_ExtractedKept:     string = "%, % already there kept"                 // Toast after an extraction that left files already in the folder as they were.
     explore_ExtractFailed:     string = "Not everything could be extracted"       // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"                      // Exploration control or status.
+    explore_CopyLocation:      string = "Copy Current Location"                  // Copies the address shown above the listing.
+    explore_OpenSystemFolder:  string = "Open in System File Manager"            // Opens a folder outside Scope.
+    explore_RevealArchive:     string = "Show Archive in Its Folder"              // Selects the archive that contains a virtual item.
     explore_MediaOptions:      string = "Online Media Options"
     ui_GeneralOptions:         string = "General Options…"
     ui_GeneralOptionsTitle:    string = "Options"

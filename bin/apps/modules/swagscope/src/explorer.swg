@@ -81,9 +81,10 @@ func thumbnailDuration(image: const *Image)->u64
 
 struct ExplorerTemporary
 {
-    file:  String
-    title: String
-    path:  String
+    file:    String
+    title:   String
+    path:    String
+    archive: String
 }
 
 // Owns exploration independently of the file currently being viewed.
@@ -255,6 +256,12 @@ impl Explorer
                 result.activate(result.selected)
             }
 
+            .sigRightClicked += func|result|(_, point)
+            {
+                let list = result.list
+                result.showEntryMenu(list.hotIndex, list.listView.localToSurface(point))
+            }
+
             .sigKeyPressed += func|result|(_, evt)
             {
                 if evt.key == .Return
@@ -390,12 +397,36 @@ impl Explorer
 
         with .address = PathBar.create(.window, "scope.explorer.address")
         {
+            .focusPolicy               = .Click
             .breadcrumb.maxVisibleItems = 3
             .position.height            = ToolHeight
             .sigNavigate                += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
-            .sigSubmitted               += func|explorer = me|(_, path) { explorer.navigateTyped(path) }
             .sigEditFinished            += func|explorer = me|(_) { explorer.focusContent() }
             .breadcrumb.sigFillMenu     += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
+            .breadcrumb.hookOnEvent = func|explorer = me|(_, evt)
+            {
+                if evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Right
+                {
+                    explorer.showBreadcrumbMenu(mouse.surfacePos)
+                    return true
+                }
+
+                return false
+            }
+
+            .edit.hookOnEvent = func|explorer = me|(_, evt)
+            {
+                if evt is KeyEvent as key where key.kind == .Pressed and key.key == .Return
+                {
+                    explorer.submitAddress()
+                    return true
+                }
+
+                return false
+            }
+
+            .edit.sigTextChanged += func|explorer = me|(_) { explorer.clearAddressError() }
+            .edit.sigFocusLost   += func|explorer = me|(_) { explorer.clearAddressError() }
         }
 
         // The breadcrumb names the folder: the title stays hidden and only holds the location's
@@ -973,6 +1004,7 @@ impl Explorer
         .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
         .kindMenu.toolTip = text.explore_FilterByType
+        .address.breadcrumb.toolTip = text.cmd_EditLocation
         .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
         .filter.setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
         .list.header.itemAt(0).name = text.explore_Name
@@ -1086,46 +1118,187 @@ impl Explorer
     // Returns the explored location as one path: the folder, or the archive and the folder inside it.
     mtd locationText()->String
     {
-        let path = .displayPath(.listing.path)
+        let path = .logicalPath(.listing.path)
         if .folder.isEmpty() do
             return path
         return Format.toString("%/%", path, .folder)
+    }
+
+    mtd nativeArchivePath()->string => .listing.isArchive ? .sourceArchivePath(.listing.path) : ""
+
+    private mtd sourceArchivePath(path: string)->string
+    {
+        for file in .temporaryFiles where file.file == path do
+            return file.archive
+        return path
     }
 
     // Goes to a location typed into the address: the folder or archive it names, a folder inside
     // the archive on show, or the file it names, which opens as any other file does.
     //
     // A path copied from the system file browser comes between quotes, which are not part of it.
-    mtd navigateTyped(text: string)
+    #[Swag.Discardable]
+    mtd navigateTyped(text: string)->bool
     {
         var typed = Latin1.trim(text)
         if typed.count >= 2 and typed[0] == '"'u8 and typed[typed.count - 1] == '"'u8 do
             typed = typed[1 until typed.count - 1]
-        if typed.count == 0 or .locationText() == typed do
-            return
-
+        if .locationText() == typed and typed.count do
+            return true
         if .listing.isArchive
         {
-            let archive = .displayPath(.listing.path)
-            if Utf8.startsWith(typed, archive) and (typed.count == archive.count or typed[archive.count] == '/'u8)
+            let archive = .logicalPath(.listing.path)
+            if typed == archive
             {
-                var folder = typed[archive.count to]
-                while folder.count and folder[0] == '/'u8 do
-                    folder = folder[1 to]
-                if folder.count and folder[folder.count - 1] != '/'u8 do
-                    .navigate(.listing.path, Format.toString("%/", folder))
-                else do
-                    .navigate(.listing.path, folder)
-                return
+                .navigate(.listing.path)
+                return true
+            }
+
+            if typed.count > archive.count and Utf8.startsWith(typed, archive) and Path.isDirectorySeparator(typed[archive.count])
+            {
+                var member = String.from(typed[archive.count + 1 to])
+                member.replace("\\", "/")
+                if member.isEmpty()
+                {
+                    .navigate(.listing.path)
+                    return true
+                }
+
+                if not Utf8.endsWith(member, "/") do
+                    member += '/'u8
+                for &entry in .listing.archive.entries where Utf8.startsWith(entry.path, member)
+                {
+                    .navigate(.listing.path, member)
+                    return true
+                }
+
+                return false
             }
         }
 
-        if Directory.exists(typed) do
-            .navigate(typed)
-        elif File.exists(typed) do
-            .window.queueFile(typed)
+        if not Path.isValidPathName(typed) do
+            return false
+        let base = .listing.isArchive ? (Path.directoryName(.listing.path) orelse "") : .listing.path.toString()
+        let path = Path.isRooted(typed) ? String.from(typed) : Path.combine(base, typed)
+        let absolute = catch Path.absolute(path) { return false }
+        if Directory.exists(absolute) do
+            .navigate(absolute)
+        elif File.exists(absolute) do
+            .window.queueFile(absolute)
         else do
-            .setStatus(appStrings().explore_NotFound)
+            return false
+        return true
+    }
+
+    private mtd submitAddress()
+    {
+        if .navigateTyped(.address.edit.text())
+        {
+            .address.endEdit()
+            .focusContent()
+            return
+        }
+
+        let message = appStrings().explore_NotFound
+        .address.edit.toolTip = message
+        .address.edit.setValidator(func||(_) => .InvalidVisible)
+        if not .toast do
+            .toast = Toast.create(me, "scope.explorer.toast")
+        .toast.show(message, "")
+    }
+
+    private mtd clearAddressError()
+    {
+        if .address.edit.isValid() do
+            return
+        .address.edit.toolTip = ""
+        .address.edit.setValidator(null)
+    }
+
+    private mtd showBreadcrumbMenu(position: Math.Point)
+    {
+        let breadcrumb = .address.breadcrumb
+        let point = breadcrumb.surfaceToLocal(position) + breadcrumb.scrollPos
+        var path = .listing.path.toString()
+        var folder = .folder.toString()
+        for &item in breadcrumb.items where item.bodyRect.contains(point) or item.arrowRect.contains(point)
+        {
+            let tag = item.tag.toString()
+            let split = Utf8.indexOf(tag, "\n")
+            if split != Swag.U64.Max
+            {
+                path = tag[0 until split]
+                folder = tag[split + 1 to]
+            }
+            break
+        }
+
+        if path.count == 0 do
+            return
+        if .listing.isArchive and path == .listing.path
+        {
+            let archive = .logicalPath(path)
+            let location = folder.count == 0 ? String.from(archive) : Format.toString("%/%", archive, folder)
+            .showLocationMenu(location, position, archive: .nativeArchivePath())
+        }
+        else do
+            .showLocationMenu(path, position, directory: true)
+    }
+
+    mtd showEntryMenu(row: u64, position: Math.Point)
+    {
+        if .load.started or row >= .shown.count do
+            return
+        if .isThumbnailView() do
+            .grid.select(row)
+        else
+        {
+            .selected = .shown[row]
+            .showMediaInfo()
+            .requestPreview()
+        }
+        let entry = &.entries[.shown[row]]
+        let path = String.from(entry.path)
+        if .listing.isArchive
+        {
+            let archive = .logicalPath(.listing.path)
+            let location = Format.toString("%/%", archive, path)
+            .showLocationMenu(location, position, archive: .nativeArchivePath())
+        }
+        elif entry.directory do
+            .showLocationMenu(path, position, directory: true)
+        else do
+            .window.showFileActions(path, position)
+    }
+
+    private mtd showLocationMenu(path: string, position: Math.Point, directory = false, archive: string = "")
+    {
+        let stableArchive = String.from(archive)
+        let texts = appStrings()
+        let size = themeRowIconSize(.themeMetrics())
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        // The pointer supplies this menu's target. The lens computes state for the current location.
+        menu.hookOnEvent = func(_, evt)
+        {
+            if evt is CommandStateEvent as command where command.kind == .Compute
+            {
+                command.accepted = true
+                return true
+            }
+            return false
+        }
+        if directory do
+            menu.addItem(texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder, .theme().icon(.OpenExternal, size))
+        elif not stableArchive.isEmpty() do
+            menu.addItem(texts.explore_RevealArchive, ViewerCommands.RevealArchive, .theme().icon(.Folder, size))
+        menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyLocation, .theme().icon(.Copy, size))
+        let location = String.from(path)
+        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
+        if chosen
+        {
+            let target = chosen == ViewerCommands.RevealArchive ? stableArchive.toString() : location.toString()
+            discard .window.runCommand(chosen, contextPath: target)
+        }
     }
 
     mtd updateBreadcrumb()
@@ -1148,7 +1321,8 @@ impl Explorer
         {
             let full = ancestor.toString()
             let name = Path.fileName(full) orelse full
-            breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
+            let hasArrow = full != .listing.path or not .folder.isEmpty()
+            breadcrumb.addItem(name.count ? name : full, hasArrow: hasArrow, tag: Format.toString("%\n", full))
         }
 
         if .listing.isArchive
@@ -1157,6 +1331,7 @@ impl Explorer
             for offset in .folder.length where .folder[offset] == '/'u8
             {
                 breadcrumb.addItem(.folder.toString()[begin until offset],
+                                   hasArrow: offset + 1 < .folder.length,
                                    tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
                 begin = offset + 1
             }
@@ -1977,8 +2152,9 @@ impl IWnd for Explorer
                 {
                     let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
                     let path  = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
+                    let archive = String.from(.sourceArchivePath(preview.archivePath))
                     .window.privacy.inherit(preview.temporary, preview.archivePath)
-                    .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path})
+                    .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path, archive})
                 }
 
                 if preview.generation == .generation
@@ -2991,6 +3167,12 @@ impl IWnd for ExplorerGrid
                 .invalidate()
             }
 
+            return
+        }
+
+        if evt.kind == .Released and evt.button == .Right
+        {
+            .explorer.showEntryMenu(.rowAt(.surfaceToLocal(evt.surfacePos)), evt.surfacePos)
             return
         }
 

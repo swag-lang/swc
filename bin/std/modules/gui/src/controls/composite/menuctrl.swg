@@ -1774,15 +1774,20 @@ public impl MenuCtrl
     // alignment. A [[Gui.IconButtonArrowPosition.RightUpward]] marker prefers the upper side;
     // other markers prefer the lower side. When `autoDestroy` is true, the menu destroys
     // itself and its submenu tree after the modal loop.
-    mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId? => .doModalImpl({}, .TopLeft, autoDestroy, button)
+    mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId? => .doModalImpl({}, .TopLeft, autoDestroy, button, true)
 
     // Runs a popup menu modally at `surfacePos` and returns its selected command, or null when dismissed.
     //
     // `pos` says how the menu is placed around `surfacePos`. When `autoDestroy` is true, the
-    // menu destroys itself and its submenu tree after the modal loop ends.
-    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId? => .doModalImpl(surfacePos, pos, autoDestroy, null)
+    // menu destroys itself and its submenu tree after the modal loop ends. By default the menu
+    // also posts the selected command. Pass `dispatchCommand: false` to handle the returned
+    // identifier in the caller's own context.
+    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false, dispatchCommand = true)->WndId?
+    {
+        return .doModalImpl(surfacePos, pos, autoDestroy, null, dispatchCommand)
+    }
 
-    private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?
+    private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?, dispatchCommand: bool)->WndId?
     {
         Swag.assert(not .bar)
 
@@ -1907,7 +1912,7 @@ public impl MenuCtrl
         else do
             discard .app().animator.leave(me)
 
-        if .endModalResult do
+        if dispatchCommand and .endModalResult do
             .postCommandEvent(.endModalResult)
 
         if autoDestroy do

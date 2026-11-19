@@ -31,6 +31,16 @@ namespace CodeGenSafety
         TokenId     op        = TokenId::Invalid;
     };
 
+    struct SliceBounds
+    {
+        MicroReg startReg;
+        MicroReg endReg;
+        MicroReg lengthReg;
+        bool     startSigned = false;
+        bool     endSigned   = false;
+        bool     inclusive   = false;
+    };
+
     using LoadNumericOperandFn        = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef);
     using MaterializeNumericOperandFn = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef);
 
@@ -60,8 +70,8 @@ namespace CodeGenSafety
     Result emitLifecycleInvalidate(CodeGen& codeGen, MicroReg addrReg, TypeRef typeRef, AstNodeRef sourceRef);
 
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg, bool indexSigned);
-    Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType);
-    Result emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowReg, MicroReg endExclusiveReg, MicroReg sourceCountReg);
+    Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool dynamicCount);
+    Result normalizeAndCheckSliceBounds(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds);
     Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);
 
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);

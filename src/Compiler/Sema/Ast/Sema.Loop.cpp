@@ -292,7 +292,7 @@ namespace
         if (!countType.isIntSigned() || payload.countCstRef.isValid())
             return Result::Continue;
 
-        return SemaHelpers::setupRuntimeSafetyPanic(sema, node.nodeExprRef, Runtime::SafetyWhat::BoundCheck, sema.node(node.nodeExprRef).codeRef());
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, node.nodeExprRef, Runtime::SafetyWhat::BoundCheck, sema.node(node.nodeExprRef).codeRef(), IdentifierManager::RuntimeFunctionKind::LoopCountPanic);
     }
 
     Result validateForeachAliasCount(Sema& sema, const AstForeachStmt& node)

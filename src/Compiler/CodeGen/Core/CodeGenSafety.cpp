@@ -832,8 +832,7 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     return Result::Continue;
 }
 
-// Equal exclusive bounds are empty; only inverted ranges need a panic.
-Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType)
+Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool dynamicCount)
 {
     // The loop initializer passes the index type after resolving its aliases.
     SWC_ASSERT(!indexType.isAlias());
@@ -848,54 +847,83 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
         return Result::Continue;
 
-    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
-    SWC_ASSERT(panicFunction != nullptr);
-
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(lowerReg, upperReg, MicroOpBits::B64);
     builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(indexType.isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), "loop range starts after its end"));
+
+    if (dynamicCount && indexType.isIntSigned())
+    {
+        SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::LoopCountPanic);
+        SWC_ASSERT(panicFunction != nullptr);
+        const std::array reportArgs = {upperReg};
+        SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), reportArgs));
+    }
+    else
+    {
+        SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+        SWC_ASSERT(panicFunction != nullptr);
+        SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), "loop range starts after its end"));
+    }
     builder.placeLabel(inBoundsRef);
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowReg, MicroReg endExclusiveReg, MicroReg sourceCountReg)
+Result CodeGenSafety::normalizeAndCheckSliceBounds(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds)
 {
     nodeRef = codeGen.resolvedNodeRef(nodeRef);
-    if (nodeRef.isInvalid())
+    const auto* nodePayload = nodeRef.isValid() ? codeGen.loweringPayload(nodeRef) : nullptr;
+    const bool  checkBounds = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck);
+
+    MicroBuilder&       builder  = codeGen.builder();
+    const MicroLabelRef panicRef = checkBounds ? builder.createLabel() : MicroLabelRef::invalid();
+    if (bounds.inclusive)
+    {
+        builder.emitOpBinaryRegImm(bounds.endReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        // The carry records a wrap to zero before ordering and containment can accept it.
+        if (checkBounds)
+            builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, panicRef);
+    }
+
+    if (!checkBounds)
         return Result::Continue;
 
-    const auto* nodePayload = codeGen.loweringPayload(nodeRef);
-    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
-        return Result::Continue;
-
-    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+    SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SliceBoundsPanic);
     SWC_ASSERT(panicFunction != nullptr);
 
     // Check unsigned ordering and containment within the source. Pointer sources
     // have no count, so only ordering can be checked.
-    MicroBuilder&       builder    = codeGen.builder();
     const MicroLabelRef inRangeRef = builder.createLabel();
-    const MicroLabelRef panicRef   = builder.createLabel();
-
-    builder.emitCmpRegReg(lowReg, endExclusiveReg, MicroOpBits::B64);
-    if (!sourceCountReg.isValid())
+    builder.emitCmpRegReg(bounds.startReg, bounds.endReg, MicroOpBits::B64);
+    if (!bounds.lengthReg.isValid())
     {
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
     }
     else
     {
         builder.emitJumpToLabel(CodeGenCompareHelpers::greaterCond(true), MicroOpBits::B32, panicRef);
-        builder.emitCmpRegReg(endExclusiveReg, sourceCountReg, MicroOpBits::B64);
+        builder.emitCmpRegReg(bounds.endReg, bounds.lengthReg, MicroOpBits::B64);
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
     }
 
     builder.placeLabel(panicRef);
-    const std::string_view message = sourceCountReg.isValid()
-                                         ? "slice start exceeds its exclusive end, or the end exceeds the source length"
-                                         : "slice start exceeds its exclusive end";
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), message));
+    MicroReg lengthReg = bounds.lengthReg;
+    if (!lengthReg.isValid())
+    {
+        lengthReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(lengthReg, ApInt(0, 64), MicroOpBits::B64);
+    }
+
+    // Keep these bits in sync with SlicePanicFlags in the runtime.
+    const uint64_t flags = (bounds.startSigned ? 1 : 0) |
+                           (bounds.endSigned ? 2 : 0) |
+                           (bounds.inclusive ? 4 : 0) |
+                           (bounds.lengthReg.isValid() ? 8 : 0);
+    const MicroReg flagsReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(flagsReg, ApInt(flags, 8), MicroOpBits::B8);
+
+    const std::array reportArgs = {bounds.startReg, bounds.endReg, lengthReg, flagsReg};
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), reportArgs));
     builder.placeLabel(inRangeRef);
     return Result::Continue;
 }

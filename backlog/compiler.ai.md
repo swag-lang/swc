@@ -785,20 +785,15 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
-### compiler.ai.035 — Report runtime faults with the same evidence in every run mode
+### compiler.ai.035 — Verify runtime fault evidence across Windows run modes
 
-- Evidence: [the index-fault fixture](../src/Unittest/Compiler/Test.Compiler.Failure.cpp)
-  checks the evaluated index, effective length and source location in scripts, JIT tests and
-  native tests. The [slice and loop guards](../src/Compiler/CodeGen/Core/CodeGenSafety.cpp)
-  still omit operands, and a slice failure can combine an inverted range with an end that
-  exceeds the source length.
-- Next: report the failing relation and evaluated bounds for slice and loop faults. Keep the
-  distinction between the source's inclusive end and the normalized exclusive end visible.
-  Run the existing index-fault and script-phase fixtures on Windows.
-- Done when: a fault identifies its operation, decisive values and original source location
-  across all three paths, with test identity or a user-code stack where available. A
-  compile-time panic remains distinguishable from a script runtime panic, and termination
-  and cleanup still follow the existing contract.
+- Evidence: the [bounds and panic fixtures](../src/Unittest/Compiler/Test.Compiler.Failure.cpp)
+  exercise index, slice and count faults in scripts, JIT tests and native tests on Linux.
+  Windows needs execution coverage for the same diagnostics and termination paths.
+- Next: run the DevMode filesystem tests on Windows. Check that the native runner records
+  the failed test and that a script reports the fault once and runs its drop hooks.
+- Done when: the decisive values and original source location agree across the three modes,
+  and a compile-time panic remains distinguishable from a script runtime panic.
 - Related: compiler.ai.040, compiler.ai.042, compiler.safety.032.
 
 ### compiler.ai.036 — Trace fallthrough in nested control flow and suppress diagnostic cascades

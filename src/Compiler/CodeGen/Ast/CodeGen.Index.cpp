@@ -456,10 +456,11 @@ namespace
         const MicroReg baseReg = resolveIndexBaseAddress(codeGen, node.nodeExprRef, indexedType, indexedPayload);
 
         const MicroReg lowReg = codeGen.nextVirtualIntRegister();
+        bool           lowSigned = false;
         if (slicePayload->lowerBoundRef.isValid())
         {
             auto       lowBits   = MicroOpBits::B64;
-            const auto rawLowReg = materializeIndexReg(codeGen, slicePayload->lowerBoundRef, lowBits);
+            const auto rawLowReg = materializeIndexReg(codeGen, slicePayload->lowerBoundRef, lowBits, &lowSigned);
             builder.emitLoadRegReg(lowReg, rawLowReg, MicroOpBits::B64);
         }
         else
@@ -472,13 +473,12 @@ namespace
             sourceCountReg = MicroReg::invalid();
 
         const MicroReg endExclusiveReg = codeGen.nextVirtualIntRegister();
+        bool           upperSigned     = false;
         if (slicePayload->upperBoundRef.isValid())
         {
             auto       upBits   = MicroOpBits::B64;
-            const auto rawUpReg = materializeIndexReg(codeGen, slicePayload->upperBoundRef, upBits);
+            const auto rawUpReg = materializeIndexReg(codeGen, slicePayload->upperBoundRef, upBits, &upperSigned);
             builder.emitLoadRegReg(endExclusiveReg, rawUpReg, MicroOpBits::B64);
-            if (slicePayload->inclusive)
-                builder.emitOpBinaryRegImm(endExclusiveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         }
         else
         {
@@ -487,7 +487,15 @@ namespace
             builder.emitLoadRegReg(endExclusiveReg, sourceCountReg, MicroOpBits::B64);
         }
 
-        SWC_RESULT(CodeGenSafety::emitSliceRangeCheck(codeGen, codeGen.curNodeRef(), lowReg, endExclusiveReg, sourceCountReg));
+        const CodeGenSafety::SliceBounds bounds{
+            .startReg    = lowReg,
+            .endReg      = endExclusiveReg,
+            .lengthReg   = sourceCountReg,
+            .startSigned = lowSigned,
+            .endSigned   = upperSigned,
+            .inclusive   = slicePayload->inclusive && slicePayload->upperBoundRef.isValid(),
+        };
+        SWC_RESULT(CodeGenSafety::normalizeAndCheckSliceBounds(codeGen, codeGen.curNodeRef(), bounds));
 
         const uint64_t strideSize = resolveIndexStrideSize(codeGen, indexedType);
         const MicroReg dataReg    = codeGen.nextVirtualIntRegister();

@@ -272,7 +272,8 @@ namespace
         loopState.unsignedCmp = compareType.isIntUnsigned();
         loopState.indexReg    = codeGen.nextVirtualIntRegister();
 
-        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType));
+        const bool dynamicCount = !semaPayload->isRangeLoop && semaPayload->countCstRef.isInvalid();
+        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType, dynamicCount));
 
         loopState.boundReg = upperReg;
         builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);

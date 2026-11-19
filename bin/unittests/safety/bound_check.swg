@@ -384,6 +384,59 @@ func opaqueIdx(v: u64)->u64
     Swag.require(value == 0)
 }
 
+#test
+{
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func sliceUntil(start, end: s64)
+    {
+        var values: [4] s32
+        discard values[start until end]
+    }
+
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func sliceTo(start, end: u64)
+    {
+        var values: [4] s32
+        discard values[start to end]
+    }
+
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func signedSliceTo(start, end: s64)
+    {
+        var values: [4] s32
+        discard values[start to end]
+    }
+
+    var values: [4] s32
+    Swag.require(values[0 until 0].count == 0)
+    Swag.require(values[4 until 4].count == 0)
+    Swag.require(values[0 to 3].count == 4)
+
+    let inverted = Swag.catchPanic(func||() { sliceTo(3, 1) })
+    Swag.require(inverted.raised)
+    Swag.require(inverted.message() == "slice 3 to 1 (exclusive end 2) starts after its exclusive end (source length 4)")
+
+    let pastEnd = Swag.catchPanic(func||() { sliceUntil(2, 5) })
+    Swag.require(pastEnd.raised)
+    Swag.require(pastEnd.message() == "slice 2 until 5 exceeds source length 4")
+
+    let negativeStart = Swag.catchPanic(func||() { sliceUntil(Swag.S64.Min, 2) })
+    Swag.require(negativeStart.raised)
+    Swag.require(negativeStart.message() == "slice -9223372036854775808 until 2 has a negative start (source length 4)")
+
+    let negativeEnd = Swag.catchPanic(func||() { sliceUntil(0, -1) })
+    Swag.require(negativeEnd.raised)
+    Swag.require(negativeEnd.message() == "slice 0 until -1 has a negative end (source length 4)")
+
+    let wrappedEnd = Swag.catchPanic(func||() { sliceTo(0, Swag.U64.Max) })
+    Swag.require(wrappedEnd.raised)
+    Swag.require(wrappedEnd.message() == "slice 0 to 18446744073709551615 (exclusive end 0) wraps its exclusive end (source length 4)")
+
+    let signedWrap = Swag.catchPanic(func||() { signedSliceTo(0, -1) })
+    Swag.require(signedWrap.raised)
+    Swag.require(signedWrap.message() == "slice 0 to -1 (exclusive end 0) has a negative end (source length 4)")
+}
+
 // An exclusive range with equal bounds is empty, so the guard must stay silent.
 #test
 {

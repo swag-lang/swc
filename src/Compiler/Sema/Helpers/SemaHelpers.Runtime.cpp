@@ -316,7 +316,7 @@ Result SemaHelpers::attachRuntimeSliceCmpFunctionToNode(Sema& sema, AstNodeRef n
     return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::SliceCmp, codeRef);
 }
 
-Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
+Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef, IdentifierManager::RuntimeFunctionKind reportFunction)
 {
     if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), safetyKind))
         return Result::Continue;
@@ -326,7 +326,11 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
 
     SymbolFunction* panicFn = nullptr;
     SWC_RESULT(requireRuntimeSafetyPanicDependency(panicFn, sema, codeRef));
+    if (reportFunction != IdentifierManager::RuntimeFunctionKind::Count)
+        SWC_RESULT(requireRuntimeFunctionDependency(sema, reportFunction, codeRef));
 
+    // Several operations can use the same expression. Keep its generic panic entry
+    // point here so a reporter with a different signature cannot replace it.
     auto& payload = ensureCodeGenLoweringPayload(sema, nodeRef);
     payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;

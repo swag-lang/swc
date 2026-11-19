@@ -48,8 +48,8 @@ source structure, and navigation to local references. Shared source text behavio
 ### app.scope.code.001 — Source files have no outline or symbol navigation
 
 - Evidence: `Viewers.Code.Panel` colors tokens but exposes no functions, types, headings, regions, or
-  breadcrumbs. Professional code readers use an outline both to understand a file and to jump
-  within it.
+  breadcrumbs. [File Viewer Plus 7](https://fileviewerplus.com/support/source_code_files)
+  exposes a syntax tree for navigation.
 - Next: define a lightweight read-only symbol provider, starting with Swag and indentation/marker
   fallbacks, whose results retain whole-file byte ranges.
 - Done when: symbols form a filterable hierarchy, track the visible scope, jump before the
@@ -59,10 +59,13 @@ source structure, and navigation to local references. Shared source text behavio
 
 - Evidence: the streamed rich edit has no fold ranges, gutter affordance, or folded-height model;
   comments, regions, declarations, and indentation blocks always occupy their full height.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/source_code_files) exposes folding
+  alongside its syntax tree.
 - Next: add fold ranges independent of styling, beginning with marker and indentation providers
   that can be reconciled as streamed content enters and leaves memory.
 - Done when: fold/unfold current, recursive, all, and level commands preserve navigation and
   search reveal; hidden matches can be opened; and folds restore only against the same file version.
+- Related: app.scope.code.001
 
 ### app.scope.code.003 — Source code has no minimap, overview ruler, or durable location markers
 

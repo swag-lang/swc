@@ -156,8 +156,11 @@ remains in [std.truetype.md](std.truetype.md).
 - Evidence: the viewer offers no Copy Character/Glyph Name/Outline, Copy Specimen Image, export SVG,
   or coverage report. A user cannot distinguish a Unicode character from a particular font glyph in
   clipboard output.
+  [File Viewer Plus 7](https://fileviewerplus.com/open/ttf) exports a TTF specimen as an image.
+  Scope's sampler can attach face and glyph identity to the equivalent output.
 - Next: add textual identity copy and rendered specimen/glyph image export first, followed by vector
   outline export only where the source can be represented faithfully.
 - Done when: copied text, glyph ID/name, Unicode mappings, raster output, optional outline, and
   coverage report state face index, variation coordinates, size, features, palette, and conversion;
   restricted embedding is surfaced before exporting font-derived data.
+- Related: app.scope.font.001, app.scope.font.013

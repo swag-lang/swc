@@ -2,7 +2,7 @@
 
 Reading and inspecting Excel workbooks in XLSX format.
 
-### app.scope.xlsx.001 — XLSX lacks a true workbook reading surface
+### app.scope.xlsx.001 — XLSX reading omits saved grid and chart details
 
 - Evidence: the XLSX reader orders sheets and shows values or uncached formula expressions in a
   512-column grid. One sheet is shown at a time, starting with the saved active sheet; the
@@ -23,11 +23,14 @@ Reading and inspecting Excel workbooks in XLSX format.
   font matching, frozen panes, filters, comments
   and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
-  rectangular selection, sheet-qualified cell addresses and sheet-wide search before read-only chart
-  previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
-  date profiles with producer fixtures; keep unsupported codes explicit.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/spreadsheet_files) documents charts,
+  graphics, cell formatting and print preview. It also reads XLS, XLSM and workbook templates.
+- Next: use a workbook with frozen panes and visible charts to preserve its saved grid
+  behavior and display a bounded chart from stored values. Extend inherited blank-cell paint,
+  named font matching, rectangular selection, sheet-qualified addresses and sheet-wide search
+  with producer fixtures. Cover conditional number formats, fractions, scientific notation and
+  localized dates, and keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
-  behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
-  is explicitly reported.
-- Related: app.scope.table.001, app.scope.table.003
+  behave as declared, supported charts show their stored data, formulas stay inert, large sheets
+  stay bounded, and every omitted construct is explicitly reported.
+- Related: app.scope.table.001, app.scope.table.003, app.scope.viewers.009

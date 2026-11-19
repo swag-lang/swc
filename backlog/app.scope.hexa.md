@@ -91,12 +91,14 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Evidence: Swag Scope has no byte-difference model, synchronized paired grids, result list, or
   difference navigation. Application work app.scope.001 is the prerequisite for hosting two documents,
   not the comparison itself.
+  [File Viewer Plus 7](https://fileviewerplus.com/features) documents side-by-side file viewing.
+  The byte comparison needs its own alignment and navigation contract in addition to that display.
 - Next: design a bounded comparison result stream for two file ranges, then present its first
   differing block in synchronized read-only grids.
 - Done when: two files or two regions of one file can be compared, insertions and deletions are
   aligned rather than shifting every later byte, differing blocks are listed and colored, scrolling
   can synchronize, and previous/next difference remains bounded on multi-gigabyte inputs.
-- Related: app.scope.001
+- Related: app.scope.001, app.scope.003
 
 ### app.scope.hexa.004 — Hexadecimal navigation has no landmarks or history
 

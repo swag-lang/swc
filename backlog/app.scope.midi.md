@@ -95,8 +95,9 @@ remain available in the Binary viewer.
 ### app.scope.midi.001 — MIDI has no playback or synthesis
 
 - Evidence: the viewer is a static piano roll with no play, pause, stop, seek clock, playhead,
-  instrument rendering, MIDI output, or explicit silent-playback policy. The application README
-  states that no MIDI synthesis is performed.
+  instrument rendering, MIDI output, or explicit silent-playback policy. The
+  [File Viewer Plus 7 catalog](https://fileviewerplus.com/file_types) provides no SMF reader
+  reference. Keep the piano roll as the reference for playhead and event alignment.
 - Next: decide and document one bounded first path: internal General MIDI-compatible synthesis,
   system/user-selected MIDI output, or both, including sound-bank licensing and device latency.
 - Done when: the decision records ownership and safety; the chosen path plays tempo changes,

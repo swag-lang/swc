@@ -39,7 +39,8 @@ fixed-width records. Spreadsheet document viewers have separate
   at most 32 MiB (`FileLimit`) because the parsed source rows are still resident; the streamed
   basic-text viewer remains selectable for a larger file instead of the table exhausting memory.
 - Next: stream source rows through a bounded window that resumes quoting state across chunk
-  boundaries, and update the row count as the file is indexed.
+  boundaries, and update the row count as the file is indexed. Use a CSV above 32 MiB with a
+  multiline quoted field to verify opening, counting and navigation without retaining all rows.
 - Done when: source rows are themselves streamed through a bounded window and the row count is
   updated as the file is indexed, without weakening quoting across chunk boundaries.
 
@@ -72,10 +73,14 @@ fixed-width records. Spreadsheet document viewers have separate
   the column names, from Ctrl+C or the lens, and the lens copies the values of the column the
   table is sorted on, one per line in the order shown. There is no column, rectangle or
   discontiguous cell selection, no copy bound, and no export of the visible rows.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/spreadsheet_files) opens CSV and TSV
+  in its spreadsheet grid. Complete selected cells and filtered-row exports are the relevant
+  reading and interchange targets for Scope.
 - Next: introduce a source-backed cell-range selection model and stream serializers for TSV, CSV,
   JSON Lines, and plain text.
 - Done when: keyboard and pointer ranges work across virtual rows, copied data uses a declared
   bound, export does not, long cells are complete in output, and dialect/quoting is correct.
+- Related: app.scope.table.001, app.scope.table.003
 
 ### app.scope.table.006 — Table exploration has no summaries, grouping, or duplicate analysis
 

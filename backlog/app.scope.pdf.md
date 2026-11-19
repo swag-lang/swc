@@ -24,7 +24,10 @@ lives in [std.gui.pdf.md](std.gui.pdf.md).
   pages carry text: on every page, none, or missing on how many, then how many could not be read.
   A search that finds words in a partly scanned document says, in the tooltip of its count, how
   many pages were not searched (`Viewer.ExplainSearch`); the count itself carries no mark.
-- Next: mark the count itself, not only its tooltip, when pages could not be searched.
+  [File Viewer Plus 7](https://fileviewerplus.com/whats_new) can recognize text in scanned pages
+  and save a searchable PDF.
+- Next: mark the count when pages could not be searched and test it with a mixed text and
+  scanned PDF. Use those same fixtures to establish the OCR coverage needed in a later pass.
 - Done when: a reader can tell, without searching, that a document or some of its pages have no
   text layer, and a found count over such a document says which pages it could not cover.
 - Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042
@@ -59,8 +62,10 @@ lives in [std.gui.pdf.md](std.gui.pdf.md).
 - Evidence: the information group provides previous/next and a clickable readout that names the
   page by the label the document gives it (`/PageLabels`) beside its position, and the page dialog
   accepts a position or a label. There is no thumbnail strip or overview suitable for a long
-  document.
-- Next: render cancellable low-resolution thumbnails through a bounded cache.
+  document. [File Viewer Plus 7](https://fileviewerplus.com/support/pdf_files) documents four
+  PDF viewing modes.
+- Next: render cancellable low-resolution thumbnails through a bounded cache, starting near
+  the current page and reusing the PDF renderer.
 - Done when: thumbnails prioritize the visible neighborhood, the current page is selected, and
   thousand-page documents stay responsive.
 - Related: std.gui.pdf.018
@@ -102,8 +107,11 @@ lives in [std.gui.pdf.md](std.gui.pdf.md).
 
 - Evidence: Swag Scope can render pages but offers no copy-page-image, save selected pages as
   images, extract an embedded image/font/attachment, or export selected text with provenance.
-- Next: define read-only extraction commands with exact object/page origin and explicit raw versus
-  rendered output.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/pdf_files) exports page ranges and
+  offers a DPI choice for PNG and JPEG output.
+- Next: start with copy or export of a selected page range at a chosen DPI. Retain the page
+  origin and share the range selection with printing, then add raw extraction of embedded assets.
 - Done when: current or selected pages can be copied/rendered at chosen DPI, supported embedded
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
+- Related: app.scope.viewers.002

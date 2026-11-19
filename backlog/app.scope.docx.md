@@ -12,10 +12,13 @@ Reading and inspecting Word documents in DOCX format.
   footers, footnotes, comments, floating objects and complex table geometry remain absent.
   [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
   preserves navigable pages and adapts them to the reading surface.
-- Next: lay out page and section geometry, then headers, footers and footnotes; extend numbering,
-  tabs, table styles and complex-script font/theme fidelity with real producer fixtures. Add
+  [File Viewer Plus 7](https://fileviewerplus.com/support/text_documents) offers page formatting,
+  tables and pictures in its document editor and also reads DOC, DOCM and Word templates.
+- Next: compare the same Word-authored DOCX fixtures against their authored layout and File Viewer
+  Plus. Implement page size, margins and section breaks, then repeated headers, footers and
+  footnotes. Use those files for complex tables, numbering, tabs and typography, and add
   document-wide search, selection and position restore without materializing every page at open.
 - Done when: authored pages, text flow, images and table structure remain recognizable across a
   freely licensed DOCX corpus, unsupported constructs are named at their location, and the first
   page appears without decoding the full package.
-- Related: app.scope.archive.001
+- Related: app.scope.archive.001, app.scope.viewers.009

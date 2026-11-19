@@ -9,8 +9,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.012 — Camera RAW files show nothing
 
-- Next: extract an embedded JPEG preview when a supported camera RAW container carries one.
-  Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
+- Evidence: [File Viewer Plus 7](https://fileviewerplus.com/support/supported_file_formats)
+  lists camera RAW formats including CR2, NEF, ARW and DNG.
+- Next: use licensed CR2, NEF, ARW and DNG fixtures carrying JPEG previews. Read those
+  previews through bounded container ranges and distinguish missing or unsupported previews.
 - Done when: the embedded preview of the common TIFF-based RAW containers is extracted and
   displayed, with its source and preview metadata in the existing `MediaInfoPanel` and any encoded
   orientation applied through app.scope.image.011.
@@ -162,9 +164,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
 
-- Evidence: there is no Copy Image, Copy Pixel Value, Copy View, Save Decoded As, or Save Frame
-  command. A reader cannot tell whether orientation, color conversion, alpha, animation compositing,
-  or zoom would affect output.
+- Evidence: Copy Image already copies the upright picture. Pixel and rendered-view copying,
+  decoded image export and frame export remain open. The output needs clear orientation,
+  color conversion, alpha and compositing rules. [File Viewer Plus 7](https://fileviewerplus.com/features)
+  can export individual GIF and APNG frames.
 - Next: define raw, decoded-source, and rendered-view interchange products and expose only the forms
   the codec/pixel stack can produce faithfully.
 - Done when: clipboard and export name dimensions, pixel format, orientation, color space,

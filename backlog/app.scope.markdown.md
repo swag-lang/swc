@@ -34,8 +34,10 @@ Application integration for rendered and source Markdown. Engine work lives in
 - Evidence: `.md` and `.markdown` now offer Markdown, Basic text, Binary, and Hexadecimal, so the
   source is reachable as its own view. There is still no synchronized split view and no mapping
   from a rendered block to its source range.
-- Next: retain parser source ranges in the adapter and host rendered/source panes with a shared
-  logical position.
+  [File Viewer Plus 7](https://fileviewerplus.com/open/md) documents rendered and source
+  previews and a navigable syntax tree.
+- Next: retain parser source ranges and first preserve the nearest heading or block when
+  switching between rendered and source views. Use the same mapping for synchronized panes.
 - Done when: Rendered, Source, and Split modes preserve the nearest block, scroll can
   synchronize in either direction, search results map across modes, and large files stay streamed.
 - Related: std.gui.markdown.005

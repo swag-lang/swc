@@ -97,11 +97,16 @@ the professional listening and inspection surface; decoder and output-engine wor
   profile, container, delay, padding, ReplayGain/R128, and custom tags are not
   inspectable. The explorer thumbnail shows the embedded picture too,
   after a sleeve stored in the folder.
-- Next: define an audio metadata model separate from decoded samples and surface it through app.scope.viewers.006.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/audio_files) offers encoding and tag
+  inspection with metadata export. Its [format list](https://fileviewerplus.com/file_types)
+  includes M4A, AIFF and WMA.
+- Next: define audio metadata separately from decoded samples and surface it through
+  app.scope.viewers.006. Use AAC-in-M4A fixtures to define container, codec and tag fields
+  alongside the playback coverage check in app.scope.viewers.009.
 - Done when: original tag keys/values and normalized common fields coexist, artwork is bounded
   and opens in Image, technical stream facts include provenance, suspicious or malformed metadata
   warns, and no tag is rewritten.
-- Related: app.scope.viewers.006
+- Related: app.scope.viewers.006, app.scope.viewers.009
 
 ### app.scope.audio.009 — Lossy codec delay and gapless playback cannot be verified
 

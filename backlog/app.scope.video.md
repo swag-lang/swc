@@ -102,8 +102,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   Container brands, duration provenance, bitrate, time base, frame-rate mode, codec profile/level,
   pixel format, track IDs, disposition flags, tags, attachments, chapters, and decoder warnings are not
   presented together.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/video_files) offers a media information panel.
 - Next: extend the existing panel with a complete container/stream metadata tree without coupling
-  it to transport widgets.
+  it to transport widgets. Start with one file containing several audio and subtitle tracks
+  and check that each fact names its stream and source.
 - Done when: container plus every stream has exact technical metadata and original tags,
   derived values identify their source, attachments open safely, warnings link to track/time where
   possible, and the report can be copied/exported.
@@ -188,11 +190,14 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 - Evidence: a container fails as a video document when its picture codec is unavailable (for
   example RealVideo RV40), even if one of its sound tracks has a registered decoder.
+  [File Viewer Plus 7](https://fileviewerplus.com/open/webm) documents WebM playback. The VP9
+  and AV1 decode work for that family belongs to std.video.010 and std.video.011.
 - Next: when no picture track decodes, open the decodable sound tracks through the Sound
   viewer path and state that the picture is unavailable.
 - Done when: Swag Scope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video
   playback unchanged when both sides are supported.
+- Related: std.video.010, std.video.011
 
 ### app.scope.video.017 — First-frame waits can stall during a full viewer session
 

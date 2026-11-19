@@ -11,6 +11,9 @@ EPUB book navigation, layout, and reading position.
   The information sheet counts the chapters and gives the title, authors, language, publisher
   and date of the package's Dublin Core metadata. Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
   remain absent. Extraction still prepares every package member before the first chapter is shown.
+  [File Viewer Plus 7](https://fileviewerplus.com/open/epub) opens EPUB in a document editor and
+  exports it to other formats. Book-wide search and exact chapter position are the first gaps
+  to close in Scope's chapter-based reading workflow.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
   bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a

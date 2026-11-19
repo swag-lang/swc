@@ -12,7 +12,10 @@ Reading and inspecting Rich Text Format documents.
   resets retain their meaning. Colored prose uses a paper background with reading margins.
   Unsupported style references, pictures and embedded objects remain explicit. Named RTF styles,
   page geometry, complex tables, fields and other code pages are still absent.
-- Next: resolve named paragraph/character styles, add supported code-page decoders and richer
-  table layout without executing fields or loading linked resources.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/text_documents) opens RTF in the same
+  paginated editor it uses for Word documents.
+- Next: compare a non-Windows-1252 RTF and a paginated real-world RTF. Start with correctly
+  decoded text, then extend named paragraph/character styles, page geometry and complex tables.
+  Keep fields inert and retain the existing policy for linked resources.
 - Done when: representative freely licensed RTF documents retain their reading order and common
   visual structure, unsupported content remains explicit, and all decoding remains native Swag.

@@ -131,8 +131,10 @@ and [std.gui.md](std.gui.md).
 
 - Evidence: app.scope.viewers.001 records that select-all means only the resident window. The same limitation
   prevents a reader from naming two whole-file positions and extracting the text between them.
-- Next: give streamed text a byte-backed range model and a cancellable decoder-to-clipboard/file
-  path with explicit size estimates.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/file_inspection) documents searchable
+  raw text inspection on large files. Compare navigation and selection on the same inputs.
+- Next: use the encoding-aware address contract in app.scope.text.002 to select a range across
+  resident windows, then stream it to the clipboard or a new file with a size estimate.
 - Done when: a non-resident range can be selected by endpoints, copied within a documented
   clipboard bound, exported without that bound, and decoded consistently across chunk boundaries.
-- Related: app.scope.viewers.001
+- Related: app.scope.text.002, app.scope.viewers.001

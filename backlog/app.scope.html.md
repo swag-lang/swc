@@ -34,7 +34,10 @@ lives in [std.gui.html.md](std.gui.html.md).
 
 - Evidence: choosing Code or Basic text discards the rendered position, active link, search match,
   and DOM node. There is no formatted source, line address, or live element mapping.
-- Next: compose rendered, source, and split modes over the DOM/source ranges introduced by app.scope.html.002.
+  [File Viewer Plus 7](https://fileviewerplus.com/open/html) documents page and source views,
+  with a syntax tree and folding in the source view.
+- Next: preserve the selected element and nearest source line across view changes using
+  app.scope.html.002, then use the same mapping for a synchronized split.
 - Done when: the selected element and scroll position map both ways, source retains exact bytes
   or declares normalization, search can target source or visible text, and scripts never execute.
 - Related: app.scope.html.002

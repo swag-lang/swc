@@ -91,6 +91,8 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 - Evidence: `src/main.swg` creates one `ViewerWindow`, which owns one active file and viewer.
   Opening another file replaces that document; there is no document-tab host.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/overview) keeps several opened files
+  in tabs.
 - Next: adopt the GUI document-host contract with independent document ownership, close behavior,
   focus and saved reading state. Keep process reuse behind platform.portability.022's messaging
   contract, and side-by-side presentation separate.
@@ -102,6 +104,8 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 - Evidence: `ViewerWindow` has one active viewer surface. The application has no pair of independently
   focused document panes; hexadecimal difference analysis remains a separate viewer capability.
+  [File Viewer Plus 7](https://fileviewerplus.com/features) displays two files side by side
+  in its shared application interface.
 - Next: add a split presentation for two open documents with explicit focus and command routing,
   preserving each viewer's reading state when moving between tabs and split panes.
 - Done when: two documents remain visible and independently usable, and closing or replacing

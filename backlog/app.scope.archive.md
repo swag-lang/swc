@@ -10,10 +10,12 @@ Shared provenance and resource budgets for nested previews live in
   stored and Deflate entries under a bounded preview size, and hands the selected entry to the
   normal viewer registry. `tar`, `gzip`, `xz`, `zstd`, `7z`, RAR, CAB, and MSI remain signature-only,
   and archive-wide integrity testing has no separate operation.
-- Next: after the current ZIP quality gate in app.scope.archive.002, separate the tree and entry
-  model from ZIP, then add bounded `tar` and single-stream `gzip` through that shared model.
-- Done when: ZIP, TAR, and GZIP share one browsing surface and provenance contract, nested
-  compression is bounded, and adding another archive family does not fork the viewer UI.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/archives) documents member preview and
+  extraction across more than 30 archive formats, including 7z and RAR.
+- Next: after the ZIP quality gate in app.scope.archive.002, give ZIP and TAR one entry model.
+  Add bounded single-stream GZIP and test TAR.GZ. Reuse the same model for 7z and RAR next.
+- Done when: ZIP, TAR, GZIP, 7z and RAR share one browsing surface and provenance contract,
+  TAR.GZ opens, and previews and extraction stay within a shared nested budget.
 - Related: app.scope.viewers.020, app.scope.archive.002
 
 ### app.scope.archive.002 — ZIP reading lacks a complete variant and integrity contract
@@ -23,6 +25,8 @@ Shared provenance and resource budgets for nested previews live in
   stop with an explanation; there is no archive-wide test report. [7-Zip](https://www.7-zip.org/)
   also handles encrypted ZIP and a broad archive family, but extending families before the ZIP
   reader is dependable would dilute the existing reading contract.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/archives) documents a password prompt
+  for supported protected archives. Include an encrypted ZIP in the first comparison corpus.
 - Next: test ZIP32/ZIP64, data descriptors, Unicode paths, duplicate names, damaged directories,
   encryption and size limits with real licensed archives; add a cancellable Test Archive report,
   then decide which encrypted and compression variants can be decoded natively in Swag.

@@ -10,12 +10,15 @@ presentation live in [app.scope.video.md](app.scope.video.md).
   bar exposes validated Go To Cue and Go To Time dialogs; Ctrl+Page Up/Down navigates adjacent cues,
   Ctrl+Home/End jumps to the first or last cue, `:` and an instant or a cue number go there from
   the lens, and the editor caret, direct jumps, and host search update the highlighted cue and its
-  position counter. There is no
-  duration filter or timeline.
-- Next: add a compact time ruler with overlap markers and a duration filter.
+  position counter. There is no duration filter or timeline. The
+  [File Viewer Plus 7 catalog](https://fileviewerplus.com/file_types) provides no standalone
+  cue-reader reference.
+- Next: use Scope's timed-transcript fixtures to add a compact time ruler with overlap
+  markers and a duration filter.
 - Done when: cue and time jumps are keyboard accessible, overlapping cues are grouped, the
   current cue is marked, and search reveal, cue selection, and timeline position remain
   synchronized.
+- Related: app.scope.subtitle.002, app.scope.subtitle.003
 
 ### app.scope.subtitle.002 — Subtitle syntax, styling, and diagnostics disappear in transcript mode
 

@@ -55,7 +55,11 @@ hierarchical Field / Value / Offset / Meaning report with previews. Archive brow
 - Evidence: a row has offset and length but selection only highlights text. There is no inline byte
   sample, endian/scalar reinterpretation, string decode, bit-field expansion, or safe handoff to a
   focused hexadecimal range.
-- Next: add a row inspector backed by the same bounded file reader and shared byte-range contract.
+  [File Viewer Plus 7](https://fileviewerplus.com/support/file_inspection) offers searchable raw
+  text and hex views. Scope's decoded fields can provide the exact range and provenance for that
+  kind of raw inspection.
+- Next: use the byte-range selection contract in app.scope.hexa.002 to make Open in Hex reveal
+  a field's exact bytes, then reuse that contract for the inline row inspector.
 - Done when: exact bytes, length, endian-aware scalar forms, text candidates, flags/bits, and
   parent/child coverage are inspectable and copyable; large payloads stay lazy; and Open in Hex
   selects the same range.

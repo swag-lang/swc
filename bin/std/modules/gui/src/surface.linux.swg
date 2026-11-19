@@ -15,11 +15,6 @@ internal struct NativeSurface
     topMost:            bool
     initializing:       bool
     preparingFrame:     bool
-    preparedFrame:      bool
-    presentedFrame:     bool
-    presentationTarget: RenderTarget
-    presentationWidth:  s32
-    presentationHeight: s32
     dropTarget:         LinuxDrag.Target
     dropTargetActive:   bool
     trayWindow:         u32
@@ -180,13 +175,6 @@ impl Surface
 
     internal mtd destroyNative()
     {
-        if .rc.data
-        {
-            .app.renderer.setCurrentContext(.rc)
-            if .presentationTarget.colorBuffer.isValid() do
-                .app.renderer.deleteRenderTarget(&.presentationTarget)
-        }
-
         .destroyRendering()
         if .windowId == 0 and .colormap == 0 do
             return
@@ -253,50 +241,8 @@ impl Surface
             expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, .windowId, 0))
     }
 
-    internal mtd bindNativePresentationTarget()->bool
-    {
-        if .presentationWidth != .rc.width or .presentationHeight != .rc.height
-        {
-            let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
-            if not replacement.colorBuffer.isValid() do
-                return false
-            if .presentationTarget.colorBuffer.isValid() do
-                .app.renderer.deleteRenderTarget(&.presentationTarget)
-            .presentationTarget = replacement
-            .presentationWidth  = .rc.width
-            .presentationHeight = .rc.height
-        }
-
-        .app.renderer.bindRenderTarget(&.presentationTarget)
-        return true
-    }
-
-    // EGL presents directly at renderer.end; this path owns no asynchronous CPU readback.
-    internal mtd canQueueNativePresentation()->bool => false
-    internal mtd queueNativePresentation(_: const *RenderTarget)->bool => false
-    internal mtd advanceNativePresentation()->bool  => true
-    internal mtd cancelNativePresentation() { .preparedFrame = false }
-    internal mtd abandonNativePresentation() { .preparedFrame = false }
-
-    internal mtd prepareNativePresentation(target: const *RenderTarget)->bool
-    {
-        .app.renderer.unbindRenderTarget()
-        if not (catch .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height))
-        {
-            .renderFailure = "OpenGL could not copy the window presentation target"
-            return false
-        }
-
-        .preparedFrame = true
-        return true
-    }
-
-    internal mtd publishNativePresentation()
-    {
-        // renderer.end has completed eglSwapBuffers; retain the completed-frame state.
-        .presentedFrame = .preparedFrame
-        .preparedFrame  = false
-    }
+    // The window manager applies opacity after EGL swaps.
+    internal mtd frameOpacity()->f32 => 1
 
     internal mtd applyNativeTitle()
     {

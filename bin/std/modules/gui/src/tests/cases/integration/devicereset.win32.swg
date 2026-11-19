@@ -4,7 +4,7 @@
 
 using Core, Pixel
 
-// Paints frames until the presented bitmap holds exactly the GPU target, and returns it.
+// Paints frames until the window presents the GPU target and returns those pixels.
 func settledPresentation(app: *Application, surface: *Surface)->Array'u8
 {
     var watch: Time.Stopwatch
@@ -14,10 +14,8 @@ func settledPresentation(app: *Application, surface: *Surface)->Array'u8
         app.paintSurfaces()
         if expect Testing.verifyNativePresentation(surface)
         {
-            var result: #returntype
-            let bytes = cast(u64, surface.presentationWidth) * cast(u64, surface.presentationHeight) * 4
-            result.add(Swag.makeSlice(cast(const [*] u8, unwrap surface.presentationPixels), bytes))
-            return result
+            let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+            return image.pixels
         }
 
         Threading.Thread.sleep(5'ms)
@@ -27,8 +25,7 @@ func settledPresentation(app: *Application, surface: *Surface)->Array'u8
     return {}
 }
 
-// A device reset while a presentation is still in flight never publishes what the lost device
-// left behind: the window comes back on a new context with its theme, text and frame intact.
+// A window comes back after a device reset with its theme, text and frame intact.
 //
 // This resets the graphics device for real. Run it on its own: displays driven through a USB
 // graphics adapter can go dark for a few seconds while the driver recovers.
@@ -41,10 +38,7 @@ func settledPresentation(app: *Application, surface: *Surface)->Array'u8
     surface.show()
     let before = settledPresentation(&app, surface)
 
-    // A pending transfer is what published sheared, stale rows once its device was gone.
     surface.invalidate()
-    surface.paint()
-    Swag.require(surface.readback.isPending())
     Pixel.Testing.submitDeviceHang()
 
     var watch: Time.Stopwatch

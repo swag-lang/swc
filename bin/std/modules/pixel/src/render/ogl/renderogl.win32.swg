@@ -161,6 +161,9 @@ internal impl NativeRenderOgl
         expect SwapBuffers(cast(HDC, rc.hDC))
     }
 
+    // USER32 resizes the buffer associated with the window's device context.
+    mtd resizeWindowBackBuffer(_: *OglContext, _: s32, _: s32) fail {}
+
     // States the presentation cadence of the context that has just become current.
     //
     // One refresh per present is what the surface layer relies on to pace a border drag: it

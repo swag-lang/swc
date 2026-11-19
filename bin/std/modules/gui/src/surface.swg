@@ -116,7 +116,9 @@ struct Surface
     paintArea:         u64
     paintVertices:     u64
     paintBatches:      u64
-    paintPhysicalRect: Math.Rectangle
+
+    presentationTarget: Pixel.RenderTarget
+    presentedFrame:     bool
 
     // What the last pass did with the window tree. A repaint covers one region, so most of a
     // tree is normally rejected before it records anything; these say how much.
@@ -432,10 +434,11 @@ impl Surface
 
     internal mtd destroyRendering()
     {
-        if .rt.colorBuffer.isValid()
+        if .rc.data and (.rt.colorBuffer.isValid() or .presentationTarget.colorBuffer.isValid())
         {
             .app.renderer.setCurrentContext(.rc)
             .app.renderer.deleteRenderTarget(&.rt)
+            .app.renderer.deleteRenderTarget(&.presentationTarget)
         }
 
         .app.renderer.deleteContext(&.rc)
@@ -475,7 +478,7 @@ impl Surface
     // presentation is dropped, because its pixels will never arrive.
     internal mtd recoverLostRendering()
     {
-        .abandonNativePresentation()
+        .presentedFrame = false
         .renderFailure.clear()
         .invalidate()
     }
@@ -589,8 +592,7 @@ impl Surface
 
     internal mtd paint()
     {
-        // Publishing a layered frame also places the native window. Keep the pending repaint
-        // until restoration instead of replacing Windows' minimized bounds with the full frame.
+        // Keep the pending repaint until the native window has a drawable again.
         if .isMinimized do
             return
 
@@ -611,27 +613,27 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
-        if .app.renderer.needsNativeWindow() and not .advanceNativePresentation() do
-            return
         if .paintToRenderTarget(root) do
             discard .presentRenderTarget()
     }
 
     // Prepares the next native geometry while the old window rectangle is still on screen.
-    // The platform publishes its pixels and the new rectangle together.
+    // Keep the frame in the render target until the native drawable reaches the new size.
     internal mtd prepareResizeFrame(root: *Wnd)->bool
     {
-        if .app.renderer.needsNativeWindow() do
-            .cancelNativePresentation()
         if not .paintToRenderTarget(root) do
             return false
-        return .presentRenderTarget(publish: false)
+        .finishFrameWithoutPresent()
+        return true
     }
 
     internal mtd presentPreparedFrame()
     {
-        if .app.renderer.needsNativeWindow() do
-            .publishNativePresentation()
+        if .app.renderer.needsNativeWindow()
+        {
+            .app.renderer.begin(.rc)
+            discard .presentRenderTarget()
+        }
     }
 
     private mtd paintToRenderTarget(root: *Wnd)->bool
@@ -731,7 +733,6 @@ impl Surface
         physClip.y         = Math.round(clipRect.y * .dpiScale)
         physClip.width     = Math.round(clipRect.right() * .dpiScale) - physClip.x
         physClip.height    = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
-        .paintPhysicalRect = Math.Rectangle.intersect(physClip, Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)})
 
         with cxt
         {
@@ -742,7 +743,7 @@ impl Surface
             {
                 me.renderFailure = Errors.message(Swag.err)
                 .renderer.unbindRenderTarget()
-                .renderer.end()
+                me.finishFrameWithoutPresent()
                 me.invalidate()
                 return false
             }
@@ -763,7 +764,15 @@ impl Surface
         return true
     }
 
-    private mtd presentRenderTarget(publish = true)->bool
+    private mtd finishFrameWithoutPresent()
+    {
+        if .app.renderer is Pixel.RenderOgl as ogl do
+            ogl.finishFrameWithoutPresent()
+        else do
+            .app.renderer.end()
+    }
+
+    private mtd presentRenderTarget()->bool
     {
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
@@ -771,43 +780,42 @@ impl Surface
             traceWatch.restart()
 
         let native = .app.renderer.needsNativeWindow()
-        var deferred: bool
-        var prepared = true
 
         // Offscreen consumers read the painted target directly.
         if native
         {
-            let asynchronous = publish and .canQueueNativePresentation()
             var target = &.rt
-            if .isDisabled and .app.fadeDisabledSurface
+            let dimmed  = .isDisabled and .app.fadeDisabledSurface
+            let opacity = .frameOpacity()
+            if dimmed or opacity < 1
             {
-                prepared = .tintRenderTargetForPresentation()
+                if not .tintRenderTargetForPresentation(dimmed, opacity)
+                {
+                    .finishFrameWithoutPresent()
+                    .invalidate()
+                    return false
+                }
+
                 target   = &.presentationTarget
             }
             else do
                 .colorDisabled = Argb.White
 
-            if prepared
+            if not (catch .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height))
             {
-                deferred = asynchronous and .queueNativePresentation(target)
-                if not deferred do
-                    prepared = .prepareNativePresentation(target)
+                .renderFailure = "OpenGL could not copy the window presentation target"
+                .finishFrameWithoutPresent()
+                .invalidate()
+                return false
             }
-        }
-
-        if not prepared
-        {
-            .app.renderer.end()
-            .invalidate()
-            return false
         }
 
         var presentUs = 0'u64
         if tracing do
             presentUs = traceWatch.elapsedMicroseconds()
         .app.renderer.end()
-        if publish and native and not deferred do
-            .publishNativePresentation()
+        if native do
+            .presentedFrame = true
 
         if tracing
         {
@@ -819,8 +827,8 @@ impl Surface
         return true
     }
 
-    // Applies the disabled tint to the native presentation target.
-    private mtd tintRenderTargetForPresentation()->bool
+    // Applies the disabled tint and window opacity to the GPU presentation target.
+    private mtd tintRenderTargetForPresentation(dimmed: bool, opacity: f32)->bool
     {
         // Tint one texel per pixel at the native drawable's device scale.
         .painter.begin()
@@ -830,17 +838,38 @@ impl Surface
         .painter.setInterpolationMode(.Pixel)
         .painter.setBlendingMode(.Copy)
 
-        .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .paintDeltaSeconds)
-        .isDirty       = true
-        .dirtyRect.clear()
+        if dimmed
+        {
+            let destination = .app.theme.colors.surfaceDisabled
+            let next        = Color.lerp(.colorDisabled, destination, .paintDeltaSeconds)
+            .colorDisabled  = next == .colorDisabled ? destination : next
+            if .colorDisabled != destination
+            {
+                .isDirty = true
+                .dirtyRect.clear()
+            }
+        }
+        else do
+            .colorDisabled = Argb.White
 
         let dstRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
+        let tint = Color.lerp(Color{}, .colorDisabled, opacity)
 
-        .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, .colorDisabled)
+        .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, tint)
         .painter.end()
 
-        if not .bindNativePresentationTarget() do
-            return false
+        if not .presentationTarget.colorBuffer.isValid() or
+           .presentationTarget.colorBuffer.width != .rc.width or
+           .presentationTarget.colorBuffer.height != .rc.height
+        {
+            let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
+            if not replacement.colorBuffer.isValid() do
+                return false
+            .app.renderer.deleteRenderTarget(&.presentationTarget)
+            .presentationTarget = replacement
+        }
+
+        .app.renderer.bindRenderTarget(&.presentationTarget)
         defer .app.renderer.unbindRenderTarget()
         catch .app.renderer.draw(&.painter)
         {

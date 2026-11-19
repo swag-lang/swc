@@ -19,10 +19,10 @@ they never point back up it.
    other interoperability modules. Portable code never needs them merely to use Core, GUI, Pixel,
    Audio, or a shipped application.
 
-OpenGL remains an explicit native API. Its Linux EGL/XCB context adapter is the rendering
-prerequisite for the existing Pixel OpenGL backend; portable GUI contracts do not expose EGL
-handles. Tests that exercise a native integration point remain in the host layer and must be
-selected explicitly.
+OpenGL remains an explicit native API. Windows GUI windows swap a WGL back buffer and Linux X11
+windows swap an EGL back buffer. Both copy from the retained render target on the GPU. Portable
+GUI contracts do not expose the native context handles. Tests that exercise a native integration
+point remain in the host layer and must be selected explicitly.
 
 `tools/portability.bat` checks that no Swag script launchers remain in `tools/`. The former
 source audit of this contract has been retired; a platform-looking suffix is not an approval. Add a path only when

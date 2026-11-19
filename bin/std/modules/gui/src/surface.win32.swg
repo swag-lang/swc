@@ -74,20 +74,11 @@ internal struct NativeSurface
     initializing: bool
 
     // A discrete placement prepares its expensive frame before USER32 exposes the new size.
-    inDiscretePlacement:                   bool
-    preparingFrame:                        bool
-    preparedFrame:                         bool
-    presentedFrame:                        bool
-    preparedWidth:                         s32
-    preparedHeight:                        s32
-    presentationTarget:                    Pixel.RenderTarget
-    presentationDC:                        HDC
-    presentationBitmap:                    HBITMAP
-    presentationPixels:                    *u8?
-    presentationWidth, presentationHeight: s32
-    readback:                              Pixel.RenderOglReadback
-    asynchronousPresentationFailed:        bool
-    presentationDirtyRect:                 Math.Rectangle
+    inDiscretePlacement: bool
+    preparingFrame:      bool
+    preparedFrame:       bool
+    preparedWidth:       s32
+    preparedHeight:      s32
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -308,17 +299,6 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCCALCSIZE:
-
-            // UpdateLayeredWindow publishes bounds and pixels in one native operation before
-            // USER32 exposes the new client area. Mark it first because publication reenters us.
-            if surface.inDiscretePlacement and surface.preparedFrame and not surface.presentedFrame
-            {
-                surface.presentedFrame = true
-                surface.preparingFrame = true
-                surface.presentPreparedFrame()
-                surface.preparingFrame = false
-            }
-
             return 0
 
         case WM_NCHITTEST:
@@ -537,6 +517,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             if wParam == SizeMinimized
             {
                 surface.preparedFrame = false
+                surface.presentedFrame = false
                 return 0
             }
 
@@ -625,7 +606,7 @@ private impl Surface
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
             wc.cbWndExtra    = #sizeof(*void?)
-            wc.style         = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
+            wc.style         = CS_OWNDC | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
             wc.lpfnWndProc   = cast(&winProc)
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
             wc.hIcon         = hIcon
@@ -636,7 +617,7 @@ private impl Surface
         var winFlags = 0'u32
         winFlags |= WS_POPUP | WS_CLIPCHILDREN
 
-        var winFlagsEx = WS_EX_LAYERED
+        var winFlagsEx = 0'u32
         if flags & .ToolWindow do
             winFlagsEx |= WS_EX_TOOLWINDOW
         if flags & .TopMost
@@ -665,20 +646,13 @@ private impl Surface
             catch SetWindowPos(result.hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING)
         }
 
+        result.enablePerPixelAlpha()
         result.applyNativeDwmStyle()
         result.registerDropTarget()
     }
 
     internal mtd destroyNative()
     {
-        if .rc.data
-        {
-            .app.renderer.setCurrentContext(.rc)
-            .readback.release()
-            .app.renderer.deleteRenderTarget(&.presentationTarget)
-        }
-
-        .destroyNativePresentation()
         .destroyRendering()
         if not .hWnd do
             return
@@ -698,21 +672,15 @@ impl Surface
         defer .preparingFrame = false
         defer .inDiscretePlacement = false
         defer .preparedFrame = false
-        defer .presentedFrame = false
 
-        // An unchanged size can still change the chrome. Present once if no size transaction
-        // published the frame, or repaint if the placement invalidated its prepared contents.
+        // The drawable now has its final dimensions. Paint again only if placement
+        // invalidated the prepared frame, for example on a DPI change.
         if .canPresentNow()
         {
-            if .preparedFrame and not .isDirty
-            {
-                if not .presentedFrame do
-                    .presentPreparedFrame()
-            }
-            else
-            {
+            if .preparedFrame and not .isDirty do
+                .presentPreparedFrame()
+            else do
                 .paint()
-            }
 
             discard ValidateRect(.hWnd, null)
         }
@@ -750,168 +718,19 @@ impl Surface
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
 
-    private mtd destroyNativePresentation()
+    // An empty blur region asks DWM to compose the WGL framebuffer's alpha without blurring.
+    private mtd enablePerPixelAlpha()
     {
-        if .presentationDC do
-            catch DeleteDC(.presentationDC)
-        if .presentationBitmap do
-            catch DeleteObject(cast(Gdi32.HGDIOBJ, .presentationBitmap))
-        .presentationDC     = null
-        .presentationBitmap = null
-        .presentationPixels = null
-        .presentationWidth  = 0
-        .presentationHeight = 0
+        let region = CreateRectRgn(0, 0, -1, -1)
+        defer if region do
+            catch DeleteObject(cast(HGDIOBJ, region))
+        var blur = DWM_BLURBEHIND{dwFlags: DWM_BB_ENABLE | DWM_BB_BLURREGION,
+                                  fEnable: TRUE,
+                                  hRgnBlur: region}
+        discard DwmEnableBlurBehindWindow(.hWnd, &blur)
     }
 
-    internal mtd bindNativePresentationTarget()->bool
-    {
-        if not .presentationTarget.colorBuffer.isValid() or
-           .presentationTarget.colorBuffer.width != .rc.width or
-           .presentationTarget.colorBuffer.height != .rc.height
-        {
-            let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
-            if not replacement.colorBuffer.isValid() do
-                return false
-            .app.renderer.deleteRenderTarget(&.presentationTarget)
-            .presentationTarget = replacement
-        }
-
-        .app.renderer.bindRenderTarget(&.presentationTarget)
-        return true
-    }
-
-    internal mtd canQueueNativePresentation()->bool =>
-        not .asynchronousPresentationFailed and
-        not .app.frameTrace.synchronousPresentation and
-        not .preparingFrame and
-        not .inDiscretePlacement and
-        not .inDesktopLoop and
-        .presentationWidth == .rc.width and
-        .presentationHeight == .rc.height and
-        .app.renderer is Pixel.RenderOgl
-
-    internal mtd cancelNativePresentation()
-    {
-        .app.renderer.setCurrentContext(.rc)
-        if .readback.isPending() do
-            .invalidate()
-        .readback.cancel()
-    }
-
-    // Drops a pending transfer of a lost device without touching OpenGL: it will never write its
-    // pixels, and publishing it would show whatever its buffer held before.
-    internal mtd abandonNativePresentation()
-    {
-        .readback.abandon()
-    }
-
-    internal mtd queueNativePresentation(target: const *Pixel.RenderTarget)->bool
-    {
-        .presentationDirtyRect = .paintPhysicalRect
-        if .presentationDirtyRect.isEmpty() or (.isDisabled and .app.fadeDisabledSurface) do
-            .presentationDirtyRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
-        let rect = .presentationDirtyRect
-        if .readback.submit(target, cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.width), cast(s32, rect.height)) do
-            return true
-        .asynchronousPresentationFailed = true
-        .readback.release()
-        return false
-    }
-
-    // A busy GPU holds one snapshot, never a queue of obsolete interaction states. Poll before
-    // recording another frame so dirty content stays coalesced while input continues to dispatch.
-    internal mtd advanceNativePresentation()->bool
-    {
-        if not .readback.isPending() do
-            return true
-        .app.renderer.setCurrentContext(.rc)
-        if not .canQueueNativePresentation()
-        {
-            .readback.cancel()
-            .invalidate()
-            return true
-        }
-
-        var watch: Time.Stopwatch
-        if .app.frameTrace.enabled do
-            watch.start()
-        let rect   = .presentationDirtyRect
-        let stride = cast(u64, .presentationWidth) * 4
-        let offset = cast(u64, (cast(f32, .presentationHeight) - rect.bottom())) * stride + cast(u64, rect.x) * 4
-        let pixels = Swag.makeSlice(cast([*] u8, unwrap .presentationPixels) + offset,
-                                    stride * cast(u64, .presentationHeight) - offset)
-        if .readback.tryCopyTo(pixels, stride)
-        {
-            .publishNativePresentation()
-        }
-        elif .readback.hasFailed()
-        {
-            .asynchronousPresentationFailed = true
-            .readback.release()
-            .invalidate()
-        }
-
-        if .app.frameTrace.enabled do
-            .app.frameTrace.presentUs += watch.elapsedMicroseconds()
-        return not .readback.isPending()
-    }
-
-    internal mtd prepareNativePresentation(target: const *Pixel.RenderTarget)->bool
-    {
-        // A persistent layered HWND lets USER32 publish geometry and pixels together. Its
-        // bitmap is CPU-backed; keep it across repaints and copy the complete premultiplied
-        // BGRA frame, including the transparent shadow margin.
-        if .presentationWidth != .rc.width or .presentationHeight != .rc.height
-        {
-            .destroyNativePresentation()
-            .presentationDC = expect CreateCompatibleDC(null)
-            var info: BITMAPINFO
-            info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
-            info.bmiHeader.biWidth       = .rc.width
-            info.bmiHeader.biHeight      = .rc.height
-            info.bmiHeader.biPlanes      = 1
-            info.bmiHeader.biBitCount    = 32
-            info.bmiHeader.biCompression = BI_RGB
-            .presentationBitmap          = expect CreateDIBSection(null, &info, cast(DIB_RGB_COLORS), &.presentationPixels, null, 0)
-            SelectObject(.presentationDC, cast(Gdi32.HGDIOBJ, .presentationBitmap))
-            .presentationWidth  = .rc.width
-            .presentationHeight = .rc.height
-        }
-
-        let image = .app.renderer.readRenderTarget(target, 0, 0, .rc.width, .rc.height)
-        if not image.isValid() do
-            return false
-        Memory.copy(unwrap .presentationPixels, image.pixels.storage(), image.byteCount)
-        .presentationDirtyRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
-        return true
-    }
-
-    internal mtd publishNativePresentation()
-    {
-        let destination = POINT{cast(s32, .position.x), cast(s32, .position.y)}
-        let size        = SIZE{.presentationWidth, .presentationHeight}
-        let source      = POINT{}
-        let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, cast(u8, Math.round(Math.saturate(.opacity) * 255)), AC_SRC_ALPHA}
-        let dirty       = RECT{cast(s32, .presentationDirtyRect.x), cast(s32, .presentationDirtyRect.y),
-                               cast(s32, .presentationDirtyRect.right()), cast(s32, .presentationDirtyRect.bottom())}
-        with var info: UPDATELAYEREDWINDOWINFO
-        {
-            .cbSize = #sizeof(UPDATELAYEREDWINDOWINFO)
-
-            // Every frame names its position and size. Without them the call still succeeds,
-            // but the compositor keeps showing the previous image.
-            .pptDst   = &destination
-            .psize    = &size
-            .hdcSrc   = me.presentationDC
-            .pptSrc   = &source
-            .pblend   = &blend
-            .dwFlags  = ULW_ALPHA
-            .prcDirty = &dirty
-        }
-
-        if not UpdateLayeredWindowIndirect(.hWnd, &info) do
-            expect failWinError(GetLastError())
-    }
+    internal mtd frameOpacity()->f32 => .opacity
 
     private mtd applyNativeDwmStyle()
     {
@@ -1238,8 +1057,6 @@ impl Surface
             return
         .isDisabled = false
 
-        // The presented bitmap was tinted across the whole surface. A local repaint cannot
-        // restore the untouched pixels when native presentation resumes copying dirty regions.
         .invalidate()
         if not .app.renderer.needsNativeWindow()
         {
@@ -1264,15 +1081,15 @@ impl Surface
         EnableWindow(.hWnd, FALSE)
     }
 
-    // Changes the opacity the desktop composites the whole surface at, without painting it again.
+    // Changes the opacity used to present the whole surface.
     mtd setOpacity(opacity: f32)
     {
         let value = Math.saturate(opacity)
         if .opacity == value do
             return
         .opacity = value
-        if not .isHidden and .presentationPixels and .app.renderer.needsNativeWindow() do
-            .publishNativePresentation()
+        if not .isHidden do
+            .invalidate()
     }
 
     // Shows the surface and emits its one-time initialization event when needed.
@@ -1423,7 +1240,7 @@ impl Surface
     // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
     //
     // Windows owns the show state and restore placement. The frame is prepared before the
-    // geometry changes, then published with the destination bounds by UpdateLayeredWindow.
+    // geometry changes and swapped after USER32 commits the destination bounds.
     mtd showNormalAt(pos: Math.Rectangle)
     {
         let clampPos = .clampToSizeLimits(pos)

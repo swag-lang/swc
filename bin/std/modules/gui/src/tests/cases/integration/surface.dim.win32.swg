@@ -2,32 +2,38 @@
 #global if #os == Swag.TargetOs.Windows
 #global private
 
-using Core, Pixel, Win32
+using Core, Pixel
 
-// Dismissing a modal restores the entire native bitmap, even when a control has
-// already queued a smaller repaint. Prepare pixels without ever showing a window.
-#[Swag.TestTag("integration.host.hidden")]
+// Dismissing a modal restores the entire frame when a child has already dirtied one region.
+#[Swag.TestTag("integration.host.windows")]
 #test
 {
     var app: Application
-    let surface = expect app.createSurface(0, 0, 360, 240, surfaceId: "gui-dim-presentation-test")
+    let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-dim-presentation-test")
     let button  = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
-    Swag.require(not IsWindowVisible(surface.win32Handle()))
-    let prepared = surface.prepareResizeFrame(surface.wnd)
-    Swag.require(prepared)
-    let expected = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    surface.show()
+    let width  = surface.rc.width
+    let height = surface.rc.height
+    let normal = app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 
     surface.disable()
-    let dimmedFrame = surface.prepareResizeFrame(surface.wnd)
-    Swag.require(dimmedFrame)
-    let dimmed = Swag.makeSlice(cast(const [*] u8, unwrap surface.presentationPixels), expected.byteCount)
-    Swag.require(not Slice.equals(dimmed, expected.pixels.toSlice()))
+    surface.paint()
+    let dimmed = app.renderer.readRenderTarget(&surface.presentationTarget, 0, 0, width, height)
+    Swag.require(dimmed.isValid() and not Slice.equals(normal.pixels.toSlice(), dimmed.pixels.toSlice()))
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 
     button.invalidate()
     surface.enable()
-    let restoredFrame = surface.prepareResizeFrame(surface.wnd)
-    Swag.require(restoredFrame)
-    let restored = Swag.makeSlice(cast(const [*] u8, surface.presentationPixels), expected.byteCount)
-    Swag.require(Slice.equals(restored, expected.pixels.toSlice()))
-    Swag.require(not IsWindowVisible(surface.win32Handle()))
+    surface.paint()
+    let restored = app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    Swag.require(Slice.equals(normal.pixels.toSlice(), restored.pixels.toSlice()))
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+
+    surface.setOpacity(0.5)
+    surface.paint()
+    let faded = app.renderer.readRenderTarget(&surface.presentationTarget, 0, 0, width, height)
+    let alpha = faded.pixelColor(width / 2, height / 2).a
+    Swag.require(alpha == 127 or alpha == 128)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 }

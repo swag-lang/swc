@@ -829,6 +829,16 @@ impl RenderOgl
     // callers presenting on the UI thread cannot process input during that wait.
     internal mtd endImpl()
     {
+        .finishFrameWithoutPresent()
+        .native.swapBuffers(oglContext(.curRC)[])
+    }
+
+    // Finishes the current frame while retaining the contents of the native front buffer.
+    //
+    // Use when recording into an offscreen target for a later presentation or when abandoning
+    // a frame that could not be rendered. GPU commands remain ordered with later submissions.
+    mtd finishFrameWithoutPresent()
+    {
         // Keep hot scratch images, but retire those unused by this frame (for example,
         // the full-window backdrop targets after the lens closes).
         for index in reversed(.stackReleasedRT.count)
@@ -847,7 +857,41 @@ impl RenderOgl
         }
 
         glFlush()
-        .native.swapBuffers(oglContext(.curRC)[])
+    }
+
+    // Copies the visible top-left rectangle of a render target into the window back buffer.
+    //
+    // Call after unbinding the target, with its window context current. The target may be
+    // larger than the drawable. Returns false when the rectangle is invalid or OpenGL
+    // rejects the copy. Call [[Pixel.IRenderer.end]] to present the copied frame.
+    mtd blitRenderTargetToWindow(target: const *RenderTarget, width, height: s32)->bool fail
+    {
+        let context = oglContext(.curRC)
+        if not context.hWnd or context.ownsWindow or
+           not target.colorBuffer.isValid() or width <= 0 or height <= 0 or
+           width > target.colorBuffer.width or height > target.colorBuffer.height do
+            return false
+
+        try .native.resizeWindowBackBuffer(context, width, height)
+
+        var previousRead, previousDraw: GLint
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead)
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDraw)
+        let scissorEnabled = glIsEnabled(GL_SCISSOR_TEST) != 0
+        defer
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, previousDraw))
+            if scissorEnabled do
+                glEnable(GL_SCISSOR_TEST)
+        }
+
+        glDisable(GL_SCISSOR_TEST)
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, target.handle))
+        glReadBuffer(GL_COLOR_ATTACHMENT0)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+        glBlitFramebuffer(0, target.colorBuffer.height - height, width, target.colorBuffer.height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST)
+        return glGetError() == GL_NO_ERROR
     }
 
     // Makes `rc` the current rendering context.

@@ -26,8 +26,8 @@ impl IWnd for PresentationPatternWnd
     }
 }
 
-// Large odd-sized frames alternate full and narrow transfers on every connected monitor.
-// Compare the complete bitmap, including rows untouched by each partial presentation.
+// Large odd-sized frames alternate full and narrow repaints on every connected monitor.
+// Compare the complete front buffer, including rows untouched by each repaint.
 #[Swag.TestTag("integration.host.windows.stress")]
 #test
 {
@@ -61,17 +61,6 @@ impl IWnd for PresentationPatternWnd
             }
 
             surface.paint()
-            Swag.require(surface.readback.isPending())
-
-            var watch: Time.Stopwatch
-            watch.start()
-            while surface.readback.isPending() and watch.elapsedMilliseconds() < 2000
-            {
-                discard surface.advanceNativePresentation()
-                Threading.Thread.sleep(1'ms)
-            }
-
-            Swag.require(not surface.readback.isPending())
             let verified = expect Testing.verifyNativePresentation(surface)
             Swag.require(verified)
         }

@@ -20,35 +20,33 @@ prove it. Operating-system integrations live in
 
 ### std.gui.054 — Measure wheel-to-display latency under CPU contention
 
-- Evidence: ordinary layered-window frames read only the dirty rectangle through one polled
-  OpenGL transfer, allowing event dispatch while the GPU is busy. This bounds the frame queue
-  and avoids waiting for completion during ordinary drawing, but message round-trip probes
-  do not measure wheel-to-display latency. Driver calls and USER32 publication can still take
-  time on the window thread.
+- Evidence: ordinary frames keep the retained content in an OpenGL target, blit it to the native
+  back buffer, and swap on the window thread. The swap can wait for the driver and compositor.
+  Message round-trip probes do not measure wheel-to-display latency.
 - Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
   while the CPU is busy, with Typora remaining fluid on the same document under that load;
   the slowdown affects the entire application, not only Markdown.
+- On the Intel Arc Windows host, two ten-second Markdown wheel probes report 12–18% 3D use
+  and 55–57 painted frames per second with native swaps, versus 34% and 108 with the old bitmap
+  presenter. Compare input latency and GPU use at a matched display rate.
 - Constraint: the default OpenGL context is owned by the window thread, because a worker
   renderer let drawable reallocation overlap native sizing (std.gui.056). `Pixel.RenderThread`
-  remains an explicit adapter. Initial display and geometry changes still prepare a complete
-  frame synchronously to publish pixels and geometry together.
+  remains an explicit adapter. A discrete size change prepares its frame before placement and
+  swaps after the native drawable has adopted the new size.
 - Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input on
-  that document at matched CPU contention. Separate recording, GPU completion, bitmap copy and
-  native publication, and compare visible latency with Typora on the same display.
+  that document at matched CPU contention. Separate recording, GPU blit, swap and desktop
+  composition, and compare visible latency with Typora on the same display.
 - Done when: real scrolling has a measured input-to-display budget under matched contention,
   including tail latency and any remaining window-thread stalls.
 - Related: std.gui.049, std.gui.056, std.gui.057, platform.portability.066
 
-### std.gui.057 — Validate layered presentation across displays and live resizing
+### std.gui.057 — Validate GPU presentation across displays and live resizing
 
-- Evidence: rendering goes to an offscreen OpenGL target on a fixed-size hidden context host.
-  The visible HWND stays layered, and `publishNativePresentation` (`surface.win32.swg`) hands
-  premultiplied BGRA pixels, position and size to USER32 in one
-  `UpdateLayeredWindowIndirect` call. Ordinary updates transfer and publish only the dirty
-  rectangle; discrete placement prepares a complete frame before WM_NCCALCSIZE publishes it.
-  A call that omits position and size still succeeds, but the screen keeps the previous
-  image (4e7ee4e873 froze every repaint after the first that way).
-  Existing captures ran at 12–30 fps under load, so they cannot exclude a one-refresh artifact.
+- Evidence: Windows now presents via a double-buffered WGL window with DWM alpha composition.
+  Linux X11 uses EGL. Both redraw dirty regions in a retained GPU target and copy the complete
+  visible rectangle on the GPU before swapping. On Windows the prepared resize frame waits for
+  the destination geometry before swapping. Window-buffer comparisons check the settled result.
+  Existing desktop captures at 12–30 fps cannot exclude a one-refresh artifact.
 - A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
   out mostly black and diagonally torn (`viewer.outline.markdown`). `HeadlessHost` never runs
@@ -60,10 +58,10 @@ prove it. Operating-system integrations live in
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.
 - Next: make `HeadlessHost` ask the renderer for a reset after each render and fail with a
-  device-reset message rather than a pixel mismatch. Measure physical border-drag latency against std.gui.056 on both displays,
-  and capture discrete placement at verified display cadence across DPI and adapter boundaries. Measure
-  sustained repaint cost with asynchronous dirty-region transfers. Keep the
-  single-HWND publication contract for any faster presenter.
+  device-reset message rather than a pixel mismatch. Measure physical border-drag latency
+  against std.gui.056 on both displays, and capture discrete placement at verified display
+  cadence across DPI and adapter boundaries. Separate a delayed swap from a clipped desktop
+  frame.
 - Capture constraint: target the verified Swag Scope HWND or its own window commands, never
   global full-screen shortcuts, and always include normal/full-screen/normal first.
 - Done when: display-cadence captures across the supported monitors show only complete old
@@ -438,7 +436,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   Intel driver's `NtGdiDdDDIDestroyAllocation2` while the window thread was resizing. With the
   context on the window thread there were no multi-second calls, but the previous presenter
   still reached 71–93 ms in `glFlush + SwapBuffers`. Remeasure physical dragging with the
-  current layered presenter and its synchronous geometry frames (std.gui.057). The default renderer
+  current WGL presenter and its prepared geometry frames (std.gui.057). The default renderer
   owns its context on the window thread, and `surface.renderthread.win32.swg` checks
   that ownership across resized paints.
 - Measurement constraint: use a DPI-aware probe that actually presses, moves, and releases the
@@ -491,7 +489,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
   first 20 painted frames; it cannot serve as a startup clock without a dedicated mode.
   Attribute state restoration and initial native frame preparation; examine the pending empty
   frame that is published after document selection but before the first document-bearing paint.
-  The current layered readback blocks recording another frame while a previous snapshot is pending.
   Compare bounded early restoration of the selected document with the deferred recent-list scan,
   preserving responsiveness for large libraries, corrupt candidates and explicit file arguments.
   Traced spans are not additive: callers include their descendants, and the debugger perturbs
@@ -518,7 +515,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   are disposable. The initial function-attribution probe remains in
   `%LOCALAPPDATA%/swc-agent-builds/capture-startup-20261030`. Debug or terminate only probe-owned
   processes, and never use the personal library as a writable benchmark profile.
-- Related: std.gui.059 (widgets packing), std.gui.057 (layered presentation), std.gui.054
+- Related: std.gui.059 (widgets packing), std.gui.057 (GPU presentation), std.gui.054
   (input-to-display measurement), compiler.optimization.136 (distinct relocation investigation).
 
 ### std.gui.061 — Keep borrowed atlas images stable across cache growth

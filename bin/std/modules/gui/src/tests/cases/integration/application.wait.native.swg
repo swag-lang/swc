@@ -18,7 +18,7 @@
         for 200
         {
             app.runFrame()
-            if not surface.isDirty and not surface.readback.isPending()
+            if not surface.isDirty
             {
                 settled = true
                 break
@@ -32,12 +32,6 @@
         Swag.require(app.frameTrace.frames == frames)
     }
 
-    // The fence stays pending until polled, even if the GPU has already finished the copy.
-    app.renderer.setCurrentContext(surface.rc)
-    Swag.require(surface.readback.submit(&surface.rt, 0, 0, 1, 1))
-    Swag.require(app.nativeFrameWaitMicroseconds(0) == 1000)
     surface.invalidate()
-    Swag.require(app.nativeFrameWaitMicroseconds(0) == 1000)
-    surface.readback.cancel()
     Swag.require(app.nativeFrameWaitMicroseconds(0) == 0)
 }

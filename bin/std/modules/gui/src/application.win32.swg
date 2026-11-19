@@ -41,18 +41,13 @@ impl Application
         if .frameTrace.busyLoop do
             return 0
 
-        var pendingPresentation = false
         for surface in .surfaces where not surface.isHidden and not surface.isMinimized
         {
-            // A pending transfer prevents another paint. Polling its fence without a wait
-            // burns a CPU core while the GPU catches up, including after the last edit.
-            if surface.readback.isPending() do
-                pendingPresentation = true
-            elif surface.isDirty do
+            if surface.isDirty do
                 return 0
         }
 
-        let active = pendingPresentation or .mouseCaptureWnd or .animator.activeCount() != 0
+        let active = .mouseCaptureWnd or .animator.activeCount() != 0
         let turnUs = active ? 1000'u64 : 16000'u64
         if elapsed >= turnUs do
             return 0

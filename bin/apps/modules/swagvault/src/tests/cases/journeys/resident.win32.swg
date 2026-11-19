@@ -48,7 +48,9 @@ using Core, Gui, Pixel, Win32
     let message = Utf16.toZeroTerminated("TaskbarCreated")
     discard SendMessageW(surface.win32Handle(), RegisterWindowMessageW(message.buffer), 0, 0)
     var rectangle: RECT
-    var identifier = NOTIFYICONIDENTIFIER{cbSize: #sizeof(NOTIFYICONIDENTIFIER), hWnd: surface.win32Handle(), uID: 1}
+    var identifier = NOTIFYICONIDENTIFIER{cbSize: cast(DWORD, #sizeof(NOTIFYICONIDENTIFIER)),
+                                          hWnd: surface.win32Handle(),
+                                          uID: 1}
     Swag.require(Shell_NotifyIconGetRect(&identifier, &rectangle) == S_OK)
 
     // The tray menu owns its complete surface and returns directly to the resident window.

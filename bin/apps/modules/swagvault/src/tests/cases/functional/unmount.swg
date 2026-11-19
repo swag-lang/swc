@@ -116,7 +116,35 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         Swag.require(reopened.resolve("/refused") == null)
     }
 
-    // An automatic refusal and a failed quit both retain the application's owning row.
+    // WinFsp can stop without posting Close for every handle. An ordinary unmount still
+    // releases the container and commits accepted writes after its final callback.
+    #test
+    {
+        let path = Testing.tempFilePath("vault-dispatch-stopped-", ".bin")
+        defer discard catch File.delete(path)
+        var mounted: WinFsp.MountedVolume
+        mounted.volume               = expect Volume.create(path, "", MinimumSize)
+        mounted.volumeOpen           = true
+        mounted.mount.context        = Memory.new'WinFsp.NativeMountContext()
+        mounted.mount.context.volume = &mounted.volume
+        var fileSystem: WinFsp.FspFileSystem
+        fileSystem.userContext = mounted.mount.context
+        var context: *void?
+        var info:    WinFsp.FileInfo
+        let file    = Utf16.toZeroTerminated("\\accepted")
+        let created = WinFsp.fspCreate(&fileSystem, file.buffer, 0, 0, 0, null, 0, &context, &info)
+        Swag.require(created == WinFsp.StatusSuccess)
+        Swag.require(mounted.mount.context.activity.handles == 1)
+
+        let dispatch = WinFsp.makeInterface()
+        (dispatch.dispatcherStopped)(&fileSystem, 0)
+        expect mounted.close()
+        Swag.require(not mounted.volumeOpen and mounted.mount.context == null)
+        var reopened = expect Volume.open(path, "")
+        Swag.require(reopened.resolve("/accepted") != null)
+    }
+
+    // Canceling a quit leaves a genuinely busy drive available for an ordinary retry.
     #test
     {
         var host: Testing.HeadlessHost
@@ -141,10 +169,14 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         window.handleAutoUnmount(.SessionLock)
         Swag.require(window.mountedDrives.drives.count == 1 and mount.handle != null)
         Swag.require(window.statusMessage == .AutoUnmountBusy)
-        window.resident.unmountAll(quit: true)
+        host.clickModalButtonWhenShown(Dialog.BtnCancel)
+        var close = SysCommandEvent{kind: .Close}
+        window.sendEvent(&close)
+        Swag.require(close.accepted)
         window.operation.task.wait()
         window.finishOperation()
         Swag.require(window.mountedDrives.drives.count == 1 and mount.handle != null)
+        Swag.require(host.autoHandled and window.statusDetail.isEmpty())
         Swag.require(not window.resident.quitting and not window.resident.batch)
         Swag.require(window.statusMessage == .UnmountStopped)
         Swag.require(not window.isPendingDestroy)
@@ -156,18 +188,32 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         Swag.require(window.statusMessage == .Unmounted)
     }
 
-    // A partial batch preserves its first failure even when a later drive closes successfully.
+    // The confirmed force retry acts only on the drive that survived the ordinary batch.
     #test
     {
         var host: Testing.HeadlessHost
-        let window   = testSetupMainWindow(&host)
+        host.setup(640, 480)
+        host.bindApplication(&g_App)
+        registerAppStrings(&g_App.resources)
+        registerAppStrings(&host.app.resources)
+        Gui.registerLanguage("fr", "Français")
+        expect host.app.setLanguage("fr")
+        defer expect host.app.setLanguage(ReferenceLanguage)
+        let surface  = expect host.app.createSurface(0, 0, MainWindow.MinWidth, MainWindow.MinHeight)
+        let window   = MainWindow.create(surface.wnd)
         let busyPath = Testing.tempFilePath("vault-partial-busy-", ".bin")
         let idlePath = Testing.tempFilePath("vault-partial-idle-", ".bin")
         defer discard catch File.delete(busyPath)
         defer discard catch File.delete(idlePath)
         let busy = addUnmountFixture(window, busyPath, true)
         discard addUnmountFixture(window, idlePath, false)
-        window.resident.unmountAll(quit: true)
+        window.resident.settings.enabled = true
+        window.resident.showWindow()
+        window.resident.setEnabled(false)
+        host.clickModalButtonWhenShown(Dialog.BtnOk)
+        var close = SysCommandEvent{kind: .Close}
+        window.sendEvent(&close)
+        window.sendEvent(&close)
         for 2
         {
             window.operation.task.wait()
@@ -176,13 +222,39 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
 
         Swag.require(window.mountedDrives.drives.count == 1)
         Swag.require(window.mountedDrives.drives[0].path == busyPath)
-        Swag.require(busy.volumeOpen and not window.resident.quitting)
-        Swag.require(window.statusDrive == "1" and window.statusDetail == appStrings().msg_DriveBusy)
-        host.clickModalButtonWhenShown(Dialog.BtnOk)
-        window.forceUnmountVault(busyPath)
+        Swag.require(busy.volumeOpen and window.resident.quitting)
+        Swag.require(host.autoHandled and window.operation.forceUnmount)
+        Swag.require(window.statusDrive == "1" and window.statusDetail.isEmpty())
         window.operation.task.wait()
         window.finishOperation()
-        Swag.require(host.autoHandled and window.mountedDrives.drives.count == 0)
+        Swag.require(window.mountedDrives.drives.count == 0 and not window.resident.batch)
+        Swag.require(surface.wnd.isPendingDestroy)
+        host.pump()
+        Swag.require(host.app.surfaces.count == 1)
+    }
+
+    // A detached drive's synchronization failure keeps the window open.
+    #test
+    {
+        var host: Testing.HeadlessHost
+        let window = testSetupMainWindow(&host)
+        let path   = Testing.tempFilePath("vault-unmount-sync-", ".bin")
+        defer discard catch File.delete(path)
+        let native = addUnmountFixture(window, path, false)
+        native.volume.touchScalars()
+        native.volume.file.protectionTriggered = true
+
+        host.clickModalButtonWhenShown(Dialog.BtnOk)
+        var close = SysCommandEvent{kind: .Close}
+        window.sendEvent(&close)
+        window.operation.task.wait()
+        window.finishOperation()
+        Swag.require(host.autoHandled and not window.isPendingDestroy)
+        Swag.require(window.mountedDrives.drives.isEmpty())
+        Swag.require(window.operation.kind == .None and
+                     not window.resident.quitting and
+                     not window.resident.batch)
+        Swag.require(window.statusMessage == .UnmountSyncStopped and window.statusDetail.isEmpty())
     }
 }
 

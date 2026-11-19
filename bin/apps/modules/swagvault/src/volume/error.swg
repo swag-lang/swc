@@ -8,33 +8,35 @@ using Core
 // sentence, so a kind exists when one of those two has to tell it apart.
 enum ErrorKind
 {
-    HiddenProtected       // A hidden region stopped writes or prevents changing geometry.
-    General               // Nothing more precise is known.
-    InvalidInput          // The operation was asked for something it cannot do.
-    PasswordRequired      // The operation needs a password and got none.
-    SizeTooSmall          // The requested capacity is below the smallest container.
-    PasswordOrDamaged     // The container did not open. See the note below.
-    NotFound              // The named entry, or a password slot, does not exist.
-    AlreadyExists         // The name is taken.
-    AccessDenied          // The entry exists and refuses the operation.
-    WriteProtected        // The container is open read only and refuses every change.
-    SparseContainer       // Sparse files reveal allocation and are never accepted as containers.
-    NotDirectory          // A directory was needed, and the entry is a file.
-    IsDirectory           // A file was needed, and the entry is a directory.
-    DirectoryNotEmpty     // The directory still holds entries.
-    DiskFull              // No room is left: for blocks, for metadata, or for key slots.
-    Corrupted             // An open container no longer reads back what it stored.
-    Io                    // The underlying file could not be read or written.
-    Elevated              // The application runs as administrator, so Windows Explorer cannot see its drives.
-    DriverUnavailable     // The virtual drive component could not be loaded, started, or reached.
-    Canceled              // The caller stopped the operation.
-    Busy                  // An ordinary unmount left an in-use drive mounted.
+    HiddenProtected           // A hidden region stopped writes or prevents changing geometry.
+    General                   // Nothing more precise is known.
+    InvalidInput              // The operation was asked for something it cannot do.
+    PasswordRequired          // The operation needs a password and got none.
+    SizeTooSmall              // The requested capacity is below the smallest container.
+    PasswordOrDamaged         // The container did not open. See the note below.
+    NotFound                  // The named entry, or a password slot, does not exist.
+    AlreadyExists             // The name is taken.
+    AccessDenied              // The entry exists and refuses the operation.
+    WriteProtected            // The container is open read only and refuses every change.
+    SparseContainer           // Sparse files reveal allocation and are never accepted as containers.
+    NotDirectory              // A directory was needed, and the entry is a file.
+    IsDirectory               // A file was needed, and the entry is a directory.
+    DirectoryNotEmpty         // The directory still holds entries.
+    DiskFull                  // No room is left: for blocks, for metadata, or for key slots.
+    Corrupted                 // An open container no longer reads back what it stored.
+    Io                        // The underlying file could not be read or written.
+    Elevated                  // The application runs as administrator, so Windows Explorer cannot see its drives.
+    DriverUnavailable         // The virtual drive component could not be loaded, started, or reached.
+    Canceled                  // The caller stopped the operation.
+    Busy                      // An ordinary unmount left an in-use drive mounted.
+    DriverRestartRequired     // Windows must restart to finish installing the driver.
 }
 
-const ErrorKindValues: [21] ErrorKind = [
+const ErrorKindValues: [22] ErrorKind = [
     .HiddenProtected, .General, .InvalidInput, .PasswordRequired, .SizeTooSmall, .PasswordOrDamaged,
     .NotFound, .AlreadyExists, .AccessDenied, .WriteProtected, .SparseContainer, .NotDirectory,
-    .IsDirectory, .DirectoryNotEmpty, .DiskFull, .Corrupted, .Io, .Elevated, .DriverUnavailable, .Canceled, .Busy]
+    .IsDirectory, .DirectoryNotEmpty, .DiskFull, .Corrupted, .Io, .Elevated, .DriverUnavailable, .Canceled, .Busy,
+    .DriverRestartRequired]
 
 // One failure raised by the volume layer: what kind of failure it is, the native status that came
 // with it, and where it was raised.

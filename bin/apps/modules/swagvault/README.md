@@ -33,8 +33,9 @@ Passwords and key-file selections are cleared when hiding the window.
 Ordinary unmount refuses open files or directories and leaves the drive accessible. Close those
 applications and retry, or choose **Force Unmount** and confirm its warning: existing handles
 stop working and pending application writes can be lost. Automatic policies always use ordinary
-unmounts. **Unmount and Quit** keeps Vault running if any drive remains mounted or a final
-synchronization fails.
+unmounts. If drives remain mounted when quitting, the dialog lets you cancel or choose
+**Force Unmount and Quit** for the remaining drives. A final synchronization failure keeps
+Vault open and reports the error.
 
 ## Hidden volumes
 
@@ -46,16 +47,19 @@ data. See the [container format](format.md) and the
 
 ## Mounting and runtime files
 
-The packaged application includes `winfsp-x64.dll`, `winfsp-x64.sys`, its shared Swag dependencies,
-and the required licence notices. Keep those files beside the executable. Packaging copies the
-unmodified WinFsp runtime from the repository's vendor inputs; mounting does not run an installer.
+The packaged application includes the WinFsp runtime, the official `winfsp.msi`, its shared Swag
+dependencies, and the required licence notices. Keep those files beside the executable.
 
-Launch Swag Vault normally. When the portable runtime is needed, the application requests elevation
-for its separate driver helper so the mounted drive remains visible to the ordinary Windows session.
+Launch Swag Vault normally. If WinFsp is installed, the application uses it. Otherwise the first
+manual mount offers to install WinFsp for this computer or remember the choice to stay portable.
+**Install WinFsp…** is also available in **Options** whenever WinFsp is missing and all vaults
+are unmounted. The MSI runs only after that explicit choice.
+
+In portable mode, the first mount in each Swag Vault process requests elevation for a separate
+driver helper so the mounted drive remains visible to the ordinary Windows session.
 The helper stages the runtime in a temporary directory under an identity unique to that helper.
 It keeps the driver available until the application exits, then unregisters its own runtime.
 Other Swag Vault processes and drivers awaiting deletion therefore have separate identities.
-An already installed WinFsp runtime can also be used.
 
 Each mount uses a unique WinFsp UNC name alongside its drive letter, so Windows can resolve
 file and directory handles through `GetFinalPathNameByHandleW`, as Python's `os.path.realpath`

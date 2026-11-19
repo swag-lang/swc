@@ -96,6 +96,8 @@ impl MainWindow
         .securityEpoch  += 1
         .autoRetryAfter = Time.monotonicMilliseconds() + 30_000
         .startupQueue.clear()
+        if .operation.kind == .InstallDriver and not .operation.path.isEmpty() do
+            .forgetAccess()
         if .operation.kind == .Unmount do
             .operation.task.wait()
         let interruptedMount = .operation.kind == .Mount and .operation.usedProtection

@@ -52,7 +52,7 @@ impl MainWindow
             if entry.drive.isEmpty() or not File.exists(entry.path) or .isMounted(entry.path) do
                 continue
 
-            if entry.needsPassword
+            if entry.needsPassword or .needsDriverChoice()
             {
                 if hidden do
                     continue

@@ -21,8 +21,9 @@ struct VaultResident
     menu:                *ResidentMenu?
     batch:               bool
     quitting:            bool
-    failed:              bool
-    failureDetail:       String
+    forceUnmount:        bool
+    retainedFailure:     String
+    syncFailure:         String
     pending:             Array'String
 }
 
@@ -194,22 +195,38 @@ impl VaultResident
     // Never exit while a mount, an operation or an unreviewed synchronization failure remains.
     mtd unmountAll(quit: bool)
     {
-        if .window.operation.kind != .None or .batch
+        if .batch do
+            return
+        if .window.operation.kind != .None
         {
             .showWindow()
             .window.showError(appStrings().msg_FinishOperation)
             return
         }
 
+        .startUnmountBatch(quit, force: false)
+    }
+
+    private mtd startUnmountBatch(quit, force: bool)
+    {
         .window.startupQueue.clear()
         .pending.clear()
         for &drive in .window.mountedDrives.drives do
             .pending.add(drive.path)
-        .batch    = true
-        .quitting = quit
-        .failed   = false
-        .failureDetail.clear()
+        .batch        = true
+        .quitting     = quit
+        .forceUnmount = force
+        .retainedFailure.clear()
+        .syncFailure.clear()
         .continueUnmount()
+    }
+
+    // Keep synchronization failures visible even if a different drive can still be retried.
+    mtd recordUnmountFailure(operationError: any, retained: bool)
+    {
+        let detail = retained ? &.retainedFailure : &.syncFailure
+        if detail.isEmpty() do
+            detail[] = caughtMessage(operationError)
     }
 
     mtd continueUnmount()
@@ -222,29 +239,57 @@ impl VaultResident
             .pending.removeAtOrdered(0)
             if not .window.isMounted(path) do
                 continue
-            .window.unmountVault(path)
+            .window.unmountVault(path, force: .forceUnmount)
+            return
+        }
+
+        let count = .window.mountedDrives.drives.count
+        if count or not .syncFailure.isEmpty()
+        {
+            let detail = .syncFailure.isEmpty() ? .retainedFailure.toString() : .syncFailure.toString()
+            .window.statusDetail = .quitting ? "" : detail
+            .window.statusDrive  = Format.toString("%", count)
+            .window.setStatus(count ? .UnmountStopped : .UnmountSyncStopped)
+            var force: bool
+            if .quitting do
+                force = .confirmForceQuit(detail)
+            elif .isHidden() do
+                .notify(.window.statusText())
+
+            .batch    = false
+            .quitting = false
+            if force do
+                .startUnmountBatch(quit: true, force: true)
             return
         }
 
         .batch = false
-        let count = .window.mountedDrives.drives.count
-        if .failed or count
-        {
-            .quitting = false
-            .window.statusDetail = .failureDetail
-            .window.statusDrive  = Format.toString("%", count)
-            .window.setStatus(count ? .UnmountStopped : .UnmountSyncStopped)
-            if .isHidden() do
-                .notify(.window.statusText())
-            return
-        }
-
         if .quitting
         {
             .quitting = false
             catch g_App.saveState()
             .window.surface!.destroy()
         }
+    }
+
+    private mtd confirmForceQuit(detail: string)->bool
+    {
+        .showWindow()
+        let surface = unwrap .window.surface
+        let texts   = appStrings()
+        let title   = .window.statusText()
+        if .forceUnmount or not .syncFailure.isEmpty()
+        {
+            let message = .syncFailure.isEmpty() ? title.toString() : texts.msg_UnmountSyncStopped
+            MessageDlg.error(surface, message, options: {detail: detail})
+            return false
+        }
+
+        let message = Format.toString("%\n\n%", detail, texts.msg_ForceUnmountText)
+        let dialog  = MessageDlg.create(surface, message, {title: title, mark: .Warning})
+        dialog.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel, true)
+        dialog.addButton(texts.dlg_BtnForceQuit, Dialog.BtnOk).setForm(.Destructive)
+        return dialog.doModal() == Dialog.BtnOk
     }
 
     mtd stop()

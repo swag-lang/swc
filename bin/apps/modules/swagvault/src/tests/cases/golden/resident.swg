@@ -36,6 +36,7 @@ using Core, Gui, Pixel
     host.notify(.ThemeChanged)
     window.resident.settings.enabled = true
     window.resident.applySettings()
+    window.optionsPage.driverAction?.hide()
     window.showPage(.Options, animate: false)
     window.applyLayout()
     window.optionsPage.scroll.setScrollPos(0, window.optionsPage.scroll.scrollSize.y)

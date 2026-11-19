@@ -6,6 +6,7 @@ enum OperationKind
     None
     Create
     Mount
+    InstallDriver
     Unmount
     Resize
     ChangeAccess
@@ -38,7 +39,10 @@ enum StatusMessage
     StopRequested            // The user asked the running operation to stop.
     HiddenCreateCanceled     // Hidden creation stopped; replacing an older hidden volume can damage it.
     CreateCanceled           // Creation stopped on request and left nothing behind.
-    StartingDriver           // The portable filesystem driver is starting.
+    StartingDriver           // The virtual drive is being prepared.
+    InstallingDriver         // Windows Installer is installing WinFsp.
+    DriverInstalled          // WinFsp is available for the next mount.
+    DriverInstallStopped     // Windows Installer could not make WinFsp available.
     Unmounting               // The drive is being synchronized and unmounted.
     CreateStopped            // Container creation stopped.
     Created                  // The container was created and is ready to mount.
@@ -294,13 +298,14 @@ struct MainWindow
     securityTimer:   *Timer?
     securityMonitor: AutoUnmountMonitor
 
-    mountDestinations: Array'MountDestination
-    autoUnmount:       AutoUnmountSettings
-    securityEpoch:     u64
-    resident:          VaultResident
-    initialized:       bool
-    autoRetryAfter:    u64
-    statusDetail:      String
+    mountDestinations:    Array'MountDestination
+    autoUnmount:          AutoUnmountSettings
+    securityEpoch:        u64
+    resident:             VaultResident
+    preferPortableWinFsp: bool     // Skip offering installation on machines without WinFsp.
+    initialized:          bool
+    autoRetryAfter:       u64
+    statusDetail:         String
 
     // What the notice line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
@@ -354,24 +359,25 @@ func kindMessage(kind: ErrorKind)->String
     // chose, so a reader can only be told the container is damaged.
     switch #complete kind
     {
-    case .PasswordRequired:  return texts.msg_PasswordRequired
-    case .SizeTooSmall:      return minimumSizeMessage()
-    case .PasswordOrDamaged: return texts.msg_ErrPasswordOrDamaged
-    case .Corrupted:         return texts.msg_ErrDamaged
-    case .NotFound:          return texts.msg_ErrNotFound
-    case .AlreadyExists:     return texts.msg_ErrAlreadyExists
-    case .AccessDenied:      return texts.msg_ErrAccessDenied
-    case .HiddenProtected:   return texts.msg_HiddenProtected
-    case .WriteProtected:    return texts.msg_ErrReadOnly
-    case .SparseContainer:   return texts.msg_ErrSparse
-    case .DiskFull:          return texts.msg_ErrDiskFull
-    case .Io:                return texts.msg_ErrIo
-    case .Elevated:          return texts.msg_ErrElevated
-    case .DriverUnavailable: return texts.msg_ErrDriverUnavailable
-    case .Canceled:          return texts.msg_OperationStopped
-    case .Busy:              return texts.msg_DriveBusy
-    case .InvalidInput:      return texts.msg_ErrInvalidRequest
-    case .General:           return texts.msg_SystemError
+    case .PasswordRequired:      return texts.msg_PasswordRequired
+    case .SizeTooSmall:          return minimumSizeMessage()
+    case .PasswordOrDamaged:     return texts.msg_ErrPasswordOrDamaged
+    case .Corrupted:             return texts.msg_ErrDamaged
+    case .NotFound:              return texts.msg_ErrNotFound
+    case .AlreadyExists:         return texts.msg_ErrAlreadyExists
+    case .AccessDenied:          return texts.msg_ErrAccessDenied
+    case .HiddenProtected:       return texts.msg_HiddenProtected
+    case .WriteProtected:        return texts.msg_ErrReadOnly
+    case .SparseContainer:       return texts.msg_ErrSparse
+    case .DiskFull:              return texts.msg_ErrDiskFull
+    case .Io:                    return texts.msg_ErrIo
+    case .Elevated:              return texts.msg_ErrElevated
+    case .DriverUnavailable:     return texts.msg_ErrDriverUnavailable
+    case .DriverRestartRequired: return texts.msg_WinFspRestart
+    case .Canceled:              return texts.msg_OperationStopped
+    case .Busy:                  return texts.msg_DriveBusy
+    case .InvalidInput:          return texts.msg_ErrInvalidRequest
+    case .General:               return texts.msg_SystemError
     case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return texts.msg_ErrDamaged
     }
 }
@@ -617,6 +623,8 @@ impl MainWindow
         if outgoing != incoming do
             .surface?.clearFocus()
         .page = page
+        if page == .Options do
+            .optionsPage.refreshDriverAction()
         .optionsButton.show(page == .List)
 
         if animate and outgoing != incoming
@@ -791,6 +799,8 @@ impl MainWindow
         .mountPassword.clear()
         .unlockKeyFiles.clear()
         .protectHiddenOnMount = false
+        if .operation.kind == .InstallDriver do
+            .operation.path.clear()
     }
 
     // Says the list again from the vaults and the drives, and puts the actions in step with it.
@@ -911,6 +921,7 @@ impl MainWindow
         let ready = .operation.kind == .None
         let card  = &.list.card
 
+        .optionsPage.refreshDriverAction()
         .createPage.form.enable(ready)
         .createPage.actions.enable(ready)
         .createButton.enable(ready and .canCreate())
@@ -1145,6 +1156,7 @@ impl IWnd for MainWindow
         catch evt.serializer.serialize("MainWindow.language", &me.language)
         catch evt.serializer.serialize("MainWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("MainWindow.resident", &me.resident.settings)
+        catch evt.serializer.serialize("MainWindow.preferPortableWinFsp", &me.preferPortableWinFsp)
 
         // Privacy is the default, including for state written before this setting
         // existed. Only an explicit opt-out permits paths or browse history on disk.

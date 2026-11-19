@@ -69,5 +69,4 @@ const ApplicationId     = "swagvault"
     mainWindow.initialize()
     mainWindow.resident.start()
     discard g_App.run()
-    mainWindow.shutdown()
 }

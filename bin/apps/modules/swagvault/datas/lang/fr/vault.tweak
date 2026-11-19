@@ -29,6 +29,7 @@ msg_AutoUnmountBusyOne Le démontage automatique s'est arrêté. Un lecteur prot
 msg_ForceUnmountTitle  Forcer le démontage
 msg_ForceUnmountText   Les fichiers et dossiers ouverts cesseront de fonctionner. Les applications peuvent perdre les modifications non enregistrées et les écritures en attente.
 dlg_BtnForceUnmount    Forcer le démontage
+dlg_BtnForceQuit       Forcer le démontage et quitter
 msg_FinishOperation    Attendez la fin de l'opération en cours, ou arrêtez-la avant de quitter.
 msg_ResidentOperation  Une opération est en cours. Ouvrez Swag Vault pour la suivre ou l'arrêter.
 
@@ -174,7 +175,7 @@ msg_ChooseExisting     Choisissez un conteneur existant.
 msg_AlreadyMounted     Un lecteur expose déjà ce conteneur.
 msg_UnmountFirst       Ce coffre est monté. Démontez-le avant de le modifier.
 msg_NoDriveLetter      Aucun emplacement de montage n'est disponible.
-msg_StartingDriver     Démarrage du pilote de système de fichiers portable...
+msg_StartingDriver     Préparation du lecteur virtuel…
 msg_Unmounting         Synchronisation et démontage du lecteur chiffré...
 msg_CreateStopped      La création du conteneur s'est arrêtée.
 msg_Created            Conteneur créé. Il est prêt à être ouvert.
@@ -223,3 +224,12 @@ search_Create créer coffre;nouveau conteneur
 search_Open ouvrir coffre;ouvrir conteneur
 
 ui_AboutLinuxRuntime Système de fichiers en espace utilisateur — github.com/libfuse/libfuse. Les événements de session utilisent systemd et l’inactivité du bureau utilise X.Org. Licences dans THIRDPARTY.md.
+cmd_InstallWinFsp        Installer WinFsp…
+dlg_BtnKeepPortable      Rester en mode portable
+msg_WinFspMissing        WinFsp est nécessaire pour monter des coffres.
+msg_WinFspChoice         Installez WinFsp sur cet ordinateur pour monter vos coffres sans demandes d’autorisation répétées. En mode portable, Windows demande une autorisation administrateur au premier montage de chaque lancement de Swag Vault.
+msg_InstallingDriver     Installation de WinFsp…
+msg_DriverInstalled      WinFsp est installé.
+msg_WinFspInstallStopped L’installation de WinFsp n’a pas pu aboutir.
+msg_WinFspRestart        Redémarrez Windows pour terminer l’installation de WinFsp.
+ui_WinFspUnmountFirst    Démontez tous les coffres avant d’installer WinFsp.

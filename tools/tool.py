@@ -187,19 +187,21 @@ def portability_check(root):
         raise ValueError(f'Swag script launchers remain under tools: {scripts[0]}')
 
 
-def package_vault(bin_root, module, options):
+def package_vault(bin_root, module, options, *, before_run=False):
     if module and module != 'swagvault':
         return
     cfg = option_value(options, ('-bc', '--build-cfg'), 'devmode')
     if '--debug' in options:
         cfg += '-debug'
     output = bin_root / 'apps/.output/swagvault/executable' / cfg / 'x86_64'
-    if not (output / 'swagvault.exe').is_file():
+    if not before_run and not (output / 'swagvault.exe').is_file():
         return
+    output.mkdir(parents=True, exist_ok=True)
     app = bin_root / 'apps/modules/swagvault'
     for source in (app / 'vendor/winfsp/runtime/winfsp-x64.dll', app / 'vendor/winfsp/runtime/winfsp-x64.sys',
                    app / 'LICENCE.md', app / 'THIRDPARTY.md'):
         shutil.copy2(source, output / source.name)
+    shutil.copy2(app / 'vendor/winfsp/winfsp-2.2.26215.msi', output / 'winfsp.msi')
 
 
 def execute(stages, environment, *, keep_going=False):
@@ -286,6 +288,8 @@ def main(arguments=None):
         stages = [module_stage(compiler, bin_root, tool, action, module, arguments)]
     if action == 'test':
         environment.setdefault('SWAG_RUNTIME_THREADS', runtime_workers(arguments))
+    if windows and tool == 'apps' and action == 'run':
+        package_vault(bin_root, module, arguments, before_run=True)
     result = execute(stages, environment, keep_going=keep_going)
     if result == 0 and windows and tool == 'apps' and action == 'build':
         package_vault(bin_root, module, arguments)

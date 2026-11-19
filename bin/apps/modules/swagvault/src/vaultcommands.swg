@@ -35,6 +35,7 @@ namespace VaultCommands
     const ForceUnmount     = "vault.forceUnmount"
     const Resident         = "vault.resident"
     const SessionStartup   = "vault.sessionStartup"
+    const InstallWinFsp    = "vault.installWinFsp"
 }
 
 impl MainWindow
@@ -67,6 +68,8 @@ impl MainWindow
             .addCommands(func()->string => appStrings().lens_File, [VaultCommands.Vaults, VaultCommands.Options, VaultCommands.ShowWindow,
                                                                     VaultCommands.UnmountAll, VaultCommands.Quit, VaultCommands.Resident, VaultCommands.SessionStartup])
             .addCommands(func()->string => appStrings().lens_Vault, VaultCommandIds)
+            #static if SupportsWinFspInstall do
+                .addCommands(func()->string => appStrings().lens_File, [VaultCommands.InstallWinFsp])
             .addCommands(func()->string => appStrings().lens_Privacy, [VaultCommands.PrivacyMode, VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend,
                                                                        VaultCommands.UnmountOnIdle])
         }
@@ -193,6 +196,11 @@ impl MainWindow
             name   = texts.cmd_Options
             icon   = .Settings
             hidden = .page == .Options
+
+        case VaultCommands.InstallWinFsp:
+            name     = texts.cmd_InstallWinFsp
+            hidden   = not SupportsWinFspInstall or hasInstalledWinFsp()
+            disabled = not ready or not .mountedDrives.drives.isEmpty()
 
         case VaultCommands.Mount:
             name     = texts.ui_Mount
@@ -348,6 +356,7 @@ impl MainWindow
         case VaultCommands.OpenFile:         .openVaultFile()
         case VaultCommands.Vaults:           .goBack()
         case VaultCommands.Options:          .showPage(.Options)
+        case VaultCommands.InstallWinFsp:    .startDriverInstall()
         case VaultCommands.Mount:            .mountContainer()
         case VaultCommands.Unmount:          .unmountVault(String.from(.chosenPath))
         case VaultCommands.OpenDrive:        .openDrive(String.from(.chosenPath))

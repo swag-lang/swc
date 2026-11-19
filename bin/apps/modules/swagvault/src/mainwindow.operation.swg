@@ -213,6 +213,8 @@ impl MainWindow
     // Checks the unfolded vault, then mounts its container in the background.
     mtd mountContainer()
     {
+        if .operation.kind != .None or .resident.batch do
+            return
         let path = String.from(.chosenLockedPath())
         if path.isEmpty()
         {
@@ -233,6 +235,8 @@ impl MainWindow
             return
         }
 
+        if .needsDriverChoice() and not .chooseDriverForMount(path) do
+            return
         .operation.createHidden = false
         .operation.hiddenAccess.clear()
         .operation.protectHidden = .protectHiddenOnMount and not .readOnly.isChecked()
@@ -428,6 +432,12 @@ impl MainWindow
     // unmounts, resizes, or changes access, and leaves any failure in `operation.error`.
     mtd runOperation()
     {
+        if .operation.kind == .InstallDriver
+        {
+            catch installWinFspNative() as .operation.error
+            return
+        }
+
         defer .operation.hiddenAccess.clear()
         var hiddenCredential: VaultCredential
         if .operation.createHidden or .operation.protectHidden
@@ -454,7 +464,7 @@ impl MainWindow
 
         switch #complete .operation.kind
         {
-        case .None:
+        case .None, .InstallDriver:
             return
 
         case .Create:
@@ -585,20 +595,32 @@ impl MainWindow
         .stopTimer(&.operation.timer)
         .showBusy(false)
 
+        let resumeMount = .operation.kind == .InstallDriver and
+                          operationError == null and
+                          not .operation.path.isEmpty() and
+                          .operation.path == .chosenPath and
+                          .page == .List
         switch #complete .operation.kind
         {
-        case .None:         return
-        case .Create:       .finishCreate(operationError)
-        case .Mount:        .finishMount(operationError)
-        case .Unmount:      .finishUnmount(operationError)
-        case .Resize:       .finishResize(operationError)
-        case .ChangeAccess: .finishAccessChange(operationError)
+        case .None:          return
+        case .Create:        .finishCreate(operationError)
+        case .Mount:         .finishMount(operationError)
+        case .InstallDriver: .finishDriverInstall(operationError)
+        case .Unmount:       .finishUnmount(operationError)
+        case .Resize:        .finishResize(operationError)
+        case .ChangeAccess:  .finishAccessChange(operationError)
         }
 
         .operation.forgetRequest()
         .showOperation()
         .refreshActions()
         .resident.refreshTray()
+        if resumeMount
+        {
+            .mountContainer()
+            return
+        }
+
         if operationError == null and .resident.isHidden() and not .resident.batch do
             .resident.notify(.statusText())
         if .resident.batch
@@ -716,14 +738,16 @@ impl MainWindow
         .pruneVaults()
         if operationError != null
         {
-            .resident.failed = true
-            .statusDetail    = caughtMessage(operationError)
-            if .resident.failureDetail.isEmpty() do
-                .resident.failureDetail = .statusDetail
-            .statusDrive = Format.toString("%", .mountedDrives.drives.count)
-            .setStatus(retained ? .UnmountStopped : .UnmountSyncStopped)
-            if not .resident.batch do
+            if .resident.batch
+            {
+                .resident.recordUnmountFailure(operationError, retained)
+            }
+            else
+            {
+                .statusDrive = Format.toString("%", .mountedDrives.drives.count)
+                .setStatus(retained ? .UnmountStopped : .UnmountSyncStopped)
                 .showError(retained ? appStrings().msg_UnmountFailed : appStrings().msg_UnmountSyncStopped, operationError)
+            }
         }
         else
         {

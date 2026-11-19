@@ -142,7 +142,7 @@ namespace WinFsp
                 status.trim()
                 if status.startsWith("READY\n") and status.count > ("READY\n").count
                 {
-                    g_WinFsp.dllPath         = Swag.makeString(status.buffer + ("READY\n").count, status.count - ("READY\n").count)
+                    g_WinFsp.guardianDllPath = Swag.makeString(status.buffer + ("READY\n").count, status.count - ("READY\n").count)
                     g_WinFsp.guardianManaged = true
                     return
                 }

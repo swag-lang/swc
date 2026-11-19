@@ -305,6 +305,18 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // This is the final callback, even when the driver stops without delivering every Close.
+    #[Swag.CallingConvention(.C)]
+    func fspDispatcherStopped(fileSystem: *FspFileSystem, _: u8)
+    {
+        let activity = &mountContext(fileSystem).activity
+        activity.mutex.lock()
+        defer activity.mutex.unlock()
+        activity.stopping = true
+        activity.handles  = 0
+        activity.released.wakeAll()
+    }
+
     // Builds the dispatch table WinFsp calls for every filesystem request.
     //
     // Slots left null are operations WinFsp treats as unsupported, which is the
@@ -333,6 +345,7 @@ namespace WinFsp
             .setSecurity       = &fspSetSecurity
             .readDirectory     = &fspReadDirectory
             .getDirInfoByName  = &fspGetDirInfoByName
+            .dispatcherStopped = &fspDispatcherStopped
         }
 
         return result

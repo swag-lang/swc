@@ -104,30 +104,19 @@ namespace WinFsp
     {
         if g_WinFsp.module do
             return
+        g_WinFsp.portable = false
 
         #static if #hastag("vault.integration") do
             discard catch File.writeAllBytes(winFspStageLogPath(), Swag.makeSlice(cast(const [*] u8, ("load requested\n").buffer), ("load requested\n").count))
 
-        if g_WinFsp.guardianManaged
+        let installedPath = g_WinFsp.guardianProcess ? String{} : installedLibrary()
+        if not installedPath.isEmpty()
         {
-            g_WinFsp.module   = loadLibrary(g_WinFsp.dllPath)
-            g_WinFsp.portable = true
+            g_WinFsp.module = loadLibrary(installedPath)
+            if not g_WinFsp.module do
+                fail volumeError(.DriverUnavailable, GetLastError())
         }
         else
-        {
-            let programFiles = environmentValue("ProgramFiles(x86)")
-            if not programFiles.isEmpty()
-            {
-                let installedPath = Path.combine(programFiles, "WinFsp", "bin", "winfsp-x64.dll")
-                if File.exists(installedPath)
-                {
-                    g_WinFsp.module  = loadLibrary(installedPath)
-                    g_WinFsp.dllPath = installedPath
-                }
-            }
-        }
-
-        if not g_WinFsp.module
         {
             if g_WinFsp.guardianProcess
             {
@@ -138,6 +127,7 @@ namespace WinFsp
             else
             {
                 try ensurePortableGuardian()
+                g_WinFsp.dllPath = g_WinFsp.guardianDllPath
             }
 
             g_WinFsp.module = loadLibrary(g_WinFsp.dllPath)
@@ -172,7 +162,7 @@ namespace WinFsp
     // library, and removes the staged runtime once nothing holds it.
     func unloadWinFsp()
     {
-        if g_WinFsp.guardianManaged and not g_WinFsp.guardianProcess
+        if g_WinFsp.portable and g_WinFsp.guardianManaged
         {
             if g_WinFsp.module
             {

@@ -10,6 +10,16 @@ using Core, Gui
 // [[appStrings]]; never keep a copy across a language switch.
 struct AppStrings
 {
+    cmd_InstallWinFsp:        string = "Install WinFsp…"
+    dlg_BtnKeepPortable:      string = "Stay in Portable Mode"
+    msg_WinFspMissing:        string = "WinFsp is required to mount vaults."
+    msg_WinFspChoice:         string = "Install WinFsp on this computer to mount vaults without repeated administrator prompts. In portable mode, Windows asks for administrator approval at the first mount each time Swag Vault starts."
+    msg_InstallingDriver:     string = "Installing WinFsp…"
+    msg_DriverInstalled:      string = "WinFsp is installed."
+    msg_WinFspInstallStopped: string = "WinFsp installation could not finish."
+    msg_WinFspRestart:        string = "Restart Windows to finish installing WinFsp."
+    ui_WinFspUnmountFirst:    string = "Unmount all vaults before installing WinFsp."
+
     // Alternative phrases for command discovery; semicolons separate complete phrases.
     search_Create: string = "create vault;new container"
     search_Open:   string = "open vault;open container"
@@ -96,6 +106,7 @@ struct AppStrings
     msg_ForceUnmountTitle:  string = "Force Unmount"
     msg_ForceUnmountText:   string = "Open files and folders will stop working. Applications may lose unsaved changes and pending writes."
     dlg_BtnForceUnmount:    string = "Force Unmount"
+    dlg_BtnForceQuit:       string = "Force Unmount and Quit"
     msg_FinishOperation:    string = "Wait for the current operation to finish, or stop it before quitting."
     msg_ResidentOperation:  string = "An operation is running. Open Swag Vault to follow it or stop it."
 
@@ -194,7 +205,7 @@ struct AppStrings
     msg_AlreadyMounted:       string = "A drive is already exposing this container."
     msg_UnmountFirst:         string = "This vault is mounted. Unmount it before changing it."
     msg_NoDriveLetter:        string = "No mount destination is available."
-    msg_StartingDriver:       string = "Starting the portable filesystem driver..."
+    msg_StartingDriver:       string = "Preparing the virtual drive…"
     msg_Unmounting:           string = "Synchronizing and unmounting the encrypted drive..."
     msg_CreateStopped:        string = "Container creation stopped."
     msg_Created:              string = "Container created. It is ready to open."

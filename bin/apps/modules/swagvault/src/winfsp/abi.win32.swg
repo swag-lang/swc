@@ -121,6 +121,9 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     alias FspGetDirInfoByNameFn  = func(*FspFileSystem, *void?, [*] u16?, *FspDirInfo)->s32
 
+    #[Swag.CallingConvention(.C)]
+    alias FspDispatcherStoppedFn = func(*FspFileSystem, u8)
+
     // The dispatch table WinFsp calls back through. Every slot starts null and receives its
     // operation while the table is built, which is also how an unimplemented operation stays
     // null and reads as unsupported.
@@ -153,11 +156,14 @@ namespace WinFsp
 
         late getDirInfoByName: FspGetDirInfoByNameFn
 
-        unused25To63: [39] (const *void?)
+        unused25To31: [7] (const *void?)
+        late dispatcherStopped: FspDispatcherStoppedFn
+        reserved:     [31] (const *void?)
     }
 
     #assert(#sizeof(FspInterface) == 64 * #sizeof(*void?))
     #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(*void?))
+    #assert(#offsetof(FspInterface.dispatcherStopped) == 32 * #sizeof(*void?))
 
     #[Swag.CallingConvention(.C)]
     alias FspFileSystemCreateFn           = func(const [*] u16?, const *FspVolumeParams, const *FspInterface, *(*FspFileSystem?))->s32
@@ -215,8 +221,9 @@ namespace WinFsp
         // back to free what that function allocated.
         setSecurityAddress: const *void?
 
-        runtimeRoot: String
-        dllPath:     String
+        runtimeRoot:     String
+        dllPath:         String
+        guardianDllPath: String
 
         // Mounts currently holding the runtime. The library, the portable driver registration
         // and the staged runtime tree are shared by every mount, so they are released when the
@@ -239,15 +246,5 @@ namespace WinFsp
     {
         let path16 = Utf16.toZeroTerminated(path)
         return LoadLibraryW(path16.buffer)
-    }
-
-    // The value of an environment variable; empty when it is unset or too long.
-    func environmentValue(name: string)->String
-    {
-        var buffer: [32768] u8
-        let count = GetEnvironmentVariableA(name.buffer, buffer.buffer, cast(u32, buffer.count))
-        if not count or count >= buffer.count do
-            return ""
-        return Swag.makeString(buffer.buffer, count)
     }
 }

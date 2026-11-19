@@ -40,17 +40,19 @@ impl MainWindow
     {
         switch #complete .statusMessage
         {
-        case .Randomizing, .StopRequested, .StartingDriver, .Unmounting, .Mounted, .MountedReadOnly,
-             .MountedProtected, .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
+        case .Randomizing, .StopRequested, .StartingDriver, .InstallingDriver,
+             .Unmounting, .Mounted, .MountedReadOnly, .MountedProtected,
+             .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
             return .Active
 
-        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped,
-             .AutoUnmountStopped, .AutoUnmountBusy, .UnmountStopped, .UnmountSyncStopped:
+        case .CreateStopped, .MountStopped, .DriverInstallStopped, .ResizeStopped,
+             .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped,
+             .AutoUnmountBusy, .UnmountStopped, .UnmountSyncStopped:
             return .Stopped
 
         case .Ready, .CreateCanceled, .HiddenCreateCanceled, .Created,
-             .Unmounted, .ResizeCanceled, .Resized, .Camouflaged, .AutoUnmounted,
-             .PasswordChanged, .PasswordRemoved, .KeyFilesChanged:
+             .DriverInstalled, .Unmounted, .ResizeCanceled, .Resized, .Camouflaged,
+             .AutoUnmounted, .PasswordChanged, .PasswordRemoved, .KeyFilesChanged:
             return .Idle
         }
     }
@@ -78,6 +80,15 @@ impl MainWindow
 
         case .StartingDriver:
             return texts.msg_StartingDriver
+
+        case .InstallingDriver:
+            return texts.msg_InstallingDriver
+
+        case .DriverInstalled:
+            return texts.msg_DriverInstalled
+
+        case .DriverInstallStopped:
+            return texts.msg_WinFspInstallStopped
 
         case .Unmounting:
             return texts.msg_Unmounting

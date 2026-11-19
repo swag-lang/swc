@@ -16,7 +16,8 @@ using Core, Gui, Pixel, Win32
     let window  = MainWindow.create(surface.wnd)
     defer
     {
-        surface.destroy()
+        if g_App.surfaces.contains(surface) do
+            surface.destroy()
         Swag.drop(&g_App, 1)
         Swag.init(&g_App, 1)
     }
@@ -84,4 +85,9 @@ using Core, Gui, Pixel, Win32
     window.resident.hideWindow()
     window.resident.setEnabled(false)
     Swag.require(not surface.isHidden and not surface.hasTrayIcon())
+
+    window.sendEvent(&close)
+    Swag.require(close.accepted and surface.wnd.isPendingDestroy)
+    g_App.runFrame()
+    Swag.require(not g_App.surfaces.contains(surface))
 }

@@ -119,6 +119,7 @@ struct OptionsPage
     head:         PageHead
     timeoutIndex: u32 = MainWindow.IdleDefaultIndex     // Entry of `MainWindow.IdleChoices` the delay says.
     arranging:    bool
+    driverAction: *Label?
 }
 
 impl OptionsPage
@@ -172,6 +173,19 @@ impl OptionsPage
         result.resident.toggle.sigChanged += func|window|(button) { window.resident.setEnabled(button.isChecked()) }
         result.startup.toggle.sigChanged  += func|window|(button) { window.resident.setSessionStartup(button.isChecked()) }
 
+        #static if SupportsWinFspInstall
+        {
+            with let action = Label.create(result.column, "", {}, null, .WordWrap | .SecondaryText | .LinkActions)
+            {
+                .preferredSize.y = 0
+                .margin.y        = RowPadding * 2
+                .setTextAlignment(.Left, .Top)
+                .sigLinkActivated += func|window|(_, _) { discard window.runCommand(VaultCommands.InstallWinFsp) }
+            }
+
+            result.driverAction = action
+        }
+
         // The delay is a rich-text action: the same layout, state and keyboard handling
         // used by every inline action label in GUI.
         result.timeout = result.idle.help
@@ -217,6 +231,35 @@ impl OptionsPage
         .resident.setTexts(texts.ui_Resident, texts.ui_ResidentHelp)
         .startup.setTexts(texts.ui_SessionStartup, texts.ui_SessionStartupHelp)
         .setTimeout(.timeoutIndex)
+        .refreshDriverAction()
+    }
+
+    mtd refreshDriverAction()
+    {
+        let action = .driverAction
+        if not action do
+            return
+
+        let texts = appStrings()
+        if .window.operation.kind == .InstallDriver
+        {
+            action.setText(texts.msg_InstallingDriver)
+        }
+        elif hasInstalledWinFsp()
+        {
+            action.setText(texts.msg_DriverInstalled)
+        }
+        elif not .window.mountedDrives.drives.isEmpty()
+        {
+            action.setText(texts.ui_WinFspUnmountFirst)
+        }
+        else
+        {
+            action.setMarkup(Format.toString("<a>%</a>", RichString.escape(texts.cmd_InstallWinFsp)))
+            action.setLinksEnabled(.window.operation.kind == .None and not .window.resident.batch)
+        }
+
+        .arrange()
     }
 
     // Says the delay of entry `index` of `MainWindow.IdleChoices` in its sentence.

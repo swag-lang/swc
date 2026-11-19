@@ -125,6 +125,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    window.optionsPage.driverAction?.hide()
     window.showPage(.Options, animate: false)
     assertSurfaceGolden(&host, window, true, "options")
 }
@@ -155,6 +156,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    window.optionsPage.driverAction?.hide()
     window.showPage(.Options, animate: false)
     window.unmountOnIdle.toggle()
     window.applyLayout()

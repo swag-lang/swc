@@ -128,6 +128,10 @@ struct Explorer
     load:            ExplorerListingLoad
     watchTimer:      *Timer?
     refreshPending:  bool
+    dragSource:      *Wnd?
+    dragOrigin:      Math.Point
+    dragPath:        String
+    draggingFile:    bool
     previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
     generation:      u64
     selected:        u64 = Swag.U64.Max
@@ -272,6 +276,13 @@ impl Explorer
                     evt.accepted = true
                 }
             }
+        }
+
+        result.list.listView.hookOnEvent = func|result|(source, evt)->bool
+        {
+            if evt is MouseEvent as mouse do
+                return result.handleFileDrag(source, mouse)
+            return false
         }
 
         result.list.header.sigColumnClicked += func|result|(_, column)
@@ -766,6 +777,8 @@ impl Explorer
     // Shows or hides the listing.
     mtd setShown(visible: bool)
     {
+        if not visible do
+            .clearFileDrag()
         .show(visible)
         .window.registerKeyShortcut(.None, .F5, visible ? ViewerCommands.Refresh : ViewerCommands.Reload)
         .updateWatchTimer()
@@ -1023,6 +1036,7 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
+        .clearFileDrag()
         .rememberView()
         if not Path.equals(.requested, path) or .requestedFolder != folder
         {
@@ -1787,6 +1801,8 @@ impl Explorer
 
     mtd setMode(mode: ExplorerMode)
     {
+        if mode != .mode do
+            .clearFileDrag()
         .mode = mode
         .refreshQuietMenus()
 
@@ -1802,6 +1818,70 @@ impl Explorer
     }
 
     mtd isThumbnailView()->bool => .mode != .Names and .mode != .Details
+
+    private mtd clearFileDrag()
+    {
+        let source = .dragSource
+        .dragSource = null
+        .dragPath.clear()
+        if source and source.mouseCapture() == source do
+            source.releaseMouse()
+    }
+
+    // Leaves ordinary clicks to the list or grid. Capture lets the drag start even when the
+    // first move beyond the desktop's threshold is already outside the source control.
+    private mtd handleFileDrag(source: *Wnd, evt: *MouseEvent)->bool
+    {
+        if evt.kind == .Pressed and evt.button == .Left
+        {
+            .clearFileDrag()
+            if .listing.isArchive do
+                return false
+
+            let row = source == .grid ? .grid.rowAt(source.surfaceToLocal(evt.surfacePos)) : cast(u64, .list.rowAt(evt.surfacePos))
+            if row < .shown.count
+            {
+                let entry = &.entries[.shown[row]]
+                if not entry.directory and not entry.path.isEmpty()
+                {
+                    .dragPath   = entry.path
+                    .dragOrigin = evt.surfacePos
+                    .dragSource = source
+                    source.captureMouse()
+                }
+            }
+
+            return false
+        }
+
+        if .dragSource != source do
+            return false
+
+        if evt.kind == .Released and evt.button == .Left
+        {
+            .clearFileDrag()
+            return not source.surfaceRect().contains(evt.surfacePos)
+        }
+
+        if evt.kind != .Move do
+            return false
+        if source.mouseCapture() != source or not .app().mouse.isButtonPressed(.Left)
+        {
+            .clearFileDrag()
+            return false
+        }
+
+        if not source.exceedsDragThreshold(.dragOrigin, evt.surfacePos) do
+            return false
+
+        var data: DragData
+        data.addFile(.dragPath)
+        .clearFileDrag()
+        .draggingFile = true
+        defer .draggingFile = false
+        discard source.startDrag(&data, .Copy)
+        return true
+    }
 
     mtd suspend()
     {
@@ -2121,6 +2201,12 @@ impl Explorer
 impl IWnd for Explorer
 {
     mtd impl onResizeEvent(_: *ResizeEvent) => .layoutTools()
+
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
+    {
+        // A drag released over its own listing must not bubble up and open the source file.
+        evt.accepted = .draggingFile
+    }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -3293,6 +3379,9 @@ impl IWnd for ExplorerGrid
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if .explorer.handleFileDrag(me, evt) do
+            return
+
         if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
         {
             let row = evt.kind == .Leave ? Swag.U64.Max : .rowAt(.surfaceToLocal(evt.surfacePos))

@@ -267,6 +267,55 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
+// A file drag begins on a row or tile, while clicks and directory presses keep their usual route.
+#test
+{
+    let root = Testing.tempFilePath("scope-drag-", "")
+    expect Directory.create(Path.combine(root, "Folder"), recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    let path = Path.combine(root, "Source file.txt")
+    expect File.writeAllText(path, "Drag source")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(root)
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+    Swag.require(explorer.shown.count == 2)
+
+    for mode in [ExplorerMode.Details, .Medium]
+    {
+        explorer.setMode(mode)
+        window.applyLayout()
+        let source = mode == .Details ? cast(*Wnd, explorer.list.listView) : cast(*Wnd, explorer.grid)
+        let folder = mode == .Details ? explorer.list.cellTextRect(0, 0) : explorer.grid.tileRect(0)
+        let file   = mode == .Details ? explorer.list.cellTextRect(1, 0) : explorer.grid.tileRect(1)
+        let folderPoint = source.localToSurface(folder.center())
+        let filePoint   = source.localToSurface(file.center())
+
+        host.mouseDown(folderPoint)
+        Swag.require(explorer.dragPath.isEmpty() and host.app.mouseCapture() == null)
+        host.mouseUp(folderPoint)
+        Swag.require(explorer.selected == explorer.shown[0])
+
+        host.mouseDown(filePoint)
+        Swag.require(Path.equals(explorer.dragPath, path) and host.app.mouseCapture() == source)
+        host.moveMouse(filePoint)
+        Swag.require(host.app.mouseCapture() == source)
+        host.mouseUp(filePoint)
+        Swag.require(explorer.dragPath.isEmpty() and host.app.mouseCapture() == null)
+        Swag.require(explorer.selected == explorer.shown[1])
+
+        host.mouseDown(filePoint)
+        let outside = Math.Point{source.surfaceRect().right() + 32, filePoint.y}
+        host.moveMouse(outside)
+        Swag.require(explorer.dragPath.isEmpty() and host.app.mouseCapture() == null)
+        host.mouseUp(outside)
+        Swag.require(window.currentFile.isEmpty() and File.exists(path))
+    }
+}
+
 // Hover marks a thumbnail with the theme's stronger edge in both palettes.
 #test
 {

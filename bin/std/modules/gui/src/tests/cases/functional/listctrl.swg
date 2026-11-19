@@ -226,6 +226,9 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let name = list.cellTextRect(1, 0)
     let kind = list.cellTextRect(1, 1)
     Swag.require(not name.isEmpty() and not kind.isEmpty())
+    Swag.require(list.rowAt(list.listView.localToSurface(name.center())) == 1)
+    Swag.require(list.rowAt(list.header.surfaceRect().center()) == Swag.U32.Max)
+    Swag.require(list.rowAt(list.listView.localToSurface(Math.Point{32, list.lineHeight() * 3})) == Swag.U32.Max)
 
     // The second row sits one row height down, and the second column starts after the first.
     Swag.require(Math.isEqualEpsilon(name.y, list.lineHeight(), 0.5))
@@ -270,6 +273,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let row = list.cellTextRect(2, 0)
     Swag.require(not row.isEmpty())
     Swag.require(Math.isEqualEpsilon(row.y, 2 * list.lineHeight(), 0.5))
+    Swag.require(list.rowAt(list.listView.localToSurface(row.center())) == 2)
 }
 
 // Expanding/collapsing a parent line changes the visible line count.

@@ -1048,6 +1048,16 @@ impl ListCtrl
         }
     }
 
+    // Returns the row under `surfacePos`, in surface coordinates, or `Swag.U32.Max` if there is no row there.
+    //
+    // Only the visible row viewport is hit. Headers, separators, and the space below the last row return no row.
+    mtd rowAt(surfacePos: Math.Point)->u32
+    {
+        if not .listView.surfaceRect().contains(surfacePos) do
+            return Swag.U32.Max
+        return .listView.hitTest(surfacePos)
+    }
+
     // Says where a drop released at `surfacePos` would land.
     //
     // The outer quarter of a row reads as the gap next to it and the middle half reads as the row

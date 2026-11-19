@@ -3,7 +3,7 @@
 
 using Swag, Core, Pixel
 
-// Repainting the interior must not record a clipped outline or its overlap-safe alpha pass.
+// An interior repaint preserves the outline and shadow without recording them.
 #test
 {
     for scale in [1.0'f32, 1.5'f32, 2.0'f32]
@@ -13,7 +13,7 @@ using Swag, Core, Pixel
             var host: Testing.HeadlessHost
             host.setup(180, 120, scale)
             host.surface.flags = .StandardWindow
-            host.theme.metrics.surfaceWnd_ShadowSize   = 0
+            host.theme.metrics.surfaceWnd_ShadowSize   = 18
             host.theme.metrics.surfaceWnd_CornerRadius = radius
             host.surface.setPosition(Math.Rectangle{0, 0, 180 * scale, 120 * scale})
             host.root.setPosition(host.surfaceWnd.position)
@@ -23,15 +23,22 @@ using Swag, Core, Pixel
             host.surface.isDirty        = false
             host.surface.invalidateRect({50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
-            let withBorder = host.app.frameTrace.batches
+            let withChrome = host.app.frameTrace.batches
             let partial    = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
-            Pixel.Testing.assertImagesNear(&full, &partial, "surface.interior.border")
+            Pixel.Testing.assertImagesNear(&full, &partial, "surface.interior.chrome")
+
+            // Repainting through the rounded corner must reconstruct its alpha and shadow.
+            host.surface.invalidateRect({12, 12, 28, 28})
+            host.surface.paintWnd(&host.root)
+            let corner = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
+            Pixel.Testing.assertImagesNear(&full, &corner, "surface.corner.partial")
 
             host.surface.flags.remove(.Border)
+            host.theme.metrics.surfaceWnd_ShadowSize = 0
             host.app.frameTrace.batches = 0
             host.surface.invalidateRect({50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
-            Swag.require(withBorder != 0 and host.app.frameTrace.batches == withBorder)
+            Swag.require(withChrome != 0 and host.app.frameTrace.batches == withChrome)
         }
     }
 }

@@ -2564,19 +2564,38 @@ impl ExplorerGrid
                               CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
     }
 
+    // A tile's caption and selection ring reach outside its image rectangle.
+    private mtd tilePaintRect(tile: Math.Rectangle)->Math.Rectangle
+    {
+        var rect = tile
+        rect.height += FileTile.captionHeight(me)
+        let metrics = .themeMetrics()
+        // Keep the selection stroke and its antialiased fringe inside the repaint.
+        rect.inflate(metrics.fileTile_RingGap + metrics.fileTile_RingWidth * 2 + 2)
+        return rect
+    }
+
+    private mtd invalidateTile(row: u64)
+    {
+        if row >= .explorer.shown.count do
+            return
+        var rect = .tilePaintRect(.tileRect(row))
+        rect.offset(-.scrollPos.x, -.scrollPos.y)
+        rect.intersect(.clientRect())
+        .invalidateRect(rect)
+    }
+
     // The virtual grid supplies data and custom document previews; Gui owns the tile rendering.
-    mtd paintTile(painter: *Painter, row: u64)
+    mtd paintTile(painter: *Painter, row: u64, tile: Math.Rectangle)
     {
         let index = .explorer.shown[row]
         let entry = &.explorer.entries[index]
-        let tile  = .tileRect(row)
         let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
         let name  = safeMediaText(.tileName(entry))
         let facts = .reading(entry)
         let size  = .sizeText(entry)
         let badge = entry.duration and not .posters ? formatDuration(entry.duration) : String{}
         let ext   = entry.directory ? "" : (Path.extension(entry.name) orelse "")
-        let slot  = .explorer.previewSlot(index)
         var content: FileTile.Content
         content.texture     = entry.texture
         content.icon        = glyph
@@ -2629,6 +2648,12 @@ impl ExplorerGrid
                 painter.fillRect(Math.Rectangle{tile.x, tile.bottom() - thread, Math.round(tile.width * point.progress), thread}, .themeColors().arc)
             }
         }
+    }
+
+    private mtd positionTileSpinner(index: u64, tile: Math.Rectangle)
+    {
+        let entry = &.explorer.entries[index]
+        let slot  = .explorer.previewSlot(index)
 
         // Keep the generic tile under the spinner until a local image or online artwork is ready.
         // A queued online music pass has no worker slot yet, but is still busy.
@@ -3074,6 +3099,8 @@ impl ExplorerGrid
     mtd startNameScroll()
     {
         .stopTimer(&.nameTimer)
+        for scroll in .nameScrolls where scroll.endTick and scroll.tick do
+            .invalidateRect(.nameScrollRect(scroll.row))
         Swag.init(&.nameScrolls, 1)
         if .rows or .board == .Album or not .isVisible() or .app().isReducedMotion() do
             return
@@ -3199,8 +3226,16 @@ impl IWnd for ExplorerGrid
         }
         else
         {
-            for row in range.first until range.end do
-                .paintTile(painter, row)
+            let transform = painter.transform()
+            var clip      = painter.clippingRect()
+            clip.offset(-transform.tx, -transform.ty)
+            for row in range.first until range.end
+            {
+                let tile = .tileRect(row)
+                if .tilePaintRect(tile).intersects(clip) do
+                    .paintTile(painter, row, tile)
+                .positionTileSpinner(.explorer.shown[row], tile)
+            }
         }
 
         for spinner, slot in .spinners do
@@ -3215,9 +3250,18 @@ impl IWnd for ExplorerGrid
             let row = evt.kind == .Leave ? Swag.U64.Max : .rowAt(.surfaceToLocal(evt.surfacePos))
             if .hovered != row
             {
+                let previous = .hovered
                 .hovered = row
                 .startNameScroll()
-                .invalidate()
+                if .rows or .board == .Album
+                {
+                    .invalidate()
+                }
+                else
+                {
+                    .invalidateTile(previous)
+                    .invalidateTile(row)
+                }
             }
 
             return

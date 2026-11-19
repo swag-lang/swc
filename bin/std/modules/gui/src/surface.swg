@@ -710,9 +710,21 @@ impl Surface
         // pass whose alpha has to survive to the compositor. The silhouette then premultiplies
         // the body ink and stamps its coverage, and the shadow pass erases the margin before
         // laying the shadow down, so it relies on the silhouette's fringe being in place.
-        .paintBorder()
-        .paintSilhouette()
-        .paintShadowOutsideBody()
+        let body = .bodyShape()
+        let radius = .cornerRadius()
+        .paintBorder(body, radius)
+        if .clipInsideOpaqueBody(body, radius)
+        {
+            .painter.setColorMaskAlpha()
+            .painter.setBlendingMode(.Copy)
+            .painter.fillRect(body, Argb.Black)
+        }
+        else
+        {
+            let bands = .bodyEdgeBands(body, radius)
+            .paintSilhouette(body, radius, bands)
+            .paintShadowOutsideBody(body, radius, bands)
+        }
         .painter.end()
 
         .paintRecordUs = 0
@@ -947,22 +959,59 @@ impl Surface
         return Math.Rectangle{l, t, r - l, b - t}
     }
 
+    // A rounded body is solid across its middle in either axis. Leave room for the
+    // antialiased fringe and pixel snapping at the flat edges and the start of each arc.
+    private mtd const clipInsideOpaqueBody(body: Math.Rectangle, radius: f32)->bool
+    {
+        let clip = .painter.clippingRect()
+        if radius <= 0 do
+            return body.contains(clip)
+
+        let fringe = Math.ceil(1 / .dpiScale) + 1
+        var center = body
+        center.inflate(-fringe)
+        if not center.contains(clip) do
+            return false
+
+        return (clip.y >= center.y + radius and clip.bottom() <= center.bottom() - radius) or
+               (clip.x >= center.x + radius and clip.right() <= center.right() - radius)
+    }
+
+    // Partition the clip outside the known opaque center. Rounded corners, antialiasing
+    // and the transparent margin all lie in these disjoint bands.
+    private mtd const bodyEdgeBands(body: Math.Rectangle, radius: f32)->[4] Math.Rectangle
+    {
+        var interior = body
+        interior.inflate(-Math.max(radius, 0) - Math.ceil(1 / .dpiScale) - 1)
+        interior.round()
+
+        let clip = .painter.clippingRect()
+        if interior.isEmpty() do
+            return [clip, Math.Rectangle{}, Math.Rectangle{}, Math.Rectangle{}]
+
+        let top    = Math.clamp(interior.y, clip.y, clip.bottom())
+        let bottom = Math.clamp(interior.bottom(), top, clip.bottom())
+        let left   = Math.clamp(interior.x, clip.x, clip.right())
+        let right  = Math.clamp(interior.right(), left, clip.right())
+        return [Math.Rectangle{clip.x, clip.y, clip.width, top - clip.y},
+                Math.Rectangle{clip.x, bottom, clip.width, clip.bottom() - bottom},
+                Math.Rectangle{clip.x, top, left - clip.x, bottom - top},
+                Math.Rectangle{right, top, clip.right() - right, bottom - top}]
+    }
+
     // Strokes the outline of the surface, above everything the hierarchy painted.
     //
     // The outline is chrome and belongs on top. Drawn with the caption instead, it was covered by
     // whatever docked against an edge: the stroke snaps to whole device pixels, so past 100% it
     // is wider than the room the caption reserves for it, and the line read at full strength
     // beside the caption, which nothing covers, and at half strength down the sides.
-    private mtd paintBorder()
+    private mtd paintBorder(body: Math.Rectangle, radius: f32)
     {
         if not .flags.has(.Border) do
             return
 
         var pen = Pen.createSolid(.wnd.themeColors().wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
         pen.borderPos = .Inside
-
-        let body   = .bodyShape()
-        let radius = .cornerRadius()
 
         // A scrolling viewport lies inside the outline. Reject it before recording a stroke:
         // the overlap-safe renderer would otherwise clear alpha across its whole bounding box
@@ -1016,72 +1065,37 @@ impl Surface
     // coverage in alpha, which is the premultiplied value the compositor expects. The region
     // excludes the body and the silhouette's antialiased fringe, so the arc pixels the
     // silhouette premultiplied stay untouched.
-    private mtd paintShadowOutsideBody()
+    private mtd paintShadowOutsideBody(body: Math.Rectangle, radius: f32, bands: const [..] Math.Rectangle)
     {
         if .isMaximized or .shadowMargin() <= 0 do
             return
 
-        let radius = .cornerRadius()
-        let body   = .bodyShape()
-
-        // An interior repaint never reaches the shadow. Avoid constructing a full-size
-        // coverage mask merely to reject every fragment of a scrolling viewport.
-        if radius == 0 and body.contains(.painter.clippingRect()) do
-            return
-
         .painter.startClippingRegion()
-        .painter.fillRect(Math.Rectangle{0, 0, .position.width, .position.height}, Argb.White)
+        for band in bands where not band.isEmpty() do
+            .painter.fillRect(band, Argb.White)
         .painter.setClippingRegionMode(.Clear)
-        if radius > 0 do
-            .painter.fillRoundRect(body, radius, radius, Argb.White)
-        else do
-            .painter.fillRect(body, Argb.White)
-        .painter.endClippingRegion()
-
-        .painter.setColorMaskFull()
-        .painter.setBlendingMode(.Copy)
-        .painter.fillRect(Math.Rectangle{0, 0, .position.width, .position.height}, Color.fromArgb(Argb.Zero))
-        .painter.setBlendingMode(.Alpha)
-        .paintShadow()
-        .painter.resetClippingRegion()
-    }
-
-    // Lays the air under the window down: the same shadow any shape standing on a ground casts,
-    // offset by what the theme says the light does.
-    private mtd paintShadow()
-    {
-        if .shadowMargin() <= 0 do
-            return
-
-        let body     = .bodyShape()
-        let radius   = .cornerRadius()
-        var interior = body
-        interior.inflate(-Math.max(radius, 0) - Math.ceil(1 / .dpiScale) - 1)
-        interior.round()
-
-        // The coverage mask excludes the body, but a fragment shader still visits every pixel the
-        // shadow fills under it before sampling that mask. Scissor away its fully opaque interior
-        // first, so the GPU shades the perimeter rather than the area of a large window. Keep the
-        // antialiased contour inside the bands, including after logical clipping rounds to pixels.
-        if interior.isEmpty()
-        {
-            .castShadow(body, radius)
-            return
-        }
-
-        let clip = .painter.clippingRect()
-        let bands: [4] Math.Rectangle = [
-            Math.Rectangle{clip.x, clip.y, clip.width, interior.y - clip.y},
-            Math.Rectangle{clip.x, interior.bottom(), clip.width, clip.bottom() - interior.bottom()},
-            Math.Rectangle{clip.x, interior.y, interior.x - clip.x, interior.height},
-            Math.Rectangle{interior.right(), interior.y, clip.right() - interior.right(), interior.height}]
         for band in bands where not band.isEmpty()
         {
             .painter.pushClippingRect(band)
-            if not .painter.isEmptyClippingRect() do
-                .castShadow(body, radius)
+            if radius > 0 do
+                .painter.fillRoundRect(body, radius, radius, Argb.White)
+            else do
+                .painter.fillRect(body, Argb.White)
             .painter.popClippingRect()
         }
+        .painter.endClippingRegion()
+
+        .painter.setColorMaskFull()
+        for band in bands where not band.isEmpty()
+        {
+            .painter.pushClippingRect(band)
+            .painter.setBlendingMode(.Copy)
+            .painter.fillRect(band, Color.fromArgb(Argb.Zero))
+            .painter.setBlendingMode(.Alpha)
+            .castShadow(body, radius)
+            .painter.popClippingRect()
+        }
+        .painter.resetClippingRegion()
     }
 
     // Draws the shadow `body` casts: a window's drop shadow, or the floating shadow of a sheet.
@@ -1124,11 +1138,8 @@ impl Surface
     // the antialiased edge of the arc it is fractional, and multiplying the ink by it
     // ([[Pixel.BlendingMode.DstIn]]) is what keeps the corner from compositing brighter than
     // both the window and the desktop behind it.
-    private mtd paintSilhouette()
+    private mtd paintSilhouette(rect: Math.Rectangle, radius: f32, bands: const [..] Math.Rectangle)
     {
-        let rect   = .bodyShape()
-        let radius = .cornerRadius()
-
         .painter.resetTransform()
 
         // A rectangular silhouette has unit coverage, so multiplying its ink would be
@@ -1137,7 +1148,12 @@ impl Surface
         {
             .painter.setColorMaskColor()
             .painter.setBlendingMode(.DstIn)
-            .painter.fillRoundRect(rect, radius, radius, Argb.White)
+            for band in bands where not band.isEmpty()
+            {
+                .painter.pushClippingRect(band)
+                .painter.fillRoundRect(rect, radius, radius, Argb.White)
+                .painter.popClippingRect()
+            }
         }
 
         .painter.setBlendingMode(.Alpha)

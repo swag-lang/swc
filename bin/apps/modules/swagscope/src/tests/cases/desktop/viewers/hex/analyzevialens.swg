@@ -27,18 +27,21 @@ using Core, Gui, Pixel, Viewers
     Swag.require(not hex.analysisView.isVisible())
 
     var input = Testing.DesktopInput.create(&journey.app, journey.surface)
+    // "Analyze the" identifies the toggle even after the checksum commands appear.
+    let analysisQuery = [Input.Key.A, .N, .A, .L, .Y, .Z, .E, .Space, .T, .H, .E]
     input.shortcut(.Space, .Control)
     journey.waitFor("native command lens", func|window|()->bool => window.lens.isOpen())
-    for key in [Input.Key.A, .N, .A] do
+    for key in analysisQuery do
         input.shortcut(key, .None)
     journey.waitFor("analysis command found", func|window, hex|()->bool =>
                     window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
     input.shortcut(.Return, .None)
     journey.waitFor("native analysis toggle", func|hex|()->bool =>
                     hex.analysisButton.isChecked and hex.analysisView.isVisible())
+    journey.waitFor("hexadecimal analysis complete", func|hex|()->bool => hex.analysisView.result.hasDigests)
     input.shortcut(.Space, .Control)
     journey.waitFor("native command lens reopened", func|window|()->bool => window.lens.isOpen())
-    for key in [Input.Key.A, .N, .A] do
+    for key in analysisQuery do
         input.shortcut(key, .None)
     journey.waitFor("analysis command found again", func|window, hex|()->bool =>
                     window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)

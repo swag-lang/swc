@@ -869,14 +869,23 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds)
+Result CodeGenSafety::normalizeAndCheckSliceBounds(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds)
 {
     nodeRef = codeGen.resolvedNodeRef(nodeRef);
-    if (nodeRef.isInvalid())
-        return Result::Continue;
+    const auto* nodePayload = nodeRef.isValid() ? codeGen.loweringPayload(nodeRef) : nullptr;
+    const bool  checkBounds = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck);
 
-    const auto* nodePayload = codeGen.loweringPayload(nodeRef);
-    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
+    MicroBuilder&       builder  = codeGen.builder();
+    const MicroLabelRef panicRef = checkBounds ? builder.createLabel() : MicroLabelRef::invalid();
+    if (bounds.inclusive)
+    {
+        builder.emitOpBinaryRegImm(bounds.endReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        // The carry records a wrap to zero before ordering and containment can accept it.
+        if (checkBounds)
+            builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, panicRef);
+    }
+
+    if (!checkBounds)
         return Result::Continue;
 
     SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SliceBoundsPanic);
@@ -884,11 +893,8 @@ Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, 
 
     // Check unsigned ordering and containment within the source. Pointer sources
     // have no count, so only ordering can be checked.
-    MicroBuilder&       builder    = codeGen.builder();
     const MicroLabelRef inRangeRef = builder.createLabel();
-    const MicroLabelRef panicRef   = builder.createLabel();
-
-    builder.emitCmpRegReg(bounds.startReg, bounds.endExclusiveReg, MicroOpBits::B64);
+    builder.emitCmpRegReg(bounds.startReg, bounds.endReg, MicroOpBits::B64);
     if (!bounds.lengthReg.isValid())
     {
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
@@ -896,7 +902,7 @@ Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, 
     else
     {
         builder.emitJumpToLabel(CodeGenCompareHelpers::greaterCond(true), MicroOpBits::B32, panicRef);
-        builder.emitCmpRegReg(bounds.endExclusiveReg, bounds.lengthReg, MicroOpBits::B64);
+        builder.emitCmpRegReg(bounds.endReg, bounds.lengthReg, MicroOpBits::B64);
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
     }
 
@@ -916,7 +922,7 @@ Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, 
     const MicroReg flagsReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegImm(flagsReg, ApInt(flags, 8), MicroOpBits::B8);
 
-    const std::array reportArgs = {bounds.startReg, bounds.endExclusiveReg, lengthReg, flagsReg};
+    const std::array reportArgs = {bounds.startReg, bounds.endReg, lengthReg, flagsReg};
     SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), reportArgs));
     builder.placeLabel(inRangeRef);
     return Result::Continue;

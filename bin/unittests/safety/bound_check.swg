@@ -400,6 +400,18 @@ func opaqueIdx(v: u64)->u64
         discard values[start to end]
     }
 
+    #[Swag.NoInline, Swag.Safety(.BoundCheck, true)]
+    func signedSliceTo(start, end: s64)
+    {
+        var values: [4] s32
+        discard values[start to end]
+    }
+
+    var values: [4] s32
+    Swag.require(values[0 until 0].count == 0)
+    Swag.require(values[4 until 4].count == 0)
+    Swag.require(values[0 to 3].count == 4)
+
     let inverted = Swag.catchPanic(func||() { sliceTo(3, 1) })
     Swag.require(inverted.raised)
     Swag.require(inverted.message() == "slice 3 to 1 (exclusive end 2) starts after its exclusive end (source length 4)")
@@ -416,9 +428,13 @@ func opaqueIdx(v: u64)->u64
     Swag.require(negativeEnd.raised)
     Swag.require(negativeEnd.message() == "slice 0 until -1 has a negative end (source length 4)")
 
-    let wrappedEnd = Swag.catchPanic(func||() { sliceTo(1, Swag.U64.Max) })
+    let wrappedEnd = Swag.catchPanic(func||() { sliceTo(0, Swag.U64.Max) })
     Swag.require(wrappedEnd.raised)
-    Swag.require(wrappedEnd.message() == "slice 1 to 18446744073709551615 (exclusive end 0) wraps its exclusive end (source length 4)")
+    Swag.require(wrappedEnd.message() == "slice 0 to 18446744073709551615 (exclusive end 0) wraps its exclusive end (source length 4)")
+
+    let signedWrap = Swag.catchPanic(func||() { signedSliceTo(0, -1) })
+    Swag.require(signedWrap.raised)
+    Swag.require(signedWrap.message() == "slice 0 to -1 (exclusive end 0) has a negative end (source length 4)")
 }
 
 // An exclusive range with equal bounds is empty, so the guard must stay silent.

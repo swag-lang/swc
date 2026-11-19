@@ -479,8 +479,6 @@ namespace
             auto       upBits   = MicroOpBits::B64;
             const auto rawUpReg = materializeIndexReg(codeGen, slicePayload->upperBoundRef, upBits, &upperSigned);
             builder.emitLoadRegReg(endExclusiveReg, rawUpReg, MicroOpBits::B64);
-            if (slicePayload->inclusive)
-                builder.emitOpBinaryRegImm(endExclusiveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         }
         else
         {
@@ -490,14 +488,14 @@ namespace
         }
 
         const CodeGenSafety::SliceBounds bounds{
-            .startReg        = lowReg,
-            .endExclusiveReg = endExclusiveReg,
-            .lengthReg       = sourceCountReg,
-            .startSigned     = lowSigned,
-            .endSigned       = upperSigned,
-            .inclusive       = slicePayload->inclusive && slicePayload->upperBoundRef.isValid(),
+            .startReg    = lowReg,
+            .endReg      = endExclusiveReg,
+            .lengthReg   = sourceCountReg,
+            .startSigned = lowSigned,
+            .endSigned   = upperSigned,
+            .inclusive   = slicePayload->inclusive && slicePayload->upperBoundRef.isValid(),
         };
-        SWC_RESULT(CodeGenSafety::emitSliceRangeCheck(codeGen, codeGen.curNodeRef(), bounds));
+        SWC_RESULT(CodeGenSafety::normalizeAndCheckSliceBounds(codeGen, codeGen.curNodeRef(), bounds));
 
         const uint64_t strideSize = resolveIndexStrideSize(codeGen, indexedType);
         const MicroReg dataReg    = codeGen.nextVirtualIntRegister();

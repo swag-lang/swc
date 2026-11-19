@@ -34,7 +34,7 @@ namespace CodeGenSafety
     struct SliceBounds
     {
         MicroReg startReg;
-        MicroReg endExclusiveReg;
+        MicroReg endReg;
         MicroReg lengthReg;
         bool     startSigned = false;
         bool     endSigned   = false;
@@ -71,7 +71,7 @@ namespace CodeGenSafety
 
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg, bool indexSigned);
     Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool dynamicCount);
-    Result emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds);
+    Result normalizeAndCheckSliceBounds(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds);
     Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);
 
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);

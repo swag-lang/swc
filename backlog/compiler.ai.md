@@ -794,7 +794,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   the failed test and that a script reports the fault once and runs its drop hooks.
 - Done when: the decisive values and original source location agree across the three modes,
   and a compile-time panic remains distinguishable from a script runtime panic.
-- Related: compiler.ai.040, compiler.ai.042, compiler.safety.032, compiler.safety.037.
+- Related: compiler.ai.040, compiler.ai.042, compiler.safety.032.
 
 ### compiler.ai.036 — Trace fallthrough in nested control flow and suppress diagnostic cascades
 

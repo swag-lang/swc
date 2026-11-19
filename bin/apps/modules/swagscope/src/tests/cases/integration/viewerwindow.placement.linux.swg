@@ -78,19 +78,29 @@ func waitForViewerNativeBounds(app: *Application, surface: *Surface, expected: M
 
     Swag.require(not expect cast(*Markdown.View, window.currentView).isLoading())
     let normal  = surface.position
-    let monitor = Env.monitorForRectangle(normal).physicalBounds
+    let monitor = Env.monitorForRectangle(normal)
     expect waitForViewerNativeBounds(&app, surface, normal)
 
-    for 3
+    for fromMaximized in [false, true, false]
     {
+        if fromMaximized
+        {
+            surface.showMaximized()
+            expect waitForViewerNativeBounds(&app, surface, monitor.physicalWorkArea)
+            Swag.require(surface.isMaximized)
+        }
+
+        let previous = surface.position
         window.sendCommandEvent(ViewerCommands.FullScreen)
         Swag.require(window.fullScreen and not surface.isMaximized)
-        expect waitForViewerNativeBounds(&app, surface, monitor)
+        expect waitForViewerNativeBounds(&app, surface, monitor.physicalBounds)
         Swag.require(window.currentView!.padding.y == 0 and window.documentHost.padding.y == 0)
 
         window.sendCommandEvent(ViewerCommands.FullScreen)
-        Swag.require(not window.fullScreen and not surface.isMaximized)
-        expect waitForViewerNativeBounds(&app, surface, normal)
+        expect waitForViewerNativeBounds(&app, surface, previous)
+        Swag.require(not window.fullScreen and surface.isMaximized == fromMaximized)
         Swag.require(window.currentView.padding.y == window.stripInset())
+        surface.showNormal()
+        expect waitForViewerNativeBounds(&app, surface, normal)
     }
 }

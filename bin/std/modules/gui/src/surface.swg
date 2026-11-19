@@ -86,8 +86,8 @@ struct Surface
             // Whether the desktop owns a live border drag of this surface right now.
             //
             // The window manager runs that gesture in a loop of its own, so the application frame
-            // loop is suspended for as long as it lasts and every frame is presented from inside
-            // the platform layer. Content whose layout follows the viewport reads this to know
+            // loop is suspended for as long as it lasts. The platform advances the frame clock
+            // during the gesture. Content whose layout follows the viewport reads this to know
             // that the size it is being asked for is one of many, and that a reflow it cannot run
             // at pointer cadence belongs after the gesture rather than in it.
             isSizing: bool
@@ -110,7 +110,7 @@ struct Surface
 
     unpaintedSeconds: f32     // Loop time accumulated while a repaint was pending.
 
-    // Recorded before a native placement and reported when its prepared image is presented.
+    // Recording and drawing measurements for the frame being presented.
     paintRecordUs:     u64
     paintTargetUs:     u64
     paintArea:         u64
@@ -596,6 +596,11 @@ impl Surface
         if .isMinimized do
             return
 
+        #static if #os == Swag.TargetOs.Windows
+        {
+            .applyPendingNativeResize()
+        }
+
         .paintWnd(.wnd)
     }
 
@@ -615,25 +620,6 @@ impl Surface
     {
         if .paintToRenderTarget(root) do
             discard .presentRenderTarget()
-    }
-
-    // Prepares the next native geometry while the old window rectangle is still on screen.
-    // Keep the frame in the render target until the native drawable reaches the new size.
-    internal mtd prepareResizeFrame(root: *Wnd)->bool
-    {
-        if not .paintToRenderTarget(root) do
-            return false
-        .finishFrameWithoutPresent()
-        return true
-    }
-
-    internal mtd presentPreparedFrame()
-    {
-        if .app.renderer.needsNativeWindow()
-        {
-            .app.renderer.begin(.rc)
-            discard .presentRenderTarget()
-        }
     }
 
     private mtd paintToRenderTarget(root: *Wnd)->bool
@@ -905,11 +891,10 @@ impl Surface
         let sdw = .shadowMargin()
         .wnd.setPosition(Math.Rectangle{sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
 
-        // A resize can reuse the existing render target, in which case
-        // resource creation has no reason to dirty the surface. The newly exposed
-        // client area still needs a complete frame independently of WM_PAINT: native
-        // placement and the application frame loop are two separate repaint sources.
-        .invalidate()
+        // All pixels in the new extent need repainting. Damage outside it would
+        // waste work clearing the retained target when the window shrinks.
+        .dirtyRect = {0, 0, sz.x, sz.y}
+        .isDirty   = width > 0 and height > 0
     }
 
     // Returns the transparent margin, in logical units, the surface keeps around its body.

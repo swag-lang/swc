@@ -29,13 +29,17 @@ using Core, Pixel, Win32, Ogl
     // A full back-buffer swap retains all pixels even after a partial redraw.
     surface.setPosition({60, 50, 420, 280})
     Swag.require(surface.position == {60, 50, 420, 280})
+    Swag.require(not surface.presentedFrame)
+    app.runFrame()
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
     var bounds: RECT
     Swag.require(GetWindowRect(surface.win32Handle(), &bounds))
     Swag.require(bounds.left == 60 and bounds.top == 50 and bounds.right == 480 and bounds.bottom == 330)
     surface.showNormalAt({75, 60, 399, 271})
-    Swag.require(not surface.preparedFrame and not surface.isDirty)
+    Swag.require(not surface.presentedFrame)
+    app.runFrame()
+    Swag.require(not surface.isDirty)
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
     // A failed submission schedules a complete repaint and leaves the previous swap visible.

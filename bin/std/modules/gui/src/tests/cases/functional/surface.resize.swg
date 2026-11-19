@@ -34,34 +34,13 @@ using Swag, Core
     Swag.require(host.surface.rt.handle == tallerHandle)
 }
 
-// Painting the final geometry consumes the pending dirty region before returning.
-//
-// The platform layer presents from inside the geometry transaction that changed the window, and
-// a frame abandoned there stays abandoned: the application loop that normally picks a pending
-// region up is suspended for the whole of a border drag.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(256, 128)
-
-    host.surface.invalidate()
-    host.surface.paint()
-    Swag.require(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
-}
-
-// A frame prepared before the native geometry changes has the same pixels as a normal repaint at
-// that size. The second phase only publishes the prepared target; it does not reflow the tree.
+// Ordinary painting of a resized surface consumes the pending dirty region.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(256, 128)
 
     host.surface.setPosition({0, 0, 384, 224})
-    Swag.require(host.surface.prepareResizeFrame(&host.root))
-    let prepared = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
+    host.surface.paint()
     Swag.require(not host.surface.isDirty)
-
-    host.surface.presentPreparedFrame()
-    let direct = host.render()
-    Pixel.Testing.assertImagesNear(&prepared, &direct, "surface.prepared-resize")
 }

@@ -141,9 +141,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     }
 }
 
-// Discrete placements finish with a target and client rectangle of the same size. In particular,
-// preparing the large maximized frame before USER32 changes the window must not leave the surface
-// dirty or publish the normal-sized target through the maximized drawable.
+// Discrete placements lay out the new client without drawing until the ordinary frame.
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
@@ -158,15 +156,50 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     Swag.require(GetClientRect(surface.win32Handle(), &client))
     Swag.require(surface.isMaximized)
     Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
+    Swag.require(not surface.presentedFrame and surface.isDirty)
+    app.runFrame()
     Swag.require(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
-    Swag.require(not surface.preparedFrame and not surface.isDirty)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 
     surface.showNormal()
     Swag.require(GetClientRect(surface.win32Handle(), &client))
     Swag.require(not surface.isMaximized)
     Swag.require(surface.position == normal)
     Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
-    Swag.require(not surface.preparedFrame and not surface.isDirty)
+    Swag.require(not surface.presentedFrame and surface.isDirty)
+    app.runFrame()
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+}
+
+// Multiple native drag sizes between clock frames produce one layout and one GPU frame.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-live-sizing-test")
+    let window  = surface.win32Handle()
+    surface.show()
+    app.runFrame()
+    let previousWidth = surface.rc.width
+
+    discard SendMessageW(window, WM_ENTERSIZEMOVE, 0, 0)
+    for width in [641, 649, 653]
+    {
+        expect SetWindowPos(window, null, 0, 0, width, 403, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+        Swag.require(surface.rc.width == previousWidth)
+    }
+
+    Swag.require(surface.isSizing)
+    app.runClockFrame()
+    Swag.require(surface.rc.width == 653 and surface.rc.height == 403)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+
+    expect SetWindowPos(window, null, 0, 0, 655, 401, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+    discard SendMessageW(window, WM_EXITSIZEMOVE, 0, 0)
+    Swag.require(not surface.isSizing and surface.rc.width == 653)
+    app.runFrame()
+    Swag.require(surface.rc.width == 655 and surface.rc.height == 401)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
 }
 
 // Placing a window at explicit bounds is a discrete placement too, from a regular window and from
@@ -192,7 +225,8 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
         Swag.require(IsWindowVisible(surface.win32Handle()))
         Swag.require(surface.position == target)
         Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
-        Swag.require(not surface.preparedFrame and not surface.isDirty)
+        app.runFrame()
+        Swag.require(not surface.isDirty)
     }
 }
 

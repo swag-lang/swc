@@ -73,12 +73,9 @@ internal struct NativeSurface
     // First-show setup can restore several placements before its content is ready to paint.
     initializing: bool
 
-    // A discrete placement prepares its expensive frame before USER32 exposes the new size.
-    inDiscretePlacement: bool
-    preparingFrame:      bool
-    preparedFrame:       bool
-    preparedWidth:       s32
-    preparedHeight:      s32
+    // The desktop can deliver several sizes before the next application clock frame.
+    clientResizePending: bool
+    clientLayoutScale:   f32
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -120,13 +117,6 @@ internal impl Surface
 
 private impl Surface
 {
-    // Reports whether a frame may be recorded and presented for this window right now.
-    //
-    // A window is sized before it is shown and again while it is being taken down, and neither
-    // of those transactions has a frame to publish: the first has no content yet, the second no
-    // rendering context left.
-    mtd const canPresentNow()->bool => not .isHidden and not .initializing and not .isMinimized and not .wnd.isPendingDestroy
-
     // Keeps the application clock running while the desktop owns the message loop.
     //
     // Moving or sizing the window by its frame runs USER32's own loop until the button is
@@ -332,22 +322,14 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
-
-            // A prepared frame belongs to the upcoming placement. Do not replace it with an
-            // ordinary repaint while preparing or publishing that placement.
-            if surface.initializing or surface.preparingFrame or surface.preparedFrame
-            {
-                EndPaint(hWnd, &ps)
-                return 0
-            }
-
-            surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
-
-            // The application loop is suspended during a native border drag. Paint on this
-            // window-owning thread before EndPaint validates the native update region.
-            surface.paint()
-
+            if not surface.initializing do
+                surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
             EndPaint(hWnd, &ps)
+
+            // USER32 suspends the application loop during a border drag. Its paint message
+            // marks the first opportunity to draw at the latest size on the owning thread.
+            if surface.inDesktopLoop and surface.isSizing and surface.clientResizePending and not surface.isHidden do
+                surface.paint()
             return 0
 
         case WM_NCRBUTTONDOWN:
@@ -375,22 +357,17 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_ENTERSIZEMOVE:
-            surface.setSizing(true)
             surface.enterDesktopLoop()
             return 0
 
         case WM_EXITSIZEMOVE:
-            surface.setSizing(false)
             surface.exitDesktopLoop()
 
-            // The gesture is over, so content that held a reflow back for its duration runs it
-            // now, and the exact final geometry reaches the screen before the application loop
-            // resumes.
-            if surface.canPresentNow()
+            // The next ordinary frame applies the last size and any deferred control reflow.
+            if surface.isSizing
             {
+                surface.setSizing(false)
                 surface.invalidate()
-                surface.paint()
-                discard ValidateRect(hWnd, null)
             }
 
             return 0
@@ -403,37 +380,6 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             {
                 let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
                 next.flags &= ~SWP_SHOWWINDOW
-            }
-
-            if surface.inDiscretePlacement and not surface.preparingFrame and surface.canPresentNow()
-            {
-                let next = cast(*WINDOWPOS, cast #bit (u64, lParam))
-                if (next.flags & SWP_NOSIZE) == 0 and next.cx > 0 and next.cy > 0
-                {
-                    if surface.preparedFrame and
-                       surface.preparedWidth == next.cx and
-                       surface.preparedHeight == next.cy and
-                       not surface.isDirty do
-                        return 0
-
-                    surface.preparedFrame  = false
-                    surface.presentedFrame = false
-                    surface.preparingFrame = true
-                    if (next.flags & SWP_NOMOVE) == 0
-                    {
-                        surface.position.x = cast(f32, next.x)
-                        surface.position.y = cast(f32, next.y)
-                    }
-
-                    surface.sendResizeEvent(cast(f32, next.cx), cast(f32, next.cy))
-                    surface.preparedFrame  = surface.prepareResizeFrame(surface.wnd)
-                    surface.preparingFrame = false
-                    if surface.preparedFrame
-                    {
-                        surface.preparedWidth  = next.cx
-                        surface.preparedHeight = next.cy
-                    }
-                }
             }
 
             return 0
@@ -480,20 +426,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // An application-initiated placement is already sized in the target
             // monitor's physical pixels: adopting the OS suggestion (which scales
             // the rectangle by newDpi/oldDpi, assuming an old-DPI size) would
-            // double-scale it. Keep the requested rectangle; its WM_SIZE relayouts
-            // the tree with the new scale.
-            if surface.inAppPlacement
-            {
-                surface.invalidate()
+            // double-scale it. Keep the requested rectangle and relayout at the new scale.
+            surface.clientResizePending = true
+            if surface.inAppPlacement do
                 return 0
-            }
 
-            // An interactive move: adopt the suggested physical rectangle, whose
-            // WM_SIZE recomputes the logical size and relayouts the tree with the
-            // new scale; per-draw font resolution follows on the next paint.
+            // An interactive move adopts the suggested physical rectangle. The next
+            // resize or frame lays out the tree at that committed size and scale.
             let suggested = cast(const *RECT, cast #bit (u64, lParam))
             catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
-            surface.invalidate()
             return 0
 
         case WM_MOVE:
@@ -512,38 +453,24 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_SIZE:
 
-            // A minimized client has no drawable geometry. Keeping the last arranged tree avoids
-            // a useless collapse to zero followed by a full expansion on restore.
+            // Keep the last arranged tree while the native client has no drawable.
             if wParam == SizeMinimized
             {
-                surface.preparedFrame = false
-                surface.presentedFrame = false
+                surface.clientResizePending = false
+                surface.presentedFrame      = false
                 return 0
             }
 
-            let width    = cast(s32, LOWORD(lParam))
-            let height   = cast(s32, HIWORD(lParam))
-            let prepared = surface.preparedFrame and
-                           surface.preparedWidth == width and
-                           surface.preparedHeight == height and
-                           not surface.isDirty
-            surface.preparedFrame = prepared
-            if not prepared do
-                surface.sendResizeEvent(cast(f32, width), cast(f32, height))
-            if surface.inDiscretePlacement do
-                return 0
-            surface.preparedFrame = false
-
-            // Interactive resizing paints on the window thread while the application loop
-            // is suspended in USER32's sizing loop.
-            if surface.canPresentNow()
+            surface.clientResizePending = true
+            if surface.inDesktopLoop
             {
-                if prepared do
-                    surface.presentPreparedFrame()
-                else do
-                    surface.paint()
-                discard ValidateRect(hWnd, null)
+                let width  = cast(s32, LOWORD(lParam))
+                let height = cast(s32, HIWORD(lParam))
+                if width != surface.rc.width or height != surface.rc.height do
+                    surface.setSizing(true)
             }
+            else do
+                surface.applyPendingNativeResize()
 
             return 0
 
@@ -666,24 +593,21 @@ private impl Surface
 
 impl Surface
 {
-    private mtd finishDiscretePlacement()
+    private mtd applyPendingNativeResize()
     {
-        .preparingFrame = true
-        defer .preparingFrame = false
-        defer .inDiscretePlacement = false
-        defer .preparedFrame = false
+        if not .clientResizePending or .isMinimized do
+            return
+        .clientResizePending = false
 
-        // The drawable now has its final dimensions. Paint again only if placement
-        // invalidated the prepared frame, for example on a DPI change.
-        if .canPresentNow()
-        {
-            if .preparedFrame and not .isDirty do
-                .presentPreparedFrame()
-            else do
-                .paint()
-
-            discard ValidateRect(.hWnd, null)
-        }
+        // Query the committed drawable once, even if several WM_SIZE messages arrived.
+        var client: RECT
+        if not GetClientRect(.hWnd, &client) or client.right <= 0 or client.bottom <= 0 do
+            return
+        if .clientLayoutScale == .dpiScale and .rc.width == client.right and .rc.height == client.bottom do
+            return
+        .clientLayoutScale = .dpiScale
+        .presentedFrame    = false
+        .sendResizeEvent(cast(f32, client.right), cast(f32, client.bottom))
     }
 
     // WINDOWPLACEMENT uses workspace coordinates for ordinary top-level windows, whereas
@@ -848,7 +772,9 @@ impl Surface
     {
         if not .trayIcon do
             return false
-        var identifier = NOTIFYICONIDENTIFIER{cbSize: #sizeof(NOTIFYICONIDENTIFIER), hWnd: .hWnd, uID: TrayIconID}
+        var identifier = NOTIFYICONIDENTIFIER{cbSize: cast(DWORD, #sizeof(NOTIFYICONIDENTIFIER)),
+                                              hWnd: .hWnd,
+                                              uID: TrayIconID}
         return Shell_NotifyIconGetRect(&identifier, rect) == S_OK
     }
 
@@ -1138,9 +1064,7 @@ impl Surface
         // paint completes (which is slow on the first frame because of the lazy
         // font/glyph generation it triggers). Painting while still hidden means the
         // window appears already showing correct content.
-        .preparingFrame = true
         .paint()
-        .preparingFrame = false
 
         if not .app.renderer.needsNativeWindow()
         {
@@ -1206,9 +1130,8 @@ impl Surface
             }
 
             .applyNativeDwmStyle()
-            .inDiscretePlacement = true
-            defer .finishDiscretePlacement()
             ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+            .invalidate()
             return
         }
 
@@ -1222,14 +1145,12 @@ impl Surface
         }
 
         .applyNativeDwmStyle()
-        .inDiscretePlacement = true
-        defer .finishDiscretePlacement()
-
         // Maximize the current window first. Changing its normal rectangle while it is
         // still normal would move it there before USER32 applies the maximized state.
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
         var placement = .nativePlacement(.restoredPosition, SW_SHOWMAXIMIZED)
         catch SetWindowPlacement(.hWnd, &placement)
+        .invalidate()
     }
 
     // Leaves a maximized or minimized state and places the surface, in one native transaction.
@@ -1238,9 +1159,6 @@ impl Surface
     // compositor shows the window at its restored bounds in between. Entering full screen from a
     // maximized window is the case that exists, and that intermediate picture is what it looked
     // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
-    //
-    // Windows owns the show state and restore placement. The frame is prepared before the
-    // geometry changes and swapped after USER32 commits the destination bounds.
     mtd showNormalAt(pos: Math.Rectangle)
     {
         let clampPos = .clampToSizeLimits(pos)
@@ -1260,10 +1178,9 @@ impl Surface
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
-        .inDiscretePlacement = true
-        defer .finishDiscretePlacement()
         var placement = .nativePlacement(clampPos, SW_SHOWNORMAL)
         catch SetWindowPlacement(.hWnd, &placement)
+        .invalidate()
     }
 
     // Restores a minimized or maximized surface to its normal bounds.

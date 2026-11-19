@@ -14,7 +14,10 @@ internal struct NativeSurface
     compose:            *void?
     topMost:            bool
     initializing:       bool
-    preparingFrame:     bool
+    geometryPending:    bool
+    clientWidth:        u16
+    clientHeight:       u16
+    maximizationPendingUntil: u64
     dropTarget:         LinuxDrag.Target
     dropTargetActive:   bool
     trayWindow:         u32
@@ -287,28 +290,45 @@ impl Surface
         expect LinuxDesktop.property(context, .windowId, 40, 41, 32, 18, hints)
     }
 
-    private mtd setNativeState(name: string, enabled: bool)
+    private mtd setNativeState(name: string, enabled: bool, secondName: string? = null)
     {
         if .windowId == 0 do
             return
         let context       = expect LinuxDesktop.ensure()
         let stateProperty = expect LinuxDesktop.atom(context, "_NET_WM_STATE")
         let state         = expect LinuxDesktop.atom(context, name)
+        let secondState   = secondName ? expect LinuxDesktop.atom(context, secondName) : 0
         if .isHidden
         {
             let bytes  = expect LinuxDesktop.readProperty(context, .windowId, stateProperty)
             var states: Array'u32
             let values = cast(const [*]u32?, bytes.buffer)
-            for index in bytes.count / 4 where (unwrap values)[index] != state do
-                states.add(values[index])
+            for index in bytes.count / 4
+            {
+                let value = (unwrap values)[index]
+                if value != state and value != secondState do
+                    states.add(value)
+            }
             if enabled do
                 states.add(state)
+            if enabled and secondState != 0 do
+                states.add(secondState)
             expect LinuxDesktop.property(context, .windowId, stateProperty, 4, 32, cast(u32, states.count), states.buffer)
         }
         else
         {
-            expect LinuxDesktop.send(context, .windowId, stateProperty, [enabled ? 1'u32 : 0'u32, state, 0, 1, 0])
+            expect LinuxDesktop.send(context, .windowId, stateProperty, [enabled ? 1'u32 : 0'u32, state, secondState, 1, 0])
         }
+    }
+
+    private mtd setMaximized(enabled: bool)
+    {
+        // The manager processes state changes asynchronously. Ignore its previous state
+        // until it acknowledges this request or the request expires.
+        if .windowId != 0 and (.isMaximized != enabled or .maximizationPendingUntil != 0) do
+            .maximizationPendingUntil = Time.monotonicMicroseconds() + 1_000_000
+        .isMaximized = enabled
+        .setNativeState("_NET_WM_STATE_MAXIMIZED_HORZ", enabled, "_NET_WM_STATE_MAXIMIZED_VERT")
     }
 
     private mtd const clampToSizeLimits(pos: Math.Rectangle)->Math.Rectangle
@@ -443,10 +463,8 @@ impl Surface
         if not .isMaximized do
             .restoredPosition = restoreTo
         .restoreNativeMapping()
-        .isMaximized = true
         .isMinimized = false
-        .setNativeState("_NET_WM_STATE_MAXIMIZED_HORZ", true)
-        .setNativeState("_NET_WM_STATE_MAXIMIZED_VERT", true)
+        .setMaximized(true)
         .show()
         .invalidate()
     }
@@ -455,10 +473,8 @@ impl Surface
     mtd showNormalAt(pos: Math.Rectangle)
     {
         .restoreNativeMapping()
-        .isMaximized = false
         .isMinimized = false
-        .setNativeState("_NET_WM_STATE_MAXIMIZED_HORZ", false)
-        .setNativeState("_NET_WM_STATE_MAXIMIZED_VERT", false)
+        .setMaximized(false)
         .setPosition(pos)
         .show()
     }
@@ -592,9 +608,7 @@ impl Surface
         // paint completes (which is slow on the first frame because of the lazy
         // font/glyph generation it triggers). Painting while still hidden means the
         // window appears already showing correct content.
-        .preparingFrame = true
         .paint()
-        .preparingFrame = false
 
         if not .app.renderer.needsNativeWindow()
         {
@@ -644,7 +658,15 @@ impl Surface
             minimized     = minimized or value == hidden
         }
 
-        let maximized = hasHorizontal and hasVertical
+        var maximized = hasHorizontal and hasVertical
+        if .maximizationPendingUntil != 0
+        {
+            if maximized == .isMaximized do
+                .maximizationPendingUntil = 0
+            else do
+                maximized = .isMaximized
+        }
+
         if maximized != .isMaximized or minimized != .isMinimized
         {
             if maximized and not .isMaximized do
@@ -855,16 +877,35 @@ impl Surface
 
 impl Surface
 {
-    internal mtd acceptNativeGeometry(width, height: u16)
+    internal mtd queueNativeGeometry(width, height: u16)
     {
+        .clientWidth      = width
+        .clientHeight     = height
+        .geometryPending = true
+    }
+
+    internal mtd applyPendingNativeGeometry()
+    {
+        if .windowId == 0 do
+            return
+        if .maximizationPendingUntil != 0 and Time.monotonicMicroseconds() >= .maximizationPendingUntil
+        {
+            .maximizationPendingUntil = 0
+            .refreshNativeState()
+        }
+
+        if not .geometryPending do
+            return
+        .geometryPending = false
+
         var origin: Math.Point
         .surfaceToScreen(&origin)
         .position.x = origin.x
         .position.y = origin.y
-        if .rc.width != width or .rc.height != height
+        if .rc.width != .clientWidth or .rc.height != .clientHeight
         {
             .presentedFrame = false
-            .sendResizeEvent(cast(f32, width), cast(f32, height))
+            .sendResizeEvent(cast(f32, .clientWidth), cast(f32, .clientHeight))
         }
     }
 }

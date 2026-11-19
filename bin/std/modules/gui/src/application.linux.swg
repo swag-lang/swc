@@ -382,7 +382,7 @@ impl Application
 
             case 22:
                 let packet = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event))
-                surface.acceptNativeGeometry(packet.width, packet.height)
+                surface.queueNativeGeometry(packet.width, packet.height)
 
             case 28:
                 surface.refreshNativeState()
@@ -418,6 +418,10 @@ impl Application
                 }
             }
         }
+
+        // A queue of ConfigureNotify events needs one layout at the latest size.
+        for surface in context.surfaces do
+            surface.applyPendingNativeGeometry()
 
         if context.xcb_connection_has_error(connection) != 0
         {

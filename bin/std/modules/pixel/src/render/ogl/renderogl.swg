@@ -829,8 +829,13 @@ impl RenderOgl
     // callers presenting on the UI thread cannot process input during that wait.
     internal mtd endImpl()
     {
-        .finishFrameWithoutPresent()
-        .native.swapBuffers(oglContext(.curRC)[])
+        let context = oglContext(.curRC)
+        .retireFrameScratch()
+
+        // A window swap submits the drawing on this thread. Offscreen work needs its own flush.
+        if not context.hWnd or context.ownsWindow do
+            glFlush()
+        .native.swapBuffers(context[])
     }
 
     // Finishes the current frame while retaining the contents of the native front buffer.
@@ -838,6 +843,12 @@ impl RenderOgl
     // Use when recording into an offscreen target for a later presentation or when abandoning
     // a frame that could not be rendered. GPU commands remain ordered with later submissions.
     mtd finishFrameWithoutPresent()
+    {
+        .retireFrameScratch()
+        glFlush()
+    }
+
+    private mtd retireFrameScratch()
     {
         // Keep hot scratch images, but retire those unused by this frame (for example,
         // the full-window backdrop targets after the lens closes).
@@ -855,8 +866,6 @@ impl RenderOgl
                 target.poolUsed = false
             }
         }
-
-        glFlush()
     }
 
     // Copies the visible top-left rectangle of a render target into the window back buffer.

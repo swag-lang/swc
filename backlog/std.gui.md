@@ -44,8 +44,8 @@ prove it. Operating-system integrations live in
 
 - Evidence: Windows now presents via a double-buffered WGL window with DWM alpha composition.
   Linux X11 uses EGL. Both redraw dirty regions in a retained GPU target and copy the complete
-  visible rectangle on the GPU before swapping. On Windows the prepared resize frame waits for
-  the destination geometry before swapping. Window-buffer comparisons check the settled result.
+  visible rectangle on the GPU before swapping. Resize and placement paint at the committed
+  geometry through the ordinary surface renderer. Window-buffer comparisons check the settled result.
   Existing desktop captures at 12–30 fps cannot exclude a one-refresh artifact.
 - A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
@@ -436,12 +436,13 @@ preview. Validate requested settings against the capabilities supplied by platfo
   Intel driver's `NtGdiDdDDIDestroyAllocation2` while the window thread was resizing. With the
   context on the window thread there were no multi-second calls, but the previous presenter
   still reached 71–93 ms in `glFlush + SwapBuffers`. Remeasure physical dragging with the
-  current WGL presenter and its prepared geometry frames (std.gui.057). The default renderer
+  current WGL presenter across monitors (std.gui.057). The default renderer
   owns its context on the window thread, and `surface.renderthread.win32.swg` checks
   that ownership across resized paints.
 - Measurement constraint: use a DPI-aware probe that actually presses, moves, and releases the
   border. Cross-thread `SetWindowPos` probes and median-only round trips do not measure
-  physical-drag latency.
+  physical-drag latency. Repeated right-border drags on the Windows host still show occasional
+  gaps of about one second between native geometry updates, followed by the correct final size.
 - Next: measure input-to-present latency during physical drag and discrete maximize or
   full-screen changes with the window-thread renderer. Compare any cheaper native presentation
   backend under platform.portability.066 against this baseline. Before moving rendering off

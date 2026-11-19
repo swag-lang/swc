@@ -1061,9 +1061,6 @@ impl ViewerWindow
             .readingLine.hide()
             .mainSplitter.setPaneVisible(1, false)
             .updateDocumentInsets()
-
-            // Commit the final chrome and bounds together through the native placement path.
-            surface.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
         }
         else
         {
@@ -1078,22 +1075,23 @@ impl ViewerWindow
             .mainSplitter.items[1]!.view.show(.currentSidePanelButton?.isChecked orelse false)
             .mainSplitter.setPaneVisible(1, .currentSidePanelButton?.isChecked orelse false)
             .updateDocumentInsets()
-            .mainSplitter.applyLayout()
-
-            // Going straight back to the maximized state keeps the window out of its restored
-            // bounds, which would otherwise be shown for one transaction on the way.
-            if .fullScreenWasMaximized do
-                surface.showMaximized(.fullScreenRestorePosition)
-            else do
-                surface.showNormalAt(.fullScreenRestorePosition)
         }
 
         .outlineCaptionButton.show(not .fullScreen and
                                    .currentSidePanelButton and
                                    .currentSidePanelButton.id == OutlineToggleId)
         .refreshExplorerCaption()
-        surface.invalidate()
         .refreshReadingAppearance()
+
+        // Apply the chrome before changing the native size. Restore directly to the
+        // desired state so the window never visits its normal bounds on the way to maximized.
+        if enabled do
+            surface.showNormalAt(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+        elif .fullScreenWasMaximized do
+            surface.showMaximized(.fullScreenRestorePosition)
+        else do
+            surface.showNormalAt(.fullScreenRestorePosition)
+
         .applyLayout()
         .layoutFloatingParts()
     }

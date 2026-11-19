@@ -861,7 +861,7 @@ namespace
                 reason.removeArgument(Diagnostic::ARG_INDEX);
                 reason.removeArgument(Diagnostic::ARG_SYM);
                 reason.removeArgument(Diagnostic::ARG_RECEIVER_FN);
-                const Utf8 reasonText = DiagnosticBuilder(ctx, reason).formatMessage(reason.last());
+                const Utf8 reasonText = DiagnosticBuilder(ctx, reason).formatReasonMessage(reason.last());
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? namedFailedParameter(fn, fail, ctx) : nullptr)
                 {
                     const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
@@ -1100,6 +1100,19 @@ namespace
 
         Diagnostic diag = reportMatchFailure(sema, id, nodeCallee, fail, args, ufcsArg);
         fillMatchDiagnostic(sema, primaryDiagnosticElement(diag), diag, fn, fail, args, ufcsArg, false);
+
+        if (id == DiagnosticId::sema_err_too_few_arguments || id == DiagnosticId::sema_err_cannot_cast)
+        {
+            const SymbolVariable* param = namedFailedParameter(fn, fail, sema.ctx());
+            SourceCodeRange range;
+            if (param && param->decl() && !fn.name(sema.ctx()).empty() && sema.compiler().tryTokenCodeRange(sema.ctx(), range, param->codeRef()))
+            {
+                diag.addNote(DiagnosticId::sema_note_parameter_declared_here);
+                diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
+                diag.last().addArgument(Diagnostic::ARG_PARAM, param->name(sema.ctx()));
+                diag.last().addSpan(range);
+            }
+        }
 
         // A function type has no name of its own: a call through a function value names
         // that value, never the symbol at the report site, which is an argument.

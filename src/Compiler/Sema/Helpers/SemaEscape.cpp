@@ -3439,6 +3439,14 @@ namespace
         diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
 
+        SourceCodeRange destinationRange;
+        if (dstVar.decl() && sema.compiler().tryTokenCodeRange(sema.ctx(), destinationRange, dstVar.codeRef()))
+        {
+            diag.addNote(DiagnosticId::sema_note_borrow_destination_declared_here);
+            diag.last().addArgument(Diagnostic::ARG_VALUE, dstVar.name(sema.ctx()));
+            diag.last().addSpan(destinationRange);
+        }
+
         diag.report(sema.ctx());
         return Result::Error;
     }

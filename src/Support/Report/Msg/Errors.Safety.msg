@@ -1,5 +1,5 @@
 SWC_DIAG_DEF(safety_err_division_zero, Error, "division by zero")
-SWC_DIAG_DEF(safety_err_bound_check, Error, "index is out of bounds")
+SWC_DIAG_DEF(safety_err_bound_check, Error, "index is negative or greater than or equal to the collection length")
 SWC_DIAG_DEF(safety_err_integer_overflow, Error, "integer overflow")
 SWC_DIAG_DEF(safety_err_negative_shift, Error, "shift amount is negative")
 SWC_DIAG_DEF(safety_err_large_shift, Error, "shift amount is not below the bit width of the shifted value")
@@ -9,4 +9,4 @@ SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument to '{sym}' is outside
 SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument is outside the accepted domain")
 SWC_DIAG_DEF(safety_err_dyn_cast, Error, "dynamic cast does not match the concrete type")
 SWC_DIAG_DEF(safety_err_runtime, Error, "{because}")
-SWC_DIAG_DEF(safety_err_tagged_case, Error, "payload access to a tagged union whose active case does not hold it")
+SWC_DIAG_DEF(safety_err_tagged_case, Error, "cannot access the payload because a different tagged-union case is active")

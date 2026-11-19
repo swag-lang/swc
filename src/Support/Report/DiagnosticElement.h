@@ -52,7 +52,6 @@ public:
     bool                               hasSpans() const { return srcView_ != nullptr && !spans_.empty(); }
 
     Utf8 message() const;
-    void setMessage(Utf8 m);
 
     SourceCodeRange    codeRange(uint32_t spanIndex, const TaskContext& ctx) const;
     SourceCodeRange    codeRange(const DiagnosticSpan& span, const TaskContext& ctx) const;
@@ -60,7 +59,6 @@ public:
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }
     void               setSeverity(DiagnosticSeverity sev) { severity_ = sev; }
-    bool               isNoteOrHelp() const;
 
     const DiagnosticArguments& arguments() const { return arguments_; }
     void                       addArgument(std::string_view name, std::string_view arg);
@@ -81,7 +79,6 @@ public:
     }
 
 private:
-    Utf8                        message_;
     DiagnosticId                id_;
     DiagnosticSeverity          severity_;
     const SourceView*           srcView_ = nullptr;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
@@ -1034,6 +1035,78 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
 
 namespace
 {
+    AstNodeRef lastFallthroughStatement(Sema& sema, AstNodeRef nodeRef)
+    {
+        for (;;)
+        {
+            const AstNode& node = sema.node(nodeRef);
+            if (const auto* attributes = node.safeCast<AstAttributeList>())
+            {
+                nodeRef = attributes->nodeBodyRef;
+                continue;
+            }
+            if (const auto* block = node.safeCast<AstEmbeddedBlock>())
+            {
+                const size_t count = sema.ast().spanSize(block->spanChildrenRef);
+                if (count)
+                {
+                    const AstNodeRef lastRef = sema.ast().nthNode(block->spanChildrenRef, count - 1);
+                    if (lastRef.isValid() && !sema.isImplicitCodeBlockArg(nodeRef, lastRef))
+                    {
+                        nodeRef = lastRef;
+                        continue;
+                    }
+                }
+            }
+            return nodeRef;
+        }
+    }
+
+    void addFallthroughNote(Sema& sema, Diagnostic& diag, AstNodeRef bodyRef)
+    {
+        constexpr auto functionExit = SemaHelpers::LocalFlowStop::Function;
+
+        const AstNodeRef statementRef = lastFallthroughStatement(sema, bodyRef);
+        const AstNode&   statement    = sema.node(statementRef);
+        DiagnosticId     noteId       = DiagnosticId::sema_note_function_continues;
+        AstNodeRef       noteRef      = statementRef;
+
+        if (const auto* ifStmt = statement.safeCast<AstIfStmt>())
+        {
+            const bool thenExits = SemaHelpers::stopsLocalFlow(sema, ifStmt->nodeIfBlockRef, functionExit);
+            const bool elseExits = SemaHelpers::stopsLocalFlow(sema, ifStmt->nodeElseBlockRef, functionExit);
+            if (thenExits != elseExits)
+            {
+                noteId  = thenExits ? DiagnosticId::sema_note_condition_false_continues : DiagnosticId::sema_note_condition_true_continues;
+                noteRef = ifStmt->nodeConditionRef;
+            }
+        }
+        else if (const auto* binding = statement.safeCast<AstIfVarDecl>())
+        {
+            if (!binding->nodeElseBlockRef.isValid() && SemaHelpers::stopsLocalFlow(sema, binding->nodeIfBlockRef, functionExit))
+            {
+                noteId  = DiagnosticId::sema_note_binding_miss_continues;
+                noteRef = binding->nodeVarRef;
+            }
+        }
+        else if (const auto* switchStmt = statement.safeCast<AstSwitchStmt>())
+        {
+            if (!SemaSwitch::alwaysMatchesACase(sema, statementRef, *switchStmt))
+                noteId = DiagnosticId::sema_note_switch_miss_continues;
+        }
+        else if (const auto* loop = statement.safeCast<AstWhileStmt>())
+        {
+            if (sema.viewConstant(loop->nodeExprRef).cstRef() != sema.cstMgr().cstTrue())
+            {
+                noteId  = DiagnosticId::sema_note_condition_false_continues;
+                noteRef = loop->nodeExprRef;
+            }
+        }
+
+        diag.addNote(noteId);
+        SemaError::addSpan(sema, diag.last(), noteRef);
+    }
+
     // NoReturn callers discard following code and cannot receive a value;
     // reaching the body's end or returning a value would break that contract.
     Result checkNoReturnBody(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
@@ -1056,6 +1129,7 @@ namespace
         if (sym.name(sema.ctx()).empty())
             diag.removeArgument(Diagnostic::ARG_SYM);
 
+        addFallthroughNote(sema, diag, bodyRef);
         diag.report(sema.ctx());
 
         return Result::Error;
@@ -1099,6 +1173,7 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
     if (decl && decl->is(AstNodeId::FunctionDecl))
         diag.addArgument(Diagnostic::ARG_SYM, sym.name(sema.ctx()));
 
+    addFallthroughNote(sema, diag, bodyRef);
     diag.report(sema.ctx());
 
     return Result::Error;

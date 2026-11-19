@@ -844,7 +844,7 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(lowerReg, upperReg, MicroOpBits::B64);
     builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(indexType.isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
-    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), "loop range starts after its end"));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;
 }
@@ -881,7 +881,10 @@ Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, 
     }
 
     builder.placeLabel(panicRef);
-    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
+    const std::string_view message = sourceCountReg.isValid()
+                                         ? "slice start exceeds its exclusive end, or the end exceeds the source length"
+                                         : "slice start exceeds its exclusive end";
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(nodeRef), message));
     builder.placeLabel(inRangeRef);
     return Result::Continue;
 }

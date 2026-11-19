@@ -74,7 +74,8 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
         else
         {
             expanded.push_back(c);
-            column++;
+            if ((static_cast<unsigned char>(c) & 0xc0) != 0x80)
+                column++;
         }
     }
 

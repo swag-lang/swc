@@ -2272,7 +2272,7 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
         return reportError(DiagnosticId::cmd_err_native_tests_failed, Diagnostic::ARG_COUNT, nativeTestsFailed);
 
     if (exitCode != 0)
-        return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
+        return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_PATH, FileSystem::formatFileName(artifactPath), Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
 
     // A clean exit is not a pass. The tally is the only evidence the tests ran, and its absence
     // means '__testsDone' never printed one, so the executable ran none of them -- exactly the

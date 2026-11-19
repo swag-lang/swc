@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Command/Command.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -3730,8 +3731,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
     if (cmdLine().command == CommandKind::Test && (!cmdLine().testFileFilter.empty() || !cmdLine().testTagFilter.empty()) && Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
     {
-        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_filter_no_match);
-        diag.report(ctx);
+        Command::reportTestFilterNoMatch(ctx);
         return ExitCode::CompileError;
     }
 

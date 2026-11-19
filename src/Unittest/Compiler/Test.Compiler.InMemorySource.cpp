@@ -434,6 +434,30 @@ SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticExcerptShowsTheSpanOnALongLine)
+{
+    CommandLine cmdLine;
+    cmdLine.tabSize = 4;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    const Utf8       source = Utf8("// ") + Utf8(240, 'x') + " \xC3\xA9\tfocus\n";
+    SourceFile&      file = Unittest::addTestSource(compilerCtx, "Compiler", "LongDiagnosticExcerpt", source);
+    SWC_RESULT(file.loadContent(compilerCtx));
+
+    SourceView& view = file.ast().srcView();
+    Lexer       lexer;
+    lexer.tokenize(compilerCtx, view, LexerFlagsE::Default);
+
+    Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_expr_not_const, file.ref());
+    diag.last().addSpan(&view, 244, 3);
+    const Utf8 output = DiagnosticBuilder(compilerCtx, diag).build();
+    if (output.find(file.formatFileLocation(1, 245, 249)) == Utf8::npos ||
+        output.find("\n    ... ") == Utf8::npos ||
+        output.find("\\xC3\\xA9   focus\n") == Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_DuplicateDisplayStillVerifiesEachOwner)
 {
     {

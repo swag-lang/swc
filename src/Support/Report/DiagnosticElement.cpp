@@ -92,11 +92,6 @@ std::string_view DiagnosticElement::idName() const
     return Diagnostic::diagIdName(id_);
 }
 
-bool DiagnosticElement::isNoteOrHelp() const
-{
-    return severity_ == DiagnosticSeverity::Note || severity_ == DiagnosticSeverity::Help;
-}
-
 void setDiagnosticArgument(DiagnosticArguments& arguments, std::string_view name, std::string_view arg)
 {
     Utf8 sanitized;
@@ -149,19 +144,9 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
     setDiagnosticArgument(arguments_, name, arg);
 }
 
-// Format a string by replacing registered arguments
 Utf8 DiagnosticElement::message() const
 {
-    if (!message_.empty())
-        return message_;
-
-    Utf8 result{Diagnostic::diagIdMessage(id_)};
-    return result;
-}
-
-void DiagnosticElement::setMessage(Utf8 m)
-{
-    message_ = std::move(m);
+    return Utf8{Diagnostic::diagIdMessage(id_)};
 }
 
 SWC_END_NAMESPACE();

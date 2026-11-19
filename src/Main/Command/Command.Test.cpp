@@ -13,6 +13,7 @@
 #include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/PointerSet.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -767,6 +768,20 @@ namespace
 
 namespace Command
 {
+    void reportTestFilterNoMatch(TaskContext& ctx)
+    {
+        const CommandLine& cmdLine = ctx.cmdLine();
+        SmallVector<Utf8> filters;
+        if (!cmdLine.testFileFilter.empty())
+            filters.emplace_back("--test-file " + Utf8Helper::join(cmdLine.testFileFilter, ", "));
+        if (!cmdLine.testTagFilter.empty())
+            filters.emplace_back("--test-tag " + Utf8Helper::join(cmdLine.testTagFilter, ", "));
+
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_filter_no_match);
+        diag.addArgument(Diagnostic::ARG_VALUES, Utf8Helper::join(filters, "; "));
+        diag.report(ctx);
+    }
+
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
@@ -797,8 +812,7 @@ namespace Command
         if (testPassed && (!compiler.cmdLine().testFileFilter.empty() || !compiler.cmdLine().testTagFilter.empty()) && compiler.cmdLine().workspacePath.empty() &&
             Stats::get().numTests.load(std::memory_order_relaxed) == testsBefore)
         {
-            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_filter_no_match);
-            diag.report(ctx);
+            reportTestFilterNoMatch(ctx);
             testPassed = false;
         }
 

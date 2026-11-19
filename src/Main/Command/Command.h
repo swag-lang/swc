@@ -24,6 +24,7 @@ namespace Command
     void   sema(CompilerInstance& compiler);
     void   doc(CompilerInstance& compiler);
     void   test(CompilerInstance& compiler);
+    void   reportTestFilterNoMatch(TaskContext& ctx);
     void   build(CompilerInstance& compiler);
     void   run(CompilerInstance& compiler);
 }

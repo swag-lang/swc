@@ -333,7 +333,21 @@ namespace
     {
         auto diag = SemaError::report(sema, id, errorRef);
         if (const auto* currentFn = sema.currentFunction())
-            addFunctionDeclaredHereNote(sema, diag, *currentFn);
+        {
+            const AstNode* decl = currentFn->decl();
+            if (decl && decl->is(AstNodeId::CompilerFunc))
+            {
+                const std::string_view hook = Token::toName(sema.token(decl->codeRef()).id);
+                diag.addArgument(Diagnostic::ARG_WHAT, hook);
+                diag.addNote(DiagnosticId::sema_note_function_declared_here);
+                diag.last().addArgument(Diagnostic::ARG_WHAT, hook);
+                diag.last().addSpan(decl->codeRange(sema.ctx()));
+            }
+            else if (decl)
+            {
+                addFunctionDeclaredHereNote(sema, diag, *currentFn);
+            }
+        }
         diag.report(sema.ctx());
 
         return Result::Error;

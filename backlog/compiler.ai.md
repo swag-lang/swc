@@ -802,20 +802,18 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   and preserve the termination and cleanup contract.
 - Related: compiler.ai.040, compiler.ai.042, compiler.safety.032.
 
-### compiler.ai.036 — Point a diagnostic at the path that needs repair
+### compiler.ai.036 — Trace fallthrough in nested control flow and suppress diagnostic cascades
 
-- Evidence: for an `if` with a returning true arm and an implicit false arm, the
-  [missing-return error](../src/Compiler/Sema/Helpers/SemaCheck.cpp#L1089) points at the
-  return type and [help](../src/Support/Report/Msg/Errors.Sema.msg#L311) offers
-  `unreachable`. Existing generic diagnostics already show the concrete substitution and
-  the failed constraint.
-- Next: use the return-flow analysis to name the branch which reaches the end and remove
-  general-purpose `unreachable` help. Extend the same principle to borrow failures by
-  showing the owner, the invalidating operation and the failed use. Preserve source
-  provenance through imports, inlining and expansion.
-- Done when: representative errors show a repairable cause in the relevant source, with
-  concrete values or source locations when known. Independent errors still appear and
-  errors caused only by a rejected expression are suppressed.
+- Evidence: the missing-return report can show a terminal condition or a switch with no
+  guaranteed match. [A complete switch with a non-returning case](../src/Compiler/Sema/Helpers/SemaCheck.cpp)
+  still points at the switch as a whole. Dependent semantic waits can also cross the line
+  on which the primary error was reported.
+- Next: carry the source of fallthrough through complete switches and loop exits. Add a
+  fixture where a failed declaration affects a later use alongside an unrelated error,
+  then diagnose the primary failure and the independent error.
+- Done when: blocked flow reports identify the relevant branch or exit. Cascades caused by
+  a rejected expression are suppressed, and independent diagnostics remain visible through
+  generic, imported and expanded source.
 - Related: compiler.ai.035, compiler.ai.037, compiler.ai.039.
 
 ### compiler.ai.037 — The compiler answers no semantic question from the command line

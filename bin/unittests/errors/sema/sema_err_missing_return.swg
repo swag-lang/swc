@@ -14,7 +14,7 @@ func noReturnAtAll(flag: bool)->s32     // swc-expected-error {{sema_err_missing
 
 func onlyOneBranch(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    if flag do
+    if flag do     // swc-expected-note {{sema_note_condition_false_continues}}
         return 1
 }
 
@@ -22,7 +22,7 @@ func onlyOneBranch(flag: bool)->s32     // swc-expected-error {{sema_err_missing
 // reaches no case and walks past the switch.
 func plainSwitch(dir: Direction)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
-    switch dir
+    switch dir     // swc-expected-note {{sema_note_switch_miss_continues}}
     {
     case .North: return 1
     case .South: return 2

@@ -323,6 +323,40 @@ SWC_TEST_BEGIN(Compiler_NativeExitCodeDiagnosticShowsDecimalAndHex)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticArgumentsRemainLiteralAndHelpFollowsNotes)
+{
+    CommandLine cmdLine;
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_cmd_arg);
+    diag.addArgument(Diagnostic::ARG_ARG, "--{command}; [help] pasted  text");
+    diag.addArgument(Diagnostic::ARG_COMMAND, "syntax");
+    diag.addNote(DiagnosticId::cmd_note_did_you_mean);
+    diag.last().addArgument(Diagnostic::ARG_VALUE, "--file");
+
+    const Utf8 output = DiagnosticBuilder(localCtx, diag).build();
+    const size_t note = output.find("\nnote:");
+    const size_t help = output.find("\nhelp:");
+    if (output.find("'--{command}; [help] pasted  text'") == Utf8::npos ||
+        note == Utf8::npos || help == Utf8::npos || help < note ||
+        output.find("\nhelp:", help + 1) != Utf8::npos)
+        return Result::Error;
+
+    Diagnostic runtime = Diagnostic::get(DiagnosticId::sema_err_compiler_error);
+    runtime.addArgument(Diagnostic::ARG_BECAUSE, "line; [note] user text {value}");
+    if (DiagnosticBuilder(localCtx, runtime).build() != "error[sema_err_compiler_error]: compile-time error: line; [note] user text {value}\n")
+        return Result::Error;
+
+    Diagnostic cast = Diagnostic::get(DiagnosticId::sema_err_array_cast_num_dims);
+    cast.addArgument(Diagnostic::ARG_TYPE, "[2, 2] s32");
+    cast.addArgument(Diagnostic::ARG_REQUESTED_TYPE, "[4] s32");
+    cast.addArgument(Diagnostic::ARG_COUNT, 2);
+    cast.addArgument(Diagnostic::ARG_VALUE, 1);
+    const Utf8 reason = DiagnosticBuilder(localCtx, cast).formatReasonMessage(cast.last());
+    if (reason.find("source has 2 dimensions, destination needs 1") == Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentWithoutBreakingHelpSplit)
 {
     CommandLine cmdLine;

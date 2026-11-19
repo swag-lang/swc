@@ -107,29 +107,67 @@ namespace
         }
     }
 
-    // Generic digit counter (no hard cap)
-    // A source excerpt is a recognition aid, not a listing: one line, cut at this many bytes.
+    // The excerpt is a window around the actual span, even when it starts late on a line.
     constexpr size_t EXCERPT_MAX_BYTES = 200;
 
-    // The source line a span starts on, without its indentation. A line longer than the limit
-    // is cut on a character boundary and marked.
-    Utf8 sourceExcerpt(const Utf8& codeLine)
+    Utf8 sourceExcerpt(std::string_view line, uint32_t column)
     {
-        const std::string_view blanks = " \t\r\n";
-        const std::string_view line   = codeLine.view();
-        const size_t           first  = line.find_first_not_of(blanks);
+        constexpr std::string_view blanks = " \t\r\n";
+        const size_t               first  = line.find_first_not_of(blanks);
         if (first == std::string_view::npos)
             return {};
 
-        std::string_view text = line.substr(first, line.find_last_not_of(blanks) - first + 1);
-        if (text.size() <= EXCERPT_MAX_BYTES)
-            return Utf8{text};
+        const size_t end   = line.find_last_not_of(blanks) + 1;
+        size_t       start = first;
+        if (end - first > EXCERPT_MAX_BYTES)
+        {
+            size_t focus = 0;
+            for (uint32_t current = 1; current < column && focus < end; ++current)
+            {
+                ++focus;
+                while (focus < end && (static_cast<unsigned char>(line[focus]) & 0xc0) == 0x80)
+                    ++focus;
+            }
 
-        size_t cutAt = EXCERPT_MAX_BYTES;
-        while (cutAt && (static_cast<unsigned char>(text[cutAt]) & 0xc0) == 0x80)
-            cutAt--;
+            constexpr size_t before = EXCERPT_MAX_BYTES / 3;
+            if (focus > first + before)
+                start = std::min(focus - before, end - EXCERPT_MAX_BYTES);
+            while ((static_cast<unsigned char>(line[start]) & 0xc0) == 0x80)
+                ++start;
+        }
 
-        return Utf8{text.substr(0, cutAt)} + " ...";
+        size_t stop = std::min(start + EXCERPT_MAX_BYTES, end);
+        while (stop < end && (static_cast<unsigned char>(line[stop]) & 0xc0) == 0x80)
+            --stop;
+
+        Utf8 excerpt;
+        if (start > first)
+            excerpt += "... ";
+        excerpt += line.substr(start, stop - start);
+        if (stop < end)
+            excerpt += " ...";
+        return excerpt;
+    }
+
+    uint32_t endColumn(const TaskContext& ctx, const SourceCodeRange& range)
+    {
+        if (!range.len)
+            return range.column;
+
+        SourceCodeRange end;
+        end.fromOffset(ctx, *range.srcView, range.offset + range.len, 0);
+        return end.line == range.line ? end.column : range.column;
+    }
+
+    void appendDiagnosticText(Utf8& out, std::string_view text)
+    {
+        for (const unsigned char byte : text)
+        {
+            if (byte >= ' ' && byte <= '~')
+                out += static_cast<char>(byte);
+            else
+                out += std::format("\\x{:02X}", byte);
+        }
     }
 
     bool isAsciiIdentifierHead(const char ch)
@@ -183,83 +221,13 @@ namespace
         text = std::move(cleaned);
     }
 
-    bool isInsideQuotedMessageSegment(std::string_view msg, size_t index)
+    size_t placeholderEnd(std::string_view message, size_t start)
     {
-        bool inQuote = false;
+        size_t end = start + 1;
+        while (end < message.size() && (Utf8Helper::isAsciiWordCharacter(message[end]) || message[end] == '-'))
+            ++end;
 
-        for (size_t i = 0; i < index && i < msg.size(); ++i)
-        {
-            const char ch = msg[i];
-            if (!inQuote)
-            {
-                if (ch != '\'')
-                    continue;
-
-                if (isLiteralSuffixQuote(msg, i))
-                {
-                    while (i + 1 < index && i + 1 < msg.size() && isAsciiIdentifierTail(msg[i + 1]))
-                        ++i;
-                    continue;
-                }
-
-                inQuote = true;
-                continue;
-            }
-
-            if (ch == '\\')
-            {
-                if (i + 1 < index && i + 1 < msg.size())
-                    ++i;
-                continue;
-            }
-
-            if (ch == '\'')
-                inQuote = false;
-        }
-
-        return inQuote;
-    }
-
-    Utf8 escapeQuotedMessageArgument(std::string_view value)
-    {
-        Utf8 escaped;
-        escaped.reserve(value.size());
-
-        for (const char ch : value)
-        {
-            if (ch == '\\' || ch == '\'')
-                escaped += '\\';
-            escaped += ch;
-        }
-
-        return escaped;
-    }
-
-    void removeUnexpandedPlaceholders(Utf8& text)
-    {
-        Utf8 cleaned;
-        cleaned.reserve(text.size());
-
-        size_t index = 0;
-        while (index < text.size())
-        {
-            if (text[index] == '{')
-            {
-                size_t end = index + 1;
-                while (end < text.size() && Utf8Helper::isAsciiWordCharacter(text[end]))
-                    ++end;
-
-                if (end > index + 1 && end < text.size() && text[end] == '}')
-                {
-                    index = end + 1;
-                    continue;
-                }
-            }
-
-            cleaned += text[index++];
-        }
-
-        text = std::move(cleaned);
+        return end > start + 1 && end < message.size() && message[end] == '}' ? end : std::string_view::npos;
     }
 }
 
@@ -274,17 +242,29 @@ Utf8 DiagnosticBuilder::build()
     if (diag_->elements().empty())
         return {};
 
-    // Make a copy of elements to modify them if necessary
-    SmallVector<std::unique_ptr<DiagnosticElement>> elements;
-    elements.reserve(diag_->elements().size());
-    for (const std::shared_ptr<DiagnosticElement>& e : diag_->elements())
-        elements.push_back(std::make_unique<DiagnosticElement>(*e));
+    // Render notes before help, so the information needed to choose a repair stays
+    // with the error. Only the catalog can create a new diagnostic record.
+    SmallVector<PendingHelp> helps;
+    for (const auto& element : diag_->elements())
+    {
+        const auto parts = parseParts(resolveMessageTemplate(element->id(), element.get()));
+        SWC_ASSERT(!parts.empty());
+        for (size_t i = 0; i < parts.size(); ++i)
+        {
+            const DiagnosticSeverity severity = i == 0 ? element->severity() : parts[i].tag.value_or(DiagnosticSeverity::Note);
+            const DiagnosticElement* location = i == 0 ? element.get() : nullptr;
+            Utf8                     message  = buildMessage(parts[i].text, element.get());
+            if (!location && Utf8Helper::trim(message).empty())
+                continue;
+            if (severity == DiagnosticSeverity::Help)
+                helps.push_back({.element = location, .message = std::move(message)});
+            else
+                writeElement(severity, location, message);
+        }
+    }
 
-    // Add elements by splitting messages parts
-    expandMessageParts(elements);
-
-    for (const std::unique_ptr<DiagnosticElement>& e : elements)
-        writeElement(*e);
+    for (const PendingHelp& help : helps)
+        writeElement(DiagnosticSeverity::Help, help.element, help.message);
 
     return out_;
 }
@@ -313,7 +293,7 @@ SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view m
         }
         else
         {
-            if (c == '\'')
+            if (c == '\'' && !isLiteralSuffixQuote(msg, i))
                 inQuote = true;
             else if (c == ';')
             {
@@ -345,67 +325,11 @@ SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_v
             continue;
 
         const std::optional<DiagnosticSeverity> sev  = tagToSeverity(raw);
-        const std::string_view                  body = stripLeadingTagHeader(raw);
-        out.push_back({.tag = sev, .text = Utf8(body)});
+        const std::string_view                  body = sev ? stripLeadingTagHeader(raw) : raw;
+        out.push_back({.tag = sev, .text = body});
     }
 
     return out;
-}
-
-// Copies a message, resolving the escapes a quoted argument carries: inside quotes, '\\' is a
-// backslash and '\'' is a quote that does not close the segment.
-void DiagnosticBuilder::writeMessage(const std::string_view msg)
-{
-    bool inQuote = false;
-    Utf8 quotedBuf;
-    quotedBuf.reserve(32);
-
-    for (size_t i = 0; i < msg.size(); ++i)
-    {
-        const char ch = msg[i];
-
-        if (!inQuote)
-        {
-            if (ch == '\'' && !isLiteralSuffixQuote(msg, i))
-            {
-                inQuote   = true;
-                quotedBuf = '\'';
-            }
-            else
-            {
-                out_ += ch;
-            }
-        }
-        else if (ch == '\\')
-        {
-            // Handling '\\' first is essential, otherwise '\\'' would be misparsed as a backslash
-            // followed by an escaped quote instead of an escaped backslash followed by the closing
-            // delimiter.
-            if (i + 1 < msg.size() && (msg[i + 1] == '\\' || msg[i + 1] == '\''))
-                quotedBuf += msg[++i];
-            else
-                quotedBuf += '\\';
-        }
-        else if (ch == '\'' && quotedBuf.size() == 1)
-        {
-            quotedBuf += ch;
-        }
-        else if (ch == '\'')
-        {
-            quotedBuf += '\'';
-            out_ += quotedBuf;
-            inQuote = false;
-            quotedBuf.clear();
-        }
-        else
-        {
-            quotedBuf += ch;
-        }
-    }
-
-    // A message that ends inside a quoted segment keeps what was read.
-    if (inQuote)
-        out_ += quotedBuf;
 }
 
 void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
@@ -413,14 +337,15 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     const SourceCodeRange codeRange = el.codeRange(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
+    const uint32_t columnEnd = endColumn(*ctx_, codeRange);
     if (el.srcView()->fileRef().isValid())
     {
         const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        out_ += file.formatFileLocation(codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        appendDiagnosticText(out_, file.formatFileLocation(codeRange.line, codeRange.column, columnEnd));
     }
     else
     {
-        out_ += FileSystem::formatPathLocation(fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        appendDiagnosticText(out_, FileSystem::formatPathLocation(fs::path{}, codeRange.line, codeRange.column, columnEnd));
     }
 }
 
@@ -430,11 +355,12 @@ void DiagnosticBuilder::writeSpans(const DiagnosticElement& el)
 {
     constexpr std::string_view indent = "    ";
 
-    const Utf8 excerpt = sourceExcerpt(el.srcView()->codeLine(*ctx_, el.codeRange(0, *ctx_).line));
+    const SourceCodeRange first   = el.codeRange(0, *ctx_);
+    const Utf8            excerpt = sourceExcerpt(el.srcView()->codeLine(*ctx_, first.line), first.column);
     if (!excerpt.empty())
     {
         out_ += indent;
-        out_ += excerpt;
+        appendDiagnosticText(out_, excerpt);
         out_ += "\n";
     }
 
@@ -452,11 +378,11 @@ void DiagnosticBuilder::writeSpans(const DiagnosticElement& el)
 
         const SourceCodeRange codeRange = el.codeRange(span, *ctx_);
         out_ += indent;
-        out_ += std::format("{}:{}-{}", codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        out_ += std::format("{}:{}-{}", codeRange.line, codeRange.column, endColumn(*ctx_, codeRange));
         if (!label.empty())
         {
             out_ += ": ";
-            writeMessage(label);
+            appendDiagnosticText(out_, label);
         }
 
         out_ += "\n";
@@ -465,27 +391,26 @@ void DiagnosticBuilder::writeSpans(const DiagnosticElement& el)
 
 // One element is one line, '<location>: <severity>[<id>]: <message>', followed by its indented
 // span lines. An element without a source location starts at its severity.
-void DiagnosticBuilder::writeElement(const DiagnosticElement& el)
+void DiagnosticBuilder::writeElement(DiagnosticSeverity severity, const DiagnosticElement* element, std::string_view message)
 {
-    if (el.hasSpans())
+    if (element && element->hasSpans())
     {
-        writeLocation(el);
+        writeLocation(*element);
         out_ += ": ";
     }
 
-    out_ += severityStr(el.severity());
-    if (!el.isNoteOrHelp())
-        out_ += std::format("[{}]", Diagnostic::diagIdName(el.id()));
+    out_ += severityStr(severity);
+    if (severity == DiagnosticSeverity::Error || severity == DiagnosticSeverity::Warning)
+    {
+        SWC_ASSERT(element);
+        out_ += std::format("[{}]", Diagnostic::diagIdName(element->id()));
+    }
     out_ += ": ";
-
-    Utf8 msg = el.message();
-    if (msg.empty())
-        msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
-    writeMessage(msg);
+    appendDiagnosticText(out_, message);
     out_ += "\n";
 
-    if (el.hasSpans())
-        writeSpans(el);
+    if (element && element->hasSpans())
+        writeSpans(*element);
 }
 
 // Two different types that print the same short name ('Foo' declared in two namespaces) would make
@@ -518,43 +443,69 @@ void DiagnosticBuilder::collectQualifiedTypes(SmallVector<TypeRef>& qualifiedTyp
     }
 }
 
-void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArguments& arguments, const SmallVector<TypeRef>& qualifiedTypes) const
+Utf8 DiagnosticBuilder::buildMessage(std::string_view message, const DiagnosticElement* element) const
 {
-    for (const auto& arg : arguments)
-    {
-        const TypeRef* typeRef   = std::get_if<TypeRef>(&arg.val);
-        const bool     qualified = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
-        const Utf8     raw       = argumentToString(arg, qualified);
-        size_t         pos       = 0;
-        while ((pos = result.find(arg.name, pos)) != Utf8::npos)
-        {
-            const bool insideQuote = isInsideQuotedMessageSegment(result, pos);
-            const Utf8 value       = insideQuote ? escapeQuotedMessageArgument(raw) : raw;
-            result.replace(pos, arg.name.length(), value);
-            pos += value.length();
-        }
-    }
-}
-
-Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* el) const
-{
-    Utf8 result = msg;
-
     SmallVector<TypeRef> qualifiedTypes;
-    collectQualifiedTypes(qualifiedTypes, el);
+    collectQualifiedTypes(qualifiedTypes, element);
 
-    // Replace placeholders from the element first
-    if (el)
-        replaceArgsInString(result, el->arguments(), qualifiedTypes);
+    Utf8 result;
+    result.reserve(message.size());
 
-    // Then from the diagnostic
-    replaceArgsInString(result, diag_->arguments(), qualifiedTypes);
+    bool missingArgument = false;
+    for (size_t i = 0; i < message.size(); ++i)
+    {
+        if (message[i] != '{')
+        {
+            result += message[i];
+            continue;
+        }
 
-    // Clean some stuff
-    removeUnexpandedPlaceholders(result);
-    removeRedundantEmptyQuotes(result);
-    result.replace_loop(" , ", ", ");
-    result.replace_loop("  ", " ", true);
+        const size_t end = placeholderEnd(message, i);
+        if (end == std::string_view::npos)
+        {
+            result += message[i];
+            continue;
+        }
+
+        const auto name = message.substr(i, end - i + 1);
+        const DiagnosticArgument* argument = nullptr;
+        if (element)
+        {
+            const auto& args = element->arguments();
+            const auto  it   = std::ranges::find(args, name, &DiagnosticArgument::name);
+            if (it != args.end())
+                argument = &*it;
+        }
+        if (!argument)
+        {
+            const auto& args = diag_->arguments();
+            const auto  it   = std::ranges::find(args, name, &DiagnosticArgument::name);
+            if (it != args.end())
+                argument = &*it;
+        }
+
+        if (argument)
+        {
+            const TypeRef* typeRef = std::get_if<TypeRef>(&argument->val);
+            const bool qualified   = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
+            result += argumentToString(*argument, qualified);
+        }
+        else
+        {
+            missingArgument = true;
+        }
+
+        i = end;
+    }
+
+    // Incomplete variants are a fallback. Keep cleanup away from normal
+    // substitutions so paths, literal text and generated source stay intact.
+    if (missingArgument)
+    {
+        removeRedundantEmptyQuotes(result);
+        result.replace_loop(" , ", ", ");
+        result.replace_loop("  ", " ", true);
+    }
 
     return result;
 }
@@ -597,9 +548,9 @@ uint32_t DiagnosticBuilder::countMessagePlaceholders(std::string_view msg)
         if (msg[i] != '{')
             continue;
 
-        const size_t end = msg.find('}', i + 1);
+        const size_t end = placeholderEnd(msg, i);
         if (end == std::string_view::npos)
-            break;
+            continue;
 
         const std::string_view placeholder = msg.substr(i, end - i + 1);
         if (std::ranges::find(placeholders, placeholder) == placeholders.end())
@@ -655,41 +606,21 @@ Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg, bool qua
 
 Utf8 DiagnosticBuilder::formatMessage(const DiagnosticElement& element) const
 {
-    return buildMessage(Utf8(resolveMessageTemplate(element.id(), &element)), &element);
+    return buildMessage(resolveMessageTemplate(element.id(), &element), &element);
 }
 
-void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const
+Utf8 DiagnosticBuilder::formatReasonMessage(const DiagnosticElement& element) const
 {
-    if (elements.empty())
-        return;
-
-    // Process elements from back to front to avoid invalidating iterators
-    // and to maintain proper ordering when inserting new elements
-    for (size_t idx = elements.size(); idx-- > 0;)
+    Utf8 reason;
+    for (const Part& part : parseParts(resolveMessageTemplate(element.id(), &element)))
     {
-        DiagnosticElement* element = elements[idx].get();
-        const Utf8         msg     = formatMessage(*element);
-        SmallVector<Part>  parts   = parseParts(std::string_view(msg));
-
-        // Base element keeps the first part
-        element->setMessage(Utf8(parts[0].text));
-        parts.erase(parts.begin());
-        if (parts.empty())
+        if (part.tag == DiagnosticSeverity::Help)
             continue;
-
-        // Insert additional parts right after the current element
-        size_t insertPos = idx + 1;
-        for (const auto& p : parts)
-        {
-            const DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
-
-            auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
-            extra->setMessage(Utf8(p.text));
-
-            elements.insert(elements.begin() + insertPos, std::move(extra));
-            ++insertPos;
-        }
+        if (!reason.empty())
+            reason += "; ";
+        reason += buildMessage(part.text, &element);
     }
+    return reason;
 }
 
 SWC_END_NAMESPACE();

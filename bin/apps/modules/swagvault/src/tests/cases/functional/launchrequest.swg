@@ -21,7 +21,7 @@ using Core, Gui
 #test
 {
     var window: MainWindow
-    window.operation.kind = .CheckLaunchAccess
+    window.operation.kind = .CheckEmptyAccess
     for password in ["", "password"]
     {
         let path = Testing.tempFilePath("vault launch access-", ".container-data")
@@ -55,7 +55,7 @@ using Core, Gui
     window.privacyMode = false
     window.startupVaults.add(StartupVault{path, "", false, false, true})
 
-    window.openLaunchVault(path)
+    window.openForAutomaticMount(path)
     Swag.require(window.chosenLockedPath() == path.toString())
     Swag.require(window.protectHiddenOnMount and window.operation.kind == .None)
 }

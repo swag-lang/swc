@@ -34,8 +34,8 @@ using Core, Gui
     var volume = expect Volume.create(path, "", MinimumSize)
     volume.close()
 
-    window.openLaunchVault(path)
-    Swag.require(window.operation.kind == .CheckLaunchAccess)
+    window.openForAutomaticMount(path)
+    Swag.require(window.operation.kind == .CheckEmptyAccess)
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.finishOperation()
     Swag.require(host.autoHandled and window.operation.kind == .None)

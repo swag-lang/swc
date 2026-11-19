@@ -1,27 +1,27 @@
 impl MainWindow
 {
-    mtd queueVaultLaunch(path: string)
+    mtd queueAutomaticMount(path: string)
     {
-        .launchPath = path
-        if not .launchTimer do
-            .launchTimer = .addTimer(40'ms)
+        .pendingMountPath = path
+        if not .automaticMountTimer do
+            .automaticMountTimer = .addTimer(40'ms)
     }
 
-    // Tries empty access for an explicitly launched file. A selected vault can already have
+    // Tries empty access for an explicitly opened file. A selected vault can already have
     // access in its controls, which still belongs to the person's next manual mount.
-    mtd openLaunchVault(path: string)
+    mtd openForAutomaticMount(path: string)
     {
         .fillDriveChoice()
         .openVault(path)
         if .operation.kind != .None
         {
             // Selecting a different vault can resume the saved startup queue.
-            if .launchPath.isEmpty() do
-                .queueVaultLaunch(path)
+            if .pendingMountPath.isEmpty() do
+                .queueAutomaticMount(path)
             return
         }
 
-        if not .launchPath.isEmpty() or not .canMount() do
+        if not .pendingMountPath.isEmpty() or not .canMount() do
             return
 
         let startup = .startupIndex(path)
@@ -41,14 +41,14 @@ impl MainWindow
         if .needsDriverChoice()
         {
             .operation.path = path
-            .beginOperation(.CheckLaunchAccess)
+            .beginOperation(.CheckEmptyAccess)
             return
         }
 
         .operation.access.clear()
         .operation.hiddenAccess.clear()
-        .operation.protectHidden = false
-        .operation.fromLaunch    = true
+        .operation.protectHidden  = false
+        .operation.automaticMount = true
         .startMount(String.from(path), .selectedMountPoint(), fromStartup: false, readOnly: .readOnly.isChecked())
     }
 

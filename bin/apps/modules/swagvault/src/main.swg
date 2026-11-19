@@ -78,7 +78,7 @@ const ApplicationId     = "swagvault"
     if not launchFile.isEmpty()
     {
         mainWindow.resident.activate()
-        mainWindow.queueVaultLaunch(launchFile)
+        mainWindow.queueAutomaticMount(launchFile)
     }
 
     mainWindow.resident.start()

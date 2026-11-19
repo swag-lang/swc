@@ -680,7 +680,7 @@ namespace Integration
     }
 
     #[Swag.Propagate]
-    func runAutomaticLaunchMount(box: *Sandbox) fail
+    func runAutomaticMounts(box: *Sandbox) fail
     {
         let path   = Path.combine(box.root, "launch without access.vault")
         var volume = Volume.create(path, "", MinimumSize)
@@ -694,17 +694,30 @@ namespace Integration
         let window = MainWindow.create(&host.surfaceWnd)
         window.preferPortableWinFsp = true
 
-        window.openLaunchVault(path)
-        verify(window.operation.kind == .Mount, "launch must start mounting without submitting the form")
-        host.clickModalButtonWhenShown(Dialog.BtnOk)
-        window.finishOperation()
-        verify(window.isMounted(path), "launch must publish a drive for a vault without access")
-        let drive = unwrap window.mountedDrives.find(path)
-        verify(Directory.exists(driveRoot(drive.drive)), "the automatically mounted drive must be visible to Windows")
+        for drop in [false, true]
+        {
+            if drop
+            {
+                let effect = host.dropFilesOnWnd(window, [path.toString()])
+                verify(effect == .Copy, "the window must accept a dropped vault")
+                host.fireTimer(unwrap window.automaticMountTimer)
+            }
+            else
+            {
+                window.openForAutomaticMount(path)
+            }
 
-        window.unmountVault(path)
-        window.finishOperation()
-        verify(not window.isMounted(path), "the automatically mounted drive must unmount normally")
+            verify(window.operation.kind == .Mount, "opening an unprotected vault must start mounting automatically")
+            host.clickModalButtonWhenShown(Dialog.BtnOk)
+            window.finishOperation()
+            verify(window.isMounted(path), "opening an unprotected vault must publish a drive")
+            let drive = unwrap window.mountedDrives.find(path)
+            verify(Directory.exists(driveRoot(drive.drive)), "the automatically mounted drive must be visible to Windows")
+
+            window.unmountVault(path)
+            window.finishOperation()
+            verify(not window.isMounted(path), "the automatically mounted drive must unmount normally")
+        }
     }
 
     #[Swag.Propagate]
@@ -713,7 +726,7 @@ namespace Integration
         g_CheckCount = 0
         verify(not WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
         verifyRuntimeIsolation()
-        runAutomaticLaunchMount(box)
+        runAutomaticMounts(box)
         Console.println("Swag Vault integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
         trace(Format.toString("SANDBOX: %", box.root))

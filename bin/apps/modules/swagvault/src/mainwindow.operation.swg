@@ -438,7 +438,7 @@ impl MainWindow
             return
         }
 
-        if .operation.kind == .CheckLaunchAccess
+        if .operation.kind == .CheckEmptyAccess
         {
             var volume = catch Volume.open(.operation.path, "", readOnly: true) as .operation.error
             {
@@ -475,7 +475,7 @@ impl MainWindow
 
         switch #complete .operation.kind
         {
-        case .None, .CheckLaunchAccess, .InstallDriver:
+        case .None, .CheckEmptyAccess, .InstallDriver:
             return
 
         case .Create:
@@ -606,15 +606,15 @@ impl MainWindow
         .stopTimer(&.operation.timer)
         .showBusy(false)
 
-        let checkingLaunch = .operation.kind == .CheckLaunchAccess
-        let resumeMount    = (checkingLaunch or .operation.kind == .InstallDriver) and
-                             operationError == null and
-                             not .operation.path.isEmpty() and
-                             .operation.path == .chosenPath and
-                             .page == .List and
-                             (not checkingLaunch or (.launchPath.isEmpty() and not .resident.isHidden()))
+        let checkingEmptyAccess = .operation.kind == .CheckEmptyAccess
+        let resumeMount         = (checkingEmptyAccess or .operation.kind == .InstallDriver) and
+                                  operationError == null and
+                                  not .operation.path.isEmpty() and
+                                  .operation.path == .chosenPath and
+                                  .page == .List and
+                                  (not checkingEmptyAccess or (.pendingMountPath.isEmpty() and not .resident.isHidden()))
         var needsAccess = false
-        if operationError is Error as error where checkingLaunch or .operation.fromLaunch do
+        if operationError is Error as error where checkingEmptyAccess or .operation.automaticMount do
             needsAccess = error.kind == .PasswordOrDamaged
 
         switch #complete .operation.kind
@@ -625,10 +625,10 @@ impl MainWindow
         case .Create:
             .finishCreate(operationError)
 
-        case .Mount, .CheckLaunchAccess:
+        case .Mount, .CheckEmptyAccess:
             if needsAccess do
                 .setStatus(.Ready)
-            elif not checkingLaunch or operationError != null do
+            elif not checkingEmptyAccess or operationError != null do
                 .finishMount(operationError)
 
         case .InstallDriver:

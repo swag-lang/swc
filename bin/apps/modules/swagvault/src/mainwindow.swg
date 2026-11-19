@@ -6,7 +6,7 @@ enum OperationKind
     None
     Create
     Mount
-    CheckLaunchAccess
+    CheckEmptyAccess
     InstallDriver
     Unmount
     Resize
@@ -177,7 +177,7 @@ struct VaultOperation
     removesPassword:   bool     // Whether a password change leaves its password field empty.
     accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
     fromStartup:       bool     // Whether the mount came from the startup list rather than from the list of vaults.
-    fromLaunch:        bool     // Whether the mount is trying empty access for a file passed at launch.
+    automaticMount:    bool     // Whether the mount is trying empty access for an explicit file open.
     securityEpoch:     u64      // Security-event generation at which this mount started.
     securityStopped:   bool     // Whether a security event interrupted this mount.
 
@@ -203,7 +203,7 @@ impl VaultOperation
         .removesPassword   = false
         .accessChange      = .Password
         .fromStartup       = false
-        .fromLaunch        = false
+        .automaticMount    = false
         .securityStopped   = false
         .camouflageOnly    = false
         .size              = 0
@@ -294,14 +294,14 @@ struct MainWindow
 
     // Containers to mount at the next start, and what is left of that list while the window
     // works through it. Only the first survives a run.
-    startupVaults:   Array'StartupVault
-    startupQueue:    Array'StartupVault
-    startupWaiting:  String     // Protected startup vault unfolded in the list for its access, or empty.
-    startupTimer:    *Timer?
-    launchTimer:     *Timer?
-    launchPath:      String
-    securityTimer:   *Timer?
-    securityMonitor: AutoUnmountMonitor
+    startupVaults:       Array'StartupVault
+    startupQueue:        Array'StartupVault
+    startupWaiting:      String     // Protected startup vault unfolded in the list for its access, or empty.
+    startupTimer:        *Timer?
+    automaticMountTimer: *Timer?
+    pendingMountPath:    String
+    securityTimer:       *Timer?
+    securityMonitor:     AutoUnmountMonitor
 
     mountDestinations:    Array'MountDestination
     autoUnmount:          AutoUnmountSettings
@@ -1002,8 +1002,8 @@ impl MainWindow
 
         .stopTimer(&.operation.timer)
         .stopTimer(&.startupTimer)
-        .stopTimer(&.launchTimer)
-        .launchPath.clear()
+        .stopTimer(&.automaticMountTimer)
+        .pendingMountPath.clear()
         .stopTimer(&.securityTimer)
         .securityMonitor.stop()
 
@@ -1073,7 +1073,7 @@ impl IWnd for MainWindow
             let path = receiveVaultLaunch(evt.param)
             if path.isEmpty() do
                 return
-            .queueVaultLaunch(path)
+            .queueAutomaticMount(path)
             .resident.activate()
         }
     }
@@ -1092,10 +1092,8 @@ impl IWnd for MainWindow
 
     // Takes a container dropped anywhere on the window that no field claimed first.
     //
-    // Dropping one file says "open this" regardless of its name: the container format, not a
-    // filename extension, identifies a vault. The window puts it on the list and unfolds it, which
-    // leaves the reader one access entry away from a drive. A drop that lands on a path field is
-    // that field's own business and never reaches here.
+    // Queue one file for automatic mounting. The vault's access form opens if credentials are
+    // needed. A path field handles its own drop before it can reach this window.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         if evt.kind == .Leave
@@ -1115,13 +1113,13 @@ impl IWnd for MainWindow
 
         .dropHighlight.showTarget(.page != .List or not .list.rows.isEmpty())
 
+        evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
         if evt.kind == .Drop
         {
             .dropHighlight.hide()
-            .openVault(path)
+            if evt.effect != .None do
+                .queueAutomaticMount(path)
         }
-
-        evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -1140,14 +1138,14 @@ impl IWnd for MainWindow
             .stopTimer(&.startupTimer)
             .pumpStartupQueue()
         }
-        elif evt.timer == .launchTimer
+        elif evt.timer == .automaticMountTimer
         {
-            // A launch waits for an existing operation or dialog to finish before changing selection.
+            // A file open waits for the current operation or dialog before changing selection.
             if .operation.kind == .None and not .resident.batch and not .surface!.isDisabled
             {
-                .stopTimer(&.launchTimer)
-                let path = #move .launchPath
-                .openLaunchVault(path)
+                .stopTimer(&.automaticMountTimer)
+                let path = #move .pendingMountPath
+                .openForAutomaticMount(path)
             }
         }
         elif evt.timer == .securityTimer

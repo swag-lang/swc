@@ -987,8 +987,11 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     // A container dropped on the home is what its foot says: it joins the list, unfolded, and the
     // keys of the home leave the hint line with it.
-    Swag.require(host.dropFilesOnWnd(list, ["C:\\vaults\\dropped.bin"]) != DropEffect.None)
-    Swag.require(window.chosenPath == "C:\\vaults\\dropped.bin" and list.card.panel.isLocallyVisible())
+    let path = createProtectedDropFixture()
+    defer discard catch File.delete(path)
+    Swag.require(host.dropFilesOnWnd(list, [path.toString()]) != DropEffect.None)
+    finishDroppedVault(&host, window)
+    Swag.require(window.chosenPath == path.toString() and list.card.panel.isLocallyVisible())
     window.foldVault()
     Swag.require(list.rows.count == 1 and window.hintLine.hints.count == 1)
 }
@@ -1207,16 +1210,33 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.createButton.isEnabled())
 }
 
-// A container dropped anywhere else on the window joins the list, unfolded and ready for its access.
+func createProtectedDropFixture(extension = ".bin")->String
+{
+    let path   = Testing.tempFilePath("vault protected drop-", extension)
+    var volume = expect Volume.create(path, "password", MinimumSize)
+    volume.close()
+    return path
+}
+
+func finishDroppedVault(host: *Testing.HeadlessHost, window: *MainWindow)
+{
+    host.fireTimer(unwrap window.automaticMountTimer)
+    if window.operation.kind != .None do
+        window.finishOperation()
+}
+
+// A protected container dropped on the window unfolds and waits for its access.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
+    let path   = createProtectedDropFixture()
+    defer discard catch File.delete(path)
 
     window.showPage(.Options, animate: false)
     var point = window.surfaceRect().center()
     window.surface!.surfaceToScreen(&point)
-    Swag.require(host.dragFilesOver(point, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(host.dragFilesOver(point, [path.toString()]) == DropEffect.Copy)
     Swag.require(window.dropHighlight.isLocallyVisible())
     Swag.require(window.dropHighlight.parent == window)
     Swag.require(window.dropHighlight.prompt.text() == appStrings().ui_DropTitle)
@@ -1227,12 +1247,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.cancelDrag()
     Swag.require(not window.dropHighlight.isLocallyVisible())
 
-    Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(host.dropFilesOnWnd(window, [path.toString()]) == DropEffect.Copy)
+    finishDroppedVault(&host, window)
 
     Swag.require(not window.dropHighlight.isLocallyVisible())
     Swag.require(window.page == .List)
-    Swag.require(window.chosenPath == "c:/vaults/private")
+    Swag.require(window.chosenLockedPath() == path.toString())
     Swag.require(window.mountPassword.hasFocus())
+    Swag.require(window.mountButton.isEnabled() and window.statusMessage == .Ready)
 }
 
 // A filename extension never decides whether a dropped file is a container.
@@ -1240,15 +1262,20 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
+    let path   = createProtectedDropFixture(".anything")
+    defer discard catch File.delete(path)
 
-    Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
-    Swag.require(window.chosenPath == "c:/vaults/private.anything")
+    Swag.require(host.dropFilesOnWnd(window, [path.toString()]) == DropEffect.Copy)
+    finishDroppedVault(&host, window)
+    Swag.require(window.chosenLockedPath() == path.toString())
 
     // Two files name no single vault to open.
     window.foldVault()
     Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
     Swag.require(not window.dropHighlight.isLocallyVisible())
     Swag.require(window.chosenPath.isEmpty() and window.vaults.isEmpty())
+    Swag.require(host.dropFilesOnWnd(window, [path.toString()], allowed: .Move) == DropEffect.None)
+    Swag.require(window.automaticMountTimer == null)
 }
 
 // A saved startup choice asks for hidden access again; neither its bytes nor the protection of a

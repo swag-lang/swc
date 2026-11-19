@@ -22,6 +22,7 @@ namespace Integration
     const PreviewMountArgument    = "--integration-preview-mount"
     const ContainerSize           = 64'u64 * 1024 * 1024
     const LargeMoveSize           = 16'u64 * 1024 * 1024 + 37
+    const BatchRenameCount        = 24
     const FileAttributeReadOnly   = 0x00000001'u32
     const FileAttributeNormal     = 0x00000080'u32
     const MoveReplaceExisting     = 0x00000001'u32
@@ -311,8 +312,28 @@ namespace Integration
         return result
     }
 
+    func batchRenamePayload(index: u64)->[113] u8
+    {
+        var result: #returntype
+        for byteIndex in result.count do
+            result[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
+        return result
+    }
+
     #[Swag.Propagate]
-    func runFilesystemScenarios(box: *Sandbox, original: const [..] u8) fail
+    func verifyNumberedBatch(bulk: string) fail
+    {
+        for index in BatchRenameCount
+        {
+            let numbered = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
+            let bytes    = File.readAllBytes(numbered)
+            verify(Slice.equals(bytes.toSlice(), batchRenamePayload(index)),
+                   Format.toString("the numbered file [[%]] must retain its original contents", numbered))
+        }
+    }
+
+    #[Swag.Propagate]
+    func runFilesystemScenarios(box: *Sandbox, original: const [..] u8)->Array'String fail
     {
         let root      = driveRoot(box.mountPoint)
         let documents = Path.combine(root, "Documents")
@@ -439,17 +460,14 @@ namespace Integration
         let bulk = Path.combine(documents, "Bulk")
         trace("FS: bulk directory enumeration")
         Directory.create(bulk)
-        for index in 24
+        for index in BatchRenameCount
         {
             let name = Path.combine(bulk, Format.toString("item-%.bin", index))
-            var bytes: [113] u8
-            for byteIndex in #sizeof(bytes) do
-                bytes[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            File.writeAllBytes(name, bytes)
+            File.writeAllBytes(name, batchRenamePayload(index))
         }
 
         let entries     = Directory.enumerateFiles(bulk)
-        let scannedBulk = entries.count == 24 and
+        let scannedBulk = entries.count == BatchRenameCount and
                           containsEntry(entries.toSlice(), "item-0.bin") and
                           containsEntry(entries.toSlice(), "item-23.bin")
         verify(scannedBulk, "directory scans must return every created file")
@@ -459,7 +477,7 @@ namespace Integration
         File.writeAllBytes(occupied, first)
         let occupied16 = Utf16.toZeroTerminated(occupied)
         var renamePaths: Array'String
-        for index in 24
+        for index in BatchRenameCount
         {
             let source   = Path.combine(bulk, Format.toString("item-%.bin", index))
             let source16 = Utf16.toZeroTerminated(source)
@@ -476,37 +494,36 @@ namespace Integration
             renamePaths.add(destination)
             movePath(source, destination)
             let renamedBytes = File.readAllBytes(destination)
-            verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
-            var expected: [113] u8
-            for byteIndex in expected.count do
-                expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            verify(Slice.equals(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
+            verify(not File.exists(source), "batch renames must remove every old file name")
+            verify(Slice.equals(renamedBytes.toSlice(), batchRenamePayload(index)), "batch renames must preserve file contents")
         }
 
         trace("FS: Shell batch rename with automatic numbering")
 
         // Seed the first number, as an Explorer batch rename does; the Shell chooses the rest.
         shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
-        for index in 24
-        {
-            let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
-            let renamedBytes = File.readAllBytes(numbered)
-            verify(not File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
-            var expected: [113] u8
-            for byteIndex in expected.count do
-                expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            verify(Slice.equals(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
-        }
+        for &path in renamePaths do
+            verify(not File.exists(path[]), "the Shell batch rename must remove every old file name")
+        verifyNumberedBatch(bulk)
+
+        // The Shell can change extension casing. Keep the exact spelling it published.
+        let numberedEntries = Directory.enumerateFiles(bulk)
+        verify(numberedEntries.count == BatchRenameCount + 1 and containsEntry(numberedEntries.toSlice(), "occupied.bin"),
+               "the renamed directory must contain the numbered files and the collision target")
+        var batchNames: Array'String
+        for &entry in numberedEntries do
+            batchNames.add(unwrap Path.fileName(entry.fullName))
 
         let documentsEntries = Directory.enumerate(documents, {})
         let scannedDocuments = containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
                                containsEntry(documentsEntries.toSlice(), "résumé-東京.txt") and
                                containsEntry(documentsEntries.toSlice(), "Bulk")
         verify(scannedDocuments, "mixed file and directory scans must preserve names")
+        return batchNames
     }
 
     #[Swag.Propagate]
-    func runPersistenceScenarios(box: *Sandbox, original: const [..] u8) fail
+    func runPersistenceScenarios(box: *Sandbox, original: const [..] u8, batchNames: const [..] String) fail
     {
         box.unmountVolume()
         verify(not Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
@@ -531,10 +548,10 @@ namespace Integration
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = Directory.enumerateFiles(bulk)
-        verify(entries.count == 25 and
-               containsEntry(entries.toSlice(), "video (13).mp4") and
-               containsEntry(entries.toSlice(), "occupied.bin"),
-               "batch rename metadata must persist across remount")
+        verify(entries.count == batchNames.count, "the renamed directory must keep its file count across remount")
+        for &name in batchNames do
+            verify(containsEntry(entries.toSlice(), name[]), Format.toString("remount must preserve the exact file name [[%]]", name[]))
+        verifyNumberedBatch(bulk)
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text = "mounted twice"
@@ -735,14 +752,14 @@ namespace Integration
         verify(probeExitCode == 0, "the visibility probe must exit without reporting a failure")
         verify(File.exists(visibilityMarker) and File.readAllText(visibilityMarker) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
         runPrivacyScenarios(box, visibilityMarker)
-        runFilesystemScenarios(box, payload.toSlice())
+        let batchNames = runFilesystemScenarios(box, payload.toSlice())
         trace("STAGE: live filesystem scenarios complete")
         trace("STAGE: ordinary and forced unmount contract")
         runUnmountContract(box)
 
         Console.println("Unmounting, rejecting a wrong password, and remounting...")
         trace("STAGE: persistence scenarios")
-        runPersistenceScenarios(box, payload.toSlice())
+        runPersistenceScenarios(box, payload.toSlice(), batchNames.toSlice())
         trace("STAGE: persistence scenarios complete")
         Console.println("Checking hidden-volume mounts and optional write protection...")
         runHiddenScenarios()

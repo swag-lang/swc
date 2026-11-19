@@ -441,6 +441,88 @@ func worker(current: const *Threading.Thread)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicStopsLifecycleHooks)
+{
+    const RecoveryTestDirectory directory;
+    for (uint32_t phase = 0; phase < 5; ++phase)
+    {
+        const fs::path sourcePath = directory.path() / std::format("lifecycle-{}.swgs", phase);
+        const auto     source     = std::format("const FailurePhase = {}\n", phase) + R"(
+#init
+{
+    if FailurePhase == 1 do
+        Swag.panic("script hook panic", #curlocation)
+}
+
+#premain
+{
+    if FailurePhase == 2 do
+        Swag.panic("script hook panic", #curlocation)
+}
+
+#main
+{
+    if FailurePhase == 3 do
+        Swag.panic("script hook panic", #curlocation)
+    Swag.print("script main completed\n")
+}
+
+#drop { Swag.print("script cleanup completed\n") }
+
+#drop
+{
+    if FailurePhase == 4 do
+        Swag.panic("script hook panic", #curlocation)
+}
+)";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+
+        const std::vector<Utf8> args = {"-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
+        std::string             output;
+        uint32_t                exitCode = UINT32_MAX;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15'000};
+        const auto result       = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+        const auto expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
+        if (result != Os::ProcessRunResult::Ok || exitCode != expectedExit ||
+            output.contains("script hook panic") != (phase != 0) ||
+            output.contains("script main completed") != (phase == 0 || phase == 4) ||
+            output.contains("script cleanup completed") != (phase == 0))
+        {
+            std::println(stderr, "[script lifecycle phase {}] result={}, exit={}\n{}", phase, static_cast<uint32_t>(result), exitCode, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExpectedJitHookPanicStillAbandonsLifecycle)
+{
+    const RecoveryTestDirectory directory;
+    const fs::path              sourcePath = directory.path() / "expected_hook_panic.swg";
+    constexpr std::string_view  source     = R"(#global private
+#test { Swag.print("jit test completed\n") }
+#drop { Swag.print("jit cleanup completed\n") }
+#drop
+{
+    Swag.panic("jit drop panic", #curlocation)     // swc-expected-error {{sema_err_compiler_panic}}
+}
+)";
+    SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+
+    const std::vector<Utf8> args = {"test", "--file", Utf8(sourcePath), "--no-output", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string             output;
+    uint32_t                exitCode = UINT32_MAX;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15'000};
+    const auto result = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
+        !output.contains("jit test completed") || output.contains("jit cleanup completed"))
+    {
+        std::println(stderr, "[JIT hook panic] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExportModuleJitTestsPrepareRuntime)
 {
     RecoveryTestDirectory      directory;
@@ -818,7 +900,7 @@ func read(count: s32)
             if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
                 cause == std::string::npos || output.find(fault.message, cause + 1) != std::string::npos ||
                 !output.contains(span) || output.contains("resumed after safety fault") || output.contains("exit(-666)") ||
-                (script && !output.contains("ran script drop")) ||
+                (script && output.contains("ran script drop")) ||
                 (native ? !output.contains("executed=1 failed=1") : !output.contains("error[safety_err_runtime]")))
             {
                 std::println(stderr, "[{} fault, {}] result={}, exit={}\n{}", fault.name, mode, static_cast<uint32_t>(result), exitCode, output);

@@ -29,7 +29,7 @@ func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint
 func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
-    let effectiveAlignment = alignment >= #alignof(T) ? alignment : #alignof(T)
+    let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(T)))
     let ptr      = cast(*T, alloc(#sizeof(T), allocator, effectiveAlignment, userHint, loc))
     Swag.init(ptr, 1)
     return ptr
@@ -74,7 +74,7 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     Swag.assert(num > 0)
 
     let userHint  = hint orelse #stringof(T)
-    let effectiveAlignment = alignment >= #alignof(T) ? alignment : #alignof(T)
+    let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(T)))
     let byteCount = checkedArraySize(#sizeof(T), num, loc)
     let ptr       = cast([*] T, alloc(byteCount, allocator, effectiveAlignment, userHint, loc))
     Swag.init(ptr, num)

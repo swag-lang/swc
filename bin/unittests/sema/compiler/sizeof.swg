@@ -23,3 +23,26 @@
 #assert(#sizeof(const [..] u32) == 16)
 
 namespace NS {}
+
+struct LayoutPair { first, second: u64 }
+
+func queryOverload(_: s32)->s32 => 32
+func queryOverload(_: u64)->u64 => 64
+
+#assert(#typeof(#sizeof(LayoutPair)) == u64)
+#assert(#typeof(#alignof(LayoutPair)) == u64)
+#assert(#typeof(#offsetof(LayoutPair.second)) == u64)
+#assert(#typeof(queryOverload(#sizeof(LayoutPair))) == u64)
+#assert(#typeof(queryOverload(#alignof(LayoutPair))) == u64)
+#assert(#typeof(queryOverload(#offsetof(LayoutPair.second))) == u64)
+
+#test
+{
+    var size      = #sizeof(LayoutPair)
+    let alignment = #alignof(LayoutPair)
+    let offset    = #offsetof(LayoutPair.second)
+    #assert(#typeof(size) == u64 and #typeof(alignment) == u64 and #typeof(offset) == u64)
+
+    size += 4'u64
+    Swag.require(size == 20 and alignment == 8 and offset == 8)
+}

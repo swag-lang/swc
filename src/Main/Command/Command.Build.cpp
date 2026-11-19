@@ -145,7 +145,7 @@ namespace Command
             return compiler.runtimeFunctionSymbol(idRef);
         }
 
-        Result runJitScriptFunction(TaskContext& ctx, const SymbolFunction& function, const JITRuntimeSetupMode setupMode, const uint64_t* arg0 = nullptr)
+        Result runJitScriptFunction(TaskContext& ctx, const SymbolFunction& function, JITCallErrorKind* errorKind = nullptr, const uint64_t* arg0 = nullptr)
         {
             if (!function.jitEntryAddress())
                 return Result::Error;
@@ -155,7 +155,8 @@ namespace Command
             request.nodeRef          = function.declNodeRef();
             request.codeRef          = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
             request.runImmediate     = true;
-            request.runtimeSetupMode = setupMode;
+            request.runtimeSetupMode = JITRuntimeSetupMode::None;
+            request.outCallErrorKind = errorKind;
             if (arg0)
             {
                 request.arg0    = *arg0;
@@ -164,15 +165,23 @@ namespace Command
             return CommandRun::afterPauses(ctx, [&] { return ctx.compiler().jitExecMgr().submit(ctx, request); });
         }
 
-        Result runJitScriptFunctions(TaskContext& ctx, std::span<SymbolFunction* const> functions, const JITRuntimeSetupMode setupMode, const bool finishAll = false)
+        Result runJitScriptFunctions(TaskContext& ctx, bool& abandoned, std::span<SymbolFunction* const> functions, const bool finishAll = false)
         {
             bool succeeded = true;
             for (const SymbolFunction* function : functions)
             {
                 if (!function)
                     continue;
-                const size_t errorsBefore = Stats::getNumErrors();
-                if (runJitScriptFunction(ctx, *function, setupMode) != Result::Continue || Stats::getNumErrors() != errorsBefore)
+                const size_t     errorsBefore = Stats::getNumErrors();
+                JITCallErrorKind errorKind    = JITCallErrorKind::None;
+                const Result     result       = runJitScriptFunction(ctx, *function, &errorKind);
+                if (errorKind == JITCallErrorKind::HardwareException)
+                {
+                    abandoned = true;
+                    return Result::Error;
+                }
+
+                if (result != Result::Continue || Stats::getNumErrors() != errorsBefore)
                 {
                     if (!finishAll)
                         return Result::Error;
@@ -191,7 +200,7 @@ namespace Command
                 return Result::Error;
 
             constexpr uint64_t flags = static_cast<uint64_t>(Runtime::RuntimeFlags::Zero);
-            return runJitScriptFunction(ctx, *setupFn, JITRuntimeSetupMode::None, &flags);
+            return runJitScriptFunction(ctx, *setupFn, nullptr, &flags);
         }
 
         Result finishScriptBackend(CompilerInstance& compiler)
@@ -237,20 +246,26 @@ namespace Command
             std::vector<uint8_t> initializedDependencies(runtimeDependencies.size());
             Result               executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init, initializedDependencies);
             const bool           moduleStarted   = executionResult == Result::Continue;
+            bool                 abandoned       = false;
             if (moduleStarted)
             {
-                executionResult = runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None);
+                executionResult = runJitScriptFunctions(ctx, abandoned, initFunctions);
                 if (executionResult == Result::Continue)
                     executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain, initializedDependencies);
                 if (executionResult == Result::Continue)
-                    executionResult = runJitScriptFunctions(ctx, preMainFunctions, JITRuntimeSetupMode::None);
+                    executionResult = runJitScriptFunctions(ctx, abandoned, preMainFunctions);
                 if (executionResult == Result::Continue)
-                    executionResult = runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None);
+                    executionResult = runJitScriptFunctions(ctx, abandoned, mainFunctions);
             }
 
-            // Cleanup also follows a failed initializer or pre-main hook. Only dependencies
-            // whose initialization completed receive a drop hook.
-            const Result dropResult           = moduleStarted ? runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true) : Result::Continue;
+            // An abandoned frame may still hold resources needed by script or dependency hooks.
+            if (abandoned)
+                return Result::Error;
+
+            const Result dropResult = moduleStarted ? runJitScriptFunctions(ctx, abandoned, dropFunctions, true) : Result::Continue;
+            if (abandoned)
+                return Result::Error;
+
             const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop, initializedDependencies);
             if (executionResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
                 return Result::Error;

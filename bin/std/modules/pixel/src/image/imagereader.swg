@@ -228,6 +228,7 @@ public impl ImageReader
             let single       = unwrap Swag.makeInterface(result.decoder, found.type, IImageDecoder)
             var probeOptions = options
             probeOptions.decodePixels = false
+            probeOptions.decodeMetadata = false
             let probe = try single.decode(result.bytes.toSlice(), probeOptions)
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }

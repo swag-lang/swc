@@ -326,6 +326,20 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(err10 != null)
 }
 
+// Indexing a progressive JPEG reads its headers. Reading the frame checks the scans and EOI.
+#test
+{
+    let bytes = expect File.readAllBytes(getTestDataPath("progh1v1.jpg"))
+    let end = bytes.count - 2
+    Swag.require(bytes[end] == 0xFF and bytes[end + 1] == 0xD9)
+    var reader = expect ImageReader.decode("progressive.jpg", bytes.toSlice()[until end])
+    Swag.require(reader.info.frames[0].width == 660 and reader.info.frames[0].height == 441)
+
+    var errorOutcome: Swag.Error
+    catch { discard try reader.read(0) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // The final MCU must be followed by an actual EOI marker, not synthetic EOF padding.
 #test
 {

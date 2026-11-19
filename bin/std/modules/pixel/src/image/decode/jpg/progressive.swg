@@ -271,6 +271,16 @@ impl Decoder
         }
     }
 
+    mtd validateProgressiveScan() fail
+    {
+        if .spectralStart > .spectralEnd or .spectralEnd > 63 do
+            fail InvalidFormatError{"bad sos spectral"}
+        if .spectralStart == 0 ? .spectralEnd != 0 : .compsInScan != 1 do
+            fail InvalidFormatError{"bad sos spectral"}
+        if .successiveHigh != 0 and .successiveLow != .successiveHigh - 1 do
+            fail InvalidFormatError{"bad sos successive"}
+    }
+
     mtd initProgressive() fail
     {
         for i in .compsInFrame
@@ -285,26 +295,7 @@ impl Decoder
             if not res do
                 break
 
-            let dcOnlyScan     = (.spectralStart == 0)
-            let refinementScan = (.successiveHigh != 0)
-
-            if (.spectralStart > .spectralEnd) or (.spectralEnd > 63) do
-                fail InvalidFormatError{"bad sos spectral"}
-
-            if dcOnlyScan
-            {
-                if .spectralEnd do
-                    fail InvalidFormatError{"bad sos spectral"}
-            }
-            elif .compsInScan != 1
-            {
-                fail InvalidFormatError{"bad sos spectral"}
-            }
-
-            if refinementScan and (.successiveLow != .successiveHigh - 1) do
-                fail InvalidFormatError{"bad sos successive"}
-
-            try .decodeScan(dcOnlyScan, refinementScan)
+            try .decodeScan(.spectralStart == 0, .successiveHigh != 0)
 
             .bitsLeft = 16
 

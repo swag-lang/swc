@@ -450,6 +450,8 @@ impl Decoder
         if not res do
             return false
 
+        if .progressiveFlag do
+            try .validateProgressiveScan()
         .calcMcuBlockOrder()
         try .checkHuffTables()
         try .checkQuantTables()
@@ -683,7 +685,7 @@ impl Decoder
         }
     }
 
-    mtd initSequential() fail
+    mtd initFirstScan() fail
     {
         let res = try .initScan()
         if not res do

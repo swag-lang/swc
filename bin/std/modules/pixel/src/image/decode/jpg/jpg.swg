@@ -256,7 +256,6 @@ impl Decoder
 
     mtd init(buffer: const [..] u8, options: DecodeOptions) fail
     {
-        Swag.init(me, 1)
         .decOptions = options
         .stream     = buffer.buffer
         .streamLen  = cast(s32, buffer.count)
@@ -272,10 +271,12 @@ impl Decoder
     mtd start() fail
     {
         try .initFrame()
-        if .progressiveFlag do
+        // A geometry probe needs the frame and first scan headers. Pixels and metadata can
+        // depend on later scans, so requests for either still read the progressive stream.
+        if .progressiveFlag and (.decOptions.decodePixels or .decOptions.decodeMetadata) do
             try .initProgressive()
         else do
-            try .initSequential()
+            try .initFirstScan()
     }
 
     mtd doit(buf: [*] u8) fail
@@ -330,6 +331,13 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
+        // Readers reuse this decoder for the index probe and for subsequent reads.
+        defer
+        {
+            Swag.drop(me, 1)
+            Swag.init(me, 1)
+        }
+
         var result: #returntype
         try .init(buffer, options)
         try options.checkImage(.imageSizeX, .imageSizeY, .BGR8)

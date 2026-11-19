@@ -366,7 +366,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
         g_Main = null
     }
 
-    Swag.require(not main.appearanceButton.isLocallyVisible())
+    Swag.require(main.appearanceButton.isLocallyVisible())
 
     // Every command the old menus held is a lens entry, which `>` lists; at rest the lens offers
     // the context only.

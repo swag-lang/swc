@@ -36,6 +36,7 @@ enum AppearanceTheme
     Dark   = 0     // Encre, the dark theme.
     Light  = 1     // Papier, the light theme.
     System = 2     // Encre or Papier, following the light or dark setting of the operating system.
+    Document = 3   // Encre or Papier, resolved by a document-aware [[Gui.AppearanceButton]].
 }
 
 // Themes in persisted index order: Dark, Light, System.
@@ -1462,7 +1463,8 @@ impl Application
     // [[Gui.AppearanceTheme.System]] follows the light or dark setting of the operating system,
     // and keeps following it: when the user changes that setting while the application runs, the
     // theme changes with it. A theme sheet applied afterwards stays in force until the next call
-    // or, under `System`, until the setting changes.
+    // or, under `System`, until the setting changes. Use [[Gui.AppearanceButton]] to resolve
+    // `Document` for a specific document. A direct call treats it as `System`.
     mtd setAppearance(appearance: AppearanceTheme)
     {
         .appearance = appearance
@@ -1476,7 +1478,7 @@ impl Application
         {
         case .Dark:   return false
         case .Light:  return true
-        case .System: return .systemPrefersLight
+        case .System, .Document: return .systemPrefersLight
         }
     }
 
@@ -1496,7 +1498,7 @@ impl Application
         if .systemPrefersLight == light do
             return
         .systemPrefersLight = light
-        if .appearance == .System do
+        if .appearance == .System or .appearance == .Document do
             .applyAppearance()
     }
 

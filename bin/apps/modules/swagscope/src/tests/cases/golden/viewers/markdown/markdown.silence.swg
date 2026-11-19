@@ -21,6 +21,8 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
         host.theme.setLight()
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    if appearance != 0 do
+        window.applyTheme(cast(u32, AppearanceTheme.Document))
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let zoom = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])

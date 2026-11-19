@@ -189,10 +189,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.createButton.text() == "Create Encrypted Vault")
     Swag.require(window.language == ReferenceLanguage)
 
-    // The appearance action keeps the choice and its persistence, and draws nothing: the theme,
-    // the language and About are lens entries.
+    // The caption and lens share the owner that keeps and applies the appearance choices.
     Swag.require(window.appearanceButton.parent == &host.surfaceWnd)
-    Swag.require(not window.appearanceButton.isLocallyVisible())
+    Swag.require(window.appearanceButton.isLocallyVisible())
+    Swag.require(window.optionsButton.position.x < window.appearanceButton.position.x)
 
     window.themeIndex = cast(u32, AppearanceTheme.Dark)
     window.applyTheme()

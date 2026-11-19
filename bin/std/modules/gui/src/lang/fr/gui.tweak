@@ -18,6 +18,7 @@ appearance_SystemLanguage Langue du système
 appearance_Dark           Sombre
 appearance_Light          Clair
 appearance_System         Système
+appearance_Document       Adapter au document
 appearance_About          À propos...
 
 optionSheet_Title         Options

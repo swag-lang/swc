@@ -350,8 +350,7 @@ impl ViewerWindow
         .currentSidePanelButton?.hide()
         .currentSidePanelHost   = panel
         .currentSidePanelButton = button
-        if button and button.id == OutlineToggleId do
-            .refreshOutlineCaption()
+        .refreshOutlineCaption()
         .outlineCaptionButton.show(button and button.id == OutlineToggleId and not .fullScreen)
         .refreshExplorerCaption()
         .updateDocumentInsets()

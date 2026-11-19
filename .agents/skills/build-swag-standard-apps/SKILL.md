@@ -314,12 +314,14 @@ measurements in [design-swag-dialogs](../design-swag-dialogs/SKILL.md).
   display scale. Test the meaningful group boundaries, alignment, visibility and fit, so a later
   change cannot silently undo them.
 
-## Offer Appearance And About Through The Lens
+## Offer Appearance In The Caption And Lens
 
-The theme (Dark, Light, System), the language and About are commands like any other: they are
-lens entries, and nothing draws them on the window permanently. `Gui.AppearanceButton` is the one
-owner of the choice, its persistence and its signals. A hidden appearance button keeps working
-and takes no room. No application keeps a second theme picker or language combo.
+Place one visible `Gui.AppearanceButton` immediately before the native window controls on
+every standard application. Its anchored option sheet offers the theme, the language and About.
+The button stays the owner of the choices and their signals. Scope also offers Match Document
+and defaults to it for new profiles. Keep viewer mode actions in the order specified by the
+[window chrome charter](../../../backlog/design/README.md#window-chrome), with an Arc frame
+and fill when selected.
 
 - Register them with `appearanceButton.addToLens(lens)` once the lens exists. It answers with the
   themes and the languages (the choice in force checked), and with About when

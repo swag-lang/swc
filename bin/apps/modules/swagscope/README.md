@@ -74,7 +74,7 @@ reader comes back to it.
 The title button beside Information opens every viewer offered for the current file. Its first
 entry is marked Default, set apart from the alternatives, and clears the current file's temporary
 alternative.
-The button's icon turns orange while an alternative is in use. The button remains available when
+An Arc frame and fill mark the button while an alternative is in use. The button remains available when
 the Archive alternative is exploring an EPUB, CBZ or other packaged file, so the original reader
 can be restored from that folder page.
 
@@ -104,6 +104,13 @@ the numbering follows the reader to the next file.
 Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped viewers
+
+The caption places Outline, View As, Information, Full Screen and Appearance in that order,
+showing the actions each viewer offers. Appearance opens an option sheet for the theme and
+language. Match Document is the default for new profiles. It matches the app to an authored
+page background, the selected Markdown reading preset or the paper of a PDF or workbook grid,
+and follows the system when the document has no appearance preference. Dark, Light and System
+are also available.
 
 - `Code` streams source with syntax coloring for Swag, C-family languages, JavaScript and
   TypeScript, Go, Rust, Python, shell languages, structured data, shaders, build files, and the

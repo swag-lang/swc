@@ -24,12 +24,17 @@ struct AppearanceButton
             language: String     // Registered language tag, or empty to follow the system.
         }
     }
+
+    offersDocumentTheme: bool
+    documentTheme: AppearanceTheme = .System
 }
 
 private const AppearanceDarkCommand           = "Gui.Appearance.Theme.Dark"
 private const AppearanceLightCommand          = "Gui.Appearance.Theme.Light"
 private const AppearanceSystemCommand         = "Gui.Appearance.Theme.System"
+private const AppearanceDocumentCommand       = "Gui.Appearance.Theme.Document"
 private const AppearanceSystemLanguageCommand = "Gui.Appearance.Language.System"
+private const DocumentThemeValues            = [AppearanceTheme.Dark, .Light, .System, .Document]
 
 private struct AppearanceLanguageCommand
 {
@@ -61,7 +66,7 @@ internal impl IActionUI for ActionAppearance
         let themeIndex = appearanceThemeCommandIndex(cxt.id)
         if themeIndex != Swag.U32.Max
         {
-            let theme = AppearanceThemeValues[themeIndex]
+            let theme = DocumentThemeValues[themeIndex]
             evt.name    = appearanceThemeName(theme)
             evt.checked = button.appearanceTheme == theme
             return true
@@ -93,7 +98,7 @@ internal impl IActionUI for ActionAppearance
         let themeIndex = appearanceThemeCommandIndex(cxt.id)
         if themeIndex != Swag.U32.Max
         {
-            button.setAppearanceTheme(AppearanceThemeValues[themeIndex], notify: true)
+            button.setAppearanceTheme(DocumentThemeValues[themeIndex], notify: true)
             return true
         }
 
@@ -136,14 +141,17 @@ impl AppearanceButton
 {
     // Creates the standard appearance button in the caption bar of `surface`, before its native caption buttons.
     //
-    // Register every supported language before calling this function.
+    // Register every supported language before calling this function. With `documentTheme`,
+    // the theme choices also include Match Document. The host supplies the document's
+    // preference through [[Gui.AppearanceButton.setDocumentTheme]].
     #[Swag.Discardable]
-    func create(surface: *Surface, id: WndId? = null)->*AppearanceButton
+    func create(surface: *Surface, id: WndId? = null, documentTheme = false)->*AppearanceButton
     {
         let parent      = assume cast (*SurfaceWnd, surface.wnd)
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
             .appearanceTheme = surface.app.appearance
+            .offersDocumentTheme = documentTheme
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
             .setForm(.RoundedRectangle)
             .focusPolicy = .None
@@ -171,10 +179,26 @@ impl AppearanceButton
     // operating system while the application runs.
     mtd setAppearanceTheme(theme: AppearanceTheme, notify = false)
     {
+        if theme == .Document and not .offersDocumentTheme do
+            return
         .appearanceTheme = theme
-        .app().setAppearance(theme)
+        .app().setAppearance(theme == .Document ? .documentTheme : theme)
         if notify do
             .sigThemeChanged.call(me)
+    }
+
+    // Updates the theme used when Match Document is selected.
+    //
+    // Pass Dark or Light for an authored preference, or System when the document has no
+    // preference. This leaves the selected appearance and its change signal alone.
+    mtd setDocumentTheme(theme: AppearanceTheme)
+    {
+        Swag.assert(theme != .Document)
+        if .documentTheme == theme do
+            return
+        .documentTheme = theme
+        if .appearanceTheme == .Document do
+            .app().setAppearance(theme)
     }
 
     // Applies the registered language `tag`, or the system language when `tag` is empty.
@@ -208,7 +232,7 @@ impl AppearanceButton
                      appearanceThemeName(.appearanceTheme),
                      func|button = me|(themes)
                      {
-                         for theme in [AppearanceTheme.Dark, .Light, .System] do
+                         for theme in DocumentThemeValues where theme != .Document or button.offersDocumentTheme do
                              themes.addChoice(appearanceThemeName(theme), theme == button.appearanceTheme, func|button, theme|() { button.setAppearanceTheme(theme, notify: true) })
                      },
                      .theme().icon(.Appearance, iconSize))
@@ -253,6 +277,12 @@ impl AppearanceButton
                          menuGroup: func()->string => strings().appearance_Theme,
                          menuSection: 1,
                          inLens: false)
+        if .offersDocumentTheme do
+            lens.addCommand(func()->string => strings().lens_Application,
+                            AppearanceDocumentCommand,
+                            menuGroup: func()->string => strings().appearance_Theme,
+                            menuSection: 1,
+                            inLens: false)
         lens.addCommand(func()->string => strings().lens_Application,
                         AppearanceSystemLanguageCommand,
                         menuGroup: func()->string => strings().appearance_Language,
@@ -271,7 +301,7 @@ impl AppearanceButton
         let texts = strings()
 
         var themes: *Lens.Section?
-        for theme in [AppearanceTheme.Dark, .Light, .System]
+        for theme in DocumentThemeValues where theme != .Document or .offersDocumentTheme
         {
             let name = appearanceThemeName(theme)
             if not lensAnswers(results.folded, name, texts.appearance_Theme) do
@@ -342,6 +372,7 @@ private func appearanceThemeName(theme: AppearanceTheme)->string
     case .Dark:   return strings().appearance_Dark
     case .Light:  return strings().appearance_Light
     case .System: return strings().appearance_System
+    case .Document: return strings().appearance_Document
     }
 }
 
@@ -352,6 +383,7 @@ private func appearanceThemeCommandIndex(id: WndId)->u32
     case AppearanceDarkCommand:   return 0
     case AppearanceLightCommand:  return 1
     case AppearanceSystemCommand: return 2
+    case AppearanceDocumentCommand: return 3
     }
 
     return Swag.U32.Max

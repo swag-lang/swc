@@ -279,6 +279,16 @@ impl Viewer.Host for ViewerPluginHost
             }
         }
 
+        if .window
+        {
+            let window = .window
+            .session.sidePanelButton.sigCheckedChanged += func|window|(button)
+            {
+                if window and window.currentSidePanelButton == button and button.id == OutlineToggleId do
+                    window.refreshOutlineCaption()
+            }
+        }
+
         return Viewer.SidePanel{.session.sidePanel, .session.sidePanelButton}
     }
 

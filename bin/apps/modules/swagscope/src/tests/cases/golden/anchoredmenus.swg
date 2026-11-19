@@ -94,6 +94,42 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     })
 }
 
+// The title-bar sheet shows the active document theme above a light HTML page.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Testing.tempFilePath("scope-appearance-", ".html")
+    expect File.writeAllText(fileName, "<html><body style='background:#fff;color:#262626'><h1>Reading a web page</h1><p>This document defines its own paper and ink.</p></body></html>")
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    let window = createFramedViewerWindow(&host, false)
+    window.applyTheme(cast(u32, AppearanceTheme.Document))
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    host.surface.setTitle("Reading a web page.html")
+    window.applyLayout()
+    Swag.require(host.app.appearance == .Light)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if captured[] or not sheet do
+            return
+        Swag.require(sheet.activateRow(Gui.strings().appearance_Theme))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        assertScopeImageGolden(&image, "appearance.document.papier")
+        captured[] = true
+        sheet.close()
+    }
+
+    host.clickWnd(window.appearanceButton)
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+}
+
 #[Swag.TestTag("golden")]
 #test
 {

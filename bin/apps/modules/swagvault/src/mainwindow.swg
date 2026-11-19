@@ -531,13 +531,11 @@ impl MainWindow
         return result
     }
 
-    // Creates the appearance action, hidden: the theme, the language and About are lens entries,
-    // and this control stays the one owner of the choice and of its persistence.
+    // Opens the shared appearance sheet and persists the theme and language choices.
     mtd createAppearanceButton()
     {
         with .appearanceButton = AppearanceButton.create(unwrap .surface, "vault.appearance")
         {
-            .hide()
             .sigThemeChanged += func|window = me|(button)
             {
                 window.themeIndex = cast(u32, button.appearanceTheme)

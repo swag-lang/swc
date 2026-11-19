@@ -200,7 +200,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         completeQueuedViewerFile(&host, window)
         Swag.require(window.choices[window.activeChoiceIndex].key == native)
         Swag.require(window.viewerCaptionButton.isLocallyVisible())
-        Swag.require(window.viewerCaptionButton.iconColor == Color{})
+        Swag.require(not window.viewerCaptionButton.isChecked)
 
         var archiveChoice = Swag.U32.Max
         for choice, index in window.choices where choice.key == "archive" do
@@ -211,7 +211,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         completeExplorer(&host, explorer)
         Swag.require(window.isExploring() and explorer.listing.isArchive)
         Swag.require(window.viewerCaptionButton.isLocallyVisible())
-        Swag.require(window.viewerCaptionButton.iconColor == window.themeColors().caution)
+        Swag.require(window.viewerCaptionButton.isChecked and window.viewerCaptionButton.checkIndicator == .Frame)
         window.openFile(file)
         completeQueuedViewerFile(&host, window)
         completeExplorer(&host, explorer)
@@ -238,7 +238,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         window.viewerCaptionButton.sigPressed.call(cast(*Button, window.viewerCaptionButton))
         completeQueuedViewerFile(&host, window)
         Swag.require(not window.isExploring() and window.choices[window.activeChoiceIndex].key == native)
-        Swag.require(window.viewerCaptionButton.iconColor == Color{})
+        Swag.require(not window.viewerCaptionButton.isChecked)
         Swag.require(window.fileViewer(file) == "")
         window.closeFile()
         host.pump()
@@ -246,7 +246,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 
     window.openExplorer(fixture("viewer.archive.zip"))
     completeExplorer(&host, unwrap window.explorer)
-    Swag.require(window.viewerCaptionButton.isLocallyVisible() and window.viewerCaptionButton.iconColor == Color{})
+    Swag.require(window.viewerCaptionButton.isLocallyVisible() and not window.viewerCaptionButton.isChecked)
 }
 
 // A later location wins even when the preceding enumeration has not returned yet.

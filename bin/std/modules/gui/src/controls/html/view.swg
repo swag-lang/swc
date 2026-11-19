@@ -435,6 +435,11 @@ internal impl HtmlView
         .sigDocumentChanged.call(me)
     }
 
+    // Returns the document's authored canvas color, or transparent when the host provides the ground.
+    //
+    // Uses the current layout's HTML or body background, following the same rule as painting.
+    public mtd authoredCanvasBackground()->Color => .painter().canvasBackground().color
+
     // Returns what the page says of itself in its head: the text of its first `title`, the `lang`
     // of its `html` element and the content of its first `meta` named `description`, each empty
     // when the page does not say.

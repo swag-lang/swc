@@ -2610,13 +2610,11 @@ impl MainWnd
         .applyLayout()
     }
 
-    // The appearance owner of the application: the theme and the language it applies and
-    // persists, and About. Its choices are lens entries, so its caption button stays hidden.
+    // Opens the shared appearance sheet and persists the theme and language choices.
     mtd createAppearanceButton()
     {
         with .appearanceButton = AppearanceButton.create(unwrap .surface, "capture.appearance")
         {
-            .hide()
             .sigThemeChanged += func|main = me|(button)
             {
                 main.editorOptions.theme = button.appearanceTheme

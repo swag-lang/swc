@@ -729,7 +729,9 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    Swag.require(window.appearanceButton.appearanceTheme == .Dark)
+    Swag.require(window.themeIndex == cast(u32, AppearanceTheme.Document))
+    window.applyTheme(window.themeIndex)
+    Swag.require(window.appearanceButton.appearanceTheme == .Document and host.app.appearance == .System)
 
     window.applyTheme(cast(u32, AppearanceTheme.Dark))
     host.notify(.ThemeChanged)
@@ -749,6 +751,50 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     host.notify(.ThemeChanged)
     Swag.require(window.themeIndex == cast(u32, AppearanceTheme.Light) and host.app.theme.colors.view_Bk == ThemeColors.papierPalette().ground)
     Swag.require(window.themeColors().view_Bk == ThemeColors.papierPalette().ground)
+}
+
+// Match Document follows the authored canvas and yields to an explicit appearance choice.
+#test
+{
+    let lightPage = Testing.tempFilePath("scope-light-page-", ".html")
+    let darkPage  = Testing.tempFilePath("scope-dark-page-", ".html")
+    let stateFile = Testing.tempFilePath("scope-appearance-state-", ".scc")
+    defer discard catch File.delete(lightPage)
+    defer discard catch File.delete(darkPage)
+    defer discard catch File.delete(stateFile)
+    expect File.writeAllText(lightPage, "<html><body style='background:#eee;color:#222'><h1>Light</h1></body></html>")
+    expect File.writeAllText(darkPage, "<html style='background:#182028'><body><h1>Dark</h1></body></html>")
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    host.app.setStatePath(stateFile)
+    shipFrame(&host)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.applyTheme(window.themeIndex)
+    window.openFile(lightPage, remember: false)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.appearanceButton.appearanceTheme == .Document)
+    Swag.require(host.theme.colors.ground == ThemeColors.papierPalette().ground)
+
+    window.openFile(darkPage, remember: false)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(host.theme.colors.ground == ThemeColors.encrePalette().ground)
+
+    host.activateOptionRowWhenShown(Gui.strings().appearance_Theme)
+    host.thenActivateOptionRow(Gui.strings().appearance_Light)
+    host.clickWnd(window.appearanceButton)
+    Swag.require(host.autoHandled and window.appearanceButton.appearanceTheme == .Light)
+    Swag.require(host.theme.colors.ground == ThemeColors.papierPalette().ground)
+
+    host.activateOptionRowWhenShown(Gui.strings().appearance_Theme)
+    host.thenActivateOptionRow(Gui.strings().appearance_Document)
+    host.clickWnd(window.appearanceButton)
+    Swag.require(host.autoHandled and window.appearanceButton.appearanceTheme == .Document)
+    Swag.require(host.theme.colors.ground == ThemeColors.encrePalette().ground)
+
+    window.closeFile()
+    host.pump()
+    Swag.require(host.app.appearance == .System)
 }
 
 // The caption appearance action reaches the standard application about dialog.
@@ -1043,7 +1089,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.mainSplitter.dockStyle == .Center)
     Swag.require(window.mainSplitter.items.count == 2 and window.mainSplitter.items[0]!.view == window.documentHost)
     Swag.require(window.documentHost.position.x == 0)
-    Swag.require(window.appearanceButton.parent == &host.surfaceWnd and not window.appearanceButton.isLocallyVisible())
+    Swag.require(window.appearanceButton.parent == &host.surfaceWnd and window.appearanceButton.isLocallyVisible())
     Swag.require(window.searchBar.parent == window and
                  window.searchBar.dockStyle == .None and
                  not window.searchBar.isLocallyVisible())

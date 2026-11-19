@@ -78,14 +78,30 @@ impl ViewerWindow
         .layoutViewerBar()
     }
 
-    // Carries a document's ground through the window instead of leaving a caption band above it.
+    // Resolves the appearance from the current reader's canvas, or from the desktop.
     mtd refreshReadingAppearance()
     {
-        if .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
+        if .updatingReadingAppearance do
+            return
+        .updatingReadingAppearance = true
+        defer .updatingReadingAppearance = false
+
+        let active = not .isExploring()
+        let markdown = active ? catch cast(*Markdown.View?, .currentView) : null
+        let customMarkdown = markdown and Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
+        let background = active ? .authoredReadingBackground() : Color{}
+        var documentTheme = AppearanceTheme.System
+        if customMarkdown do
+            documentTheme = appearanceForGround(markdown!.themeColors().view_Bk)
+        elif background.a == 255 do
+            documentTheme = appearanceForGround(background)
+        .appearanceButton.setDocumentTheme(documentTheme)
+
+        // A Markdown sheet also sets the inks for its own reading surface.
+        if customMarkdown and .appearanceButton.appearanceTheme == .Document
         {
-            let colors   = markdown.themeColors()
-            var document = colors.view_Bk.relativeLuminance() <= 0.5 ?
-                           ThemeColors.encrePalette() : ThemeColors.papierPalette()
+            let colors   = markdown!.themeColors()
+            var document = documentTheme == .Light ? ThemeColors.papierPalette() : ThemeColors.encrePalette()
             document.ground    = colors.view_Bk
             document.text      = colors.label_Text
             document.softText  = colors.label_TextLight
@@ -101,6 +117,29 @@ impl ViewerWindow
 
         .computeStyle()
         .invalidate()
+    }
+
+    private mtd authoredReadingBackground()->Color
+    {
+        switch .currentView
+        {
+        case Viewers.Html.Panel as page:  return page.view.authoredCanvasBackground()
+        case Viewers.Epub.Panel as book:  return book.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Docx.Panel as word:  return word.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Odt.Panel as word:   return word.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Rtf.Panel as rich:   return rich.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Pptx.Panel as deck:  return deck.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.PdfDocument.Panel:  return Color.fromArgb(Argb.White)
+        case Viewers.Xlsx.Panel as workbook where workbook.grid: return Color.fromArgb(Argb.White)
+        default:                         return {}
+        }
+    }
+
+    private func appearanceForGround(ground: Color)->AppearanceTheme
+    {
+        let light = ground.contrastRatio(ThemeColors.papierPalette().ground)
+        let dark  = ground.contrastRatio(ThemeColors.encrePalette().ground)
+        return light <= dark ? .Light : .Dark
     }
 
     // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.

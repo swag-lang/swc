@@ -1,14 +1,13 @@
 impl ViewerWindow
 {
-    // Creates the owner of the theme and language the reader picks, which saves them and opens the
-    // about box. Its choices are lens entries, so its button stays off the window chrome.
+    // Opens the shared appearance sheet and persists the reader's theme and language choices.
     private mtd createAppearanceChrome()
     {
-        .appearanceButton = AppearanceButton.create(unwrap .surface, "scope.appearance")
-        .appearanceButton.hide()
+        .appearanceButton = AppearanceButton.create(unwrap .surface, "scope.appearance", documentTheme: true)
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32, button.appearanceTheme)
+            window.refreshReadingAppearance()
             catch window.saveState()
         }
 

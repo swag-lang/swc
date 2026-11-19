@@ -580,6 +580,7 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
                              g_ViewerSettings.themeIndex = index
                              applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
                              zoom.applyReadingColors()
+                             zoom.services.informationChanged(view)
                              catch g_App.saveState()
                          })
                      }

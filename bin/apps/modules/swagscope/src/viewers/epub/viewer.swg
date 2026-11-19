@@ -105,6 +105,7 @@ struct Panel
     history:         Viewer.History'ReadingVisit
     pendingPosition: HtmlReadingPosition
     fragment:        String
+    canvasColor:     Color
 
     late
     {
@@ -271,10 +272,16 @@ private impl Panel
                 return true
             }
 
-            .sigDocumentChanged += func|panel = me|(_)
+            .sigDocumentChanged += func|panel = me|(wnd)
             {
                 panel.restorePendingPosition()
                 panel.followReading()
+                let color = (assume cast(*HtmlView, wnd)).authoredCanvasBackground()
+                if panel.canvasColor != color
+                {
+                    panel.canvasColor = color
+                    panel.services.informationChanged(panel)
+                }
             }
 
             // Only an open outline follows the reading as it moves; a closed one catches up as it opens.

@@ -193,6 +193,17 @@ duplicating screenshots.
   anchored popup; it does not require a second caption band. Applications without this menu may
   keep a named lens entrance in the existing strip.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
+- Every standard application places the shared Appearance button immediately before the window
+  controls. It opens the anchored option sheet for Theme and Language. The same choices are
+  available from the lens and the command menu.
+- Scope orders its visible trailing actions from the title toward the window controls:
+  Outline, View As, Information, Full Screen, Appearance. Contextual actions use the same
+  order when a viewer omits one of them. An active mode uses an Arc fill and outline, including
+  an open outline or information sheet and a viewer choice that differs from the default.
+- Scope offers Match Document as its default appearance. An authored opaque document canvas
+  selects the corresponding light or dark palette. PDF and workbook grids follow their paper.
+  A Markdown reading preset can supply the document's appearance. A document without an
+  appearance preference follows the desktop. Dark, Light and System set the window palette.
 - The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
   from its surroundings without competing with the work. Floating panels and sheets use the
   stronger shadow described in [Measures](#measures).

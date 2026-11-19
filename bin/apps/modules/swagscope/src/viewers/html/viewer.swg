@@ -1,7 +1,7 @@
 #global internal
 #global namespace Viewers.Html
 
-using Core, Gui
+using Core, Gui, Pixel
 
 private var g_ZoomPercent: u32 = 100
 
@@ -47,6 +47,7 @@ struct Panel
     services:    Viewer.HostServices
     shownFacts:  HtmlDocumentFacts     // What the information sheet was last told of the page's head.
     factsFinal:  bool     // Whether `shownFacts` was read from a page that had finished loading.
+    canvasColor: Color
 }
 
 // The fallback reading measure for a page without its own CSS width.
@@ -199,6 +200,12 @@ func createViewer(host: Viewer.Host)
     result.view.sigDocumentChanged += func|result|(_)
     {
         let loading = result.view.isLoading()
+        let color   = result.view.authoredCanvasBackground()
+        if result.canvasColor != color
+        {
+            result.canvasColor = color
+            result.services.informationChanged(result)
+        }
         if result.factsFinal and not loading do
             return
         result.factsFinal = not loading

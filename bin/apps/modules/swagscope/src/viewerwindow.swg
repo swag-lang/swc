@@ -169,8 +169,9 @@ struct ViewerWindow
     onlineMusic:         bool = true
     rightPanelWidth:     f32
     fileDlgState:        FileDlgState
-    themeIndex:          u32
+    themeIndex:          u32 = cast(u32, AppearanceTheme.Document)
     language:            String
+    updatingReadingAppearance: bool
 
     // A monitor-sized presentation is transient: what the window was before entering it is what
     // leaving it restores, placement, maximized state, and surface flags alike.
@@ -220,6 +221,7 @@ func reportViewerInformationChanged(view: *Wnd)
     let window = viewerWindowFor(view)
     if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view do
         return
+    window.refreshReadingAppearance()
     if window.infoSheet.isLocallyVisible() do
         window.refreshInformation()
 }
@@ -557,7 +559,7 @@ impl IWnd for ViewerWindow
         if evt.serializer.isReading()
         {
             Viewers.Film.g_MovieDetectionSettings.sanitize()
-            .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
+            .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Document))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
             if .mainSplitter.items.count > 1
@@ -722,8 +724,10 @@ impl ViewerWindow
 
     mtd applyTheme(index: u32)
     {
-        .themeIndex = Math.min(index, cast(u32, AppearanceTheme.System))
-        .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
+        .themeIndex = Math.min(index, cast(u32, AppearanceTheme.Document))
+        let theme = .themeIndex == cast(u32, AppearanceTheme.Document) ? AppearanceTheme.Document : AppearanceThemeValues[.themeIndex]
+        .appearanceButton.setAppearanceTheme(theme)
+        .refreshReadingAppearance()
     }
 
     mtd applyLanguage()
@@ -745,6 +749,8 @@ impl ViewerWindow
     mtd refreshOutlineCaption()
     {
         .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
+        let toggle = .currentSidePanelButton
+        .outlineCaptionButton.setChecked(toggle and toggle.id == OutlineToggleId and toggle.isChecked)
     }
 
     mtd refreshExplorerCaption()
@@ -774,7 +780,7 @@ impl ViewerWindow
             alternateViewer = not choices.isEmpty() and choices[0].key != "archive"
         }
 
-        .viewerCaptionButton.setIconColor(alternateViewer ? .themeColors().caution : Color{})
+        .viewerCaptionButton.setChecked(alternateViewer)
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
@@ -783,6 +789,7 @@ impl ViewerWindow
         .fullScreenCaptionButton.toolTip  = Format.toString("% (%)", text.cmd_FullScreen, Input.formatKeyShortcut(.None, .F11))
         .informationCaptionButton.toolTip = text.cmd_Information
         .viewerCaptionButton.toolTip      = text.lens_ViewAs
+        .fullScreenCaptionButton.setChecked(.fullScreen)
         .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible())
         if not .explorer do
             return
@@ -1141,8 +1148,11 @@ impl ViewerWindow
             .hide()
         }
 
+        // Trailing actions are registered from the window controls toward the title.
+        result.createAppearanceChrome()
         with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
         {
+            .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.FullScreen) }
         }
 
@@ -1150,6 +1160,7 @@ impl ViewerWindow
         {
             .toolTip = appStrings().cmd_Information
             .updateFlags(.Toggle)
+            .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
             .hide()
         }
@@ -1157,11 +1168,11 @@ impl ViewerWindow
         with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
         {
             .toolTip    = appStrings().lens_ViewAs
+            .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()
         }
 
-        result.createAppearanceChrome()
         with result.mainSplitter = SplitterCtrl.create(result)
         {
             .dockStyle       = .Center
@@ -1177,8 +1188,9 @@ impl ViewerWindow
         result.createLens()
         result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
         result.lensLauncher.captionButton.hide()
-        with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
+        with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline, ViewerCommands.Outline)
         {
+            .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()
         }

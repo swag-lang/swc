@@ -103,6 +103,7 @@ impl HeadlessFixture
     mtd registerHeadlessCommands()
     {
         testRegisterHeadlessCommands(.main)
+        .main.appearanceButton = AppearanceButton.create(&.gui.surface, "capture.appearance")
         .main.createLens()
     }
 

@@ -30,6 +30,7 @@ struct Strings
         appearance_Dark:           string = "Dark"                // Dark application theme.
         appearance_Light:          string = "Light"               // Light application theme.
         appearance_System:         string = "System"              // Theme following the light or dark setting of the system.
+        appearance_Document:       string = "Match Document"      // Theme following the open document.
         appearance_About:          string = "About..."            // Action opening application information.
 
         optionSheet_Title: string = "Options"     // Title of the first page of an option sheet that names none.

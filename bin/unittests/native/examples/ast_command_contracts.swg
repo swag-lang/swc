@@ -9,6 +9,7 @@
 using Swag
 
 attr IntRangeRule(param: string, min: s32, max: s32)
+#[Swag.AttrMulti]
 attr StringPolicyRule(param: string, minChars: s32, nonEmpty: bool = false, secret: bool = false)
 
 enum DeploymentDecision

@@ -16,27 +16,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a reduced workspace regression protects the corrected lifetime and the application
   compiles repeatedly with parallel workers and retained dependencies.
 
-### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
-
-- Evidence: the Linux Release compiler reports that `state` may refer to released memory at
-  `state.id` in `bin/std/modules/core/src/thread/thread.linux.swg`. The allocation is freed only
-  when `pthread_create` fails, immediately before `try Errors.failLinuxError(error)`; every arm
-  of that helper raises a failure. The reported dereferences belong to the successful creation
-  path, where the allocation remains owned by the thread handle.
-- Next: reduce allocation, conditional release and an always-failing helper to a standalone
-  sanity case, then distinguish a terminal helper from a fallible helper that can return.
-- Done when: the terminal failure path produces no lifetime warning, while a helper with a
-  reachable success path still diagnoses a following access to the released allocation.
-
 ### compiler.core.107 — Reject invalid closure captures without a host exception
 
 - Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
 - Reductions: a by-reference capture of a `let string` and an unqualified `.main` capture
   initializer have standalone expected-diagnostic fixtures. Both report their intended error
   under Linux DevMode and both Windows compilers; neither reproduces the original combination.
-- Next: recover the original journey or combine its by-reference `let String` capture and
-  unqualified `.main` initializer in one bounded reduction. Capture the diagnostic context and
-  matching compiler artifacts if the host exception recurs.
+- Next: recover the original journey. A standalone closure with both a by-reference `let`
+  struct capture and an unqualified `.main` initializer reports the `.main` diagnostic and
+  does not reproduce the exception. Retain the matching compiler artifacts on recurrence.
 - Done when: the original mixed-capture failure is explained and a regression protects its
   source diagnostics under both compiler executables.
 
@@ -551,15 +539,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
 - **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
 
-### compiler.core.104 — Align module drop-hook order across native, script and JIT execution
+### compiler.core.104 — Bound JIT state lifetime after an abandoned hook
 
-- Evidence: a recoverable hook failure leaves resources valid for drop hooks. An uncaught
-  native or JIT panic can abandon `defer` cleanup, so later hooks can touch invalid state.
-  The distinction matters at the boundary that restores JIT test data or unloads generated code.
-- Next: verify resource release on recoverable hook failures at that boundary, including
-  dynamically loaded dependencies.
-- Done when: assertions at the owning boundary verify resource release and the documented
-  drop order for failed tests and hooks.
+- Evidence: `runJitTests` skips later hooks after an abandoned frame. Its scope still
+  restores the global data snapshot, while work owned by the failed module may remain live.
+- Next: reduce a JIT hook panic with an active worker to a bounded fixture. Check the worker's
+  lifetime against snapshot restoration and code disposal, including dynamic dependencies.
+- Done when: the fixture proves that work from an abandoned hook cannot observe restored
+  globals or released code. Recoverable failures still release resources in drop-hook order.
 
 ### compiler.core.106 — Resolve nested functions in runtime startup code
 
@@ -569,19 +556,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   the local name with `__` gives the same result. Returning the host setup status directly
   to `__setupRuntime` compiles and passes the native argument-preservation reproducer.
 - Linux DevMode reductions: a nested helper in an ordinary function and the same helper in a
-  temporary copy of `os.linux.process.swg`'s `__hostSetupProcessArguments` both compile and run
-  as native tests. The Windows runtime path remains the failing boundary.
-- Next: run the constant-return nested helper in the Windows runtime startup path, retain the
-  exact failure, then inspect runtime cloning, symbol publication and native lowering there.
+  temporary copy of `os.linux.process.swg`'s `__hostSetupProcessArguments` both compile and run.
+  Cross-compiling a constant-return helper in `os.win32.swg` completes Micro lowering, then
+  stops at the unresolved `TlsAlloc` import.
+- Next: run the reduction on a Windows host with the SDK, then inspect runtime cloning,
+  symbol publication, and native lowering if the unknown-name diagnostic recurs.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
-
-### compiler.core.116 — Define the inferred type of a compiler layout query
-
-- Evidence: the shared front end produces an unsized integer for '#sizeof'. With
-  `struct H { a, b: u64 }`, Linux infers `s32` for `var size = #sizeof(H)`. A local
-  declared as `u64` accepts the same query and subsequent unsigned size arithmetic.
-- Next: decide whether layout queries should stay unsized or return a fixed type. Check
-  the impact on existing size arithmetic and overload selection before changing the rule.
-- Done when: the reference states the rule and semantic fixtures check it on Linux and
-  Windows.

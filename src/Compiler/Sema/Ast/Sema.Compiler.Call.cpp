@@ -1253,7 +1253,8 @@ namespace
         const uint64_t value = wantAlignment ? typeInfo.alignOf(sema.ctx()) : typeInfo.sizeOf(sema.ctx());
         assertConcreteStructCompilerSizeValue(typeInfo, value);
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), value));
+        const auto constant = ConstantValue::makeIntSized(sema.ctx(), value);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), constant));
         return Result::Continue;
     }
 
@@ -1275,7 +1276,8 @@ namespace
         const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
         SWC_RESULT(ensureCompilerOffsetOperandReady(sema, symVar, childRef));
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
+        const auto constant = ConstantValue::makeIntSized<uint64_t>(sema.ctx(), symVar.offset());
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), constant));
         return Result::Continue;
     }
 

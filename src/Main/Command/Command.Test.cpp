@@ -460,67 +460,39 @@ namespace
         }
     };
 
-    bool runJitFunction(TaskContext& ctx, const SymbolFunction& function, bool* outAbandoned = nullptr)
+    enum class JitTestCallKind : uint8_t
     {
-        if (outAbandoned)
-            *outAbandoned = false;
+        LifecycleHook,
+        TestBody,
+    };
+
+    bool runJitTestFunction(TaskContext& ctx, bool& abandoned, const SymbolFunction& function, JitTestCallKind kind)
+    {
+        abandoned = false;
         if (!function.jitEntryAddress())
             return false;
 
         JITCallErrorKind        callErrorKind = JITCallErrorKind::None;
         JITExecManager::Request request       = immediateJitRequest(function);
-        if (outAbandoned)
-            request.outCallErrorKind = &callErrorKind;
-        const Result result = CommandRun::afterPauses(ctx, [&] {
-            const Result callResult = ctx.compiler().jitExecMgr().submit(ctx, request);
-            if (outAbandoned && callErrorKind == JITCallErrorKind::HardwareException)
-                *outAbandoned = true;
-            return callResult;
-        });
-        return result == Result::Continue && !Stats::hasError();
-    }
-
-    // Like runJitFunction, but success is judged against the error count taken before
-    // the call: once one test has failed, the global error state must not make every
-    // following test look failed too.
-    bool runJitTestFunction(TaskContext& ctx, const SymbolFunction& function, bool* outAbandoned = nullptr)
-    {
-        if (outAbandoned)
-            *outAbandoned = false;
-        if (!function.jitEntryAddress())
-            return false;
-
-        // A '#test' running in JIT is a program run, not compile-time evaluation, so it must see
-        // the same 'Swag.args()' as the generated executable pass: a test that reads a '--run-arg'
-        // behaves identically in both. JIT::call only populates them for JITRuntimeSetupMode::None,
-        // which a test does not use, and compile-time '#run' keeps a zeroed 'Swag.processInfo()' because it
-        // never comes through here.
-        ctx.compiler().ensureProcessInfoRunArgs();
-
-        JITCallErrorKind        callErrorKind = JITCallErrorKind::None;
-        JITExecManager::Request request       = immediateJitRequest(function);
-        if (outAbandoned)
-            request.outCallErrorKind = &callErrorKind;
+        request.outCallErrorKind              = &callErrorKind;
 
         const size_t errorsBefore = Stats::getNumErrors();
         while (true)
         {
             const Result result = ctx.compiler().jitExecMgr().submit(ctx, request);
-            if (outAbandoned && callErrorKind == JITCallErrorKind::HardwareException)
-                *outAbandoned = true;
+            if (callErrorKind == JITCallErrorKind::HardwareException)
+                abandoned = true;
             if (result == Result::Continue)
                 break;
 
             if (result != Result::Pause)
             {
-                // An expected source diagnostic is suppressed by verification, so it leaves
-                // the error count unchanged. These corpus tests deliberately exercise a
-                // failing JIT call and can continue to the next independent test.
-                if (result == Result::Error && callErrorKind == JITCallErrorKind::HardwareException &&
+                // Corpus tests can recover at a test-body boundary after an expected panic.
+                // Lifecycle hooks share resources whose frames may have been abandoned.
+                if (kind == JitTestCallKind::TestBody && result == Result::Error && abandoned &&
                     Stats::getNumErrors() == errorsBefore)
                 {
-                    if (outAbandoned)
-                        *outAbandoned = false;
+                    abandoned = false;
                     return true;
                 }
                 return false;
@@ -552,7 +524,7 @@ namespace
             for (const SymbolFunction* function : pending)
             {
                 bool abandoned = false;
-                if (!runJitTestFunction(*ctx, *function, &abandoned))
+                if (!runJitTestFunction(*ctx, abandoned, *function, JitTestCallKind::LifecycleHook))
                     succeeded = false;
                 if (abandoned)
                     break;
@@ -649,10 +621,12 @@ namespace
         // Declaration order also guarantees this after an init/premain/test failure.
         JitTestDropGuard dropGuard{.ctx = &ctx, .functions = dropFunctions};
 
+        // JIT tests and their lifecycle hooks see the same launch arguments as native tests.
+        compiler.ensureProcessInfoRunArgs();
         bool abandoned = false;
         for (const SymbolFunction* function : initFunctions)
         {
-            if (!runJitFunction(ctx, *function, &abandoned))
+            if (!runJitTestFunction(ctx, abandoned, *function, JitTestCallKind::LifecycleHook))
             {
                 if (abandoned)
                     dropGuard.cancel();
@@ -662,7 +636,7 @@ namespace
 
         for (const SymbolFunction* function : preMainFunctions)
         {
-            if (!runJitFunction(ctx, *function, &abandoned))
+            if (!runJitTestFunction(ctx, abandoned, *function, JitTestCallKind::LifecycleHook))
             {
                 if (abandoned)
                     dropGuard.cancel();
@@ -679,7 +653,7 @@ namespace
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
             Logger::printAndFlush(ctx, std::format("[swag.test] event=start executed={} failed={} name={}\n", executedTestCount, failedTestCount, testLocation));
-            const bool testPassed = runJitTestFunction(ctx, *function, &abandoned);
+            const bool testPassed = runJitTestFunction(ctx, abandoned, *function, JitTestCallKind::TestBody);
             if (!testPassed)
             {
                 failedTestCount++;

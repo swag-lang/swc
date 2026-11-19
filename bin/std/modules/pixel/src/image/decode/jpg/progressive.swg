@@ -17,7 +17,7 @@ impl Decoder
             .blockNumY = blkNumY
             .blockLenX = blkLenX
             .blockLenY = blkLenY
-            .blockSize = (blkLenX * blkLenY) * #sizeof(s16)
+            .blockSize = blkLenX * blkLenY * cast(s32, #sizeof(s16))
             .pdata.resize(cast(u64, .blockSize) * blkNumX * blkNumY)
         }
 

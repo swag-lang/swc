@@ -61,11 +61,11 @@ Loading a Swag shared library dynamically acquires its dependencies first. All d
 and library '#init' hooks finish before their '#premain' hooks begin. Closing the last
 dynamic reference runs the library's '#drop' hooks before its dependencies' hooks.
 
-A script still drops modules whose initialization completed when its '#main', '#init',
-or '#premain' fails. If one script '#drop' fails, the remaining drop hooks are attempted
-and the command reports failure. An uncaught panic in a native or JIT lifecycle hook
-stops later hooks: abandoned frames and their resources cannot be used safely by
-further cleanup code.
+A script still drops initialized dependencies after a recoverable failure in its '#main',
+'#init', or '#premain'. A recoverable failure during '#drop' allows the remaining hooks to
+run and makes the command report failure. An uncaught panic or hardware fault stops
+subsequent hooks in native, script, and JIT execution. An abandoned frame may still hold
+resources that further cleanup would need.
 
 ```swag
 #drop

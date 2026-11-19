@@ -58,7 +58,9 @@ Directives shape compilation or declare compiler-managed entry points:
 #test { Swag.assert(parse("ok")) }
 ```
 
-Static queries produce facts known by semantic analysis:
+Static queries produce facts known by semantic analysis. '#sizeof' gives the size
+of a type or value, '#alignof' gives its alignment, and '#offsetof' gives the offset
+of a struct field. All three return a constant of type 'u64' measured in bytes.
 */
 
 #test
@@ -67,6 +69,7 @@ Static queries produce facts known by semantic analysis:
 
     #assert(#sizeof(s32) == 4)
     #assert(#alignof(s32) == 4)
+    #assert(#typeof(#sizeof(s32)) == u64)
     #assert(#typeof(Answer) == s32)
     #assert(#stringof(Answer) == "42")
 }

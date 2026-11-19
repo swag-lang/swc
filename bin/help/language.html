@@ -881,13 +881,14 @@ indent-style = spaces</span></div>
 }
 <span class="SFct">#run</span> { <span class="SFct">generateTables</span>() }
 <span class="SFct">#test</span> { <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">parse</span>(<span class="SStr">"ok"</span>)) }</span></div>
-<p>Static queries produce facts known by semantic analysis:</p>
+<p>Static queries produce facts known by semantic analysis. <span class="code-inline">#sizeof</span> gives the size of a type or value, <span class="code-inline">#alignof</span> gives its alignment, and <span class="code-inline">#offsetof</span> gives the offset of a struct field. All three return a constant of type <span class="code-inline">u64</span> measured in bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">const</span> <span class="SCst">Answer</span> = <span class="SNum">42</span>
 
     <span class="SCmp">#assert</span>(<span class="SItr">#sizeof</span>(<span class="STpe">s32</span>) == <span class="SNum">4</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#alignof</span>(<span class="STpe">s32</span>) == <span class="SNum">4</span>)
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SItr">#sizeof</span>(<span class="STpe">s32</span>)) == <span class="STpe">u64</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(<span class="SCst">Answer</span>) == <span class="STpe">s32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#stringof</span>(<span class="SCst">Answer</span>) == <span class="SStr">"42"</span>)
 }</span></div>
@@ -1153,7 +1154,7 @@ indent-style = spaces</span></div>
 <h3 id="_002_010_module_lifecycle_swg_Shutdown">Shutdown</h3>
 <p><span class="code-inline">#drop</span> hooks run when a module unloads. Use them to release resources acquired by <span class="code-inline">#init</span>. Multiple module drop hooks execute in reverse source-location order. Dependency modules unload after modules that import them.</p>
 <p>Loading a Swag shared library dynamically acquires its dependencies first. All dependency and library <span class="code-inline">#init</span> hooks finish before their <span class="code-inline">#premain</span> hooks begin. Closing the last dynamic reference runs the library's <span class="code-inline">#drop</span> hooks before its dependencies' hooks.</p>
-<p>A script still drops modules whose initialization completed when its <span class="code-inline">#main</span>, <span class="code-inline">#init</span>, or <span class="code-inline">#premain</span> fails. If one script <span class="code-inline">#drop</span> fails, the remaining drop hooks are attempted and the command reports failure. An uncaught panic in a native or JIT lifecycle hook stops later hooks: abandoned frames and their resources cannot be used safely by further cleanup code.</p>
+<p>A script still drops initialized dependencies after a recoverable failure in its <span class="code-inline">#main</span>, <span class="code-inline">#init</span>, or <span class="code-inline">#premain</span>. A recoverable failure during <span class="code-inline">#drop</span> allows the remaining hooks to run and makes the command report failure. An uncaught panic or hardware fault stops subsequent hooks in native, script, and JIT execution. An abandoned frame may still hold resources that further cleanup would need.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#drop</span>
 {
     <span class="SCmt">// Close handles and release module-owned resources.</span>
@@ -11285,7 +11286,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1177</div>
 </footer>
 </section>
 </main>

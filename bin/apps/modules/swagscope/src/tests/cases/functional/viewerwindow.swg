@@ -1613,7 +1613,7 @@ func downwardArrows(wnd: *Wnd)->u64
     }
 }
 
-// A desktop file lights the document target before it is released, then uses the usual queued
+// A desktop file lights the window before it is released, then uses the usual queued
 // opening path without keeping an acknowledgement on screen.
 #test
 {
@@ -1635,12 +1635,11 @@ func downwardArrows(wnd: *Wnd)->u64
     window.surface!.surfaceToScreen(&point)
     Swag.require(host.dragFilesOver(point, [file.toString()]) == DropEffect.Copy)
     Swag.require(window.dropHighlight.isLocallyVisible())
-    Swag.require(window.dropHighlight.parent == window.documentPanel)
+    Swag.require(window.dropHighlight.parent == window)
     Swag.require(window.dropHighlight.prompt.text() == appStrings().ui_DropTitle)
     Swag.require(not window.dropHighlight.prompt.isLocallyVisible())
     Swag.require(window.dropHighlight.wndFlags.has(.Disabled))
-    Swag.require(window.dropHighlight.clientRect().width == window.documentPanel.clientRect().width)
-    Swag.require(window.dropHighlight.clientRect().height == window.documentPanel.clientRect().height)
+    Swag.require(window.dropHighlight.surfaceRect() == window.surfaceRect())
     Swag.require(window.pendingFile.isEmpty() and window.startupTimer == null)
 
     host.cancelDrag()

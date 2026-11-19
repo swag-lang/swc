@@ -49,6 +49,49 @@ impl IWnd for DropCatcher
 // Creates a claiming `DropCatcher` inside `parent`, at `rect`.
 internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => Wnd.create'DropCatcher(parent, rect)
 
+// The outline follows the full target and the painted invitation keeps its contrast in both palettes.
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(320, 200)
+        if light
+        {
+            host.theme.setLight()
+            host.theme.metrics.surfaceWnd_ShadowSize   = 0
+            host.theme.metrics.surfaceWnd_CornerRadius = 0
+            host.notify(.ThemeChanged)
+        }
+
+        let parent = makeCatcher(&host.root, {0, 0, 320, 200})
+        parent.padding = {24, 32, 24, 16}
+        let highlight = FileDropHighlight.create(parent, "Drop a file")
+        highlight.showTarget(true)
+        parent.applyLayout()
+        Swag.require(highlight.position == parent.clientRect())
+
+        let colors = host.theme.colors
+        let image  = host.renderSettled()
+        let border = cast(s32, host.theme.metrics.wnd_BorderSize)
+        Swag.require(image.pixelColor(160, border) == colors.signature)
+
+        var prompt = highlight.prompt.surfaceRect()
+        let fill   = image.pixelColor(cast(s32, prompt.x) + 2, cast(s32, prompt.vertCenter()))
+        Swag.require(fill == colors.surface)
+
+        prompt.applyPadding(highlight.prompt.padding)
+        var contrast: f32
+        for y in cast(s32, prompt.y) until cast(s32, prompt.bottom()) do
+            for x in cast(s32, prompt.x) until cast(s32, prompt.right()) do
+                contrast = Math.max(contrast, image.pixelColor(x, y).contrastRatio(fill))
+        Swag.require(contrast >= 4.5)
+
+        parent.resize(280, 180)
+        Swag.require(highlight.position == parent.clientRect())
+    }
+}
+
 // A drop reaches the window under the pointer, with the payload it carries.
 #test
 {

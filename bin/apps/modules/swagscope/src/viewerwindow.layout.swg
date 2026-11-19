@@ -125,7 +125,7 @@ impl ViewerWindow
     }
 
     // Builds the document with its home, the faint line of readings at its foot,
-    // and the loading, search and drop overlays drawn above the active viewer.
+    // and the loading and search overlays drawn above the active viewer.
     private mtd createDocumentPanel()
     {
         with .documentHost = Wnd.create'Wnd(.mainSplitter)
@@ -150,7 +150,6 @@ impl ViewerWindow
 
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
-        .dropHighlight  = FileDropHighlight.create(.documentPanel, appStrings().ui_DropTitle, "scope.drop.highlight")
         .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
         with .sidePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
         {

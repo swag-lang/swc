@@ -1173,6 +1173,7 @@ impl ViewerWindow
         result.createSearchBar()
         result.createViewerBar()
         result.createSheetAndHint()
+        result.dropHighlight = FileDropHighlight.create(result, appStrings().ui_DropTitle, "scope.drop.highlight")
         result.createLens()
         result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
         result.lensLauncher.captionButton.hide()

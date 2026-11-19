@@ -972,6 +972,23 @@ namespace
 
         return false;
     }
+
+    struct RepeatedBraceField
+    {
+        AstNodeRef ref;
+    };
+
+    bool isDirectCallArgument(const Sema& sema)
+    {
+        for (size_t up = 0;; ++up)
+        {
+            const AstNode* parent = sema.visit().parentNode(up);
+            if (!parent)
+                return false;
+            if (!parent->is(AstNodeId::NamedArgument) && !parent->is(AstNodeId::ParenExpr))
+                return parent->is(AstNodeId::CallExpr) || parent->is(AstNodeId::IntrinsicCallExpr);
+        }
+    }
 }
 
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
@@ -987,7 +1004,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
 
     // With a positional value the braces initialize a struct, whose field mapping reports
     // duplicates; a repeated bare identifier there is a repeated value.
-    const bool isRecord = autoNameFromIdentifiers && std::ranges::all_of(children, [&](AstNodeRef child) { return sema.node(child).is(AstNodeId::NamedArgument) || sema.node(child).is(AstNodeId::Identifier); });
+    bool checkRecordNames = autoNameFromIdentifiers && std::ranges::all_of(children, [&](AstNodeRef child) { return sema.node(child).is(AstNodeId::NamedArgument) || sema.node(child).is(AstNodeId::Identifier); });
 
     for (const AstNodeRef& child : children)
     {
@@ -999,15 +1016,25 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
-        if (isRecord && memberNames.back().isValid())
+        if (checkRecordNames && memberNames.back().isValid())
         {
             const IdentifierRef name = memberNames.back();
             if (std::ranges::find(memberNames.span().first(memberNames.size() - 1), name) != memberNames.span().first(memberNames.size() - 1).end())
             {
-                Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_record_duplicate_field, child);
-                diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(name).name);
-                diag.report(sema.ctx());
-                return Result::Error;
+                const auto    bindingTypes  = sema.frame().bindingTypes();
+                const TypeRef targetTypeRef = sema.frame().hasExpressionBindingTypes() ? unwrapBindingType(sema.ctx(), bindingTypes.back()) : TypeRef::invalid();
+                const bool    hasStructType = targetTypeRef.isValid() && sema.typeMgr().get(targetTypeRef).isStruct();
+                if (!hasStructType && !isDirectCallArgument(sema))
+                {
+                    Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_record_duplicate_field, child);
+                    diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(name).name);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+
+                // Overloads and struct conversion decide whether each shorthand names a field.
+                sema.ensureSemaPayload<RepeatedBraceField>(sema.curNodeRef()).ref = child;
+                checkRecordNames = false;
             }
         }
 
@@ -1067,39 +1094,54 @@ AstNodeRef SemaHelpers::fieldShorthandIdentifier(const Ast& ast, AstNodeRef node
     return AstNodeRef::invalid();
 }
 
-// A brace literal holding a value that is neither 'field: value' nor a bare identifier takes
-// its fields from the struct it initializes, by position. Returns that first positional value,
-// or invalid when the node is not such a literal.
-AstNodeRef SemaHelpers::bracePositionalElement(const Sema& sema, AstNodeRef nodeRef)
+namespace
 {
-    while (nodeRef.isValid() && sema.ast().hasNode(nodeRef))
+    AstNodeRef braceLiteralRef(const Sema& sema, AstNodeRef nodeRef)
     {
-        const AstNode& node = sema.node(nodeRef);
-        if (node.is(AstNodeId::NamedArgument))
+        while (nodeRef.isValid() && sema.ast().hasNode(nodeRef))
         {
-            nodeRef = node.cast<AstNamedArgument>().nodeArgRef;
-            continue;
-        }
-
-        if (node.is(AstNodeId::InitializerExpr))
-        {
-            nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
-            continue;
-        }
-
-        if (node.isNot(AstNodeId::StructLiteral) || !sema.token(node.codeRef()).is(TokenId::SymLeftCurly))
-            return AstNodeRef::invalid();
-
-        SmallVector<AstNodeRef> children;
-        AstNode::collectChildren(children, sema.ast(), node.cast<AstStructLiteral>().spanChildrenRef);
-        for (const AstNodeRef childRef : children)
-        {
-            const AstNode& child = sema.node(childRef);
-            if (child.isNot(AstNodeId::NamedArgument) && child.isNot(AstNodeId::Identifier))
-                return childRef;
+            const AstNode& node = sema.node(nodeRef);
+            if (const auto* named = node.safeCast<AstNamedArgument>())
+                nodeRef = named->nodeArgRef;
+            else if (const auto* init = node.safeCast<AstInitializerExpr>())
+                nodeRef = init->nodeExprRef;
+            else if (const auto* paren = node.safeCast<AstParenExpr>())
+                nodeRef = paren->nodeExprRef;
+            else if (node.is(AstNodeId::StructLiteral) && sema.token(node.codeRef()).is(TokenId::SymLeftCurly))
+                return nodeRef;
+            else
+                break;
         }
 
         return AstNodeRef::invalid();
+    }
+}
+
+AstNodeRef SemaHelpers::repeatedBraceField(const Sema& sema, AstNodeRef nodeRef)
+{
+    const AstNodeRef literalRef = braceLiteralRef(sema, nodeRef);
+    if (literalRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    const auto* repeated = sema.semaPayload<RepeatedBraceField>(literalRef);
+    return repeated ? repeated->ref : AstNodeRef::invalid();
+}
+
+// A brace literal holding a value that is neither 'field: value' nor a bare identifier takes
+// its fields from the struct it initializes, by position.
+AstNodeRef SemaHelpers::bracePositionalElement(const Sema& sema, AstNodeRef nodeRef)
+{
+    const AstNodeRef literalRef = braceLiteralRef(sema, nodeRef);
+    if (literalRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    SmallVector<AstNodeRef> children;
+    AstNode::collectChildren(children, sema.ast(), sema.node(literalRef).cast<AstStructLiteral>().spanChildrenRef);
+    for (const AstNodeRef childRef : children)
+    {
+        const AstNode& child = sema.node(childRef);
+        if (child.isNot(AstNodeId::NamedArgument) && child.isNot(AstNodeId::Identifier))
+            return childRef;
     }
 
     return AstNodeRef::invalid();

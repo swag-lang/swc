@@ -138,6 +138,17 @@ public:
     AttributeList&       currentAttributes() { return attributes_; }
     const AttributeList& currentAttributes() const { return attributes_; }
 
+    void setAttributeTarget(AstNodeRef target)
+    {
+        if (attributeTarget_ == target)
+            return;
+
+        attributeTarget_      = target;
+        firstTargetAttribute_ = static_cast<uint32_t>(attributes_.attributes.size());
+    }
+
+    std::span<const AttributeInstance> targetAttributes() const { return attributes_.attributes.span().subspan(firstTargetAttribute_); }
+
     SemaCompilerIf* currentCompilerIf() const { return compilerIf_; }
     void            setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
 
@@ -292,6 +303,8 @@ private:
     const SymbolMap* memberAccessMap_ = nullptr;
 
     AttributeList attributes_;
+    AstNodeRef    attributeTarget_      = AstNodeRef::invalid();
+    uint32_t      firstTargetAttribute_ = 0;
 
     SmallVector8<IdentifierRef> nsPath_;
 

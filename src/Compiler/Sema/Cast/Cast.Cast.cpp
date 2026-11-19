@@ -1614,6 +1614,14 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     // a record or 'any' gives it none, so '(...)' stays the only tuple spelling.
     if (srcTypeRef.isValid() && dstTypeRef.isValid() && sema.typeMgr().get(srcTypeRef).isAggregateStruct())
     {
+        const AstNodeRef repeatedRef = SemaHelpers::repeatedBraceField(sema, castRequest.errorNodeRef);
+        if (repeatedRef.isValid() && !sema.typeMgr().get(SemaHelpers::unwrapBindingType(sema.ctx(), dstTypeRef)).isStruct())
+        {
+            castRequest.errorCodeRef = sema.node(repeatedRef).codeRef();
+            const IdentifierRef name = sema.idMgr().addIdentifier(sema.ctx(), castRequest.errorCodeRef);
+            return castRequest.fail(DiagnosticId::sema_err_record_duplicate_field, srcTypeRef, dstTypeRef, sema.idMgr().get(name).name);
+        }
+
         const TypeInfo&  literalDstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         const AstNodeRef positionalRef  = literalDstType.isAggregateStruct() || literalDstType.isAny() ? SemaHelpers::bracePositionalElement(sema, castRequest.errorNodeRef) : AstNodeRef::invalid();
         if (positionalRef.isValid())

@@ -318,10 +318,12 @@ namespace
 
         const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
-        const uint64_t  elementSize    = elementType.sizeOf(ctx);
-        if (!srcSlice.count || !elementSize)
+        // A present empty slice needs an address, but stores no elements to lay out or align.
+        const uint64_t elementSize  = srcSlice.count ? elementType.sizeOf(ctx) : 0;
+        const uint32_t elementAlign = srcSlice.count ? elementType.alignOf(ctx) : 1;
+        if (!elementSize)
         {
-            const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementType.alignOf(ctx), true);
+            const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementAlign, true);
 
             dstSlice.ptr   = dataStorage;
             dstSlice.count = srcSlice.count;
@@ -335,7 +337,7 @@ namespace
         const uint64_t byteCount = srcSlice.count * elementSize;
         SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
 
-        const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementType.alignOf(ctx), true);
+        const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementAlign, true);
 
         const StaticPayload slicePayload{
             .baseOffset = dataOffset,

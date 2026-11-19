@@ -47,6 +47,12 @@ namespace
                 continue;
             }
 
+            if (node.is(AstNodeId::ParenExpr))
+            {
+                nodeRef = node.cast<AstParenExpr>().nodeExprRef;
+                continue;
+            }
+
             if (node.is(AstNodeId::CastExpr))
             {
                 nodeRef = node.cast<AstCastExpr>().nodeExprRef;

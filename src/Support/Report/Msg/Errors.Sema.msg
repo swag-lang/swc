@@ -155,6 +155,8 @@ SWC_DIAG_DEF(sema_err_not_type, Error, "'{sym}' cannot be used as a type; it is 
 SWC_DIAG_DEF(sema_err_not_type, Error, "this expression cannot be used as a type")
 SWC_DIAG_DEF(sema_err_not_attribute, Error, "'{sym}' cannot be used as an attribute; it is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_attribute_usage, Error, "'{sym}' does not accept {what}; [help] move the attribute onto a declaration it accepts, or widen its 'Swag.AttrUsage'")
+SWC_DIAG_DEF(sema_err_attribute_repeated, Error, "attribute '{sym}' is already applied here; [help] remove the repeated attribute")
+SWC_DIAG_DEF(sema_err_literal_suffix_needs_type, Error, "literal suffix '{value}' needs a target type; [help] declare the type that handles this suffix")
 SWC_DIAG_DEF(sema_err_borrow_summary_invalid_fields, Error, "cannot parse 'Swag.BorrowSummary' field origins; [help] use semicolon-separated parameter indices and hexadecimal UTF-8 field names")
 SWC_DIAG_DEF(sema_err_attribute_inline_noinline_conflict, Error, "'Swag.Inline' and 'Swag.NoInline' cannot be used together")
 SWC_DIAG_DEF(sema_err_attribute_inline_macro_mixin_conflict, Error, "'Swag.Inline', 'Swag.Macro', and 'Swag.Mixin' are mutually exclusive")

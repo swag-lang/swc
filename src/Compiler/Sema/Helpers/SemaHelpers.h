@@ -266,6 +266,7 @@ namespace SemaHelpers
     Result     tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
     Result     finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
     AstNodeRef bracePositionalElement(const Sema& sema, AstNodeRef nodeRef);
+    AstNodeRef repeatedBraceField(const Sema& sema, AstNodeRef nodeRef);
     AstNodeRef fieldShorthandIdentifier(const Ast& ast, AstNodeRef nodeRef);
     struct RecordOrTupleField
     {

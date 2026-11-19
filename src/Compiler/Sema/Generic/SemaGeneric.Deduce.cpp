@@ -1531,13 +1531,22 @@ namespace SemaGeneric
             if (entry.allowImplicitAddressBinding)
                 patternRef = applyImplicitAddressBindingPattern(*declSema, patternRef, argTypeRef);
 
-            // Positional braces take their type from the struct they initialize, so they
-            // cannot supply one to a generic parameter.
-            const AstNodeRef positionalRef = SemaHelpers::bracePositionalElement(sema, valueArgRef);
-            if (positionalRef.isValid() && patternCanDeduceMissingGenericParam(*declSema, genericParams, ioResolvedArgs.span(), patternRef))
+            // Braces with positional values or repeated names need a destination struct
+            // before they can initialize fields. They cannot deduce a generic parameter.
+            const AstNodeRef repeatedRef   = SemaHelpers::repeatedBraceField(sema, valueArgRef);
+            const AstNodeRef positionalRef = repeatedRef.isInvalid() ? SemaHelpers::bracePositionalElement(sema, valueArgRef) : AstNodeRef::invalid();
+            if ((repeatedRef.isValid() || positionalRef.isValid()) && patternCanDeduceMissingGenericParam(*declSema, genericParams, ioResolvedArgs.span(), patternRef))
             {
                 if (outFailure)
-                    outFailure->set(positionalRef, DiagnosticId::sema_err_record_needs_field_name, argTypeRef, TypeRef::invalid(), "", DiagnosticId::None);
+                {
+                    if (repeatedRef.isValid())
+                    {
+                        const IdentifierRef name = sema.idMgr().addIdentifier(sema.ctx(), sema.node(repeatedRef).codeRef());
+                        outFailure->set(repeatedRef, DiagnosticId::sema_err_record_duplicate_field, argTypeRef, TypeRef::invalid(), sema.idMgr().get(name).name, DiagnosticId::None);
+                    }
+                    else
+                        outFailure->set(positionalRef, DiagnosticId::sema_err_record_needs_field_name, argTypeRef, TypeRef::invalid(), "", DiagnosticId::None);
+                }
                 if (outFailureArgIndex)
                     *outFailureArgIndex = entry.callArgIndex;
 

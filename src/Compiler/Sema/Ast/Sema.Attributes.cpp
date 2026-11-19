@@ -647,6 +647,31 @@ namespace
         return usage;
     }
 
+    Utf8 attributeDisplayName(const Sema& sema, const SymbolFunction& attrSym)
+    {
+        Utf8 name;
+        if (attrSym.inSwagNamespace(sema.ctx()))
+            name.append("Swag.");
+        name.append(attrSym.name(sema.ctx()));
+        return name;
+    }
+
+    AstNodeRef attributeTarget(const Ast& ast, AstNodeRef targetRef)
+    {
+        while (targetRef.isValid())
+        {
+            const AstNode& target = ast.node(targetRef);
+            if (const auto* attrs = target.safeCast<AstAttributeList>())
+                targetRef = attrs->nodeBodyRef;
+            else if (const auto* access = target.safeCast<AstAccessModifier>())
+                targetRef = access->nodeWhatRef;
+            else
+                break;
+        }
+
+        return targetRef;
+    }
+
     bool hasVarDeclFlag(const AstNode& varNode, AstVarDeclFlagsE flag)
     {
         if (varNode.is(AstNodeId::SingleVarDecl))
@@ -743,14 +768,8 @@ namespace
         if (declared.none() || acceptAll || declared.hasAny(target))
             return Result::Continue;
 
-        // Predefined attributes are written qualified, so name them the way they are used.
-        Utf8 displayName;
-        if (sym->inSwagNamespace(sema.ctx()))
-            displayName.append("Swag.");
-        displayName.append(sym->name(sema.ctx()));
-
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_attribute_usage, attrRef);
-        diag.addArgument(Diagnostic::ARG_SYM, displayName);
+        diag.addArgument(Diagnostic::ARG_SYM, attributeDisplayName(sema, sym->cast<SymbolFunction>()));
         diag.addArgument(Diagnostic::ARG_WHAT, attributeTargetName(target));
         diag.addNote(DiagnosticId::sema_note_attribute_declared_usage);
         diag.last().addSpan(sym->codeRange(sema.ctx()));
@@ -896,11 +915,15 @@ Result AstAttributeList::semaPreNode(Sema& sema)
             return Result::Continue;
     }
 
-    const SemaFrame newFrame = sema.frame();
-    sema.pushFramePopOnPostNode(std::move(newFrame));
-
     const auto&  node            = sema.curNode().cast<AstAttributeList>();
     const size_t attributesCount = sema.ast().spanSize(node.spanChildrenRef);
+
+    // Adjacent lists share a target even when sema schedules them as separate jobs.
+    // An enclosing block broadcasts its attributes under a different target.
+    SemaFrame newFrame = sema.frame();
+    newFrame.setAttributeTarget(attributeTarget(sema.ast(), node.nodeBodyRef));
+    sema.pushFramePopOnPostNode(std::move(newFrame));
+
     if (attributesCount)
     {
         const AstNodeRef lastAttributeRef = sema.ast().nthNode(node.spanChildrenRef, attributesCount - 1);
@@ -974,6 +997,14 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         SWC_RESULT(checkAttributeUsage(sema, sema.curNodeRef(), Runtime::AttributeUsage::File));
 
     const SymbolFunction& attrSym = callView.sym()->cast<SymbolFunction>();
+    if (!attrSym.attributes().hasRtFlag(RtAttributeFlagsE::AttrMulti) &&
+        std::ranges::any_of(sema.frame().targetAttributes(), [&](const AttributeInstance& instance) { return instance.symbol == &attrSym; }))
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_attribute_repeated, errorRef);
+        diag.addArgument(Diagnostic::ARG_SYM, attributeDisplayName(sema, attrSym));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 
     SmallVector<AstNodeRef> args;
     callNode.collectArguments(args, sema.ast());

@@ -4,17 +4,6 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
-### compiler.core.115 — Diagnose repeated single-use test category attributes
-
-- Evidence: adjacent `#[Swag.TestTag("golden")]` and
-  `#[Swag.TestTag("capture.resident.home")]` on a `#test` compile without a diagnostic, but
-  selecting the second category executes no tests. `Swag.TestTag` declares one category and
-  does not carry `Swag.AttrMulti`.
-- Next: reduce the repeated attributes to a standalone semantic fixture and trace attribute
-  multiplicity validation together with the category passed to `Swag.__runTest`.
-- Done when: repeating a single-use attribute gives a located diagnostic, while attributes
-  marked `Swag.AttrMulti` retain their supported repeated values.
-
 ### compiler.core.114 — Resolve a DevMode host exception while compiling Swag Vault
 
 - Evidence: `tools/apps.bat dm test swagvault --test-tag golden` with three workers raised
@@ -27,18 +16,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a reduced workspace regression protects the corrected lifetime and the application
   compiles repeatedly with parallel workers and retained dependencies.
 
-### compiler.core.113 — Wait for imported struct layout before lowering an empty slice default
-
-- Evidence: `tools/apps.bat dm test swagcapture --test-tag golden`, with three compiler workers,
-  asserted `sizeInBytes != 0` in `Symbol.Struct.cpp` during semantic parsing of the imported
-  `video` API. The source span is `SoftwareTrimEdits.ranges: const [..] SoftwareRenderRange = []`
-  in `bin/apps/.dep/video/shared-library/devmode/x86_64/video.swg`. The reported structure is
-  declared and typed, has one field so far, and is not semantically complete.
-- Next: reduce the imported structure and empty slice default to a workspace fixture, then
-  trace the layout wait before constant lowering under parallel semantic analysis.
-- Done when: the reduced fixture and the application compile with DevMode assertions enabled,
-  including retained dependency APIs and parallel workers, without changing the valid default.
-
 ### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
 
 - Evidence: the Linux Release compiler reports that `state` may refer to released memory at
@@ -50,20 +27,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   sanity case, then distinguish a terminal helper from a fallible helper that can return.
 - Done when: the terminal failure path produces no lifetime warning, while a helper with a
   reachable success path still diagnoses a following access to the released allocation.
-
-### compiler.core.110 — An inferred duration constant is refused as a cast from `s32` to `s32`
-
-- Evidence: `const WatchPeriod = 30'ms` inside `impl ResidentPanel` of Swag Capture
-  (`src/residentpanel.swg`) was rejected by the Release compiler with
-  `error: cannot cast from 's32' to 's32'`, the span on `30'ms`. Spelling the type,
-  `const WatchPeriod: Time.Duration = 30'ms`, compiles, as do the suffixed literals passed to a
-  `Time.Duration` parameter (`.addTimer(1'ms)`). The message names the same type on both sides
-  and says nothing about the suffix or the missing target type.
-- Next: reduce to a standalone `sema` input with a suffixed literal in an inferred `const`, at
-  file scope and inside an `impl`; decide whether the inferred form is valid, then either infer
-  the suffix's type or report that the literal needs a typed destination.
-- Done when: the reduced input compiles, or is rejected by a diagnostic that names the suffix
-  and the fix, with the fixture in `bin/unittests/sema`.
 
 ### compiler.core.107 — Reject invalid closure captures without a host exception
 
@@ -695,34 +658,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
 
-### compiler.core.112 — A positional struct literal rejects the same identifier given twice
+### compiler.core.116 — Define the inferred type of a compiler layout query
 
-- Evidence: with `struct Point { x, y: f32 }`, `func take(p: Point)->f32` and
-  `const Margin = 12.0'f32`, `take({Margin, Margin})` fails semantic checking with
-  `record construction already initializes field 'Margin'`, a field `Point` does not have.
-  `take({Margin, Margin + 0})` and `take(Point{Margin, Margin})` compile. The check lives in
-  `SemaHelpers::finalizeAggregateStruct`: a literal made only of identifiers is named from them
-  as a record before its destination type is known, so two positional values spelled alike
-  collide. `Gui.PdfView.readingPosition` spells `Math.Point{PageMargin, PageMargin}` for it.
-- Next: decide the duplicate once the destination is known: keep the error when the repeated
-  name is a field of the target or the literal has no target, and treat the identifiers as
-  positional values otherwise; add `sema` cases for both outcomes.
-- Done when: `take({Margin, Margin})` compiles and fills both fields, a repeated field shorthand
-  is still rejected with a diagnostic naming a field the type has, and both are suite tests.
-
-### compiler.core.116 — A local initialized from `#sizeof` is not `u64` on the Linux compiler
-
-- Evidence: with `struct H { a, b: u64 }`, `var b = #sizeof(H)` fails `#assert(#typeof(b) == u64)`
-  on a Linux build of the compiler, and assigning a `u64` expression to `b` reports
-  `cannot cast from 'u64' to 's32'`. `bin/runtime/bootstrapallocator.swg` initialized
-  `overhead` that way and stopped every Linux compilation until the local was typed `u64`. The
-  same build fails `bin/unittests/sema/flow/for.swg` on `(5).reversed()`, where the generic
-  parameter of an integer literal receiver is not deduced.
-- Next: compile the two reductions with a Windows build of the same sources. If they pass
-  there, find what the Linux host types differently; if they fail, decide the rule for an
-  untyped `#sizeof` constant and repair the suite.
-- Done when: both reductions give the same answer on both hosts and the `sema` suite passes on
-  Linux.
+- Evidence: the shared front end produces an unsized integer for '#sizeof'. With
+  `struct H { a, b: u64 }`, Linux infers `s32` for `var size = #sizeof(H)`. A local
+  declared as `u64` accepts the same query and subsequent unsigned size arithmetic.
+- Next: decide whether layout queries should stay unsized or return a fixed type. Check
+  the impact on existing size arithmetic and overload selection before changing the rule.
+- Done when: the reference states the rule and semantic fixtures check it on Linux and
+  Windows.
 
 ### compiler.core.117 — Offer semantic cleanup edits with explicit preservation checks
 

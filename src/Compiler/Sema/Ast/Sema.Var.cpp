@@ -612,10 +612,28 @@ namespace
     bool canLeadAggregateArrayElementDriveConcretization(Sema& sema, TypeRef elemTypeRef, ConstantRef elemCstRef);
     bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView);
 
-    Result castOrConcretizeInit(Sema& sema, const SemaPostVarDeclArgs& context, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView, const Symbol* initialized)
+    Result checkInferredLiteralSuffix(Sema& sema, AstNodeRef initRef)
     {
-        SWC_UNUSED(context);
+        while (const auto* paren = sema.node(initRef).safeCast<AstParenExpr>())
+            initRef = sema.resolvedNodeRef(paren->nodeExprRef);
 
+        // An explicit cast has already used its destination to consume the suffix.
+        const AstNode& initializer = sema.node(initRef);
+        if (!initializer.is(AstNodeId::SuffixLiteral) && !initializer.is(AstNodeId::UnaryExpr))
+            return Result::Continue;
+
+        UserDefinedLiteralSuffixInfo suffix;
+        if (!Cast::resolveUserDefinedLiteralSuffix(sema, initRef, suffix))
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_suffix_needs_type, suffix.exprRef, SemaError::ReportLocation::Children);
+        diag.addArgument(Diagnostic::ARG_VALUE, suffix.suffix);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result castOrConcretizeInit(Sema& sema, bool codeParameterDefault, TypeRef explicitTypeRef, SemaNodeView& nodeInitView, const Symbol* initialized)
+    {
         if (codeParameterDefault)
             return Result::Continue;
 
@@ -627,8 +645,12 @@ namespace
 
         if (nodeInitView.cstRef().isValid())
         {
-            if (explicitTypeRef.isInvalid() && shouldDeferAggregateArrayConcretization(sema, nodeInitView))
-                return Result::Continue;
+            if (explicitTypeRef.isInvalid())
+            {
+                SWC_RESULT(checkInferredLiteralSuffix(sema, nodeInitView.nodeRef()));
+                if (shouldDeferAggregateArrayConcretization(sema, nodeInitView))
+                    return Result::Continue;
+            }
 
             ConstantRef newCstRef;
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
@@ -915,7 +937,7 @@ namespace
             // A single declaration is named when its initial value does not convert. A parameter's
             // value is a default, which the plain conversion message already describes.
             const Symbol* initialized = symbols.size() == 1 && !isParameter ? symbols.front() : nullptr;
-            SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView, initialized));
+            SWC_RESULT(castOrConcretizeInit(sema, codeParameterDefault, explicitTypeRef, nodeInitView, initialized));
         }
 
         if (context.nodeInitRef.isValid() && !setInitInfo.handled)

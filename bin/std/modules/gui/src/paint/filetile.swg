@@ -3,6 +3,8 @@
 
 using Core, Pixel
 
+private const NameScrollPauseTicks = 20'u64
+
 // How a file preview fits its image area without changing the source texture.
 enum Fit
 {
@@ -62,6 +64,20 @@ func captionHeight(host: *Wnd)->f32
     let metrics = host.themeMetrics()
     return metrics.fileTile_NameGap + metrics.fileTile_NameHeight + metrics.fileTile_FactsHeight
 }
+
+// Returns the number of steps in one name-scroll cycle, or zero if the name fits.
+//
+// Measure the displayed name using the width of the image in logical pixels. Pass successive
+// steps to [[Gui.FileTile.Options.nameTick]] and stop at the returned count to leave the name at rest.
+func nameScrollTicks(host: *Wnd, name: string, width: f32)->u64
+{
+    if width <= 0 do
+        return 0
+    let overflow = Painter.measureString(name, nnFont(host.font().regular)).width - width
+    return overflow > 0 ? nameScrollCycle(cast(u64, Math.ceil(overflow))) : 0
+}
+
+private func nameScrollCycle(distance: u64)->u64 => (distance + NameScrollPauseTicks) * 2
 
 // Paints one visible cell in host-local coordinates, borrowing all arguments for this call.
 //
@@ -181,14 +197,15 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
     if active and width > rect.width
     {
         let distance = cast(u64, Math.ceil(width - rect.width))
-        let phase    = options.nameTick % (distance * 2 + 40)
+        let phase    = options.nameTick % nameScrollCycle(distance)
+        let end      = distance + NameScrollPauseTicks
         var offset: u64
-        if phase > 20 and phase <= distance + 20 do
-            offset = phase - 20
-        elif phase > distance + 20 and phase <= distance + 40 do
+        if phase > NameScrollPauseTicks and phase <= end do
+            offset = phase - NameScrollPauseTicks
+        elif phase > end and phase <= end + NameScrollPauseTicks do
             offset = distance
-        elif phase > distance + 40 do
-            offset = distance * 2 + 40 - phase
+        elif phase > end + NameScrollPauseTicks do
+            offset = nameScrollCycle(distance) - phase
         painter.drawString(rect.x - cast(f32, offset), font.opticalLineTop(rect.vertCenter()), content.name, font, colors.text)
     }
     else

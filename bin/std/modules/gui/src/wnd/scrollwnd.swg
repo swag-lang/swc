@@ -94,9 +94,11 @@ public impl IWnd for ScrollWnd
         .hookOnChildEvent = func(wnd, evt)->bool => onHookChildEvent(wnd, evt)
     }
 
-    mtd impl onTimerEvent(_: *TimerEvent)
+    mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        .restTimer = null
+        if evt.timer != .restTimer do
+            return
+        .stopTimer(&.restTimer)
 
         // Pointer motion starts the rest timer; only an active drag keeps it alive.
         if .isMoving
@@ -116,14 +118,7 @@ public impl IWnd for ScrollWnd
                                            options)
     }
 
-    mtd impl onDestroyEvent(_: *DestroyEvent)
-    {
-        if .restTimer
-        {
-            .app().removeTimer(.restTimer)
-            .restTimer = null
-        }
-    }
+    mtd impl onDestroyEvent(_: *DestroyEvent) => .stopTimer(&.restTimer)
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
@@ -150,11 +145,24 @@ public impl IWnd for ScrollWnd
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.delta.y * .verticalScrollStep))
 
         case .Leave:
+            let wasHotV = .isHotBarV
+            let wasHotH = .isHotBarH
+            if not wasHotV and not wasHotH do
+                break
             .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
-            .animateBarExpansion(true, true)
+            .animateBarExpansion(wasHotV, wasHotH)
             .invalidate()
 
         case .Move:
+            let moved = evt.delta != Math.Point{}
+            if not .isGrabbing and not .isMoving
+            {
+                .hitTest(evt.surfacePos, moved)
+                break
+            }
+
+            if not moved do
+                break
             .revealScrollBars()
             if .isGrabbing
             {
@@ -175,12 +183,6 @@ public impl IWnd for ScrollWnd
                                                                  discard scrollWnd.applyScrollPos(value.x, value.y)
                                                              },
                                                              options)
-                break
-            }
-
-            if not .isMoving
-            {
-                .hitTest(evt.surfacePos)
                 break
             }
 
@@ -212,6 +214,7 @@ public impl IWnd for ScrollWnd
             }
             elif evt.button == .Left and (.isHotV or .isHotH or .isHotBarV or .isHotBarH)
             {
+                .revealScrollBars()
                 .isMoving = true
                 if .isHotV
                 {
@@ -391,9 +394,7 @@ impl ScrollWnd
         {
             if mouse.kind == .Move or mouse.kind == .Pressed
             {
-                if mouse.kind == .Move do
-                    scroll.revealScrollBars()
-                scroll.hitTest(mouse.surfacePos)
+                scroll.hitTest(mouse.surfacePos, mouse.kind == .Move and mouse.delta != Math.Point{})
                 if scroll.isHotV or scroll.isHotH or scroll.isHotBarV or scroll.isHotBarH
                 {
                     if mouse.kind == .Pressed do
@@ -406,52 +407,32 @@ impl ScrollWnd
         return false
     }
 
-    mtd hitTest(surfacePos: Math.Point)
+    mtd hitTest(surfacePos: Math.Point, moved = false)
     {
-        let pos     = .surfaceToLocal(surfacePos)
-        let wasHotV = .isHotV or .isHotBarV
-        let wasHotH = .isHotH or .isHotBarH
-        defer .animateBarExpansion(wasHotV, wasHotH)
-        if .isHotV or .isHotH or .isHotBarV or .isHotBarH
+        let pos       = .surfaceToLocal(surfacePos)
+        let wasThumbV = .isHotV
+        let wasThumbH = .isHotH
+        let wasBarV   = .isHotBarV
+        let wasBarH   = .isHotBarH
+        .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
+
+        switch
         {
-            .invalidate()
-            .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
+        case .showBarV and .needV and .verticalThumbRect().contains(pos):       .isHotV, .isHotBarV = true
+        case .showBarH and .needH and .horizontalThumbRect().contains(pos):     .isHotH, .isHotBarH = true
+        case .showBarV and .needV and .verticalThumbRect(true).contains(pos):   .isHotBarV = true
+        case .showBarH and .needH and .horizontalThumbRect(true).contains(pos): .isHotBarH = true
         }
 
-        var rect = .verticalThumbRect()
-        if .showBarV and .needV and rect.contains(pos)
-        {
-            .isHotV, .isHotBarV = true
+        // The event loop polls the pointer even while it is still. Recheck the hit in case
+        // layout moved under it. Only movement or changed hover can restart the fade.
+        let changed = wasThumbV != .isHotV or wasThumbH != .isHotH or wasBarV != .isHotBarV or wasBarH != .isHotBarH
+        if moved or (changed and (.isHotBarV or .isHotBarH)) do
             .revealScrollBars()
-            .invalidate()
-            return
-        }
-
-        rect = .horizontalThumbRect()
-        if .showBarH and .needH and rect.contains(pos)
+        if changed
         {
-            .isHotH, .isHotBarH = true
-            .revealScrollBars()
+            .animateBarExpansion(wasBarV, wasBarH)
             .invalidate()
-            return
-        }
-
-        rect = .verticalThumbRect(true)
-        if .showBarV and .needV and rect.contains(pos)
-        {
-            .isHotBarV = true
-            .revealScrollBars()
-            .invalidate()
-            return
-        }
-
-        rect = .horizontalThumbRect(true)
-        if .showBarH and .needH and rect.contains(pos)
-        {
-            .isHotBarH = true
-            .revealScrollBars()
-            .invalidate()
-            return
         }
     }
 

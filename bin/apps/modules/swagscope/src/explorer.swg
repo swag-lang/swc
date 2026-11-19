@@ -2332,6 +2332,14 @@ private func soundCoverFillsTile(glyph: Icon, texture: Texture, tile: Math.Recta
 // Reports whether `entry` is a film file: what the video reader opens, apart from album audio.
 private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.directory and not albumAudio(entry.name) and Reader.canOpen(entry.name)
 
+private struct ExplorerNameScroll
+{
+    row:     u64
+    tick:    u64
+    endTick: u64
+    step:    u64
+}
+
 // A virtual tile viewport: one painted cell per visible file, independent of directory size.
 struct ExplorerGrid
 {
@@ -2344,7 +2352,7 @@ struct ExplorerGrid
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
     spinnerUse:    u64
     nameTimer:     *Timer?
-    nameTick:      u64
+    nameScrolls:   [2] ExplorerNameScroll    // At most the hovered and selected titles.
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
@@ -2370,6 +2378,10 @@ impl ExplorerGrid
     const TileAspect   = 3.0 / 4.0
     const PosterWidth  = 170.0
     const PosterAspect = 1.38
+
+    // Reveal the whole name even when the overflow would take too long at one pixel per tick.
+    const NameScrollInterval: Time.Duration = 50'ms
+    const NameScrollMaxTicks = 100'u64
 
     // One album: the side of its cover, the air between the cover and the tracks, and the pitch of
     // a track.
@@ -2582,7 +2594,8 @@ impl ExplorerGrid
         options.hovered        = .hovered == row
         options.selected       = .explorer.selected == index
         options.showCaption    = true
-        options.nameTick       = .nameTick
+        for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
+            options.nameTick = scroll.tick
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
             let entry = &grid.explorer.entries[index]
@@ -3050,33 +3063,39 @@ impl ExplorerGrid
         return {first: Math.min(first, .explorer.shown.count), end: Math.min(first + rows * .columns, .explorer.shown.count)}
     }
 
+    private mtd nameScrollRect(row: u64)->Math.Rectangle
+    {
+        let tile = .tileRect(row)
+        let rect = Math.Rectangle{tile.x - .scrollPos.x, tile.bottom() - .scrollPos.y,
+                                  tile.width, FileTile.captionHeight(me)}
+        return Math.Rectangle.intersect(rect, .clientRect())
+    }
+
     mtd startNameScroll()
     {
-        if .rows or .board == .Album
-        {
-            .stopTimer(&.nameTimer)
+        .stopTimer(&.nameTimer)
+        Swag.init(&.nameScrolls, 1)
+        if .rows or .board == .Album or not .isVisible() or .app().isReducedMotion() do
             return
-        }
 
-        let font       = unwrap .font().regular
-        var needsTimer = false
-        for index, row in .explorer.shown where row == .hovered or index == .explorer.selected
+        let range = .visibleRange()
+        var count = 0'u64
+        for row in range.first until range.end
         {
+            let index = .explorer.shown[row]
+            if (row != .hovered and index != .explorer.selected) or .nameScrollRect(row).isEmpty() do
+                continue
             let name = safeMediaText(.tileName(&.explorer.entries[index]))
-            if Painter.measureString(name, font).width > .tile.x do
-                needsTimer = true
+            let end  = FileTile.nameScrollTicks(me, name, .tile.x)
+            if not end do
+                continue
+
+            .nameScrolls[count] = {row: row, endTick: end, step: (end + NameScrollMaxTicks - 1) / NameScrollMaxTicks}
+            count += 1
         }
 
-        if needsTimer
-        {
-            .nameTick = 0
-            if not .nameTimer do
-                .nameTimer = .addTimer(50'ms)
-        }
-        else
-        {
-            .stopTimer(&.nameTimer)
-        }
+        if count do
+            .nameTimer = .addTimer(NameScrollInterval)
     }
 
     mtd select(row: u64)
@@ -3084,7 +3103,6 @@ impl ExplorerGrid
         if row >= .explorer.shown.count do
             return
         .explorer.selected = .explorer.shown[row]
-        .startNameScroll()
         .explorer.showMediaInfo()
         if .rows do
             .explorer.requestPreview()
@@ -3095,6 +3113,7 @@ impl ExplorerGrid
             .explorer.scroll.setScrollPos(0, top)
         elif top + reach > .scrollPos.y + .clientRect().height do
             .explorer.scroll.setScrollPos(0, top + reach - .clientRect().height)
+        .startNameScroll()
         .invalidate()
     }
 }
@@ -3103,11 +3122,31 @@ impl IWnd for ExplorerGrid
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .nameTimer
+        if evt.timer != .nameTimer do
+            return
+        if not .isVisible() or .surface!.isMinimized or .app().isReducedMotion()
         {
-            .nameTick += 1
-            .invalidate()
+            Swag.init(&.nameScrolls, 1)
+            .stopTimer(&.nameTimer)
+            return
         }
+
+        var moving = false
+        for &scroll in .nameScrolls where scroll.endTick
+        {
+            let rect = .nameScrollRect(scroll.row)
+            scroll.tick += scroll.step
+            let active = scroll.row < .explorer.shown.count and
+                         (scroll.row == .hovered or .explorer.shown[scroll.row] == .explorer.selected)
+            if not active or rect.isEmpty() or scroll.tick >= scroll.endTick do
+                scroll.endTick = 0
+            else do
+                moving = true
+            .invalidateRect(rect)
+        }
+
+        if not moving do
+            .stopTimer(&.nameTimer)
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)

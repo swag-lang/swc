@@ -8,6 +8,7 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(880, 420)
+    host.setReducedMotion(false)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     explorer.entries.add({name: "A very long file name that cannot fit inside a small thumbnail tile.txt", attempted: true})
@@ -40,6 +41,14 @@ using Core, Gui, Pixel
 
     Swag.require(ink > 0)
     Swag.require(explorer.grid.nameTimer != null)
+
+    // The name gets one bounded reveal even if the selection stays put.
+    for ExplorerGrid.NameScrollMaxTicks do
+        host.fireTimer(explorer.grid.nameTimer)
+    Swag.require(explorer.grid.nameTimer == null)
+
+    explorer.grid.select(0)
+    Swag.require(explorer.grid.nameTimer != null)
     explorer.grid.select(1)
     Swag.require(explorer.grid.nameTimer == null)
 }
@@ -48,7 +57,8 @@ using Core, Gui, Pixel
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(880, 420)
+    host.setup(880, 640)
+    host.setReducedMotion(false)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     explorer.entries.add({name: "A very long source filename that does not appear on a poster.mkv", attempted: true})

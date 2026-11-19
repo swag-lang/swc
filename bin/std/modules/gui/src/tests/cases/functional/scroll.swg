@@ -229,6 +229,36 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
 }
 
+// Native pointer polling must leave the scrollbar at rest over the content and over its thumb.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    host.setReducedMotion(false)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView'Wnd()
+    scroll.setScrollSize(0, 1000)
+
+    let content = view.localToSurface(view.clientRect().center())
+    let thumb   = scroll.localToSurface(scroll.verticalThumbRect().center())
+    for point in [content, thumb]
+    {
+        host.moveMouse(point)
+        Swag.require(scroll.restTimer != null)
+        host.finishAnimations()
+        Swag.require(scroll.barPresence == 1)
+        let rest = scroll.restTimer
+        host.fireTimer(rest)
+        Swag.require(not host.app.ownsTimer(rest))
+        host.finishAnimations()
+
+        for 3 do
+            host.moveMouse(point)
+        Swag.require(scroll.restTimer == null and host.app.animator.activeCount() == 0)
+        Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
+    }
+}
+
 // Repeated wheel destinations preserve speed instead of kicking a fresh ease-out each time.
 #test
 {

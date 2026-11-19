@@ -14,6 +14,7 @@ cmd_LoadSubtitles Charger des sous-titres…
 cmd_GoToTime      Aller à une position…
 ui_TipTime        Aller à une position… (Ctrl G)
 cmd_CopyFrame     Copier l'image affichée
+cmd_SaveFrame     Enregistrer l'image affichée…
 cmd_LoopStart     Commencer la boucle ici
 cmd_LoopEnd       Terminer la boucle ici
 cmd_LoopClear     Arrêter la boucle
@@ -25,6 +26,9 @@ ui_TimeHelp      Saisissez mm:ss ou hh:mm:ss, ou +30 / -10 secondes.
 ui_TimeError     Saisissez une position dans la vidéo : mm:ss, hh:mm:ss, ou un nombre de secondes signé.
 ui_SubtitleLoadFailed Impossible de charger le fichier de sous-titres.
 ui_FrameCopyFailed Impossible de copier l'image.
+ui_FrameSaveFailed Impossible d'enregistrer l'image.
+ui_FrameSaved     Image enregistrée.
+ui_FramePng       Image PNG
 hint_Pause       lire ou mettre en pause
 hint_Arrows      ← →
 hint_Seek        10 secondes

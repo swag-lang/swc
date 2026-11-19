@@ -23,7 +23,8 @@ struct Texts
     cmd_LoadSubtitles:         string = "Load Subtitles…"
     cmd_GoToTime:              string = "Go to Time…"
     ui_TipTime:                string = "Go to Time… (Ctrl G)"
-    cmd_CopyFrame:             string = "Copy Frame"          // Lens command putting the picture on screen on the clipboard.
+    cmd_CopyFrame:             string = "Copy Frame"
+    cmd_SaveFrame:             string = "Save Frame…"
     cmd_LoopStart:             string = "Start Loop Here"     // Lens command marking where the looped passage starts.
     cmd_LoopEnd:               string = "End Loop Here"       // Lens command marking where it ends, playback then repeating it.
     cmd_LoopClear:             string = "Stop Looping"        // Lens command removing the looped passage.
@@ -35,6 +36,9 @@ struct Texts
     ui_TimeError:              string = "Enter a time within this video: mm:ss, hh:mm:ss, or a signed number of seconds."
     ui_SubtitleLoadFailed:     string = "The subtitle file could not be loaded."
     ui_FrameCopyFailed:        string = "The picture could not be copied."
+    ui_FrameSaveFailed:        string = "The frame could not be saved."
+    ui_FrameSaved:             string = "Frame saved."
+    ui_FramePng:               string = "PNG Image"
     hint_Pause:                string = "play or pause"
     hint_Arrows:               string = "← →"
     hint_Seek:                 string = "10 seconds"

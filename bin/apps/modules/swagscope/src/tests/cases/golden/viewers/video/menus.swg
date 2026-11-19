@@ -30,3 +30,25 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     assertScopeAnchoredMenuWith(&host, window, "menus.video.audio", func|view, host = &host|() { openVideoLensChoice(host, view, Film.texts().cmd_AudioTrack) })
     assertScopeAnchoredMenuWith(&host, window, "menus.video.subtitles", func|view, host = &host|() { openVideoLensChoice(host, view, Film.texts().cmd_Subtitles) })
 }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    let savedHints = Film.g_PlaybackHintUses
+    defer Film.g_PlaybackHintUses = savedHints
+    Film.g_PlaybackHintUses = 3
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), true)
+    let view   = assume cast(*Film.Panel, window.currentView)
+    waitForVideoAudio(view, 2)
+    pinVideoFrame(view, 5)
+
+    assertScopeAnchoredMenuWith(&host, window, "menus.video.frame.paper", func|view, host = &host|()
+    {
+        var point = view.imageView.surfaceRect().center()
+        host.surface.surfaceToScreen(&point)
+        host.click(point, .Right)
+    })
+}

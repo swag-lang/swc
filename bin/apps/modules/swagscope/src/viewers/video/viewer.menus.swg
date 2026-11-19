@@ -6,8 +6,39 @@ using Core, Pixel, Gui, Video, Audio
 // How far subtitles may be shifted either way, in seconds.
 const MaxSubtitleDelay = 60.0
 
+struct FrameAction {}
+
+impl FrameAction
+{
+    newCmdId("Copy")
+    newCmdId("Save")
+    newCmdId("Time")
+}
+
 impl Panel
 {
+    mtd showFrameMenu(surfacePos: Math.Point)
+    {
+        let time     = Viewer.timeText(.currentSeconds())
+        let timeText = Format.toString(appStrings().cmd_CopyTime, time)
+        let theme    = .theme()
+        let copyIcon = theme.icon(.Copy, theme.metrics.menuPopup_IconSize)
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(texts().cmd_CopyFrame, FrameAction.Copy, copyIcon, rightName: Input.formatKeyShortcut(.Control, .C), disabled: me.frameExporting)
+            .addItem(texts().cmd_SaveFrame, FrameAction.Save, theme.icon(.SaveAs, theme.metrics.menuPopup_IconSize), disabled: me.frameExporting)
+            .addSeparator()
+            .addItem(timeText, FrameAction.Time, copyIcon)
+        }
+
+        switch menu.doModal(surfacePos, autoDestroy: true, dispatchCommand: false)
+        {
+        case FrameAction.Copy: .copyFrame()
+        case FrameAction.Save: .promptSaveFrame()
+        case FrameAction.Time: Clipboard.setString(time)
+        }
+    }
+
     // The old selection remains active until the worker has decoded a complete replacement.
     mtd loadSubtitle(fileName: string)
     {

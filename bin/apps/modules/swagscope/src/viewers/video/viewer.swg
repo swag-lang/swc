@@ -154,10 +154,11 @@ struct Panel
     subtitleToast: *Toast?
     frameToast:    *Toast?
 
-    // The picture on screen is not kept once drawn, so copying it decodes it again from the file,
-    // on a worker with a reader of its own.
-    frameCopy:           Swag.Task'Image
-    frameCopying:        bool
+    // Copy and save share a worker with a reader of its own. A destination selects file output.
+    frameExport:         Swag.Task'Image
+    frameExporting:      bool
+    frameExportPath:     String
+
     subtitleLoad:        Viewer.BackgroundLoad'LoadedSubtitle
     pendingSubtitle:     String
     subtitleDelay:       f64
@@ -291,7 +292,7 @@ private impl Panel
             return
 
         .decode.wait()
-        .frameCopy.wait()
+        .frameExport.wait()
         .decodeExecutor.close()
         if .decodeWake.isValid() do
             .decodeWake.release()
@@ -356,8 +357,8 @@ private impl Panel
         }
 
         let subtitlesRetired = .subtitleLoad.retire()
-        .frameCopy.cancel()
-        if .decode.isPending() or .frameCopy.isPending() or not subtitlesRetired do
+        .frameExport.cancel()
+        if .decode.isPending() or .frameExport.isPending() or not subtitlesRetired do
             return false
         .finishRetire()
         return true
@@ -718,7 +719,7 @@ private impl IWnd for Panel
             }
 
             .finishSubtitleLoad()
-            .finishFrameCopy()
+            .finishFrameExport()
             .finishSubtitles()
             .refreshTime()
             .refreshSubtitle()
@@ -732,9 +733,15 @@ private impl IWnd for Panel
             .arrangeVeils()
     }
 
-    // A movement over the picture itself, where no control stands, brings the veils too.
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if evt.kind == .Pressed and evt.button == .Right and
+           .hasPausedFrame() and .imageView.pixelAt(.imageView.surfaceToLocal(evt.surfacePos)).inside
+        {
+            .showFrameMenu(evt.surfacePos)
+            return
+        }
+
         if evt.kind == .Move do
             .notePointer(evt.surfacePos, false)
         evt.accepted = false
@@ -1100,7 +1107,8 @@ private impl Panel
         entries.add(strings.cmd_LoadSubtitles, .OpenFile, func|view = me|() { view.promptSubtitle() }, disabled: not ready or .subtitleLoad.started)
         entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
         entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(.currentSeconds())), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(view.currentSeconds())) }, disabled: not .hasFrame)
-        entries.add(strings.cmd_CopyFrame, .Copy, func|view = me|() { view.copyFrame() }, disabled: not .hasFrame or .frameCopying, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.cmd_CopyFrame, .Copy, func|view = me|() { view.copyFrame() }, disabled: not .hasFrame or .frameExporting, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.cmd_SaveFrame, .SaveAs, func|view = me|() { view.promptSaveFrame() }, disabled: not .hasPausedFrame() or .frameExporting)
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem4))
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Oem6))
         if .loopStart >= 0 do
@@ -1111,40 +1119,6 @@ private impl Panel
         entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() }, disabled: not .tracksButton.isEnabled())
         entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
         entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-    }
-
-    // Puts the picture on screen on the clipboard, at the size the film is shown and without its
-    // subtitles. The decode runs on a worker; the copy lands once it is done.
-    mtd copyFrame()
-    {
-        if not .hasFrame or .frameCopying do
-            return
-        .frameCopying = true
-        let index  = .frameIndex
-        let width  = .video.displayWidth()
-        let height = .video.displayHeight()
-        .frameCopy.submit(func|view = me, index, width, height|()->Image fail => try decodeShownFrame(view.openFileName, index, width, height))
-    }
-
-    // Hands a decoded copy to the clipboard, or says why there is none.
-    internal mtd finishFrameCopy()
-    {
-        if not .frameCopying or not .frameCopy.isDone() do
-            return
-        .frameCopying = false
-        var failure: Swag.Error
-        catch
-        {
-            let image = try .frameCopy.take()
-            Clipboard.addImage(image)
-        } as failure
-
-        let reason = failure.value()
-        if reason == null do
-            return
-        if not .frameToast do
-            .frameToast = Toast.create(me)
-        .frameToast.show(texts().ui_FrameCopyFailed, Viewer.failureText(reason), .Failure)
     }
 
     // Creates the transport inside the host's command group.

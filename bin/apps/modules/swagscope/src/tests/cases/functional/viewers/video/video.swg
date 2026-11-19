@@ -486,7 +486,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
         host.pump()
         Swag.require(previous.retireRequested)
         previous.decode.wait()
-        previous.frameCopy.wait()
+        previous.frameExport.wait()
         completeViewerWindowClassification(&host, window)
 
         Swag.require(window.outgoingView == previous and window.currentView == previous)
@@ -1521,16 +1521,15 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.previousSeek >= 0 and view.currentSeconds() < 0.5)
 }
 
-// Copying the frame on screen decodes that very picture again and puts it on the clipboard at the
-// size the film is shown, the lens offering it beside the transport.
+// The lens and the paused film's context menu export the displayed picture at its display size.
 #test
 {
     if not Clipboard.isFake() do
         return
 
-    let path = Path.combine(Env.getSpecialDirectory(.Temp), "copy-frame.y4m")
+    let path = Testing.tempFilePath("scope-frame-", ".y4m")
     defer catch File.delete(path)
-    var clip = expect Clip.create(64, 48, expect FrameRate.create(24, 1))
+    var clip = expect Clip.create(64, 48, expect FrameRate.create(2, 1))
     for index in 6
     {
         var image = Image.create(64, 48, .RGB8)
@@ -1544,10 +1543,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, path, false)
     let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
-    waitForVideoFrame(view)
-    Swag.require(view.showFrame(3))
-    waitForVideoFrame(view)
-    Swag.require(view.frameIndex == 3, Format.toString("frame %", view.frameIndex))
+    pinVideoFrame(view, 3)
 
     var results = Testing.lensResults("copy")
     var entries = Viewer.LensEntries.create(&results, "Film", host.theme)
@@ -1560,14 +1556,51 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
         found = true
     }
 
-    Swag.require(found and view.frameCopying)
-    view.frameCopy.wait()
-    view.finishFrameCopy()
-    Swag.require(not view.frameCopying and Clipboard.hasImage())
+    Swag.require(found and view.frameExporting)
+    view.frameExport.wait()
+    view.finishFrameExport()
+    Swag.require(not view.frameExporting and Clipboard.hasImage())
     let copied = Clipboard.getImage()
     Swag.require(copied.width == 64 and copied.height == 48)
     let color = copied.pixelColor(32, 24)
     Swag.require(Math.abs(cast(s32, color.r) - 120) < 12 and Math.abs(cast(s32, color.b) - 130) < 12, Format.toString("% % %", color.r, color.g, color.b))
+
+    var point = view.imageView.surfaceRect().center()
+    host.surface.surfaceToScreen(&point)
+    host.clickPopupMenuItemWhenShown(Film.FrameAction.Time)
+    host.click(point, .Right)
+    Swag.require(host.autoHandled, host.autoFailure)
+    Swag.require(Clipboard.getString() == "0:01", Clipboard.getString())
+
+    host.clickPopupMenuItemWhenShown(Film.FrameAction.Copy)
+    host.click(point, .Right)
+    Swag.require(host.autoHandled, host.autoFailure)
+    view.frameExport.wait()
+    view.finishFrameExport()
+    Swag.require(Clipboard.getImage().pixelColor(32, 24) == color)
+
+    let stem  = unwrap Path.fileNameWithoutExtension(path)
+    let saved = Path.combine(unwrap Path.directoryName(path), Format.toString("%-frame-4.png", stem))
+    defer discard catch File.delete(saved)
+    host.clickPopupMenuItemWhenShown(Film.FrameAction.Save)
+    host.thenClickModalButton(Dialog.BtnCancel)
+    host.click(point, .Right)
+    Swag.require(host.autoHandled and not view.frameExporting and not File.exists(saved))
+
+    host.clickPopupMenuItemWhenShown(Film.FrameAction.Save)
+    host.thenClickModalButton(Dialog.BtnOk)
+    host.click(point, .Right)
+    Swag.require(host.autoHandled)
+    view.frameExport.wait()
+    view.finishFrameExport()
+    let exported = expect Image.load(saved)
+    Swag.require(exported.width == copied.width and exported.height == copied.height)
+    Swag.require(exported.pixelColor(32, 24) == color)
+
+    view.togglePlayback()
+    Swag.require(view.playing)
+    host.click(point, .Right)
+    Swag.require(host.capturedPopupMenu() == null)
 }
 
 // Two points marked on a film loop the passage between them: past its end, playback goes back to

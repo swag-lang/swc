@@ -171,16 +171,15 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   language preference persists without hiding other tracks.
 - Related: app.scope.subtitle.002, app.scope.subtitle.003
 
-### app.scope.video.011 — A frame cannot be copied, saved, or compared
+### app.scope.video.011 — Video cannot sample a contact sheet or compare frames
 
-- Evidence: Copy Frame, in the lens and on Ctrl+C, decodes the picture on screen again on a worker
-  with a reader of its own, since the queue does not keep a picture once drawn, and puts it on the
-  clipboard at the display size, scaled bilinearly from the coded size when they differ and
-  without subtitles. The lens also copies the instant playback stands at, as the clock writes it,
-  for the film and for a recording. The picture copy carries no timestamp or frame number, and there is no Save Frame,
-  contact sheet or compare-two-frames command.
-- Next: add current-frame copy/save with explicit coded/display transform and color policy, then a
-  bounded contact sheet for a selected range.
+- Evidence: the paused picture's context menu copies the frame, saves it as PNG, or copies the
+  position on the playback clock. Copy and save also appear in the lens. They decode the chosen
+  picture again on a worker at its display dimensions, with bilinear scaling when they differ
+  from the coded dimensions. PNG names default to the video stem and one-based frame number.
+  Both picture outputs exclude subtitles. Neither carries a source timestamp in the image.
+- Next: make the coded/display transform and color policy explicit, then add a bounded contact
+  sheet for a selected range and a comparison of two frames.
 - Done when: output names source timestamp/frame, decoded pixel format, transform, color
   conversion, and subtitle inclusion; contact-sheet sampling is configurable and cancellable; and
   two frames can open in the image comparison surface.

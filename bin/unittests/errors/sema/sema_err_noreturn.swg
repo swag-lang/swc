@@ -12,6 +12,15 @@ func stop()
 }
 
 #[Swag.NoReturn]
+func loopReturnsToCaller()     // swc-expected-error {{sema_err_noreturn_reaches_end}}
+{
+    for
+    {
+        break     // swc-expected-note {{sema_note_loop_break_continues}}
+    }
+}
+
+#[Swag.NoReturn]
 func reachesEnd(flag: bool)     // swc-expected-error {{sema_err_noreturn_reaches_end}}
 {
     if flag do

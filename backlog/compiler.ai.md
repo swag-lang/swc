@@ -796,18 +796,17 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   and a compile-time panic remains distinguishable from a script runtime panic.
 - Related: compiler.ai.040, compiler.ai.042, compiler.safety.032.
 
-### compiler.ai.036 — Trace fallthrough in nested control flow and suppress diagnostic cascades
+### compiler.ai.036 — Suppress dependent errors while keeping independent diagnostics
 
-- Evidence: the missing-return report can show a terminal condition or a switch with no
-  guaranteed match. [A complete switch with a non-returning case](../src/Compiler/Sema/Helpers/SemaCheck.cpp)
-  still points at the switch as a whole. Dependent semantic waits can also cross the line
-  on which the primary error was reported.
-- Next: carry the source of fallthrough through complete switches and loop exits. Add a
-  fixture where a failed declaration affects a later use alongside an unrelated error,
-  then diagnose the primary failure and the independent error.
-- Done when: blocked flow reports identify the relevant branch or exit. Cascades caused by
-  a rejected expression are suppressed, and independent diagnostics remain visible through
-  generic, imported and expanded source.
+- Evidence: [the semantic wait checker](../src/Compiler/Sema/Helpers/SemaCycle.cpp)
+  suppresses stalled dependency reports once an error is known. Pending identifier lookups
+  still report individually. Ordinary failed aliases, initializers and function signatures
+  already leave independent errors visible.
+- Next: reduce a cascading error from generic, imported or generated declarations to a
+  fixture alongside an independent error. Suppress the dependent lookup only when it can
+  be linked to the failed declaration or publication.
+- Done when: the primary and independent diagnostics remain visible, with no secondary
+  report caused by the failed declaration in that fixture.
 - Related: compiler.ai.035, compiler.ai.037, compiler.ai.039.
 
 ### compiler.ai.037 — The compiler answers no semantic question from the command line

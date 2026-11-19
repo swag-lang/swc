@@ -873,41 +873,6 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
 
 namespace
 {
-    // Count only breaks leaving this loop. Nested loops/switches own their
-    // breaks, and labelled exits need scope resolution this walk does not have.
-    // Ignoring uncertain exits can miss a diagnostic; counting one can reject valid code.
-    bool loopBodyBreaksOut(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return false;
-
-        const AstNode& node = sema.node(nodeRef);
-        switch (node.id())
-        {
-            case AstNodeId::BreakStmt:
-                return true;
-
-            case AstNodeId::WhileStmt:
-            case AstNodeId::ForeachStmt:
-            case AstNodeId::ForCStyleStmt:
-            case AstNodeId::ForStmt:
-            case AstNodeId::InfiniteLoopStmt:
-            case AstNodeId::SwitchStmt:
-            case AstNodeId::FunctionDecl:
-            case AstNodeId::FunctionExpr:
-            case AstNodeId::ClosureExpr:
-                return false;
-
-            default:
-                break;
-        }
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
-
-        return std::ranges::any_of(children, [&](AstNodeRef childRef) { return loopBodyBreaksOut(sema, childRef); });
-    }
-
     bool compoundStopsLocalFlow(Sema& sema, SpanRef childrenRef, SemaHelpers::LocalFlowStop stop)
     {
         if (!sema.ast().hasSpan(childrenRef))
@@ -956,41 +921,73 @@ namespace
         return view.sym()->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::NoReturn);
     }
 
-    // Every case must leave, and some case must always match. For enums,
-    // #complete supplies that guarantee even when its runtime range guard is off.
-    bool switchStopsFunctionFlow(Sema& sema, AstNodeRef switchRef, const AstNode& node)
+} // namespace
+
+AstNodeRef SemaHelpers::findLoopExitBreak(Sema& sema, AstNodeRef bodyRef)
+{
+    if (bodyRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    // Nested loops and switches own their own unlabelled breaks.
+    const AstNode& node = sema.node(bodyRef);
+    switch (node.id())
     {
-        const auto& switchStmt = node.cast<AstSwitchStmt>();
-        if (!SemaSwitch::alwaysMatchesACase(sema, switchRef, switchStmt))
-            return false;
+        case AstNodeId::BreakStmt:
+            return bodyRef;
 
-        SmallVector<AstNodeRef> caseBodies;
-        sema.ast().appendNodes(caseBodies, switchStmt.spanChildrenRef);
+        case AstNodeId::WhileStmt:
+        case AstNodeId::ForeachStmt:
+        case AstNodeId::ForCStyleStmt:
+        case AstNodeId::ForStmt:
+        case AstNodeId::InfiniteLoopStmt:
+        case AstNodeId::SwitchStmt:
+        case AstNodeId::FunctionDecl:
+        case AstNodeId::FunctionExpr:
+        case AstNodeId::ClosureExpr:
+            return AstNodeRef::invalid();
 
-        size_t count = 0;
-        for (const AstNodeRef childRef : caseBodies)
-        {
-            if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
-                caseBodies[count++] = sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef;
-        }
-
-        caseBodies.resize(count);
-
-        for (uint32_t i = 0; i < caseBodies.size32(); i++)
-        {
-            if (SemaHelpers::stopsLocalFlow(sema, caseBodies[i], SemaHelpers::LocalFlowStop::Function))
-                continue;
-
-            // Fallthrough reaches the next case, which is checked separately.
-            // The parser already prevents fallthrough past the final case.
-            if (i + 1 < caseBodies.size32() && endsWithFallthrough(sema, caseBodies[i]))
-                continue;
-
-            return false;
-        }
-
-        return !caseBodies.empty();
+        default:
+            break;
     }
+
+    SmallVector<AstNodeRef> children;
+    node.collectChildrenFromAst(children, sema.ast());
+    for (const AstNodeRef childRef : children)
+    {
+        const AstNodeRef breakRef = findLoopExitBreak(sema, childRef);
+        if (breakRef.isValid())
+            return breakRef;
+    }
+    return AstNodeRef::invalid();
+}
+
+AstNodeRef SemaHelpers::findSwitchFallthrough(Sema& sema, AstNodeRef switchRef)
+{
+    const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
+    if (!SemaSwitch::alwaysMatchesACase(sema, switchRef, switchStmt))
+        return switchRef;
+
+    SmallVector<AstNodeRef> cases;
+    sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
+    const auto end = std::remove_if(cases.begin(), cases.end(), [&](AstNodeRef childRef) { return childRef.isInvalid() || sema.node(childRef).isNot(AstNodeId::SwitchCaseStmt); });
+    cases.resize(static_cast<size_t>(end - cases.begin()));
+    if (cases.empty())
+        return switchRef;
+
+    for (size_t i = 0; i < cases.size(); ++i)
+    {
+        const AstNodeRef bodyRef = sema.node(cases[i]).cast<AstSwitchCaseStmt>().nodeBodyRef;
+        if (stopsLocalFlow(sema, bodyRef, LocalFlowStop::Function))
+            continue;
+
+        // Fallthrough reaches the next case, which is checked separately.
+        if (i + 1 < cases.size() && endsWithFallthrough(sema, bodyRef))
+            continue;
+
+        return cases[i];
+    }
+
+    return AstNodeRef::invalid();
 }
 
 bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop)
@@ -1036,10 +1033,10 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
 
         // A case break leaves the switch, so test case bodies for function exits.
         case AstNodeId::SwitchStmt:
-            return switchStopsFunctionFlow(sema, nodeRef, node);
+            return findSwitchFallthrough(sema, nodeRef).isInvalid();
 
         case AstNodeId::InfiniteLoopStmt:
-            return stop == LocalFlowStop::Function && !loopBodyBreaksOut(sema, node.cast<AstInfiniteLoopStmt>().nodeBodyRef);
+            return stop == LocalFlowStop::Function && findLoopExitBreak(sema, node.cast<AstInfiniteLoopStmt>().nodeBodyRef).isInvalid();
 
         case AstNodeId::WhileStmt:
         {
@@ -1050,7 +1047,7 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             if (sema.viewConstant(whileStmt.nodeExprRef).cstRef() != sema.cstMgr().cstTrue())
                 return false;
 
-            return !loopBodyBreaksOut(sema, whileStmt.nodeBodyRef);
+            return findLoopExitBreak(sema, whileStmt.nodeBodyRef).isInvalid();
         }
 
         // Attributes change the policy around their body, not its control flow.

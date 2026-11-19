@@ -1037,7 +1037,7 @@ namespace
 {
     AstNodeRef lastFallthroughStatement(Sema& sema, AstNodeRef nodeRef)
     {
-        for (;;)
+        while (nodeRef.isValid())
         {
             const AstNode& node = sema.node(nodeRef);
             if (const auto* attributes = node.safeCast<AstAttributeList>())
@@ -1045,66 +1045,157 @@ namespace
                 nodeRef = attributes->nodeBodyRef;
                 continue;
             }
-            if (const auto* block = node.safeCast<AstEmbeddedBlock>())
+            if (const auto* scope = node.safeCast<AstScopeStmt>(); scope && scope->tokNameRef.isInvalid())
             {
-                const size_t count = sema.ast().spanSize(block->spanChildrenRef);
-                if (count)
+                nodeRef = scope->nodeBodyRef;
+                continue;
+            }
+
+            SpanRef childrenRef = SpanRef::invalid();
+            if (const auto* block = node.safeCast<AstEmbeddedBlock>())
+                childrenRef = block->spanChildrenRef;
+            else if (const auto* caseBody = node.safeCast<AstSwitchCaseBody>())
+                childrenRef = caseBody->spanChildrenRef;
+
+            AstNodeRef lastRef = AstNodeRef::invalid();
+            if (sema.ast().hasSpan(childrenRef))
+            {
+                for (size_t remaining = sema.ast().spanSize(childrenRef); remaining; --remaining)
                 {
-                    const AstNodeRef lastRef = sema.ast().nthNode(block->spanChildrenRef, count - 1);
-                    if (lastRef.isValid() && !sema.isImplicitCodeBlockArg(nodeRef, lastRef))
+                    const AstNodeRef childRef = sema.ast().nthNode(childrenRef, remaining - 1);
+                    if (childRef.isValid() && !sema.isImplicitCodeBlockArg(nodeRef, childRef))
                     {
-                        nodeRef = lastRef;
-                        continue;
+                        lastRef = childRef;
+                        break;
                     }
                 }
             }
-            return nodeRef;
+            if (lastRef.isInvalid())
+                break;
+
+            nodeRef = lastRef;
         }
+        return nodeRef;
     }
 
-    void addFallthroughNote(Sema& sema, Diagnostic& diag, AstNodeRef bodyRef)
+    std::optional<bool> continuingBranch(Sema& sema, AstNodeRef thenRef, AstNodeRef elseRef, const ConstantValue* condition = nullptr)
     {
         constexpr auto functionExit = SemaHelpers::LocalFlowStop::Function;
+        if (condition && condition->isBool())
+        {
+            const bool taken = condition->getBool();
+            if (!SemaHelpers::stopsLocalFlow(sema, taken ? thenRef : elseRef, functionExit))
+                return taken;
+            return std::nullopt;
+        }
 
-        const AstNodeRef statementRef = lastFallthroughStatement(sema, bodyRef);
-        const AstNode&   statement    = sema.node(statementRef);
-        DiagnosticId     noteId       = DiagnosticId::sema_note_function_continues;
-        AstNodeRef       noteRef      = statementRef;
+        if (!SemaHelpers::stopsLocalFlow(sema, elseRef, functionExit))
+            return false;
+        if (!SemaHelpers::stopsLocalFlow(sema, thenRef, functionExit))
+            return true;
+        return std::nullopt;
+    }
 
+    struct FallthroughStep
+    {
+        DiagnosticId note = DiagnosticId::None;
+        AstNodeRef   sourceRef;
+        AstNodeRef   nextRef;
+    };
+
+    FallthroughStep loopFallthroughStep(Sema& sema, AstNodeRef conditionRef, AstNodeRef bodyRef)
+    {
+        if (conditionRef.isValid() && sema.viewConstant(conditionRef).cstRef() != sema.cstMgr().cstTrue())
+            return {DiagnosticId::sema_note_condition_false_continues, conditionRef, {}};
+
+        const AstNodeRef breakRef = SemaHelpers::findLoopExitBreak(sema, bodyRef);
+        if (breakRef.isValid())
+            return {DiagnosticId::sema_note_loop_break_continues, breakRef, {}};
+        return {};
+    }
+
+    FallthroughStep describeFallthrough(Sema& sema, AstNodeRef statementRef)
+    {
+        const AstNode& statement = sema.node(statementRef);
         if (const auto* ifStmt = statement.safeCast<AstIfStmt>())
         {
-            const bool thenExits = SemaHelpers::stopsLocalFlow(sema, ifStmt->nodeIfBlockRef, functionExit);
-            const bool elseExits = SemaHelpers::stopsLocalFlow(sema, ifStmt->nodeElseBlockRef, functionExit);
-            if (thenExits != elseExits)
+            const SemaNodeView condition = sema.viewConstant(ifStmt->nodeConditionRef);
+            const auto         branch    = continuingBranch(sema, ifStmt->nodeIfBlockRef, ifStmt->nodeElseBlockRef, condition.cst());
+            if (branch)
             {
-                noteId  = thenExits ? DiagnosticId::sema_note_condition_false_continues : DiagnosticId::sema_note_condition_true_continues;
-                noteRef = ifStmt->nodeConditionRef;
+                if (*branch)
+                    return {DiagnosticId::sema_note_condition_true_continues, ifStmt->nodeConditionRef, ifStmt->nodeIfBlockRef};
+                return {DiagnosticId::sema_note_condition_false_continues, ifStmt->nodeConditionRef, ifStmt->nodeElseBlockRef};
             }
         }
         else if (const auto* binding = statement.safeCast<AstIfVarDecl>())
         {
-            if (!binding->nodeElseBlockRef.isValid() && SemaHelpers::stopsLocalFlow(sema, binding->nodeIfBlockRef, functionExit))
+            const auto branch = continuingBranch(sema, binding->nodeIfBlockRef, binding->nodeElseBlockRef);
+            if (branch)
             {
-                noteId  = DiagnosticId::sema_note_binding_miss_continues;
-                noteRef = binding->nodeVarRef;
+                if (*branch)
+                    return {DiagnosticId::sema_note_binding_match_continues, binding->nodeVarRef, binding->nodeIfBlockRef};
+                return {DiagnosticId::sema_note_binding_miss_continues, binding->nodeVarRef, binding->nodeElseBlockRef};
             }
         }
-        else if (const auto* switchStmt = statement.safeCast<AstSwitchStmt>())
+        else if (statement.is(AstNodeId::SwitchStmt))
         {
-            if (!SemaSwitch::alwaysMatchesACase(sema, statementRef, *switchStmt))
-                noteId = DiagnosticId::sema_note_switch_miss_continues;
+            const AstNodeRef caseRef = SemaHelpers::findSwitchFallthrough(sema, statementRef);
+            if (caseRef == statementRef)
+                return {DiagnosticId::sema_note_switch_miss_continues, statementRef, {}};
+            if (caseRef.isValid())
+                return {DiagnosticId::sema_note_switch_case_continues, caseRef, sema.node(caseRef).cast<AstSwitchCaseStmt>().nodeBodyRef};
         }
         else if (const auto* loop = statement.safeCast<AstWhileStmt>())
         {
-            if (sema.viewConstant(loop->nodeExprRef).cstRef() != sema.cstMgr().cstTrue())
-            {
-                noteId  = DiagnosticId::sema_note_condition_false_continues;
-                noteRef = loop->nodeExprRef;
-            }
+            return loopFallthroughStep(sema, loop->nodeExprRef, loop->nodeBodyRef);
+        }
+        else if (const auto* loop = statement.safeCast<AstInfiniteLoopStmt>())
+        {
+            return loopFallthroughStep(sema, {}, loop->nodeBodyRef);
+        }
+        else if (const auto* loop = statement.safeCast<AstForCStyleStmt>())
+        {
+            return loopFallthroughStep(sema, loop->nodeExprRef, loop->nodeBodyRef);
+        }
+        else if (const auto* loop = statement.safeCast<AstForStmt>())
+        {
+            return {DiagnosticId::sema_note_loop_finishes_continues, loop->nodeExprRef, {}};
+        }
+        else if (const auto* loop = statement.safeCast<AstForeachStmt>())
+        {
+            return {DiagnosticId::sema_note_loop_finishes_continues, loop->nodeExprRef, {}};
         }
 
-        diag.addNote(noteId);
-        SemaError::addSpan(sema, diag.last(), noteRef);
+        return {};
+    }
+
+    void addFallthroughNote(Sema& sema, Diagnostic& diag, AstNodeRef bodyRef)
+    {
+        AstNodeRef tailRef = bodyRef;
+        bool       hasNote = false;
+        while (tailRef.isValid())
+        {
+            const AstNodeRef statementRef = lastFallthroughStatement(sema, tailRef);
+            if (statementRef.isInvalid())
+                break;
+
+            const FallthroughStep step = describeFallthrough(sema, statementRef);
+            if (step.note == DiagnosticId::None)
+            {
+                if (!hasNote)
+                {
+                    diag.addNote(DiagnosticId::sema_note_function_continues);
+                    SemaError::addSpan(sema, diag.last(), statementRef);
+                }
+                break;
+            }
+
+            diag.addNote(step.note);
+            SemaError::addSpan(sema, diag.last(), step.sourceRef);
+            hasNote = true;
+            tailRef = step.nextRef;
+        }
     }
 
     // NoReturn callers discard following code and cannot receive a value;

@@ -85,7 +85,11 @@ namespace SemaHelpers
         Function,
     };
 
-    bool stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Block);
+    bool       stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Block);
+    AstNodeRef findLoopExitBreak(Sema& sema, AstNodeRef bodyRef);
+    // A case reference identifies a path through that case. The switch itself
+    // identifies a missing match; an invalid reference means all cases exit.
+    AstNodeRef findSwitchFallthrough(Sema& sema, AstNodeRef switchRef);
 
     void addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
     void killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);

@@ -34,7 +34,100 @@ func loopWithBreak()->s32     // swc-expected-error {{sema_err_missing_return}}
 {
     for
     {
-        break
+        break     // swc-expected-note {{sema_note_loop_break_continues}}
+    }
+}
+
+func completeSwitchPartialCase(dir: Direction, ready: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch #complete dir
+    {
+    case .North: return 1
+    case .South:     // swc-expected-note {{sema_note_switch_case_continues}}
+        if ready do     // swc-expected-note {{sema_note_condition_false_continues}}
+            return 2
+    }
+}
+
+func completeSwitchFallthrough(dir: Direction)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch #complete dir
+    {
+    case .North:
+        fallthrough
+    case .South:     // swc-expected-note {{sema_note_switch_case_continues}}
+        discard dir
+    }
+}
+
+func nestedLoopExit(ready, waiting: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    if ready     // swc-expected-note {{sema_note_condition_false_continues}}
+    {
+        return 1
+    }
+    else
+    {
+        while waiting do     // swc-expected-note {{sema_note_condition_false_continues}}
+            return 2
+    }
+}
+
+func nestedTrueBranch(ready, waiting: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    if ready     // swc-expected-note {{sema_note_condition_true_continues}}
+    {
+        if waiting do     // swc-expected-note {{sema_note_condition_false_continues}}
+            return 1
+    }
+    else
+    {
+        return 2
+    }
+}
+
+func outerBreak(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    while true
+    {
+        for
+        {
+            break
+        }
+
+        if flag do
+            return 1
+        break     // swc-expected-note {{sema_note_loop_break_continues}}
+    }
+}
+
+func countedLoopExit(count: u32)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    for count do     // swc-expected-note {{sema_note_loop_finishes_continues}}
+        return 1
+}
+
+func cStyleLoopExit(limit: s32)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    for var i = 0; i < limit; i += 1 do     // swc-expected-note {{sema_note_condition_false_continues}}
+        return i
+}
+
+func collectionLoopExit(values: const [..] s32)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    for value in values do     // swc-expected-note {{sema_note_loop_finishes_continues}}
+        return value
+}
+
+func matchingBindingContinues(value: s32)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    if var current = value where current > 0     // swc-expected-note {{sema_note_binding_match_continues}}
+    {
+        discard current
+    }
+    else
+    {
+        return 0
     }
 }
 

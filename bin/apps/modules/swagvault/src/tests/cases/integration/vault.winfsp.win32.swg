@@ -680,6 +680,24 @@ namespace Integration
     }
 
     #[Swag.Propagate]
+    func verifyAutomaticMount(host: *Testing.HeadlessHost, window: *MainWindow, path: string) fail
+    {
+        let timer = window.automaticMountTimer
+        verify(timer != null, "opening a vault must schedule automatic mounting")
+        host.fireTimer(timer)
+        verify(window.operation.kind == .Mount, "opening an unprotected vault must start mounting automatically")
+        host.clickModalButtonWhenShown(Dialog.BtnOk)
+        window.finishOperation()
+        verify(window.isMounted(path), "opening an unprotected vault must publish a drive")
+        let drive = unwrap window.mountedDrives.find(path)
+        verify(Directory.exists(driveRoot(drive.drive)), "the automatically mounted drive must be visible to Windows")
+
+        window.unmountVault(path)
+        window.finishOperation()
+        verify(not window.isMounted(path), "the automatically mounted drive must unmount normally")
+    }
+
+    #[Swag.Propagate]
     func runAutomaticMounts(box: *Sandbox) fail
     {
         let path   = Path.combine(box.root, "launch without access.vault")
@@ -694,30 +712,16 @@ namespace Integration
         let window = MainWindow.create(&host.surfaceWnd)
         window.preferPortableWinFsp = true
 
-        for drop in [false, true]
-        {
-            if drop
-            {
-                let effect = host.dropFilesOnWnd(window, [path.toString()])
-                verify(effect == .Copy, "the window must accept a dropped vault")
-                host.fireTimer(unwrap window.automaticMountTimer)
-            }
-            else
-            {
-                window.openForAutomaticMount(path)
-            }
+        window.queueAutomaticMount(path)
+        verifyAutomaticMount(&host, window, path)
 
-            verify(window.operation.kind == .Mount, "opening an unprotected vault must start mounting automatically")
-            host.clickModalButtonWhenShown(Dialog.BtnOk)
-            window.finishOperation()
-            verify(window.isMounted(path), "opening an unprotected vault must publish a drive")
-            let drive = unwrap window.mountedDrives.find(path)
-            verify(Directory.exists(driveRoot(drive.drive)), "the automatically mounted drive must be visible to Windows")
+        let effect = host.dropFilesOnWnd(window, [path.toString()])
+        verify(effect == .Copy, "the window must accept a dropped vault")
+        verifyAutomaticMount(&host, window, path)
 
-            window.unmountVault(path)
-            window.finishOperation()
-            verify(not window.isMounted(path), "the automatically mounted drive must unmount normally")
-        }
+        host.acceptModalFileDialog(path)
+        verify(window.runCommand(VaultCommands.OpenFile) and host.autoHandled, "the open command must accept the selected vault")
+        verifyAutomaticMount(&host, window, path)
     }
 
     #[Swag.Propagate]

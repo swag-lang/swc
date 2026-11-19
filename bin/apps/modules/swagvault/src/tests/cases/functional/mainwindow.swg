@@ -987,10 +987,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     // A container dropped on the home is what its foot says: it joins the list, unfolded, and the
     // keys of the home leave the hint line with it.
-    let path = createProtectedDropFixture()
+    let path = createProtectedVaultFixture()
     defer discard catch File.delete(path)
     Swag.require(host.dropFilesOnWnd(list, [path.toString()]) != DropEffect.None)
-    finishDroppedVault(&host, window)
+    finishAutomaticMountRequest(&host, window)
     Swag.require(window.chosenPath == path.toString() and list.card.panel.isLocallyVisible())
     window.foldVault()
     Swag.require(list.rows.count == 1 and window.hintLine.hints.count == 1)
@@ -1139,28 +1139,28 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(path == window.createPath.text())
 }
 
-// Opening a file puts its vault on the list, unfolded. Privacy keeps browse history off disk, but
-// the open dialog still returns to its last folder while this process is running.
+// Opening a protected vault unfolds its access form. The picker remembers its folder during the run.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    let path = Testing.tempFilePath("vault-open-state-", ".vault")
+    let path = createProtectedVaultFixture(".vault")
     defer discard catch File.delete(path)
-    discard expect File.writeAllBytes(path, [1'u8])
 
     host.acceptModalFileDialog(path)
-    window.openVaultFile()
-
+    Swag.require(window.runCommand(VaultCommands.OpenFile))
     Swag.require(host.autoHandled)
-    Swag.require(window.chosenPath == path and window.vaults.count == 1)
+    finishAutomaticMountRequest(&host, window)
+    Swag.require(window.chosenLockedPath() == path.toString() and window.vaults.count == 1)
     Swag.require(window.list.card.panel.isLocallyVisible())
+    Swag.require(window.mountButton.isEnabled() and window.statusMessage == .Ready)
     Swag.require(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    window.openVaultFile()
+    Swag.require(window.runCommand(VaultCommands.OpenFile))
     Swag.require(host.autoHandled)
+    Swag.require(window.automaticMountTimer == null)
     Swag.require(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 }
 
@@ -1210,15 +1210,15 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.createButton.isEnabled())
 }
 
-func createProtectedDropFixture(extension = ".bin")->String
+func createProtectedVaultFixture(extension = ".bin")->String
 {
-    let path   = Testing.tempFilePath("vault protected drop-", extension)
+    let path   = Testing.tempFilePath("vault protected open-", extension)
     var volume = expect Volume.create(path, "password", MinimumSize)
     volume.close()
     return path
 }
 
-func finishDroppedVault(host: *Testing.HeadlessHost, window: *MainWindow)
+func finishAutomaticMountRequest(host: *Testing.HeadlessHost, window: *MainWindow)
 {
     host.fireTimer(unwrap window.automaticMountTimer)
     if window.operation.kind != .None do
@@ -1230,7 +1230,7 @@ func finishDroppedVault(host: *Testing.HeadlessHost, window: *MainWindow)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    let path   = createProtectedDropFixture()
+    let path   = createProtectedVaultFixture()
     defer discard catch File.delete(path)
 
     window.showPage(.Options, animate: false)
@@ -1248,7 +1248,7 @@ func finishDroppedVault(host: *Testing.HeadlessHost, window: *MainWindow)
     Swag.require(not window.dropHighlight.isLocallyVisible())
 
     Swag.require(host.dropFilesOnWnd(window, [path.toString()]) == DropEffect.Copy)
-    finishDroppedVault(&host, window)
+    finishAutomaticMountRequest(&host, window)
 
     Swag.require(not window.dropHighlight.isLocallyVisible())
     Swag.require(window.page == .List)
@@ -1262,11 +1262,11 @@ func finishDroppedVault(host: *Testing.HeadlessHost, window: *MainWindow)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    let path   = createProtectedDropFixture(".anything")
+    let path   = createProtectedVaultFixture(".anything")
     defer discard catch File.delete(path)
 
     Swag.require(host.dropFilesOnWnd(window, [path.toString()]) == DropEffect.Copy)
-    finishDroppedVault(&host, window)
+    finishAutomaticMountRequest(&host, window)
     Swag.require(window.chosenLockedPath() == path.toString())
 
     // Two files name no single vault to open.

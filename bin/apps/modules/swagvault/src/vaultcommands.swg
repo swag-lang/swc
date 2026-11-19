@@ -398,7 +398,7 @@ impl MainWindow
         .chooseVault(path)
     }
 
-    // Lets the reader pick a container file, then unfolds it on the list.
+    // Lets the reader pick a container to mount or unlock.
     mtd openVaultFile()
     {
         if .operation.kind != .None do
@@ -418,7 +418,7 @@ impl MainWindow
 
         let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() == Dialog.BtnOk do
-            .openVault(dialog.selectedPath())
+            .queueAutomaticMount(dialog.selectedPath())
     }
 
     // Opens the drive of the mounted vault at `path` in the file explorer.

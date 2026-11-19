@@ -20,6 +20,7 @@ struct BreadcrumbItem
 
 // The mark parting two levels of a quiet path.
 private const QuietSeparator = "/"
+private const AncestorCommandGroup = "gui.breadcrumb.ancestor"
 
 // Displays a horizontal path whose levels can be activated or expanded into child menus.
 struct BreadcrumbCtrl
@@ -32,6 +33,11 @@ struct BreadcrumbCtrl
         quiet:           bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
         maxVisibleItems: u32          // Maximum trailing levels with [[Gui.BreadcrumbCtrl.fitToWidth]]; zero leaves the count unlimited.
         fitToWidth:      bool         // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
+        overflowIcon:    ThemeIcons = .More     // Glyph for the menu that gathers hidden levels.
+
+        // With fit-to-width layout, keeps the menu button visible and adds this command after
+        // the hidden levels. The command uses the usual menu command routing.
+        overflowCommand: WndId?
 
         readonly
         {
@@ -172,26 +178,27 @@ impl BreadcrumbCtrl
 
         .overflowRect = {}
         .firstVisible = 0
+        let persistent = .overflowCommand != null
         let limited = .maxVisibleItems != 0 and .items.count > .maxVisibleItems
-        if not .fitToWidth or .items.isEmpty() or (x <= client.right() and not limited) do
+        if not .fitToWidth or (not persistent and (x <= client.right() and not limited)) do
             return
 
         // Keep whole ancestors, never the trailing letters of one. The leaf always stays.
         let overflowWidth = Math.min(.themeMetrics().control_DialogHeight, client.width)
         let available     = Math.max(client.width - overflowWidth, 0)
-        .firstVisible = .items.count - 1
-        var used = .items.back().bodyRect.width + .items.back().arrowRect.width
+        .firstVisible = .items.count
+        var used: f32
         while .firstVisible > 0 and (.maxVisibleItems == 0 or .items.count - .firstVisible < .maxVisibleItems)
         {
             let previous = .items[.firstVisible - 1]
             let width    = previous.bodyRect.width + previous.arrowRect.width
-            if used + width > available do
+            if .firstVisible < .items.count and used + width > available do
                 break
             used += width
             .firstVisible -= 1
         }
 
-        .overflowRect = {client.x, client.y, .firstVisible > 0 ? overflowWidth : 0, client.height}
+        .overflowRect = {client.x, client.y, persistent or .firstVisible > 0 ? overflowWidth : 0, client.height}
         x = .overflowRect.right()
         for &it, index in .items
         {
@@ -265,7 +272,10 @@ private impl BreadcrumbCtrl
         anchor.style.setFont(.font())
         let arrowRoom = overflow ? 0.0 : .themeMetrics().btnIcon_ArrowSize + .themeMetrics().btnIcon_SpacingTextH
         let room      = Math.max(rect.width - .padX * 2 - arrowRoom, 0)
-        anchor.setQuietText(Painter.elideString(name, nnFont(.font().regular), room, .deviceScale()))
+        if overflow and .overflowIcon != .More do
+            anchor.setIcon(.theme().icon(.overflowIcon, .themeMetrics().fileBrowser_GlyphSize))
+        else do
+            anchor.setQuietText(Painter.elideString(name, nnFont(.font().regular), room, .deviceScale()))
         anchor.setPosition({rect.x - .scrollPos.x, rect.y - .scrollPos.y, rect.width, rect.height})
         return String.from(menu.doModal(anchor) orelse "")
     }
@@ -277,13 +287,24 @@ private impl BreadcrumbCtrl
         for index in 0 until .firstVisible
         {
             let item = &.items[index]
-            menu.addItem(item.name, Format.toString("%", index), item.icon.isValid() ? item.icon : .ancestorIcon)
+            menu.addItem(item.name, Format.toString("%.%", AncestorCommandGroup, index), item.icon.isValid() ? item.icon : .ancestorIcon)
+        }
+        let command = .overflowCommand
+        if command
+        {
+            if not menu.items.isEmpty() do
+                menu.addSeparator()
+            menu.addItem(command)
         }
 
         var rect     = .overflowRect
         let selected = .showLevelMenu(menu, rect, "…", overflow: true)
-        if selected.count do
-            .sigItemPressed.call(me, (expect StrConv.parseU64(selected)).value)
+        if selected.count and selected != command
+        {
+            let index = expect StrConv.parseU64(selected.toString()[AncestorCommandGroup.count + 1 to])
+            if index.value < .items.count do
+                .sigItemPressed.call(me, index.value)
+        }
     }
 }
 
@@ -300,6 +321,8 @@ impl IWnd for BreadcrumbCtrl
             if it.hasArrow do
                 width += .arrowWidth()
         }
+        if .fitToWidth and .overflowCommand do
+            width += .themeMetrics().control_DialogHeight
 
         return {width, 0}
     }
@@ -412,7 +435,7 @@ impl IWnd for BreadcrumbCtrl
         {
             if .hotOverflow do
                 painter.fillRoundRect(.overflowRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
-            let mark = theme.icon(.More, m.fileBrowser_GlyphSize)
+            let mark = theme.icon(.overflowIcon, m.fileBrowser_GlyphSize)
             mark.paint(painter, .overflowRect.horzCenter() - mark.sizeX * 0.5, font.opticalTop(.overflowRect.vertCenter(), mark.sizeY), colors.softText)
         }
 

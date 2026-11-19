@@ -96,7 +96,7 @@ var BreadcrumbPressedCount: u32
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 3)
         opened = true
-        menu.setEndModal("1")
+        menu.setEndModal(menu.items[1]!.id)
     }
 
     host.click(path.localToSurface(path.overflowRect.center()))

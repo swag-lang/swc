@@ -89,6 +89,7 @@ explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément
 explore_Count % éléments
 explore_NotFound Emplacement introuvable
+explore_FullLocationHint Saisissez le chemin d’un fichier ou d’un dossier.
 explore_CopyLocation Copier l’emplacement actuel
 explore_OpenSystemFolder Ouvrir dans le gestionnaire de fichiers
 explore_RevealArchive Afficher l’archive dans son dossier
@@ -162,6 +163,7 @@ cmd_FindPrevious Occurrence précédente
 cmd_Information Informations
 cmd_FullScreen Plein écran
 cmd_EditLocation Saisir un emplacement
+cmd_EditFullLocation Saisir le chemin complet
 cmd_SortName Trier par nom
 cmd_SortType Trier par type
 cmd_SortSize Trier par taille

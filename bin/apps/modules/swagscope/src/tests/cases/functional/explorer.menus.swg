@@ -35,6 +35,69 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.require(not explorer.load.started)
 }
 
+// The folder button keeps the location command reachable with and without hidden levels.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = openMenuExplorer(&host)
+    let explorer = unwrap window.explorer
+    let breadcrumb = explorer.address.breadcrumb
+    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.EditFullLocation).hidden)
+
+    for hidden in [false, true]
+    {
+        breadcrumb.clear()
+        breadcrumb.maxVisibleItems = 1
+        if hidden do
+            breadcrumb.addItem("Parent")
+        breadcrumb.addItem("Current", hasArrow: false)
+        explorer.address.refreshPath()
+        let rect = breadcrumb.surfaceRect()
+        var point = Math.Point{rect.x + breadcrumb.themeMetrics().control_DialogHeight * 0.5, rect.vertCenter()}
+        host.surface.surfaceToScreen(&point)
+
+        var checked: bool
+        host.app.sigFrame += func|host = &host, &checked, hidden|(_)
+        {
+            if checked do
+                return
+            let menu = host.capturedPopupMenu()
+            if not menu do
+                return
+            Swag.require(menu.items.count == (hidden ? 3 : 1))
+            if hidden do
+                Swag.require(menu.items[0]!.name.text == "Parent" and menu.items[1]!.separator)
+            Swag.require(menu.items.back()!.id == ViewerCommands.EditFullLocation)
+            checked = true
+            Swag.require(host.dismissPopupMenu())
+        }
+
+        host.click(point)
+        host.app.sigFrame.clear()
+        Swag.require(checked)
+
+    }
+
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    window.sendCommandEvent(ViewerCommands.EditFullLocation)
+    Swag.require(host.autoHandled)
+
+    let before = explorer.locationText()
+    let parent = expect Path.absolute(unwrap Path.directoryName(before))
+    let dialog = explorer.createFullLocationDialog()
+    let surface = unwrap dialog.surface
+    defer surface.destroy()
+    Swag.require(dialog.text() == before)
+    dialog.setText("missing folder")
+    let validate = unwrap dialog.validateResult
+    Swag.require(not validate(dialog, Dialog.BtnOk))
+    Swag.require(dialog.label.text() == appStrings().explore_NotFound and not dialog.edit!.isValid())
+    dialog.setText(parent)
+    Swag.require(validate(dialog, Dialog.BtnOk))
+    waitMenuExplorer(&host, window)
+    Swag.require(Path.equals(explorer.listing.path, parent))
+}
+
 // Context actions follow the clicked breadcrumb or entry in both listing presentations.
 #test
 {

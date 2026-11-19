@@ -90,6 +90,7 @@ struct AppStrings
     explore_ExtractedKept:     string = "%, % already there kept"                 // Toast after an extraction that left files already in the folder as they were.
     explore_ExtractFailed:     string = "Not everything could be extracted"       // Toast when an extraction stopped on an error.
     explore_NotFound:          string = "Location not found"                      // Exploration control or status.
+    explore_FullLocationHint:  string = "Enter a file or folder path."            // Help under the full location field.
     explore_CopyLocation:      string = "Copy Current Location"                  // Copies the address shown above the listing.
     explore_OpenSystemFolder:  string = "Open in System File Manager"            // Opens a folder outside Scope.
     explore_RevealArchive:     string = "Show Archive in Its Folder"              // Selects the archive that contains a virtual item.
@@ -259,6 +260,7 @@ struct AppStrings
     cmd_Information:      string = "Information"                // Command showing the sheet of readings about the open file.
     cmd_FullScreen:       string = "Full Screen"                // Command filling the monitor with the document.
     cmd_EditLocation:     string = "Type a Location"            // Command turning the explored path into a field.
+    cmd_EditFullLocation: string = "Enter the Full Path"        // Command opening the full location dialog.
     cmd_SortName:         string = "Sort by Name"               // Command ordering the explored folder by name.
     cmd_SortType:         string = "Sort by Type"               // Command ordering the explored folder by type.
     cmd_SortSize:         string = "Sort by Size"               // Command ordering the explored folder by size.

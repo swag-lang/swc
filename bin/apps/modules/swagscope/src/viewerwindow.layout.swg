@@ -7,7 +7,7 @@ impl ViewerWindow
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32, button.appearanceTheme)
-            window.refreshReadingAppearance()
+            window.layoutFileInfo()
             catch window.saveState()
         }
 
@@ -178,9 +178,16 @@ impl ViewerWindow
         .documentHost.padding = Math.Vector4{0, strip + search, 0, 0}
         if .currentView is Markdown.View as markdown
         {
-            // The page paints under the chrome; only its scroll viewport keeps clear of it.
-            .documentHost.padding.y = 0
-            markdown.padding.y      = strip + search
+            // Let the page reach the chrome when both use the same reading appearance.
+            if Viewers.MarkdownText.g_ViewerSettings.themeIndex == 0 or .appearanceButton.appearanceTheme == .Document
+            {
+                .documentHost.padding.y = 0
+                markdown.padding.y      = strip + search
+            }
+            else
+            {
+                markdown.padding.y = 0
+            }
         }
 
         if .viewerBar != null

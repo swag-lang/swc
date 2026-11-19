@@ -221,7 +221,10 @@ func reportViewerInformationChanged(view: *Wnd)
     let window = viewerWindowFor(view)
     if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view do
         return
-    window.refreshReadingAppearance()
+    if view is Markdown.View do
+        window.layoutFileInfo()
+    else do
+        window.refreshReadingAppearance()
     if window.infoSheet.isLocallyVisible() do
         window.refreshInformation()
 }
@@ -727,7 +730,7 @@ impl ViewerWindow
         .themeIndex = Math.min(index, cast(u32, AppearanceTheme.Document))
         let theme = .themeIndex == cast(u32, AppearanceTheme.Document) ? AppearanceTheme.Document : AppearanceThemeValues[.themeIndex]
         .appearanceButton.setAppearanceTheme(theme)
-        .refreshReadingAppearance()
+        .layoutFileInfo()
     }
 
     mtd applyLanguage()

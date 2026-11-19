@@ -3,6 +3,31 @@
 
 using Core, Pixel, Gui, Gui.Testing, Viewers
 
+// A light reading preset must leave the caption in the selected dark application theme.
+#test
+{
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {themeIndex: 5}
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.md"), false)
+    let view   = assume cast(*Markdown.View, window.currentView)
+    let paper  = view.themeColors().view_Bk
+    let ink    = ThemeColors.encrePalette().ground
+    Swag.require(paper != ink)
+    var frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == ink)
+    Swag.require(view.themeColors().view_Bk == paper)
+
+    window.applyTheme(cast(u32, AppearanceTheme.Document))
+    frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == paper)
+
+    window.applyTheme(cast(u32, AppearanceTheme.Dark))
+    frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == ink)
+}
+
 // A missing optional family must fall back without installing or loading an application asset.
 #test
 {

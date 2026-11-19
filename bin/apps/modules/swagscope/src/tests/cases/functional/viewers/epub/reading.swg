@@ -1,7 +1,36 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui, Viewers
+using Core, Gui, Pixel, Viewers
+
+// An authored white chapter keeps its paper when the caption changes to the selected dark theme.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.christmas-carol.epub"), false)
+    let panel = assume cast(*Epub.Panel, window.currentView)
+    panel.showChapter(2)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(panel.view!.authoredCanvasBackground().argb == Argb.White)
+
+    let dark = ThemeColors.encrePalette().ground
+    let light = ThemeColors.papierPalette().ground
+    var frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == dark)
+
+    window.applyTheme(cast(u32, AppearanceTheme.Document))
+    frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == light)
+
+    host.activateOptionRowWhenShown(Gui.strings().appearance_Theme)
+    host.thenActivateOptionRow(Gui.strings().appearance_Dark)
+    host.clickWnd(window.appearanceButton)
+    Swag.require(host.autoHandled and host.app.appearance == .Dark)
+    frame = host.renderSettled(&host.surfaceWnd)
+    Swag.require(frame.pixelColor(60, 8) == dark)
+    let page = panel.view.surfaceRect()
+    Swag.require(frame.pixelColor(cast(s32, page.x) + 3, cast(s32, page.y) + 3).argb == Argb.White)
+}
 
 // Reading measure and zoom retain the current passage without losing the search highlight.
 #test

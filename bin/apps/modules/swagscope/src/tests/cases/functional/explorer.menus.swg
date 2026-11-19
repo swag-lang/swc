@@ -35,14 +35,14 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.require(not explorer.load.started)
 }
 
-// The folder button keeps the location command reachable with and without hidden levels.
+// The folder button keeps the folder picker reachable with and without hidden levels.
 #test
 {
     var host: Testing.HeadlessHost
     let window = openMenuExplorer(&host)
     let explorer = unwrap window.explorer
     let breadcrumb = explorer.address.breadcrumb
-    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.EditFullLocation).hidden)
+    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.ChooseFolder).hidden)
 
     for hidden in [false, true]
     {
@@ -67,7 +67,7 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
             Swag.require(menu.items.count == (hidden ? 3 : 1))
             if hidden do
                 Swag.require(menu.items[0]!.name.text == "Parent" and menu.items[1]!.separator)
-            Swag.require(menu.items.back()!.id == ViewerCommands.EditFullLocation)
+            Swag.require(menu.items.back()!.id == ViewerCommands.ChooseFolder)
             checked = true
             Swag.require(host.dismissPopupMenu())
         }
@@ -75,25 +75,45 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.click(point)
         host.app.sigFrame.clear()
         Swag.require(checked)
+    }
+}
 
+func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWindow, current, parent: string)
+{
+    var picked: bool
+    host.app.sigFrame += func|host, &picked, current, parent|(_)
+    {
+        if picked do
+            return
+        for surface in host.app.surfaces
+        {
+            if surface.view() is FileDlg as picker
+            {
+                Swag.require(picker.options.mode == .SelectFolder)
+                Swag.require(Path.equals(picker.browser.currentFolder, current))
+                Swag.require(picker.browser.setCurrentFolder(parent))
+                Swag.require(Path.equals(picker.selectedPath(), parent))
+                picked = true
+                Swag.require(picker.closeWithResult(Dialog.BtnOk))
+                return
+            }
+        }
     }
 
-    host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    window.sendCommandEvent(ViewerCommands.EditFullLocation)
-    Swag.require(host.autoHandled)
+    window.sendCommandEvent(ViewerCommands.ChooseFolder)
+    host.app.sigFrame.clear()
+    Swag.require(picked)
+}
 
-    let before = explorer.locationText()
-    let parent = expect Path.absolute(unwrap Path.directoryName(before))
-    let dialog = explorer.createFullLocationDialog()
-    let surface = unwrap dialog.surface
-    defer surface.destroy()
-    Swag.require(dialog.text() == before)
-    dialog.setText("missing folder")
-    let validate = unwrap dialog.validateResult
-    Swag.require(not validate(dialog, Dialog.BtnOk))
-    Swag.require(dialog.label.text() == appStrings().explore_NotFound and not dialog.edit!.isValid())
-    dialog.setText(parent)
-    Swag.require(validate(dialog, Dialog.BtnOk))
+// Confirmation opens the chosen directory in the current Explorer.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = openMenuExplorer(&host)
+    let explorer = unwrap window.explorer
+    let current = explorer.locationText()
+    let parent = expect Path.absolute(unwrap Path.directoryName(current))
+    selectParentInFolderPicker(&host, window, current, parent)
     waitMenuExplorer(&host, window)
     Swag.require(Path.equals(explorer.listing.path, parent))
 }

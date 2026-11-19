@@ -1487,15 +1487,24 @@ impl ViewerWindow
             return
         }
 
+        let folder = .selectExplorerFolder()
+        if not folder.isEmpty() do
+            .openExplorer(folder)
+    }
+
+    mtd selectExplorerFolder(initialFolder: string = "")->String
+    {
         with var options: FileDlgOptions
         {
-            .mode  = .SelectFolder
-            .state = &me.fileDlgState
+            .mode          = .SelectFolder
+            .initialFolder = initialFolder
+            .state         = &me.fileDlgState
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
-            .openExplorer(dialog.selectedPath())
+        if dialog.doModal() != Dialog.BtnOk do
+            return {}
+        return dialog.selectedPath()
     }
 
     mtd openExplorer(path: string)

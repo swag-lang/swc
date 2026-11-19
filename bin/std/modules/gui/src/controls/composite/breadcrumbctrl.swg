@@ -435,8 +435,11 @@ impl IWnd for BreadcrumbCtrl
         {
             if .hotOverflow do
                 painter.fillRoundRect(.overflowRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
-            let mark = theme.icon(.overflowIcon, m.fileBrowser_GlyphSize)
-            mark.paint(painter, .overflowRect.horzCenter() - mark.sizeX * 0.5, font.opticalTop(.overflowRect.vertCenter(), mark.sizeY), colors.softText)
+            let mark   = theme.icon(.overflowIcon, m.fileBrowser_GlyphSize)
+            let center = .overflowRect.center()
+            // The icon-only menu tab centers its mark on the same line as the breadcrumb text.
+            let top = .overflowIcon == .More ? font.opticalTop(center.y, mark.sizeY) : center.y - mark.sizeY * 0.5
+            mark.paint(painter, center.x - mark.sizeX * 0.5, top, colors.softText)
         }
 
         for it, i in .items where not it.bodyRect.isEmpty()

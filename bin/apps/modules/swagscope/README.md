@@ -33,7 +33,8 @@ small, medium and large thumbnails. ZIP files use the same navigation.
 Click the current folder in the title bar or press Ctrl+L to edit the location. Enter opens the
 typed path and Escape restores the breadcrumbs. A missing location leaves the field open for
 correction. The folder button at the start of the breadcrumbs lists any hidden ancestors and
-offers **Enter the Full Path…** to open the location dialog.
+offers **Select Folder…** to open the folder picker at the current location. From inside an
+archive, the picker starts in the folder that contains the archive.
 Right-click a breadcrumb, row or thumbnail to copy its path or use the system file
 manager. For entries inside an archive, the menu copies their archive path and can reveal the
 archive on disk.

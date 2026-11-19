@@ -400,7 +400,7 @@ impl Explorer
             .focusPolicy               = .Click
             .breadcrumb.maxVisibleItems = 3
             .breadcrumb.overflowIcon    = .Folder
-            .breadcrumb.overflowCommand = ViewerCommands.EditFullLocation
+            .breadcrumb.overflowCommand = ViewerCommands.ChooseFolder
             .position.height            = ToolHeight
             .sigNavigate                += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
             .sigEditFinished            += func|explorer = me|(_) { explorer.focusContent() }
@@ -1217,43 +1217,16 @@ impl Explorer
         .address.edit.setValidator(null)
     }
 
-    mtd promptFullLocation()
+    mtd chooseFolder()
     {
         .address.endEdit()
-        if .createFullLocationDialog().doModal() == Dialog.BtnOk do
-            .focusContent()
-    }
-
-    mtd createFullLocationDialog()->*EditDlg
-    {
-        let texts  = appStrings()
-        let hint   = texts.explore_FullLocationHint
-        let path   = .locationText()
-        let dialog = EditDlg.createSingleLine(unwrap .window.surface, {title: texts.cmd_EditFullLocation,
-                                                                       message: hint,
-                                                                       text: path,
-                                                                       confirmButtonText: texts.cmd_OpenChosen})
-        let field = unwrap dialog.edit
-        dialog.validateResult = func|explorer = me, dialog, field|(_, result)->bool
-        {
-            if result != Dialog.BtnOk or explorer.navigateTyped(field.text()) do
-                return true
-
-            field.setValidator(func||(_) => .InvalidVisible)
-            dialog.setMessage(appStrings().explore_NotFound)
-            field.setFocus()
-            return false
-        }
-        field.sigTextChanged += func|dialog, field, hint|(_)
-        {
-            if not field.isValid()
-            {
-                field.setValidator(null)
-                dialog.setMessage(hint)
-            }
-        }
-
-        return dialog
+        let initialFolder = .listing.isArchive ? (Path.directoryName(.nativeArchivePath()) orelse "") : .listing.path.toString()
+        let chosen = .window.selectExplorerFolder(initialFolder)
+        if chosen.isEmpty() do
+            return
+        if .listing.isArchive or not Path.equals(chosen, .listing.path) do
+            .navigate(chosen)
+        .focusContent()
     }
 
     private mtd showBreadcrumbMenu(position: Math.Point)

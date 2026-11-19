@@ -45,7 +45,7 @@ namespace ViewerCommands
     const Refresh           = "scope.explore.refresh"
     const ClearCaches       = "scope.explore.clearCaches"
     const EditLocation      = "scope.explore.location"
-    const EditFullLocation  = "scope.explore.location.dialog"
+    const ChooseFolder      = "scope.explore.choose-folder"
     const CopyLocation      = "scope.explore.location.copy"
     const OpenSystemFolder  = "scope.explore.location.openSystem"
     const RevealArchive     = "scope.explore.location.revealArchive"
@@ -153,7 +153,7 @@ impl ViewerWindow
                                                                     ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                                                                       ViewerCommands.ClearCaches,
-                                                                      ViewerCommands.EditLocation, ViewerCommands.EditFullLocation, ViewerCommands.CopyLocation,
+                                                                      ViewerCommands.EditLocation, ViewerCommands.ChooseFolder, ViewerCommands.CopyLocation,
                                                                       ViewerCommands.OpenSystemFolder, ViewerCommands.RevealArchive,
                                                                       ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                                                                       ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending,
@@ -874,10 +874,10 @@ impl ViewerWindow
             icon   = .commandGlyph(.Edit)
             hidden = not exploring
 
-        case ViewerCommands.EditFullLocation:
-            owned  = Format.toString("%…", texts.cmd_EditFullLocation)
+        case ViewerCommands.ChooseFolder:
+            owned  = Format.toString("%…", Gui.strings().fileDlg_TitleSelectFolder)
             name   = owned
-            icon   = .commandGlyph(.GoTo)
+            icon   = .commandGlyph(.Folder)
             hidden = not exploring
 
         case ViewerCommands.CopyLocation:
@@ -1221,8 +1221,8 @@ impl ViewerWindow
         case ViewerCommands.EditLocation:
             explorer.address.beginEdit()
 
-        case ViewerCommands.EditFullLocation:
-            explorer.promptFullLocation()
+        case ViewerCommands.ChooseFolder:
+            explorer.chooseFolder()
 
         case ViewerCommands.CopyLocation:
             let path = contextPath ? String.from(contextPath) : explorer.locationText()

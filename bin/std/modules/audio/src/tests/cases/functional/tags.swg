@@ -371,6 +371,7 @@ func writeId3File(frames: const [..] u8)->String
     defer discard catch File.delete(fileName)
     Swag.require(SoundTags.read(fileName).picture.isEmpty())
     let tags = SoundTags.read(fileName, withPicture: true)
+    Swag.require(tags.isEmpty())
     Swag.require(tags.pictureExtension == ".jpg" and tags.picture.count == 6 and tags.picture[5] == 7)
 }
 

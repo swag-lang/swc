@@ -27,7 +27,7 @@ struct SoundTags
         // the extension of their format (`.jpg`, `.png`, `.gif`, `.bmp` or `.webp`). Read only
         // when asked for; empty when the file embeds none in a format named here.
         picture: Array'u8
-        pictureExtension: String
+        pictureExtension: String  // File extension of the embedded picture, including its leading dot.
     }
 
     pictureKind: u8     // Picture type the tag gives `picture`; 3 is the front cover.
@@ -38,7 +38,7 @@ private const TagSizeLimit  = 16 * 1024 * 1024'u64
 
 impl SoundTags
 {
-    // Reports whether the file named nothing at all.
+    // Reports whether the file has no descriptive text; embedded artwork does not affect the result.
     mtd const isEmpty()->bool => .title.isEmpty() and
                                  .artist.isEmpty() and
                                  .album.isEmpty() and

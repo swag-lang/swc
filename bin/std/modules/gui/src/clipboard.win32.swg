@@ -10,11 +10,11 @@ private var g_PngFormat: UINT
 //
 // The clipboard takes ownership only when publication succeeds. A failed transfer keeps
 // ownership here, and the movable block is unlocked before either transfer or destruction.
-private func addNativeData(fmt: UINT, bytes: const [..] u8)
+private func addNativeData(fmt: UINT, bytes: const [..] u8)->bool
 {
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
     if not hglob do
-        return
+        return false
     var transferred = false
     defer
     {
@@ -24,10 +24,11 @@ private func addNativeData(fmt: UINT, bytes: const [..] u8)
 
     let buffer = cast([*] u8?, GlobalLock(hglob))
     if not buffer do
-        return
+        return false
     Memory.copy(buffer, bytes.buffer, bytes.count)
     discard GlobalUnlock(hglob)
     transferred = SetClipboardData(fmt, hglob) != null
+    return transferred
 }
 
 // Returns the clipboard format registered under `name`, registering it on first use.
@@ -100,7 +101,7 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     defer discard CloseClipboard()
     let payload = TypedPayload{crc: type ? type.crc : 0, data: data}
     let bytes   = payload.encode()
-    addNativeData(cast(UINT, fmt), bytes.toSlice())
+    discard addNativeData(cast(UINT, fmt), bytes.toSlice())
 }
 
 // Returns a copy of the payload stored under `fmt`, or an empty array when none matches `type`.
@@ -152,39 +153,40 @@ func hasImage()->bool
 
 // Replaces the clipboard content with `image`, published as a device-independent bitmap and as PNG.
 //
-// A format the image fails to encode to is left out.
-func addImage(image: Image)
+// Returns true when at least one image format reaches the clipboard. An invalid image clears it.
+#[Swag.Discardable]
+func addImage(image: Image)->bool
 {
     // Mirrors the OS path below: adding an image empties the clipboard first.
     if g_Fake.enabled
     {
         fakeClear()
         if not image.isValid() do
-            return
+            return false
         g_Fake.hasImg = true
         g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
-        return
+        return true
     }
 
     if not OpenClipboard(GetDesktopWindow()) do
-        return
+        return false
     defer discard CloseClipboard()
-    discard EmptyClipboard()
+    if not EmptyClipboard() or not image.isValid() do
+        return false
 
     // Pixel owns DIB channel ordering, row padding, and straight-alpha conversion.
     var dibErrorOutcome: Swag.Error
     var dib: #decltype(expect image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}))
     catch { dib = try image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) } as dibErrorOutcome
     let dibError = dibErrorOutcome.value()
-    if dibError == null do
-        addNativeData(CF_DIB, dib.toSlice())
+    let bitmapAdded = dibError == null and addNativeData(CF_DIB, dib.toSlice())
 
     var pngErrorOutcome: Swag.Error
     var png: #decltype(expect image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}))
     catch { png = try image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) } as pngErrorOutcome
     let pngError = pngErrorOutcome.value()
-    if pngError == null do
-        addNativeData(g_PngFormat, png.toSlice())
+    let pngAdded = pngError == null and addNativeData(g_PngFormat, png.toSlice())
+    return bitmapAdded or pngAdded
 }
 
 // Returns a decoded copy of the clipboard image, or an invalid image when there is none.
@@ -350,9 +352,9 @@ private func writeString(str: string, replace: bool)
 
     let ansi = NativeText.encodeAnsi(str)
     if not ansi.isEmpty() do
-        addNativeData(CF_TEXT, ansi.toSlice())
+        discard addNativeData(CF_TEXT, ansi.toSlice())
     let wide = Utf16.toZeroTerminated(str)
-    addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8, wide.storage()), wide.count * 2))
+    discard addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8, wide.storage()), wide.count * 2))
 }
 
 // Returns the clipboard text converted to UTF-8, or an empty string when there is none.

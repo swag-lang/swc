@@ -1,8 +1,5 @@
 using Core, Pixel
 
-// Windows keeps a copied bitmap when Capture exits. The X11 clipboard needs its owner.
-const HubCopyQuits = #os == Swag.TargetOs.Windows
-
 // What a screenshot covers.
 enum CaptureMode
 {
@@ -475,6 +472,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     defer platformScope.close()
 
     // Capture overlays temporarily hide the workspace; they never change its mode.
+    main.closeResidentNotice()
     main.residentPanel?.close()
 
     // Keep the editor out of the desktop pixels unless the option says otherwise.
@@ -533,10 +531,15 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
     if let image = result.capture where picture and destination == .Clipboard
     {
-        Clipboard.addImage(image.backImg)
+        result.copied = main.copyScreenshot(image.backImg)
         Memory.delete(image)
         result.capture = null
-        result.copied  = true
+        if not result.copied
+        {
+            restoreCaptureWorkspace(main, restoreEditor)
+            MessageDlg.error(main.workspaceSurface(), appStrings().msg_FailedCopyCapture)
+            return
+        }
     }
 
     let capture = result.capture
@@ -547,10 +550,15 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         return
     }
 
-    if HubCopyQuits and result.copied and main.workspace == .Hub do
-        main.postCommandEvent(ActionGlobal.Exit)
-    else do
-        restoreCaptureWorkspace(main, restoreEditor)
+    restoreCaptureWorkspace(main, restoreEditor)
+    if result.copied
+    {
+        let texts = appStrings()
+        if main.workspace == .Resident do
+            main.showResidentNotice(texts.msg_Copied, texts.msg_ResidentCopyText)
+        elif main.workspace == .Editor do
+            main.confirm(texts.msg_Copied)
+    }
 }
 
 func restoreCaptureWorkspace(main: *MainWnd, restoreEditor: bool)

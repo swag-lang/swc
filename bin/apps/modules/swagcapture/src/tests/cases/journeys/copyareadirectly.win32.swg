@@ -3,7 +3,7 @@
 
 using Core, Gui
 
-// Select a rectangle from the startup hub, then copy and quit in one step.
+// Select a rectangle from the startup hub, then show the copied image in the hub.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
@@ -36,11 +36,13 @@ using Core, Gui
     }
 
     hub.choose(ActionCapture.Area)
-    let frameLimit = cast(u32, app.timing.frameCount) + 15
-    app.maxRunFrame = frameLimit
-    Swag.require(app.run() == 0 and app.timing.frameCount < frameLimit, "clipboard mode left the startup app running")
+    journey.waitFor("copied area in the capture window", func|main, &selected|()->bool =>
+                    selected and Clipboard.hasImage() and main.residentPanel != null)
     let area = getGrabRect()
     let img  = Clipboard.getImage()
     Swag.require(selected and img.width == cast(s32, area.width) and img.height == cast(s32, area.height))
+    let restored = main.residentPanel
+    Swag.require(restored.childById(ResidentPanel.ClipboardPreviewId) != null)
+    Swag.require(main.workspace == .Hub and not restored.surface!.isHidden and main.residentNotice == null)
     Swag.require(main.getCapture() == null and journey.surface.isHidden and not journey.surface.hasTrayIcon())
 }

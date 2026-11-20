@@ -79,6 +79,9 @@ impl ResidentPanel
     const WatchPeriod: Time.Duration = 30'ms
     const MoreCaptures   = "capture.hub.moreCaptures"
     const BackToCaptures = "capture.hub.backToCaptures"
+    const ClipboardPreviewId = "capture.hub.clipboardPreview"
+    const ClipboardPreviewWidth  = 120's32
+    const ClipboardPreviewHeight = 56's32
 
     #[Swag.Discardable]
     func open(main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel?
@@ -87,6 +90,7 @@ impl ResidentPanel
         var surface: *Surface?
         if placement == .AtPointer
         {
+            main.closeResidentNotice()
             surface = PopupMenuSurface.create(main.app(), pointer)
         }
         else
@@ -185,6 +189,8 @@ impl ResidentPanel
     {
         .menu = Wnd.create'MenuCtrl(me)
         .pictureChoices = null
+        if .main.clipboardPreview.isValid() and not g_Recorder do
+            .addClipboardPreview()
         if g_Recorder do
             .addRecordingItems()
         elif .otherCaptures do
@@ -206,9 +212,11 @@ impl ResidentPanel
                 {
                     .addItem(ActionGlobal.ShowHub)
                     .addSeparator()
-                    .addItem(ActionGlobal.Exit)
                 }
             }
+            else do
+                .addSeparator()
+            .addItem(ActionGlobal.Exit)
 
             .owner     = me.main
             .dockStyle = .Center
@@ -219,6 +227,21 @@ impl ResidentPanel
         }
 
         .listSize = {.menu.position.width, .menu.position.height}
+    }
+
+    private mtd addClipboardPreview()
+    {
+        let image = .main.clipboardPreview
+        with let row = StackLayoutCtrl.create(.menu, .Center)
+        {
+            .backgroundStyle = .Transparent
+            .spacing         = .themeMetrics().menuPopup_SpaceLines
+        }
+        let preview = ImageRect.create(row, {width: image.width, height: image.height}, ClipboardPreviewId)
+        preview.setImage(image)
+        Label.create(row, appStrings().ui_HubLastCopied, flags: .SecondaryText)
+        .menu.addWidget(row, fullWidth: true).disabled = true
+        .menu.addSeparator()
     }
 
     private mtd rebuild()
@@ -256,18 +279,14 @@ impl ResidentPanel
             .addItem(ActionCapture.Area)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
+            .addItem(texts.ui_HubMoreCaptures, MoreCaptures, me.theme().icon(.More))
+            .addSeparator()
+            .addItem(ActionCapture.RecordVideo)
+            .addSeparator()
         }
 
         .addPictureChoices()
-
-        with .menu
-        {
-            .addSeparator()
-            .addItem(ActionCapture.RecordVideo)
-            .addItem(texts.ui_HubMoreCaptures, MoreCaptures, me.theme().icon(.More))
-            .addLabel(texts.ui_MenuCaptureSetup)
-        }
-
+        .menu.addLabel(texts.ui_MenuCaptureSetup)
         .main.addDelayChoices(.menu, includeCursor: true)
 
         with .menu
@@ -295,6 +314,7 @@ impl ResidentPanel
 
         with .menu
         {
+            .addSeparator()
             .addLabel(texts.ui_HubRecord)
             .addItem(ActionCapture.RecordScreen)
             .addItem(ActionCapture.RecordActiveWindow)
@@ -345,8 +365,7 @@ impl ResidentPanel
                 .setTextPosition(.Right)
                 .setForm(.RoundedRectangle)
                 .setCheckIndicator(.Frame)
-                .toolTip = HubCopyQuits and me.placement == .Centered and id == ActionCapture.ToClipboard ?
-                           texts.tip_InpCopyQuit : state.name
+                .toolTip = state.name
                 .sigCheckedChanged += func|main, id|(_) { main.sendCommandEvent(id) }
             }
         }

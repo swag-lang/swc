@@ -862,32 +862,35 @@ namespace Clipboard
         return false
     }
 
-    // Replaces the clipboard with a PNG copy of `image`; an invalid or unencodable image leaves it empty.
-    public func addImage(image: Image)
+    // Replaces the clipboard with a PNG copy of `image` and reports whether it was published.
+    //
+    // An invalid or unencodable image leaves the clipboard empty.
+    #[Swag.Discardable]
+    public func addImage(image: Image)->bool
     {
         if g_Fake.enabled
         {
             fakeClear()
-            if image.isValid()
-            {
-                g_Fake.hasImg = true
-                g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
-            }
-
-            return
+            if not image.isValid() do
+                return false
+            g_Fake.hasImg = true
+            g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
+            return true
         }
 
         clear()
         if not image.isValid() do
-            return
+            return false
         catch
         {
             let bytes = try image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .BestSpeed})
             LinuxSelection.mutex.lock()
             defer LinuxSelection.mutex.unlock()
             try LinuxSelection.ensure()
-            discard LinuxSelection.publish(LinuxSelection.service.clipboard, try LinuxSelection.atom("image/png"), bytes.toSlice())
+            return LinuxSelection.publish(LinuxSelection.service.clipboard, try LinuxSelection.atom("image/png"), bytes.toSlice())
         }
+
+        return false
     }
 
     // Returns a decoded PNG copy, or an invalid image when no bounded transfer can be decoded.

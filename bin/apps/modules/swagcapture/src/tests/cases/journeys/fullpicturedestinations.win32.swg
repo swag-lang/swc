@@ -13,20 +13,26 @@ using Core, Gui, Pixel
     let surface = journey.surface
     main.sendCommandEvent(ActionGlobal.Minimize)
     Swag.require(main.workspace == .Resident and surface.hasTrayIcon())
+    Swag.require(main.residentNotice and not main.residentNotice.surface!.isHidden)
     defer main.residentPanel?.close()
 
     expect Clipboard.resetFake()
     let clipboardHub = unwrap ResidentPanel.open(main, .AtPointer)
+    Swag.require(main.residentNotice == null)
     main.sendCommandEvent(ActionCapture.ToClipboard)
     clipboardHub.choose(ActionCapture.FullScreen)
     journey.waitFor("screen copied in resident mode", func|main|()->bool => Clipboard.hasImage() and main.residentPanel == null)
     let desktop = Clipboard.getImage()
     Swag.require(desktop.width == g_ScreenWidth and desktop.height == g_ScreenHeight)
     Swag.require(surface.isHidden and main.getCapture() == null)
+    Swag.require(main.residentNotice and not main.residentNotice.surface!.isHidden)
 
     main.sendCommandEvent(ActionCapture.ToInPlace)
-    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .AtPointer), command: ActionCapture.FullScreen)
+    let menuWithCopy = unwrap ResidentPanel.open(main, .AtPointer)
+    Swag.require(menuWithCopy.childById(ResidentPanel.ClipboardPreviewId) != null and main.residentNotice == null)
+    journey.finishInPlacePicture(menuWithCopy, command: ActionCapture.FullScreen)
     Swag.require(main.workspace == .Resident and surface.hasTrayIcon())
+    Swag.require(main.residentNotice and not main.residentNotice.surface!.isHidden)
     let annotated = Clipboard.getImage()
     Swag.require(annotated.width == desktop.width and annotated.height == desktop.height)
 
@@ -38,4 +44,5 @@ using Core, Gui, Pixel
     let capture = unwrap main.getCapture()
     Swag.require(capture.width == desktop.width and capture.height == desktop.height)
     Swag.require(not Clipboard.hasImage() and main.residentPanel == null and not surface.hasTrayIcon())
+    Swag.require(main.residentNotice == null)
 }

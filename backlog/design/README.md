@@ -747,13 +747,15 @@ the screen to its work.
   picture group has one destination for every still capture: Clipboard, Annotate in Place,
   or Editor. A settings row groups cursor and delay. The editor and library own recent captures.
 - Minimize to Notification Area is the only entry to resident mode, from the capture window
-  or the editor's lens. The icon opens a transient menu with the same capture commands.
-  Opening the capture window or the editor removes the icon. Closing a work window quits.
+  or the editor's lens. A notice confirms that Capture is still running. The icon opens a
+  transient menu with the same capture commands. Opening the capture window or the editor
+  removes the icon. Quit at the end of the menu and the work window's close button both exit.
 - Capture temporarily clears its controls from the screen. Canceling brings back the work
   window it started from, and a capture already launched from resident mode stays behind the icon.
   The Editor destination and the in-place editor's Open in Editor action open the full editor.
-  Copy from the capture window completes a one-shot launch on Windows; Linux keeps the capture
-  window available to serve the clipboard. Copy from the editor returns to the editor.
+  Copy from the capture window brings it back with a preview of the last copied screen capture.
+  In resident mode a notice confirms the copy, and the preview appears when the menu opens.
+  Copy from the editor returns to the editor.
 
 ![Resident hub, Encre](imgs/capture.hub.png) ![Hub keyboard selection, Papier](imgs/capture.hub.keyboard.paper.png)
 

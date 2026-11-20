@@ -5,6 +5,7 @@ ui_MenuCapture         Capture
 ui_MenuCaptureSetup    Réglages de capture
 ui_AfterPictureCapture Après la capture d’image
 ui_HubMoreCaptures     Autres captures
+ui_HubLastCopied       Dernière capture copiée
 ui_HubBackToCaptures   Retour à la capture
 ui_MenuLinkedImage     Image liée
 ui_MenuCaptureFile     Fichier de capture
@@ -130,6 +131,9 @@ hint_AimWindow         maintenir pour viser la fenêtre
 hint_AimAttach         suivre la fenêtre
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_TrayUnavailable     Impossible d’afficher l’icône de Swag Capture dans la zone de notification.
+msg_ResidentTitle       Swag Capture est toujours en cours d’exécution.
+msg_ResidentText        Ouvrez le menu de capture depuis l’icône de Swag Capture dans la zone de notification.
+msg_ResidentCopyText    Ouvrez le menu de la zone de notification pour voir la capture.
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_VideoKeptAfterError Enregistrement arrêté après une erreur ; le fichier vidéo a été conservé
 msg_RecoveredVideo Un enregistrement vidéo interrompu a été restauré dans la bibliothèque
@@ -358,7 +362,6 @@ tip_ToolSelect         Sélectionner les formes
 tip_ResetSteps         Réinitialiser le compteur d'étapes à 1
 tip_InpSave            Enregistrer la capture comme fichier image
 tip_InpCopy            Copier l'image dans le presse-papiers
-tip_InpCopyQuit        Copier l’image et quitter Swag Capture
 tip_InpEdit            Ouvrir dans l'éditeur Swag Capture
 tip_InpClose           Annuler et abandonner la capture
 tip_InpDraw            Dessin à main levée
@@ -549,7 +552,6 @@ act_InpEditor          Éditeur
 act_InpSave            Enregistrer…
 act_InpCopy            Copier
 hint_CopyClose         copier et fermer
-hint_CopyQuit          copier et quitter
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
 hint_NewLine           nouvelle ligne

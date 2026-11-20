@@ -276,7 +276,7 @@ impl InPlaceEditWnd
         let copyWidth = Math.ceil(Painter.measureString(texts.act_InpCopy, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin)
         with let copy = PushButton.create(.bar, texts.act_InpCopy, {0, 0, copyWidth, metrics.miniBar_ButtonSize}, form: .Strong)
         {
-            .toolTip = HubCopyQuits and me.source.workspace == .Hub ? texts.tip_InpCopyQuit : texts.tip_InpCopy
+            .toolTip = texts.tip_InpCopy
             .sigPressed += func|editor = me|(_) { editor.copy() }
         }
 
@@ -454,7 +454,7 @@ impl InPlaceEditWnd
             }
             else
             {
-                .addHint(strings().key_Enter, HubCopyQuits and me.source.workspace == .Hub ? texts.hint_CopyQuit : texts.hint_CopyClose)
+                .addHint(strings().key_Enter, texts.hint_CopyClose)
                 .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             }
 
@@ -475,14 +475,15 @@ impl InPlaceEditWnd
     // Copies the zone with what is drawn on it, and closes.
     mtd copy()
     {
-        with let capture = unwrap me.capture
+        let capture = unwrap .capture
+        capture.cropToGrab()
+        if not .source.copyScreenshot(capture.toImage())
         {
-            .cropToGrab()
-            assume .copyAll()
+            MessageDlg.error(unwrap .surface, appStrings().msg_FailedCopyCapture)
+            return
         }
 
         .copied = true
-        g_Main?.confirm(appStrings().msg_Copied)
         exitWithResult(false)
     }
 

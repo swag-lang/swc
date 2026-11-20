@@ -22,7 +22,7 @@ using Swag, Core, Gui, Pixel
     Pixel.Testing.assertImageGolden(&image, "resident.hub.encre")
 }
 
-// The keyboard selects the active-window capture in Papier.
+// The keyboard selects the active-window capture beside the latest copied image in Papier.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -36,6 +36,7 @@ using Swag, Core, Gui, Pixel
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
+    main.clipboardPreview = testFramePicture(80, 8)
     let panel = testOpenResidentPanel(&host, main, .Centered)
     var home  = KeyEvent{kind: .Pressed, key: .Home}
     var down  = KeyEvent{kind: .Pressed, key: .Down}
@@ -66,6 +67,7 @@ using Swag, Core, Gui, Pixel
     testAddMonitorAt(main, {1440, 0, 1440, 900})
     main.captureOptions.delay         = 5
     main.captureOptions.captureCursor = true
+    main.clipboardPreview             = testFramePicture(135, 30)
 
     let panel = testOpenResidentPanel(&host, main, .AtPointer)
     var image = host.renderSurface(unwrap panel.surface)

@@ -20,6 +20,7 @@ struct AppStrings
     ui_MenuCaptureSetup:          string = "Capture Setup"
     ui_AfterPictureCapture:       string = "After Image Capture"   // Heading of the destination choices in the hub.
     ui_HubMoreCaptures:            string = "More Captures"        // Opens the hub's additional targets.
+    ui_HubLastCopied:              string = "Last Capture Copied"
     ui_HubBackToCaptures:          string = "Back to Capture"      // Returns to the compact hub.
     ui_MenuLinkedImage:           string = "Linked Image"
     ui_MenuCaptureFile:           string = "Capture File"
@@ -124,7 +125,6 @@ struct AppStrings
     act_InpSave:                  string = "Save…"                           // Saves the capture as an image file, from the in-place editor.
     act_InpCopy:                  string = "Copy"                            // Copies the capture and closes the in-place editor.
     hint_CopyClose:               string = "copy and close"                  // What Enter does in the in-place editor.
-    hint_CopyQuit:                string = "copy and quit"                   // Enter after capturing from the working window on Windows.
     hint_Save:                    string = "save"                            // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:             string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
     hint_NewLine:                 string = "new line"                        // What Enter does while the words of a form are typed in place.
@@ -163,6 +163,9 @@ struct AppStrings
     hint_AimAttach:               string = "follow window"       // A opts a drawn area into following its window.
     msg_FailedCaptureScreen:      string = "Failed to capture the screen"
     msg_TrayUnavailable:          string = "The notification area could not show the Swag Capture icon."
+    msg_ResidentTitle:             string = "Swag Capture is still running."
+    msg_ResidentText:              string = "Open the capture menu from the Swag Capture icon in the notification area."
+    msg_ResidentCopyText:          string = "Open the notification-area menu to see the capture."
     msg_FailedRecordScreen:       string = "The recording could not be written"
     msg_VideoKeptAfterError:      string = "Recording stopped after an error; the video file was kept"
     msg_RecoveredVideo:           string = "An interrupted video recording was restored to the library"
@@ -478,7 +481,6 @@ struct AppStrings
     tip_ResetSteps:               string = "Reset the global step count to 1"
     tip_InpSave:                  string = "Save Capture as Image File"
     tip_InpCopy:                  string = "Copy Image to Clipboard"
-    tip_InpCopyQuit:              string = "Copy Image and Quit Swag Capture"
     tip_InpEdit:                  string = "Open in Swag Capture Editor"
     tip_InpClose:                 string = "Cancel and Discard Capture"
     tip_InpDraw:                  string = "Free Draw Tool"

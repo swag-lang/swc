@@ -13,7 +13,7 @@ using Swag, Core, Pixel
     const Bytes: [4] u8 = [64, 32, 16, 128]
     var source        = Image.create(1, 1, .RGBA8, Bytes, .Premultiplied)
     let expectedColor = source.pixelColor(0, 0)
-    Clipboard.addImage(source)
+    Swag.require(Clipboard.addImage(source))
     source.clear()
 
     let copied = Clipboard.getImage()
@@ -60,7 +60,7 @@ using Swag, Core, Pixel
     Swag.require(found)
     Swag.require(got == 1664)
 
-    Clipboard.clear()
+    Swag.require(not Clipboard.addImage(Image{}))
     Swag.require(not Clipboard.hasString())
     Swag.require(not Clipboard.hasImage())
     Swag.require(not Clipboard.hasTypedValue(s32))

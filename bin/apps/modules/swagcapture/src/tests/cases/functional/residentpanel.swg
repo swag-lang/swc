@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core, Gui
+using Swag, Core, Gui, Pixel
 
 // Startup and the pointer menu share their command list and settings.
 #test
@@ -28,6 +28,8 @@ using Swag, Core, Gui
         Swag.require(centered.surface!.flags.has(.SmallCaption))
         Swag.require(not pointer.surface!.flags.has(.SmallCaption))
         Swag.require(testPanelOffers(centered, ActionGlobal.Minimize))
+        Swag.require(centered.menu.items.last()!.id == ActionGlobal.Exit)
+        Swag.require(pointer.menu.items.last()!.id == ActionGlobal.Exit)
         Swag.require(not testPanelOffers(pointer, ActionGlobal.Minimize))
         Swag.require(testPanelOffers(pointer, ActionGlobal.ShowHub) and testPanelOffers(pointer, ActionGlobal.Exit))
 
@@ -94,8 +96,17 @@ using Swag, Core, Gui
                ActionCapture.ActiveWnd, ActionCapture.RecordVideo, ResidentPanel.MoreCaptures,
                ActionGlobal.ShowHub, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
-    for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
+    for item, index in panel.menu.items where item and item.id == ActionCapture.RecordVideo
+    {
         Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
+        Swag.require(panel.menu.items[index - 1]!.separator and panel.menu.items[index + 1]!.separator)
+        Swag.require(panel.menu.items[index - 2]!.id == ResidentPanel.MoreCaptures)
+    }
+    for item, index in panel.menu.items where item and item.name.text == appStrings().ui_MenuCaptureSetup
+    {
+        Swag.require(not panel.menu.items[index - 1]!.separator)
+        Swag.require(panel.menu.items[index - 2]!.name.text == appStrings().ui_AfterPictureCapture)
+    }
     Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
     Swag.require(not testPanelOffers(panel, ActionOptions.Options))
     Swag.require(not testPanelOffers(panel, ActionCapture.LastArea))
@@ -126,6 +137,36 @@ using Swag, Core, Gui
     Swag.require(testPanelOffers(panel, ActionCapture.recordScreenId(1)))
     panel.close()
     Swag.require(main.residentPanel == null)
+}
+
+// The preview keeps the latest successful copy at thumbnail size.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+    let first = Testing.indexedImage(240, 80)
+    Swag.require(main.copyScreenshot(first))
+    Swag.require(main.clipboardPreview.width == ResidentPanel.ClipboardPreviewWidth)
+    Swag.require(main.clipboardPreview.height == 40)
+    Swag.require(Clipboard.getImage().width == first.width)
+
+    let second = Testing.indexedImage(24, 84)
+    Swag.require(main.copyScreenshot(second))
+    Swag.require(main.clipboardPreview.width == 16)
+    Swag.require(main.clipboardPreview.height == ResidentPanel.ClipboardPreviewHeight)
+    Swag.require(Clipboard.getImage().height == second.height)
+
+    Swag.require(not main.copyScreenshot(Image{}))
+    Swag.require(main.clipboardPreview.width == 16 and main.clipboardPreview.height == ResidentPanel.ClipboardPreviewHeight)
+    Swag.require(Clipboard.getImage().height == second.height)
 }
 
 // The hub keeps capture delay choices available without dismissing the next capture command.

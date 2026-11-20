@@ -278,9 +278,11 @@ struct MainWnd
     timeline: *TimelineBar?
 
     // The workspace survives temporary capture overlays. Only the tray command enters Resident.
-    workspace:     CaptureWorkspace = .Editor
-    residentPanel: *ResidentPanel?
-    hubBounds:     Math.Rectangle
+    workspace:        CaptureWorkspace = .Editor
+    residentPanel:    *ResidentPanel?
+    residentNotice:   *TrayNotice?
+    clipboardPreview: Image
+    hubBounds:        Math.Rectangle
     hubOtherCaptures: bool
     metadataTimer:          *Gui.Timer?
     copyTimer:              *Gui.Timer?
@@ -498,6 +500,7 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .closeResidentNotice()
         for job in .videoCopyJobs
         {
             job.task.cancel()
@@ -907,10 +910,50 @@ impl MainWnd
         .workspace = .Resident
         surface.hide()
         .saveAppState()
+        let texts = appStrings()
+        .showResidentNotice(texts.msg_ResidentTitle, texts.msg_ResidentText)
+    }
+
+    mtd showResidentNotice(title, message: string)
+    {
+        .closeResidentNotice()
+        let notice = TrayNotice.open(unwrap .surface, title, message)
+        if not notice do
+            return
+        .residentNotice = notice
+        notice.sigDismissed += func|main = me|(dismissed)
+        {
+            if main.residentNotice == dismissed do
+                main.residentNotice = null
+        }
+    }
+
+    mtd closeResidentNotice()
+    {
+        let notice = .residentNotice
+        .residentNotice = null
+        if notice
+        {
+            notice.sigDismissed.clear()
+            notice.close()
+        }
+    }
+
+    // Keeps a bounded preview of the last screen capture that reached the clipboard.
+    mtd copyScreenshot(image: Image)->bool
+    {
+        if not image.isValid() or not Clipboard.addImage(image) do
+            return false
+
+        let width  = Math.min(image.width, ResidentPanel.ClipboardPreviewWidth)
+        let height = Math.min(image.height, ResidentPanel.ClipboardPreviewHeight)
+        .clipboardPreview = image.fittedInside(width, height)
+        return true
     }
 
     mtd showHub()
     {
+        .closeResidentNotice()
         if .workspace == .Hub and .residentPanel
         {
             .residentPanel.surface?.showNormal()
@@ -932,6 +975,7 @@ impl MainWnd
     // Puts the window on screen, in front of the others.
     mtd showWindow()
     {
+        .closeResidentNotice()
         .residentPanel?.close()
         with let surface = unwrap .surface
         {

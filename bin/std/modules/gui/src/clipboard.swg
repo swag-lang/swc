@@ -20,7 +20,9 @@ public func addTypedValue(value: *void, type: typeinfo)
     {
     case string:      return addString(cast(const *string, value)[])
     case Core.String: return addString(cast(const *Core.String, value).toString())
-    case Pixel.Image: return addImage(cast(const *Pixel.Image, value)[])
+    case Pixel.Image:
+        discard addImage(cast(const *Pixel.Image, value)[])
+        return
     }
 
     var buf:    ConcatBuffer

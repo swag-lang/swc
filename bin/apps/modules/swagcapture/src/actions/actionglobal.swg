@@ -74,6 +74,7 @@ impl IActionUI for ActionGlobal
                 main.swapLibraryMode()
 
         case .Exit:
+            main.closeResidentNotice()
             main.residentPanel?.close()
             main.saveAppState()
 

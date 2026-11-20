@@ -3,14 +3,13 @@
 
 using Core, Gui, Pixel
 
-// Copy from the in-place tools and quit the launch window without adding a notification icon.
+// Cancel and copy from the in-place tools, returning to the capture window both times.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
     var journey: CaptureJourney
     journey.setup()
     let main    = journey.main
-    let app     = journey.app
     let surface = journey.surface
     main.captureOptions.pictureDestination = .InPlace
     main.showHub()
@@ -21,10 +20,18 @@ using Core, Gui, Pixel
     journey.finishInPlacePicture(hub, cancel: true)
     let restored = main.residentPanel
     Swag.require(main.workspace == .Hub and main.workspaceSurface().flags.has(.SmallCaption) and not surface.hasTrayIcon())
+    Swag.require(not main.clipboardPreview.isValid())
 
     journey.finishInPlacePicture(restored)
-    let frameLimit = cast(u32, app.timing.frameCount) + 10
-    app.maxRunFrame = frameLimit
-    Swag.require(app.run() == 0 and app.timing.frameCount < frameLimit, "copying from the capture window must quit")
-    Swag.require(not surface.hasTrayIcon() and main.residentPanel == null)
+    let copied = Clipboard.getImage()
+    let hubWithCopy = main.residentPanel
+    Swag.require(main.workspace == .Hub and not surface.hasTrayIcon() and main.residentNotice == null)
+    Swag.require(hubWithCopy.childById(ResidentPanel.ClipboardPreviewId) != null)
+    let preview = main.clipboardPreview
+    Swag.require(copied.isValid() and preview.isValid())
+    Swag.require(Math.abs(preview.aspectRatio() - copied.aspectRatio()) < 0.05)
+
+    journey.finishInPlacePicture(hubWithCopy, cancel: true)
+    Swag.require(main.residentPanel.childById(ResidentPanel.ClipboardPreviewId) != null)
+    Swag.require(main.clipboardPreview.width == preview.width and main.clipboardPreview.height == preview.height)
 }

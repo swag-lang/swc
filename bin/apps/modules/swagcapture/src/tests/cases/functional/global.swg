@@ -154,17 +154,9 @@ func testSetupGlobalMain(main: *MainWnd)
     f.main.app().animator.finishAll()
     Swag.require(f.main.editArea.presentationOpacity == 1 and f.main.editArea.presentationOffset == Math.Point{})
 
-    let surface = unwrap f.main.surface
-    surface.show()
-    Swag.require(not surface.isHidden)
-
-    var actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize)
-    Swag.require(actionExecuted)
-    Swag.require(surface.isHidden)
-
-    actionExecuted = Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor)
-    Swag.require(actionExecuted)
-    Swag.require(not surface.isHidden)
+    evt = Gui.Testing.commandState(ActionGlobal.Minimize)
+    Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Minimize, &evt))
+    Swag.require(evt.name == appStrings().act_Minimize)
 
     evt = Gui.Testing.commandState(ActionGlobal.Exit)
     Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))

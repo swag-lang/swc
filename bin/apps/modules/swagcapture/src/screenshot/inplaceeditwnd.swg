@@ -276,6 +276,7 @@ impl InPlaceEditWnd
         let copyWidth = Math.ceil(Painter.measureString(texts.act_InpCopy, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin)
         with let copy = PushButton.create(.bar, texts.act_InpCopy, {0, 0, copyWidth, metrics.miniBar_ButtonSize}, form: .Strong)
         {
+            .toolTip = HubCopyQuits and me.source.workspace == .Hub ? texts.tip_InpCopyQuit : texts.tip_InpCopy
             .sigPressed += func|editor = me|(_) { editor.copy() }
         }
 
@@ -453,7 +454,7 @@ impl InPlaceEditWnd
             }
             else
             {
-                .addHint(strings().key_Enter, texts.hint_CopyClose)
+                .addHint(strings().key_Enter, HubCopyQuits and me.source.workspace == .Hub ? texts.hint_CopyQuit : texts.hint_CopyClose)
                 .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             }
 
@@ -713,6 +714,13 @@ impl IActionUI for InPlaceRecordingActions
 
 impl IWnd for InPlaceEditWnd
 {
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    {
+        evt.accepted = evt.kind == .Close
+        if evt.accepted do
+            exitWithResult(false)
+    }
+
     mtd impl onFrameEvent(_: *FrameEvent)
     {
         // The host assigns the overlay its desktop-sized view after construction. Follow the

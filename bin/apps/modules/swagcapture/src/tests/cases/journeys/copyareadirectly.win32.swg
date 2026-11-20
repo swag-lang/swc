@@ -15,7 +15,7 @@ using Core, Gui
     main.sendCommandEvent(ActionCapture.ToClipboard)
     expect Clipboard.resetFake()
 
-    main.openStartupHub()
+    main.showHub()
     journey.waitFor("startup hub", func|main|()->bool => main.residentPanel != null)
     let hub = unwrap main.residentPanel
 
@@ -42,5 +42,5 @@ using Core, Gui
     let area = getGrabRect()
     let img  = Clipboard.getImage()
     Swag.require(selected and img.width == cast(s32, area.width) and img.height == cast(s32, area.height))
-    Swag.require(main.getCapture() == null and journey.surface.isHidden)
+    Swag.require(main.getCapture() == null and journey.surface.isHidden and not journey.surface.hasTrayIcon())
 }

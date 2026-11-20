@@ -277,10 +277,11 @@ struct MainWnd
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
 
-    // The resident home, centered or opened beside the pointer.
-    residentPanel:          *ResidentPanel?
-    residentNotice:         *TrayNotice?
-    startupHubSession:      bool     // The hub opened at startup, before entering resident mode.
+    // The workspace survives temporary capture overlays. Only the tray command enters Resident.
+    workspace:     CaptureWorkspace = .Editor
+    residentPanel: *ResidentPanel?
+    hubBounds:     Math.Rectangle
+    hubOtherCaptures: bool
     metadataTimer:          *Gui.Timer?
     copyTimer:              *Gui.Timer?
     copyJob:                *CaptureLoadJob?
@@ -441,19 +442,16 @@ impl IWnd for MainWnd
     {
         switch evt.kind
         {
-        // Activating the icon opens what the application starts on; the hub stands in for
-        // starting on nothing.
         case .TrayIcon:
-            if evt.trayAction == .ContextMenu do
+            if .workspace == .Resident and (evt.trayAction == .ContextMenu or evt.trayAction == .Activate) do
                 ResidentPanel.open(me, .AtPointer)
-            elif evt.trayAction == .Activate and .editorOptions.startup == .Editor do
-                .showWindow()
-            elif evt.trayAction == .Activate do
-                ResidentPanel.open(me, .Centered)
 
         case .CustomMessage:
-            if evt.messageId == OpenImageMessage and Clipboard.hasString() do
+            if evt.messageId == OpenImageMessage and Clipboard.hasString()
+            {
+                .showWindow()
                 .loadExternalImage(Clipboard.getString())
+            }
         }
     }
 
@@ -483,16 +481,7 @@ impl IWnd for MainWnd
         if evt.kind == .Close
         {
             evt.accepted = true
-            .saveAppState()
-            if .editorOptions.hideOnClose
-            {
-                .surface?.hide()
-                .enterResident()
-            }
-            else
-            {
-                .postCommandEvent(ActionGlobal.Exit)
-            }
+            .postCommandEvent(ActionGlobal.Exit)
         }
     }
 
@@ -642,6 +631,7 @@ impl IWnd for MainWnd
                                                            legacy.legacySendToEditor ? .Editor : .Clipboard
                 }
                 try .serialize("MainWnd.pictureDestination", &me.captureOptions.pictureDestination)
+                try .serialize("MainWnd.hubBounds", &me.hubBounds)
                 try .serialize("MainWnd.lastCapture", &me.lastCapture)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -879,9 +869,7 @@ impl MainWnd
     // Restores the saved state, once: the options, the placement of the window and the recent
     // captures.
     //
-    // The first show of the window asks for it; an application that starts behind its hub or its
-    // notification-area icon asks for it itself, because its options say what it starts on and
-    // its window may not be shown for a long time.
+    // The editor and the hub share the same settings, loaded before either window appears.
     mtd restoreState()
     {
         if not .firstShow do
@@ -894,57 +882,62 @@ impl MainWnd
         .recentWnd.scheduleLoadRecent()
     }
 
-    mtd openStartupHub()
+    // Returns the current window for modal actions and their errors.
+    mtd workspaceSurface()->*Surface
     {
-        .startupHubSession = true
-        .postCommandEvent(ActionGlobal.ShowHub)
+        if .workspace == .Hub and .residentPanel do
+            return unwrap .residentPanel.surface
+        return unwrap .surface
     }
 
-    // Keeps the app running behind the tray icon after its last window closes.
+    // The tray command is the only entry to resident mode. Keep the window if the shell
+    // cannot register an icon to bring it back.
     mtd enterResident()
     {
-        .startupHubSession = false
-        .noticeResident()
+        if .workspace == .Resident do
+            return
+        let surface = unwrap .surface
+        surface.setTrayIcon(.app().appIcon, ProductName)
+        if not surface.hasTrayIcon()
+        {
+            MessageDlg.error(.workspaceSurface(), appStrings().msg_TrayUnavailable)
+            return
+        }
+        .residentPanel?.close()
+        .workspace = .Resident
+        surface.hide()
+        .saveAppState()
     }
 
-    // Shows the notification-area reminder after the last application window leaves the screen.
-    // A saved count from older versions never silently disables it.
-    #[Swag.Discardable]
-    mtd noticeResident()->bool
+    mtd showHub()
     {
-        if not .editorOptions.showResidentNotice do
-            return false
-
-        .residentNotice?.close()
-        let texts  = appStrings()
-        let notice = TrayNotice.open(unwrap .surface,
-                                     texts.msg_ResidentTitle,
-                                     texts.msg_ResidentText,
-                                     texts.ui_DoNotShowResidentAgain)
-        if not notice do
-            return false
-        .residentNotice         = notice
-        notice.sigOptionChanged += func|main = me|(_, checked)
+        if .workspace == .Hub and .residentPanel
         {
-            main.editorOptions.showResidentNotice = not checked
-            main.saveAppState()
+            .residentPanel.surface?.showNormal()
+            .residentPanel.surface?.bringToFront()
+            return
         }
-
-        notice.sigDismissed += func|main = me|(dismissed)
+        if not ResidentPanel.open(me, .Centered)
         {
-            if main.residentNotice == dismissed do
-                main.residentNotice = null
+            .showWindow()
+            return
         }
-
-        return true
+        let surface = unwrap .surface
+        if .workspace == .Resident do
+            surface.removeTrayIcon()
+        .workspace = .Hub
+        surface.hide()
     }
 
     // Puts the window on screen, in front of the others.
     mtd showWindow()
     {
-        .residentNotice?.close()
+        .residentPanel?.close()
         with let surface = unwrap .surface
         {
+            if me.workspace == .Resident do
+                .removeTrayIcon()
+            me.workspace = .Editor
             if .isMinimized do
                 .showNormal()
             else do

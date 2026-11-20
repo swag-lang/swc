@@ -741,25 +741,19 @@ the screen to its work.
   zoom readings at the foot of the editor are quiet menu anchors: size opens image-size commands
   and zoom opens zoom, actual-size and fit commands. These menus reuse the commands already in
   the lens.
-- Swag Capture is resident: it keeps an icon in the notification area and its window may stay
-  hidden. It starts on the hub by default, and the options choose between the hub, the icon
-  alone and the editor; activating the icon opens the same thing, the hub standing in for the
-  icon alone. One home opens centered on the screen at startup and beside the pointer on a right
-  click on the icon, on a surface of its own: what to capture and what to record under their
-  section labels, with assigned keys, then the editor, the library, the options, the way back
-  behind the icon and the way out. It has no accent: nothing in it acts
-  before a choice. Both placements start with area, full-screen and active-window capture,
-  video recording. Recent captures are available in the editor and library. More Captures opens a second page for the
-  last area, individual monitors and the other recording targets. The picture group has one
-  destination row shared by every still capture: Clipboard, Annotate in Place, or Editor.
-  The selected destination also applies to keyboard captures. One row on the main page groups
-  the cursor toggle and exclusive delay choices. While a recording runs, the home offers to stop or abandon it instead of
-  starting another capture. It leaves on a choice, on `Esc`, and when another application
-  takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
-  without a choice, or closing the window, leaves nothing on screen: a small notification above
-  the icon says that Swag Capture is still running and how to open it again. It has a close button
-  and a check box to stop showing it on later dismissals; until that choice, it appears every time.
-  It is never a dialog.
+- Swag Capture starts in a movable capture window. Its title bar moves and closes it, and another
+  window can take focus while it stays open. The work window offers area, full-screen and
+  active-window capture, video recording, and More Captures for the remaining targets. The
+  picture group has one destination for every still capture: Clipboard, Annotate in Place,
+  or Editor. A settings row groups cursor and delay. The editor and library own recent captures.
+- Minimize to Notification Area is the only entry to resident mode, from the capture window
+  or the editor's lens. The icon opens a transient menu with the same capture commands.
+  Opening the capture window or the editor removes the icon. Closing a work window quits.
+- Capture temporarily clears its controls from the screen. Canceling brings back the work
+  window it started from, and a capture already launched from resident mode stays behind the icon.
+  The Editor destination and the in-place editor's Open in Editor action open the full editor.
+  Copy from the capture window completes a one-shot launch on Windows; Linux keeps the capture
+  window available to serve the clipboard. Copy from the editor returns to the editor.
 
 ![Resident hub, Encre](imgs/capture.hub.png) ![Hub keyboard selection, Papier](imgs/capture.hub.keyboard.paper.png)
 

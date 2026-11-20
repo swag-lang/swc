@@ -104,7 +104,6 @@ struct AppStrings
     msg_EraseSelected:            string = "The selected captures will be permanently erased."
     msg_OverwriteLinked:          string = "This will overwrite the original image."     // Confirmation before updating a linked image.
     ui_DoNotAskAgain:             string = "Do not ask again"                            // Option of a confirmation that turns it off.
-    ui_DoNotShowResidentAgain:    string = "Do not show this reminder again"             // Choice in the resident notification.
     ui_CaptureName:               string = "Capture name"                                // Field of the capture rename dialog.
     msg_FailedDuplicate:          string = "Failed to duplicate capture"
     msg_FailedLocateCapture:      string = "Failed to locate capture file"
@@ -125,6 +124,7 @@ struct AppStrings
     act_InpSave:                  string = "Save…"                           // Saves the capture as an image file, from the in-place editor.
     act_InpCopy:                  string = "Copy"                            // Copies the capture and closes the in-place editor.
     hint_CopyClose:               string = "copy and close"                  // What Enter does in the in-place editor.
+    hint_CopyQuit:                string = "copy and quit"                   // Enter after capturing from the working window on Windows.
     hint_Save:                    string = "save"                            // What Ctrl+S does in the in-place editor.
     hint_CalloutTail:             string = "Drag the point of the tail to aim it"     // Hint while the words of a callout are typed in place.
     hint_NewLine:                 string = "new line"                        // What Enter does while the words of a form are typed in place.
@@ -162,6 +162,7 @@ struct AppStrings
     hint_AimWindow:               string = "hold for window"     // W temporarily aims at the window under the pointer.
     hint_AimAttach:               string = "follow window"       // A opts a drawn area into following its window.
     msg_FailedCaptureScreen:      string = "Failed to capture the screen"
+    msg_TrayUnavailable:          string = "The notification area could not show the Swag Capture icon."
     msg_FailedRecordScreen:       string = "The recording could not be written"
     msg_VideoKeptAfterError:      string = "Recording stopped after an error; the video file was kept"
     msg_RecoveredVideo:           string = "An interrupted video recording was restored to the library"
@@ -183,8 +184,6 @@ struct AppStrings
     msg_FailedDeleteCaptures:     string = "Some captures could not be deleted. They are still in the recycle bin."
     msg_FailedRestoreCaptures:    string = "Some captures could not be restored. They are still in the recycle bin."
     msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
-    msg_ResidentTitle:            string = "Swag Capture is still running."     // Title of the resident reminder.
-    msg_ResidentText:             string = "Double-click its icon in the notification area to open it, right-click for the menu."     // Says where the application went.
     msg_ResetStyles:              string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:       string = "Rename Capture"     // Title of the capture rename dialog.
     ui_Outline:                   string = "Outline"            // Label of the outline thickness slider.
@@ -437,7 +436,7 @@ struct AppStrings
     act_SmartFill:                string = "Smart Fill"
     act_SmartMove:                string = "Smart Move"
     act_ShowEditor:               string = "Show Editor"
-    act_ShowHub:                  string = "Show Hub"     // Opens the floating list of captures to take.
+    act_ShowHub:                  string = "Show Capture Window"
     act_Similarity:               string = "Similarity"
     act_SmallView:                string = "Small View"
     act_SmallerFirst:             string = "Smaller First"
@@ -479,6 +478,7 @@ struct AppStrings
     tip_ResetSteps:               string = "Reset the global step count to 1"
     tip_InpSave:                  string = "Save Capture as Image File"
     tip_InpCopy:                  string = "Copy Image to Clipboard"
+    tip_InpCopyQuit:              string = "Copy Image and Quit Swag Capture"
     tip_InpEdit:                  string = "Open in Swag Capture Editor"
     tip_InpClose:                 string = "Cancel and Discard Capture"
     tip_InpDraw:                  string = "Free Draw Tool"
@@ -558,8 +558,6 @@ struct AppStrings
     prop_PictureClipboard:       string = "Clipboard"          // Copy the image and finish the capture.
     prop_PictureInPlace:          string = "Annotate in Place"  // Open the on-screen annotation tools.
     prop_PictureEditor:           string = "Open Editor"        // Open the image in the main editor.
-    prop_ReturnToHubAfterCopy:     string = "Return To Hub After Copy"
-    prop_ReturnToHubAfterCopyDesc: string = "Reopen the hub after copying an image capture started there"
     prop_Delay:                  string = "Delay"                                                       // Label of [[CaptureOptions.delay]].
     prop_DelayDesc:              string = "Set the delay time, in seconds, before capturing"            // Description of [[CaptureOptions.delay]].
     prop_RecordCountdown:        string = "Countdown"                                                   // Label of [[CaptureOptions.recordCountdown]].
@@ -583,13 +581,6 @@ struct AppStrings
     prop_ClipToSelectionDesc:    string = "Mask everything outside the selected capture area"                  // Description of [[EditorOptions.clipToSelection]].
     prop_ConfirmLinked:          string = "Confirm Linked Overwrite"                                           // Label of [[EditorOptions.confirmLinkedOverwrite]].
     prop_ConfirmLinkedDesc:      string = "Require confirmation before overwriting a capture-linked image"     // Description of [[EditorOptions.confirmLinkedOverwrite]].
-    prop_HideOnClose:            string = "Hide On Close"                                                      // Label of [[EditorOptions.hideOnClose]].
-    prop_HideOnCloseDesc:        string = "Minimize the editor instead of closing it"                          // Description of [[EditorOptions.hideOnClose]].
-    prop_Startup:                string = "Startup"                                                            // Label of [[EditorOptions.startup]].
-    prop_StartupDesc:            string = "Choose what opens when Swag Capture starts"                         // Description of [[EditorOptions.startup]].
-    prop_StartupHub:             string = "Hub"                                                                // [[StartupMode.Hub]].
-    prop_StartupTray:            string = "Notification Area"                                                  // [[StartupMode.Tray]].
-    prop_StartupEditor:          string = "Editor"                                                             // [[StartupMode.Editor]].
     prop_EditBackColor:          string = "Edit Back Color"                                                    // Label of [[EditorOptions.editBackColor]].
     prop_EditBackColorDesc:      string = "Specify the background color of the capture editing window"         // Description of [[EditorOptions.editBackColor]].
 }

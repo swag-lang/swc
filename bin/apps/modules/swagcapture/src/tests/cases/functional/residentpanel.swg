@@ -20,32 +20,28 @@ using Swag, Core, Gui
     for language in Gui.languages()
     {
         expect host.app.setLanguage(language.tag)
+        main.hubBounds = {}
         let centered = testOpenResidentPanel(&host, main, .Centered)
         let pointer  = testOpenResidentPanel(&host, main, .AtPointer)
-        Swag.require(centered.listSize == pointer.listSize)
-        Swag.require(centered.menu.items.count == pointer.menu.items.count)
-        for item, index in centered.menu.items
-        {
-            let other = unwrap pointer.menu.items[index]
-            Swag.require(item!.id == other.id and item.name.text == other.name.text)
-            Swag.require(item.checked == other.checked)
-            if item.id == ActionGlobal.Minimize do
-                Swag.require(not item.disabled and other.disabled)
-            else do
-                Swag.require(item.disabled == other.disabled)
-        }
+        for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo] do
+            Swag.require(testPanelOffers(centered, id) and testPanelOffers(pointer, id))
+        Swag.require(centered.surface!.flags.has(.SmallCaption))
+        Swag.require(not pointer.surface!.flags.has(.SmallCaption))
+        Swag.require(testPanelOffers(centered, ActionGlobal.Minimize))
+        Swag.require(not testPanelOffers(pointer, ActionGlobal.Minimize))
+        Swag.require(testPanelOffers(pointer, ActionGlobal.ShowHub) and testPanelOffers(pointer, ActionGlobal.Exit))
 
         Testing.assertContentFits(centered)
         Testing.assertContentFits(pointer)
 
         let work = Env.monitorForPoint({}).physicalWorkArea
-        let centeredBounds = centered.surface!.position
+        let centeredBounds = centered.surface.position
         Swag.require(Math.abs(centeredBounds.horzCenter() - work.horzCenter()) <= 1)
         Swag.require(Math.abs(centeredBounds.vertCenter() - work.vertCenter()) <= 1)
 
         let anchor = Math.Point{work.right() - 8, work.bottom() - 8}
         pointer.place(anchor)
-        let pointerBounds = pointer.surface!.position
+        let pointerBounds = pointer.surface.position
         Swag.require(pointer.anchor == anchor)
         Swag.require(pointerBounds.x >= work.x and pointerBounds.right() <= work.right())
         Swag.require(pointerBounds.y >= work.y and pointerBounds.bottom() <= work.bottom())
@@ -66,7 +62,7 @@ using Swag, Core, Gui
         g_Main = null
     }
 
-    Swag.require(main.editorOptions.startup == .Hub and not main.recentWnd.loadDone)
+    Swag.require(not main.recentWnd.loadDone)
     main.sendCommandEvent(ActionGlobal.ShowHub)
     let panel   = unwrap main.residentPanel
     let surface = unwrap panel.surface
@@ -96,12 +92,12 @@ using Swag, Core, Gui
     Swag.require(main.residentPanel == panel)
     for id in [ActionGlobal.ShowLibrary, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.FullScreen,
                ActionCapture.ActiveWnd, ActionCapture.RecordVideo, ResidentPanel.MoreCaptures,
-               ActionOptions.Options, ActionGlobal.Exit] do
+               ActionGlobal.ShowHub, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
         Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
-    Swag.require(testPanelOffers(panel, ActionGlobal.Minimize))
-    Swag.require(not testPanelOffers(panel, ActionGlobal.ShowHub))
+    Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
+    Swag.require(not testPanelOffers(panel, ActionOptions.Options))
     Swag.require(not testPanelOffers(panel, ActionCapture.LastArea))
     Swag.require(not testPanelOffers(panel, ActionCapture.RecordScreen))
 
@@ -281,7 +277,14 @@ using Swag, Core, Gui
         panel.sendEvent(&escape)
         Swag.require(escape.accepted and testPanelOffers(panel, ActionCapture.Area))
         panel.sendEvent(&escape)
-        Swag.require(escape.accepted and main.residentPanel == null)
+        Swag.require(escape.accepted)
+        if placement == .Centered
+        {
+            Swag.require(main.residentPanel == panel)
+            panel.close()
+        }
+        else do
+            Swag.require(main.residentPanel == null)
     }
 }
 
@@ -326,7 +329,6 @@ using Swag, Core, Gui
     }
 
     let surface = unwrap main.surface
-    main.editorOptions.showResidentNotice = false
     surface.hide()
     Swag.require(surface.isHidden)
 
@@ -342,45 +344,4 @@ using Swag, Core, Gui
     panel.choose(null)
     host.pump()
     Swag.require(main.residentPanel == null and surface.isHidden)
-}
-
-// Escape from the last visible hub opens a nonmodal reminder beside the icon. Its checkbox
-// disables later reminders, even when an older saved notice count has reached zero.
-#test
-{
-    var host: Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host)
-    defer
-    {
-        host.shutdown()
-        g_Main = null
-    }
-
-    let surface = unwrap main.surface
-    main.editorOptions.residentNotices    = 0
-    main.editorOptions.showResidentNotice = true
-    surface.hide()
-    let panel  = testOpenResidentPanel(&host, main, .Centered)
-    var escape = KeyEvent{kind: .Pressed, key: .Escape}
-    panel.sendEvent(&escape)
-    Swag.require(escape.accepted and main.residentPanel == null)
-    host.pump()
-    let notice = unwrap main.residentNotice
-    Swag.require(host.app.surfaces.count == 2)
-    Swag.require(notice.surface != surface)
-    let card         = notice.children[0]
-    let cardBounds   = card.surfaceRect()
-    let choice       = unwrap notice.optionCheck
-    let choiceBounds = choice.surfaceRect()
-    Swag.require(choiceBounds.x >= cardBounds.x and
-                 choiceBounds.right() <= cardBounds.right() and
-                 choiceBounds.y >= cardBounds.y and
-                 choiceBounds.bottom() <= cardBounds.bottom())
-    Swag.require(not choice.isChecked())
-    choice.toggle()
-    Swag.require(not main.editorOptions.showResidentNotice)
-    notice.close()
-    host.pump()
-    Swag.require(host.app.surfaces.count == 1)
-    Swag.require(not main.noticeResident())
 }

@@ -55,34 +55,22 @@ const OpenImageMessage = 1'u32
     g_App.notifyThemeChanged()
     let mainWnd = MainWnd.create(surface.wnd)
 
-    // The saved options say what the application starts on, so they are restored before
-    // anything is shown. `--hide` starts behind the icon whatever they say, as a start with the
-    // session does; an image to open always opens in the editor.
+    // An explicit file opens the editor. A normal launch opens the capture workspace.
     mainWnd.restoreState()
-    var startup = mainWnd.editorOptions.startup
-    if imageToOpen.count do
-        startup = .Editor
-    elif Env.hasArgument("--hide") do
-        startup = .Tray
-
-    if startup == .Editor do
-        surface.show()
-
-    // Show the app icon in the notification area (system tray). Portable tray actions
-    // are delivered to MainWnd.onSysUserEvent; the icon is removed automatically when
-    // the surface is destroyed.
-    surface.setTrayIcon(appIcon, ProductName)
-    if startup == .Tray do
-        mainWnd.enterResident()
 
     Env.registerApplication(ApplicationId, ProductName)
     Env.associateFileExtension(".png", ApplicationId, Env.executablePath())
     Env.associateFileExtension(".jpg", ApplicationId, Env.executablePath())
 
-    if startup == .Editor and imageToOpen.count do
+    if imageToOpen.count
+    {
+        mainWnd.showWindow()
         mainWnd.loadExternalImage(imageToOpen)
-    elif startup == .Hub do
-        mainWnd.openStartupHub()
+    }
+    else
+    {
+        mainWnd.postCommandEvent(ActionGlobal.ShowHub)
+    }
 
     g_App.run()
 }

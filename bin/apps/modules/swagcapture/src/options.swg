@@ -108,9 +108,6 @@ struct CaptureOptions
     #[Description("Choose what happens after an image capture"), Serialization.NoSerialize]
     pictureDestination: PictureDestination = .InPlace
 
-    #[Description("Reopen the hub after copying an image capture started there")]
-    returnToHubAfterCopy = false
-
     #[Description("Set the delay time, in seconds, before capturing"), Unit("s")]
     delay = 0
 
@@ -148,18 +145,12 @@ enum EditorLanguage
     French
 }
 
-// What Swag Capture puts on screen when it starts, and when its notification-area icon is
-// activated.
-//
-// The order is the stored one, as for [[EditorLanguage]].
-enum StartupMode
+// The working surface of this session, including while a capture hides it temporarily.
+enum CaptureWorkspace
 {
-    Hub     // The floating list of captures to take, with the recent ones.
-
-    #[Properties.Name("Notification Area")]
-    Tray     // Nothing: the application waits behind its notification-area icon.
-
-    Editor     // The editor, on the last capture.
+    Editor
+    Hub
+    Resident
 }
 
 // The editor settings shown in the options grid, plus the theme and language the menus choose.
@@ -171,19 +162,6 @@ struct EditorOptions
 
     #[Description("Require confirmation before overwriting a capture-linked image")]
     confirmLinkedOverwrite = true
-
-    #[Description("Minimize the editor instead of closing it")]
-    hideOnClose = true
-
-    #[Description("Choose what opens when Swag Capture starts")]
-    startup: StartupMode = .Hub
-
-    #[Description("Show a reminder when Swag Capture continues in the notification area")]
-    showResidentNotice = true
-
-    // Retained for compatibility with saved options from the former three-notice limit.
-    #[Hidden]
-    residentNotices: s32 = 3
 
     #[Hidden]
     theme: AppearanceTheme = .Dark

@@ -87,7 +87,6 @@ msg_RemoveAssociation  L'association avec l'image sera supprimée.
 msg_DeleteCaptures     Les captures sélectionnées vont dans la corbeille, d'où elles peuvent être restaurées.
 msg_OverwriteLinked    L'image d'origine sera écrasée.
 ui_DoNotAskAgain       Ne plus demander
-ui_DoNotShowResidentAgain Ne plus afficher cet avertissement
 ui_CaptureName         Nom de la capture
 msg_EraseTrash         Toutes les captures de la corbeille seront définitivement effacées.
 msg_EraseSelected      Les captures sélectionnées seront définitivement effacées.
@@ -130,6 +129,7 @@ ui_AimReady            Prêt à enregistrer
 hint_AimWindow         maintenir pour viser la fenêtre
 hint_AimAttach         suivre la fenêtre
 msg_FailedCaptureScreen Impossible de capturer l'écran
+msg_TrayUnavailable     Impossible d’afficher l’icône de Swag Capture dans la zone de notification.
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_VideoKeptAfterError Enregistrement arrêté après une erreur ; le fichier vidéo a été conservé
 msg_RecoveredVideo Un enregistrement vidéo interrompu a été restauré dans la bibliothèque
@@ -152,8 +152,6 @@ msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles 
 msg_FailedDeleteCaptures Certaines captures n'ont pas pu être supprimées. Elles sont toujours dans la corbeille.
 msg_FailedRestoreCaptures Certaines captures n'ont pas pu être restaurées. Elles sont toujours dans la corbeille.
 msg_ShortcutsUnavailableHelp Une autre application utilise peut-être ces touches. Relancez Swag Capture pour réessayer.
-msg_ResidentTitle      Swag Capture reste actif.
-msg_ResidentText       Double-cliquez sur son icône dans la zone de notification pour l'ouvrir, clic droit pour le menu.
 act_ActualSize         Taille réelle
 act_Arrow              Flèche
 act_BigView            Grandes vignettes
@@ -311,7 +309,7 @@ act_Shape              Forme
 act_SmartFill          Remplissage intelligent
 act_SmartMove          Déplacement intelligent
 act_ShowEditor         Afficher l'éditeur
-act_ShowHub            Afficher le hub
+act_ShowHub            Afficher la fenêtre de capture
 act_Similarity         Similarité
 act_SmallView          Petites vignettes
 act_SmallerFirst       Plus petites d'abord
@@ -360,6 +358,7 @@ tip_ToolSelect         Sélectionner les formes
 tip_ResetSteps         Réinitialiser le compteur d'étapes à 1
 tip_InpSave            Enregistrer la capture comme fichier image
 tip_InpCopy            Copier l'image dans le presse-papiers
+tip_InpCopyQuit        Copier l’image et quitter Swag Capture
 tip_InpEdit            Ouvrir dans l'éditeur Swag Capture
 tip_InpClose           Annuler et abandonner la capture
 tip_InpDraw            Dessin à main levée
@@ -451,8 +450,6 @@ prop_PictureDestinationDesc Choisir ce qui se passe après une capture d’image
 prop_PictureClipboard       Presse-papiers
 prop_PictureInPlace         Annoter sur place
 prop_PictureEditor          Ouvrir l’éditeur
-prop_ReturnToHubAfterCopy     Revenir à l’accueil après la copie
-prop_ReturnToHubAfterCopyDesc Rouvrir l’accueil après avoir copié une capture d’image lancée depuis celui-ci
 prop_Delay                 Délai
 prop_DelayDesc             Définir le délai, en secondes, avant la capture
 prop_RecordCountdown       Compte à rebours
@@ -476,13 +473,6 @@ prop_ClipToSelection       Masquer hors sélection
 prop_ClipToSelectionDesc   Masquer tout ce qui sort de la zone de capture sélectionnée
 prop_ConfirmLinked         Confirmer l'écrasement
 prop_ConfirmLinkedDesc     Demander confirmation avant d'écraser une image liée à une capture
-prop_HideOnClose           Réduire à la fermeture
-prop_HideOnCloseDesc       Réduire l'éditeur au lieu de le fermer
-prop_Startup               Démarrage
-prop_StartupDesc           Choisir ce qui s'ouvre au démarrage de Swag Capture
-prop_StartupHub            Hub
-prop_StartupTray           Zone de notification
-prop_StartupEditor         Éditeur
 prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
 ui_OneObject           1 objet
@@ -559,6 +549,7 @@ act_InpEditor          Éditeur
 act_InpSave            Enregistrer…
 act_InpCopy            Copier
 hint_CopyClose         copier et fermer
+hint_CopyQuit          copier et quitter
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
 hint_NewLine           nouvelle ligne

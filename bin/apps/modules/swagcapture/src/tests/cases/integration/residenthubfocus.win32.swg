@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel, Win32
 
-// Open the resident hub, click a window owned by another process, and leave the hub behind.
+// Another application can take focus while the capture work window stays visible.
 #[Swag.TestTag("integration.capture.hub.focus")]
 #test
 {
@@ -31,26 +31,24 @@ using Core, Gui, Pixel, Win32
     discard Win32.GetWindowThreadProcessId(peerWindow, &peerProcessId)
     Swag.require(peerProcessId == peer.processId, "the external window belongs to another process")
 
-    journey.surface.hide()
-    let panel = unwrap ResidentPanel.open(journey.main, .Centered)
-    var input = Gui.Testing.DesktopInput.create(journey.app, unwrap panel.surface)
+    journey.main.showHub()
+    let panel = unwrap journey.main.residentPanel
+    let hubSurface = unwrap panel.surface
     watch.restart()
     while watch.elapsedMilliseconds() < 120 do
         journey.app.runFrame()
-    Swag.require(journey.main.residentPanel == panel, "the resident hub closed before the external click")
-    Swag.require(panel.wasActive, "the resident hub did not arm its focus watch")
+    Swag.require(journey.main.residentPanel == panel, "the capture window closed before the focus change")
 
-    var bounds: Win32.RECT
-    Swag.require(Win32.GetWindowRect(peerWindow, &bounds))
-    let point = Math.Point{(bounds.left + bounds.right) * 0.5, (bounds.top + bounds.bottom) * 0.5}
-    let hit   = Win32.WindowFromPoint(Win32.POINT{cast(s32, point.x), cast(s32, point.y)})
-    Swag.require(Win32.GetAncestor(hit, Win32.GA_ROOT) == peerWindow,
-                 "another desktop window covers the external click target")
-    input.clickDesktopPoint(point)
+    // Activate the owned fixture without clicking through whatever the user's desktop shows.
+    discard Win32.SetForegroundWindow(peerWindow)
+    watch.restart()
+    while Win32.GetForegroundWindow() != peerWindow and watch.elapsedMilliseconds() < 1000 do
+        journey.app.runFrame()
+    Swag.require(Win32.GetForegroundWindow() == peerWindow, "the other application did not take desktop focus")
 
     watch.restart()
-    while journey.main.residentPanel != null and watch.elapsedMilliseconds() < 1000 do
+    while watch.elapsedMilliseconds() < 150 do
         journey.app.runFrame()
-    Swag.require(Win32.GetForegroundWindow() == peerWindow, "the external click did not take desktop focus")
-    Swag.require(journey.main.residentPanel == null, "the resident hub stayed open after an external click")
+    Swag.require(journey.main.residentPanel == panel and not hubSurface.isHidden)
+    Swag.require(journey.main.workspace == .Hub and not journey.surface.hasTrayIcon())
 }

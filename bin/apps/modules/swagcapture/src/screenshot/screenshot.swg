@@ -1,5 +1,8 @@
 using Core, Pixel
 
+// Windows keeps a copied bitmap when Capture exits. The X11 clipboard needs its owner.
+const HubCopyQuits = #os == Swag.TargetOs.Windows
+
 // What a screenshot covers.
 enum CaptureMode
 {
@@ -471,29 +474,18 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     var platformScope = beginCapturePlatformScope()
     defer platformScope.close()
 
-    // A capture started by its key finds the hub or the icon's menu still on screen: neither
-    // belongs in the desktop pixels.
-    let startedFromHub = main.residentPanel != null
+    // Capture overlays temporarily hide the workspace; they never change its mode.
     main.residentPanel?.close()
 
     // Keep the editor out of the desktop pixels unless the option says otherwise.
     let surface   = unwrap main.surface
-    let wasHidden = surface.isHidden
-    if main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized do
+    let restoreEditor = main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized
+    if restoreEditor do
         surface.hide()
 
-    // A grab that fails gives the editor back instead of leaving it hidden for good.
     defer #fail
     {
-        if wasHidden
-        {
-            if surface.isHidden do
-                main.enterResident()
-        }
-        else
-        {
-            surface.show()
-        }
+        restoreCaptureWorkspace(main, restoreEditor)
     }
 
     // Let the configured capture delay elapse before reading the desktop.
@@ -548,26 +540,23 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     }
 
     let capture = result.capture
-    if capture or not wasHidden
+    if capture
     {
-        if surface.isMinimized do
-            surface.showNormal()
-        else do
-            surface.show()
+        main.showWindow()
+        main.newCapture(capture.backImg, "", capture)
+        return
     }
 
-    let copiedFromHub = result.copied and startedFromHub
-    let editorStayedHidden = wasHidden and surface.isHidden
-
-    // Windows retains clipboard data after the process exits. On Linux Capture serves its selection.
-    let exitAfterCopy = #os == Swag.TargetOs.Windows and main.startupHubSession and editorStayedHidden
-    if copiedFromHub and main.captureOptions.returnToHubAfterCopy do
-        main.postCommandEvent(ActionGlobal.ShowHub)
-    elif copiedFromHub and exitAfterCopy do
+    if HubCopyQuits and result.copied and main.workspace == .Hub do
         main.postCommandEvent(ActionGlobal.Exit)
-    elif not capture and editorStayedHidden do
-        main.enterResident()
+    else do
+        restoreCaptureWorkspace(main, restoreEditor)
+}
 
-    if capture do
-        main.newCapture(capture.backImg, "", capture)
+func restoreCaptureWorkspace(main: *MainWnd, restoreEditor: bool)
+{
+    if main.workspace == .Hub do
+        main.showHub()
+    elif main.workspace == .Editor and restoreEditor do
+        main.surface?.show()
 }

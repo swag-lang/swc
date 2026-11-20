@@ -28,6 +28,13 @@ struct CaptureRectWnd
 
 impl IWnd for CaptureRectWnd
 {
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    {
+        evt.accepted = evt.kind == .Close
+        if evt.accepted do
+            g_Exit = true
+    }
+
     mtd testAutoGrab()
     {
         let pt     = Input.mousePosition()

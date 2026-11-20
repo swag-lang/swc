@@ -69,9 +69,7 @@ impl IActionUI for ActionOptions
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main = mainWndOf(cxt)
-        let view = main.editWnd.editView
-
-        let dlg = Dialog.create(unwrap view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Resizable)
+        let dlg = Dialog.create(main.workspaceSurface(), 800, 600, title: appStrings().dlg_TitleOptions, flags: .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
         let shortcuts = PushButton.create(dlg, Gui.strings().shortcuts_Open, form: .Flat)
         shortcuts.fitWidthToLabel(main.themeMetrics().btnPush_Width)
@@ -107,6 +105,7 @@ impl IActionUI for ActionOptions
         }
 
         discard dlg.doModal()
+        main.residentPanel?.updatePictureChoices()
         return true
     }
 }

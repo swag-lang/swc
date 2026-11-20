@@ -490,7 +490,11 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 // application does; without the watch that would act on a choice by itself.
 func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel
 {
-    let surface = expect host.app.createSurface(0, 0, 300, 300, .ToolWindow | .TopMost)
+    let flags = placement == .Centered ? SurfaceFlags.SmallCaption | .CloseButton :
+                                         SurfaceFlags.ToolWindow | .TopMost
+    let surface = expect host.app.createSurface(0, 0, 300, 300, flags)
+    if placement == .Centered do
+        surface.setTitle(ProductName)
     let panel   = ResidentPanel.create(surface.wnd, main, placement)
     panel.floating = true
 

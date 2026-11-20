@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// Start from the hub, keep its type and shortcuts on one screen, then cancel to resident mode.
+// Cancel area selection and restore the capture window where the user left it.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
@@ -12,11 +12,14 @@ using Core, Gui, Pixel
     let main    = journey.main
     let app     = journey.app
     let surface = journey.surface
-    surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
-    surface.hide()
-    main.editorOptions.showResidentNotice = true
-    main.editorOptions.residentNotices    = 0
-    defer main.residentNotice?.close()
+    main.showHub()
+    let original = main.residentPanel
+    let hub = unwrap original
+    let hubSurface = unwrap hub.surface
+    let oldBounds = hubSurface.position
+    hubSurface.setPosition({oldBounds.x + 12, oldBounds.y + 8, oldBounds.width, oldBounds.height})
+    let moved = hubSurface.position
+    defer main.residentPanel?.close()
 
     var canceled: bool
     defer app.sigFrame.clear()
@@ -55,14 +58,12 @@ using Core, Gui, Pixel
         }
     }
 
-    let hub = unwrap ResidentPanel.open(main, .Centered)
     hub.choose(ActionCapture.Area)
     app.runFrame()
 
     Swag.require(canceled, "the area selector did not receive Escape")
-    Swag.require(surface.isHidden and main.residentPanel == null,
-                 "the canceled capture did not return to resident mode")
-    let notice = unwrap main.residentNotice
-    Swag.require(not notice.surface!.isHidden,
-                 "canceling a capture from the hub must show the resident notice")
+    let current = main.residentPanel
+    let restored = unwrap current
+    Swag.require(main.workspace == .Hub and surface.isHidden and not surface.hasTrayIcon())
+    Swag.require(restored.surface!.position == moved)
 }

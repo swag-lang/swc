@@ -401,7 +401,7 @@ impl MainWnd
     mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
         g_CaptureMedia = .Picture
-        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedCaptureScreen, Swag.err) }
+        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(.workspaceSurface(), appStrings().msg_FailedCaptureScreen, Swag.err) }
     }
 
     // Records an animation of an area chosen on the screen, or ends the recording in progress:
@@ -415,7 +415,7 @@ impl MainWnd
         }
 
         g_CaptureMedia = .Animation
-        catch screenShot(me, .Area) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
+        catch screenShot(me, .Area) { MessageDlg.error(.workspaceSurface(), appStrings().msg_FailedRecordScreen, Swag.err) }
     }
 
     // Starts a screen recording with the selected video sound tracks.
@@ -428,7 +428,7 @@ impl MainWnd
         }
 
         g_CaptureMedia = .Video
-        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
+        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(.workspaceSurface(), appStrings().msg_FailedRecordScreen, Swag.err) }
     }
 
     // Starts a screen recording on the monitor under the pointer.

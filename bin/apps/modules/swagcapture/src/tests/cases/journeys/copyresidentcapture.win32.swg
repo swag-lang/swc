@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// Copy a picture from a resident session and optionally open the hub again.
+// The explicit tray command keeps the session resident across captures from the tray and a shortcut.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
@@ -11,44 +11,20 @@ using Core, Gui, Pixel
     journey.setup()
     let main    = journey.main
     let surface = journey.surface
-    surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
-    surface.hide()
+    main.showHub()
+    let hub = unwrap main.residentPanel
+    Swag.require(main.workspace == .Hub and not surface.hasTrayIcon())
+    hub.choose(ActionGlobal.Minimize)
+    journey.waitFor("explicit resident mode", func|main|()->bool => main.workspace == .Resident)
+    Swag.require(surface.isHidden and surface.hasTrayIcon() and main.residentPanel == null)
+
     main.captureOptions.pictureDestination = .InPlace
-    main.editorOptions.showResidentNotice = false
-    main.editorOptions.residentNotices    = 0
-    defer main.residentNotice?.close()
-    defer main.residentPanel?.close()
-
-    main.openStartupHub()
-    journey.waitFor("startup hub", func|main|()->bool => main.residentPanel != null)
-    let startupHub = main.residentPanel
-    (unwrap startupHub).choose(ActionGlobal.Minimize)
-    journey.app.runFrame()
-    Swag.require(main.residentPanel == null and main.residentNotice == null)
-    main.editorOptions.showResidentNotice = true
-
-    Swag.require(not main.captureOptions.returnToHubAfterCopy)
-    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered))
-    Swag.require(main.residentPanel == null)
-    let notice = unwrap main.residentNotice
-    Swag.require(not notice.surface!.isHidden)
-    notice.close()
-
-    main.captureOptions.returnToHubAfterCopy = true
-    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered))
-    journey.waitFor("hub reopened after copy", func|main|()->bool => main.residentPanel != null)
-    let currentHub = main.residentPanel
-    let hub = unwrap currentHub
-    Swag.require(hub.placement == .Centered and not hub.surface!.isHidden)
-    Swag.require(main.residentNotice == null)
-    hub.close()
+    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .AtPointer))
+    Swag.require(main.workspace == .Resident and surface.hasTrayIcon() and main.residentPanel == null)
 
     journey.finishInPlacePicture(null)
-    journey.app.runFrame()
-    Swag.require(main.residentPanel == null, "a capture started while resident must stay resident")
-    main.residentNotice?.close()
+    Swag.require(main.workspace == .Resident and surface.hasTrayIcon() and main.residentPanel == null)
 
-    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered), cancel: true)
-    journey.app.runFrame()
-    Swag.require(main.residentPanel == null, "canceling must leave the hub closed")
+    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .AtPointer), cancel: true)
+    Swag.require(main.workspace == .Resident and surface.hasTrayIcon() and main.residentPanel == null)
 }

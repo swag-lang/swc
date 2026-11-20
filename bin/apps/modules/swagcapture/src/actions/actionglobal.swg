@@ -61,14 +61,20 @@ impl IActionUI for ActionGlobal
         {
         case .ShowEditor:
             main.showWindow()
+            if main.libraryMode do
+                main.swapLibraryMode()
 
         case .ShowHub:
-            ResidentPanel.open(main, .Centered)
+            main.showHub()
 
         case .ShowLibrary:
-            main.swapLibraryMode()
+            let wasEditor = main.workspace == .Editor
+            main.showWindow()
+            if wasEditor or not main.libraryMode do
+                main.swapLibraryMode()
 
         case .Exit:
+            main.residentPanel?.close()
             main.saveAppState()
 
             // A deferred save that hasn't fired yet, and a background save still
@@ -83,15 +89,7 @@ impl IActionUI for ActionGlobal
             main.postQuitEvent()
 
         case .Minimize:
-            main.saveAppState()
-            if let surface = main.surface
-            {
-                if not surface.isHidden
-                {
-                    surface.hide()
-                    main.enterResident()
-                }
-            }
+            main.enterResident()
         }
 
         return true

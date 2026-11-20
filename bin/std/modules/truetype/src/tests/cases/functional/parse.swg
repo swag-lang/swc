@@ -146,6 +146,31 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
     Swag.require(rejected.value() != null)
 }
 
+#test
+{
+    // hhea.numOfLongHorMetrics must name at least one metric and no more than
+    // the face's glyph count.
+    var bytes      = loadFontBytes("arial.ttf")
+    let hheaRecord = parseTestTableRecord(&bytes, TAG_HHEA)
+    let hheaOffset = readBigU32(&bytes, hheaRecord + 8)
+    let maxpRecord = parseTestTableRecord(&bytes, TAG_MAXP)
+    let maxpOffset = readBigU32(&bytes, maxpRecord + 8)
+    let glyphCount = readBigU16(&bytes, maxpOffset + 4)
+    writeBigU16(&bytes, hheaOffset + 34, 0)
+
+    var rejected: Swag.Error
+    discard catch Face.load(bytes.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+
+    bytes = loadFontBytes("arial.ttf")
+    let resetHheaRecord = parseTestTableRecord(&bytes, TAG_HHEA)
+    let resetHheaOffset = readBigU32(&bytes, resetHheaRecord + 8)
+    writeBigU16(&bytes, resetHheaOffset + 34, glyphCount + 1)
+    rejected = {}
+    discard catch Face.load(bytes.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.
 #test
 {

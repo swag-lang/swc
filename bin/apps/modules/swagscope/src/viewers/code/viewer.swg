@@ -11,6 +11,96 @@ private var g_Blanks: bool
 // Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
 private var g_TabWidth: s32 = 4
 
+// Test-only override for the directory containing per-file language choices. The application
+// uses the user-data directory; functional tests give each case an isolated temporary one.
+internal var g_CodeOverrideDirectory: String
+
+private const LanguageOverrideHeader = "SwagScope code language v1\n"
+
+// Returns the directory used for the small, viewer-owned language preference records.
+private func languageOverrideDirectory()->String
+{
+    if g_CodeOverrideDirectory.count do
+        return g_CodeOverrideDirectory
+    return Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "code-language")
+}
+
+// Produces an opaque filename from a canonical path. The clear path is never written to disk.
+internal func languageOverridePath(fileName: string)->String
+{
+    let absolute = catch Path.absolute(fileName) { return "" }
+    let digest   = Hash.Sha256.compute(cast(const [..] u8, absolute.toString()))
+    var name: String
+    for word in digest do
+        name += Format.toString("%{X08}", word)
+    return Path.combine(languageOverrideDirectory(), Format.toString("%.txt", name))
+}
+
+// Includes file metadata in the preference identity so a replacement at the same path does not
+// inherit the previous file's manual choice. Hashing the metadata keeps the record opaque.
+internal func languageOverrideIdentity(fileName: string)->String
+{
+    let absolute = catch Path.absolute(fileName) { return "" }
+    let info = catch File.info(absolute) { return "" }
+    let material = Format.toString("scope-code-language-v1\n%\n%\n%\n%",
+                                   absolute, info.size,
+                                   Hash.hash64(info.creationTime), Hash.hash64(info.lastWriteTime))
+    let digest = Hash.Sha256.compute(cast(const [..] u8, material.toString()))
+    var result: String
+    for word in digest do
+        result += Format.toString("%{X08}", word)
+    return result
+}
+
+private func languageOverrideName(language: SourceLanguage, swag: bool)->string
+{
+    if swag do
+        return "Swag"
+    // The user-facing name of Plain Text is translated, so keep a stable storage token instead.
+    return language == .PlainText ? "PlainText" : displayName(language)
+}
+
+// Loads only a known language name and a record for the current file version. Damaged or
+// unsupported records are ignored and detection remains the fallback.
+private func readLanguageOverride(fileName: string)->String
+{
+    let path = languageOverridePath(fileName)
+    let identity = languageOverrideIdentity(fileName)
+    if not path.count or not identity.count or not File.exists(path) do
+        return ""
+    let contents = catch File.readAllText(path) { return "" }
+    if not Utf8.startsWith(contents, LanguageOverrideHeader) do
+        return ""
+    let lines = Tokenize.split(contents[LanguageOverrideHeader.count to], '\n'u8)
+    if lines.count != 2 or lines[0] != identity do
+        return ""
+    let name = lines[1]
+    if name == "Swag" or name == "PlainText" do
+        return name
+    for language in SourceLanguage where languageOverrideName(language, false) == name do
+        return name
+    return ""
+}
+
+// Saves an explicit language choice atomically; a failed preference write must not affect the
+// reader's ability to view the source.
+private func writeLanguageOverride(fileName: string, language: SourceLanguage, swag: bool)
+{
+    let path = languageOverridePath(fileName)
+    let identity = languageOverrideIdentity(fileName)
+    if not path.count or not identity.count do
+        return
+    catch Directory.create(languageOverrideDirectory(), recurse: true) { return; }
+    let temp = Format.toString("%.%.tmp", path, Guid128.random())
+    discard catch File.writeAllText(temp,
+                                    Format.toString("%\n%\n%\n", LanguageOverrideHeader,
+                                                   identity, languageOverrideName(language, swag))) { return; }
+    catch File.move(path, temp)
+    {
+        discard catch File.delete(temp)
+    }
+}
+
 // Reports whether `c` opens or closes a pair the source viewer matches: (), [] or {}.
 func isDelimiter(c: rune)->bool => c == '(' or c == ')' or c == '[' or c == ']' or c == '{' or c == '}'
 
@@ -100,6 +190,7 @@ struct Panel
     swagLexer:         RichEditLexerSwag
     codeLexer:         GenericLexer
     languageName:      String
+    languageEvidence:  String
     stream:            File.FileStream
     fileName:          String
     fileSize:          u64
@@ -402,8 +493,11 @@ impl Panel
         var depth = 0'u64
         while true
         {
-            if not (forward ? .stepForward(&cp) : .stepBackward(&cp)) do
+            if not (forward ? .stepForward(&cp) : .stepBackward(&cp))
+            {
+                .services.showDetails(me, Format.toString(texts().ui_DelimiterUnavailable, .languageName))
                 return false
+            }
             let at = .editor.runeAt(cp)
             if at.style != first.style do
                 continue
@@ -418,6 +512,7 @@ impl Panel
                     .editor.setCursorPos(cp)
                     .editor.ensureCaretIsVisible(center: true)
                     .editor.invalidate()
+                    .showLanguageDetails()
                     return true
                 }
 
@@ -426,6 +521,15 @@ impl Panel
         }
 
         return false
+    }
+
+    // Restores the language summary after a delimiter search temporarily reports its result.
+    private mtd showLanguageDetails()
+    {
+        if .languageEvidence == "manual selection" do
+            .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName))
+        else do
+            .services.showDetails(me, Format.toString(texts().ui_Detection, .languageName, .languageEvidence))
     }
 
     // Moves `cp` to the next rune of the text; the end of a line reads as a line feed.
@@ -601,16 +705,44 @@ impl Panel
     // for the file's language otherwise.
     private mtd selectLexer()
     {
+        let savedName = readLanguageOverride(.fileName)
+        if savedName.count
+        {
+            .languageEvidence = "manual selection"
+            if savedName == "Swag"
+            {
+                .languageName = "Swag"
+                .editor.setLexer(&.swagLexer)
+                return
+            }
+            if savedName == "PlainText"
+            {
+                .languageName = displayName(.PlainText)
+                .codeLexer.configure(.PlainText)
+                .editor.setLexer(&.codeLexer)
+                return
+            }
+            for language in SourceLanguage where displayName(language) == savedName
+            {
+                .languageName = displayName(language)
+                .codeLexer.configure(language)
+                .editor.setLexer(&.codeLexer)
+                return
+            }
+        }
+
         let extension = Path.lowercaseExtension(.fileName)
         if extension == ".swg" or extension == ".swgs"
         {
             .languageName = "Swag"
+            .languageEvidence = Format.toString(texts().ui_ExtensionEvidence, extension)
             .editor.setLexer(&.swagLexer)
         }
         else
         {
             let language = detectLanguage(.fileName)
             .languageName = displayName(language)
+            .languageEvidence = detectionEvidence(.fileName)
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
         }
@@ -623,11 +755,13 @@ impl Panel
         if swag
         {
             .languageName = "Swag"
+            .languageEvidence = "manual selection"
             .editor.setLexer(&.swagLexer)
         }
         else
         {
             .languageName = displayName(language)
+            .languageEvidence = "manual selection"
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
         }
@@ -635,7 +769,8 @@ impl Panel
         .editor.lexAll()
         .lexed = true
         .editor.invalidate()
-        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
+        writeLanguageOverride(.fileName, language, swag)
+        .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName))
     }
 
     // Follows scrolling with the resident window, routes the keys the code view answers for, and
@@ -831,7 +966,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.attachView(view)
-    host.setDetails(Format.toString(texts().ui_Details, view.languageName))
+    host.setDetails(Format.toString(texts().ui_Detection, view.languageName, view.languageEvidence))
 
     with var search: Viewer.SearchApi
     {

@@ -171,7 +171,7 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
 #test
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("segoeui.ttf"), true)
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.arabic.ttf"), true)
     let view   = assume cast(*Typeface.Panel, window.currentView)
     assertScopeAnchoredMenu(&host, window, view.pageLabel, "menus.font.range.paper")
 }
@@ -182,6 +182,8 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.groove.mid"), true)
     let view   = assume cast(*Midi.Panel, window.currentView)
+    // Earlier MIDI tests exercise the persistent toggle; pin its value for this golden.
+    view.setScaleHighlight(false)
     assertScopeAnchoredMenu(&host, window, view.zoomLabel, "menus.midi.zoom.paper")
     assertScopeAnchoredMenu(&host, window, view.optionsButton, "menus.midi.options.paper")
 }

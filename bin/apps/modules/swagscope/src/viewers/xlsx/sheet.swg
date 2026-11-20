@@ -110,6 +110,8 @@ struct Sheet
     omittedFormats:   u64
     hidden:           bool
     hiddenRanges:     bool
+    frozenRows:       u32
+    frozenColumns:    u32
 }
 
 impl Sheet

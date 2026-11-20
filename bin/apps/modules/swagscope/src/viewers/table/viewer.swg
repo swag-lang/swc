@@ -297,6 +297,7 @@ const HeadHeight = 72.0
 struct ColumnProfile
 {
     empty:      u64
+    inconsistent: u64
     quantities: u64
     minimum:    f64
     maximum:    f64
@@ -469,6 +470,21 @@ private struct SortKey
     text:     string
 }
 
+// Compares the selected value in the requested direction while keeping equal rows in file order.
+private func compareSortKeys(a, b: SortKey, descending: bool)->s32
+{
+    var order: s32
+    if a.numeric
+    {
+        order = descending ? (b.quantity <=> a.quantity) : (a.quantity <=> b.quantity)
+        if not order do
+            order = descending ? Latin1.compareNatural(b.text, a.text) : Latin1.compareNatural(a.text, b.text)
+    }
+    else do
+        order = descending ? Latin1.compareNatural(b.text, a.text) : Latin1.compareNatural(a.text, b.text)
+    return order != 0 ? order : a.row <=> b.row
+}
+
 private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
@@ -485,14 +501,51 @@ enum ColumnKind
     Date
 }
 
-// Reports whether `text` is a date written year first: four digits, a dash or a slash, then more.
+// Reports whether `text` begins with a valid year-first date, optionally followed by a timestamp.
 func isDateCell(text: string)->bool
 {
-    if text.count < 8 do
+    if text.count < 10 do
+        return false
+    if text[4] != '-' and text[4] != '/' do
+        return false
+    if text[7] != text[4] do
         return false
     for at in 4 where not Latin1.isDigit(text[at]) do
         return false
-    return text[4] == '-' or text[4] == '/'
+    if text.count > 10 and text[10] != 'T' and text[10] != ' ' do
+        return false
+
+    let month = cast(u32, (text[5] - '0') * 10 + (text[6] - '0'))
+    let day   = cast(u32, (text[8] - '0') * 10 + (text[9] - '0'))
+    var year: u32
+    for at in 4 do
+        year = year * 10 + cast(u32, text[at] - '0')
+    for at in 5 until 7 where not Latin1.isDigit(text[at]) do
+        return false
+    for at in 8 until 10 where not Latin1.isDigit(text[at]) do
+        return false
+
+    var daysInMonth = 31'u32
+    switch month
+    {
+    case 2: daysInMonth = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) ? 29 : 28
+    case 4, 6, 9, 11: daysInMonth = 30
+    }
+    return month >= 1 and month <= 12 and day >= 1 and day <= daysInMonth
+}
+
+// Returns a sortable YYYYMMDD key for a valid year-first date or timestamp.
+private func dateKey(text: string)->u32
+{
+    if not isDateCell(text) do
+        return Swag.U32.Max
+
+    var year: u32
+    for at in 4 do
+        year = year * 10 + cast(u32, text[at] - '0')
+    let month = cast(u32, (text[5] - '0') * 10 + (text[6] - '0'))
+    let day   = cast(u32, (text[8] - '0') * 10 + (text[9] - '0'))
+    return year * 10_000 + month * 100 + day
 }
 
 // The table viewer: rows under each column's name and kind, quantities aligned on the right,
@@ -616,11 +669,21 @@ private impl Panel
                     textual = true
             }
 
-            .numeric.add(numeric and not textual)
-
-            // The kind of a column, from its first rows: dates, whole numbers, decimals or words.
+            // Year-first dates can contain only digits and dashes, so recognize a complete date
+            // column before treating its punctuation as a numeric sign.
             var kind = ColumnKind.Text
-            if numeric and not textual
+            var hasDates = false
+            var dates    = true
+            for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count and row.cells[index].length
+            {
+                hasDates = true
+                if not isDateCell(row.cells[index].toString()) do
+                    dates = false
+            }
+
+            if hasDates and dates do
+                kind = .Date
+            elif numeric and not textual
             {
                 kind = .Integer
                 for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count
@@ -630,23 +693,12 @@ private impl Panel
                         kind = .Decimal
                 }
             }
-            elif textual
-            {
-                var dates = true
-                for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count and row.cells[index].length
-                {
-                    if not isDateCell(row.cells[index].toString()) do
-                        dates = false
-                }
 
-                if dates do
-                    kind = .Date
-            }
-
+            .numeric.add(numeric and not textual and kind != .Date)
             .kinds.add(kind)
             let width = Math.clamp(cast(f32, longest) * CellWidth + 32, ColumnMinWidth, ColumnMaxWidth)
             let range = cellPreviewRange(column.toString())
-            let align = numeric and not textual ? StringHorzAlignment.Right : StringHorzAlignment.Left
+            let align = numeric and not textual and kind != .Date ? StringHorzAlignment.Right : StringHorzAlignment.Left
             let item  = .list.header.addColumn(column.toString()[range.start until range.end], width, {}, align)
             item.detail = kindName(kind)
         }
@@ -803,28 +855,37 @@ private impl Panel
         let focused = .list.focusIndex < .document.rows.count ? .documentRow(.list.focusIndex) : Swag.U64.Max
 
         let numeric = column < .numeric.count and .numeric[column]
+        let isDateColumn = column < .kinds.count and .kinds[column] == .Date
         var keys:  Array'SortKey
         var empty: Array'u32
+        let descending = .descending
         for row, index in .document.rows
         {
             let text = column < row.cells.count ? row.cells[column].toString() : ""
             var key  = SortKey{row: cast(u32, index), numeric: numeric, text: text}
-            if text.count == 0 or (numeric and not quantityOf(text, &key.quantity)) do
+            if isDateColumn and text.count
+            {
+                key.numeric = true
+                key.quantity = cast(f64, dateKey(text))
+            }
+            if text.count == 0 or
+               (isDateColumn and key.quantity == cast(f64, Swag.U32.Max)) or
+               (numeric and not quantityOf(text, &key.quantity)) do
                 empty.add(key.row)
-            else do
+            else
+            {
                 keys.add(key)
+            }
         }
-
-        keys.sort(func(a, b)->s32
+        keys.sort(func|descending|(a, b)->s32
         {
-            let order = a.numeric ? (a.quantity <=> b.quantity) : Latin1.compareNatural(a.text, b.text)
-            return order != 0 ? order : a.row <=> b.row
+            return compareSortKeys(a, b, descending)
         })
 
         .order.clear()
         .rowLines.resize(.document.rows.count)
-        for index in keys.count do
-            .order.add(keys[.descending ? keys.count - 1 - index : index].row)
+        for key in keys do
+            .order.add(key.row)
         for row in empty do
             .order.add(row)
         for row, line in .order do
@@ -1165,6 +1226,19 @@ impl Panel
                     continue
                 }
 
+                if column < .kinds.count
+                {
+                    let kind = .kinds[column]
+                    var value: f64
+                    if (kind == .Integer and (not quantityOf(text, &value) or
+                                              Utf8.contains(text, ".") or
+                                              (Utf8.contains(text, ",") and not isThousands(text)))) or
+                       (kind == .Decimal and not quantityOf(text, &value)) or
+                       (kind == .Date and not isDateCell(text))
+                        do
+                        profile.inconsistent += 1
+                }
+
                 var value: f64
                 if column < .numeric.count and .numeric[column] and quantityOf(text, &value)
                 {
@@ -1192,6 +1266,8 @@ impl Panel
 
         if profile.empty do
             result += Format.toString(" · %", Format.toString(texts().ui_Empty, profile.empty))
+        if profile.inconsistent do
+            result += Format.toString(" · %", Format.toString(texts().ui_Inconsistent, profile.inconsistent))
         return result
     }
 }

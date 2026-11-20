@@ -26,6 +26,8 @@ private struct Reader
     inRunProperties:       bool
     inText:                bool
     inImage:               bool
+    inSectionProperties:   bool
+    ignoreSectionGeometry: bool
     imageId:               String
     imageDescription:      String
     imageWidth:            u32
@@ -34,6 +36,41 @@ private struct Reader
 
 private impl Reader
 {
+    mtd readPageSize(token: const *Package.Token)
+    {
+        let width  = catch StrConv.toS32(token.attribute("w") orelse "") orelse 0
+        let height = catch StrConv.toS32(token.attribute("h") orelse "") orelse 0
+        if width < 3600 or width > 43200 or height < 3600 or height > 43200
+        {
+            .document.stylesSimplified = true
+            return
+        }
+        .document.pageWidth  = width
+        .document.pageHeight = height
+    }
+
+    mtd readPageMargins(token: const *Package.Token)
+    {
+        let names: [4] string = ["top", "right", "bottom", "left"]
+        for name, index in names
+        {
+            let value = catch StrConv.toS32(token.attribute(name) orelse "") orelse -1
+            if value < 0 or value > 31680
+            {
+                .document.stylesSimplified = true
+                continue
+            }
+            switch index
+            {
+            case 0: .document.marginTop = value
+            case 1: .document.marginRight = value
+            case 2: .document.marginBottom = value
+            case 3: .document.marginLeft = value
+            }
+            .document.marginMask |= cast(u8, 1 << index)
+        }
+    }
+
     mtd appendInline(value: string)
     {
         if .inRun do
@@ -229,6 +266,31 @@ private impl Reader
         if not .inBody do
             return
 
+        if token.isElement("sectPr")
+        {
+            if .inParagraph
+            {
+                // Paragraph-level section breaks can change geometry mid-document; keep them
+                // readable and disclose that this one-layout projection is approximate.
+                .document.stylesSimplified = true
+                .inSectionProperties = not token.empty
+                .ignoreSectionGeometry = not token.empty
+            }
+            else
+            {
+                .inSectionProperties = not token.empty
+            }
+            return
+        }
+        if .inSectionProperties
+        {
+            if not .ignoreSectionGeometry and token.isElement("pgSz") do
+                .readPageSize(token)
+            elif not .ignoreSectionGeometry and token.isElement("pgMar") do
+                .readPageMargins(token)
+            return
+        }
+
         if .inImage
         {
             if token.isElement("extent") and not .imageWidth
@@ -339,6 +401,13 @@ private impl Reader
         if token.isElement("body")
         {
             .inBody = false
+            return
+        }
+
+        if token.isElement("sectPr")
+        {
+            .inSectionProperties = false
+            .ignoreSectionGeometry = false
             return
         }
 

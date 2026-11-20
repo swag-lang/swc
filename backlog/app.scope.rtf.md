@@ -13,7 +13,8 @@ Reading and inspecting Rich Text Format documents.
   Unsupported style references, pictures and embedded objects remain explicit. Named RTF styles,
   page geometry, complex tables, fields and other code pages are still absent.
   [File Viewer Plus 7](https://fileviewerplus.com/support/text_documents) opens RTF in the same
-  paginated editor it uses for Word documents.
+  paginated editor it uses for Word documents. A generated 813-paragraph RTF conversion of
+  the public-domain Christmas Carol now tests sustained reading and Unicode punctuation.
 - Next: compare a non-Windows-1252 RTF and a paginated real-world RTF. Start with correctly
   decoded text, then extend named paragraph/character styles, page geometry and complex tables.
   Keep fields inert and retain the existing policy for linked resources.

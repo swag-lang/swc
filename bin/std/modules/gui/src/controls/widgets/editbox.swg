@@ -1170,6 +1170,9 @@ private impl EditBox
 
 internal impl EditBox
 {
+    // Keeps a programmatically replaced query caret visible for the next painted frame.
+    mtd revealCaret() => .forceVisibleCaret()
+
     // Recomputes the horizontal scroll offset so the caret stays inside the visible
     // edit rectangle. Driven by onPaint (it mirrors the exact clientRect paint
     // uses), and exposed at module scope so the scroll/clip behaviour can be

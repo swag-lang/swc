@@ -1,5 +1,10 @@
 [Script Info]
-Title: Scope sample
+Title: North Basin field transect
+ScriptType: v4.00
+[V4 Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding
+Style: Default,Arial,22,16777215,65535,0,0,0,0,1,2,1,2,18,18,20,0,1
 [Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:01.00,0:03.50,Default,,0,0,0,,Hello from SSA.
+Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: Marked=0,0:01.00,0:03.50,Default,Mira,0,0,0,,The lower weir is quiet tonight.
+Dialogue: Marked=0,0:04.00,0:06.20,Default,Jon,0,0,0,,We can finish the transect before dark.

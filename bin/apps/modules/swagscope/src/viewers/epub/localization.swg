@@ -8,6 +8,8 @@ struct Texts
 {
     ui_Back:                string = "Back in Book"
     ui_Forward:             string = "Forward in Book"
+    ui_SetBookmark:         string = "Bookmark This Passage"
+    ui_GoToBookmark:        string = "Go to Bookmark in Chapter %"
     ui_CompactColumn:       string = "Compact Reading Column"
     ui_ComfortableColumn:   string = "Comfortable Reading Column"
     ui_WideColumn:          string = "Wide Reading Column"
@@ -24,6 +26,9 @@ struct Texts
     err_NoChapters:         string = "This EPUB book contains no readable chapters."
     ui_OneChapter:          string = "1 chapter"      // Length of a one-chapter book.
     ui_Chapters:            string = "% chapters"     // Length of a longer book.
+    ui_Search:              string = "Search this book"
+    ui_SearchTip:           string = "Search the whole book by default. Use chapter: text or book: text to choose a scope."
+    ui_SearchIncomplete:    string = "Some chapters are too large or unreadable to search."
 }
 
 private const FrenchStringsName = "lang/fr/scope.epub.tweak"

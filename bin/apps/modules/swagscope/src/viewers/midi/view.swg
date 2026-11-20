@@ -72,6 +72,7 @@ struct RollView
     zoom:           f32      = 1
     pitchZoom:      f32      = 1
     keyboardWidth:  f32      = KeyboardWidth
+    scaleHighlight: bool     = false
     fit:            bool     = true
     pitchLabelMode: PitchLabelMode
     lowKey:         u8
@@ -148,6 +149,22 @@ private func isBlackKey(key: u8)->bool
     return note == 1 or note == 3 or note == 6 or note == 8 or note == 10
 }
 
+// Returns the seven pitch classes of a major key. Its relative minor has the same key signature
+// and pitch classes; the event's mode remains available to the information sheet.
+private func keyPitchMask(key: const *KeySignature)->u16
+{
+    if key.sharps < -7 or key.sharps > 7 do
+        return 0
+
+    const Tonics: [15] u8 = [11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1]
+    const Steps: [7] u8 = [0, 2, 4, 5, 7, 9, 11]
+    let tonic = Tonics[cast(u32, key.sharps + 7)]
+    var result = 0'u16
+    for step in Steps do
+        result |= 1'u16 << ((tonic + step) % 12)
+    return result
+}
+
 enum PitchLabelMode
 {
     Scientific
@@ -168,6 +185,48 @@ impl RollView
     // The number of keys the roll shows, one row each, from `highKey` at the top down to `lowKey`.
     mtd const keyCount()->u32        => cast(u32, .highKey - .lowKey + 1)
     mtd const keyAtRow(row: u32)->u8 => cast(u8, cast(u32, .highKey) - row)
+
+    // Returns the signature active at `tick`, or zero when none declares a supported key.
+    mtd keyPitchMaskAt(tick: u64)->u16
+    {
+        var first = 0'u64
+        var last  = .document.keySignatures.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            if .document.keySignatures[middle].tick <= tick do
+                first = middle + 1
+            else do
+                last = middle
+        }
+        if not first do
+            return 0
+        return keyPitchMask(&.document.keySignatures[first - 1])
+    }
+
+    // Percussion hits are not pitches. The keyboard uses the signature at the first visible tick;
+    // the note rows change tint at each signature event.
+    mtd scaleHighlightMaskAt(tick: u64)->u16
+    {
+        if not .scaleHighlight or .mode != .Pitches or .showsPercussion() do
+            return 0
+        return .keyPitchMaskAt(tick)
+    }
+
+    mtd pitchIsHighlighted(tick: u64, key: u8)->bool => cast(bool, .scaleHighlightMaskAt(tick) & (1'u16 << (key % 12)))
+
+    mtd setScaleHighlight(enabled: bool)
+    {
+        .scaleHighlight = enabled
+        .invalidate()
+    }
+
+    mtd visibleFirstTick(plotLeft: f32)->u64
+    {
+        if not .pixelsPerTick do
+            return 0
+        return cast(u64, Math.max(Math.floor(Math.max(.scrollPos.x - plotLeft, 0) / .pixelsPerTick), 0))
+    }
 
     mtd summaryText()->String => Format.toString(texts().ui_Summary, trackCountText(.document.tracks.count), noteCountText(.selectedNoteCount()), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
@@ -493,12 +552,91 @@ impl RollView
             let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
+        }
+
+        .paintScaleBands(painter, plotLeft, plotRight)
+
+        for row in .keyCount()
+        {
+            let y = .plotTop + cast(f32, row) * .rowHeight
             painter.drawLine(plotLeft, y, plotRight, y, colors.line, 1)
         }
 
         painter.drawLine(plotLeft, plotBottom, plotRight, plotBottom, colors.line, 1)
 
         .paintBeats(painter, .plotTop, plotBottom, false)
+    }
+
+    // Tints in-scale key rows in bounded horizontal bands. A key change starts a new band, so a
+    // long score does not need a precomputed per-tick scale map.
+    mtd paintScaleBands(painter: *Painter, plotLeft, plotRight: f32)
+    {
+        if not .scaleHighlight or .mode != .Pitches or .showsPercussion() do
+            return
+        if not .pixelsPerTick or not .document.keySignatures.count do
+            return
+
+        let visibleLeft  = Math.max(plotLeft, .scrollPos.x)
+        let visibleRight = Math.min(plotRight, .scrollPos.x + .clientRect().width)
+        if visibleRight <= visibleLeft do
+            return
+
+        let firstTick = .visibleFirstTick(plotLeft)
+        let lastTick  = cast(u64, Math.min(Math.ceil((visibleRight - plotLeft) / .pixelsPerTick), cast(f64, .document.durationTicks)))
+        if lastTick <= firstTick do
+            return
+
+        var signatureAt = 0'u64
+        var after       = .document.keySignatures.count
+        while signatureAt < after
+        {
+            let middle = signatureAt + (after - signatureAt) / 2
+            if .document.keySignatures[middle].tick <= firstTick do
+                signatureAt = middle + 1
+            else do
+                after = middle
+        }
+
+        var mask = signatureAt ? keyPitchMask(&.document.keySignatures[signatureAt - 1]) : 0'u16
+        var tick = firstTick
+        while tick < lastTick
+        {
+            let nextTick = signatureAt < .document.keySignatures.count ?
+                           Math.min(lastTick, .document.keySignatures[signatureAt].tick) : lastTick
+            if nextTick <= tick
+            {
+                mask = keyPitchMask(&.document.keySignatures[signatureAt])
+                signatureAt += 1
+                continue
+            }
+
+            let left  = Math.max(visibleLeft, plotLeft + cast(f32, tick) * .pixelsPerTick)
+            let right = Math.min(visibleRight, plotLeft + cast(f32, nextTick) * .pixelsPerTick)
+            .paintScaleMask(painter, mask, left, right - left)
+            tick = nextTick
+            if signatureAt < .document.keySignatures.count and .document.keySignatures[signatureAt].tick == tick
+            {
+                mask = keyPitchMask(&.document.keySignatures[signatureAt])
+                signatureAt += 1
+            }
+        }
+    }
+
+    mtd paintScaleMask(painter: *Painter, mask: u16, left, width: f32)
+    {
+        if mask == 0 or width <= 0 do
+            return
+
+        let colors = .themeColors()
+        for row in .keyCount()
+        {
+            let key = .keyAtRow(row)
+            if mask & (1'u16 << (key % 12)) == 0 do
+                continue
+            let y    = .plotTop + cast(f32, row) * .rowHeight
+            let base = isBlackKey(key) ? colors.edit_Bk : colors.view_Bk
+            painter.fillRect(Math.Rectangle{left, y, width, .rowHeight}, Color.lerp(base, colors.highlight, 0.35))
+        }
     }
 
     // Paints the numbered beat lines from `top` to `bottom`, with their numbers when `numbered`.
@@ -604,6 +742,11 @@ impl RollView
             let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, colors.edit_Bk)
+            if .scaleHighlightMaskAt(.visibleFirstTick(.keyboardWidth + ContentInset)) & (1'u16 << (key % 12)) != 0
+            {
+                let base = isBlackKey(key) ? colors.edit_Bk : colors.view_Bk
+                painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, Color.lerp(base, colors.highlight, 0.35))
+            }
             painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.line, 1)
             let labelTop = y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0)
             if percussion

@@ -11,11 +11,19 @@ struct Texts
 {
     ui_ZoomMenu:          string = "Zoom…"                      // Tooltip of the zoom value menu.
     ui_HighlightAs:       string = "Highlight as %"             // Lens command coloring the source as the language it names.
+    ui_PlainText:         string = "Plain Text"                 // Language choice showing the source without syntax colors.
     ui_Blanks:            string = "Show Whitespace"            // Lens command marking each space with a dot and each tabulation with an arrow.
     ui_MatchingDelimiter: string = "Go to Matching Bracket"     // Lens command moving the caret to the bracket, parenthesis or brace pairing with the one at it.
+    ui_DelimiterUnavailable: string = "% · no matching delimiter in loaded source"
     ui_TabWidth:          string = "Tab Width"                  // Lens commands placing a tab stop every 2, 4 or 8 spaces; the number follows.
     // Summary the host shows beside the file size. `%` takes the name of the language.
     ui_Details:   string = "% · UTF-8"
+    ui_Detection: string = "% · UTF-8 · detected from %"
+    ui_ManualDetails: string = "% · UTF-8 · manual language choice"
+    ui_ExtensionEvidence: string = "extension %"
+    ui_FilenameEvidence: string = "filename %"
+    ui_ShebangEvidence: string = "interpreter line"
+    ui_DefaultEvidence: string = "default C"
     err_Read:     string = "source stream could not be read"     // Diagnostics of a source the viewer cannot show.
     err_ZeroByte: string = "source contains a zero byte and is not supported UTF-8 text"
 }

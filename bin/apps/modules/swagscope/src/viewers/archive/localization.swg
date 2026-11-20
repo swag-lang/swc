@@ -52,6 +52,17 @@ struct Texts
     err_PayloadTruncated:   string = "ZIP entry payload is truncated"
     err_SizeMismatch:       string = "ZIP entry expands to a different size than its directory declares"
     err_Checksum:           string = "ZIP entry checksum does not match its directory"
+    err_TarNumber:          string = "TAR header contains an invalid or unsupported octal number"
+    err_TarChecksum:        string = "TAR header checksum does not match"
+    err_TarPath:            string = "TAR path is not valid UTF-8"
+    err_TarExtended:        string = "TAR extended header is invalid or exceeds the supported limit"
+    err_TarType:            string = "TAR entry type % is not supported"
+    err_TarPayloadOutside:  string = "TAR entry payload lies outside the file"
+    err_TarEnd:             string = "TAR archive has no valid end marker"
+    err_GzipHeader:          string = "GZIP header is invalid or truncated"
+    err_GzipTooLarge:        string = "GZIP stream is too large to open safely"
+    err_GzipChecksum:        string = "GZIP checksum does not match its payload"
+    err_GzipSize:            string = "GZIP payload size does not match its trailer"
     err_TempWrite:          string = "temporary preview file was not written completely"
 }
 

@@ -9,15 +9,31 @@ EPUB book navigation, layout, and reading position.
   sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
   returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
   The information sheet counts the chapters and gives the title, authors, language, publisher
-  and date of the package's Dublin Core metadata. Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
-  remain absent. Extraction still prepares every package member before the first chapter is shown.
+  and date of the package's Dublin Core metadata. Book-wide search now covers source text in each
+  spine chapter, one chapter per incremental callback, and search results navigate to and highlight
+  their chapter. A localized `chapter:`/`chapitre:` prefix limits results to the chapter currently
+  displayed; `book:`/`livre:` returns to book-wide search. The shared case, whole-word and regular
+  expression choices apply to either scope. Search jumps within the current chapter now add the
+  passage left behind to Back/Forward history, just as cross-chapter jumps do. Chapters larger
+  than 32 MiB or unreadable chapters are skipped with an explanation.
+  Landmarks, non-spine footnotes, persistent position restore and
+  bookmarks remain absent. Extraction still prepares every package member before the first chapter is shown.
   [File Viewer Plus 7](https://fileviewerplus.com/open/epub) opens EPUB in a document editor and
-  exports it to other formats. Book-wide search and exact chapter position are the first gaps
-  to close in Scope's chapter-based reading workflow.
-- Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
-  bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
+  exports it to other formats. Chapter-only search scope and exact chapter position are the
+  next gaps to close in Scope's chapter-based reading workflow.
+- Done: the shared search field supports both complete-book and current-chapter scopes, keeps
+  search options from the common contract, and routes results to their chapter and source offset.
+  Scope instructions are localized, and the `book:`/`livre:` alias returns to book-wide search.
+  A generated two-chapter EPUB test covers both scopes and verifies jumping to a cross-chapter hit.
+  Chapters larger than 32 MiB or chapters that cannot be read are skipped and called out by the
+  shared result count.
+- Next: add bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
+- Progress: within-chapter search jumps now record the passage left behind, so Back restores that
+  passage. A session-local bookmark stores the current chapter and logical position; returning to
+  it adds the place left behind to Back/Forward history. Persistent position restore and lazy
+  extraction of visible-chapter resources remain open.
 - Related: app.scope.archive.001
 
 ### app.scope.epub.002 — EPUB needs paged layout and persistent logical reading positions

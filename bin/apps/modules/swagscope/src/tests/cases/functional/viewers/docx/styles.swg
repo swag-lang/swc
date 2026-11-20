@@ -156,6 +156,17 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     Swag.require(Utf8.contains(document.html, "and a quieter ending."))
 }
 
+// The final section's authored paper and margin box drive the reading body's width and padding.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.styles.docx"))
+    Swag.require(document.pageWidth == 11906 and document.pageHeight == 16838)
+    Swag.require(document.marginTop == 1440 and document.marginRight == 1440 and
+                 document.marginBottom == 1440 and document.marginLeft == 1440)
+    Swag.require(Utf8.contains(document.html, "max-width:793.73px;min-height:1122.53px;"))
+    Swag.require(Utf8.contains(document.html, "padding:96.00px 96.00px 96.00px 96.00px;box-sizing:border-box;"))
+}
+
 // Real producer defaults and direct theme-tinted type retain their actual sizes and named typefaces.
 #test
 {

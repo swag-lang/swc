@@ -193,6 +193,9 @@ struct HtmlView
 
     internal
     {
+        readerMode: bool
+        styleSheetReaderMode: bool
+        readerStylesReady: bool
         late
         {
             scroll: *ScrollWnd
@@ -342,16 +345,35 @@ internal impl HtmlView
 
         // A reading measure the host asked for behaves like a user stylesheet: it applies before
         // anything the document says, so a page that sets its own width still wins.
-        if .styleSheetWidth != .documentStyle.maxContentWidth
+        if .styleSheetWidth != .documentStyle.maxContentWidth or .styleSheetReaderMode != .readerMode
         {
             .sheet.clear()
             .parsedStyleNodes.clear()
-            .styleSheetWidth = .documentStyle.maxContentWidth
+            .styleSheetWidth      = .documentStyle.maxContentWidth
+            .styleSheetReaderMode = .readerMode
+            .readerStylesReady    = false
             if .styleSheetWidth > 0 do
                 .sheet.parse(Format.toString("body { max-width: %px; margin-left: auto; margin-right: auto }", .styleSheetWidth).toString())
         }
 
+        let parsedStyleCount = .parsedStyleNodes.count
         .appendStyleSheets(0)
+        if .parsedStyleNodes.count != parsedStyleCount do
+            .readerStylesReady = false
+        if .readerMode and not .readerStylesReady
+        {
+            // This reader sheet is appended after the page's sheets. It uses the same parsed DOM
+            // and links, while giving semantic reading blocks a predictable measure and hiding
+            // common page furniture. Scripts remain inert in both modes.
+            .sheet.parse("""
+body { max-width: 720px !important; margin-left: auto !important; margin-right: auto !important; font-size: 18px !important; line-height: 1.6 !important; }
+nav, aside, footer, form { display: none !important; }
+main, article, section { display: block !important; position: static !important; float: none !important; width: auto !important; max-width: 720px !important; margin-left: auto !important; margin-right: auto !important; }
+p, li, blockquote, pre { line-height: 1.6 !important; }
+img, video, table { max-width: 100% !important; }
+""")
+            .readerStylesReady = true
+        }
     }
 
     private mtd appendStyleSheets(node: u32)
@@ -1447,6 +1469,23 @@ internal impl HtmlView
         .rebuild()
         .invalidate()
     }
+
+    // Switches between authored layout and a semantic reading sheet derived from the same DOM.
+    // Links and the current document remain owned by this view, so local fragments and links keep
+    // their normal navigation behavior. The first readable passage is restored after reflow.
+    public mtd setReaderMode(enabled: bool)
+    {
+        if .readerMode == enabled do
+            return
+        let passage = .readingPosition()
+        .readerMode = enabled
+        .rebuild()
+        discard .restoreReadingPosition(passage)
+        .invalidate()
+    }
+
+    // Reports whether this view is using the DOM-based reading sheet.
+    public mtd const isReaderMode()->bool => .readerMode
 
     // Measures an embedded document at `width` without exposing a nested scrolling surface.
     mtd embeddedHeight(width: f32)->f32

@@ -21,7 +21,7 @@ struct LocalDocument
                      LocalDocument{"viewer.csv", "table"},
                      LocalDocument{"sample.cpp", "code"},
                      LocalDocument{"viewer.srt", "subtitle"},
-                     LocalDocument{"segoeui.ttf", "font"},
+                     LocalDocument{"viewer.arabic.ttf", "font"},
                      LocalDocument{"viewer.html", "html"},
                      LocalDocument{"sample.svg", "image"}]
 

@@ -5,3 +5,4 @@ ui_Details  HTML
 ui_EncodingMarked   indicateur d’ordre des octets
 ui_EncodingDeclared déclaré par la page
 ui_EncodingDetected déduit des octets
+ui_ReaderView       Mode lecture

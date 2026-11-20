@@ -3,6 +3,23 @@
 
 using Core, Gui, Viewers
 
+// A complete Gutenberg book survives an ODT round-trip as hundreds of readable paragraphs.
+#test
+{
+    let document = expect Odt.Document.load(scopeTestDataPath("viewer.christmas-carol.odt"))
+    Swag.require(document.paragraphs > 800 and document.paragraphs < 900)
+    Swag.require(Utf8.contains(document.html, "Marley was dead") and document.images == 0)
+    Swag.require(document.readingWidth > 790 and Utf8.contains(document.html, "padding:76px 76px 76px 76px"))
+}
+
+// A LibreOffice-authored package sets the reading width and body inset from its page style.
+#test
+{
+    let document = expect Odt.Document.load(scopeTestDataPath("viewer.odt"))
+    Swag.require(document.readingWidth > 790 and document.readingWidth < 800)
+    Swag.require(Utf8.contains(document.html, "padding:76px 76px 76px 76px;box-sizing:border-box;"))
+}
+
 // Saved fields, whitespace, bookmarks and nested lists retain their readable sequence.
 #test
 {

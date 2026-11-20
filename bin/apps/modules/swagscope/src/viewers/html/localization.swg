@@ -14,6 +14,7 @@ struct Texts
     ui_EncodingMarked:   string = "byte-order mark"             // After the encoding name: a byte-order mark opening the file decided it.
     ui_EncodingDeclared: string = "declared by the page"        // After the encoding name: a charset label in the page decided it.
     ui_EncodingDetected: string = "detected from the bytes"     // After the encoding name: no mark or label, the bytes decided it.
+    ui_ReaderView:       string = "Reader View"
 }
 
 private const FrenchStringsName = "lang/fr/scope.html.tweak"

@@ -3,6 +3,29 @@
 
 using Core, Viewers
 
+// A valid authored page size and inset map to a bounded CSS reading surface.
+#test
+{
+    var styles: Odf.StyleCatalog
+    expect styles.read("<styles><page-layout-properties page-width='8.27in' margin-top='0.8in' margin-bottom='0.5in' margin-left='2cm' margin-right='2cm'/></styles>")
+    Swag.require(styles.page.valid and not styles.page.limited)
+    Swag.require(Math.abs(styles.page.pageWidthCssPixels() - 794) < 1)
+    Swag.require(styles.page.cssInsets() == "77px 76px 48px 76px")
+}
+
+// Multiple or out-of-range page layouts disclose approximation and keep safe defaults.
+#test
+{
+    var multiple: Odf.StyleCatalog
+    expect multiple.read("<styles><page-layout-properties page-width='8in'/><page-layout-properties page-width='11in'/></styles>")
+    Swag.require(multiple.page.valid and multiple.page.limited and multiple.page.width == 576)
+
+    var invalid: Odf.StyleCatalog
+    expect invalid.read("<styles><page-layout-properties page-width='99999pt'/></styles>")
+    Swag.require(not invalid.page.valid and invalid.page.limited)
+    Swag.require(invalid.page.pageWidthCssPixels() == 680 and invalid.page.cssInsets() == "24px")
+}
+
 // Relative ODF styles compose absolutely; normal and zero explicitly reset inherited properties.
 #test
 {

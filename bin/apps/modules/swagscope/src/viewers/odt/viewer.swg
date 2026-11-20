@@ -53,7 +53,7 @@ private impl IWnd for Panel
         }
 
         var style = HtmlStyle.theme()
-        style.maxContentWidth = 680
+        style.maxContentWidth = .document.readingWidth
         style.followTheme     = false
         with .view = HtmlView.createText(me, .document.html, style)
         {

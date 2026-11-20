@@ -3,6 +3,16 @@
 
 using Core, Gui, Gui.Testing, Viewers
 
+// The generated Word conversion preserves the complete public-domain story and its late ending.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.christmas-carol.docx"))
+    Swag.require(document.paragraphs > 800 and document.paragraphs < 900)
+    Swag.require(Utf8.contains(document.html, "Marley was dead: to begin with."))
+    Swag.require(Utf8.contains(document.html, "Scrooge was better than his word."))
+    Swag.require(Utf8.contains(document.html, "God bless Us, Every One!"))
+}
+
 // Basic Word content becomes a reading page with escaped text, tables, and named omissions.
 #test
 {

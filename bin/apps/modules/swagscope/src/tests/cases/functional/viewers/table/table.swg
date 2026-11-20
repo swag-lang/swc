@@ -3,12 +3,43 @@
 
 using Core, Pixel, Gui, Viewers
 
+// A generated monthly survey table keeps its field labels and twelve realistic observations.
+#test
+{
+    let source = expect File.readAllText(scopeTestDataPath("viewer.field-observations.csv"))
+    let delimiter = Table.detectDelimiter("viewer.field-observations.csv", source)
+    let document = expect Table.parseDocument(source, delimiter)
+    Swag.require(document.columns.count == 6 and document.rows.count == 12)
+    Swag.require(document.columns[0] == "site_id" and document.columns[4] == "conductivity_us_cm")
+    Swag.require(document.rows[2].cells[0] == "north-marsh" and document.rows[2].cells[3] == "38")
+    Swag.require(document.rows[6].cells[1] == "2026-05-18T09:10:00Z")
+}
+
 #test
 {
     Swag.require(Viewer.isByteRangeInBounds(4, 0, 4))
     Swag.require(Viewer.isByteRangeInBounds(4, 4, 0))
     Swag.require(not Viewer.isByteRangeInBounds(4, Swag.U64.Max, 1))
     Swag.require(not Viewer.isByteRangeInBounds(4, 1, Swag.U64.Max))
+}
+
+// A numeric kind uses its opening sample, while the information sheet counts later contradictory
+// values across the whole in-memory table instead of silently treating them as empty quantities.
+#test
+{
+    Table.registerTexts(&g_App)
+    var source: String = "measurement\n"
+    for index in 128 do
+        source += Format.toString("%\n", index + 1)
+    source += "unknown\n"
+    var document = expect Table.parseDocument(source, ',')
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let view = Table.Panel.createDocument(&host.root, #move document)
+    Swag.require(view.kinds.count == 1 and view.kinds[0] == .Integer)
+    view.profileColumns()
+    Swag.require(Utf8.contains(view.profileText(0), Format.toString(Table.texts().ui_Inconsistent, 1).toString()))
 }
 
 // Quantities align on the right; a word, or a cell with no digit at all, keeps the column textual.
@@ -154,6 +185,54 @@ using Core, Pixel, Gui, Viewers
     Swag.require(Table.quantityOf("1,5", &quantity) and quantity == 1.5)
     Swag.require(Table.quantityOf("1,234.5", &quantity) and quantity == 1234.5)
     Swag.require(Table.quantityOf("12 %", &quantity) and quantity == 12)
+}
+
+// Year-first dates sort by their calendar fields even when the source mixes separators. A
+// timestamp on the same day keeps its source-time order.
+#test
+{
+    Swag.require(Table.dateKey("2025-12-31") < Table.dateKey("2026-01-02") and
+                 Table.dateKey("2026-01-02") < Table.dateKey("2026/02/04"), "date key ordering")
+    var document = expect Table.parseDocument("day\n2026/02/04\n2025-12-31\n2026-01-02T09:00:00Z\n2026-01-02T08:00:00Z\n2026-01-02T08:00:00Z\n", ',')
+    var host: Testing.HeadlessHost
+    host.setup(760, 480)
+    let view = Table.Panel.createDocument(&host.root, #move document)
+    view.sortBy(0)
+    Swag.require(view.kinds[0] == .Date)
+    Swag.require(not view.numeric[0], "date column was marked numeric")
+    Swag.require(view.order[0] == 1 and view.order[1] == 3 and view.order[2] == 4 and
+                 view.order[3] == 2 and view.order[4] == 0,
+                 Format.toString("order: % % % % %", view.order[0], view.order[1], view.order[2], view.order[3], view.order[4]).toString())
+    view.sortBy(0)
+    Swag.require(view.order[0] == 0 and view.order[1] == 2 and view.order[2] == 3 and
+                 view.order[3] == 4 and view.order[4] == 1)
+
+    var plainDates = expect Table.parseDocument("day\n2026-02-04\n2025-12-31\n", ',')
+    let plainView = Table.Panel.createDocument(&host.root, #move plainDates)
+    Swag.require(plainView.kinds[0] == .Date and not plainView.numeric[0])
+    plainView.sortBy(0)
+    Swag.require(plainView.order[0] == 1 and plainView.order[1] == 0)
+}
+
+// A date that contradicts the first 128 rows remains visible at the end instead of masquerading
+// as an enormous quantity or a valid calendar date.
+#test
+{
+    Table.registerTexts(&g_App)
+    var source: String = "day\n"
+    for 128 do
+        source += "2026-01-02\n"
+    source += "2025-02-29\n"
+    var document = expect Table.parseDocument(source.toString(), ',')
+    var host: Testing.HeadlessHost
+    host.setup(760, 480)
+    let view = Table.Panel.createDocument(&host.root, #move document)
+    Swag.require(view.kinds[0] == .Date)
+    view.sortBy(0)
+    Swag.require(view.order[view.order.count - 1] == 128)
+    Swag.require(not Table.isDateCell("2025-02-29"))
+    view.profileColumns()
+    Swag.require(Utf8.contains(view.profileText(0), Format.toString(Table.texts().ui_Inconsistent, 1).toString()))
 }
 
 #test

@@ -6,13 +6,13 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image")
+    picturedViewer(picturedFixture("viewer.synthetic-review.webp"), false, "pictured.image")
     picturedViewer(picturedFixture("viewer.csv"), true, "pictured.table.paper")
     picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper")
-    picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper", 1280, 800)
+    picturedViewer(picturedFixture("viewer.arabic.ttf"), true, "pictured.font.paper", 1280, 800)
 
     var binaryHost: Testing.HeadlessHost
-    photographViewer(&binaryHost, picturedWindowAs(&binaryHost, picturedFixture("segoeui.ttf"), "binary", false), "pictured.binary")
+    photographViewer(&binaryHost, picturedWindowAs(&binaryHost, picturedFixture("viewer.arabic.ttf"), "binary", false), "pictured.binary")
 }
 
 // The return action sits after the application glyph and stays centred across viewers.
@@ -29,7 +29,7 @@ using Core, Pixel, Gui, Viewers
                  picturedFixture("title.png"),
                  picturedFixture("viewer.csv"),
                  picturedFixture("viewer.page.html"),
-                 picturedFixture("segoeui.ttf"),
+                 picturedFixture("viewer.arabic.ttf"),
                  picturedFixture("viewer.pdf"),
                  picturedFixture("ffmpeg-h264-two-aac.mkv"),
                  picturedFixture("pacman_beginning.wav"),

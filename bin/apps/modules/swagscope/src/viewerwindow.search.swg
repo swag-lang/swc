@@ -375,8 +375,13 @@ impl ViewerWindow
                 if instance.view and instance.explainSearch
                 {
                     let reason = instance.explainSearch(.searchQuery)
-                    if not reason.isEmpty() do
+                    if not reason.isEmpty()
+                    {
+                        // Mark a count whose search could not cover the whole document. The
+                        // tooltip names the missing pages or unreadable text.
+                        .searchCountLabel.setText(Format.toString("%*", .searchCountLabel.text()))
                         .searchCountLabel.toolTip = Format.toString("% · %", .searchCountLabel.text(), reason)
+                    }
                 }
             }
         }

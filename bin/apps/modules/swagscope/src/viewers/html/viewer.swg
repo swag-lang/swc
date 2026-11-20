@@ -81,6 +81,7 @@ private impl Panel
     // Gives the lens the zoom of the page.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        entries.add(texts().ui_ReaderView, .Wrap, func|viewer = me|() { viewer.view.setReaderMode(not viewer.view.isReaderMode()) }, checked: .view.isReaderMode())
         entries.addZoom(.In, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { viewer.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { viewer.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { viewer.setZoom(percent) })

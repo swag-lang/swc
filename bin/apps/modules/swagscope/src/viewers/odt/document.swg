@@ -6,13 +6,14 @@ using Core, Pixel
 // A self-contained reading projection of an OpenDocument text package.
 struct Document
 {
-    html:       String
-    paragraphs: u64
-    tables:     u64
-    images:     u64
-    omitted:    u64
-    simplified: bool
-    properties: Package.DocumentProperties     // What the package says of the document.
+    html:         String
+    readingWidth: f32 = 680
+    paragraphs:   u64
+    tables:       u64
+    images:       u64
+    omitted:      u64
+    simplified:   bool
+    properties:   Package.DocumentProperties     // What the package says of the document.
 }
 
 private struct Inline
@@ -501,8 +502,13 @@ private impl Reader
            not .cells.isEmpty() or
            not .lists.isEmpty() do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        let background   = .styles.pageColor.isEmpty() ? String.from("FFFFFF") : .styles.pageColor
-        var html: String = "<html><head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}table{border-collapse:collapse}td{vertical-align:top}</style></head><body style=\"padding:24px;box-sizing:border-box;"
+        .document.readingWidth = .styles.page.pageWidthCssPixels()
+        .document.simplified   = .document.simplified or .styles.page.limited
+        let background         = .styles.pageColor.isEmpty() ? String.from("FFFFFF") : .styles.pageColor
+        let insets             = .styles.page.cssInsets()
+        var html: String = "<html><head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}table{border-collapse:collapse}td{vertical-align:top}</style></head><body style=\"padding:"
+        html += insets.toString()
+        html += ";box-sizing:border-box;"
         let rgb          = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
         let luma         = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
         html += Format.toString("background-color:#%;color:#%\">", background, luma < 128000 ? "FFFFFF" : "202024")

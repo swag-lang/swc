@@ -2,10 +2,18 @@
 
 ui_ZoomMenu Zoom…
 ui_HighlightAs Colorer comme %
+ui_PlainText Texte brut
 ui_Blanks   Afficher les espaces
 ui_TabWidth Largeur des tabulations
 ui_MatchingDelimiter Aller au délimiteur correspondant
+ui_DelimiterUnavailable % · aucun délimiteur correspondant dans le texte chargé
 ui_Details  % · UTF-8
+ui_Detection % · UTF-8 · détecté par %
+ui_ManualDetails % · UTF-8 · langue choisie manuellement
+ui_ExtensionEvidence extension %
+ui_FilenameEvidence nom de fichier %
+ui_ShebangEvidence ligne d’interpréteur
+ui_DefaultEvidence langage par défaut C
 
 err_Read     impossible de lire le fichier source
 err_ZeroByte le fichier contient un octet nul et n'est pas du texte UTF-8 pris en charge

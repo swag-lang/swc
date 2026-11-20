@@ -3,6 +3,34 @@
 
 using Core, Pixel, Gui, Video, Audio, Viewers
 
+// A generated H.264 field scene decodes at its declared rate and changes when the viewer seeks.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let fileName = scopeTestDataPath("viewer.synthetic-field.mp4")
+    var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName)
+    let view     = assume cast(*Film.Panel, result.view)
+    view.autoPlayPending = false
+    waitForVideoFrame(view)
+
+    Swag.require(view.video.width() == 320 and view.video.height() == 180)
+    Swag.require(view.video.frameCount() == 150)
+    Swag.require(Math.isEqualEpsilon(view.video.frameRate().framesPerSecond(), 25, 0.01))
+    Swag.require(Math.isEqualEpsilon(view.video.durationInSeconds(), 6, 0.01))
+    Swag.require(view.frameIndex == 0 and not view.hasFailure)
+    let opening = host.render(&host.root)
+    Swag.require(opening.isValid())
+
+    view.seekFrame(75)
+    waitForVideoFrame(view)
+    Swag.require(view.frameIndex == 75 and not view.hasFailure)
+    let middle = host.render(&host.root)
+    Swag.require(middle.isValid() and not Slice.equals(opening.pixels.toSlice(), middle.pixels.toSlice()))
+}
+
 // Opening fades are excluded; histogram selection returns a representative later scene.
 #test
 {

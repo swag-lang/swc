@@ -480,6 +480,7 @@ func picturedViewer(fileName: string, light: bool, golden: string, width = 960, 
         {
             view.imageView.setPaused(true)
             view.imageView.setFrameIndex(0)
+            view.refreshFrame()
             Swag.require(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
         }
 

@@ -21,6 +21,7 @@ struct Texts
     ui_Range:           string = "% to %"             // Smallest and largest quantity of a column, in the information sheet.
     ui_Mean:            string = "mean %"             // Mean of the quantities of a column.
     ui_Empty:           string = "% empty"            // Count of empty cells of a column.
+    ui_Inconsistent:    string = "% inconsistent"     // Count of non-empty values that contradict the inferred column kind.
     ui_MoreColumns:     string = "% more columns"     // Columns the information sheet does not profile.
     ui_CopyRows:        string = "Copy Rows"          // Lens command copying the selected rows, or the focused one, as tab-separated text.
     ui_CopyRowsNames:   string = "Copy Rows with Column Names"     // The same, after a line of column names.

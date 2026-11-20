@@ -1,0 +1,45 @@
+NORTH BASIN FIELD OFFICE
+Résumé de tournée — Weekly Wetland Survey
+Report 26-05  |  18 May 2026  |  Prepared by the volunteer monitoring team
+
+PURPOSE
+This generated sample report records one morning route through three fictional monitoring
+sites. All place names, people, observations, and measurements are invented for reader tests.
+The survey notes and résumé use UTF-8 text so names and punctuation survive the reading pass.
+
+ROUTE AND CONDITIONS
+Start: 08:00 at the north boardwalk gate
+Finish: 10:15 at the river footbridge
+Weather: high cloud, light northerly wind, no rain during the survey
+Trail: lower crossing open; the eastern boardwalk remains closed for repair
+
+OBSERVATION SUMMARY
+Site          Time (UTC)  Air (C)  Water (cm)  Conductivity  Review
+------------  ----------  -------  ----------  ------------  --------
+North Marsh   08:25       14.2     38          284 uS/cm     checked
+Old Quarry    09:10       13.8     12          415 uS/cm     checked
+River Gate    09:50       15.1     44          198 uS/cm     checked
+
+SITE NOTES
+
+North Marsh
+The west gauge was clear and the reading settled after the probe was rinsed. Reed cover was
+unchanged from last week. A short line of fresh tracks crossed the mud beside marker NM-03;
+the team recorded them without leaving the raised path.
+
+Old Quarry
+The standing-water level was two centimetres above the previous visit. Conductivity stayed
+within the expected spring range. The sample labels were replaced after calibration because
+the marker ink had run in the cooler. The spare labels are stored with the field kit.
+
+River Gate
+The lower footbridge was dry and the public path remained passable. A bottle cap was collected
+from the marked collection point. The nearby drain was clear; no unusual colour or odour was
+observed.
+
+FOLLOW-UP
+1. Recheck the Old Quarry gauge after the next rainfall.
+2. Bring weather-resistant labels and the spare probe battery on the next visit.
+3. Ask the route lead to confirm when the eastern boardwalk can reopen.
+
+END OF REPORT

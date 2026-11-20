@@ -23,11 +23,12 @@ viewer packages, helper binaries, or network service required to open supported 
    [PPTX](app.scope.pptx.md) and [ODP](app.scope.odp.md). Keep the document ahead of its raw
    archive view. Include partial PDF rendering, bounded loading and explicit omissions in the
    comparison. [File Viewer Plus 7 documents and formats](https://fileviewerplus.com/support/supported_file_formats)
-2. **PDF navigation, output and shared printing.** Prioritize a page thumbnail index and
-   page-range export in [PDF](app.scope.pdf.md), alongside the shared print path in
-   app.scope.viewers.002. Use mixed text and scanned PDFs to establish search coverage before
-   taking up OCR. Keep [EPUB](app.scope.epub.md) book-wide search and [CBZ](app.scope.comic.md)
-   page layouts in their existing reader plans. [File Viewer Plus PDF controls](https://fileviewerplus.com/support/pdf_files),
+2. **PDF navigation, output and shared printing.** The bounded thumbnail rail and sequential,
+   DPI-selectable export of up to 50 PDF pages are complete. Next extend the shared print path in
+   app.scope.viewers.002 and add safe embedded-asset inspection in [PDF](app.scope.pdf.md). Use
+   mixed text and scanned PDFs to establish search coverage before taking up OCR. Keep
+   [EPUB](app.scope.epub.md) book-wide search and [CBZ](app.scope.comic.md) page layouts in their
+   existing reader plans. [File Viewer Plus PDF controls](https://fileviewerplus.com/support/pdf_files),
    [scan and OCR workflow](https://fileviewerplus.com/whats_new)
 3. **Formats that block opening.** Finish the ZIP integrity baseline and add TAR/GZIP first,
    then 7z and RAR under [Archive](app.scope.archive.md). Prioritize HEIC and embedded camera
@@ -40,7 +41,7 @@ viewer packages, helper binaries, or network service required to open supported 
    latency, cancellation, keyboard use, Encre and Papier in the acceptance checks.
    [File Viewer Plus workspace](https://fileviewerplus.com/features), [folder search and previews](https://fileviewerplus.com/whats_new)
 
-Additional format families such as notebooks, DjVu, XPS, mail, Visio, Project, CAD and DICOM
+Additional format families such as DjVu, XPS, mail, Visio, Project, CAD and DICOM
 remain product decisions after these priorities. Editing and batch conversion are separate
 product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/support/supported_file_formats)
 
@@ -81,25 +82,28 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
-- Evidence: the 24 registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 118 canonical and variant files, checks
-  each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, RTF, XLSX and PPTX have
-  content and damaged-package cases. Five complete, openly licensed published documents add
-  content checks for EPUB, Office and PDF, with source URLs and SHA-256 hashes. Text covers queued encoding changes, cancellation and CRLF
-  search offsets; shared document outlines have
-  their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
+- Evidence: the 25 registered viewers have focused tests and viewer-specific goldens. The
+  fixture matrix now names all 180 `viewer.*` files plus two standalone font variants, checks each
+  entry's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, ODT, RTF, XLSX, ODS,
+  PPTX and ODP have content and
+  damaged-package cases. Seven complete, openly licensed published documents plus generated
+  public-domain ODT/RTF story conversions add long-form checks for EPUB, office formats and PDF.
+  Repository-generated examples now exercise a nested project ZIP/JAR, ELF and telemetry binary,
+  multi-track MIDI, tagged field audio, a generated H.264 clip, a mixed text/scan PDF, an animated
+  WebP and a two-page comic, a watershed SVG/ODP, an OFL font collection, and realistic code, text,
+  subtitles, HTML and CSV. Their source, licence or generation steps and SHA-256 hashes are recorded
+  in the fixture guide. Text covers queued encoding changes, cancellation and CRLF search offsets; shared
+  document outlines have their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
   These tests still do not declare a complete matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
   selection-to-first-content latency under rapid adjacent-file browsing.
-- Next: publish one matrix per registered viewer with representative public fixtures, required
-  malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
-  content budgets for cold open, warm open, and replacement before the previous viewer settles;
-  measure peak resident memory, bytes read before first content, and adjacent-file navigation.
-  Start with DOCX, XLSX, PPTX and PDF against File Viewer Plus 7 on the same machine and inputs.
-  Record open/fallback behavior, rendered omissions, first-content latency and peak memory as
-  separate results. Add native archive and media variants from the delivery plan next, and keep
-  the category references for the specialized workflows in the viewer audit. Set absolute
-  thresholds before making a performance result a regression gate.
+- Next: extend the fixture matrix beyond viewer selection and image decoding: map every fixture
+  to content assertions, bounded-resource cases, interaction checks and visual states. Start with
+  the weakest document readers and then fill behavior gaps in the archive and media variants from
+  the delivery plan. Compare DOCX, XLSX, PPTX and PDF against File Viewer Plus 7 on the same machine
+  and inputs. Measure cold and warm first-content latency, replacement cancellation, peak resident
+  memory and bytes read before first content; set absolute thresholds before making performance a
+  regression gate.
 - Done when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
   format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
@@ -114,7 +118,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   directory on a clean offline Windows profile. Statically include or embed required Swag runtime,
   codec, font, and viewer assets; keep any parser worker as a mode of the same executable.
 - Done when: one `swagscope.exe` with no adjacent payload opens representative fixtures for all
-  twenty-one registered viewers offline, including after a clean reboot; a release gate checks its
+  twenty-five registered viewers offline, including after a clean reboot; a release gate checks its
   import closure and installed-file manifest, and no reader calls an external decoder or service.
 - Related: app.scope.viewers.009, app.scope.viewers.011
 
@@ -151,7 +155,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format
   detection explains its evidence, hashes are cancellable for large files, and viewers can link a
   property to the content it describes.
-- Related: app.scope.hexa.017, app.scope.image.011
+- Related: app.scope.hexa.017, app.scope.image.003
 
 ### app.scope.viewers.011 — Attacker-controlled decoders share the application process
 
@@ -192,7 +196,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   through the system print dialog. Its [spreadsheet preview](https://fileviewerplus.com/support/spreadsheet_files)
   shows the page layout before printing.
 - Next: use PDF as the first consumer of the GUI pagination and preview contract. Share the
-  page-range selection with app.scope.pdf.008, then extend the adapter to other paginated formats.
+  existing page-range selection with printing, then extend the adapter to other paginated formats.
 - Done when: PDFs can preview and print a selected range, and Office, text, code, Markdown, HTML,
   image and hexadecimal dump views use the shared contract with actual-size or fit-to-page choices.
 - Related: std.gui.030, platform.portability.086, std.gui.034
@@ -325,7 +329,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | Plain text | `.txt` | full, streamed | addresses, gutter, non-resident ranges | [app.scope.text.002](app.scope.text.md) |
 | Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.config.002](app.scope.config.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
-| Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.code.001](app.scope.code.md) |
+| Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring, explained detection, per-file persistent overrides | outline, folding, overview | [app.scope.code.001](app.scope.code.md), [app.scope.code.002](app.scope.code.md), [app.scope.code.003](app.scope.code.md) |
 | Markdown | `.md` `.markdown` | rendered and raw text with filterable heading outline | current-section tracking, synchronized source, resource diagnostics | [app.scope.markdown.001](app.scope.markdown.md) |
 | HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.html.002](app.scope.html.md), [HTML roadmap](std.gui.html.md) |
 | Archived HTML | `.mht` `.mhtml` | generic fallbacks | qualify a local page and embedded resources in the format matrix | [app.scope.viewers.009](app.scope.viewers.md), [app.scope.html.004](app.scope.html.md) |
@@ -334,9 +338,9 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | YAML and TOML | `.yaml` `.yml` `.toml` | code and raw text | typed tree and paths | [app.scope.config.001](app.scope.config.md) |
 | Diff and patch | `.diff` `.patch` | text | parsed files/hunks, intraline and side-by-side views | [app.scope.diff.001](app.scope.diff.md) |
 | Log | `.log` | text | entries, start-at-tail/follow, queries, structured fields, timelines | [app.scope.log.001](app.scope.log.md), [app.scope.log.002](app.scope.log.md) |
-| Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.subtitle.001](app.scope.subtitle.md) |
+| Subtitles | `.srt` `.vtt` `.ass` `.ssa` | searchable cue timeline, overlap markers, cue-aware copy/export with parser-loss counts | source/styled modes, media check | [app.scope.subtitle.002](app.scope.subtitle.md), [app.scope.subtitle.003](app.scope.subtitle.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.table.001](app.scope.table.md), [app.scope.table.002](app.scope.table.md) |
-| PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.pdf.001](app.scope.pdf.md), [app.scope.pdf.002](app.scope.pdf.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
+| PDF | `.pdf` | page rendering, bookmarks, page-label navigation, five-page thumbnail rail, bounded page-range PNG export | partial pages, facing pages, region/table selection, embedded-asset inventory | [app.scope.pdf.001](app.scope.pdf.md), [app.scope.pdf.006](app.scope.pdf.md), [app.scope.pdf.009](app.scope.pdf.md), [std.gui.pdf.038](std.gui.pdf.md) |
 | DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.docx.001](app.scope.docx.md) |
 | XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.xlsx.001](app.scope.xlsx.md) |
 | PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.pptx.001](app.scope.pptx.md) |
@@ -348,7 +352,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | Comic book | `.cbz` | natural-order single image pages, page jump and optional right-to-left keys | spreads, continuous scroll and saved position | [app.scope.comic.001](app.scope.comic.md) |
 | RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.rtf.001](app.scope.rtf.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
-| Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.notebook.001](app.scope.notebook.md) |
+| Notebook | `.ipynb` | ordered Markdown/code cells, plain text outputs/errors, heading outline; active MIME content omitted | cell search, metadata and attachments | [app.scope.notebook.001](app.scope.notebook.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
 #### Images
@@ -357,13 +361,13 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | --- | --- | --- | --- | --- |
 | Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.qoi` `.tga` `.tiff` `.webp` | full | pixel, histogram, comparison, progressive huge-image tools | [app.scope.image.001](app.scope.image.md) |
 | Vector | `.svg` | full | masks, radial focal points | std.pixel.image.010, std.pixel.image.008 |
-| Metadata | EXIF, ICC, XMP | PNG text and interpreted EXIF panel; opaque profile records | applied orientation, ICC identity, XMP properties, color management | [app.scope.image.011](app.scope.image.md) |
+| Metadata | EXIF, ICC, XMP | PNG text and EXIF; JPEG/WebP ICC color space, PCS and `desc`/`mluc` names; namespace-qualified XMP title, creator, description, rights, subject, dates and creator tool | other ICC formats, other XMP schemas, color management | [app.scope.image.003](app.scope.image.md) |
 | Simple raster | `.pnm` `.ppm` | none | Pixel codecs | — |
 | HEIF still images | `.heic` | none | qualify still-image profiles and orientation first | [app.scope.viewers.009](app.scope.viewers.md) |
 | Other modern codecs | `.avif` `.jxl` | none | Pixel codecs | std.pixel.image.026, std.pixel.image.027 |
 | High dynamic range | `.exr` `.hdr` | EXR images and indexed parts | Radiance HDR codec | — |
-| Layered | `.psd` `.xcf` | PSD composite and indexed layers; XCF signature | descriptive layer navigation | [app.scope.image.008](app.scope.image.md) |
-| GPU textures | `.dds` `.ktx2` | indexed levels, layers, faces, and slices, including BC1–BC5 decode | subresource labels and compressed upload | [app.scope.image.008](app.scope.image.md), std.pixel.image.041, std.pixel.image.042 |
+| Layered | `.psd` `.xcf` | PSD composite and bounded indexed layer selector; XCF signature | — | — |
+| GPU textures | `.dds` `.ktx2` | indexed levels, layers, faces, slices and visible-first bounded thumbnails; BC1–BC5 decode | compressed upload | std.pixel.image.041, std.pixel.image.042 |
 | Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [app.scope.image.012](app.scope.image.md) |
 
 #### Audio and video
@@ -391,8 +395,8 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | Swag chunk container | `.scc` | structure through `Core.Scc` | — | — |
 | ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested provenance, archive-wide integrity, encrypted/variant policy | [app.scope.viewers.020](app.scope.viewers.md), [app.scope.archive.002](app.scope.archive.md) |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.archive.001](app.scope.archive.md) |
-| TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [app.scope.font.001](app.scope.font.md) |
-| CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF1 font engine | CFF specimen registration; WOFF1 viewer routing; WOFF2 support | [app.scope.font.013](app.scope.font.md), std.truetype.002 |
+| TrueType fonts | `.ttf` `.ttc` | specimen, collection-face selector, and character map | glyph/metric/coverage inspection | [app.scope.font.002](app.scope.font.md), [app.scope.font.003](app.scope.font.md) |
+| CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType specimen; WOFF1 font engine | WOFF1 viewer routing; WOFF2 support | [std.truetype.002](std.truetype.md) |
 | Program databases | `.pdb` | signature | MSF streams and CodeView match | [app.scope.binary.014](app.scope.binary.md) |
 | Databases | `.sqlite` `.db` | signature | schema and bounded table browse | [app.scope.binary.012](app.scope.binary.md) |
 | Certificates and keys | `.pem` `.der` `.crt` `.p12` | printable PEM as text; binary inspection otherwise | ASN.1 and X.509 decode | [app.scope.binary.013](app.scope.binary.md) |

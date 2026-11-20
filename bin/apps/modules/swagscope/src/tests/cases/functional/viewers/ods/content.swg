@@ -3,6 +3,32 @@
 
 using Core, Gui, Viewers
 
+// Calc's number styles survive without cached display text; raw values remain readable and omissions explicit.
+#test
+{
+    let workbook = expect Ods.load(scopeTestDataPath("viewer.number-formats.ods"))
+    Swag.require(workbook.sheets.count == 2 and workbook.cells > 40)
+    Swag.require(workbook.omittedFormats == 30)
+
+    let sheet = &workbook.sheets[0]
+    Swag.require(sheet.name == "Season summary" and sheet.rowCount == 7)
+    let title = unwrap sheet.cellAt({0, 0})
+    Swag.require(Utf8.contains(title.text, "North Basin Monitoring"))
+    let titleStyle = workbook.styles.look(title.style)
+    Swag.require(titleStyle.font.bold and titleStyle.fill == 0xFF216A56)
+
+    // Currency, percentage, date and elapsed-time cells have no cached text, so raw values remain.
+    Swag.require((unwrap sheet.cellAt({2, 1})).text == "2026-05-18")
+    Swag.require((unwrap sheet.cellAt({2, 2})).text == "12")
+    Swag.require((unwrap sheet.cellAt({2, 3})).text == "38.25")
+    Swag.require((unwrap sheet.cellAt({2, 4})).text == "0.125")
+    Swag.require((unwrap sheet.cellAt({2, 5})).text == "1250.5")
+    Swag.require((unwrap sheet.cellAt({2, 6})).text == "PT02H45M00S")
+    Swag.require((unwrap sheet.cellAt({3, 5})).text == "-45.5")
+    Swag.require((unwrap sheet.cellAt({6, 4})).text == "-0.225")
+    Swag.require((unwrap sheet.cellAt({4, 5})).text == "0")
+}
+
 // Saved formatted paragraphs win over raw numbers; missing cached formulas stay explicit.
 #test
 {

@@ -5,11 +5,25 @@ ui_Cues    % sous-titres
 ui_GoToCue Aller au sous-titre
 ui_GoToCueNumber Aller au sous-titre %
 ui_CopyCue Copier le sous-titre
+ui_CopySelectedCues Copier les sous-titres sélectionnés
+ui_SelectCuesHint Maj+clic ou Maj+↑/↓ sélectionne une plage; Ctrl+Maj+C la copie.
 ui_CopyDialogue Copier les dialogues
+ui_CopyNormalized Copier la transcription normalisée…
+ui_ExportNormalized Exporter la transcription normalisée…
+ui_NormalizationTitle Normaliser la transcription de sous-titres
+ui_NormalizationLoss La source % devient % sous-titres décodés au format SubRip; enregistrements malformés ou vides ignorés par l’analyse : %. Le lecteur ne conserve que les temps et le texte brut; les identifiants, styles, positions et balises de la source sont perdus.
+ui_NormalizationQuestion Continuer avec cette transcription normalisée ?
+ui_NormalizationFile Sous-titres SubRip
+ui_ExportTooLarge La transcription normalisée dépasse la limite d’export de 64 Mio.
 ui_CuePosition Sous-titre % / %
 ui_CueRange Entrez un numéro de sous-titre entre 1 et %.
 ui_GoToTime Aller au temps
 ui_TimeRange Entrez des secondes, MM:SS ou HH:MM:SS.
+ui_FilterDuration Filtrer par durée minimale
+ui_ClearDurationFilter Afficher tous les sous-titres
+ui_FilterDurationHint Entrez une durée minimale en secondes; 0 rétablit tous les sous-titres. La recherche porte toujours sur tous les sous-titres.
+ui_FilterMarker Sous-titres ≥ %{f2} s
+ui_OverlapMarkerHint Les bandes colorées regroupent les sous-titres qui se chevauchent. Cliquez sur la règle pour naviguer.
 ui_PreviousCue Sous-titre précédent
 ui_NextCue Sous-titre suivant
 ui_FirstCue Premier sous-titre

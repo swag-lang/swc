@@ -15,6 +15,10 @@ ui_ByteOrder     Ordre des octets
 ui_ZoomMenu Zoom…
 ui_Empty         Ce fichier est vide.
 ui_GoTo          Aller au décalage
+ui_Back          Précédent
+ui_Forward       Suivant
+ui_SetBookmark   Marquer l’offset actuel
+ui_GoToBookmark  Aller à l’offset marqué (%)
 ui_GoToMessage   Décalage hexadécimal ou décimal préfixé par 0d, pourcentage, caret, filesize, ou décalage signé depuis le curseur.
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
@@ -60,6 +64,7 @@ err_AnalysisShortRead   Le fichier se termine avant la plage d’analyse
 ui_CopyBytes     Copier les octets
 ui_CopyText      Copier le texte
 ui_CopyDump      Copier le dump
+ui_CopyFormats   Autres formats de copie
 ui_CopyOffset    Copier le décalage %
 
 ui_CopyBytesMax  Copier les % premiers en octets

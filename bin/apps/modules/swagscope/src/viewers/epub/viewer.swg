@@ -62,6 +62,45 @@ struct ReadingVisit
     fragment: String
 }
 
+private const SearchChapterLimit = 32 * 1024 * 1024'u64
+
+private struct SearchQuery
+{
+    text:        String
+    chapterOnly: bool
+}
+
+// Search the book by default. Scope prefixes stay stable across languages; translated help shows
+// `chapter:`/`book:` or their French aliases.
+private func parseSearchQuery(query: string)->SearchQuery
+{
+    var result: #returntype
+    let typed = Latin1.trim(query)
+    let colon = Utf8.indexOf(typed, ':'rune)
+    if colon == Swag.U64.Max
+    {
+        result.text = String.from(query)
+        return result
+    }
+
+    let scopeName = Latin1.trim(typed[0 until colon])
+    if Utf8.compare(scopeName, "chapter", .Latin1NoCase) == 0 or Utf8.compare(scopeName, "chapitre", .Latin1NoCase) == 0
+    {
+        result.chapterOnly = true
+        result.text        = String.from(Latin1.trim(typed[colon + 1 to]))
+    }
+    elif Utf8.compare(scopeName, "book", .Latin1NoCase) == 0 or Utf8.compare(scopeName, "livre", .Latin1NoCase) == 0
+    {
+        result.text = String.from(Latin1.trim(typed[colon + 1 to]))
+    }
+    else
+    {
+        result.text = String.from(query)
+    }
+
+    return result
+}
+
 impl Panel
 {
     // Describes the book in the information sheet: its chapters, then what its package says of it.
@@ -103,9 +142,12 @@ struct Panel
     zoomPercent:     u32 = 100
     readingColumn:   ReadingColumn = .Comfortable
     history:         Viewer.History'ReadingVisit
+    bookmark:        ReadingVisit
+    hasBookmark:     bool
     pendingPosition: HtmlReadingPosition
     fragment:        String
     canvasColor:     Color
+    searchSkipped:   bool
 
     late
     {
@@ -220,6 +262,96 @@ private impl Panel
             return
         let entry = &.contents[index]
         .showChapter(entry.chapter, entry.fragment)
+    }
+
+    // The host asks for one chapter per callback tick so finding text through a long book does
+    // not hold the UI while every chapter is read. Offsets stay in source XHTML for HtmlView.
+    internal mtd collectSearchMatches(query: string, options: Viewer.SearchOptions, progress: *u64, matches: *Array'Viewer.SearchMatch)->bool
+    {
+        if not progress[] do
+            .searchSkipped = false
+        let parsed = parseSearchQuery(query)
+        if not parsed.text.count
+        {
+            progress[] = .book.chapters.count
+            return true
+        }
+
+        var matchOptions = options
+        // The host compiles a regexp for the complete field value. Scope syntax has been removed
+        // from `parsed.text`, so let the shared collector compile the resulting search term.
+        if parsed.text.toString() != query do
+            matchOptions.expression = null
+
+        if parsed.chapterOnly
+        {
+            progress[] = .book.chapters.count
+            if .chapter >= .book.chapters.count do
+                return true
+            .collectChapterMatches(.chapter, parsed.text, matchOptions, matches)
+            return true
+        }
+
+        if progress[] >= .book.chapters.count do
+            return true
+
+        let index = progress[]
+        progress[] += 1
+        .collectChapterMatches(index, parsed.text, matchOptions, matches)
+        return progress[] >= .book.chapters.count
+    }
+
+    mtd collectChapterMatches(index: u64, query: string, options: Viewer.SearchOptions, matches: *Array'Viewer.SearchMatch)
+    {
+        if index >= .book.chapters.count do
+            return
+        let path = Path.combine(.book.root, .book.chapters[index].path)
+        var stream = catch File.openReadLive(path)
+        {
+            .searchSkipped = true
+            return
+        }
+        let size = catch stream.size()
+        {
+            .searchSkipped = true
+            return
+        }
+        if size > SearchChapterLimit
+        {
+            .searchSkipped = true
+            return
+        }
+
+        let source = catch File.readAllText(path) { .searchSkipped = true; return; }
+        Viewer.collectTextMatches(source, query, options, index, 0, 0, matches)
+    }
+
+    internal mtd revealSearchMatch(match: Viewer.SearchMatch, _: string)->bool
+    {
+        if match.major >= .book.chapters.count do
+            return false
+        if not .view do
+            return false
+        let sameChapter = match.major == .chapter
+        let previous = sameChapter ? .currentVisit() : ReadingVisit{}
+        let path = Path.combine(.book.root, .book.chapters[match.major].path)
+        let source = catch File.readAllText(path) { return false; }
+        if not Viewer.isByteRangeInBounds(source.count, match.offset, match.length) do
+            return false
+        if not sameChapter do
+            .showChapter(match.major)
+        let revealed = .view.revealFileOffset(match.offset, source[match.offset until match.offset + match.length])
+        if revealed and sameChapter do
+            .history.visit(previous)
+        return revealed
+    }
+
+    mtd explainSearch(_: string)->String => .searchSkipped ? String.from(texts().ui_SearchIncomplete) : String{}
+
+    internal mtd describeSearch(presentation: *Viewer.SearchPresentation)
+    {
+        presentation.placeholder = texts().ui_Search
+        presentation.toolTip      = texts().ui_SearchTip
     }
 
     mtd readingStyle()->HtmlStyle
@@ -388,6 +520,26 @@ private impl Panel
         .restorePendingPosition()
     }
 
+    internal mtd saveBookmark()
+    {
+        if not .view or .chapter >= .book.chapters.count do
+            return
+        let current = .currentVisit()
+        if not current.position.isValid() do
+            return
+        .bookmark    = current
+        .hasBookmark = true
+    }
+
+    internal mtd goToBookmark()
+    {
+        if not .hasBookmark or .bookmark.chapter >= .book.chapters.count do
+            return
+        let previous = .currentVisit()
+        .restoreVisit(.bookmark)
+        .history.visit(previous)
+    }
+
     internal mtd goBack()
     {
         if .history.canGoBack() do
@@ -442,7 +594,7 @@ private impl Panel
         .applyReadingStyle()
     }
 
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         // `:` and a chapter number go to that chapter of the spine.
         if entries.results.prefix == .Line
@@ -461,6 +613,23 @@ private impl Panel
 
         entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.epub.back")
         entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.epub.forward")
+        entries.add(texts().ui_SetBookmark,
+                    .GoTo,
+                    func|view = me|() { view.saveBookmark() },
+                    disabled: not .view or .chapter >= .book.chapters.count,
+                    defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B},
+                    bindId: "scope.epub.setBookmark")
+        if .hasBookmark
+        {
+            let bookmark = .bookmark
+            let chapter = bookmark.chapter + 1
+            entries.add(Format.toString(texts().ui_GoToBookmark, chapter),
+                        .GoTo,
+                        func|view = me|() { view.goToBookmark() },
+                        disabled: bookmark.chapter >= .book.chapters.count,
+                        defaultKey: {modifiers: Input.KeyModifiers.Control | .Alt, key: .B},
+                        bindId: "scope.epub.goToBookmark")
+        }
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.epub.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.epub.next")
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
@@ -558,6 +727,25 @@ func createViewer(host: Viewer.Host)
     view.outline.sigSelected += func|view|(_, target) { view.selectContents(target) }
     view.outline.follow      = func|view|() { view.followReading() }
     view.load.start(host.fileName(), &Book.load, view)
+    with var search: Viewer.SearchApi
+    {
+        .collectMatches = func|view|(query, options, progress, matches)->bool => view.collectSearchMatches(query, options, progress, matches)
+        .revealMatch    = func|view|(match, query)->bool => view.revealSearchMatch(match, query)
+        .matchBounds    = func|view|(match, bounds)->bool
+        {
+            if not view.view or match.major != view.chapter do
+                return false
+            return view.view.searchMatchRect(bounds)
+        }
+        .clear          = func|view|()
+        {
+            if view.view do
+                view.view.clearSearch()
+        }
+        .describe       = func|view|(presentation) => view.describeSearch(presentation)
+        .explainSearch  = func|view|(query)->String => view.explainSearch(query)
+    }
+    host.setSearch(search)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     with var lifecycle: Viewer.LifecycleApi

@@ -3,7 +3,106 @@
 
 using Core, Pixel, Gui, Viewers
 
+private var g_CodeReportedDetails: String
+private func reportCodeDetails(_: *Wnd, details: string) { g_CodeReportedDetails = details }
+
 func codeFixturePath(name: string)->String => Path.combine(scopeTestDataDirectory(), name)
+
+// Per-file language choices survive reopen, stay isolated between similar paths, and are tied to
+// the current file metadata. The preference record accepts only shipped language names.
+#test
+{
+    let temp = Gui.Testing.tempFilePath("scope-code-override-root-", ".tmp")
+    let base = Path.directoryName(temp) orelse "."
+    let root = Path.combine(base, Format.toString("scope-code-override-%", Guid128.random()))
+    defer discard catch Directory.delete(root, recurse: true)
+    let preferences = Path.combine(root, "preferences")
+    let firstPath = Path.combine(root, "src", "main.cpp")
+    let nearbyPath = Path.combine(root, "tests", "main.cpp")
+    expect Directory.create(Path.directoryName(firstPath) orelse root, recurse: true)
+    expect Directory.create(Path.directoryName(nearbyPath) orelse root, recurse: true)
+    discard expect File.writeAllText(firstPath, "int main() { return 0; }\n")
+    discard expect File.writeAllText(nearbyPath, "int test() { return 1; }\n")
+
+    let oldPreferenceDirectory = Code.g_CodeOverrideDirectory
+    Code.g_CodeOverrideDirectory = preferences
+    defer Code.g_CodeOverrideDirectory = oldPreferenceDirectory
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var view = Code.Panel.create(&host.root, firstPath)
+    view.highlightAs(.Python)
+    Swag.require(view.languageName == "Python")
+    view.destroy()
+
+    view = Code.Panel.create(&host.root, firstPath)
+    Swag.require(view.languageName == "Python")
+    view.destroy()
+
+    let nearby = Code.Panel.create(&host.root, nearbyPath)
+    Swag.require(nearby.languageName == "C++")
+    nearby.destroy()
+
+    // Plain Text is an explicit choice too, and it remains attached to this exact file version.
+    view = Code.Panel.create(&host.root, firstPath)
+    view.highlightAs(.PlainText)
+    view.destroy()
+    view = Code.Panel.create(&host.root, firstPath)
+    Swag.require(view.languageName == Code.texts().ui_PlainText)
+    view.destroy()
+
+    // Replacing the contents at the same path changes its identity, so the old choice is ignored.
+    expect File.delete(firstPath)
+    discard expect File.writeAllText(firstPath, "int replacement() { return 123456; }\n")
+    view = Code.Panel.create(&host.root, firstPath)
+    Swag.require(view.languageName == "C++")
+    view.destroy()
+
+    // A crafted unsupported value is rejected and detection still supplies a usable lexer.
+    let unsupportedPath = Path.combine(root, "src", "unsupported.cpp")
+    discard expect File.writeAllText(unsupportedPath, "int unsupported;\n")
+    let preferencePath = Code.languageOverridePath(unsupportedPath)
+    expect Directory.create(preferences, recurse: true)
+    discard expect File.writeAllText(preferencePath,
+                                     Format.toString("SwagScope code language v1\n%\nBrainfuck\n",
+                                                     Code.languageOverrideIdentity(unsupportedPath)))
+    view = Code.Panel.create(&host.root, unsupportedPath)
+    Swag.require(view.languageName == "C++")
+    Swag.require(view.languageEvidence != "manual selection")
+    view.destroy()
+}
+
+// A generated field-station sample colors realistic C++ declarations, literals, and comments.
+#test
+{
+    let source = expect File.readAllText(codeFixturePath("viewer.field-station.cpp"))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 180)
+    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
+    var lexer: Code.GenericLexer
+    lexer.configure(.Cpp)
+    editor.setLexer(&lexer)
+    editor.setText(source)
+    editor.lexAll()
+
+    let styles = editor.textAndStyles().styles
+    Swag.require(styles[source.indexOf("constexpr")] == Code.GenericLexer.Style.Keyword)
+    Swag.require(styles[source.indexOf("0.80")] == Code.GenericLexer.Style.Number)
+    Swag.require(styles[source.indexOf("\"review\"")] == Code.GenericLexer.Style.String)
+    let comment = source.indexOf("Fictional measurements")
+    Swag.require(comment != Swag.U64.Max and styles[comment] == Code.GenericLexer.Style.Comment)
+}
+
+// Language detection explains the interpreter line when a script has no informative extension.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-shebang-", ".script")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "#!/usr/bin/env python3\nprint('field report')\n")
+    Swag.require(Code.detectLanguage(fileName) == .Python)
+    Swag.require(Code.detectionEvidence(fileName) == Code.texts().ui_ShebangEvidence)
+}
 
 struct CodeLanguageSample
 {
@@ -230,6 +329,8 @@ struct CodeLanguageSample
     Swag.require(Code.detectLanguage("Makefile") == .Makefile)
     Swag.require(Code.detectLanguage("Dockerfile") == .Dockerfile)
     Swag.require(Code.detectLanguage("sample.nix") == .Nix)
+    Swag.require(Code.detectionEvidence("Dockerfile") == Format.toString(Code.texts().ui_FilenameEvidence, "dockerfile"))
+    Swag.require(Code.detectionEvidence("sample.cpp") == Format.toString(Code.texts().ui_ExtensionEvidence, ".cpp"))
 
     var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
@@ -283,6 +384,28 @@ struct CodeLanguageSample
         editor.lexAll()
         Swag.require(editor.textAndStyles().styles[0] == Code.GenericLexer.Style.Keyword)
     }
+}
+
+// An unmatched delimiter leaves the caret in place and explains that the available source has no partner.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-unmatched-", ".c")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int main() {\n    return 0;\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var services: Viewer.HostServices
+    services.reportDetails = &reportCodeDetails
+    g_CodeReportedDetails.clear()
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: services)
+    let view   = assume cast(*Code.Panel, result.view)
+    discard host.render(view)
+
+    view.editor.setCursorPos({0, 11})
+    Swag.require(not view.goToMatchingDelimiter())
+    Swag.require(view.editor.cursorLogicalLineIndex() == 0 and view.editor.cursorLogicalCharPos() == 11)
+    Swag.require(g_CodeReportedDetails == Format.toString(Code.texts().ui_DelimiterUnavailable, view.languageName))
 }
 
 #test
@@ -450,6 +573,35 @@ struct CodeLanguageSample
     }
 
     Swag.require(chosen == 1 and view.languageName == "Python")
+}
+
+// Plain Text is a manual language choice that removes all syntax colors from a generated C++ sample.
+#test
+{
+    let fileName = codeFixturePath("viewer.field-station.cpp")
+    let source   = expect File.readAllText(fileName)
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    let result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Code.Panel, result.view)
+    view.editor.lexAll()
+    let colored = view.editor.textAndStyles().styles
+    Swag.require(colored[source.indexOf("constexpr")] == Code.GenericLexer.Style.Keyword)
+
+    var results = Testing.lensResults("Plain Text")
+    var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+    view.describeLens(&entries)
+    var chosen = 0
+    let label = Format.toString(Code.texts().ui_HighlightAs, Code.texts().ui_PlainText)
+    for &entry in results.sections[0]!.entries where entry.title == label
+    {
+        entry.run!()
+        chosen += 1
+    }
+
+    Swag.require(chosen == 1 and view.languageName == Code.texts().ui_PlainText)
+    for style in view.editor.textAndStyles().styles do
+        Swag.require(style == Code.GenericLexer.Style.Default)
 }
 
 // Ctrl+] moves the caret to the bracket pairing with the one at it, either way, and a brace inside

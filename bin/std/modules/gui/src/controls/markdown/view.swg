@@ -1757,6 +1757,27 @@ impl View
     // The preceding bytes are not parsed. Returns whether the reveal was queued.
     mtd revealFileOffset(offset: u64, text: string)->bool => .beginReveal(offset, text)
 
+    // Reveals the occurrence at `offset` in the original in-memory Markdown source and marks it.
+    // The caller supplies that source because an in-memory view does not retain its serialized text.
+    mtd revealTextMatch(source: string, offset: u64, text: string)->bool
+    {
+        if not text.count or offset > source.count do
+            return false
+
+        var occurrence = 0'u64
+        var from       = 0'u64
+        while from < offset
+        {
+            let found = Utf8.indexOf(source, text, from, .Latin1NoCase)
+            if found == Swag.U64.Max or found >= offset do
+                break
+            occurrence += 1
+            from = found + Math.max(text.count, 1)
+        }
+
+        return .findTextOccurrence(text, occurrence)
+    }
+
     // Brings the heading at a source byte offset to the top reading inset without a search mark.
     //
     // Use offsets from [[Gui.Markdown.parseHeadings]]. A distant file-backed heading starts its

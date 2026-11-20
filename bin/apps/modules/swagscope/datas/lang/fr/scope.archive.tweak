@@ -47,4 +47,15 @@ err_PayloadOutside     les données d'une entrée ZIP se trouvent hors du fichie
 err_PayloadTruncated   les données d'une entrée ZIP sont tronquées
 err_SizeMismatch       une entrée ZIP se décompresse à une autre taille que celle annoncée par son répertoire
 err_Checksum           la somme de contrôle d'une entrée ZIP ne correspond pas à son répertoire
+err_TarNumber          l'en-tête TAR contient un nombre octal invalide ou non pris en charge
+err_TarChecksum        la somme de contrôle de l'en-tête TAR est incorrecte
+err_TarPath            le chemin TAR n'est pas en UTF-8 valide
+err_TarExtended        l'en-tête étendu TAR est invalide ou dépasse la limite prise en charge
+err_TarType            le type d'entrée TAR % n'est pas pris en charge
+err_TarPayloadOutside  les données d'une entrée TAR se trouvent hors du fichier
+err_TarEnd             l'archive TAR n'a pas de marqueur de fin valide
 err_TempWrite          le fichier d'aperçu temporaire n'a pas été écrit entièrement
+err_GzipHeader L'en-tête GZIP est invalide ou tronqué
+err_GzipTooLarge Le flux GZIP est trop volumineux pour être ouvert sans risque
+err_GzipChecksum La somme de contrôle GZIP ne correspond pas au contenu
+err_GzipSize La taille du contenu GZIP ne correspond pas à celle annoncée en fin de flux

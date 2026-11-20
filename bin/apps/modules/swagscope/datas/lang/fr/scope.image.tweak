@@ -6,6 +6,7 @@ ui_TipFit      Ajuster l'image à la fenêtre
 ui_ZoomMenu Zoom…
 ui_TipTransform Orientation de l'image
 ui_TipPlay     Lire ou mettre en pause
+ui_ItemSelector Choisir une image de cet ensemble
 
 ui_RotateClockwise        Pivoter à droite
 ui_RotateCounterClockwise Pivoter à gauche
@@ -24,6 +25,8 @@ ui_ProbePixel    x %, y %
 ui_ItemLevel     niveau %
 ui_ItemLayer     couche %
 ui_ItemFace      face %
+ui_ItemPage      page
+ui_ItemVariant   variante
 ui_ProbeAlpha    opacité %
 ui_FrameDelay    délai % ms
 ui_Opaque        aucune, chaque pixel est opaque

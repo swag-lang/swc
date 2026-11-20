@@ -27,15 +27,55 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const InfoWidth      = Viewer.ZoomSlotWidth
+// Image zoom is a compact reading beside the full picture transform in the action bar. Its
+// narrower side insets leave more of the information band to the file details at small widths.
+private const InfoWidth      = Viewer.ZoomButtonWidth + 2 * 6.0
 private const SvgRasterLimit = 2048.0
+private const ImageItemSelectorWidth = 272.0
+private const ImageItemSelectorLimit = 128
+private const ImageThumbnailWidth = 32
+private const ImageThumbnailHeight = 24
 
 func isJpegExtension(extension: string)->bool => extension == ".jpg" or extension == ".jpeg"
 
 private func commandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 private func imageSetCommandWidth(metrics: const *ThemeMetrics, animated: bool)->f32 =>
-    Viewer.pageControlWidth(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16 + 128 + 12 +
+    Viewer.pageControlWidth(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16 +
+    (animated ? 128 + 12 : ImageItemSelectorWidth + 12) +
     (animated ? themeActionButtonSize(metrics) + 10 : 0)
+
+private func imageItemDescription(info: const *ImageFrameInfo, index, count: s32)->String
+{
+    var result = Viewer.pageText(cast(u64, index), cast(u64, count))
+    result += Format.toString(" · % × %", info.width, info.height)
+    switch info.kind
+    {
+    case .Page:
+        result += Format.toString(" · %", texts().ui_ItemPage)
+
+    case .Variant:
+        result += Format.toString(" · %", texts().ui_ItemVariant)
+
+    case .Layer:
+        result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
+
+    case .Texture:
+        result += Format.toString(" · %", Format.toString(texts().ui_ItemLevel, info.level))
+        if info.layer do
+            result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
+        if info.face do
+            result += Format.toString(" · %", Format.toString(texts().ui_ItemFace, info.face))
+
+    default:
+        break
+    }
+
+    // Decoder-owned names can be as large as the source file. Only copy short names into the
+    // bounded selector; dimensions and item position remain available for every entry.
+    if not info.name.isEmpty() and info.name.count <= 64 do
+        result += Format.toString(" · %", info.name)
+    return result
+}
 
 // What the worker decodes for the picture viewer, handed to the view in one move.
 struct ViewerContent
@@ -45,6 +85,23 @@ struct ViewerContent
     drawing:     Svg.Drawing     // Vector document, for a format that has no pixels of its own.
     facts:       ViewerFacts
     information: MediaInfoData
+}
+
+// Decodes only one indexed image on a worker and bounds the largest temporary pixel buffer.
+private func loadItemThumbnail(fileName: string, index: u32)->Image fail
+{
+    if Swag.isCancelled() do
+        return Image{}
+    var reader = try ImageReader.load(fileName, {maxPixels: 4 * 1024 * 1024,
+                                                maxDecodedBytes: 16 * 1024 * 1024,
+                                                maxInputBytes: 128 * 1024 * 1024})
+    if Swag.isCancelled() do
+        return Image{}
+    var result = try reader.read(index)
+    result.orient(Exif.orientationOf(result.metadata.toSlice()))
+    if result.width > ImageThumbnailWidth or result.height > ImageThumbnailHeight do
+        result.fitInside(ImageThumbnailWidth, ImageThumbnailHeight, .Bilinear)
+    return result
 }
 
 // Decodes a picture standing upright, as the EXIF orientation a camera recorded asks, or
@@ -293,6 +350,7 @@ struct Panel
         playModeButton:  *Viewer.PlaybackButton
         playButton:      *IconButton
         timeline:        *Slider
+        itemSelector:    *ComboBox
         previousPage:    *IconButton
         nextPage:        *IconButton
         frameLabel:      *Label
@@ -305,6 +363,17 @@ struct Panel
     load:               Viewer.BackgroundLoad'ViewerContent
     failureReason:      String
     shownItem:          String         // What the summary last said of the item in view.
+    selectorStart:      s32            // First movie index represented by the bounded item selector.
+    thumbnailPixels:    Image            // Fixed 128-cell RGBA8 atlas (384 KiB CPU and GPU).
+    thumbnailList:      ImageList        // GPU atlas borrowed by selector and popup icons.
+    thumbnailReady:     Array'bool       // Decoded cells in the current selector window.
+    thumbnailFailed:    Array'bool       // Failed cells are not retried until the window changes.
+    thumbnailRequested: Array'bool       // Requested cells in this window, for bounded scheduling and verification.
+    thumbnailPopup:     *PopupListCtrl?  // Borrowed popup while its selector is open.
+    thumbnailGeneration: u32             // Invalidates work from an old selector window or file.
+    thumbnailRequestLocalIndex: u32      // Selector position receiving the in-flight result.
+    thumbnailRequestGeneration: u32      // Window generation captured when work was submitted.
+    thumbnailTask:      Swag.Task'Image  // At most one visible-first decode at a time.
     probed:             Math.Point     // Pixel of the stored picture the pointer last read.
     hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
 }
@@ -395,8 +464,10 @@ impl Panel
             .services.showDetails(me, .shownDetails())
         }
 
-        .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
+        if movie.isAnimated() do
+            .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
         .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
+        .refreshItemSelector()
         .previousPage.enable(movie.frameIndex > 0)
         .nextPage.enable(movie.frameIndex + 1 < movie.frameCount)
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
@@ -407,6 +478,155 @@ impl Panel
         .lastCompletedLoops = completed
         if finished do
             .finishCycle()
+    }
+
+    // Fills a bounded window of metadata-only choices around the current independent image.
+    mtd populateItemSelector(start: s32)
+    {
+        let movie = &.imageView.movie
+        if movie.isAnimated() or movie.frameCount <= 1 do
+            return
+
+        let lastStart = Math.max(movie.frameCount - ImageItemSelectorLimit, 0)
+        .selectorStart = Math.clamp(start, 0, lastStart)
+        if .thumbnailPopup do
+            .itemSelector.closePopup()
+        .resetThumbnailWindow()
+        let end = Math.min(.selectorStart + ImageItemSelectorLimit, movie.frameCount)
+        .itemSelector.clear()
+        for index in range(.selectorStart, end)
+        {
+            let info = movie.frameInfo(index)
+            let label = info ? imageItemDescription(info, index, movie.frameCount) : Viewer.pageText(cast(u64, index), cast(u64, movie.frameCount))
+            .itemSelector.addItem(label)
+        }
+        .refreshItemSelector()
+    }
+
+    // Synchronizes the selected description with the shown image, recentering only when it leaves
+    // the fixed-size window used for very large image sets.
+    mtd refreshItemSelector()
+    {
+        let movie = &.imageView.movie
+        if movie.isAnimated() or movie.frameCount <= 1 do
+            return
+        let end = .selectorStart + cast(s32, .itemSelector.items.count)
+        if movie.frameIndex < .selectorStart or movie.frameIndex >= end
+        {
+            .populateItemSelector(.itemSelectorStart(movie.frameIndex, movie.frameCount))
+            return
+        }
+        .itemSelector.setSelectedIndex(cast(u32, movie.frameIndex - .selectorStart), notify: false)
+    }
+
+    mtd itemSelectorStart(frameIndex, frameCount: s32)->s32
+    {
+        let lastStart = Math.max(frameCount - ImageItemSelectorLimit, 0)
+        return Math.clamp(frameIndex - ImageItemSelectorLimit / 2, 0, lastStart)
+    }
+
+    mtd resetThumbnailWindow()
+    {
+        .thumbnailGeneration += 1
+        if .thumbnailTask.isPending() do
+            .thumbnailTask.cancel()
+        .thumbnailReady.resize(ImageItemSelectorLimit)
+        .thumbnailFailed.resize(ImageItemSelectorLimit)
+        .thumbnailRequested.resize(ImageItemSelectorLimit)
+        for index in ImageItemSelectorLimit
+        {
+            .thumbnailReady[index]  = false
+            .thumbnailFailed[index] = false
+            .thumbnailRequested[index] = false
+        }
+        if .thumbnailPixels.isValid()
+        {
+            .thumbnailPixels.fill(Color{r: 0, g: 0, b: 0, a: 0})
+            discard .app().renderer.updateTexture(.thumbnailList.texture, cast(const *u8, .thumbnailPixels.pixels.storage()))
+        }
+    }
+
+    mtd ensureThumbnailAtlas()
+    {
+        if .thumbnailList.isValid() do
+            return
+        .thumbnailPixels = Image.create(ImageThumbnailWidth * 8, ImageThumbnailHeight * 16, .RGBA8)
+        .thumbnailPixels.fill(Color{r: 0, g: 0, b: 0, a: 0})
+        let texture = .app().renderer.addImage(&.thumbnailPixels)
+        .thumbnailList = ImageList.create(texture, ImageThumbnailWidth, ImageThumbnailHeight, ImageItemSelectorLimit)
+    }
+
+    mtd updateVisibleThumbnails(popup: *PopupListCtrl)
+    {
+        if .imageView.movie.isAnimated() or .imageView.movie.frameCount <= 1 do
+            return
+        .ensureThumbnailAtlas()
+        let visible = popup.visibleItemRange()
+        if visible.end > .itemSelector.items.count do
+            return
+        for localIndex in visible.first until visible.end
+        {
+            if .thumbnailReady[localIndex]
+            {
+                let icon = Icon.from(&.thumbnailList, cast(s32, localIndex), ImageThumbnailWidth, ImageThumbnailHeight)
+                popup.setItemIcon(localIndex, icon)
+            }
+        }
+        .scheduleVisibleThumbnail(visible.first, visible.end)
+    }
+
+    mtd scheduleVisibleThumbnail(first, end: u32)
+    {
+        if .thumbnailTask.isPending() or first >= end do
+            return
+        let selected = .itemSelector.selectedIndex
+        if selected >= first and selected < end and not .thumbnailReady[selected] and not .thumbnailFailed[selected]
+        {
+            .submitThumbnail(selected)
+            return
+        }
+        for localIndex in first until end
+        {
+            if not .thumbnailReady[localIndex] and not .thumbnailFailed[localIndex]
+            {
+                .submitThumbnail(localIndex)
+                return
+            }
+        }
+    }
+
+    mtd submitThumbnail(localIndex: u32)
+    {
+        let movieIndex = cast(u32, .selectorStart) + localIndex
+        .thumbnailRequestLocalIndex = localIndex
+        .thumbnailRequestGeneration = .thumbnailGeneration
+        .thumbnailRequested[localIndex] = true
+        .thumbnailTask.submit(func|view = me, movieIndex|()->Image fail => try loadItemThumbnail(view.load.fileName.toString(), movieIndex),
+                              me.taskNotifier(&.thumbnailTask), .Background)
+    }
+
+    mtd installThumbnail(image: *Image, localIndex: u32)->bool
+    {
+        if not image.isValid() or localIndex >= ImageItemSelectorLimit do
+            return false
+        let cellX = cast(s32, localIndex % 8) * ImageThumbnailWidth
+        let cellY = cast(s32, localIndex / 8) * ImageThumbnailHeight
+        let offsetX = Math.max((ImageThumbnailWidth - image.width) / 2, 0)
+        let offsetY = Math.max((ImageThumbnailHeight - image.height) / 2, 0)
+        for y in 0 until image.height
+        {
+            for x in 0 until image.width
+            {
+                let color = image.pixelColor(x, y)
+                let dstY = .thumbnailPixels.height - (cellY + offsetY + y) - 1
+                let dst = cast([*] u8, .thumbnailPixels.pixels.storage()) + cast(u64, dstY * .thumbnailPixels.rowStride + (cellX + offsetX + x) * 4)
+                dst[0] = color.r
+                dst[1] = color.g
+                dst[2] = color.b
+                dst[3] = color.a
+            }
+        }
+        return .app().renderer.updateTexture(.thumbnailList.texture, cast(const *u8, .thumbnailPixels.pixels.storage()))
     }
 
     // Keeps the completed cycle's last frame until the host explicitly requests another cycle.
@@ -431,15 +651,24 @@ impl Panel
 
     mtd showPlayback()
     {
-        let width = imageSetCommandWidth(.themeMetrics(), .imageView.movie.isAnimated())
+        let animated = .imageView.movie.isAnimated()
+        let width = imageSetCommandWidth(.themeMetrics(), animated)
         .actions.preferredSize.x = width
         .actions.resize(width, themeActionButtonSize(.themeMetrics()))
-        .playButton.show(.imageView.movie.isAnimated())
-        .timeline.show()
+        .playButton.show(animated)
+        .timeline.show(animated)
+        .itemSelector.show(not animated)
         .frameLabel.show()
         .previousPage.show()
         .nextPage.show()
-        .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
+        if animated
+        {
+            .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
+        }
+        else
+        {
+            .populateItemSelector(0)
+        }
         .refreshFrame()
         .services.chromeChanged(me)
     }
@@ -667,6 +896,28 @@ private impl IWnd for Panel
 
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if evt.task == &.thumbnailTask
+        {
+            .thumbnailTask.waitSubmission(evt.submission)
+            if evt.submission != .thumbnailTask.currentSubmission() or not .thumbnailTask.isDone() do
+                return
+            var thumbnailErrorOutcome: Swag.Error
+            var thumbnail: Image
+            catch { thumbnail = try .thumbnailTask.take() } as thumbnailErrorOutcome
+            let thumbnailError = thumbnailErrorOutcome.value()
+            let localIndex = .thumbnailRequestLocalIndex
+            if .thumbnailRequestGeneration == .thumbnailGeneration and localIndex < .thumbnailReady.count
+            {
+                if thumbnailError == null and .installThumbnail(&thumbnail, localIndex) do
+                    .thumbnailReady[localIndex] = true
+                else do
+                    .thumbnailFailed[localIndex] = true
+            }
+            if .thumbnailPopup do
+                .updateVisibleThumbnails(.thumbnailPopup)
+            return
+        }
+
         if not .load.claim(evt)
         {
             evt.accepted = false
@@ -786,6 +1037,17 @@ private impl Panel
 {
     internal mtd retire()->bool
     {
+        .itemSelector.closePopup()
+        if .thumbnailTask.isPending()
+        {
+            .thumbnailTask.cancel()
+            if not .thumbnailTask.isDone() do
+                return false
+        }
+        if .thumbnailTask.isDone() do
+            discard catch .thumbnailTask.take()
+        if .thumbnailList.isValid() do
+            .thumbnailList.release(.app().renderer)
         return .load.retire()
     }
 
@@ -822,7 +1084,10 @@ private impl Panel
             {
                 let paged = view.imageView.movie.frameCount > 1
                 let width = view.actions.position.width
-                view.timeline.show(paged and width >= imageSetCommandWidth(view.themeMetrics(), view.imageView.movie.isAnimated()))
+                let animated = view.imageView.movie.isAnimated()
+                let enoughRoom = width >= imageSetCommandWidth(view.themeMetrics(), animated)
+                view.timeline.show(paged and animated and enoughRoom)
+                view.itemSelector.show(paged and not animated and enoughRoom)
                 view.previousButton.show(not paged)
                 view.nextButton.show(not paged)
                 view.transformButton.show(not paged or width >= Viewer.pageControlWidth(view.themeMetrics()) + themeDropDownButtonWidth(view.themeMetrics()) + 8)
@@ -911,6 +1176,43 @@ private impl Panel
             .sigChanged += func|view = me|(slider) { view.imageView.setFrameIndex(cast(s32, Math.round(slider.value()))) }
         }
 
+        with .itemSelector = ComboBox.create(.actions, {0, 0, ImageItemSelectorWidth, 36})
+        {
+            .dockStyle = .Left
+            .margin    = {6, 1, 6, 1}
+            .maximumPopupHeight = 360
+            .minimumPopupWidth  = ImageItemSelectorWidth
+            .popupItemHeight = 36
+            .popupIconSize = ImageThumbnailWidth
+            .toolTip = texts().ui_ItemSelector
+            .hide()
+            .sigPopupChanged += func|view = me|(_, popup, opened)
+            {
+                if opened
+                {
+                    view.thumbnailPopup = popup
+                    popup.scrollWnd.sigScrollPositionChanged += func|view = view, popup = popup|(_, _, _)
+                    {
+                        if view.thumbnailPopup == popup do
+                            view.updateVisibleThumbnails(popup)
+                    }
+                    view.updateVisibleThumbnails(popup)
+                }
+                else
+                {
+                    view.thumbnailPopup = null
+                    view.thumbnailGeneration += 1
+                    if view.thumbnailTask.isPending() do
+                        view.thumbnailTask.cancel()
+                }
+            }
+            .sigChanged += func|view = me|(_, index)
+            {
+                view.imageView.setFrameIndex(view.selectorStart + cast(s32, index))
+                view.refreshFrame()
+            }
+        }
+
         with .previousPage = Viewer.createPageStep(.actions, -1)
         {
             .hide()
@@ -932,6 +1234,7 @@ private impl Panel
         }
 
         .timeline.sendToBack()
+        .itemSelector.sendToBack()
         .playButton.sendToBack()
         .nextPage.sendToBack()
         .frameLabel.sendToBack()
@@ -949,7 +1252,8 @@ private impl Panel
     // Creates the zoom menu button in the information group.
     mtd createZoomControl()
     {
-        .zoomLabel = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu, InfoWidth - 2 * Viewer.ZoomButtonInset)
+        .zoomLabel = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.margin = {6, 0, 6, 0}
         .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 

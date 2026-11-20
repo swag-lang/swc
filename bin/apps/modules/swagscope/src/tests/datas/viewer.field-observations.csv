@@ -1,0 +1,13 @@
+site_id,observed_at,air_temp_c,water_level_cm,conductivity_us_cm,review
+north-marsh,2026-05-04T08:15:00Z,12.4,36,281,checked
+north-marsh,2026-05-11T08:20:00Z,13.1,37,279,checked
+north-marsh,2026-05-18T08:25:00Z,14.2,38,284,checked
+north-marsh,2026-05-25T08:10:00Z,16.0,35,287,checked
+old-quarry,2026-05-04T09:00:00Z,11.8,11,412,pending
+old-quarry,2026-05-11T09:05:00Z,12.6,12,409,checked
+old-quarry,2026-05-18T09:10:00Z,13.8,12,415,checked
+old-quarry,2026-05-25T09:05:00Z,15.7,10,421,checked
+river-gate,2026-05-04T09:40:00Z,13.2,42,196,checked
+river-gate,2026-05-11T09:45:00Z,14.0,43,194,checked
+river-gate,2026-05-18T09:50:00Z,15.1,44,198,checked
+river-gate,2026-05-25T09:45:00Z,17.3,41,201,checked

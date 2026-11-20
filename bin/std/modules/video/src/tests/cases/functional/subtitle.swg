@@ -65,8 +65,42 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
 {
     const Source = "WEBVTT\n\nSTYLE\n::cue {\ncolor: lime;\n}\n\nREGION\nid:main\nwidth:80%\n\nNOTE ignored comment\nnot a cue\n\nintro\n00:00.100 --> 00:02.500 align:start position:10%\n<v Narrator>Hello &amp; <b>welcome</b></v>\n"
     let track = expect Subtitle.Track.decode("sample.vtt", Source)
-    Swag.require(track.format == .WebVtt and track.cues.count == 1)
+    Swag.require(track.format == .WebVtt and track.cues.count == 1 and track.discardedCueCount() == 0)
     Swag.require(track.cueContent(0) == "Hello & welcome")
+}
+
+// Text decoders retain valid cues and count malformed or empty cue blocks they skip.
+#test
+{
+    const Source = "1\n00:00:01,000 --> 00:00:02,000\nOne\n\n2\n00:00:xx,000 --> 00:00:03,000\nBroken\n\n3\n00:00:03,000 --> 00:00:04,000\n<i></i>\n\n4\n00:00:05,000 --> 00:00:06,000\nLast\n"
+    let track = expect Subtitle.Track.decode("tolerant.srt", Source)
+    Swag.require(track.cueCount() == 2 and track.discardedCueCount() == 2)
+    Swag.require(track.cueContent(0) == "One" and track.cueContent(1) == "Last")
+}
+
+#test
+{
+    const Source = "WEBVTT\n\nbroken-id\n00:00:xx.000 --> 00:00:03.000\nBroken\n\ngood-id\n00:00:04.000 --> 00:00:05.000\nGood\n"
+    let track = expect Subtitle.Track.decode("tolerant.vtt", Source)
+    Swag.require(track.cueCount() == 1 and track.discardedCueCount() == 1)
+    Swag.require(track.cueContent(0) == "Good")
+}
+
+// Legacy text decoders count malformed cue records they skip while preserving later valid cues.
+#test
+{
+    const Ass = "[Events]\nFormat: Start, End, Text\nDialogue: 0:00:01.00,0:00:02.00,First\nDialogue: broken,0:00:03.00,Malformed\nDialogue: 0:00:04.00,0:00:05.00,Last\n"
+    let ass = expect Subtitle.Track.decode("tolerant.ass", Ass)
+    Swag.require(ass.cueCount() == 2 and ass.discardedCueCount() == 1)
+    Swag.require(ass.cueContent(1) == "Last")
+
+    let lrc = expect Subtitle.Track.decode("tolerant.lrc", "[00:xx.00]Broken\n[00:02.00]Good\n")
+    Swag.require(lrc.cueCount() == 1 and lrc.discardedCueCount() == 1)
+    Swag.require(lrc.cueContent(0) == "Good")
+
+    let micro = expect Subtitle.Track.decode("tolerant.sub", "{bad}{40}Broken\n{20}{60}Good\n")
+    Swag.require(micro.cueCount() == 1 and micro.discardedCueCount() == 1)
+    Swag.require(micro.cueContent(0) == "Good")
 }
 
 // ASS reads the declared event-field order and removes override commands without losing lines.

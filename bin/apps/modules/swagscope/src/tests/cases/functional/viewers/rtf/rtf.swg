@@ -3,6 +3,16 @@
 
 using Core, Gui, Gui.Testing, Viewers
 
+// A long public-domain story retains its narrative scale, opening prose and Unicode typography.
+#test
+{
+    let document = expect Rtf.Document.load(scopeTestDataPath("viewer.christmas-carol.rtf"))
+    Swag.require(document.paragraphs > 700 and document.paragraphs < 850)
+    Swag.require(Utf8.contains(document.html, "Marley was dead") and
+                 Utf8.contains(document.html, "A merry Christmas, uncle!"))
+    Swag.require(Utf8.contains(document.html, "Scrooge’s nephew"))
+}
+
 // Formatted body text becomes a reading page; metadata and styles stay out of its prose.
 #test
 {

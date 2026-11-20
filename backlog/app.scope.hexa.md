@@ -23,9 +23,16 @@ are what separate that capable grid from a professional binary-analysis viewer.
   select-all are in the context menu and the lens, with their shortcuts; the lens also copies the
   caret's offset as a `0x` address. Pattern search is
   discoverable through the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A),
-  and Go To (Ctrl+G) have keyboard shortcuts.
-- Next: expose the dominant Go To and copy actions directly in the viewer band and bring remaining
-  keyboard-only operations into the named actions used by the shared shortcut editor.
+  and Go To (Ctrl+G) have keyboard shortcuts. Go To is now also a first-class Go To icon in the
+  host action bar, disabled for empty files and translated with the viewer. Copy Bytes is also
+  a visible action; it stays disabled until there is a range selection and writes the same bounded
+  byte-pair text as the context command. A compact Copy Formats dropdown now exposes Copy Text
+  and Copy Dump, remains disabled without a selection, and dispatches the existing bounded copy
+  commands with their selection and limit behavior. The lens can set one session-local byte-offset
+  bookmark with Ctrl+Shift+B and return to it with Ctrl+Alt+B; the destination is shown in the
+  action label and disabled if it lies outside the current file size.
+- Next: add a bounded byte-range comparison surface, then rank it with row layout, endian and
+  analysis actions for the remaining toolbar space.
 - Done when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
   and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
   and remappable through the application convention; and the document remains the majority of the
@@ -104,9 +111,12 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Evidence: navigation is limited to scrolling, Home/End, host search, and a Go To dialog accepting
   hexadecimal, decimal, percentage, `caret`, `filesize`, and caret-relative positions. There are no
-  named ranges, return stack, or list of visited offsets.
-- Next: add an in-memory navigation history around every search reveal, Go To, structure jump, and
-  bookmark activation, followed by named range bookmarks.
+  named ranges or persistent list of visited offsets. An in-memory, 64-offset history now records
+  explicit Go To (dialog or lens), search/analysis reveals, structure jumps, and bookmark activation; Back and
+  Forward are available in the lens and on Alt+Left/Alt+Right, with forward history discarded on
+  a new visit.
+- Next: add named range bookmarks with labels and notes, previous/next bookmark navigation, and
+  listing, export, and identity-checked restoration.
 - Done when: back/forward returns through visited offsets, bookmarks carry an offset or range,
   label, color, and note, previous/next bookmark is available, and bookmarks can be listed,
   exported, and restored only when file identity still matches.

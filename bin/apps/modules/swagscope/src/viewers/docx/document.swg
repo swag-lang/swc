@@ -7,6 +7,13 @@ using Core
 struct Document
 {
     html:             String
+    pageWidth:        s32
+    pageHeight:       s32
+    marginTop:        s32
+    marginRight:      s32
+    marginBottom:     s32
+    marginLeft:       s32
+    marginMask:       u8
     paragraphs:       u64
     tables:           u64
     omittedImages:    u64
@@ -27,6 +34,34 @@ impl Document
             result += .omittedImages == 1 ? String.from(texts().ui_OneImageOmitted) : Format.toString(texts().ui_ImagesOmitted, .omittedImages)
         if .stylesSimplified do
             result += texts().ui_StylesSimplified
+        return result
+    }
+
+    // Applies one final-section page box in CSS pixels; Word stores dimensions as twentieths of a point.
+    mtd const pageCss()->String
+    {
+        var result: #returntype
+        let numbers: Globalization.NumberFormatInfo
+        if .pageWidth > 0 do
+            result += Format.toString("max-width:%px;", numbers.format(cast(f64, .pageWidth) / 15, 2))
+        if .pageHeight > 0 do
+            result += Format.toString("min-height:%px;", numbers.format(cast(f64, .pageHeight) / 15, 2))
+        if .marginMask
+        {
+            result += "padding:"
+            result += numbers.format(cast(f64, .marginTop) / 15, 2)
+            result += "px "
+            result += numbers.format(cast(f64, .marginRight) / 15, 2)
+            result += "px "
+            result += numbers.format(cast(f64, .marginBottom) / 15, 2)
+            result += "px "
+            result += numbers.format(cast(f64, .marginLeft) / 15, 2)
+            result += "px;"
+        }
+        if .pageWidth > 0 or .pageHeight > 0 or .marginMask do
+            result += "box-sizing:border-box;"
+        if .pageWidth > 0 do
+            result += "margin-left:auto;margin-right:auto;"
         return result
     }
 
@@ -90,17 +125,24 @@ impl Document
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         var html: String = "<html>"
+        var bodyStyle = reader.document.pageCss()
         if reader.document.usePaperColors
         {
             html += "<head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}</style></head>"
             let background = reader.document.paperColor.isEmpty() ? String.from("FFFFFF") : reader.document.paperColor
             let rgb        = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
             let luma       = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
-            html += Format.toString("<body style=\"background-color:#%;color:#%\">", background, luma < 128000 ? "FFFFFF" : "000000")
+            bodyStyle += Format.toString("background-color:#%;color:#%;", background, luma < 128000 ? "FFFFFF" : "000000")
+        }
+        if bodyStyle.isEmpty()
+        {
+            html += "<body>"
         }
         else
         {
-            html += "<body>"
+            html += "<body style=\""
+            Package.appendHtmlEscaped(&html, bodyStyle)
+            html += "\">"
         }
 
         html += reader.document.html

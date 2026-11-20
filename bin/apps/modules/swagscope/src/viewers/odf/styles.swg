@@ -30,6 +30,62 @@ private struct NamedStyle
     resolved:   Properties
 }
 
+// The first authored page geometry supplies a bounded reading measure and inset.
+enum PageMargin { Top, Bottom, Left, Right }
+
+struct PageGeometry
+{
+    width:   f64
+    top:     f64
+    bottom:  f64
+    left:    f64
+    right:   f64
+    valid:   bool
+    limited: bool
+}
+
+impl PageGeometry
+{
+    mtd const pageWidthCssPixels()->f32
+    {
+        if not .valid or .width <= .left + .right or .width > 1584 do
+            return 680
+        return cast(f32, Math.clamp(.width * 4 / 3, 320, 1200))
+    }
+
+    mtd const cssInsets()->String
+    {
+        if not .valid or .width <= .left + .right or .width > 1584 do
+            return String.from("24px")
+        return Format.toString("%px %px %px %px",
+                              cast(u32, Math.round(.top * 4 / 3)),
+                              cast(u32, Math.round(.right * 4 / 3)),
+                              cast(u32, Math.round(.bottom * 4 / 3)),
+                              cast(u32, Math.round(.left * 4 / 3)))
+    }
+
+    mtd readMargin(token: const *Package.Token, attribute: string, side: PageMargin)
+    {
+        if let value = token.attribute(attribute)
+        {
+            let margin = Odf.points(value)
+            if not margin.valid or margin.value < 0
+            {
+                .limited = true
+                return
+            }
+
+            switch side
+            {
+            case .Top:    .top    = margin.value
+            case .Bottom: .bottom = margin.value
+            case .Left:   .left   = margin.value
+            case .Right:  .right  = margin.value
+            }
+        }
+    }
+}
+
 // Common and automatic ODF styles share bounded names and an acyclic reading projection.
 struct StyleCatalog
 {
@@ -39,6 +95,7 @@ struct StyleCatalog
     defaults:  [7] Properties
     lists:     HashTable'(String, bool)
     pageColor: String
+    page:      PageGeometry
 }
 
 impl StyleCatalog
@@ -100,6 +157,31 @@ impl StyleCatalog
                 }
                 elif token.isElement("page-layout-properties")
                 {
+                    if .page.valid
+                    {
+                        .page.limited = true
+                    }
+                    else
+                    {
+                        let width  = Odf.points(token.attribute("page-width") orelse "")
+                        if width.valid and width.value > 0
+                        {
+                            .page.width = width.value
+                            .page.valid = true
+                            .page.readMargin(&token, "margin-top", .Top)
+                            .page.readMargin(&token, "margin-bottom", .Bottom)
+                            .page.readMargin(&token, "margin-left", .Left)
+                            .page.readMargin(&token, "margin-right", .Right)
+
+                            if .page.width <= .page.left + .page.right or .page.width > 1584 do
+                                .page.limited = true
+                        }
+                        elif token.attribute("page-width") != null
+                        {
+                            .page.limited = true
+                        }
+                    }
+
                     let color = rgb(token.attribute("background-color") orelse "")
                     if not color.isEmpty() do
                         .pageColor = color

@@ -30,7 +30,7 @@ impl MediaLibraryFixture
         let multi  = File.readAllBytes(Path.combine(fixtures, "ffmpeg-h264-two-aac.mkv"))
         let legacy = File.readAllBytes(Path.combine(fixtures, "rv40-legacy-clock.mkv"))
         let png    = File.readAllBytes(Path.combine(fixtures, "appicon.png"))
-        let webp   = File.readAllBytes(Path.combine(fixtures, "imageset-real-review.webp"))
+        let webp   = File.readAllBytes(Path.combine(fixtures, "viewer.synthetic-review.webp"))
         let gif    = File.readAllBytes(Path.combine(fixtures, "imageset-animation.gif"))
         let tiff   = File.readAllBytes(Path.combine(fixtures, "imageset-pages-raw.tiff"))
         for index in .entryCount

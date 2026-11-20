@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file   = journey.copyData("segoeui.ttf", "reading.ttf")
+    let file   = journey.copyData("viewer.arabic.ttf", "reading.ttf")
     let window = journey.window
 
     window.openFile(file)

@@ -19,5 +19,10 @@ ui_WideColumn "Colonne de lecture large"
 
 ui_Back "Retour dans le livre"
 ui_Forward "Avancer dans le livre"
+ui_SetBookmark "Marquer ce passage"
+ui_GoToBookmark "Aller au signet du chapitre %"
 ui_OneChapter        1 chapitre
 ui_Chapters          % chapitres
+ui_Search            Rechercher dans ce livre
+ui_SearchTip         Livre entier par défaut. Utilisez chapitre: texte ou livre: texte pour choisir la portée.
+ui_SearchIncomplete  Certains chapitres sont trop volumineux ou illisibles pour être recherchés.

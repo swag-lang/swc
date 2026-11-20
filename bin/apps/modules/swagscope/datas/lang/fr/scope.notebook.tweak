@@ -1,0 +1,4 @@
+# Traductions françaises du viewer Notebook. Les autres clés gardent leur valeur anglaise.
+
+ui_Search    Rechercher dans les cellules et sorties
+ui_SearchTip Rechercher dans le texte visible des cellules et les sorties en texte brut. Préfixer par source: ou sortie: pour choisir.

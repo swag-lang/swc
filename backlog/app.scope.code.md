@@ -4,29 +4,18 @@ This backlog covers the read-only source code viewer: language detection, highli
 source structure, and navigation to local references. Shared source text behavior lives in
 [app.scope.text.md](app.scope.text.md).
 
-### app.scope.code.004 — Syntax detection cannot explain itself or remember an override
-
-- Evidence: `Viewers.Code.detectLanguage` chooses from file name, extension and supported shebangs, and
-  `GenericLexer` applies fixed lexical rules. The details show `languageName`, and a language
-  typed into the lens offers to color the source as that language, or as Swag, for the file in
-  view. The detection decision is not explained, an override is forgotten with the file, and there
-  is no Plain Text choice.
-- Next: state the evidence of the detection (extension, name or interpreter line) beside the
-  language, and remember an override per file identity.
-- Done when: every supported language is selectable, detection evidence is visible, overrides
-  re-highlight the resident window immediately, and opening an unsupported language stays readable.
-
 ### app.scope.code.006 — Source structure has no sticky scope, indentation guides, or delimiter matching
 
 - Evidence: lexical color is the only structural cue inside the code surface. Ctrl+], or the lens
   while the caret stands by a bracket, moves the caret to the parenthesis, bracket or brace that
   pairs with it within the resident text, counting only delimiters drawn in the same style, so one
   in a string or a comment pairs with no code. Pairs are not highlighted, an unmatched delimiter
-  is not marked, and there is no sticky scope or indentation guide.
-- Next: derive indentation, delimiter pairs, and sticky headings from the same bounded lexical and
-  outline ranges planned by app.scope.code.001 and app.scope.code.005.
-- Done when: the current scope path remains visible and navigable, indentation guides survive
-  tabs and mixed widths honestly, matching and unmatched delimiters are distinguishable, each cue
+  is not marked, and there is no sticky scope or indentation guide. When a search reaches the end
+  of the currently loaded source without finding its partner, the details line now reports that result.
+- Next: mark matching and unmatched delimiters in the text, while distinguishing a true unmatched
+  delimiter from a partner that lies outside the loaded window; then add indentation guides and sticky scope.
+- Done when: the current scope path remains visible and navigable, indentation guides survive tabs
+  and mixed widths honestly, matching and unmatched delimiters are distinguishable, each cue
   can be disabled independently, and streamed seeks reconstruct enough preceding state without
   rescanning the whole file synchronously.
 - Related: app.scope.code.001, app.scope.code.002, app.scope.code.005

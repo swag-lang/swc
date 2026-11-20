@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui, Gui.Testing, Viewers
+using Core, Pixel, Gui, Gui.Testing, Viewers
 
 // Comic pages follow natural filename order and leave non-image archive members out of navigation.
 #test
@@ -79,6 +79,12 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(book.pages.count == 2)
     Swag.require(book.archive.entries[book.pages[0]].path == "chapter/2.png")
     Swag.require(book.archive.entries[book.pages[1]].path == "chapter/10.jpg")
+    let pngBytes = expect Archive.Zip.loadEntry(scopeTestDataPath("viewer.nested.cbz"), &book.archive.entries[book.pages[0]])
+    let jpgBytes = expect Archive.Zip.loadEntry(scopeTestDataPath("viewer.nested.cbz"), &book.archive.entries[book.pages[1]])
+    let pngPage = expect Image.decode("chapter/2.png", pngBytes.toSlice())
+    let jpgPage = expect Image.decode("chapter/10.jpg", jpgBytes.toSlice())
+    Swag.require(pngPage.width == 96 and pngPage.height == 128)
+    Swag.require(jpgPage.width == 96 and jpgPage.height == 128)
 }
 
 // A licensed short comic keeps all three real pages readable in archive order.

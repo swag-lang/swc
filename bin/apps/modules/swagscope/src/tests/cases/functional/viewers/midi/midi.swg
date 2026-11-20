@@ -1,9 +1,119 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, Viewers
+using Core, Core.Errors, Pixel, Gui, Viewers
 
 func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
+
+// Writes small, deterministic SMF matrix fixtures from raw event bytes. They use only note-on,
+// note-off and End-of-Track, so the corpus has no third-party source or licensing dependency.
+private func appendMidiU32(bytes: *Array'u8, value: u32)
+{
+    bytes.add(cast(u8, value >> 24))
+    bytes.add(cast(u8, value >> 16))
+    bytes.add(cast(u8, value >> 8))
+    bytes.add(cast(u8, value))
+}
+
+private func appendMidiTrack(bytes: *Array'u8, events: const [..] u8)
+{
+    bytes.add(cast(const [..] u8, "MTrk"))
+    appendMidiU32(bytes, cast(u32, events.count))
+    for event in events do
+        bytes.add(event)
+}
+
+private func writeMidiMatrixFixture(format, division: u16)->String
+{
+    // One C4 note lasts exactly 1,000 ticks in each sequence.
+    const Events: [13] u8 = [0, 0x90, 60, 100, 0x87, 0x68, 0x80, 60, 0, 0, 0xFF, 0x2F, 0]
+    let tracks = format == 0 ? 1'u16 : 2'u16
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "MThd"))
+    bytes.add([0'u8, 0, 0, 6])
+    bytes.add(cast(u8, format >> 8))
+    bytes.add(cast(u8, format))
+    bytes.add(cast(u8, tracks >> 8))
+    bytes.add(cast(u8, tracks))
+    bytes.add(cast(u8, division >> 8))
+    bytes.add(cast(u8, division))
+    appendMidiTrack(&bytes, Events)
+    if format != 0 do
+        appendMidiTrack(&bytes, Events)
+
+    let fileName = Gui.Testing.tempFilePath("scope-midi-matrix-", ".mid")
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+    return fileName
+}
+
+private func requireMidiFormatFailure(fileName: string)
+{
+    var outcome: Swag.Error
+    discard catch Midi.loadDocument(fileName) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
+// A generated Cartesian matrix covers SMF formats 0/1/2 under PPQN and each legal SMPTE rate.
+#test
+{
+    const Formats: [3] u16 = [0, 1, 2]
+    for format in Formats
+    {
+        let ppqnFile = writeMidiMatrixFixture(format, 1000)
+        defer discard catch File.delete(ppqnFile)
+        let ppqn = expect Midi.loadDocument(ppqnFile)
+        Swag.require(ppqn.format == format and ppqn.division == 1000)
+        Swag.require(ppqn.tracks.count == (format == 0 ? 1 : 2))
+        Swag.require(ppqn.notes.count == ppqn.tracks.count)
+        Swag.require(Math.abs(ppqn.durationSeconds - 0.5) < 0.00001, Format.toString("format % PPQN: %", format, ppqn.durationSeconds))
+
+        const SmpteDivisions: [4] u16 = [0xE828, 0xE728, 0xE328, 0xE228]
+        const ExpectedSeconds: [4] f64 = [1.0416666667, 1.0, 0.8341675, 0.8333333333]
+        for division, index in SmpteDivisions
+        {
+            let smpteFile = writeMidiMatrixFixture(format, division)
+            defer discard catch File.delete(smpteFile)
+            let smpte = expect Midi.loadDocument(smpteFile)
+            Swag.require(smpte.format == format and smpte.division == division)
+            Swag.require(smpte.tracks.count == (format == 0 ? 1 : 2))
+            Swag.require(Math.abs(smpte.durationSeconds - ExpectedSeconds[index]) < 0.00001,
+                         Format.toString("format % SMPTE division %{X4}: %", format, division, smpte.durationSeconds))
+        }
+    }
+}
+
+// Invalid timing divisions and a format-0 multi-track header are rejected as malformed SMF.
+#test
+{
+    for division in [0'u16, 0xE628, 0xE700, 0xE200]
+    {
+        let fileName = writeMidiMatrixFixture(1, division)
+        defer discard catch File.delete(fileName)
+        requireMidiFormatFailure(fileName)
+    }
+
+    let fileName = writeMidiMatrixFixture(0, 480)
+    defer discard catch File.delete(fileName)
+    var bytes = expect File.readAllBytes(fileName)
+    bytes[10] = 0
+    bytes[11] = 2
+    discard expect File.writeAllBytes(fileName, bytes.toSlice())
+    requireMidiFormatFailure(fileName)
+}
+
+// A generated four-track score covers a named conductor, tempo changes and ensemble parts.
+#test
+{
+    let document = expect Midi.loadDocument(scopeTestDataPath("viewer.ensemble.mid"))
+    Swag.require(document.format == 1 and document.division == 480)
+    Swag.require(document.tracks.count == 4 and document.tracks[0].name == "Conductor")
+    Swag.require(document.tracks[1].name == "Piano" and document.tracks[1].program == 0)
+    Swag.require(document.tracks[2].name == "Bass" and document.tracks[2].program == 32)
+    Swag.require(document.tracks[3].name == "Drums" and document.tracks[3].program == 0)
+    Swag.require(document.notes.count == 62 and document.minKey == 36 and document.maxKey == 72)
+    Swag.require(document.tempos.count == 2 and document.timeSignatures.count == 1)
+    Swag.require(document.keySignatures.count == 1 and document.keyText() == "C major")
+}
 
 #test
 {
@@ -240,12 +350,13 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     bytes.add(cast(const [..] u8, "MThd"))
     bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
     bytes.add(cast(const [..] u8, "MTrk"))
-    bytes.add([0'u8, 0, 0, 66])
+    bytes.add([0'u8, 0, 0, 82])
     bytes.add([0x00'u8, 0xC0, 0x18, 0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
                0x00, 0xFF, 0x59, 0x02, 0x00, 0x00, 0x00, 0x90, 0x3C, 0x64, 0x83, 0x60, 0xFF, 0x51, 0x03,
                0x06, 0x1A, 0x80, 0x00, 0xFF, 0x58, 0x04, 0x03, 0x02, 0x18, 0x08, 0x83, 0x60, 0xFF, 0x51,
-               0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x59, 0x02, 0x01, 0x00, 0x00, 0x80, 0x3C, 0x00, 0x00,
-               0xFF, 0x2F, 0x00])
+               0x03, 0x07, 0xA1, 0x20, 0x00, 0xFF, 0x59, 0x02, 0x01, 0x00, 0x00, 0x80, 0x3C, 0x00,
+               0x83, 0x60, 0xFF, 0x59, 0x02, 0xFE, 0x01, 0x00, 0x90, 0x46, 0x64, 0x83, 0x60, 0x80,
+               0x46, 0x00, 0x00, 0xFF, 0x2F, 0x00])
     let fileName = Gui.Testing.tempFilePath("scope-midi-changes-", ".mid")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, bytes.toSlice())
@@ -254,7 +365,8 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(document.tempos.count == 3 and document.bpm() == 120)
     Swag.require(document.tempoText() == "120–150 BPM · 2 changes", document.tempoText())
     Swag.require(document.meterChangesText() == "4/4 · 1 change", document.meterChangesText())
-    Swag.require(document.keyChangesText() == "C major · 1 change", document.keyChangesText())
+    Swag.require(document.keyChangesText() == "C major · 2 changes", document.keyChangesText())
+    Swag.require(document.keySignatures.count == 3 and document.keySignatures[2].sharps == -2 and document.keySignatures[2].minor)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -262,16 +374,31 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let view   = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
 
+    view.roll.setMode(.Pitches)
+    view.setScaleHighlight(true)
+    Swag.require(view.roll.pitchIsHighlighted(0, 60) and not view.roll.pitchIsHighlighted(0, 61))
+    Swag.require(view.roll.pitchIsHighlighted(960, 66) and not view.roll.pitchIsHighlighted(960, 65))
+    Swag.require(view.roll.pitchIsHighlighted(1440, 70) and not view.roll.pitchIsHighlighted(1440, 71))
+
+    // Channel 10 remains a percussion map and never receives key-signature colouring.
+    for &note in view.roll.document.notes do
+        note.channel = 9
+    view.roll.collectLanes()
+    Swag.require(view.roll.scaleHighlightMaskAt(1440) == 0)
+    for &note in view.roll.document.notes do
+        note.channel = 0
+    view.roll.collectLanes()
+
     let sheet = InfoSheet.create(&host.root)
     view.describeInformation(sheet)
     let text = sheet.text()
     Swag.require(Utf8.contains(text, "Tempo\n120–150 BPM · 2 changes"), text)
     Swag.require(Utf8.contains(text, "Time signature\n4/4 · 1 change"), text)
-    Swag.require(Utf8.contains(text, "Key\nC major · 1 change"), text)
+    Swag.require(Utf8.contains(text, "Key\nC major · 2 changes"), text)
 
     // The track lists its channel, the General MIDI instrument it selects and its notes.
     Swag.require(document.tracks[0].program == 24 and Midi.instrumentName(24) == "Acoustic Guitar (nylon)")
-    Swag.require(Utf8.contains(text, "channel 1 · Acoustic Guitar (nylon) · 1 note"), text)
+    Swag.require(Utf8.contains(text, "channel 1 · Acoustic Guitar (nylon) · 2 notes"), text)
 }
 
 // The Explorer preview of a MIDI file is its notes as a small piano roll on a light ground.

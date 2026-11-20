@@ -8,6 +8,9 @@ const PopupHeadless_Item2 = "PopupHeadless.Item2"
 var PopupHeadlessChangedCount:  u32
 var PopupListContentPaintCount: u32
 var PopupListContentPaintFlags: PaintItemFlags
+var PopupVisibilityOpenCount: u32
+var PopupVisibilityCloseCount: u32
+var PopupVisibilityOpenRange: PopupListVisibleRange
 
 func popupHeadlessChanged(_: *ComboBox, _: u32)
 {
@@ -18,6 +21,68 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     PopupListContentPaintCount += 1
     PopupListContentPaintFlags = flags
+}
+
+func popupVisibilityChanged(_: *Wnd, popup: *PopupListCtrl, opened: bool)
+{
+    if opened
+    {
+        PopupVisibilityOpenCount += 1
+        PopupVisibilityOpenRange = popup.visibleItemRange()
+    }
+    else do
+        PopupVisibilityCloseCount += 1
+}
+
+// The public visible range includes partially visible rows, counts separators, and the combo
+// lifecycle signal exposes a popup only while it is alive.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+
+    let popup = PopupListCtrl.create(&host.root)
+    popup.itemHeight = 30
+    popup.separatorHeight = 8
+    popup.maximumHeight = 30
+    popup.addItem("A")
+    popup.addSeparator()
+    popup.addItem("B")
+    popup.addItem("C")
+    popup.show(20, 20, 120)
+    var atlasImage = Image.create(8, 8, .RGBA8)
+    atlasImage.fill(Argb.Lime)
+    var atlas = ImageList.create(host.app.renderer.addImage(&atlasImage), 8, 8, 1)
+    let icon = Icon.from(&atlas, 0, 16, 16)
+    popup.setItemIcon(0, icon)
+    Swag.require(popup.items[0]!.icon == icon)
+    popup.scrollWnd.setScrollPos(0, 33)
+    let visible = popup.visibleItemRange()
+    Swag.require(visible.first == 1 and visible.end == 3,
+                 Format.toString("visible range %, %", visible.first, visible.end).toString())
+    host.app.setMouseCaptureRaw(null)
+    popup.destroy()
+    host.pump()
+    atlas.release(host.app.renderer)
+
+    PopupVisibilityOpenCount = 0
+    PopupVisibilityCloseCount = 0
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
+    combo.popupItemHeight = 36
+    combo.popupIconSize = 32
+    combo.maximumPopupHeight = 72
+    combo.sigPopupChanged += &popupVisibilityChanged
+    for index in 8 do
+        combo.addItem(Format.toString("Entry %", index))
+
+    host.click({100, 33})
+    Swag.require(PopupVisibilityOpenCount == 1 and combo.popup != null)
+    Swag.require(combo.popup.itemHeight == 36 and combo.popup.iconSize == 32)
+    Swag.require(PopupVisibilityOpenRange.first == 0 and PopupVisibilityOpenRange.end > 0)
+    combo.closePopup()
+    Swag.require(PopupVisibilityCloseCount == 1 and combo.popup == null)
+    host.app.setMouseCaptureRaw(null)
+    host.pump()
 }
 
 // Clicking a (select) combobox opens its popup; selecting an item closes it

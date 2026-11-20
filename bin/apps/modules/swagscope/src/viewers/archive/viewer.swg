@@ -35,6 +35,11 @@ func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 // its end record.
 private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
+    if content.head.count >= 2 and content.head[0] == 0x1F and content.head[1] == 0x8B do
+        return true
+    if content.head.count >= 262 and content.head[257] == 'u' and content.head[258] == 's' and
+       content.head[259] == 't' and content.head[260] == 'a' and content.head[261] == 'r' do
+        return true
     if not content.startsWith("PK") or content.head.count < 4 do
         return false
     return (content.head[2] == 3 and content.head[3] == 4) or (content.head[2] == 5 and content.head[3] == 6)
@@ -58,7 +63,7 @@ func viewerPlugin()->Viewer.Plugin
         .showReadingLine = false
         .probe           = &pluginProbe
         .smokeFixture    = "viewer.archive.zip"
-        .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.cbz;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
+        .addSelectors(".zip;.tar;.gz;.tgz;.tar.gz;.jar;.war;.apk;.aar;.epub;.cbz;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
     }
 
     return result

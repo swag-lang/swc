@@ -30,6 +30,10 @@ sampleRate  Échantillonnage
 channels    Canaux
 empty       Aucune
 unavailable Erreur de lecture
+iccProfile Profil ICC incorporé
+iccInspectionOnly % · inspection uniquement
+iccProfileError Profil ICC incorporé impossible à lire : %
+xmpPacketError Paquet XMP impossible à lire : %
 mono        mono
 stereo      stéréo
 channelCount % canaux

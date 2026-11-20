@@ -245,20 +245,11 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
 // A count of matches over a document some pages of which hold no text says what it leaves out.
 #test
 {
-    let fileName = Gui.Testing.tempFilePath("scope-partly-scanned-", ".pdf")
-    defer discard catch File.delete(fileName)
-    var document = Pdf.Document.create()
-    var written  = Pdf.Page.create(320, 220)
-    written.addText("alpha words", 32, 28, 24, Color.fromArgb(Argb.Black))
-    document.addPage(#move written)
-    document.addPage(Pdf.Page.create(320, 220))
-    expect document.save(fileName)
-
     var host: HeadlessHost
     host.setup(960, 680)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.resize(960, 680)
-    window.openFile(fileName)
+    window.openFile(scopeTestDataPath("viewer.mixed-text-scan.pdf"))
     completeQueuedViewerFile(&host, window)
     window.applyLayout()
 
@@ -266,6 +257,7 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.searchBox.setText("alpha")
     completeFind(&host, window)
     Swag.require(window.searchComplete and window.searchMatches.count == 1)
+    Swag.require(window.searchCountLabel.text() == "1/1*")
     let toolTip = window.searchCountLabel.toolTip.toString()
     Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_OneNoText, 2).toString()), toolTip)
 }
@@ -290,6 +282,9 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
     window.applyLayout()
+    let panel = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+    panel.thumbnailTask.wait()
+    host.pump()
     expect File.delete(fileName)
     window.toggleInformation()
 
@@ -303,7 +298,8 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 
     host.pump()
-    Swag.require(view.pdfView.textCoverage().unreadable == 1)
+    let coverage = view.pdfView.textCoverage()
+    Swag.require(coverage.unreadable == 1, Format.toString("PDF text coverage: complete %, pictures %, unreadable %, source exists %", coverage.complete, coverage.pictures, coverage.unreadable, File.exists(fileName)))
     window.infoSheet.selectPage(1)
     let text = window.infoSheet.text()
     Swag.require(Utf8.contains(text, Format.toString("Text layer\n%", PdfDocument.texts().ui_TextLayerOneUnreadable).toString()), text)

@@ -8,7 +8,7 @@ using Core, Gui, Viewers
 {
     defer Sound.releaseEngine()
     let files = ["comprehensive.txt", "sample.cpp", "viewer.page.html", "comprehensive.md",
-                 "title.png", "segoeui.ttf", "viewer.groove.mid", "viewer.pdf", "viewer.srt",
+                 "title.png", "viewer.arabic.ttf", "viewer.groove.mid", "viewer.pdf", "viewer.srt",
                  "pacman_beginning.wav", "viewer.console.exe", "viewer.hex", "viewer.archive.zip", "viewer.csv"]
     for file in files
     {

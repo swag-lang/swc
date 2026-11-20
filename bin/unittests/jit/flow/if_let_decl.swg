@@ -4,7 +4,7 @@ func jitRetNothing()->string? => null
 
 func jitIfLetSimple()->s32
 {
-    if let x = 1
+    if let x = 1 where x == 1
     {
         return x
     }

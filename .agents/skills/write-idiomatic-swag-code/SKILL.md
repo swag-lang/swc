@@ -592,6 +592,11 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Preserve expression grouping when inserting `try`: after a cast or another operator, use
   parentheses such as `cast(u16, (try readByte())) << 8` so the conversion still precedes the shift.
 - Prefer early exits over nested success paths.
+- Use a declaration in `if` or `elif` to name a nullable result and test its presence.
+  A switch without a subject supports the same test with `case let`, `case var`, or
+  `case const`, with the name in scope in that case's guard and body.
+  Add `where` to filter a present result. A non-nullable declaration needs a
+  `where` predicate, as in `if let count = items.count where count > 0`.
 - Use named arguments when a call combines several positional values whose roles are not clear
   from the values themselves, especially numeric, boolean, and enum settings. Keep their original
   parameter order, and leave an obvious owner or primary value positional. Do not name every

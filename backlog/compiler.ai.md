@@ -10,30 +10,6 @@ reproducible tests with observed values (`compiler.ai.040`, `compiler.ai.041`). 
 behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-heavy changes.
 [README.md](README.md) defines entry and completion rules.
 
-### compiler.ai.003 — `if let` combines binding with an implicit truthiness test
-
-- Evidence: the declaration in an `if` is converted to a boolean — non-zero, non-null — and the
-  `where` clause runs only if that hidden test passed
-  ([005_001_if.swg](../bin/reference/modules/language/src/005_001_if.swg)). So the
-  line has two conditions, only one of which is written down, and the unwritten one is a truthiness
-  coercion the rest of the language is careful about. `if let a = 0` takes the `else` branch, which
-  is a surprise for anyone reading it as a binding.
-- Evidence: `if let str = retNothing() where str[0] == 's'` takes the `else` branch without
-  evaluating the `where`. Confirmed under the JIT and the forged binary.
-- Elsewhere: Rust `if let` matches a pattern, which may be irrefutable; `if let a = 0` is accepted with
-  an irrefutable-pattern warning rather than rejected as an integer condition
-  ([Rust if expressions](https://doc.rust-lang.org/reference/expressions/if-expr.html)).
-  This differs from converting the bound integer to a boolean.
-- Proposed contract: Conditional binding tests presence or a pattern, never scalar truthiness. Nullable
-  strings/slices already distinguish an empty present value from null; preserve that behavior.
-  A nullable pointer to a zero-valued object is present. A future tagged case carrying false is
-  a successful case match. Plain scalar predicates remain explicit comparisons/booleans.
-- Next: Inventory if/while/case bindings by source type and distinguish ordinary boolean conditions
-  from binding syntax. Migrate nonzero scalar bindings to explicit predicates and preserve
-  where short-circuiting. Reuse existing is/as dynamic patterns rather than inventing them again.
-- Done when: bindings distinguish absence from zero/false/empty payloads, evaluate once, scope names
-  to successful branches, and preserve those rules through guards and nested patterns.
-
 ### compiler.ai.004 — A scalar `is/as` binding reads like a value but binds a pointer
 
 - Evidence: the language reference writes `if value is s32 as number where number[] > 0 do`
@@ -941,7 +917,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   span or index for a miss. Test empty input and an empty successful match separately.
 - Done when: the same operation vocabulary predicts the miss, ownership and mutation
   contract across the audited families, and a miss cannot be consumed as a valid result.
-- Related: compiler.ai.003, compiler.ai.014, compiler.ai.016.
+- Related: compiler.ai.014, compiler.ai.016.
 
 ### compiler.ai.050 — There is no serializable documentation model
 

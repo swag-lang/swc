@@ -58,30 +58,34 @@ They can be used for clarity or grouping, but they are not required.
 /**
 # Variable Declaration in 'if'
 
-You can declare and test a variable directly in an `if` statement.
-When doing so, the use of `var`, `let`, or `const` is mandatory.
-
-The declared variable is converted to a boolean for the condition:
-non-zero (or non-null) values are considered `true`.
+An `if` or `elif` can declare a value with `let`, `var`, or `const`.
+A runtime initializer is evaluated once when that clause is reached.
+A nullable declaration tests whether the value is present.
+A non-nullable declaration needs `where`, which supplies the condition
+and follows the rules for an ordinary `if`.
+The name is in scope in the `where` condition and both branches of its clause.
+The binding's lifetime ends as control leaves the conditional.
 */
 
 #test
 {
-    // Declare and test 'a' in the same line.
-    // Since 'a' is 0, the condition is false and the block will not execute.
-    if let a = 0
-    {
-        Swag.require(a != 0)
-    }
-
-    // Redeclare 'a' as a constant in another scope.
-    // Since 'a' is 1, the block will execute.
-    if const a = 1 do
-        Swag.require(a == 1)
+    if let count = 0 where count == 0 do
+        Swag.require(count == 0)
     else do
         Swag.require(false)
-    if let a = 1 do
-        Swag.require(a == 1)
+
+    if var available = 3 where available >= 10 do
+        Swag.require(false)
+    else
+    {
+        available += 1
+        Swag.require(available == 4)
+    }
+
+    if const preferred = 0 where preferred > 0 do
+        Swag.require(false)
+    elif let fallback = 1 where fallback > 0 do
+        Swag.require(fallback == 1)
     else do
         Swag.require(false)
 }
@@ -89,26 +93,35 @@ non-zero (or non-null) values are considered `true`.
 /**
 # Adding Conditions with 'where'
 
-When an `if` statement includes a variable declaration, you can refine the test
-with a `where` clause. The `where` condition is only evaluated if the variable test passes.
+For a nullable declaration, a present value proceeds to the optional `where`
+condition. An absent value skips it and takes the false branch.
+An empty string or slice is present. A pointer to a zero-valued object is present.
 */
 
 #test
 {
-    func retSomething()->string => "string"
-    func retNothing()->string?  => null
+    func readText()->string?   => "string"
+    func readAbsent()->string? => null
 
-    // The 'where' clause runs only if 'str' is not null.
-    if let str = retSomething() where str[0] == 's' do
-        Swag.require(true)
+    var matched = false
+    if let text = readText() where text[0] == 's' do
+        matched = true
+    Swag.require(matched)
+
+    let empty: string? = ""
+    if let text = empty do
+        Swag.require(text.count == 0)
     else do
         Swag.require(false)
 
-    // Since 'retNothing()' returns null, the 'where' clause is skipped.
-    if let str = retNothing() where str[0] == 's' do
+    if var text = readAbsent() where text == null do
         Swag.require(false)
-    else do
-        Swag.require(true)
+    else
+    {
+        Swag.require(text == null)
+        text = "fallback"
+        Swag.require(text == "fallback")
+    }
 }
 
 /**

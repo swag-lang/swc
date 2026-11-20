@@ -452,3 +452,18 @@ func attributedNestedFunction()->s32     // swc-expected-error {{sema_err_missin
     }
     discard nested()
 }
+
+func switchNullableBindingWhereTrue(value: *s32?)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    switch
+    {
+    case let item = value where true:
+        return item[]
+    }
+}
+
+func ifNullableBindingWhereTrue(value: *s32?)->s32     // swc-expected-error {{sema_err_missing_return}}
+{
+    if let item = value where true do
+        return item[]
+}

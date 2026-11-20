@@ -20,7 +20,9 @@ namespace SemaCheck
 
     Result prepareBoolExprValue(Sema& sema, SemaNodeView& view);
     Result castToBool(Sema& sema, SemaNodeView& view);
-    Result conditionBinding(Sema& sema, AstNodeRef varDeclRef);
+    Result conditionBinding(Sema& sema, AstNodeRef bindingRef, AstNodeRef whereRef);
+    void   pushConditionBindingPresence(Sema& sema, AstNodeRef bindingRef, AstNodeRef bodyRef);
+    Result conditionBindingGuard(Sema& sema, AstNodeRef whereRef);
     Result typePattern(Sema& sema, AstNodeRef exprRef, bool binding = false);
 
     Result isConstant(Sema& sema, AstNodeRef nodeRef);

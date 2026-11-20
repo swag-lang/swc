@@ -309,6 +309,10 @@ pointer cases, including `case null`; these can appear alongside type cases.
 A concrete binding has type `*T`; an interface binding is an interface view. Both
 are non-null, preserve source constness, and borrow without extending the source's
 lifetime. The name is visible in its case's guard and body only.
+
+A `fallthrough` into a typed case checks its type and `where` guard before entering
+its body. An unsuccessful match continues to the next case. `switch #complete`
+asserts that some case matches, with a panic on a miss when `.Switch` safety is enabled.
 */
 #test
 {
@@ -319,27 +323,6 @@ lifetime. The name is visible in its case's guard and body only.
     case string as text where text[] == "other": Swag.require(false)
     case string as text: Swag.require(text[] == "value")
     default:  Swag.require(false)
-    }
-}
-
-/**
-A `fallthrough` into a typed case checks its type and `where` guard before entering
-its body; an unsuccessful match continues to the next case. `switch #complete`
-asserts that some case matches, with a panic on a miss when `.Switch` safety is enabled.
-
-An expressionless switch also accepts `case let name = expression`. It evaluates
-the expression once and enters the case if its result is present. This general
-binding remains useful for nullable results from ordinary expressions. Prefer a
-typed switch when dispatching by the dynamic type.
-*/
-#test
-{
-    func findText(value: *string?)->*string? => value
-    var value = "value"
-    switch
-    {
-    case let text = findText(&value) where text[] == "value": Swag.require(text[] == "value")
-    default: Swag.require(false)
     }
 }
 
@@ -363,6 +346,55 @@ Each `case` is evaluated in order, executing the first one that evaluates to `tr
 
     case value1 == "true":
         Swag.require(true)
+
+    default:
+        Swag.require(false)
+    }
+}
+
+/**
+# Declaring a Value in a Case
+
+A switch without an expression accepts declarations with `case let`,
+`case var`, and `case const`. A runtime initializer is evaluated once
+when the case is tested, including after a `fallthrough`. The name is in
+scope in that case's `where` condition and body.
+An owned value is released when its case ends, including before a
+`fallthrough` target or the next initializer after a failed guard.
+
+A nullable declaration tests presence before evaluating an optional
+`where` condition. An absent value skips the condition and the case.
+An empty string or slice is present.
+*/
+#test
+{
+    func readText(available: bool)->string? => available ? "" : null
+
+    switch
+    {
+    case let text = readText(false) where text == null:
+        Swag.require(false)
+
+    case var text = readText(true) where text.count == 0:
+        text = "empty"
+        Swag.require(text == "empty")
+
+    default:
+        Swag.require(false)
+    }
+}
+
+/**
+A non-nullable declaration needs a `where` condition. That condition
+decides whether the case matches and follows the rules for an ordinary
+`if` condition.
+*/
+#test
+{
+    switch
+    {
+    case const count = 0 where count == 0:
+        Swag.require(count == 0)
 
     default:
         Swag.require(false)

@@ -101,6 +101,12 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     Swag.require(cast(bool, value))
     Swag.require(value != null)
     Swag.require((value ? 1 : 2) == 1)
+
+    if let present = value do
+        Swag.require(cast(IMetadata, present).answer() == 42)
+    else do
+        Swag.require(false)
+
     let boxed     = Swag.makeAny(&value, #typeof(value))
     let extracted = assume cast (MetadataAlias, boxed)
     Swag.require(cast(IMetadata, extracted).answer() == 42)

@@ -4287,46 +4287,55 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">true</span>)
 }</span></div>
 <h3 id="_005_001_if_swg_Variable_Declaration_in__if_">Variable Declaration in <span class="code-inline">if</span></h3>
-<p>You can declare and test a variable directly in an <span class="code-inline">if</span> statement. When doing so, the use of <span class="code-inline">var</span>, <span class="code-inline">let</span>, or <span class="code-inline">const</span> is mandatory.</p>
-<p>The declared variable is converted to a boolean for the condition: non-zero (or non-null) values are considered <span class="code-inline">true</span>.</p>
+<p>An <span class="code-inline">if</span> or <span class="code-inline">elif</span> can declare a value with <span class="code-inline">let</span>, <span class="code-inline">var</span>, or <span class="code-inline">const</span>. A runtime initializer is evaluated once when that clause is reached. A nullable declaration tests whether the value is present. A non-nullable declaration needs <span class="code-inline">where</span>, which supplies the condition and follows the rules for an ordinary <span class="code-inline">if</span>. The name is in scope in the <span class="code-inline">where</span> condition and both branches of its clause. The binding's lifetime ends as control leaves the conditional.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SCmt">// Declare and test 'a' in the same line.</span>
-    <span class="SCmt">// Since 'a' is 0, the condition is false and the block will not execute.</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> a = <span class="SNum">0</span>
-    {
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a != <span class="SNum">0</span>)
-    }
-
-    <span class="SCmt">// Redeclare 'a' as a constant in another scope.</span>
-    <span class="SCmt">// Since 'a' is 1, the block will execute.</span>
-    <span class="SLgc">if</span> <span class="SKwd">const</span> a = <span class="SNum">1</span> <span class="SLgc">do</span>
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a == <span class="SNum">1</span>)
+    <span class="SLgc">if</span> <span class="SKwd">let</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">0</span>)
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">if</span> <span class="SKwd">let</span> a = <span class="SNum">1</span> <span class="SLgc">do</span>
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a == <span class="SNum">1</span>)
+
+    <span class="SLgc">if</span> <span class="SKwd">var</span> available = <span class="SNum">3</span> <span class="SLgc">where</span> available &gt;= <span class="SNum">10</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">else</span>
+    {
+        available += <span class="SNum">1</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(available == <span class="SNum">4</span>)
+    }
+
+    <span class="SLgc">if</span> <span class="SKwd">const</span> preferred = <span class="SNum">0</span> <span class="SLgc">where</span> preferred &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">elif</span> <span class="SKwd">let</span> fallback = <span class="SNum">1</span> <span class="SLgc">where</span> fallback &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(fallback == <span class="SNum">1</span>)
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
 }</span></div>
 <h3 id="_005_001_if_swg_Adding_Conditions_with__where_">Adding Conditions with <span class="code-inline">where</span></h3>
-<p>When an <span class="code-inline">if</span> statement includes a variable declaration, you can refine the test with a <span class="code-inline">where</span> clause. The <span class="code-inline">where</span> condition is only evaluated if the variable test passes.</p>
+<p>For a nullable declaration, a present value proceeds to the optional <span class="code-inline">where</span> condition. An absent value skips it and takes the false branch. An empty string or slice is present. A pointer to a zero-valued object is present.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">func</span> <span class="SFct">retSomething</span>()-&gt;<span class="STpe">string</span> =&gt; <span class="SStr">"string"</span>
-    <span class="SKwd">func</span> <span class="SFct">retNothing</span>()-&gt;<span class="STpe">string</span>?  =&gt; <span class="SKwd">null</span>
+    <span class="SKwd">func</span> <span class="SFct">readText</span>()-&gt;<span class="STpe">string</span>?   =&gt; <span class="SStr">"string"</span>
+    <span class="SKwd">func</span> <span class="SFct">readAbsent</span>()-&gt;<span class="STpe">string</span>? =&gt; <span class="SKwd">null</span>
 
-    <span class="SCmt">// The 'where' clause runs only if 'str' is not null.</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> str = <span class="SFct">retSomething</span>() <span class="SLgc">where</span> str[<span class="SNum">0</span>] == '<span class="SFct">s</span>' <span class="SLgc">do</span>
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">true</span>)
+    <span class="SKwd">var</span> matched = <span class="SKwd">false</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> text = <span class="SFct">readText</span>() <span class="SLgc">where</span> text[<span class="SNum">0</span>] == '<span class="SFct">s</span>' <span class="SLgc">do</span>
+        matched = <span class="SKwd">true</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(matched)
+
+    <span class="SKwd">let</span> empty: <span class="STpe">string</span>? = <span class="SStr">""</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> text = empty <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text.count == <span class="SNum">0</span>)
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
 
-    <span class="SCmt">// Since 'retNothing()' returns null, the 'where' clause is skipped.</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> str = <span class="SFct">retNothing</span>() <span class="SLgc">where</span> str[<span class="SNum">0</span>] == '<span class="SFct">s</span>' <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">var</span> text = <span class="SFct">readAbsent</span>() <span class="SLgc">where</span> text == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">true</span>)
+    <span class="SLgc">else</span>
+    {
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text == <span class="SKwd">null</span>)
+        text = <span class="SStr">"fallback"</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text == <span class="SStr">"fallback"</span>)
+    }
 }</span></div>
 <h3 id="_005_001_if_swg_Binding_a_Dynamic_Type">Binding a Dynamic Type</h3>
 <p><span class="code-inline">if value is T as name</span> tests dynamic compatibility and binds the successful view. For a concrete <span class="code-inline">T</span>, <span class="code-inline">name</span> is a non-null pointer; for an interface, it is an interface view. Source constness is preserved. The source is evaluated once, and no binding copies the object or extends its lifetime. An <span class="code-inline">any</span> boxed from a literal or constant binds a read-only view. Declare the source <span class="code-inline">const any</span> to request that view in a binding pattern.</p>
@@ -5223,6 +5232,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>A switch over an <span class="code-inline">any</span>, an interface, or a pointer to a dynamic struct can match concrete types. Write <span class="code-inline">case T</span> to test compatibility, or <span class="code-inline">case T as name</span> to borrow the matching object. An interface type can also be the target of a case.</p>
 <p>The subject is evaluated once. Matching uses the same compatibility and pointer adjustments as a checked cast. A null source does not match a type. The first matching case whose <span class="code-inline">where</span> guard succeeds is selected. Pointer subjects also retain ordinary pointer cases, including <span class="code-inline">case null</span>; these can appear alongside type cases.</p>
 <p>A concrete binding has type <span class="code-inline">*T</span>; an interface binding is an interface view. Both are non-null, preserve source constness, and borrow without extending the source's lifetime. The name is visible in its case's guard and body only.</p>
+<p>A <span class="code-inline">fallthrough</span> into a typed case checks its type and <span class="code-inline">where</span> guard before entering its body. An unsuccessful match continues to the next case. <span class="code-inline">switch #complete</span> asserts that some case matches, with a panic on a miss when <span class="code-inline">.Switch</span> safety is enabled.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="SKwd">const</span> <span class="STpe">any</span> = <span class="SStr">"value"</span>
@@ -5232,18 +5242,6 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text <span class="SLgc">where</span> text[] == <span class="SStr">"other"</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text[] == <span class="SStr">"value"</span>)
     <span class="SLgc">default</span>:  <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    }
-}</span></div>
-<p>A <span class="code-inline">fallthrough</span> into a typed case checks its type and <span class="code-inline">where</span> guard before entering its body; an unsuccessful match continues to the next case. <span class="code-inline">switch #complete</span> asserts that some case matches, with a panic on a miss when <span class="code-inline">.Switch</span> safety is enabled.</p>
-<p>An expressionless switch also accepts <span class="code-inline">case let name = expression</span>. It evaluates the expression once and enters the case if its result is present. This general binding remains useful for nullable results from ordinary expressions. Prefer a typed switch when dispatching by the dynamic type.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">func</span> <span class="SFct">findText</span>(value: *<span class="STpe">string</span>?)-&gt;*<span class="STpe">string</span>? =&gt; value
-    <span class="SKwd">var</span> value = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span>
-    {
-    <span class="SLgc">case</span> <span class="SKwd">let</span> text = <span class="SFct">findText</span>(&amp;value) <span class="SLgc">where</span> text[] == <span class="SStr">"value"</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text[] == <span class="SStr">"value"</span>)
-    <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switch_Without_an_Expression">Switch Without an Expression</h3>
@@ -5261,6 +5259,38 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">case</span> value1 == <span class="SStr">"true"</span>:
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">true</span>)
+
+    <span class="SLgc">default</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
+}</span></div>
+<h3 id="_005_005_switch_swg_Declaring_a_Value_in_a_Case">Declaring a Value in a Case</h3>
+<p>A switch without an expression accepts declarations with <span class="code-inline">case let</span>, <span class="code-inline">case var</span>, and <span class="code-inline">case const</span>. A runtime initializer is evaluated once when the case is tested, including after a <span class="code-inline">fallthrough</span>. The name is in scope in that case's <span class="code-inline">where</span> condition and body. An owned value is released when its case ends, including before a <span class="code-inline">fallthrough</span> target or the next initializer after a failed guard.</p>
+<p>A nullable declaration tests presence before evaluating an optional <span class="code-inline">where</span> condition. An absent value skips the condition and the case. An empty string or slice is present.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">readText</span>(available: <span class="STpe">bool</span>)-&gt;<span class="STpe">string</span>? =&gt; available ? <span class="SStr">""</span> : <span class="SKwd">null</span>
+
+    <span class="SLgc">switch</span>
+    {
+    <span class="SLgc">case</span> <span class="SKwd">let</span> text = <span class="SFct">readText</span>(<span class="SKwd">false</span>) <span class="SLgc">where</span> text == <span class="SKwd">null</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+
+    <span class="SLgc">case</span> <span class="SKwd">var</span> text = <span class="SFct">readText</span>(<span class="SKwd">true</span>) <span class="SLgc">where</span> text.count == <span class="SNum">0</span>:
+        text = <span class="SStr">"empty"</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text == <span class="SStr">"empty"</span>)
+
+    <span class="SLgc">default</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
+}</span></div>
+<p>A non-nullable declaration needs a <span class="code-inline">where</span> condition. That condition decides whether the case matches and follows the rules for an ordinary <span class="code-inline">if</span> condition.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SLgc">switch</span>
+    {
+    <span class="SLgc">case</span> <span class="SKwd">const</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">0</span>)
 
     <span class="SLgc">default</span>:
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
@@ -11909,6 +11939,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Cases With Only a Guard|_005_005_switch_swg_Cases_With_Only_a_Guard|",
 "h|Switching on Type with any or interface|_005_005_switch_swg_Switching_on_Type_with__any__or__interface_|",
 "h|Switch Without an Expression|_005_005_switch_swg_Switch_Without_an_Expression|",
+"h|Declaring a Value in a Case|_005_005_switch_swg_Declaring_a_Value_in_a_Case|",
 "h|Break|_005_006_break_swg|",
 "h|The break Statement|_005_006_break_swg_The__break__Statement|",
 "h|Default Behavior|_005_006_break_swg_Default_Behavior|",

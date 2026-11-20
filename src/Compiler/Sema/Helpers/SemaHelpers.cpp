@@ -938,7 +938,7 @@ namespace
         bool continuesBranch(AstNodeRef conditionRef, AstNodeRef thenRef, AstNodeRef elseRef, FlowTargets targets);
         bool continuesLoop(AstNodeRef conditionRef, AstNodeRef bodyRef, FlowTargets targets);
         bool isFalseCondition(AstNodeRef conditionRef) const;
-        bool caseTestAlwaysMatches(const AstSwitchCaseStmt& caseStmt, bool expressionless) const;
+        bool caseTestAlwaysMatches(AstNodeRef caseRef, const AstSwitchCaseStmt& caseStmt, bool expressionless) const;
     };
 
     bool FunctionFlow::isFalseCondition(AstNodeRef conditionRef) const
@@ -1004,12 +1004,17 @@ namespace
         return exit.breakRef;
     }
 
-    bool FunctionFlow::caseTestAlwaysMatches(const AstSwitchCaseStmt& caseStmt, bool expressionless) const
+    bool FunctionFlow::caseTestAlwaysMatches(AstNodeRef caseRef, const AstSwitchCaseStmt& caseStmt, bool expressionless) const
     {
         if (caseStmt.spanExprRef.isInvalid())
             return true;
-        if (!expressionless || caseStmt.conditionBindingRef(sema_.ast()).isValid())
+        if (!expressionless)
             return false;
+        if (caseStmt.conditionBindingRef(sema_.ast()).isValid())
+        {
+            const auto* lowering = sema_.loweringPayload<CodeGenLoweringPayload>(caseRef);
+            return lowering && !lowering->conditionBindingTestsValue;
+        }
 
         const auto conditions = sema_.ast().nodeSpan(caseStmt.spanExprRef);
         for (auto chunk = conditions.chunksBegin(); chunk != conditions.chunksEnd(); ++chunk)
@@ -1066,7 +1071,7 @@ namespace
 
             const ConstantRef guard = caseStmt->nodeWhereRef.isValid() ? sema_.viewConstant(caseStmt->nodeWhereRef).cstRef() : sema_.cstMgr().cstTrue();
             entersBody = entersBody || (canTest && guard != sema_.cstMgr().cstFalse());
-            if (canTest && guard == sema_.cstMgr().cstTrue() && caseTestAlwaysMatches(*caseStmt, switchStmt.nodeExprRef.isInvalid()))
+            if (canTest && guard == sema_.cstMgr().cstTrue() && caseTestAlwaysMatches(caseRef, *caseStmt, switchStmt.nodeExprRef.isInvalid()))
             {
                 canTest = false;
                 resumedTestRef.setInvalid();
@@ -1132,7 +1137,9 @@ namespace
                 if (isFalseCondition(branch.nodeWhereRef))
                     return continues(branch.nodeElseBlockRef, targets);
 
-                return continuesBranch({}, branch.nodeIfBlockRef, branch.nodeElseBlockRef, targets);
+                const auto* lowering = sema_.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+                const AstNodeRef conditionRef = lowering && !lowering->conditionBindingTestsValue ? branch.nodeWhereRef : AstNodeRef::invalid();
+                return continuesBranch(conditionRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, targets);
             }
 
             case AstNodeId::CompilerIf:

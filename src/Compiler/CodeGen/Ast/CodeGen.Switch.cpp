@@ -33,6 +33,7 @@ namespace
     {
         MicroLabelRef testLabel     = MicroLabelRef::invalid();
         MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
+        MicroLabelRef bindingMiss   = MicroLabelRef::invalid();
         MicroLabelRef nextTestLabel = MicroLabelRef::invalid();
         MicroLabelRef nextBodyLabel = MicroLabelRef::invalid();
         AstNodeRef    nextCaseRef   = AstNodeRef::invalid();
@@ -1120,9 +1121,13 @@ namespace
         const AstNodeRef         bindingRef = caseNode.conditionBindingRef(codeGen.ast());
         if (bindingRef.isValid())
         {
-            TypeRef     conditionTypeRef = TypeRef::invalid();
-            const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, bindingRef);
-            CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, failLabel);
+            const auto* loweringPayload = codeGen.loweringPayload(caseRef);
+            if (caseNode.nodeWhereRef.isInvalid() || (loweringPayload && loweringPayload->conditionBindingTestsValue))
+            {
+                TypeRef     conditionTypeRef = TypeRef::invalid();
+                const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, bindingRef);
+                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, failLabel);
+            }
             return Result::Continue;
         }
 
@@ -1249,6 +1254,8 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
         SwitchCaseCodeGenPayload caseState;
         caseState.testLabel = builder.createLabel();
         caseState.bodyLabel = builder.createLabel();
+        if (codeGen.node(caseRef).cast<AstSwitchCaseStmt>().conditionBindingRef(codeGen.ast()).isValid())
+            caseState.bindingMiss = builder.createLabel();
         switchState.caseStates.insert_or_assign(caseRef, caseState);
     }
 
@@ -1386,7 +1393,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
-    const MicroLabelRef             failLabel = caseState.hasNextCase ? caseState.nextTestLabel : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
+    const MicroLabelRef nextTest = caseState.hasNextCase ? caseState.nextTestLabel : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
+    const MicroLabelRef failLabel = caseState.bindingMiss.isValid() ? caseState.bindingMiss : nextTest;
 
     // The walk hands over each child as resolved: a guard that sema substituted, such as an inlined
     // call, arrives as its substitute and not as `nodeWhereRef`.
@@ -1406,6 +1414,9 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
         codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
         return Result::Continue;
     }
+
+    if (caseState.bindingMiss.isValid() && childRef == codeGen.resolvedNodeRef(conditionBindingRef(codeGen.ast())))
+        codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
 
     // A typed case performs its cast in its own test, so the cast node is never emitted on its own.
     if (switchState->dynamicStructSwitch && spanExprRef.isValid() && childRef != whereRef && childRef != bodyRef)
@@ -1435,8 +1446,18 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
         return Result::Continue;
 
     emitSwitchCaseWhereFalseJump(codeGen, whereRef, failLabel);
+    if (caseState.bindingMiss.isValid())
+    {
+        // A rejected case releases the initializer before the next case runs.
+        // At this point the body has yet to register any deferred actions.
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
+        builder.placeLabel(caseState.bindingMiss);
+        SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(codeGen.curNodeRef()));
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, nextTest);
+    }
     builder.placeLabel(caseState.bodyLabel);
-    codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
+    if (!caseState.bindingMiss.isValid())
+        codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
     return Result::Continue;
 }
 

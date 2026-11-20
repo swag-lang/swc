@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
-#include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -23,117 +22,10 @@ namespace
 {
     struct IfSemaPayload
     {
-        Symbol*     maskedConditionSymbol = nullptr;
-        ConstantRef maskedConditionCstRef = ConstantRef::invalid();
-
         // Restore the false branch's starting facts after true-branch kills have
         // propagated to the surrounding live frames.
         uint32_t narrowFactsAtThen = UINT32_MAX;
     };
-
-    ConstantRef conditionSymbolConstantRef(const Symbol& symbol)
-    {
-        if (const auto* symVar = symbol.safeCast<SymbolVariable>())
-            return symVar->cstRef();
-        if (const auto* symConst = symbol.safeCast<SymbolConstant>())
-            return symConst->cstRef();
-
-        return ConstantRef::invalid();
-    }
-
-    void setConditionSymbolConstantRef(Symbol& symbol, ConstantRef cstRef)
-    {
-        if (auto* symVar = symbol.safeCast<SymbolVariable>())
-        {
-            symVar->setCstRef(cstRef);
-            return;
-        }
-
-        if (auto* symConst = symbol.safeCast<SymbolConstant>())
-        {
-            symConst->setCstRef(cstRef);
-            return;
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    bool ifVarDeclUsesLetBinding(Sema& sema, AstNodeRef varDeclRef)
-    {
-        const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
-        if (declRef.isInvalid())
-            return false;
-
-        const AstNode& declNode = sema.node(declRef);
-        if (const auto* singleDecl = declNode.safeCast<AstSingleVarDecl>())
-            return singleDecl->hasFlag(AstVarDeclFlagsE::Let);
-        if (const auto* multiDecl = declNode.safeCast<AstMultiVarDecl>())
-            return multiDecl->hasFlag(AstVarDeclFlagsE::Let);
-
-        return false;
-    }
-
-    bool singleIfVarDeclConditionSymbol(Sema& sema, AstNodeRef varDeclRef, Symbol*& outSym)
-    {
-        outSym = nullptr;
-
-        const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
-        if (declRef.isInvalid())
-            return false;
-
-        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        Symbol*            symbol   = declView.singleSymbol();
-        if (!symbol)
-            return false;
-
-        outSym = symbol;
-        return true;
-    }
-
-    bool ifVarDeclNeedsWhereShortCircuit(Sema& sema, AstNodeRef varDeclRef)
-    {
-        if (!ifVarDeclUsesLetBinding(sema, varDeclRef))
-            return false;
-
-        Symbol* conditionSym = nullptr;
-        if (!singleIfVarDeclConditionSymbol(sema, varDeclRef, conditionSym))
-            return false;
-
-        const TypeRef typeRef = conditionSym->typeRef();
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        return typeInfo.isPointerLikeAliasAware(sema.ctx()) || typeInfo.isNull();
-    }
-
-    void restoreMaskedIfVarDeclCondition(const Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.semaPayload<IfSemaPayload>(nodeRef);
-        if (!payload || !payload->maskedConditionSymbol)
-            return;
-
-        setConditionSymbolConstantRef(*payload->maskedConditionSymbol, payload->maskedConditionCstRef);
-        payload->maskedConditionSymbol = nullptr;
-        payload->maskedConditionCstRef = ConstantRef::invalid();
-    }
-
-    void maybeMaskIfVarDeclConditionForWhere(Sema& sema, AstNodeRef ifRef, AstNodeRef varDeclRef)
-    {
-        Symbol* conditionSym = nullptr;
-        if (!singleIfVarDeclConditionSymbol(sema, varDeclRef, conditionSym))
-            return;
-
-        const ConstantRef conditionCstRef = conditionSymbolConstantRef(*conditionSym);
-        if (conditionCstRef.isInvalid())
-            return;
-
-        auto& payload = sema.ensureSemaPayload<IfSemaPayload>(ifRef);
-
-        payload.maskedConditionSymbol = conditionSym;
-        payload.maskedConditionCstRef = conditionCstRef;
-        setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
-    }
 
     TypeRef normalizeWithBindingType(TaskContext& ctx, TypeRef typeRef)
     {
@@ -469,28 +361,9 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
-    // `if let x = expr { ... }` only enters the block when `x` is truthy: a nullable
-    // binding is proven non-null inside it. The `where` clause short-circuits the
-    // same way, so it sees the proven binding too.
-    if (childRef == nodeIfBlockRef || childRef == nodeWhereRef)
-    {
-        Symbol* conditionSym = nullptr;
-        if (singleIfVarDeclConditionSymbol(sema, nodeVarRef, conditionSym) && conditionSym && conditionSym->isVariable())
-        {
-            TypeRef bindingTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), conditionSym->typeRef());
-            if (bindingTypeRef.isInvalid())
-                bindingTypeRef = conditionSym->typeRef();
-
-            if (bindingTypeRef.isValid() && sema.typeMgr().get(bindingTypeRef).isNullable())
-            {
-                const std::array<const Symbol*, 1> path = {conditionSym};
-
-                SemaFrame frame = sema.frame();
-                frame.addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
-                sema.pushFramePopOnPostChild(std::move(frame), childRef);
-            }
-        }
-    }
+    const AstNodeRef firstMatchedChild = nodeWhereRef.isValid() ? nodeWhereRef : nodeIfBlockRef;
+    if (childRef == firstMatchedChild)
+        SemaCheck::pushConditionBindingPresence(sema, nodeVarRef, nodeIfBlockRef);
 
     return Result::Continue;
 }
@@ -498,26 +371,9 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeVarRef)
-    {
-        SWC_RESULT(SemaCheck::conditionBinding(sema, nodeVarRef));
-
-        const bool usesConditionBinding = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
-
-        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ifVarDeclWhereUsesConditionBinding = usesConditionBinding;
-        if (usesConditionBinding)
-        {
-            maybeMaskIfVarDeclConditionForWhere(sema, sema.curNodeRef(), nodeVarRef);
-        }
-    }
-
+        return SemaCheck::conditionBinding(sema, nodeVarRef, nodeWhereRef);
     if (childRef == nodeWhereRef)
-    {
-        SemaNodeView view   = sema.viewNodeTypeConstant(nodeWhereRef);
-        const Result result = SemaCheck::castToBool(sema, view);
-
-        restoreMaskedIfVarDeclCondition(sema, sema.curNodeRef());
-        return result;
-    }
+        return SemaCheck::conditionBindingGuard(sema, nodeWhereRef);
 
     return Result::Continue;
 }

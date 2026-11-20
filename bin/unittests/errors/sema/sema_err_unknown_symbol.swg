@@ -2,7 +2,7 @@
 
 #test
 {
-    if let x = 1
+    if let x = 1 where x == 1
     {
         let y = x
     }
@@ -46,3 +46,35 @@ struct Broken
 }
 
 const BrokenSize = #sizeof(Broken)
+
+func caseBindingNotVisibleInSibling(value: *s32?, flag: bool)
+{
+    switch
+    {
+    case let binding = value:
+        discard binding
+    case flag:
+        discard binding     // swc-expected-error {{sema_err_unknown_symbol}}
+    }
+}
+
+func caseBindingNotVisibleInDefault(value: *s32?)
+{
+    switch
+    {
+    case let binding = value:
+        discard binding
+    default:
+        discard binding     // swc-expected-error {{sema_err_unknown_symbol}}
+    }
+}
+
+func caseBindingNotVisibleAfterSwitch(value: *s32?)
+{
+    switch
+    {
+    case let binding = value:
+        discard binding
+    }
+    discard binding     // swc-expected-error {{sema_err_unknown_symbol}}
+}

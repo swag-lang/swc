@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Ast/SemaSwitchScope.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -538,6 +539,14 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
         const auto& caseStmt = sema.node(resolved).cast<AstSwitchCaseStmt>();
         if (caseStmt.nodeWhereRef.isInvalid() && (!sema.ast().hasSpan(caseStmt.spanExprRef) || sema.ast().spanSize(caseStmt.spanExprRef) == 0))
             return true;
+
+        if (switchStmt.nodeExprRef.isInvalid() && caseStmt.conditionBindingRef(sema.ast()).isValid())
+        {
+            const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(resolved);
+            if (lowering && !lowering->conditionBindingTestsValue && caseStmt.nodeWhereRef.isValid() &&
+                sema.viewConstant(caseStmt.nodeWhereRef).cstRef() == sema.cstMgr().cstTrue())
+                return true;
+        }
     }
 
     return false;
@@ -864,20 +873,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
         if (switchTypeRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_binding_has_expr, bindingRef);
 
-        if (childRef == nodeWhereRef || childRef == nodeBodyRef)
-        {
-            const Symbol* symbol = sema.viewSymbol(bindingRef).singleSymbol();
-            if (symbol && symbol->isVariable() && symbol->typeInfo(sema.ctx()).isNullable())
-            {
-                SemaFrame frame = sema.frame();
-
-                const std::array<const Symbol*, 1> path = {symbol};
-
-                frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
-                sema.pushFramePopOnPostChild(std::move(frame), childRef);
-            }
-        }
-
+        const AstNodeRef firstMatchedChild = nodeWhereRef.isValid() ? nodeWhereRef : nodeBodyRef;
+        if (childRef == firstMatchedChild)
+            SemaCheck::pushConditionBindingPresence(sema, bindingRef, nodeBodyRef);
         return Result::Continue;
     }
 
@@ -1115,6 +1113,9 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 {
     if (childRef == nodeWhereRef)
     {
+        if (conditionBindingRef(sema.ast()).isValid())
+            return SemaCheck::conditionBindingGuard(sema, nodeWhereRef);
+
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
 
@@ -1140,7 +1141,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (switchTypeRef.isInvalid())
     {
         if (childRef == conditionBindingRef(sema.ast()))
-            return SemaCheck::conditionBinding(sema, childRef);
+            return SemaCheck::conditionBinding(sema, childRef, nodeWhereRef);
 
         SemaNodeView view = sema.viewNodeTypeConstant(childRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));

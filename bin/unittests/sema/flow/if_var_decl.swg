@@ -11,7 +11,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    if var x = 0 {}
+    if var x = 0 where x != 0 {}
     else
     {
         var y = x
@@ -58,7 +58,8 @@ func semaTest005()
 func semaTest006()
 {
     var result = 0
-    if var x: string? = null where x == null
+    var x: string? = null
+    if x == null
     {
         result = 1
     }
@@ -72,7 +73,8 @@ func semaTest006()
 func semaTest007()
 {
     var result = 0
-    if var x: [..] s32? = null where x == null
+    var x: [..] s32? = null
+    if x == null
     {
         result = 1
     }

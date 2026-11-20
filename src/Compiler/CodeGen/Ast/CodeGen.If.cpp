@@ -126,6 +126,8 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
 Result AstIfVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    if (childRef == codeGen.resolvedNodeRef(nodeVarRef))
+        codeGen.pushDeferScope();
     return codeGenIfPreChild(codeGen, childRef, nodeIfBlockRef, nodeElseBlockRef);
 }
 
@@ -137,10 +139,10 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
     const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
 
-    const auto* loweringPayload      = codeGen.loweringPayload(ifRef);
-    const bool  gateWhereWithBinding = resolvedWhereRef.isInvalid() || (loweringPayload && loweringPayload->ifVarDeclWhereUsesConditionBinding);
+    const auto* loweringPayload = codeGen.loweringPayload(ifRef);
+    const bool  testsBinding    = resolvedWhereRef.isInvalid() || (loweringPayload && loweringPayload->conditionBindingTestsValue);
 
-    if (gateWhereWithBinding && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
+    if (testsBinding && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
         TypeRef     conditionTypeRef = TypeRef::invalid();
         const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, resolvedVarRef);
@@ -161,7 +163,11 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == resolvedElseBlockRef)
         SWC_RESULT(codeGen.popDeferScope());
 
-    return codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef);
+    SWC_RESULT(codeGenIfStmtPostBlockChild(codeGen, ifRef, resolvedIfBlockRef, resolvedElseBlockRef, resolvedChildRef));
+    const AstNodeRef lastBranchRef = resolvedElseBlockRef.isValid() ? resolvedElseBlockRef : resolvedIfBlockRef;
+    if (resolvedChildRef == lastBranchRef)
+        return codeGen.popDeferScope();
+    return Result::Continue;
 }
 
 Result AstWithStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const

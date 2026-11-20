@@ -731,34 +731,98 @@ Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)
     return Result::Continue;
 }
 
-Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
+namespace
 {
-    const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, varDeclRef);
+    struct ConditionBindingPayload
+    {
+        SymbolVariable* maskedVariable = nullptr;
+        ConstantRef     initializer    = ConstantRef::invalid();
+    };
+
+    const TypeInfo* conditionBindingType(Sema& sema, const Symbol& symbol)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAlias(sema.ctx(), symbol.typeRef());
+        return typeRef.isValid() ? &sema.typeMgr().get(typeRef) : nullptr;
+    }
+}
+
+Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef bindingRef, AstNodeRef whereRef)
+{
+    const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, bindingRef);
     if (declRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, bindingRef);
 
     if (const auto* decl = sema.node(declRef).safeCast<AstSingleVarDecl>())
         SWC_RESULT(typePattern(sema, decl->nodeInitRef, true));
 
-    const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-    const Symbol*      sym      = declView.singleSymbol();
-    if (!sym)
+    Symbol* symbol = sema.viewSymbol(declRef).singleSymbol();
+    if (!symbol)
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);
 
-    const TypeRef typeRef = sym->typeRef();
-    if (typeRef.isInvalid())
+    const TypeInfo* type = conditionBindingType(sema, *symbol);
+    if (!type)
         return Result::Continue;
 
-    const TypeInfo& type = sema.typeMgr().get(typeRef);
-    if (type.isConvertibleToBoolAliasAware(sema.ctx()))
-        return Result::Continue;
+    const bool isTypePattern = sema.token(sema.node(bindingRef).codeRef()).is(TokenId::KwdIs);
+    if (isTypePattern && !type->isConvertibleToBool())
+        return SemaError::raiseCannotCast(sema, declRef, symbol->typeRef(), sema.typeMgr().typeBool());
 
-    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, sym->codeRef());
-    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeBool());
-    diag.report(sema.ctx());
+    const bool testsValue = isTypePattern || type->isNullable();
+    if (!testsValue && whereRef.isInvalid())
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_conditional_binding_requires_where, symbol->codeRef(), symbol->typeRef());
 
-    return Result::Error;
+    const AstNodeRef ownerRef = sema.curNodeRef();
+    SemaHelpers::ensureCodeGenLoweringPayload(sema, ownerRef).conditionBindingTestsValue = testsValue;
+
+    // Variable initializers can carry constants for the path that misses the presence test.
+    // Keep them out of the guard. A 'const' declaration retains its compile-time value.
+    if (testsValue && whereRef.isValid())
+    {
+        auto* variable = symbol->safeCast<SymbolVariable>();
+        if (variable && variable->cstRef().isValid())
+        {
+            auto& payload          = sema.ensureSemaPayload<ConditionBindingPayload>(ownerRef);
+            payload.maskedVariable = variable;
+            payload.initializer    = variable->cstRef();
+            variable->setCstRef(ConstantRef::invalid());
+        }
+    }
+
+    return Result::Continue;
+}
+
+void SemaCheck::pushConditionBindingPresence(Sema& sema, AstNodeRef bindingRef, AstNodeRef bodyRef)
+{
+    const AstNodeRef declRef = SemaVarDeclHelpers::singleDeclarationRef(sema, bindingRef);
+    if (declRef.isInvalid())
+        return;
+
+    const Symbol* symbol = sema.viewSymbol(declRef).singleSymbol();
+    if (!symbol || !symbol->isVariable())
+        return;
+
+    const TypeInfo* type = conditionBindingType(sema, *symbol);
+    if (!type || !type->isNullable())
+        return;
+
+    // Keep one proof through the guard and the body, so mutation in the guard can kill it.
+    SemaFrame          frame = sema.frame();
+    const std::array   path  = {symbol};
+    frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
+    sema.pushFramePopOnPostChild(std::move(frame), bodyRef);
+}
+
+Result SemaCheck::conditionBindingGuard(Sema& sema, AstNodeRef whereRef)
+{
+    SemaNodeView view   = sema.viewNodeTypeConstant(whereRef);
+    const Result result = castToBool(sema, view);
+
+    if (auto* payload = sema.semaPayload<ConditionBindingPayload>(sema.curNodeRef()); payload && payload->maskedVariable)
+    {
+        payload->maskedVariable->setCstRef(payload->initializer);
+        *payload = {};
+    }
+    return result;
 }
 
 Result SemaCheck::typePattern(Sema& sema, AstNodeRef exprRef, bool binding)

@@ -96,6 +96,22 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
     let value:    *NonNullCannotCastItem  = nullable     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
+func clearGuardBinding(slot: *(*s32?))->bool
+{
+    slot[] = null
+    return true
+}
+
+#test
+{
+    var number = 42
+    if var binding: *s32? = &number where clearGuardBinding(&binding)
+    {
+        let value: *s32 = binding     // swc-expected-error {{sema_err_cannot_cast}}
+        discard value
+    }
+}
+
 #test
 {
     // A migration-compatible legacy type must not launder a constant known to be null.
@@ -157,4 +173,15 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
     #assert(#typeof(legacy) == string)
     #assert(#typeof(optional) == string?)
     #assert(#typeof(required) == string)
+}
+
+#test
+{
+    var number = 42
+    switch
+    {
+    case var binding: *s32? = &number where clearGuardBinding(&binding):
+        let value: *s32 = binding     // swc-expected-error {{sema_err_cannot_cast}}
+        discard value
+    }
 }

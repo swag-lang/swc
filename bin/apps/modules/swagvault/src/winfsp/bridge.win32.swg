@@ -114,9 +114,30 @@ namespace WinFsp
         return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize) : StatusSuccess
     }
 
+    // If the normalized name is unset, WinFsp reports an uppercase path to Windows.
+    private func writeNormalizedPath(openInfo: *FspOpenFileInfo, requested: [*] u16?, stored: string)
+    {
+        let buffer = openInfo.normalizedName
+        if not buffer or not requested do
+            return
+
+        let name  = Utf16.fromUtf8(stored)
+        let bytes = name.count * #sizeof(u16)
+        if bytes > openInfo.normalizedNameSize do
+            return
+
+        // WinFsp only accepts case differences. Vault also resolves aliases such as paths
+        // with forward slashes, which Windows cannot accept as a normalized name.
+        if CompareStringOrdinal(requested, -1, name.storage(), cast(s32, name.count), TRUE) != CSTR_EQUAL do
+            return
+
+        Swag.memcpy(buffer, name.storage(), bytes)
+        openInfo.normalizedNameSize = cast(u16, bytes)
+    }
+
     // Creates the node; bit 0 of `createOptions`, `FILE_DIRECTORY_FILE`, asks for a directory.
     #[Swag.CallingConvention(.C)]
-    func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, _, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
+    func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, _, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FspOpenFileInfo)->s32
     {
         let activity = &mountContext(fileSystem).activity
         activity.mutex.lock()
@@ -127,10 +148,12 @@ namespace WinFsp
         let mounted      = mountedVolume(fileSystem)
         let directory    = cast(u8, ((createOptions & 1) != 0 ? 1 : 0))
         let securitySize = security ? GetSecurityDescriptorLength(security) : 0
-        var nodeId: u64
-        let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, info)
+        var nodeId:         u64
+        var normalizedPath: String
+        let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, &info.fileInfo, &normalizedPath)
         if status == StatusSuccess
         {
+            writeNormalizedPath(info, path, normalizedPath)
             fileContext[]    = contextFromId(nodeId)
             activity.handles += 1
         }
@@ -139,7 +162,7 @@ namespace WinFsp
     }
 
     #[Swag.CallingConvention(.C)]
-    func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, _, _: u32, fileContext: *(*void?), info: *FileInfo)->s32
+    func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, _, _: u32, fileContext: *(*void?), info: *FspOpenFileInfo)->s32
     {
         let activity = &mountContext(fileSystem).activity
         activity.mutex.lock()
@@ -147,10 +170,12 @@ namespace WinFsp
         if activity.stopping do
             return StatusAccessDenied
         let value  = stringFromWide(path)
-        var nodeId: u64
-        let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, info)
+        var nodeId:         u64
+        var normalizedPath: String
+        let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, &info.fileInfo, &normalizedPath)
         if status == StatusSuccess
         {
+            writeNormalizedPath(info, path, normalizedPath)
             fileContext[]    = contextFromId(nodeId)
             activity.handles += 1
         }
@@ -288,20 +313,20 @@ namespace WinFsp
     func fspGetDirInfoByName(fileSystem: *FspFileSystem, fileContext: *void?, name: [*] u16?, dirInfo: *FspDirInfo)->s32
     {
         let value  = stringFromWide(name)
-        var info: FileInfo
-        let status = callbackGetDirInfoByName(mountedVolume(fileSystem), idFromContext(fileContext), value.buffer, &info)
+        var info:       FileInfo
+        var storedName: String
+        let status = callbackGetDirInfoByName(mountedVolume(fileSystem), idFromContext(fileContext), value.buffer, &info, &storedName)
         if status != StatusSuccess do
             return status
 
-        let name16     = Utf16.toZeroTerminated(value)
-        let nameLength = name16.count - 1
-        let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
-        if bytes > Swag.U16.Max do
+        let name16 = Utf16.fromUtf8(storedName)
+        if name16.count > FspDirInfoNameCapacity do
             return StatusInvalidParameter
+        let nameBytes = name16.count * #sizeof(u16)
+        let bytes     = #offsetof(FspDirInfo.fileName) + nameBytes
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info
-        if nameLength do
-            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), nameLength * #sizeof(u16))
+        Swag.memcpy(&dirInfo.fileName[0], name16.storage(), nameBytes)
         return StatusSuccess
     }
 

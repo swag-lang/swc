@@ -21,6 +21,7 @@ namespace WinFsp
     const ProcessSynchronize     = 0x00100000'u32
     const SddlRevisionOne        = 1'u32
     const MoveDelayUntilReboot   = 0x00000004'u32
+    const FspDirInfoNameCapacity = 255     // UTF-16 units in WinFsp's GetDirInfoByName buffer.
 
     // The WinFsp structures Swag Vault exchanges with the runtime, laid out as the C headers
     // declare them; the assertions below pin the sizes and offsets the driver relies on.
@@ -58,6 +59,14 @@ namespace WinFsp
         volumeLabel:       [32] u16
     }
 
+    // WinFsp passes the address of the initial FileInfo member to Create and Open.
+    struct FspOpenFileInfo
+    {
+        fileInfo:           FileInfo
+        normalizedName:     [*] u16?
+        normalizedNameSize: u16
+    }
+
     struct FspDirInfo
     {
         size:             u16
@@ -77,6 +86,9 @@ namespace WinFsp
     #assert(#sizeof(FspVolumeParams) == 504)
     #assert(#sizeof(FspVolumeInfo) == 88)
     #assert(#sizeof(FileInfo) == 72)
+    #assert(#offsetof(FspOpenFileInfo.fileInfo) == 0)
+    #assert(#offsetof(FspOpenFileInfo.normalizedName) == 72)
+    #assert(#offsetof(FspOpenFileInfo.normalizedNameSize) == 80)
     #assert(#offsetof(FspDirInfo.fileName) == 104)
     #assert(#offsetof(FspFileSystem.userContext) == 8)
 
@@ -87,9 +99,9 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     alias FspGetSecurityByNameFn = func(*FspFileSystem, [*] u16?, *u32?, *void?, *u64?)->s32
     #[Swag.CallingConvention(.C)]
-    alias FspCreateFn            = func(*FspFileSystem, [*] u16?, u32, u32, u32, *void?, u64, *(*void?), *FileInfo)->s32
+    alias FspCreateFn            = func(*FspFileSystem, [*] u16?, u32, u32, u32, *void?, u64, *(*void?), *FspOpenFileInfo)->s32
     #[Swag.CallingConvention(.C)]
-    alias FspOpenFn              = func(*FspFileSystem, [*] u16?, u32, u32, *(*void?), *FileInfo)->s32
+    alias FspOpenFn              = func(*FspFileSystem, [*] u16?, u32, u32, *(*void?), *FspOpenFileInfo)->s32
     #[Swag.CallingConvention(.C)]
     alias FspOverwriteFn         = func(*FspFileSystem, *void?, u32, u8, u64, *FileInfo)->s32
     #[Swag.CallingConvention(.C)]

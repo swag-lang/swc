@@ -76,7 +76,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
         var context: *void?
-        var info:    WinFsp.FileInfo
+        var info:    WinFsp.FspOpenFileInfo
         let root = Utf16.toZeroTerminated("\\")
         Swag.require(WinFsp.fspOpen(&fileSystem, root.buffer, 0, 0, &context, &info) == WinFsp.StatusSuccess)
         var error: Swag.Error
@@ -103,7 +103,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
         var context: *void?
-        var info:    WinFsp.FileInfo
+        var info:    WinFsp.FspOpenFileInfo
         let root = Utf16.toZeroTerminated("\\")
         let file = Utf16.toZeroTerminated("\\refused")
         Swag.require(WinFsp.fspOpen(&fileSystem, root.buffer, 0, 0, &context, &info) == WinFsp.StatusSuccess)
@@ -130,7 +130,7 @@ func releaseAfterNativeClose(thread: const *Threading.Thread)
         var fileSystem: WinFsp.FspFileSystem
         fileSystem.userContext = mounted.mount.context
         var context: *void?
-        var info:    WinFsp.FileInfo
+        var info:    WinFsp.FspOpenFileInfo
         let file    = Utf16.toZeroTerminated("\\accepted")
         let created = WinFsp.fspCreate(&fileSystem, file.buffer, 0, 0, 0, null, 0, &context, &info)
         Swag.require(created == WinFsp.StatusSuccess)

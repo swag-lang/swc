@@ -186,8 +186,9 @@ func statusForError(kind: ErrorKind)->s32
                  captured(&childCapture, ".") and
                  captured(&childCapture, "..") and
                  captured(&childCapture, "data.bin"))
-    callbackStatus = WinFsp.callbackGetDirInfoByName(context, directoryId, ("DATA.BIN").buffer, &info)
-    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    var storedName: String
+    callbackStatus = WinFsp.callbackGetDirInfoByName(context, directoryId, ("DATA.BIN").buffer, &info, &storedName)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess and storedName == "data.bin")
 
     var firstPage: DirectoryCapture
     firstPage.limit = 3

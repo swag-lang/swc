@@ -128,7 +128,31 @@ namespace WinFsp
         return err == null ? StatusSuccess : statusFromError(err)
     }
 
-    func callbackLookup(context: *void?, path: const [*] u8?, nodeId: *u64, info: *FileInfo)->s32
+    // Builds a Windows path from the stored names while the caller holds the volume lock.
+    private func storedPath(volume: *Volume, node: *Node)->String
+    {
+        var parts: Array'string
+        var current = node
+        while current.id != RootNodeId
+        {
+            parts.add(current.name)
+            current = unwrap volume.nodeById(current.parentId)
+        }
+
+        if not parts.count do
+            return "\\"
+
+        var result: String
+        for index in reversed(parts.count)
+        {
+            result.append("\\")
+            result.append(parts[index])
+        }
+
+        return result
+    }
+
+    func callbackLookup(context: *void?, path: const [*] u8?, nodeId: *u64, info: *FileInfo, normalizedPath: *String? = null)->s32
     {
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
@@ -137,12 +161,14 @@ namespace WinFsp
         if not node do
             return StatusObjectNameNotFound
         nodeId[] = node.id
+        if normalizedPath do
+            normalizedPath[] = storedPath(volume, node)
         return fillInfo(volume, nodeId[], info)
     }
 
     // Creates a file or a directory at `path`. The record stays pending until cleanup, so the first
     // data and times are journaled with it.
-    func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
+    func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo, normalizedPath: *String? = null)->s32
     {
         if securitySize and not security do
             return StatusInvalidParameter
@@ -165,6 +191,8 @@ namespace WinFsp
             discard catch volume.resizeNode(id, 0) { return statusFromError(Swag.err) }
         }
 
+        if normalizedPath do
+            normalizedPath[] = storedPath(volume, unwrap volume.nodeById(id))
         return fillInfo(volume, id, info)
     }
 
@@ -549,7 +577,7 @@ namespace WinFsp
     }
 
     // Reports the entry `name` of a directory, `.` and `..` included.
-    func callbackGetDirInfoByName(context: *void?, directoryId: u64, name: const [*] u8?, info: *FileInfo)->s32
+    func callbackGetDirInfoByName(context: *void?, directoryId: u64, name: const [*] u8?, info: *FileInfo, storedName: *String)->s32
     {
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
@@ -560,11 +588,16 @@ namespace WinFsp
         if not directory.isDirectory() do
             return StatusNotADirectory
         let value = cString(name)
-        if value == "." do
-            return fillInfo(volume, directoryId, info)
-        if value == ".." do
-            return fillInfo(volume, directory.parentId, info)
+        if value == "." or value == ".."
+        {
+            storedName[] = value
+            return fillInfo(volume, value == "." ? directoryId : directory.parentId, info)
+        }
+
         let child = volume.findChild(directoryId, value)
-        return child ? fillInfo(volume, child.id, info) : StatusObjectNameNotFound
+        if not child do
+            return StatusObjectNameNotFound
+        storedName[] = child.name
+        return fillInfo(volume, child.id, info)
     }
 }

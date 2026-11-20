@@ -171,7 +171,7 @@ namespace Integration
     }
 
     #[Swag.Propagate]
-    func verifyFinalPath(path: string) fail
+    func verifyFinalPath(path: string, storedPath: string = "") fail
     {
         let path16 = Utf16.toZeroTerminated(path)
 
@@ -183,17 +183,59 @@ namespace Integration
         var buffer: [32768] u16
         let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32, buffer.count), 0)
         verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
-        let resolved   = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
+        let resolved = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
+        var expected = String.from(storedPath.count ? storedPath : path)
+        expected.replace('/', "\\")
+
+        // WinFsp may return a UNC path for the mounted drive letter.
+        verify(Utf8.endsWith(resolved, expected[2 to]), Format.toString("Windows resolved [[%]] as [[%]] instead of [[%]]", path, resolved, expected))
         let resolved16 = Utf16.toZeroTerminated(resolved)
         let reopened   = CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
         verify(reopened != WinFsp.InvalidHandle, Format.toString("Windows cannot reopen the resolved path [[%]]", resolved))
         defer CloseHandle(reopened)
     }
 
+    #[Swag.Propagate]
+    func verifyDirectoryEntryName(path: string, expected: string) fail
+    {
+        let path16 = Utf16.toZeroTerminated(path)
+        var data: WIN32_FIND_DATAW
+        let handle = FindFirstFileW(path16.buffer, &data)
+        defer discard FindClose(handle)
+        let name = WinFsp.stringFromWide(data.cFileName.buffer)
+        verify(name == expected, Format.toString("Windows listed [[%]] as [[%]] instead of [[%]]", path, name, expected))
+    }
+
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         catch RemoveDirectoryW(path16.buffer) { fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(Swag.err))) }
+    }
+
+    #[Swag.Propagate]
+    func verifyDirectoryNotifications(parent: string) fail
+    {
+        var watcher = Directory.watch(parent, {filter: .DirectoryName})
+        let pending = watcher.next(0)
+        verify(pending.status == .TimedOut, "the directory watch must be ready before creation")
+
+        let folder = Path.combine(parent, "New Folder")
+        Directory.create(folder)
+        let created = watcher.next(3000)
+        verify(created.changes.count == 1 and created.changes[0].kind == .Added,
+               "Windows must announce the new folder")
+        let createdName = Path.fileName(created.changes[0].path)
+        verify(createdName == "New Folder", Format.toString("Windows announced creation as [[%]]", createdName))
+
+        let renamed = Path.combine(parent, "xxxx")
+        movePath(folder, renamed)
+        let changed = watcher.next(3000)
+        verify(changed.changes.count == 1 and changed.changes[0].kind == .Renamed,
+               "Windows must announce the folder rename")
+        let change = &changed.changes[0]
+        verify(Path.fileName(change.oldPath) == "New Folder" and Path.fileName(change.path) == "xxxx",
+               Format.toString("Windows announced the rename from [[%]] to [[%]]", change.oldPath, change.path))
+        removeDirectory(renamed)
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -340,6 +382,7 @@ namespace Integration
         let nested    = Path.combine(documents, "Nested")
         trace("FS: create nested directories")
         Directory.create(documents)
+        verifyDirectoryNotifications(documents)
         Directory.create(nested)
         verify(Directory.exists(documents) and Directory.exists(nested), "nested directories must be creatable")
 
@@ -354,6 +397,9 @@ namespace Integration
         trace("FS: resolve and reopen final paths from handles")
         verifyFinalPath(root)
         verifyFinalPath(nested)
+        let upperNested = Path.combine(root, "DOCUMENTS", "NESTED")
+        verifyFinalPath(upperNested, nested)
+        verifyDirectoryEntryName(upperNested, "Nested")
         verifyFinalPath(persistent)
 
         let empty = Path.combine(documents, "empty.txt")
@@ -419,7 +465,12 @@ namespace Integration
         verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")
-        movePath(nested, renamedNested)
+        let caseRenamed   = Path.combine(documents, "NESTED")
+        movePath(nested, caseRenamed)
+        verifyDirectoryEntryName(nested, "NESTED")
+        verifyFinalPath(nested, caseRenamed)
+        movePath(caseRenamed, renamedNested)
+        verifyFinalPath(renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
         let movedLargePath  = Path.combine(renamedNested, "large-move-destination.bin")
         verify(not Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")

@@ -108,6 +108,9 @@ struct Source
             cursorTargetImage:                         u64
             cursorTargetStorage:                       u64
             cursorTargetReady:                         bool
+            windowsTargetImage:                        u64
+            windowsTargetStorage:                      u64
+            windowsTargetReady:                        bool
         }
 
         #static if #os == Swag.TargetOs.Linux
@@ -381,10 +384,27 @@ impl Source
             }
         }
 
-        if not fresh and not copyUnchanged and not .options.includeCursor
+        #static if #os == Swag.TargetOs.Windows
         {
-            .mirrorReady = mirroring
-            return false
+            let targetReusable = .windowsTargetReady and
+                                 target.width == .options.width and
+                                 target.height == .options.height and
+                                 target.pixelFormat == .BGRA8 and
+                                 cast(u64, target) == .windowsTargetImage and
+                                 cast(u64, target.pixels.storage()) == .windowsTargetStorage
+            if not fresh and not copyUnchanged and not .options.includeCursor and targetReusable
+            {
+                .mirrorReady = mirroring
+                return false
+            }
+        }
+        else
+        {
+            if not fresh and not copyUnchanged and not .options.includeCursor
+            {
+                .mirrorReady = mirroring
+                return false
+            }
         }
 
         #static if #os == Swag.TargetOs.Windows
@@ -436,6 +456,13 @@ impl Source
         let source       = .composed.pixels.storage()
         copyFrameBytes(destination, source, target.byteCount)
         .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+        #static if #os == Swag.TargetOs.Windows
+        {
+            .windowsTargetImage   = cast(u64, target)
+            .windowsTargetStorage = cast(u64, target.pixels.storage())
+            .windowsTargetReady   = true
+        }
+
         if incremental
         {
             .mirroredImage   = cast(u64, target)
@@ -526,6 +553,12 @@ impl Source
         {
             for index in .pictures.count do
                 .pictures[index] = {}
+        }
+
+        #static if #os == Swag.TargetOs.Windows
+        {
+            .windowsTargetReady = false
+            .cursorTargetReady  = false
         }
 
         .lastFrameCaptureTime      = 0

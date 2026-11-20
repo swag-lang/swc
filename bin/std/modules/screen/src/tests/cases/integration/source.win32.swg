@@ -53,6 +53,47 @@ using Core, Pixel
                  "a replacement target should receive the current cursor-composited frame")
 }
 
+// An unchanged DXGI frame still initializes a replacement target when unchanged copies are disabled.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    if bounds.width < 64 or bounds.height < 64 do
+        return
+
+    let width    = Math.min(256's32, cast(s32, bounds.width))
+    let height   = Math.min(256's32, cast(s32, bounds.height))
+    var source   = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y), width, height, false})
+    var image: Image
+    var captured = false
+    for 32
+    {
+        if expect source.grabInto(&image, copyUnchanged: false)
+        {
+            captured = true
+            break
+        }
+    }
+
+    if not captured do
+        return
+
+    for 32
+    {
+        image = Image.create(1, 1, .BGRA8)
+        let fresh = expect source.grabInto(&image, copyUnchanged: false)
+        if fresh do
+            continue
+        Swag.require(image.width == width and image.height == height)
+        Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(), image.byteCount) == 0,
+                     "an unchanged frame should initialize a replacement target")
+        return
+    }
+}
+
 // Split readbacks copy only the selected top-down regions into bottom-up image storage.
 #[Swag.TestTag("integration.host.windows")]
 #test

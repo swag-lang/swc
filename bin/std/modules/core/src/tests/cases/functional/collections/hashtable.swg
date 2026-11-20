@@ -1,7 +1,16 @@
 #global if #command == Swag.CompilerCommand.Test
-#global private
 
 using Swag
+
+struct HashTableCollisionKey
+{
+    value: s32
+}
+
+impl Hash.IHash32 for HashTableCollisionKey
+{
+    mtd const impl compute()->u32 => 7
+}
 
 #[Swag.NoCopy]
 struct HashTableNonCopyValue
@@ -129,6 +138,37 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(table.getOrDefault(9, 99) == 99)
     Swag.require(table[1] == 11)
     Swag.require(table[3] == 30)
+}
+
+// Colliding keys preserve their values across tombstones and rehashing.
+#test
+{
+    var table: HashTable'(HashTableCollisionKey, s32)
+    table.add({value: 1}, 10)
+    table.add({value: 2}, 20)
+    table.add({value: 3}, 30)
+
+    Swag.require(table.count == 3)
+    Swag.require(table.find({value: 1}).value == 10)
+    Swag.require(table.find({value: 2}).value == 20)
+    Swag.require(table.find({value: 3}).value == 30)
+
+    table.remove({value: 2})
+    Swag.require(not table.contains({value: 2}))
+    Swag.require(table.contains({value: 1}) and table.contains({value: 3}))
+
+    table.add({value: 3}, 31)
+    Swag.require(table.count == 2 and table.find({value: 3}).value == 31)
+
+    table.add({value: 2}, 22)
+    table.add({value: 4}, 40)
+    Swag.require(table.count == 4)
+
+    table.reserve(128)
+    Swag.require(table.find({value: 1}).value == 10)
+    Swag.require(table.find({value: 2}).value == 22)
+    Swag.require(table.find({value: 3}).value == 31)
+    Swag.require(table.find({value: 4}).value == 40)
 }
 
 #test

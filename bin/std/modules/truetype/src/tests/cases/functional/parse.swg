@@ -94,6 +94,35 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
 
 #test
 {
+    // Encoding format 1 ranges cannot assign more GIDs than CharStrings contains.
+    const OverlongRange: [35] u8 = [
+        0x01, 0x00, 0x04, 0x04,                                   // header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,                       // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05, 0xA2, 0x11, 0xAA, 0x10,     // Top DICT
+        0x00, 0x00, 0x00, 0x00,                                   // String and GlobalSubrs INDEX
+        0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E,           // CharStrings INDEX
+        0x01, 0x01, 0x41, 0x01                                    // Format-1 range: two GIDs, only one non-.notdef glyph
+        ]
+    var rejected: Swag.Error
+    discard catch parseCffFont(OverlongRange) as rejected
+    Swag.require(rejected.value() != null)
+
+    // Format 0 has the same bound when its explicit code count exceeds the glyphs.
+    const OverlongCodes: [35] u8 = [
+        0x01, 0x00, 0x04, 0x04,                                   // header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,                       // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05, 0xA2, 0x11, 0xAA, 0x10,     // Top DICT
+        0x00, 0x00, 0x00, 0x00,                                   // String and GlobalSubrs INDEX
+        0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E,           // CharStrings INDEX
+        0x00, 0x02, 0x41, 0x42                                    // Format-0 encoding: two codes, one available GID
+        ]
+    rejected = {}
+    discard catch parseCffFont(OverlongCodes) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     var faceData: FaceImpl
     faceData.face.setGlyphCount(1)
     faceData.indexToLocFormat = 2

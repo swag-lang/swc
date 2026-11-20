@@ -783,7 +783,7 @@ struct Type1State
 
     // Values the interpreter hands back to the charstring through `pop`, which is how the
     // format returns a result from the callable subroutines the language reserves.
-    results:     [32] f64
+    results:     [MaxCharstringStack] f64
     resultDepth: u32
 
     x:            f64
@@ -819,7 +819,7 @@ private impl Type1State
 
     mtd pushResult(value: f64)
     {
-        if .resultDepth < 32
+        if .resultDepth < MaxCharstringStack
         {
             .results[.resultDepth] = value
             .resultDepth += 1

@@ -153,3 +153,41 @@ using Swag, Core
     discard catch execType2Escape(&state, 23) as randomOutcome
     Swag.require(randomOutcome.value() != null)
 }
+
+// Type 1 OtherSubr retains the full set of values it returns to the charstring stack.
+#test
+{
+    var charstring: Array'u8
+    charstring.add(139)     // zero side bearing
+    charstring.add(139)     // zero advance
+    charstring.add(13)      // hsbw
+    for index in 33 do
+        charstring.add(cast(u8, index + 140))
+    charstring.add(172)     // OtherSubr argument count 33
+    charstring.add(142)     // OtherSubr 3, which returns its arguments unchanged
+    charstring.add(12)
+    charstring.add(16)     // callothersubr
+    charstring.add(12)
+    charstring.add(17)     // pop the first returned value
+    charstring.add(12)
+    charstring.add(17)     // pop the second returned value
+    charstring.add(12)
+    charstring.add(33)     // setcurrentpoint
+    charstring.add(139)
+    charstring.add(139)
+    charstring.add(21)     // rmoveto
+    charstring.add(140)
+    charstring.add(139)
+    charstring.add(5)      // rlineto
+    charstring.add(14)     // endchar
+
+    var font: Type1Font
+    font.charstrings.add(charstring)
+
+    var face: FaceImpl
+    var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)
+    discard expect runType1Charstring(&font, 0, &builder)
+
+    Swag.require(face.outlinePoints.count == 2)
+    Swag.require(face.outlinePoints[0].x == 64 and face.outlinePoints[0].y == 128)
+}

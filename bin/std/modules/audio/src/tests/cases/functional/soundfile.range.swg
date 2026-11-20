@@ -22,6 +22,29 @@ using Swag, Core
     }
 }
 
+// Packet streams reject channel layouts the selected decoder cannot produce.
+#test
+{
+    const OpusConfig: [1] u8          = [0]
+    const OpusPacket: [1] SoundPacket = [SoundPacket{0, 0, 960}]
+    const Mp3Packet:  [1] SoundPacket = [SoundPacket{0, 0, 1_152}]
+    const AacConfig:  [2] u8          = [0x11, 0x90]
+    const AacPacket:  [1] SoundPacket = [SoundPacket{0, 0, 1_024}]
+    var mp3Config: Array'u8
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("packet-channels-%.bin", Guid128.random()))
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, [0x00'u8])
+
+    var outcome: Swag.Error
+    discard catch SoundFile.openPacketStream(path, .Opus, 48_000, 3, 960, OpusPacket, OpusConfig) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+    discard catch SoundFile.openPacketStream(path, .Mp3, 44_100, 3, 1_152, Mp3Packet, mp3Config.toSlice()) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+    discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 7, 1_024, AacPacket, AacConfig) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+}
+
 // A compressed packet index may not expose bytes past the backing source file.
 #test
 {

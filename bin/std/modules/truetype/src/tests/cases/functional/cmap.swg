@@ -122,6 +122,25 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(glyphB == 0)
 }
 
+// Format 4's segment arrays must fit in its declared subtable length.
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap4Fixture)
+    writeBigU16(&cmap, 14, 18)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 #test
 {
     let glyph0 = lookupCMap12(Cmap12Fixture, 0x00010000)

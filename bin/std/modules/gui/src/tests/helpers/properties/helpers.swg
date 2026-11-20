@@ -31,10 +31,24 @@ enum PropGoldenChoice
     Disabled
 }
 
+#[Swag.EnumFlags]
+enum PropGoldenGuides
+{
+    #[Description("Show the center lines.")]
+    Centers
+
+    #[Description("Show the outer bounds.")]
+    Bounds
+}
+
 struct PropGoldenData
 {
     #[Category("Appearance"), Name("Visible"), Description("Shows the element in the composed scene.")]
     visible: bool = true
+
+    #[Category("Appearance"), Name("Show guides"),
+        Description("Show alignment guides for the selected element while it is moved or resized in the composed scene.")]
+    showGuides: bool = true
 
     #[Category("Appearance"), Name("Opacity"), SliderMinMax(0, 1)]
     opacity: f32 = 0.75
@@ -47,6 +61,9 @@ struct PropGoldenData
 
     #[Category("Layout"), Name("Mode"), Properties.ReadOnly]
     mode = PropGoldenChoice.Automatic
+
+    #[Category("Layout"), Name("Guide markers")]
+    guides: PropGoldenGuides = .Centers
 
     #[Category("Text"), Name("Caption"), HelpBox("Changes apply to the next shapes drawn too.")]
     caption: String

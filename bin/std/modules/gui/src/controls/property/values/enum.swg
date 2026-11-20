@@ -197,8 +197,10 @@ internal impl Properties
 
             line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) => prop.onItemEvent(itemB, hwnd, evt)
 
+            let metrics     = me.themeMetrics()
             let checkHeight = me.kind == .Condensed ? PropCondensedControlHeight : me.gridLineHeight
-            with let ed     = CheckButton.create(line, "", Math.Rectangle{0, 0, checkHeight, checkHeight})
+            let checkWidth  = me.kind == .List ? metrics.btnCheck_Size + metrics.btnCheck_Padding : checkHeight
+            with let ed     = CheckButton.create(line, "", Math.Rectangle{0, 0, checkWidth, checkHeight})
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
@@ -212,16 +214,16 @@ internal impl Properties
             let dispDescStr = dispDesc == null ? "" : attributeText(dispDesc)
             itemB.filter += dispDescStr
 
-            var labelWidth = me.position.width - item.line.position.height
+            var labelWidth = me.position.width - checkWidth
             if not me.isGridLike() do
-                labelWidth = me.listContentWidth() - me.gridLineHeight
-            with let label1 = Label.create(line, "", Math.Rectangle{item.line.position.height, 0, Math.max(labelWidth, 1.0)})
+                labelWidth = me.listContentWidth() - checkWidth
+            with let label1 = Label.create(line, "", Math.Rectangle{checkWidth, 0, Math.max(labelWidth, 1.0)})
             {
                 .dockStyle = .Center
                 if me.kind == .Condensed do
                     .margin.x = PropCondensedCheckTextGap
                 .updateFlags(.WordWrap | .AutoHeight)
-                .setTextHorizontalAlignment(.Left)
+                .setTextAlignment(.Left, .OpticalCenter)
                 .setText(dispDescStr)
             }
 

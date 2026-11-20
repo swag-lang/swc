@@ -13,12 +13,12 @@ ColorMask rgb-
 SetClippingRect 0 0 200 80
 Transform 1 0 0 1 20 20
 SetClippingRect 20 20 160 24
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,-4)-(20,20) src=(0.257102,0.083807)-(0.34517,0.171875)
-DrawTriangles n=6 bbox=(-4,-4)-(20,20) colors=[FF38BDF8] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,-4)-(20,20) src=(0.163352,0.083807)-(0.25142,0.171875)
-DrawTriangles n=6 bbox=(-4,-4)-(20,20) colors=[FF38BDF8] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,-4)-(20,20) src=(0.163352,0.177557)-(0.25142,0.265625)
-DrawTriangles n=6 bbox=(-4,-4)-(20,20) colors=[FF17181C] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,0)-(20,24) src=(0.257102,0.083807)-(0.34517,0.171875)
+DrawTriangles n=6 bbox=(-4,0)-(20,24) colors=[FF38BDF8] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,0)-(20,24) src=(0.163352,0.083807)-(0.25142,0.171875)
+DrawTriangles n=6 bbox=(-4,0)-(20,24) colors=[FF38BDF8] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(-4,0)-(20,24) src=(0.163352,0.177557)-(0.25142,0.265625)
+DrawTriangles n=6 bbox=(-4,0)-(20,24) colors=[FF17181C] cov=solid
 SetClippingRect 41 20 139 24
 StartFont
 UpdateFont font#0

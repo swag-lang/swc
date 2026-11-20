@@ -10,11 +10,9 @@ internal impl Properties
 {
     mtd disclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
     {
-        const OpticalTextCenterY = -2'f32
-
         let iconX       = r.x + .itemIndent(item) + Math.max(.leftMargin - icon.sizeX, 0.0) * 0.5
         let iconCenterY = (item.label != null) ? item.label.position.vertCenter() : r.vertCenter()
-        return Math.Point{iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
+        return Math.Point{iconX, iconCenterY - icon.sizeY * 0.5}
     }
 
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
@@ -177,8 +175,13 @@ internal impl Properties
         let after  = Painter.measureString(Swag.makeString(plain.buffer, start + count), font).width
         let left   = label.position.x + label.textPadding.x
         var top    = label.position.vertCenter() - font.height * 0.5
-        if not .isGridLike() do
-            top = label.position.y + label.textPadding.y
+        switch label.textVerticalAlignment
+        {
+        case .Top: top = label.position.y + label.textPadding.y
+        case .OpticalCenter: top = font.opticalLineTop(label.position.vertCenter())
+        default:   break
+        }
+
         if before >= label.position.width do
             return
         let right = Math.min(left + after, label.position.right())
@@ -213,7 +216,7 @@ internal impl Properties
         let x       = label.position.x + label.textPadding.x + Math.min(width, label.position.width) + size
         var centerY = label.position.vertCenter()
         if not .isGridLike() do
-            centerY = label.position.y + label.textPadding.y + font.height * 0.5
+            centerY = label.position.y + label.textPadding.y + font.height * 0.5 + font.opticalOffset()
 
         if modified
         {
@@ -270,8 +273,8 @@ internal impl Properties
                 return false
             let rect  = check.rectRelativeTo(item.line)
             let width = Painter.measureString(check.name.text, font).width
-            right   = rect.x + metrics.btnCheck_Size + metrics.btnCheck_Padding + width
-            centerY = rect.vertCenter()
+            right   = rect.x + check.captionInset() + width
+            centerY = rect.vertCenter() + font.opticalOffset()
         }
         else
         {

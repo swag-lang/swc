@@ -121,13 +121,13 @@ internal impl Properties
             return
         }
 
-        let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
-        let item     = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
+        let item = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
 
         var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
         if not .isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
-        let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().btnPush_Height
+        let metrics    = .themeMetrics()
+        let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : metrics.btnPush_Height
         let line       = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, editWidth, lineHeight})
 
         // Grid cell: the check line is capped to the value column. List rows let it span
@@ -149,33 +149,24 @@ internal impl Properties
             line.margin.w = .listNameMarginAfter
         }
 
-        with let ed = CheckButton.create(line, "", Math.Rectangle{0, 0, lineHeight, 0})
+        let checkWidth = .kind == .List ? metrics.btnCheck_Size + metrics.btnCheck_Padding : lineHeight
+        with let ed    = CheckButton.create(line, "", Math.Rectangle{0, 0, checkWidth, 0})
         {
             .dockStyle = .Left
         }
 
         if .kind == .List
         {
-            with let label = Label.create(line, "", Math.Rectangle{lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
+            with let label = Label.create(line, "", Math.Rectangle{checkWidth, 0, Math.max(editWidth - checkWidth, 1.0)})
             {
                 .dockStyle = .Center
                 .updateFlags(.WordWrap | .AutoHeight)
-                .setTextHorizontalAlignment(.Left)
-                .setText(dispDesc == null ? "" : attributeText(dispDesc))
+                .setTextAlignment(.Left, .OpticalCenter)
+                .setText(item.description.toString())
             }
 
             item.sigResize += func|label, line, lineHeight|(_)
             {
-                // The check box is a symmetric square centered on the row, but a centered
-                // text line reads slightly high because the descender space below the
-                // baseline is mostly empty. Nudge the text down by half the font descent
-                // so its visual center lines up with the box. Deriving the amount from the
-                // font metrics keeps it correct at any font size; the equal +top/-bottom
-                // padding translates the text rect without clipping wrapped lines.
-                let font = label.font().regular
-                if font do
-                    label.setTextPadding(Math.Vector4{0, -font.descent * 0.5, 0, font.descent * 0.5})
-
                 label.updateAutomaticHeight()
                 line.position.height = Math.max(lineHeight, label.position.height)
                 line.preferredSize.y = line.position.height

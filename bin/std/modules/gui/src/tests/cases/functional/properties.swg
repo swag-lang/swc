@@ -398,8 +398,7 @@ struct PropHeadlessArrayData
     Swag.require((actionsItem.arrayAddButton != null))
     Swag.require(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
-    // The bool description is nudged down to optically center on the box: it carries a
-    // positive top text padding derived from the font descent (never a hard-coded value).
+    // The description and checkbox share a center, including when the text wraps.
     let chk    = prop.items[4]!.checkBox
     let chkRow = unwrap chk.parent
     var desc: *Label?
@@ -407,8 +406,8 @@ struct PropHeadlessArrayData
         if c != cast(*Wnd?, chk) do
             desc = assume cast (*Label, c)
     let descLbl = unwrap desc
-    Swag.require(descLbl.textPadding.y > 0)
-    Swag.require(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
+    Swag.require(descLbl.textVerticalAlignment == .OpticalCenter)
+    Swag.require(chk.position.vertCenter() == descLbl.position.vertCenter())
     Swag.require(chkRow.position.height >= descLbl.position.bottom())     // wrapped info text is not clipped
 }
 
@@ -793,6 +792,7 @@ struct MultiTile
     Swag.require(option.line.position.height == prop.gridLineHeight)
     Swag.require(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
     Swag.require(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
+    Swag.require(optionLabel.textVerticalAlignment == .OpticalCenter)
 }
 
 // Edits applied through the grid write into every selected instance.

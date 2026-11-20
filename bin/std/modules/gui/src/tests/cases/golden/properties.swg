@@ -88,12 +88,21 @@ func assertPropertyViewMenuAnchor(light: bool)
 #[Swag.TestTag("golden")]
 #test { assertPropertyViewMenuAnchor(false) }
 
-// Each presentation is a separate rendering contract. In particular, Condensed owns a flat,
-// edge-to-edge editor layout and must not silently inherit the normal grid's spacing or chrome.
+// Every presentation shows checked and unchecked options and a changed mark by a checkbox.
+// List also shows a wrapped description and its checkbox at 150% display scale.
 func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light: bool)
 {
-    var host: Testing.HeadlessHost
-    host.setup(520, 620)
+    var host:   Testing.HeadlessHost
+    var height: f32
+    switch #complete kind
+    {
+    case .List:      height = 880
+    case .Grid:      height = 620
+    case .Panel:     height = 680
+    case .Condensed: height = 460
+    }
+
+    host.setup(520, height, dpiScale: kind == .List ? 1.5 : 1.0)
     if light
     {
         host.theme.setLight()
@@ -101,8 +110,9 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
     }
 
     var data: PropGoldenData
-    data.opacity = 0.4
-    data.caption = "Main card of the dashboard, in its long version"
+    data.showGuides = false
+    data.opacity    = 0.4
+    data.caption    = "Main card of the dashboard, in its long version"
 
     let ctrl = PropertiesCtrl.create(&host.root, kind: kind, flags: .SearchBar)
     ctrl.dockStyle = .Center
@@ -115,9 +125,7 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
     host.pump()
     ctrl.properties.setSelItem(findFieldItem(ctrl.properties, #nameof(PropGoldenData.visible)))
     ctrl.properties.focusNavigation()
-    host.settleAnimations(ctrl, 6)
-
-    let image = host.render()
+    let image = host.renderSettled()
     Pixel.Testing.assertImageGolden(&image, Format.toString("%.%", name, light ? "paper" : "ink").toString())
 }
 

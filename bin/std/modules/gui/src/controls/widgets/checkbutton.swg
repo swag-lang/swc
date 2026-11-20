@@ -123,6 +123,9 @@ impl IWnd for CheckButton
             posBox.x = clientRect.right() - posBox.width
         let markerInset = metrics.btnCheck_Size * metrics.btnCheck_AtlasInsetRatio
         var focusBox    = posBox
+
+        // The atlas has equal transparent margins above and below its visible outline.
+        focusBox.y      += markerInset
         focusBox.width  -= markerInset * 2
         focusBox.height -= markerInset * 2
         if .flags.has(.RightAligned)
@@ -135,7 +138,6 @@ impl IWnd for CheckButton
             posBox.x -= markerInset
         }
 
-        posBox.y -= markerInset
         if presence < 1
         {
             theme.drawSubRect(painter, posBox, &rects.btnCheck_Normal, fadeColor(restBk, 1 - presence))
@@ -163,7 +165,7 @@ impl IWnd for CheckButton
         format.flags         = .Clip
         format.font          = .font()
         var labelPos     = clientRect
-        let markerAndGap = focusBox.width + metrics.btnCheck_Padding
+        let markerAndGap = .captionInset()
         if not .flags.has(.RightAligned) do
             labelPos.x += markerAndGap
         labelPos.width -= markerAndGap
@@ -215,6 +217,12 @@ impl IWnd for CheckButton
 
 impl CheckButton
 {
+    internal mtd captionInset()->f32
+    {
+        let metrics = .themeMetrics()
+        return metrics.btnCheck_Size * (1 - 2 * metrics.btnCheck_AtlasInsetRatio) + metrics.btnCheck_Padding
+    }
+
     // Creates a check button with an optional command identifier and initial options.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, flags = CheckButtonFlags.None)->*CheckButton

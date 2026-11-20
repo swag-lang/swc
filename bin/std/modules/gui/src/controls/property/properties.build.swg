@@ -107,7 +107,7 @@ internal impl Properties
                 {
                     if me.isGridLike()
                     {
-                        .setTextAlignment(.Left, .Center)
+                        .setTextAlignment(.Left, .OpticalCenter)
                         .setTextPadding(Math.Vector4{me.leftMargin, 0, 0, 0})
                         .dockStyle = .Left
                         .margin.z  = me.gridMarginColumn

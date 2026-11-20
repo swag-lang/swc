@@ -88,6 +88,13 @@ func swagSampleSource()->String
         window.lens.open(query)
         host.finishAnimations()
 
+        if i == 2
+        {
+            Swag.require(window.lens.results.sections.count > 0)
+            Swag.require(window.lens.results.sections[0]!.entries.count > 0)
+            window.lens.setQuery(">")
+        }
+
         // Typed into, the lens answers first with the lines of the file that hold the query.
         if i == 1
         {

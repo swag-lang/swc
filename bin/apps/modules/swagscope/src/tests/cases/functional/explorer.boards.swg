@@ -193,7 +193,7 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
     var pdf     = ExplorerEntry{name: "viewer.pdf", path: Path.combine(folder, "viewer.pdf")}
     var code    = ExplorerEntry{name: "sample.cpp", path: Path.combine(folder, "sample.cpp")}
     var notes   = ExplorerEntry{name: "comprehensive.md", path: Path.combine(folder, "comprehensive.md")}
-    var font    = ExplorerEntry{name: "segoeui.ttf", path: Path.combine(folder, "segoeui.ttf")}
+    var font    = ExplorerEntry{name: "viewer.arabic.ttf", path: Path.combine(folder, "viewer.arabic.ttf")}
     var archive = ExplorerEntry{name: "viewer.archive.zip", path: Path.combine(folder, "viewer.archive.zip")}
     var other   = ExplorerEntry{name: "notes.bin", path: Path.combine(folder, "notes.bin")}
     Swag.require(probeEntry(&archive) and archive.members >= 2)
@@ -201,6 +201,6 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
     Swag.require(probeEntry(&pdf) and pdf.pages >= 1)
     Swag.require(probeEntry(&code) and code.lines > 1 and not code.excerpt.isEmpty())
     Swag.require(probeEntry(&notes) and notes.sections >= 1)
-    Swag.require(probeEntry(&font) and Utf8.contains(font.face.toString(), "Segoe"))
+    Swag.require(probeEntry(&font) and Utf8.contains(font.face.toString(), "Swag Scope Arabic Fixture"))
     Swag.require(not probeEntry(&other))
 }

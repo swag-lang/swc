@@ -5,6 +5,28 @@ using Core, Pixel, Gui, Viewers
 
 func textViewerFixturePath()->String => Path.combine(scopeTestDataDirectory(), "comprehensive.txt")
 
+// A generated UTF-8 field report retains realistic line structure and searchable prose.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.field-notes.txt")
+    let source   = expect File.readAllText(fileName)
+    let phrase   = "sample labels were replaced after calibration"
+    let offset   = source.indexOf(phrase)
+    Swag.require(offset != Swag.U64.Max)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    var result = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view   = assume cast(*PlainText.Panel, result.view)
+    completeTextReads(&host, view)
+    Swag.require(view.encoding == .Utf8)
+    Swag.require(Utf8.contains(view.editor.text(), "Résumé de tournée"))
+
+    let match = Viewer.SearchMatch{offset: offset, length: phrase.count}
+    Swag.require(result.revealMatch!(match, phrase))
+    Swag.require(view.editor.selectedText() == phrase)
+}
+
 func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     for 8

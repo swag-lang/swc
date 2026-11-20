@@ -117,6 +117,12 @@ struct DocumentLayout
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
+struct GlyphName
+{
+    name: String
+    id:   u32
+}
+
 struct DocumentView
 {
     using wnd: Wnd
@@ -137,6 +143,8 @@ struct DocumentView
     cells:      Array'DocumentCell
     layout:     DocumentLayout
     pageStarts: Array'u32
+    glyphCharacters: Array'rune     // First mapped Unicode scalar for each glyph ID.
+    glyphNames: Array'GlyphName    // Post/CFF names sorted once for binary lens lookup.
     pageIndex:  u64
     pageStart:  u32
     pageEnd:    u32
@@ -450,6 +458,42 @@ impl DocumentView
 
         result.loadPage(FirstCharacter)
         return result
+    }
+
+    // Rebinds the specimen and character map to another member of the same collection. The caller
+    // retains ownership of `face` unless this method returns successfully.
+    mtd replaceFace(face: *Face, typeFace: *TypeFace)
+    {
+        let oldFace = unwrap .face
+        .face     = face
+        .typeFace = typeFace
+        .fontGlyph = .app().renderer.fontCache().createFont(typeFace, GlyphSize)
+        .shown = 0
+        .pageIndex = 0
+        .pageStarts.clear()
+        .glyphCharacters.clear()
+        .glyphCharacters.resize(face.glyphCount)
+        var start = FirstCharacter
+        while start < 0x110000
+        {
+            let page = characterPage(face, start)
+            if page.characters.isEmpty() do
+                break
+            .pageStarts.add(cast(u32, page.characters[0]))
+            for character in page.characters
+            {
+                let glyphIndex = face.glyphIndex(character)
+                if glyphIndex < .glyphCharacters.count and not .glyphCharacters[glyphIndex] do
+                    .glyphCharacters[glyphIndex] = character
+            }
+            if not page.hasNext do
+                break
+            start = page.end + 1
+        }
+        .loadPage(FirstCharacter)
+        .scroll.setScrollPos(0, 0)
+        .invalidate()
+        oldFace.destroy()
     }
 
     // Reports whether the loaded page maps `character`.

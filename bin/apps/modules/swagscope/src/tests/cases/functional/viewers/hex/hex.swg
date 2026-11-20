@@ -13,6 +13,41 @@ internal func writeSampleFile()->String
     return fileName
 }
 
+// A generated station-telemetry capture reads from declared records through its later offsets.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.hex.telemetry.bin")
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    let grid = view.grid
+    Swag.require(grid.doc.fileSize == 656)
+    Swag.require(grid.doc.byteAt(0) == 'N'u8 and grid.doc.byteAt(1) == 'B'u8)
+    Swag.require(grid.doc.byteAt(4) == 1 and grid.doc.byteAt(6) == 0 and grid.doc.byteAt(7) == 20)
+    Swag.require(grid.doc.byteAt(402) == 0x54 and grid.doc.byteAt(405) == 1)
+
+    grid.setBytesPerRow(16, false)
+    Swag.require(grid.goToTypedOffset("1A0") and grid.caret == 0x1A0)
+    Swag.require(grid.topRow > 0)
+    Swag.require(view.revealOffset(400, 32))
+    Swag.require(grid.selectionStart() == 400 and grid.selectionLength() == 32)
+}
+
+// Selecting a decoded top-level structure is an explicit destination in the same history.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.field-station.elf")
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    Swag.require(view.structure.tabs.count > 0)
+    view.grid.moveCaret(32, false)
+    view.selectStructure(0)
+    Swag.require(view.grid.caret == view.structure.tabs[0].offset)
+    Swag.require(view.navigateHistory(-1) and view.grid.caret == 32)
+}
+
 // A file-open error crosses the viewer boundary instead of appearing as an empty byte grid.
 #test
 {
@@ -357,7 +392,7 @@ internal func writeSampleFile()->String
     Swag.require(Clipboard.getString() == "41 42 43 44" and not Clipboard.hasImage())
 
     grid.copySelection(.Text)
-    Swag.require(Clipboard.getString() == "ABCD")
+    Swag.require(Clipboard.getString() == "ABCD", Clipboard.getString())
 
     grid.copySelection(.Dump)
     let dump = Clipboard.getString()
@@ -582,17 +617,176 @@ internal func writeSampleFile()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.require(Hex.texts().ui_Empty == "Ce fichier est vide.")
+    Swag.require(Hex.texts().ui_CopyFormats == "Autres formats de copie")
     var translated: OptionSheet.Page
     view.describeOptions(&translated)
     Swag.require(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
     Swag.require(translated.rows[3].value == "Little Endian")
     Swag.require(view.optionsButton.toolTip == "Options")
+    Swag.require(view.goToButton.toolTip == "Aller au décalage" and not view.goToButton.isEnabled())
+    Swag.require(view.copyFormatsButton.toolTip == "Autres formats de copie" and not view.copyFormatsButton.isEnabled())
     Swag.require(view.details == "0x00000000")
     Swag.require(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.text == "Encodage")
     discard host.render(view)
     Testing.assertContentFits(unwrap view.optionsButton.parent)
+}
+
+// Go To is a first-class action while a file is open, with its existing Ctrl+G shortcut retained.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-goto-action-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "0123456789")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    Swag.require(view.goToButton.isEnabled())
+    Swag.require(view.goToButton.toolTip == Hex.texts().ui_GoTo)
+    Swag.require(view.copyBytesButton.toolTip == Hex.texts().ui_CopyBytes and not view.copyBytesButton.isEnabled())
+    Swag.require(view.copyFormatsButton.toolTip == Hex.texts().ui_CopyFormats and not view.copyFormatsButton.isEnabled())
+    view.grid.moveCaret(1, false)
+    view.grid.moveCaret(3, true)
+    Swag.require(view.copyBytesButton.isEnabled())
+    Swag.require(view.copyFormatsButton.isEnabled())
+    view.copyBytesButton.sigPressed.call(view.copyBytesButton)
+    Swag.require(Clipboard.getString() == "31 32 33")
+}
+
+// Alternate copy formats are reachable from the toolbar and use the same selected bytes as the
+// context commands, including the dump's offset, hex, and printable columns.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-copy-formats-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "ABCD")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    Swag.require(not view.copyFormatsButton.isEnabled())
+
+    view.grid.moveCaret(0, false)
+    view.grid.moveCaret(3, true)
+    Swag.require(view.copyFormatsButton.isEnabled())
+
+    view.grid.sendCommandEvent(Hex.Action.CopyText)
+    Swag.require(Clipboard.getString() == "ABCD")
+
+    view.grid.sendCommandEvent(Hex.Action.CopyDump)
+    let dump = Clipboard.getString()
+    Swag.require(dump.contains("41 42 43 44") and dump.contains("ABCD"), dump)
+}
+
+// A bounded session-local bookmark is reachable from the lens and returns to its exact byte.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-bookmark-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "0123456789")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    view.grid.moveCaret(2, false)
+
+    var setResults: Lens.Results
+    var setEntries = Viewer.LensEntries.create(&setResults, "Hexadecimal", host.theme)
+    view.describeLens(&setEntries)
+    var setBookmark: *Lens.Entry?
+    for &entry in setResults.sections[0]!.entries where entry.title == Hex.texts().ui_SetBookmark do
+        setBookmark = entry
+    Swag.require(setBookmark != null and not setBookmark.disabled)
+    setBookmark.run!()
+    Swag.require(view.hasBookmark and view.bookmarkOffset == 2)
+
+    view.grid.moveCaret(7, false)
+    var goResults: Lens.Results
+    var goEntries = Viewer.LensEntries.create(&goResults, "Hexadecimal", host.theme)
+    view.describeLens(&goEntries)
+    let destination = Format.toString(Hex.texts().ui_GoToBookmark, "0x00000002")
+    var goBookmark: *Lens.Entry?
+    for &entry in goResults.sections[0]!.entries where entry.title == destination do
+        goBookmark = entry
+    Swag.require(goBookmark != null and not goBookmark.disabled)
+    goBookmark.run!()
+    Swag.require(view.grid.caret == 2)
+}
+
+// Explicit Go To, search reveals and bookmark activation share a traversable history. A new
+// destination after Back discards the old forward branch, and lens shortcuts expose both ends.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-history-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "0123456789abcdef")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+
+    Swag.require(view.grid.goToTypedOffset("4") and view.grid.caret == 4)
+    Swag.require(view.revealOffset(8, 2) and view.grid.caret == 8)
+    view.bookmarkOffset = 12
+    view.hasBookmark = true
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var bookmark: *Lens.Entry?
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Hex.texts().ui_GoToBookmark, "0x0000000C") do
+        bookmark = entry
+    Swag.require(bookmark != null and not bookmark.disabled)
+    bookmark.run!()
+    Swag.require(view.grid.caret == 12)
+
+    var backResults: Lens.Results
+    var backEntries = Viewer.LensEntries.create(&backResults, "Hexadecimal", host.theme)
+    view.describeLens(&backEntries)
+    var back: *Lens.Entry?
+    for &entry in backResults.sections[0]!.entries where entry.title == Hex.texts().ui_Back do
+        back = entry
+    Swag.require(back != null and not back.disabled and back.defaultKey.key == .Left)
+    back.run!()
+    Swag.require(view.grid.caret == 8)
+
+    var forwardResults: Lens.Results
+    var forwardEntries = Viewer.LensEntries.create(&forwardResults, "Hexadecimal", host.theme)
+    view.describeLens(&forwardEntries)
+    var forward: *Lens.Entry?
+    for &entry in forwardResults.sections[0]!.entries where entry.title == Hex.texts().ui_Forward do
+        forward = entry
+    Swag.require(forward != null and not forward.disabled and forward.defaultKey.key == .Right)
+    forward.run!()
+    Swag.require(view.grid.caret == 12)
+
+    Swag.require(view.navigateHistory(-1) and view.grid.caret == 8)
+    Swag.require(view.grid.goToTypedOffset("2") and view.grid.caret == 2)
+    Swag.require(not view.navigateHistory(1))
+}
+
+// Navigation history retains only its newest sixty-four destinations on long sessions.
+#test
+{
+    let fileName = writeStreamedFile(256)
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    for offset in 1 until 101 do
+        Swag.require(view.revealOffset(offset, 1))
+    Swag.require(view.navigationHistory.count == 64)
+    Swag.require(view.grid.caret == 100)
+    var steps = 0
+    while steps < 63
+    {
+        Swag.require(view.navigateHistory(-1))
+        steps += 1
+    }
+    Swag.require(view.grid.caret == 37 and not view.navigateHistory(-1))
 }
 
 // The clipboard contract names and enforces its exact bound before a large selection is copied.
@@ -634,6 +828,30 @@ internal func writeSampleFile()->String
     var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
     view.describeLens(&entries)
 
+    // Copy actions are unavailable without a range, while navigation and select-all remain usable.
+    for title in [Hex.texts().ui_CopyBytes, Hex.texts().ui_CopyText, Hex.texts().ui_CopyDump]
+    {
+        var found: bool
+        var disabled: bool
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
+            found = true
+            disabled = entry.disabled
+        }
+        Swag.require(found and disabled, title)
+    }
+    for title in [Hex.texts().ui_GoTo, Hex.texts().ui_SelectAll]
+    {
+        var found: bool
+        var disabled: bool
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
+            found = true
+            disabled = entry.disabled
+        }
+        Swag.require(found and not disabled, title)
+    }
+
     func run(results: *Lens.Results, title: string)
     {
         for &entry in results.sections[0]!.entries where entry.title == title
@@ -653,16 +871,24 @@ internal func writeSampleFile()->String
 
     run(&results, Hex.texts().ui_SelectAll)
     Swag.require(view.grid.selectionStart() == 0 and view.grid.selectionLength() == 4)
-    run(&results, Hex.texts().ui_CopyText)
+
+    // Rebuild the lens entries after selection, as the live lens does on refresh.
+    var selectedResults: Lens.Results
+    var selectedEntries = Viewer.LensEntries.create(&selectedResults, "Hexadecimal", host.theme)
+    view.describeLens(&selectedEntries)
+    run(&selectedResults, Hex.texts().ui_CopyText)
     Swag.require(Clipboard.getString() == "ABCD")
-    run(&results, Hex.texts().ui_CopyBytes)
+    run(&selectedResults, Hex.texts().ui_CopyBytes)
     Swag.require(Clipboard.getString() == "41 42 43 44")
+    run(&selectedResults, Hex.texts().ui_CopyDump)
+    let dump = Clipboard.getString()
+    Swag.require(dump.contains("41 42 43 44") and dump.contains("ABCD"), dump)
 
     // The zoom keys have their rows: one step larger, then back to the size of the theme.
     let size = view.grid.fontSize
-    run(&results, appStrings().cmd_ZoomIn)
+    run(&selectedResults, appStrings().cmd_ZoomIn)
     Swag.require(view.grid.fontSize == size + 1)
-    run(&results, appStrings().cmd_ZoomReset)
+    run(&selectedResults, appStrings().cmd_ZoomReset)
     Swag.require(view.grid.fontSize == size)
 }
 

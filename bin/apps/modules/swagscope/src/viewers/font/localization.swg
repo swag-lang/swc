@@ -11,6 +11,8 @@ struct Texts
     ui_EditSample:        string = "Edit Sample Text"
     ui_PreviousPage:      string = "Previous Character Page"
     ui_NextPage:          string = "Next Character Page"
+    ui_Back:              string = "Back in Character Map"
+    ui_Forward:           string = "Forward in Character Map"
     ui_CharacterRange:    string = "Character Range"
     ui_BasicLatin:        string = "Basic Latin"
     ui_Latin1:            string = "Latin-1 Supplement"
@@ -22,9 +24,19 @@ struct Texts
     ui_NoCharacters:      string = "No mapped characters"
     ui_NotCovered:        string = "None"     // Reading of a Unicode block the face maps no character of.
     ui_ShowCharacter:     string = "Show % in the Character Map"     // Lens row going to the cell of the character typed, or of its U+ code point.
+    ui_ShowGlyph:         string = "Show glyph % in the Character Map"     // Lens row resolving a glyph ID to its first Unicode character.
+    ui_ShowGlyphName:     string = "Show glyph % (#%) in the Character Map" // Lens row resolving a post/CFF glyph name.
     ui_CopyCharacter:     string = "Copy Character %"     // Lens command copying the character marked in the map.
     ui_NotInFont:         string = "Not in this font"     // Faint reading of a typed character the face does not map.
+    ui_GlyphNoCharacter: string = "Glyph has no Unicode character mapping"
+    ui_GlyphIdAbsent:    string = "Glyph ID is outside this font"
     ui_Regular:           string = "Regular"
+    ui_Faces:             string = "Faces"
+    ui_ChooseFace:        string = "Choose a face in this collection"
+    ui_FaceNumber:        string = "Face %"
+    ui_InvalidFace:       string = "The selected font face is invalid"
+    ui_UnreadableFaces:   string = "% of % collection faces could not be read"
+    ui_NoValidFaces:      string = "The font collection has no readable faces"
 
     // Weight classes of the OS/2 table, by hundreds from 100; 400 is `ui_Regular`.
     ui_WeightThin:       string = "Thin"

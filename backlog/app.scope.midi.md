@@ -44,12 +44,16 @@ remain available in the Binary viewer.
 ### app.scope.midi.010 — SMF timing and structural edge cases have no explicit support matrix
 
 - Evidence: the parser caps input at 32 MiB and one million notes, calculates PPQN duration from a
-  tempo map, and has a separate SMPTE duration branch. It accepts format values 0 through 2,
-  but its tests cover only a format-0 PPQN score. SMPTE division, format 2 independent sequences,
-  multiple End-of-Track cases, running status boundaries, RIFF RMID, karaoke conventions, huge delta
-  times, and conflicting tempo tracks are not presented as a tested contract.
-- Next: document current semantics and add focused fixtures for every SMF format/division plus
-  malformed chunk/event recovery before expanding formats.
+  tempo map, and has a separate SMPTE duration branch. Generated tests now cover formats 0, 1 and 2
+  under PPQN and all four legal SMPTE rates, with exact-duration assertions; invalid frame codes,
+  zero ticks per frame and multi-track format-0 headers are rejected. Format 2 is parsed into the
+  shared score model, however, so independent track timelines and tempo maps are not preserved.
+  Multiple End-of-Track cases, running-status boundaries, RIFF RMID, karaoke conventions, huge delta
+  times, conflicting tempo tracks, malformed-track recovery, and summary timing labels remain
+  untested or unsupported.
+- Next: give format-2 tracks independent timeline/tempo state and a clear selection model, then add
+  partial-track recovery fixtures for malformed events, multiple End-of-Track and running-status
+  boundaries. State the RMID policy and show the format/division in the viewer summary.
 - Done when: format 0/1/2 and PPQN/SMPTE behavior are declared and tested, caps report resource
   limits rather than corruption, partial tracks survive safe damage, RMID stance is explicit, and
   the viewer summary names timing mode.
@@ -73,11 +77,17 @@ remain available in the Binary viewer.
   names or MIDI key numbers, with both preferences persisted. The tooltip explains C4 = MIDI 60.
   When every note shown is on channel 10 (a selected drum track, or a drums-only piece), each key
   row tall enough for text names its General MIDI percussion sound, and the rows span the keys of
-  the selected track. Scale overlays are absent.
-- Next: add optional key-signature and scale highlighting.
+  the selected track. An accessible, persisted option now tints the seven pitch classes from each
+  active key signature across the piano-roll timeline; the keyboard shows the signature at the
+  first visible time. Relative major/minor signatures use their shared pitch-class set, and a
+  percussion-only view receives no tonal coloring. The multi-change MIDI fixture covers C major,
+  G major and G minor.
+- Next: once note selection from app.scope.midi.004 exists, verify vertical fit and pitch zoom keep
+  the selected notes visible and preserve their identity.
 - Done when: vertical fit and zoom preserve selected notes, MIDI key number and chosen note name
   are visible, octave convention is declared, channel-10 drum maps can replace pitch names, and
   key-signature/scale highlighting is optional and accessible.
+- Related: app.scope.midi.004
 
 ### app.scope.midi.011 — Large MIDI files are fully materialized and hard-capped
 

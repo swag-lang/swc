@@ -1277,7 +1277,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.openFile(scopeTestDataPath("segoeui.ttf"), remember: false)
+    window.openFile(scopeTestDataPath("viewer.arabic.ttf"), remember: false)
     completeQueuedViewerFile(&host, window)
 
     let position = host.surface.position

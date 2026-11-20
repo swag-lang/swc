@@ -26,6 +26,7 @@ func viewerPlugin()->Viewer.Plugin
 private
 {
     const RowWidthCount = 5'u32
+    const NavigationHistoryLimit = 64'u64
 
     // The page: the air before the grid's offsets on a wide window, the height of the tabs over
     // the grid, and the floating inspector — its width, its distance from the window's edges, and
@@ -87,6 +88,9 @@ struct Panel
 
     late
     {
+        goToButton:     *IconButton
+        copyBytesButton: *IconButton
+        copyFormatsButton: *IconButton
         analysisButton: *IconButton
         optionsButton:  *IconButton
         analysisView:   *AnalysisView
@@ -106,6 +110,11 @@ struct Panel
     bigEndian:       bool     // Whether multi-byte values read their most significant byte first.
 
     searchPattern: SearchPattern
+    bookmarkOffset: u64
+    hasBookmark:    bool     // One session-local byte offset; set after the lens stores it.
+    navigationHistory: Array'u64
+    navigationIndex:   u64 = Swag.U64.Max
+    navigatingHistory: bool
     analysis:      AnalysisOperation
     analysisTimer: *Timer?     // Refreshes the progress of a running analysis.
     fileName:      String
@@ -169,6 +178,7 @@ private impl IWnd for Panel
         .grid.refreshLayout()
         .refreshInspector()
         .analysisButton.enable(.grid.doc.fileSize != 0)
+        .goToButton.enable(.grid.doc.fileSize != 0)
         .services.loadingChanged(me)
     }
 
@@ -190,6 +200,79 @@ private impl IWnd for Panel
 
 impl Panel
 {
+    // Adds an explicit destination to the bounded offset history, preserving the current position
+    // as a return point and dropping any forward branch after a new visit.
+    private mtd recordNavigation(offset, from: u64)
+    {
+        if .navigatingHistory or offset >= .grid.doc.fileSize do
+            return
+
+        if not .navigationHistory.count
+        {
+            .navigationHistory.add(from)
+            .navigationIndex = 0
+        }
+        elif .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] != from
+        {
+            .navigationHistory.resize(.navigationIndex + 1)
+            .navigationHistory.add(from)
+            .navigationIndex = .navigationHistory.count - 1
+        }
+
+        if .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] == offset do
+            return
+        if .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count do
+            .navigationHistory.resize(.navigationIndex + 1)
+        .navigationHistory.add(offset)
+        .navigationIndex = .navigationHistory.count - 1
+
+        if .navigationHistory.count > NavigationHistoryLimit
+        {
+            .navigationHistory.remove(0, .navigationHistory.count - NavigationHistoryLimit)
+            .navigationIndex = .navigationHistory.count - 1
+        }
+    }
+
+    // Reveals an explicit destination and optionally selects its byte range.
+    private mtd navigateTo(offset, length: u64, selectRange = false)->bool
+    {
+        if offset >= .grid.doc.fileSize do
+            return false
+        let previous = .grid.caret
+        if selectRange
+        {
+            .grid.selectRange(offset, length)
+        }
+        elif length
+        {
+            if not .grid.revealRange(offset, length) do
+                return false
+        }
+        else
+        {
+            .grid.moveCaret(offset, false, center: true)
+        }
+        .recordNavigation(offset, previous)
+        .grid.setFocus()
+        return true
+    }
+
+    // Returns to a preceding or following explicit byte offset.
+    mtd navigateHistory(direction: s32)->bool
+    {
+        if .navigationIndex == Swag.U64.Max do
+            return false
+        let next = cast(s64, .navigationIndex) + direction
+        if next < 0 or next >= cast(s64, .navigationHistory.count) do
+            return false
+        .navigatingHistory = true
+        defer .navigatingHistory = false
+        .navigationIndex = cast(u64, next)
+        .grid.moveCaret(.navigationHistory[.navigationIndex], false, center: true)
+        .grid.setFocus()
+        return true
+    }
+
     // Stops the background load and analysis, and reports whether the view can be destroyed.
     //
     // A false result means a worker still borrows the view; the host polls again.
@@ -313,7 +396,10 @@ impl Panel
     // Rebuilds what follows the language, keeping every choice, then republishes the details.
     mtd retranslate()
     {
-        .optionsButton.toolTip  = appStrings().ui_Options
+        .goToButton.toolTip        = texts().ui_GoTo
+        .copyBytesButton.toolTip   = texts().ui_CopyBytes
+        .copyFormatsButton.toolTip = texts().ui_CopyFormats
+        .optionsButton.toolTip     = appStrings().ui_Options
         .analysisButton.toolTip = texts().ui_AnalysisTip
         .analysisView.retranslate()
         .grid.invalidate()
@@ -330,7 +416,7 @@ impl Panel
             if target != Swag.U64.Max
             {
                 let value = formatDigits(target, .grid.offsetDigits)
-                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { view.grid.moveCaret(target, false, center: true) })
+                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { discard view.navigateTo(target, 0) })
             }
 
             return
@@ -338,14 +424,26 @@ impl Panel
 
         // The commands of the context menu, so none of them needs a right click.
         let strings = texts()
+        let hasSelection = .grid.hasSelection()
         let bounded = .grid.selectionLength() > CopyLimit
         let limit   = StrConv.toDisplaySize(CopyLimit)
         entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.hex.goTo")
-        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.hex.copyBytes")
-        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyText")
-        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyDump")
+        let canGoBack = .navigationIndex != Swag.U64.Max and .navigationIndex > 0
+        let canGoForward = .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count
+        entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not canGoBack, defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.hex.back")
+        entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not canGoForward, defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.hex.forward")
+        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not hasSelection, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.hex.copyBytes")
+        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not hasSelection, bindId: "scope.hex.copyText")
+        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not hasSelection, bindId: "scope.hex.copyDump")
         entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyOffset")
         entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.hex.selectAll")
+        entries.add(strings.ui_SetBookmark, .GoTo, func|view = me|() { view.bookmarkOffset = view.grid.caret; view.hasBookmark = true }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B}, bindId: "scope.hex.setBookmark")
+        if .hasBookmark
+        {
+            let bookmark = .bookmarkOffset
+            let address = offsetHex(bookmark)
+            entries.add(Format.toString(strings.ui_GoToBookmark, address), .GoTo, func|view = me, bookmark|() { discard view.navigateTo(bookmark, 0) }, disabled: bookmark >= .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Alt, key: .B}, bindId: "scope.hex.goToBookmark")
+        }
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.hex.options")
 
         // The zoom keys step the size of the bytes within the grid's own bounds rather than the
@@ -445,6 +543,21 @@ impl Panel
         }
     }
 
+    // Offers the two alternate bounded clipboard spellings beside the direct Copy Bytes action.
+    private mtd showCopyFormatsMenu()
+    {
+        if not .grid.hasSelection() do
+            return
+
+        with let menu = MenuCtrl.createPopup(.grid, owner: .grid)
+        {
+            .addItem(Action.CopyText)
+            .addItem(Action.CopyDump)
+        }
+
+        discard menu.doModal(.copyFormatsButton, autoDestroy: true)
+    }
+
     // Returns the short tag of the current value grouping, such as `x16` or `s32`.
     private mtd activeValueTag()->string
     {
@@ -490,8 +603,7 @@ impl Panel
     mtd selectStructure(index: u64)
     {
         let tab = &.structure.tabs[index]
-        .grid.selectRange(tab.offset, tab.length)
-        .grid.setFocus()
+        discard .navigateTo(tab.offset, tab.length, selectRange: true)
     }
 
     // Shows what the caret stands on: the floating inspector, the tab of its structure, and the
@@ -665,10 +777,7 @@ impl Panel
     // Reveals the byte range the host's search matched, and reports whether `offset` lies inside the file.
     mtd revealOffset(offset, length: u64)->bool
     {
-        if not .grid.revealRange(offset, length) do
-            return false
-        .grid.setFocus()
-        return true
+        return .navigateTo(offset, length)
     }
 }
 
@@ -685,6 +794,41 @@ impl Panel
             .backgroundStyle = .View
             .services        = services
             .fileName        = host.fileName()
+        }
+
+        let actions = host.createActionGroup(themeActionButtonSize(result.themeMetrics()))
+        actions.dockStyle = .Right
+        actions.margin.z  = 12
+
+        with result.goToButton = Viewer.createActionButton(actions, .GoTo)
+        {
+            .toolTip = texts().ui_GoTo
+            .enable(false)
+            .sigPressed += func|view = result|(_)
+            {
+                view.grid.promptGoToOffset()
+            }
+        }
+
+        with result.copyBytesButton = Viewer.createActionButton(actions, .Copy)
+        {
+            .toolTip = texts().ui_CopyBytes
+            .enable(false)
+            .sigPressed += func|view = result|(_)
+            {
+                view.grid.copySelection(.Bytes)
+            }
+        }
+
+        with result.copyFormatsButton = Viewer.createActionDropDown(actions, .Copy)
+        {
+            .toolTip = texts().ui_CopyFormats
+            .enable(false)
+            .setArrowPosition(.RightUpward)
+            .sigPressed += func|view = result|(_)
+            {
+                view.showCopyFormatsMenu()
+            }
         }
 
         result.createAnalysisPanel(host)
@@ -738,9 +882,8 @@ impl Panel
 
             .sigNavigate += func|view = me|(_, offset, length)
             {
-                discard view.grid.revealRange(offset, length)
+                discard view.navigateTo(offset, length)
                 view.refreshInspector()
-                view.grid.setFocus()
             }
         }
     }
@@ -778,8 +921,14 @@ impl Panel
     {
         with .grid = GridView.create(me)
         {
-            .sigCaretChanged += func|view = me|(_) { view.refreshInspector() }
-            .sigZoomChanged  += func|view = me|(_) { view.refreshZoom() }
+            .sigGoToOffset += func|view = me|(_, offset) { view.recordNavigation(offset, view.grid.caret) }
+            .sigCaretChanged += func|view = me|(_)
+            {
+                view.refreshInspector()
+                view.copyBytesButton.enable(view.grid.hasSelection())
+                view.copyFormatsButton.enable(view.grid.hasSelection())
+            }
+            .sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         }
     }
 
@@ -814,7 +963,7 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch        = func|view|(match, _) => view.revealOffset(match.offset, match.length)
+        .revealMatch        = func|view|(match, _) => view.navigateTo(match.offset, match.length)
         .matchBounds        = func|view|(_, bounds) => view.grid.matchBounds(bounds)
         .clear              = func|view|() => view.grid.clearSearchMatch()
         .describe           = func|view|(presentation) => view.describeSearch(presentation)

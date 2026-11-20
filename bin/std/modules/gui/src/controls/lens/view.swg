@@ -699,6 +699,7 @@ impl View
     mtd setQuery(query: string)
     {
         .input.setText(query, notify: false)
+        .input.revealCaret()
         .refresh()
     }
 

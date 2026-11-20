@@ -13,6 +13,10 @@ ui_KeyboardWidth Largeur du clavier de piano
 ui_KeyboardCompact Compacte
 ui_KeyboardStandard Standard
 ui_KeyboardWide Large
+ui_ScaleHighlight Mise en évidence de la gamme
+ui_ScaleHighlightDetail En vue Piano-roll, colore les notes de la gamme; le clavier suit le début de la zone visible.
+ui_Off Désactivée
+ui_On Activée
 ui_PitchScientific Noms C4
 ui_PitchMidiNumber Nombres MIDI
 ui_PianoRoll     PIANO-ROLL

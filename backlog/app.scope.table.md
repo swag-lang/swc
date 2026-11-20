@@ -7,14 +7,19 @@ fixed-width records. Spreadsheet document viewers have separate
 ### app.scope.table.004 — Table type inference is a fixed sample with no override or formatting
 
 - Evidence: each column's kind (text, integer, decimal, or a date written year first) is inferred
-  from its first 128 rows and written under its name. A quantity column is aligned on the right in
+  from its first 128 rows and written under its name. The information sheet counts non-empty
+  values that contradict that sampled kind across all rows, so a late nonnumeric value is no longer
+  silently treated as an empty quantity. A quantity column is aligned on the right in
   mono, sorted by value, summed in the foot and profiled in the information sheet; its cells keep
   their original text. A value past the sample that does not read as a quantity sorts with the
-  empty cells, and nothing counts it. Times, booleans, nulls, and units are not recognized, a date
-  sorts by its text, so only year-first dates order correctly, and the reader cannot correct a kind
-  or choose how values are formatted.
-- Next: refine the sampled kind over every row, counting the cells that contradict it, then add a
-  per-column kind override and chronological date comparison.
+  empty cells but is counted as inconsistent. Times, booleans, nulls, and units are not recognized.
+  Complete year-first date columns are recognized before numeric punctuation, so ISO dates do not
+  become integers. They sort by year, month and day even when `-` and `/` separators are mixed;
+  timestamp text breaks ties on the same day, and invalid dates beyond the inference sample remain
+  last while the profile counts them as inconsistent. The reader cannot correct a kind or choose
+  how values are formatted.
+- Next: refine the sampled kind over every row, then add a per-column kind override and support
+  more declared date layouts and locale-aware formatting.
 - Done when: inferred kind and contradicting cells are counted, dates and times sort
   chronologically, a kind can be overridden, formats are configurable, and mixed columns degrade
   safely to text.

@@ -48,3 +48,20 @@ using Core, Pixel, Gui, Viewers
     var image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.midi.drums.encre")
 }
+
+// Key-signature highlighting is visible on pitched rows, while the multi-key score keeps its
+// changes separated into musical-time segments.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.ensemble.mid"), true)
+    let view = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+    view.roll.setMode(.Pitches)
+    view.setScaleHighlight(true)
+    Swag.require(view.roll.scaleHighlightMaskAt(0) != 0)
+    Swag.require(view.roll.scaleHighlightMaskAt(view.roll.document.durationTicks) != 0)
+
+    var image = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.midi.scale-highlight.paper")
+}

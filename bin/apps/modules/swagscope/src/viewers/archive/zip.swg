@@ -3,21 +3,24 @@
 
 using Core
 
-// One file or directory recorded in the central directory of a ZIP archive.
+// One browseable file or directory in an archive.
 struct ZipEntry
 {
     path:             String
     compressedSize:   u64
     uncompressedSize: u64
     localOffset:      u64
+    dataOffset:       u64      // Direct payload position for TAR entries.
     crc32:            u32
     method:           u16
     flags:            u16
     isDirectory:      bool
+    isTar:            bool     // Payload is an uncompressed TAR member addressed by dataOffset.
+    isGzip:           bool     // Payload must first be decoded from a GZIP stream.
     modified:         Time.DateTime     // Last modification recorded for the entry, in the archive's local time; zero when none.
 }
 
-// The central directory of a ZIP archive, with its entries sorted by path, ignoring case.
+// Archive members sorted by path, ignoring case.
 struct Zip
 {
     entries:          Array'ZipEntry
@@ -162,7 +165,7 @@ impl Zip
         return result
     }
 
-    // Reads the central directory of a ZIP file.
+    // Reads a ZIP central directory, TAR headers, or one bounded GZIP member.
     //
     // The end record must close the file exactly. Multi-disk archives and directories beyond the
     // entry and size limits fail before any entry is decoded.
@@ -171,6 +174,23 @@ impl Zip
         var result: #returntype
         var file     = try File.MappedFile.open(fileName)
         let fileSize = try file.size()
+
+        if fileSize >= 2
+        {
+            let first = try file.map(0, 2)
+            let bytes = first.bytes()
+            if bytes[0] == 0x1F and bytes[1] == 0x8B do
+                return try loadGzip(&file, fileSize)
+        }
+
+        // TAR has no end directory. Its ustar header begins at byte zero; it shares the same
+        // entry model so Explorer, previews, and nested browsing use the regular archive path.
+        if fileSize >= TarBlockSize
+        {
+            let first = try file.map(0, TarBlockSize)
+            if isTarHeader(first.bytes()) do
+                return try loadTar(&file, fileSize)
+        }
         if fileSize < 22 do
             fail Errors.InvalidFormatError{texts().err_TooShort}
 
@@ -237,6 +257,36 @@ impl Zip
     {
         if entry.isDirectory do
             fail Errors.BadParameterError{texts().err_DirectoryContent}
+        if entry.isGzip
+        {
+            let decoded = try decodeGzipFile(archiveFileName)
+            if entry.isTar
+            {
+                if entry.dataOffset > decoded.bytes.count or entry.uncompressedSize > decoded.bytes.count - entry.dataOffset do
+                    fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+                var result: #returntype
+                result.add(decoded.bytes[entry.dataOffset until entry.dataOffset + entry.uncompressedSize])
+                return result
+            }
+
+            if decoded.bytes.count != entry.uncompressedSize do
+                fail Errors.InvalidFormatError{texts().err_GzipSize}
+
+            return #move decoded.bytes
+        }
+        if entry.isTar
+        {
+            if entry.uncompressedSize > PreviewLimit do
+                fail Errors.UnsupportedFormatError{texts().err_EntryTooLarge}
+            var file   = try File.MappedFile.open(archiveFileName)
+            let length = try file.size()
+            if entry.dataOffset > length or entry.uncompressedSize > length - entry.dataOffset do
+                fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+            let region = try file.map(entry.dataOffset, entry.uncompressedSize)
+            var result: #returntype
+            result.add(region.bytes())
+            return result
+        }
         if entry.flags & FlagEncrypted do
             fail Errors.UnsupportedFormatError{texts().err_Encrypted}
         if entry.uncompressedSize > PreviewLimit do
@@ -311,6 +361,24 @@ impl Zip
 // The fixed values of the ZIP format, and the readers the loader is built from.
 private impl Zip
 {
+    const TarBlockSize = 512'u64
+    const TarExtensionLimit = 1024 * 1024'u64
+    const GzipHeaderLimit = 1024 * 1024'u64
+    const GzipInputLimit = PreviewLimit
+
+    struct GzipDocument
+    {
+        bytes: Array'u8
+        name:  String
+    }
+
+    struct TarOverrides
+    {
+        path:    String
+        size:    u64
+        hasPath: bool
+        hasSize: bool
+    }
     // Signatures of the records the reader walks.
     const LocalSignature        = 0x04034B50'u32
     const DirectorySignature    = 0x02014B50'u32
@@ -331,6 +399,363 @@ private impl Zip
     // General-purpose flags of an entry.
     const FlagEncrypted = 1'u16
     const FlagUtf8      = 1'u16 << 11
+
+    // Confirms the ustar marker before treating a file as TAR.
+    func isTarHeader(bytes: const [..] u8)->bool
+    {
+        if bytes.count < TarBlockSize do
+            return false
+        return bytes[257] == 'u' and bytes[258] == 's' and bytes[259] == 't' and
+               bytes[260] == 'a' and bytes[261] == 'r'
+    }
+
+    // Reads an octal TAR number, rejecting base-256 encodings and invalid digits.
+    func tarOctal(bytes: const [..] u8)->u64 fail
+    {
+        var result = 0'u64
+        var digits = false
+        for byte in bytes
+        {
+            if byte == 0 or byte == ' ' do
+                continue
+            if byte < '0' or byte > '7' do
+                fail Errors.InvalidFormatError{texts().err_TarNumber}
+            digits = true
+            if result > (Swag.U64.Max - (byte - '0')) / 8 do
+                fail Errors.InvalidFormatError{texts().err_TarNumber}
+            result = result * 8 + (byte - '0')
+        }
+        if not digits do
+            return 0
+        return result
+    }
+
+    func tarField(bytes: const [..] u8)->string
+    {
+        var length = 0'u64
+        while length < bytes.count and bytes[length] != 0 do
+            length += 1
+        return cast(string, bytes[until length])
+    }
+
+    func tarDecimal(bytes: const [..] u8)->u64 fail
+    {
+        if not bytes.count do
+            fail Errors.InvalidFormatError{texts().err_TarExtended}
+        var result = 0'u64
+        for byte in bytes
+        {
+            if byte < '0' or byte > '9' or result > (Swag.U64.Max - (byte - '0')) / 10 do
+                fail Errors.InvalidFormatError{texts().err_TarExtended}
+            result = result * 10 + (byte - '0')
+        }
+        return result
+    }
+
+    // Reads bounded POSIX PAX records, retaining the path and size overrides used by this reader.
+    func tarPaxOverrides(bytes: const [..] u8)->TarOverrides fail
+    {
+        var result: #returntype
+        var at = 0'u64
+        while at < bytes.count
+        {
+            var length = 0'u64
+            var digits = 0'u64
+            while at + digits < bytes.count and bytes[at + digits] != ' '
+            {
+                let byte = bytes[at + digits]
+                if byte < '0' or byte > '9' or length > (Swag.U64.Max - (byte - '0')) / 10 do
+                    fail Errors.InvalidFormatError{texts().err_TarExtended}
+                length = length * 10 + (byte - '0')
+                digits += 1
+            }
+            if not digits or at + digits >= bytes.count or length <= digits + 2 or length > bytes.count - at do
+                fail Errors.InvalidFormatError{texts().err_TarExtended}
+            let end = at + length
+            if bytes[end - 1] != '\n' do
+                fail Errors.InvalidFormatError{texts().err_TarExtended}
+
+            let keyAt = at + digits + 1
+            var equalsAt = keyAt
+            while equalsAt < end - 1 and bytes[equalsAt] != '=' do
+                equalsAt += 1
+            if equalsAt == keyAt or equalsAt >= end - 1 do
+                fail Errors.InvalidFormatError{texts().err_TarExtended}
+            let key   = cast(string, bytes[keyAt until equalsAt])
+            let value = bytes[equalsAt + 1 until end - 1]
+            if key == "path"
+            {
+                if not Utf8.isValid(value) do
+                    fail Errors.InvalidFormatError{texts().err_TarPath}
+                for byte in value do
+                    result.path += byte
+                result.hasPath = true
+            }
+            elif key == "size"
+            {
+                result.size = try tarDecimal(value)
+                result.hasSize = true
+            }
+            at = end
+        }
+        return result
+    }
+
+    // Reads one RFC 1952 member, including optional header fields and its CRC/size trailer.
+    func decodeGzip(bytes: const [..] u8)->GzipDocument fail
+    {
+        if bytes.count < 18 or bytes[0] != 0x1F or bytes[1] != 0x8B or bytes[2] != 8 do
+            fail Errors.InvalidFormatError{texts().err_GzipHeader}
+        let flags = bytes[3]
+        if flags & 0xE0 do
+            fail Errors.InvalidFormatError{texts().err_GzipHeader}
+
+        let trailerAt = bytes.count - 8
+        var at        = 10'u64
+        var result: #returntype
+        if flags & 4
+        {
+            let extraSize = cast(u64, try readU16(bytes, at))
+            at += 2
+            if at > trailerAt or extraSize > trailerAt - at do
+                fail Errors.InvalidFormatError{texts().err_GzipHeader}
+            at += extraSize
+        }
+        if flags & 8
+        {
+            let nameAt = at
+            while at < Math.min(trailerAt, GzipHeaderLimit) and bytes[at] do
+                at += 1
+            if at == trailerAt or at == GzipHeaderLimit do
+                fail Errors.InvalidFormatError{texts().err_GzipHeader}
+            result.name = text(bytes[nameAt until at], false)
+            at += 1
+        }
+        if flags & 16
+        {
+            while at < Math.min(trailerAt, GzipHeaderLimit) and bytes[at] do
+                at += 1
+            if at == trailerAt or at == GzipHeaderLimit do
+                fail Errors.InvalidFormatError{texts().err_GzipHeader}
+            at += 1
+        }
+        if flags & 2
+        {
+            if at > trailerAt or 2 > trailerAt - at do
+                fail Errors.InvalidFormatError{texts().err_GzipHeader}
+            if cast(u16, Hash.Crc32.compute(bytes[0 until at])) != (try readU16(bytes, at)) do
+                fail Errors.InvalidFormatError{texts().err_GzipHeader}
+            at += 2
+        }
+        if at >= trailerAt or at > GzipHeaderLimit do
+            fail Errors.InvalidFormatError{texts().err_GzipHeader}
+
+        var inflater: Compress.Inflate
+        try inflater.decompress(&result.bytes, bytes[at until trailerAt], maxOutputSize: PreviewLimit)
+        if Hash.Crc32.compute(result.bytes.toSlice()) != (try readU32(bytes, trailerAt)) do
+            fail Errors.InvalidFormatError{texts().err_GzipChecksum}
+        if cast(u32, result.bytes.count) != (try readU32(bytes, trailerAt + 4)) do
+            fail Errors.InvalidFormatError{texts().err_GzipSize}
+        return result
+    }
+
+    // Maps and decodes one bounded GZIP file for browsing and extraction.
+    func decodeGzipFile(fileName: string)->GzipDocument fail
+    {
+        var file = try File.MappedFile.open(fileName)
+        let size = try file.size()
+        if size > GzipInputLimit do
+            fail Errors.UnsupportedFormatError{texts().err_GzipTooLarge}
+        let mapped = try file.map(0, size)
+        return try decodeGzip(mapped.bytes())
+    }
+
+    // Exposes a single compressed file or the members of a TAR.GZ through the archive model.
+    func loadGzip(file: *File.MappedFile, fileSize: u64)->Zip fail
+    {
+        if fileSize > GzipInputLimit do
+            fail Errors.UnsupportedFormatError{texts().err_GzipTooLarge}
+        let mapped = try file.map(0, fileSize)
+        let decoded = try decodeGzip(mapped.bytes())
+        if decoded.bytes.count >= TarBlockSize and isTarHeader(decoded.bytes.toSlice())
+        {
+            var result = try loadTarBytes(decoded.bytes.toSlice())
+            for &entry in result.entries do
+                entry.isGzip = true
+            result.compressedSize = fileSize
+            return result
+        }
+
+        var path = decoded.name
+        if path.isEmpty()
+        {
+            path = Path.fileName(file.name) orelse "content.gz"
+            if Utf8.endsWith(path.toSlice(), ".gz") do
+                path = path.toString()[0 until path.count - 3]
+        }
+        path = cleanPath(path.toString())
+        if path.isEmpty() do
+            path = "content"
+        var entry: ZipEntry
+        entry.path             = #move path
+        entry.compressedSize   = fileSize
+        entry.uncompressedSize = decoded.bytes.count
+        entry.isGzip           = true
+        var result: #returntype
+        result.compressedSize   = fileSize
+        result.uncompressedSize = decoded.bytes.count
+        result.entries.add(#move entry)
+        return result
+    }
+
+    // Validates one POSIX header checksum, treating its checksum field as eight spaces.
+    func validTarChecksum(header: const [..] u8)->bool fail
+    {
+        let expected = try tarOctal(header[148 until 156])
+        var actual   = 0'u64
+        for byte, index in header do
+            actual += index >= 148 and index < 156 ? 32 : byte
+        return expected == actual
+    }
+
+    // Parses a bounded ustar archive, keeping file payloads as source offsets until preview.
+    func loadTar(file: *File.MappedFile, fileSize: u64)->Zip fail
+    {
+        let mapped = try file.map(0, fileSize)
+        return try loadTarBytes(mapped.bytes())
+    }
+
+    // Parses a bounded ustar archive from either a mapped file or a validated GZIP payload.
+    func loadTarBytes(bytes: const [..] u8)->Zip fail
+    {
+        let fileSize = bytes.count
+        var result: #returntype
+        var at          = 0'u64
+        var entryCount  = 0'u64
+        var zeroHeaders = 0'u8
+        var globalPax: TarOverrides
+        var pendingPax: TarOverrides
+        while at <= fileSize and TarBlockSize <= fileSize - at
+        {
+            let header = bytes[at until at + TarBlockSize]
+            var allZero = true
+            for byte in header where byte do
+                allZero = false
+            if allZero
+            {
+                zeroHeaders += 1
+                at += TarBlockSize
+                if zeroHeaders >= 2 do
+                    break
+                continue
+            }
+            zeroHeaders = 0
+            if not try validTarChecksum(header) do
+                fail Errors.InvalidFormatError{texts().err_TarChecksum}
+
+            let name   = tarField(header[0 until 100])
+            let prefix = tarField(header[345 until 500])
+            var path: String = name
+            if prefix.count do
+                path = Format.toString("%/%", prefix, name)
+            let kind = header[156]
+            if kind != 0 and kind != '0' and kind != '5' and kind != 'x' and kind != 'g' do
+                fail Errors.UnsupportedFormatError{Errors.mkString(Format.toString(texts().err_TarType, kind))}
+
+            let headerSize = try tarOctal(header[124 until 136])
+            if headerSize > fileSize - at - TarBlockSize do
+                fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+            let dataAt = at + TarBlockSize
+            let headerPadded = headerSize > Swag.U64.Max - (TarBlockSize - 1) ?
+                               Swag.U64.Max : (headerSize + TarBlockSize - 1) & ~(TarBlockSize - 1)
+            if headerPadded > fileSize - dataAt do
+                fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+
+            if kind == 'x' or kind == 'g'
+            {
+                if headerSize > TarExtensionLimit do
+                    fail Errors.UnsupportedFormatError{texts().err_TarExtended}
+                let overrides = try tarPaxOverrides(bytes[dataAt until dataAt + headerSize])
+                if kind == 'g'
+                {
+                    if overrides.hasPath
+                    {
+                        globalPax.path = #move overrides.path
+                        globalPax.hasPath = true
+                    }
+                    if overrides.hasSize
+                    {
+                        globalPax.size = overrides.size
+                        globalPax.hasSize = true
+                    }
+                }
+                else
+                {
+                    if overrides.hasPath
+                    {
+                        pendingPax.path = #move overrides.path
+                        pendingPax.hasPath = true
+                    }
+                    if overrides.hasSize
+                    {
+                        pendingPax.size = overrides.size
+                        pendingPax.hasSize = true
+                    }
+                }
+                at = dataAt + headerPadded
+                continue
+            }
+
+            if not Utf8.isValid(path.toSlice()) do
+                fail Errors.InvalidFormatError{texts().err_TarPath}
+            if globalPax.hasPath do
+                path = globalPax.path.toString()
+            if pendingPax.hasPath do
+                path = pendingPax.path.toString()
+            var size = pendingPax.hasSize ? pendingPax.size : globalPax.hasSize ? globalPax.size : headerSize
+            pendingPax = {}
+            if kind == '5' do
+                size = 0
+            if size > fileSize - dataAt do
+                fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+            let padded = size > Swag.U64.Max - (TarBlockSize - 1) ?
+                         Swag.U64.Max : (size + TarBlockSize - 1) & ~(TarBlockSize - 1)
+            if padded > fileSize - dataAt do
+                fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
+
+            path = cleanPath(path)
+            if not path.isEmpty()
+            {
+                var entry: ZipEntry
+                entry.path           = path
+                entry.localOffset    = at
+                entry.dataOffset     = dataAt
+                entry.compressedSize = kind == '5' ? 0 : size
+                entry.uncompressedSize = kind == '5' ? 0 : size
+                entry.isDirectory    = kind == '5' or Utf8.endsWith(path, "/")
+                entry.isTar          = true
+                if not entry.isDirectory
+                {
+                    if size > Swag.U64.Max - result.uncompressedSize or
+                       size > Swag.U64.Max - result.compressedSize do
+                        fail Errors.InvalidFormatError{texts().err_TarNumber}
+                    result.uncompressedSize += size
+                    result.compressedSize   += size
+                }
+                result.entries.add(#move entry)
+                entryCount += 1
+                if entryCount > EntryLimit do
+                    fail Errors.UnsupportedFormatError{texts().err_TooManyEntries}
+            }
+
+            at = dataAt + padded
+        }
+
+        if zeroHeaders < 2 or result.entries.isEmpty() do
+            fail Errors.InvalidFormatError{texts().err_TarEnd}
+        result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
+        return result
+    }
 
     // A size, offset, or count saturated at its field's maximum is stored in the ZIP64 extra field.
     const Value32Overflow = 0xFFFF_FFFF'u64

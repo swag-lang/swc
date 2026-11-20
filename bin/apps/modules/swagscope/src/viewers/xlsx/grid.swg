@@ -80,13 +80,34 @@ impl Grid
             .rowOffsets[index + 1] = .rowOffsets[index] + ((.showHidden or not hidden) ? cast(f64, height) : 0)
         }
 
+        .originY = .frozenOffset()
+        .originX = .frozenWidth()
         .selectAddress({}, reveal: false)
         .syncScroll()
     }
 
     mtd totalHeight()->f64 => .rowOffsets.isEmpty() ? 0 : .rowOffsets.back()
     mtd totalWidth()->f32  => .columnOffsets.isEmpty() ? 0 : .columnOffsets.back()
-    mtd maxOrigin()->f64   => Math.max(.totalHeight() + HeaderHeight - .clientRect().height, 0)
+    mtd maxOrigin()->f64   => Math.max(Math.max(.totalHeight() + HeaderHeight - .clientRect().height, 0), .frozenOffset())
+    mtd frozenOffset()->f64
+    {
+        if not .sheet or .rowOffsets.count <= .sheet.frozenRows do
+            return 0
+        return .rowOffsets[.sheet.frozenRows]
+    }
+    mtd frozenWidth()->f32
+    {
+        if not .sheet or .columnOffsets.count <= .sheet.frozenColumns do
+            return 0
+        return .columnOffsets[.sheet.frozenColumns]
+    }
+    mtd frozenColumn(index: u32)->bool
+    {
+        if not .sheet do
+            return false
+        return index < .sheet.frozenColumns
+    }
+    mtd maxOriginX()->f32 => Math.max(.totalWidth() + HeaderWidth - .clientRect().width, .frozenWidth())
 
     mtd syncScroll()
     {
@@ -94,13 +115,14 @@ impl Grid
             return
         .syncing = true
         defer .syncing = false
-        .originY = Math.clamp(.originY, 0, .maxOrigin())
+        .originY = Math.clamp(.originY, .frozenOffset(), .maxOrigin())
         let span = cast(f32, Math.min(.totalHeight() + HeaderHeight, cast(f64, ScrollSpan)))
         .scroll.setScrollSize(.totalWidth() + HeaderWidth, span)
-        .originX = Math.clamp(.originX, 0, Math.max(.totalWidth() + HeaderWidth - .clientRect().width, 0))
+        .originX = Math.clamp(.originX, .frozenWidth(), .maxOriginX())
         let usable = Math.max(span - .clientRect().height, 0)
-        let y      = .maxOrigin() > 0 ? cast(f32, .originY / .maxOrigin()) * usable : 0
-        .scroll.setScrollPos(.originX, y)
+        let travel = Math.max(.maxOrigin() - .frozenOffset(), 0)
+        let y      = travel > 0 ? cast(f32, (.originY - .frozenOffset()) / travel) * usable : 0
+        .scroll.setScrollPos(.originX - .frozenWidth(), y)
         .invalidate()
     }
 
@@ -110,8 +132,8 @@ impl Grid
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         .keepSelectionVisible = false
-        .originY = .maxOrigin() * cast(f64, position.y / usable)
-        .originX = position.x
+        .originY = .frozenOffset() + Math.max(.maxOrigin() - .frozenOffset(), 0) * cast(f64, position.y / usable)
+        .originX = .frozenWidth() + position.x
         .invalidate()
     }
 
@@ -135,8 +157,8 @@ impl Grid
 
     mtd cellRect(first, last: Address)->Math.Rectangle
     {
-        let x = HeaderWidth + .columnOffsets[first.column] - .originX
-        let y = HeaderHeight + cast(f32, .rowOffsets[first.row] - .originY)
+        let x = HeaderWidth + cast(f32, .frozenColumn(first.column) ? .columnOffsets[first.column] : .columnOffsets[first.column] - .originX + .frozenWidth())
+        let y = HeaderHeight + cast(f32, first.row < .sheet!.frozenRows ? .rowOffsets[first.row] : .rowOffsets[first.row] - .originY + .frozenOffset())
         return {x, y, .columnOffsets[last.column + 1] - .columnOffsets[first.column], cast(f32, .rowOffsets[last.row + 1] - .rowOffsets[first.row])}
     }
 
@@ -251,8 +273,12 @@ impl Grid
     {
         if point.x < HeaderWidth or point.y < HeaderHeight or .rowOffsets.isEmpty() do
             return {Address{}, false}
-        let x = point.x - HeaderWidth + .originX
-        let y = cast(f64, point.y - HeaderHeight) + .originY
+        let localX = point.x - HeaderWidth
+        let frozenX = .frozenWidth()
+        let x = localX < frozenX ? localX : localX + .originX - frozenX
+        let localY = cast(f64, point.y - HeaderHeight)
+        let frozen = .frozenOffset()
+        let y = localY < frozen ? localY : localY + .originY - frozen
         if x >= .totalWidth() or y >= .totalHeight() do
             return {Address{}, false}
         var column = 0'u32
@@ -526,7 +552,7 @@ impl IWnd for Grid
         case .PageUp, .PageDown where evt.modifiers == .None:
             let direction = evt.key == .PageUp ? -1.0 : 1.0
             .originY = Math.clamp(.originY + direction * Math.max(.clientRect().height - HeaderHeight, 1), 0, .maxOrigin())
-            .selectAddress({.rowAt(.originY), .selected.column}, reveal: false)
+            .selectAddress({Math.max(.rowAt(.originY), .sheet!.frozenRows), .selected.column}, reveal: false)
             .syncScroll()
 
         default:
@@ -563,7 +589,7 @@ impl IWnd for Grid
             row = firstRow
             while row <= lastRow
             {
-                let y = HeaderHeight + cast(f32, .rowOffsets[row] - .originY)
+                let y = HeaderHeight + cast(f32, row < sheet.frozenRows ? .rowOffsets[row] : .rowOffsets[row] - .originY + .frozenOffset())
                 painter.drawLine(HeaderWidth, y, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), y, rule)
                 let next = .nextRow(row)
                 if next <= row do
@@ -571,11 +597,11 @@ impl IWnd for Grid
                 row = next
             }
 
-            let bottom = HeaderHeight + cast(f32, .rowOffsets[lastRow + 1] - .originY)
+            let bottom = HeaderHeight + cast(f32, lastRow < sheet.frozenRows ? .rowOffsets[lastRow + 1] : .rowOffsets[lastRow + 1] - .originY + .frozenOffset())
             painter.drawLine(HeaderWidth, bottom, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), bottom, rule)
             for column in firstColumn until lastColumn + 2
             {
-                let x = HeaderWidth + .columnOffsets[column] - .originX
+                let x = HeaderWidth + (.frozenColumn(column) ? .columnOffsets[column] : .columnOffsets[column] - .originX + .frozenWidth())
                 painter.drawLine(x, HeaderHeight, x, Math.min(HeaderHeight + cast(f32, .totalHeight() - .originY), client.height), rule)
             }
         }
@@ -651,6 +677,91 @@ impl IWnd for Grid
             painter.drawRect(rect, colors.arc, 2)
         }
 
+        // Redraw the authored frozen header rows over the scrolling body.  The range is bounded
+        // by the workbook's one-million-row limit, but only the small frozen prefix is visited.
+        if sheet.frozenRows
+        {
+            painter.pushClippingRect(data)
+            let visibleFrozenRows = Math.min(Math.min(sheet.frozenRows, sheet.rowCount), .rowAt(cast(f64, Math.max(client.height - HeaderHeight, 0))) + 1)
+            for row in 0 until visibleFrozenRows
+            {
+                let rect = Math.Rectangle{HeaderWidth, HeaderHeight + cast(f32, .rowOffsets[row]),
+                                          Math.max(client.width - HeaderWidth, 0), cast(f32, .rowOffsets[row + 1] - .rowOffsets[row])}
+                painter.fillRect(rect, paper)
+                let index = sheet.findRow(row)
+                if index < sheet.rows.count and sheet.rows[index].index == row
+                {
+                    for &cell in sheet.rows[index].cells where cell.merge == Swag.U32.Max and
+                                                               (cell.column < sheet.frozenColumns or cell.column >= firstColumn) and
+                                                               cell.column <= lastColumn
+                    {
+                        let cellRect = .cellRect({row, cell.column}, {row, cell.column})
+                        let look = .styles.look(cell.style)
+                        if look.fill do
+                            painter.fillRect(cellRect, Color.fromArgb(look.fill))
+                        look.paintBorders(painter, cellRect)
+                        .drawCell(painter, cellRect, cell)
+                    }
+                }
+
+                if sheet.showGridLines do
+                    painter.drawLine(HeaderWidth, rect.bottom(), client.width, rect.bottom(), rule)
+            }
+
+            if .hasSelection and .selected.row < sheet.frozenRows
+            {
+                let range = .mergedRange(.selected)
+                painter.drawRect(.cellRect(range.first, range.last), colors.arc, 2)
+            }
+            painter.popClippingRect()
+        }
+
+        // Fixed columns are painted after the scrolling body, just like frozen header rows.
+        if sheet.frozenColumns
+        {
+            painter.pushClippingRect(data)
+            let frozenBand = Math.Rectangle{HeaderWidth, HeaderHeight, .frozenWidth(), Math.max(client.height - HeaderHeight, 0)}
+            painter.fillRect(frozenBand, paper)
+            row = firstRow
+            while row <= lastRow
+            {
+                let index = sheet.findRow(row)
+                if index < sheet.rows.count and sheet.rows[index].index == row
+                {
+                    for &cell in sheet.rows[index].cells where cell.column < sheet.frozenColumns and cell.merge == Swag.U32.Max
+                    {
+                        let cellRect = .cellRect({row, cell.column}, {row, cell.column})
+                        let look = .styles.look(cell.style)
+                        if look.fill do
+                            painter.fillRect(cellRect, Color.fromArgb(look.fill))
+                        look.paintBorders(painter, cellRect)
+                        .drawCell(painter, cellRect, cell)
+                    }
+                }
+
+                let next = .nextRow(row)
+                if next <= row do
+                    break
+                row = next
+            }
+
+            if sheet.showGridLines
+            {
+                for boundary in 1 until sheet.frozenColumns + 1
+                {
+                    let x = HeaderWidth + .columnOffsets[boundary]
+                    painter.drawLine(x, HeaderHeight, x, client.height, rule)
+                }
+            }
+
+            if .hasSelection and .frozenColumn(.selected.column)
+            {
+                let range = .mergedRange(.selected)
+                painter.drawRect(.cellRect(range.first, range.last), colors.arc, 2)
+            }
+            painter.popClippingRect()
+        }
+
         painter.popClippingRect()
 
         painter.fillRect(0, 0, client.width, HeaderHeight, colors.view_Bk)
@@ -667,6 +778,18 @@ impl IWnd for Grid
         }
 
         painter.popClippingRect()
+        if sheet.frozenColumns
+        {
+            painter.pushClippingRect({HeaderWidth, 0, Math.max(client.width - HeaderWidth, 0), HeaderHeight})
+            for frozenColumn in 0 until Math.min(sheet.frozenColumns, cast(u32, sheet.columns.count))
+            {
+                let rect = .cellRect({0, frozenColumn}, {0, frozenColumn})
+                if .hasSelection and frozenColumn == .selected.column do
+                    painter.fillRect(rect.x, 0, rect.width, HeaderHeight, colors.selection)
+                painter.drawStringCenter(rect.x + rect.width / 2, HeaderHeight / 2, columnName(frozenColumn), headerFont, colors.softText)
+            }
+            painter.popClippingRect()
+        }
         painter.pushClippingRect({0, HeaderHeight, HeaderWidth, Math.max(client.height - HeaderHeight, 0)})
         row = firstRow
         while row <= lastRow
@@ -688,5 +811,20 @@ impl IWnd for Grid
         }
 
         painter.popClippingRect()
+        if sheet.frozenRows
+        {
+            painter.pushClippingRect({0, HeaderHeight, HeaderWidth, Math.max(client.height - HeaderHeight, 0)})
+            let visibleFrozenRows = Math.min(Math.min(sheet.frozenRows, sheet.rowCount), .rowAt(cast(f64, Math.max(client.height - HeaderHeight, 0))) + 1)
+            for frozenRow in 0 until visibleFrozenRows
+            {
+                let rect = .cellRect({frozenRow, 0}, {frozenRow, 0})
+                if .hasSelection and frozenRow == .selected.row do
+                    painter.fillRect(0, rect.y, HeaderWidth, rect.height, colors.selection)
+                let text = Format.toString("%", frozenRow + 1)
+                let width = Painter.measureStringSnapped(text, headerFont, deviceScale: .deviceScale())
+                painter.drawString(HeaderWidth - width - 8, headerFont.opticalLineTop(rect.y + rect.height / 2), text, headerFont, colors.softText)
+            }
+            painter.popClippingRect()
+        }
     }
 }

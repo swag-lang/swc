@@ -22,4 +22,5 @@ ui_GoToRow         Aller à la ligne %
 ui_Range           de % à %
 ui_Mean            moyenne %
 ui_Empty           % vides
+ui_Inconsistent    % atypiques
 ui_MoreColumns     % colonnes de plus

@@ -23,6 +23,18 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.view != null and view.presentation.slides.count == 1)
 }
 
+// A bounded slide overview shows available previews and tracks slide navigation.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.geometry.pptx"), false)
+    let view   = assume cast(*Pptx.Panel, window.currentView)
+    Swag.require(view.thumbnailTiles.count == 5 and view.thumbnails.count == 2)
+    view.showSlide(1)
+    Swag.require(view.slide == 1 and view.thumbnailStart == 0)
+    Swag.require(Utf8.contains(view.thumbnailButtons[1].text(), "2"))
+}
+
 // An embedded slide picture appears inline in the declared slide order.
 #test
 {

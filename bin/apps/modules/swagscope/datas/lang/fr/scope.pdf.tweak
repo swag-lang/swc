@@ -6,8 +6,26 @@ ui_Fit       Ajuster la page
 ui_FitWidth  Ajuster à la largeur
 ui_CopyText    Copier le texte sélectionné
 ui_SelectPage  Sélectionner le texte de la page
+ui_ExportPage Exporter la page actuelle…
+ui_ExportPageShort Exporter des pages en PNG…
+ui_ExportRange Exporter une plage de pages…
+ui_ExportRangeTitle Exporter des pages PDF
+ui_ExportRangePrompt Saisissez une plage inclusive, par exemple 2-5 (50 pages maximum).
+ui_ExportDpi Choisir la résolution PNG
+ui_ExportDpi150 150 ppp · compact
+ui_ExportDpi300 300 ppp · impression
+ui_ExportDpi600 600 ppp · détaillé
+ui_SelectExportFolder Choisir un dossier pour les pages PNG
+ui_ExportRangeSaved Pages PDF exportées.
+ui_InvalidExportRange Saisissez une plage ordonnée de 50 pages maximum, comprise dans ce PDF.
+ui_ExportExists Un fichier de sortie existe déjà dans ce dossier. Choisissez un autre dossier.
+ui_ExportPageType Image PNG
+ui_ExportPageSaved Page PDF exportée.
+ui_ExportPageFailed Impossible d'exporter la page PDF.
 ui_ZoomMenu Zoom…
 ui_GoToPage  Aller à la page
+ui_Thumbnails Pages
+ui_CurrentPage Page actuelle
 ui_PageRange Numéro de page entre 1 et %.
 ui_PageRangeLabels Numéro de page entre 1 et %, ou libellé de page comme %.
 ui_Continuous Continu

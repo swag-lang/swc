@@ -479,6 +479,20 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(findRow(&doc.report, Binary.texts().shr_Libraries) != null)
 }
 
+// A locally compiled field-station ELF exercises a real linker layout and dynamic runtime table.
+#test
+{
+    var doc: Binary.Document
+    Swag.require(doc.open(binaryFixturePath("viewer.field-station.elf")))
+    Swag.require(doc.kind == .Elf and doc.report.formatName == "ELF64")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "ET_DYN") and
+                 Utf8.contains(doc.report.summary.toSlice(), "x86-64"))
+    Swag.require(findRow(&doc.report, "PT_LOAD") != null)
+    Swag.require(findRow(&doc.report, "PT_INTERP") != null)
+    Swag.require(findRow(&doc.report, "DT_NEEDED") != null)
+    Swag.require(findRow(&doc.report, ".text") != null)
+}
+
 // A ZIP archive is read through the index it keeps of itself, without decompressing anything.
 #test
 {
@@ -990,11 +1004,11 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
 #test
 {
     var doc: Binary.Document
-    Swag.require(doc.open(binaryFixturePath("segoeui.ttf")))
+    Swag.require(doc.open(binaryFixturePath("viewer.arabic.ttf")))
     Swag.require(doc.report.formatName == Binary.texts().font_Font)
-    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "Segoe UI"))
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "Swag Scope Arabic Fixture"))
     Swag.require(not Utf8.contains(doc.report.summary.toSlice(), ".S.e"))
-    Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Segoe UI")
+    Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Swag Scope Arabic Fixture")
 }
 
 // A colon and an offset in the lens select the report row that covers it.

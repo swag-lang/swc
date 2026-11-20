@@ -416,6 +416,16 @@ private impl IWnd for WaveformView
 }
 
 // Plays a sound file over its waveform, with the transport in the host's command bar.
+// Every output from background opening is returned together and installed on the GUI thread.
+struct SoundOpenResult
+{
+    sound:           SoundFile
+    tags:            SoundTags
+    coverImage:      Image
+    landmarks:       Array'Landmark
+    landmarkWarning: bool
+}
+
 struct Panel
 {
     using wnd: Wnd
@@ -437,7 +447,7 @@ struct Panel
     // Opening runs in the background; its end arrives as a task event.
     sound:        SoundFile
     openFileName: String
-    openTask:     Swag.Task'SoundFile
+    openTask:     Swag.Task'SoundOpenResult
     openFinished: bool
     opened:       bool
 
@@ -460,6 +470,12 @@ struct Panel
     playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
     loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
     loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
+
+    landmarks:      Array'Landmark  // Read-only sidecar cues and markers made in this panel.
+    landmarkWarning: bool           // A sidecar cue was malformed or outside this recording.
+    sessionMarkerCount: u32          // Number used to name temporary markers in this session.
+    backHistory:    Array'f32        // Bounded session-only seek destinations before the current one.
+    forwardHistory: Array'f32       // Bounded session-only seek destinations after the current one.
 
     // What the transport last showed, so a tick that would not change it pushes nothing.
     clockSecond:   s64 = -1     // Whole second the clock was written at.
@@ -502,7 +518,14 @@ impl Panel
             return
 
         .openFinished = true
-        .sound        = try .openTask.take()
+        var opened    = try .openTask.take()
+        .sound        = #move opened.sound
+        .tags         = #move opened.tags
+        .coverImage   = #move opened.coverImage
+        .landmarks    = #move opened.landmarks
+        .landmarkWarning = opened.landmarkWarning
+        .duration     = .sound.durationInSeconds()
+        .validateSidecarLandmarks()
         if .coverImage.isValid() and not .thumbnail
         {
             .cover      = .app().renderer.addImage(.coverImage)
@@ -510,7 +533,6 @@ impl Panel
         }
 
         .opened   = true
-        .duration = .sound.durationInSeconds()
         .waveform.duration = .duration
         .arrangeWave()     // The tags read beside the sound may add a line of credits.
         if .duration > 0 do
@@ -548,6 +570,10 @@ impl Panel
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
         if .loopEnd > .loopStart and .loopStart >= 0 do
             .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        if not .landmarks.isEmpty() do
+            .details = Format.toString("% · %", .details, Format.toString(texts().ui_Landmarks, .landmarks.count))
+        if .landmarkWarning do
+            .details = Format.toString("% · %", .details, texts().ui_InvalidCues)
         .services.showDetails(me, .details)
         .invalidate()
     }
@@ -822,10 +848,11 @@ impl Panel
         return false
     }
 
-    mtd seekSeconds(seconds: f32)
+    mtd seekSeconds(seconds: f32, remember = true)
     {
         if not .engineReady or not .ensureVoice() do
             return
+        let origin = .playbackPosition()
         let target = Math.clamp(seconds, 0, .duration)
         let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
         catch .voice!.seekSampleFrame(frame)
@@ -845,33 +872,192 @@ impl Panel
             }
         }
 
+        if remember and Math.abs(target - origin) >= 0.25 do
+            .rememberNavigation(origin)
         .elapsed = target
         .refreshTransport()
+    }
+
+    // Retains only recent positions, in this panel's memory. Opening another file starts a new session.
+    mtd rememberNavigation(seconds: f32)
+    {
+        if not .backHistory.isEmpty() and Math.abs(.backHistory.back() - seconds) < 0.25 do
+            return
+        if .backHistory.count >= 128 do
+            .backHistory.removeAtOrdered(0)
+        .backHistory.add(seconds)
+        .forwardHistory.clear()
+    }
+
+    mtd navigateBack()
+    {
+        if .backHistory.isEmpty() do
+            return
+        if .forwardHistory.count >= 128 do
+            .forwardHistory.removeAtOrdered(0)
+        .forwardHistory.add(.playbackPosition())
+        .seekSeconds(.backHistory.popBack(), remember: false)
+    }
+
+    mtd navigateForward()
+    {
+        if .forwardHistory.isEmpty() do
+            return
+        if .backHistory.count >= 128 do
+            .backHistory.removeAtOrdered(0)
+        .backHistory.add(.playbackPosition())
+        .seekSeconds(.forwardHistory.popBack(), remember: false)
+    }
+
+    // Drops cue entries that do not belong to the decoded recording's audible timeline.
+    mtd validateSidecarLandmarks()
+    {
+        var accepted: Array'Landmark
+        var previous = -1'f32
+        for &mark in .landmarks where mark.source == .Sidecar
+        {
+            if mark.seconds > .duration or mark.seconds < previous
+            {
+                .landmarkWarning = true
+                continue
+            }
+            accepted.add(mark)
+            previous = mark.seconds
+        }
+        .landmarks = #move accepted
+    }
+
+    mtd addSessionMarker()
+    {
+        let seconds = Math.clamp(.playbackPosition(), 0, .duration)
+        for &mark in .landmarks where mark.source == .Session and Math.abs(mark.seconds - seconds) < 0.25
+            do return
+        .sessionMarkerCount += 1
+        .landmarks.add(Landmark{seconds, Format.toString(texts().word_Marker, .sessionMarkerCount), .Session})
+    }
+
+    mtd seekLandmark(index: u64)
+    {
+        if index < .landmarks.count do
+            .seekSeconds(.landmarks[index].seconds)
+    }
+
+    mtd seekPreviousLandmark()
+    {
+        var target = Swag.U64.Max
+        var latest = -1'f32
+        for mark, index in .landmarks where mark.seconds < .playbackPosition() - 0.05
+        {
+            if mark.seconds > latest
+            {
+                latest = mark.seconds
+                target = index
+            }
+        }
+        if target != Swag.U64.Max do
+            .seekLandmark(target)
+    }
+
+    mtd seekNextLandmark()
+    {
+        var target = Swag.U64.Max
+        var earliest = Swag.F32.Max
+        for mark, index in .landmarks where mark.seconds > .playbackPosition() + 0.05
+        {
+            if mark.seconds < earliest
+            {
+                earliest = mark.seconds
+                target = index
+            }
+        }
+        if target != Swag.U64.Max do
+            .seekLandmark(target)
+    }
+
+    // Validates a direct-time prompt against the captured playback position and recording length.
+    // Capturing the origin keeps relative jumps stable while a modal is open over active playback.
+    mtd createTimeDialog()->*EditDlg
+    {
+        let origin   = cast(f64, .playbackPosition())
+        let duration = cast(f64, .duration)
+        let initial  = Viewer.timeText(origin)
+        with var options: EditDlgOptions
+        {
+            .title             = texts().cmd_GoToTime
+            .message           = texts().ui_TimeHelp
+            .text              = initial
+            .confirmButtonText = texts().ui_Go
+        }
+
+        let dialog = EditDlg.createSingleLine(unwrap .surface, options)
+        dialog.edit!.setValidator(func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
+        {
+            let valid = Viewer.parseTimeAddress(edit.text(), origin, duration) >= 0
+            dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
+            return valid ? .Valid : .InvalidVisible
+        })
+        dialog.validateResult = func|view = me, dialog, origin, duration|(_, result)->bool
+        {
+            if result != Dialog.BtnOk do
+                return true
+            let target = Viewer.parseTimeAddress(dialog.text(), origin, duration)
+            if target < 0
+            {
+                discard dialog.edit!.revalidate()
+                return false
+            }
+
+            view.seekSeconds(cast(f32, target))
+            return true
+        }
+
+        return dialog
+    }
+
+    // Opens the prompt only for a playable recording; seeking leaves its paused/playing state in force.
+    mtd promptGoToTime()
+    {
+        if not .surface or not .engineReady or .duration <= 0 do
+            return
+        discard .createTimeDialog().doModal()
     }
 
     // Gives the lens the transport and the sound of the recording.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        let texts = appStrings()
+        let texts  = appStrings()
+        let strings = Sound.texts()
         let ready = .playButton.isEnabled()
 
         // `:` and an instant, or a displacement in seconds, go there.
         if entries.results.prefix == .Line
         {
             let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), cast(f64, .elapsed), cast(f64, .duration)) : -1
-            if target >= 0 do
+            if target >= 0
+            {
                 entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.seekSeconds(cast(f32, target)) })
-            return
+                return
+            }
         }
 
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.sound.playPause")
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled(), bindId: "scope.sound.stop")
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, defaultKey: {modifiers: .None, key: .Left}, bindId: "scope.sound.seekBackward")
         entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, defaultKey: {modifiers: .None, key: .Right}, bindId: "scope.sound.seekForward")
+        entries.add(Sound.texts().cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.sound.goToTime")
+        entries.add(strings.cmd_NavigationBack, .GoTo, func|view = me|() { view.navigateBack() }, disabled: .backHistory.isEmpty(), bindId: "scope.sound.navigationBack")
+        entries.add(strings.cmd_NavigationForward, .GoTo, func|view = me|() { view.navigateForward() }, disabled: .forwardHistory.isEmpty(), bindId: "scope.sound.navigationForward")
+        entries.add(strings.cmd_PreviousLandmark, .GoTo, func|view = me|() { view.seekPreviousLandmark() }, disabled: .landmarks.isEmpty(), bindId: "scope.sound.previousLandmark")
+        entries.add(strings.cmd_NextLandmark, .GoTo, func|view = me|() { view.seekNextLandmark() }, disabled: .landmarks.isEmpty(), bindId: "scope.sound.nextLandmark")
+        entries.add(strings.cmd_AddMarker, .GoTo, func|view = me|() { view.addSessionMarker() }, disabled: not ready, bindId: "scope.sound.addMarker")
+        for &mark, index in .landmarks
+        {
+            let title = Format.toString("% · % · %", mark.label, Viewer.timeText(mark.seconds), landmarkSourceText(mark.source))
+            entries.add(title, .GoTo, func|view = me, index|() { view.seekLandmark(index) })
+        }
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), defaultKey: {modifiers: .None, key: .M}, bindId: "scope.sound.mute")
 
         // The rate is stepped like a film's, and the row reads the rate in force.
-        let strings = Sound.texts()
         let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
         if faster do
             faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
@@ -1165,6 +1351,23 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .G
+        {
+            .promptGoToTime()
+            return
+        }
+
+        if evt.kind == .Pressed and evt.modifiers == .Alt and evt.key == .Left
+        {
+            .navigateBack()
+            return
+        }
+        if evt.kind == .Pressed and evt.modifiers == .Alt and evt.key == .Right
+        {
+            .navigateForward()
+            return
+        }
+
         // Shift and an arrow step the rate, as they do over a film.
         if evt.kind == .Pressed and evt.modifiers == .Shift and (evt.key == .Left or evt.key == .Right)
         {
@@ -1326,15 +1529,18 @@ impl Panel
         // A worker allocates with the default allocator, so the owned packet table it builds can
         // be handed to the GUI thread.
         let view = result
-        result.openTask.submit(func|view|()->SoundFile fail
+        result.openTask.submit(func|view|()->SoundOpenResult fail
         {
-            // The tags are read beside the sound, and the GUI thread reads neither until the
-            // task has finished.
-            view.tags       = SoundTags.read(view.openFileName, withPicture: true)
-            view.coverImage = embeddedSleeve(&view.tags)
-            if not view.coverImage.isValid() do
-                view.coverImage = localSleeve(view.openFileName)
-            return try SoundFile.load(view.openFileName, preloadData: false)
+            var opened: SoundOpenResult
+            opened.tags = SoundTags.read(view.openFileName, withPicture: true)
+            let cueSidecar = readCueSidecar(view.openFileName)
+            opened.landmarks = #move cueSidecar.markers
+            opened.landmarkWarning = cueSidecar.invalid
+            opened.coverImage = embeddedSleeve(&opened.tags)
+            if not opened.coverImage.isValid() do
+                opened.coverImage = localSleeve(view.openFileName)
+            opened.sound = try SoundFile.load(view.openFileName, preloadData: false)
+            return opened
         },
                                result.taskNotifier(&result.openTask))
         return result

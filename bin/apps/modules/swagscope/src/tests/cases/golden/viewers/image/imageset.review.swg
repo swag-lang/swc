@@ -6,7 +6,7 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = scopeTestDataPath("imageset-real-review.webp")
+    let fileName = scopeTestDataPath("viewer.synthetic-review.webp")
     var host: Testing.HeadlessHost
     host.setup(1000, 760)
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
@@ -32,5 +32,5 @@ using Core, Pixel, Gui, Viewers
     session.info.hide()
     host.root.applyLayout()
     var image = host.render(&host.root)
-    assertScopeImageGolden(&image, "imageset-real-review")
+    assertScopeImageGolden(&image, "viewer.synthetic-review")
 }

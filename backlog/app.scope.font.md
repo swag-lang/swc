@@ -5,31 +5,6 @@ editable specimen at several pixel sizes, and pages through mapped Unicode chara
 backlog owns professional font inspection; shaping, font-format, hinting, and color-glyph engine work
 remains in [std.truetype.md](std.truetype.md).
 
-### app.scope.font.013 — CFF OpenType fonts do not reach the font specimen
-
-- Evidence: the font viewer's `viewerPlugin` (`viewers/font/viewer.swg`) selects `.ttf` and
-  `.ttc`, and its `pluginProbe` leaves the `OTTO` signature unclaimed. The shared `TrueType.Face`
-  engine can load CFF OpenType, but those files reach the Binary viewer's sfnt report instead of
-  a specimen.
-- Next: validate CFF face loading through Pixel's typeface cache, then register `.otf` and
-  the matching content probe at the viewer boundary. Keep unsupported font containers explicit.
-- Done when: a small licensed CFF OpenType fixture and a renamed copy both open a readable
-  specimen and character map, while damaged fonts report a useful failure and retain Binary/Hex
-  inspection. WOFF2 container work remains in the font engine backlog.
-- Related: std.truetype.002
-
-### app.scope.font.001 — Font collections expose only their first face
-
-- Evidence: `Face.countFaces` appears in the summary, but `Face.load(bytes)` selects one face and
-  the viewer has no collection face list, family/style grouping, preview, or stable face identity.
-- The engine already exposes `Face.loadAt(bytes, faceIndex)` and per-face names. The viewer still
-  calls `Face.load` and creates one Pixel typeface for the file.
-- Next: carry the selected face index through the viewer and Pixel typeface cache identity, then
-  add a searchable face selector that replaces the specimen without reopening bytes.
-- Done when: every TTC/OTC face is named and selectable, duplicate/localized names remain
-  distinguishable, switching releases old resources, selected face persists safely, and malformed
-  faces do not hide valid siblings.
-
 ### app.scope.font.007 — OpenType shaping features, script, and language cannot be inspected
 
 - Evidence: editable sample text draws the loaded face through the ordinary Pixel font path.
@@ -46,14 +21,20 @@ remains in [std.truetype.md](std.truetype.md).
 ### app.scope.font.002 — The character map cannot search glyph names, IDs, blocks or scripts
 
 - Evidence: navigation pages 192 mapped Unicode scalars with previous/next, and the clickable range
-  readout jumps to several common Unicode blocks. A character typed into the lens, or its `U+`
-  code point, shows its page with the cell marked, and one the face does not map is named so.
-  There is no Go To by glyph name, glyph ID, block or script name, no text search over names, and
-  a lens jump does not join a back/forward history.
-- Next: build a bounded searchable cmap/glyph index (post and CFF names, glyph IDs) and answer
-  glyph-name, `#`-prefixed glyph ID and block or script queries in the same lens rows.
-- Done when: glyph name, decimal/hex glyph ID, Unicode block, and script queries reveal a cell;
-  unmapped versus absent results are distinguished; and back/forward works.
+  readout jumps to several common Unicode blocks. A character typed into the lens, its `U+` code
+  point, or a `#`-prefixed decimal/hex glyph ID shows the matching map cell selected. Glyph IDs use
+  a bounded inverse cmap built with the page index; the first mapped Unicode alias is shown.
+  Unmapped glyph IDs and IDs outside the face have distinct disabled explanations. Exact post/CFF
+  glyph-name lookup now resolves a mapped glyph through the worker-built inverse cmap. A bounded
+  back/forward history covers character, glyph-ID, glyph-name, block and range-menu jumps. Block
+  and script names are not yet query destinations.
+- Progress: character, glyph-ID, exact glyph-name and block-menu jumps return through the map's
+  bounded history; post/CFF names are indexed once during font loading. Unicode script queries and
+  queryable Unicode block names remain open.
+- Next: make Unicode block and script queries select the first mapped cell in that range. Use
+  generated Unicode property data rather than maintaining a hand-written script table.
+- Done when: glyph-name, Unicode-block and script queries reveal a cell, and map jumps have
+  bounded back/forward history.
 
 ### app.scope.font.003 — Unicode coverage and missing-glyph analysis are absent
 
@@ -92,9 +73,9 @@ remains in [std.truetype.md](std.truetype.md).
   inspected.
 - Next: make map cells selectable and expose available outline/metric/mapping facts in a side panel,
   with unsupported table families explicitly labelled.
-- Done when: pointer and keyboard selection report glyph identity, mappings, advance/bearings,
-  ink/control bounds, contour/component summary, hinting presence, and source table records; related
-  glyphs and components are navigable.
+- Done when: keyboard selection reports glyph identity; available mappings, advance/bearings,
+  ink/control bounds, contour/component summary, hinting presence, and source table records are
+  inspectable; related glyphs and components are navigable.
 
 ### app.scope.font.006 — Font metrics cannot be visualized on the specimen or glyph
 
@@ -163,4 +144,4 @@ remains in [std.truetype.md](std.truetype.md).
 - Done when: copied text, glyph ID/name, Unicode mappings, raster output, optional outline, and
   coverage report state face index, variation coordinates, size, features, palette, and conversion;
   restricted embedding is surfaced before exporting font-derived data.
-- Related: app.scope.font.001, app.scope.font.013
+- Related: app.scope.font.003

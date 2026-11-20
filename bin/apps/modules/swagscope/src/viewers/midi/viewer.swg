@@ -65,6 +65,8 @@ struct ViewerSettings
     pitchLabelMode: PitchLabelMode = .Scientific
     #[Properties.Name("Keyboard Width"), Properties.MinMax(0, 2)]
     keyboardWidthMode: u32 = 1
+    #[Properties.Name("Key Signature Highlight")]
+    scaleHighlight: bool = false
 }
 
 impl ViewerSettings
@@ -100,6 +102,7 @@ struct Panel
     details:           String
     pitchLabelMode:    PitchLabelMode = .Scientific
     keyboardWidthMode: u32 = 1
+    scaleHighlight:    bool = false
     load:              Viewer.BackgroundLoad'Document
     services:          Viewer.HostServices
     failureReason:     String
@@ -132,6 +135,7 @@ private impl Panel
         .roll.mode = .Tracks
         .roll.setPitchLabelMode(.pitchLabelMode)
         .roll.setKeyboardWidth(KeyboardWidths[.keyboardWidthMode])
+        .roll.setScaleHighlight(.scaleHighlight)
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         .applyLayout()
         .roll.refreshLayout()
@@ -298,6 +302,20 @@ impl Panel
                              widths.addChoice(keyboardWidthText(index), index == view.keyboardWidthMode, func|view, index|() { view.setKeyboardWidthMode(index) })
                      },
                      icon: .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())))
+
+        page.addLink(strings.ui_ScaleHighlight,
+                     .scaleHighlight ? strings.ui_On : strings.ui_Off,
+                     func|view = me|(choices)
+                     {
+                         choices.addChoice(texts().ui_Off,
+                                           not view.scaleHighlight,
+                                           func|view|() { view.setScaleHighlight(false) })
+                         choices.addChoice(texts().ui_On,
+                                           view.scaleHighlight,
+                                           func|view|() { view.setScaleHighlight(true) },
+                                           detail: texts().ui_ScaleHighlightDetail)
+                     },
+                     icon: .theme().icon(.Appearance, themeRowIconSize(.themeMetrics())))
     }
 
     // Names each pitch by its note and octave, or by its MIDI number; the choice is remembered.
@@ -319,6 +337,15 @@ impl Panel
             .roll.setKeyboardWidth(KeyboardWidths[index])
     }
 
+    // Enables or disables key-signature pitch highlighting and remembers the choice.
+    mtd setScaleHighlight(enabled: bool)
+    {
+        .scaleHighlight = enabled
+        g_ViewerSettings.scaleHighlight = enabled
+        if .hasRoll() do
+            .roll.setScaleHighlight(enabled)
+    }
+
     // Builds the MIDI panel: the options button and the zoom button. Loads the file in the
     // background; the piano roll is created when the document arrives.
     func create(host: Viewer.Host)->*Panel
@@ -332,6 +359,7 @@ impl Panel
             .info              = info
             .pitchLabelMode    = g_ViewerSettings.pitchLabelMode
             .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
+            .scaleHighlight    = g_ViewerSettings.scaleHighlight
         }
 
         with result.optionsButton = Viewer.createInfoOptionsButton(result.info)

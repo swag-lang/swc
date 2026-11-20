@@ -13,6 +13,45 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(File.exists(Path.combine(book.root, book.chapters[0].path)))
 }
 
+// Book and current-chapter scopes use the shared search callbacks and keep source offsets for jumps.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let session = &window.instances[window.activeChoiceIndex]
+    Swag.require(session.collectMatches != null and session.revealMatch != null and session.searchBounds != null)
+    var matches: Array'Viewer.SearchMatch
+    collectViewerMatches(session.collectMatches, "Paragraph 0.", &matches)
+
+    Swag.require(matches.count == 2)
+    Swag.require(matches[0].major == 0 and matches[1].major == 1)
+    Swag.require(matches[0].length == "Paragraph 0.".count and matches[1].length == "Paragraph 0.".count)
+    Swag.require(view.chapter == 0 and view.revealSearchMatch(matches[1], "Paragraph 0."))
+    Swag.require(view.chapter == 1)
+
+    matches.clear()
+    collectViewerMatches(session.collectMatches, "chapter: Paragraph 0.", &matches)
+    Swag.require(matches.count == 1 and matches[0].major == 1)
+    matches.clear()
+    collectViewerMatches(session.collectMatches, "chapitre: Paragraph 0.", &matches)
+    Swag.require(matches.count == 1 and matches[0].major == 1)
+    matches.clear()
+    collectViewerMatches(session.collectMatches, "book: Paragraph 0.", &matches)
+    Swag.require(matches.count == 2 and matches[0].major == 0 and matches[1].major == 1)
+    matches.clear()
+    collectViewerMatches(session.collectMatches, "livre: Paragraph 0.", &matches)
+    Swag.require(matches.count == 2 and matches[0].major == 0 and matches[1].major == 1)
+
+    var presentation: Viewer.SearchPresentation
+    view.describeSearch(&presentation)
+    Swag.require(Utf8.contains(presentation.toolTip, "chapter: text") and Utf8.contains(presentation.toolTip, "book: text"))
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
+    view.describeSearch(&presentation)
+    Swag.require(Utf8.contains(presentation.toolTip, "chapitre: texte") and Utf8.contains(presentation.toolTip, "livre: texte"))
+}
+
 // An EPUB starts with its first chapter and can move to the next one.
 #test
 {

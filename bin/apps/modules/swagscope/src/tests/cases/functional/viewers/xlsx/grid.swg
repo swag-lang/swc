@@ -47,6 +47,39 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(merged.width == 449 and merged.height == 40)
 }
 
+// Frozen authored header rows stay at the top while the worksheet body scrolls below them.
+#test
+{
+    var worksheet = String.from("<worksheet><sheetViews><sheetView workbookViewId='0'><pane xSplit='1' ySplit='2' topLeftCell='B3' activePane='bottomRight' state='frozen'/></sheetView></sheetViews><sheetData><row r='1'><c r='A1' t='inlineStr'><is><t>Fiscal year</t></is></c><c r='T1' t='inlineStr'><is><t>Far cell</t></is></c></row>")
+    for row in 2 until 121 do
+        worksheet += Format.toString("<row r='%'/>", row)
+    worksheet += "</sheetData></worksheet>"
+    let path = formattedWorkbookVariant("xl/worksheets/one.xml", "", worksheet, replacePart: true)
+    defer discard catch File.delete(path)
+    let workbook = expect Xlsx.Workbook.load(path)
+    Swag.require(workbook.sheets[0].frozenRows == 2 and workbook.sheets[0].frozenColumns == 1)
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let panel = assume cast(*Xlsx.Panel, window.currentView)
+    let grid = unwrap panel.grid
+    let frozenY = grid.cellRect({0, 0}, {0, 0}).y
+    let frozenX = grid.cellRect({0, 0}, {0, 0}).x
+    Swag.require(grid.originY == grid.rowOffsets[2] and grid.originX == grid.columnOffsets[1] and frozenY == 28 and frozenX == 64)
+    grid.originX = grid.columnOffsets[2]
+    grid.syncScroll()
+    Swag.require(grid.originX > grid.frozenWidth() and
+                 grid.cellRect({0, 0}, {0, 0}).x == frozenX and
+                 grid.cellRect({0, 2}, {0, 2}).x == 64 + grid.frozenWidth(),
+                 Format.toString("A1 %, C1 %, origin %, freeze %", grid.cellRect({0, 0}, {0, 0}).x, grid.cellRect({0, 2}, {0, 2}).x, grid.originX, grid.frozenWidth()))
+    grid.originY = grid.rowOffsets[5]
+    grid.syncScroll()
+    Swag.require(grid.originY > grid.rowOffsets[2] and grid.cellRect({0, 0}, {0, 0}).y == frozenY)
+    Swag.require(grid.cellRect({2, 0}, {2, 0}).y == 28 + cast(f32, grid.rowOffsets[2] - grid.originY + grid.rowOffsets[2]))
+    let hit = grid.addressAt({70, 35})
+    Swag.require(hit.found and hit.address.row == 0 and hit.address.column == 0)
+}
+
 // A reader can reveal hidden ranges and change reading mode without switching sheets.
 #test
 {

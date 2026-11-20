@@ -56,8 +56,22 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(image.width == 128 and image.height == 64)
 }
 
+// A generated watershed map renders its gradient paper, blue river and orange sampling sites.
+#test
+{
+    let image = expect Picture.loadViewerImage(scopeTestDataPath("viewer.watershed-map.svg"))
+    Swag.require(image.width == 480 and image.height == 320)
+
+    let paper = image.pixelColor(230, 20)
+    let river = image.pixelColor(20, 213)
+    let site  = image.pixelColor(128, 82)
+    Swag.require(paper.r > 220 and paper.g > 220 and paper.b > 200)
+    Swag.require(river.b > river.g and river.g > river.r)
+    Swag.require(site.r > site.g and site.g > site.b)
+}
+
 // A picture a camera stored on its side opens standing up, in the viewer and in its thumbnail.
-func checkImageOrientation(stored: const *Image, extension: string)
+func checkImageOrientation(stored: const *Image, extension: string, orientation: u32)
 {
     let fileName = Gui.Testing.tempFilePath("scope-image-orientation-", extension)
     defer discard catch File.delete(fileName)
@@ -65,34 +79,45 @@ func checkImageOrientation(stored: const *Image, extension: string)
     expect stored.save(fileName)
 
     let image = expect Picture.loadViewerImage(fileName)
-    Swag.require(image.width == 20 and image.height == 40)
+    let swapsSides = orientation >= 5
+    Swag.require(image.width == (swapsSides ? 20 : 40) and image.height == (swapsSides ? 40 : 20))
     let thumbnail = expect Picture.loadThumbnail(fileName, 16)
-    Swag.require(thumbnail.width == 8 and thumbnail.height == 16)
+    Swag.require(thumbnail.width == (swapsSides ? 8 : 16) and thumbnail.height == (swapsSides ? 16 : 8))
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     let view   = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.require(view.facts.width == "20" and view.facts.height == "40" and view.facts.frames == 1)
+    Swag.require(view.facts.width == Format.toString("%", image.width) and
+                 view.facts.height == Format.toString("%", image.height) and view.facts.frames == 1)
     var recordedOrientation: String
     for &row in view.information.rows where row.name == "Orientation" do
         recordedOrientation = row.value
-    Swag.require(recordedOrientation == "6")
+    Swag.require(recordedOrientation == Format.toString("%", orientation))
 
     // Ctrl+C copies this upright picture.
     let picture = unwrap view.imageView.picture()
-    Swag.require(picture.width == 20 and picture.height == 40)
+    Swag.require(picture.width == image.width and picture.height == image.height)
     Swag.require(Exif.orientationOf(picture.metadata.toSlice()) == 1)
+    view.rotateClockwise()
+    view.mirrorHorizontally()
+    view.resetTransform()
+    Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
+    let resetPicture = unwrap view.imageView.picture()
+    Swag.require(resetPicture.width == image.width and resetPicture.height == image.height)
+    for &row in view.information.rows where row.name == "Orientation" do
+        Swag.require(row.value == Format.toString("%", orientation))
 }
 
-#test
+func orientedExifFixture(orientation: u32)->Image
 {
-    // A little-endian TIFF header with one directory holding Orientation = 6.
-    let tiff = [0x49'u8, 0x49'u8, 0x2A'u8, 0x00'u8, 0x08'u8, 0x00'u8, 0x00'u8, 0x00'u8,
+    // A little-endian TIFF header with one directory holding the requested Orientation value.
+    var tiff = [0x49'u8, 0x49'u8, 0x2A'u8, 0x00'u8, 0x08'u8, 0x00'u8, 0x00'u8, 0x00'u8,
                 0x01'u8, 0x00'u8,
-                0x12'u8, 0x01'u8, 0x03'u8, 0x00'u8, 0x01'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x06'u8, 0x00'u8, 0x00'u8, 0x00'u8,
+                0x12'u8, 0x01'u8, 0x03'u8, 0x00'u8, 0x01'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8,
                 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    tiff[18] = cast(u8, orientation)
     var stored = Image.create(40, 20, .RGB8)
     var record: ImageMetadata
     record.signature = 1
@@ -100,9 +125,30 @@ func checkImageOrientation(stored: const *Image, extension: string)
     for byte in tiff do
         record.value.add(byte)
     stored.metadata.add(#move record)
+    return stored
+}
 
-    checkImageOrientation(&stored, ".png")
-    checkImageOrientation(&stored, ".jpeg")
+#test
+{
+    // Exercise every EXIF transform through a real encoded PNG decode and thumbnail path.
+    for orientation in 1 to 8
+    {
+        var stored = orientedExifFixture(orientation)
+        let fileName = Gui.Testing.tempFilePath("scope-image-orientation-all-", ".png")
+        defer discard catch File.delete(fileName)
+        expect stored.save(fileName)
+        let image = expect Picture.loadViewerImage(fileName)
+        let swapsSides = orientation >= 5
+        Swag.require(image.width == (swapsSides ? 20 : 40) and image.height == (swapsSides ? 40 : 20))
+        Swag.require(Exif.orientationOf(image.metadata.toSlice()) == 1)
+        let thumbnail = expect Picture.loadThumbnail(fileName, 16)
+        Swag.require(thumbnail.width == (swapsSides ? 8 : 16) and thumbnail.height == (swapsSides ? 16 : 8))
+        if orientation == 6 do
+            checkImageOrientation(&stored, ".png", orientation)
+    }
+
+    var stored = orientedExifFixture(6)
+    checkImageOrientation(&stored, ".jpeg", 6)
 }
 
 // Changing language refreshes image facts and commands without changing the displayed frame.

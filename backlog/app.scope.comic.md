@@ -17,8 +17,8 @@ CBZ reading and navigation.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous
   layouts, right-to-left spreads, cover alignment and per-page fit/zoom. Reuse the same index for
   CBR once Archive can read RAR members.
-- Done when: natural order, nested folders, spreads, manga direction, tall pages and damaged
-  members remain readable and navigable across real CBZ books; page changes never require
-  extracting all images first, and unsupported image pages are named in place. Once RAR
-  member reading lands, apply the same checks to CBR.
+- Done when: thumbnail navigation restores stable page positions; single, spread and continuous
+  layouts handle manga direction and tall pages; damaged or unsupported pages stay navigable and are
+  named in place; page changes decode only the needed images. Once RAR member reading lands, apply
+  the same checks to CBR.
 - Related: app.scope.image.005, app.scope.viewers.003, app.scope.archive.001

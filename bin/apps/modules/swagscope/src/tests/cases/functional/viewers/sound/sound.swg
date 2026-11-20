@@ -411,6 +411,43 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
     Swag.require(visible)
 }
 
+// The canonical WAV carries the generated stereo station recording, RIFF INFO tags, and a full waveform decode.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.wav")
+    let bytes    = expect File.readAllBytes(fileName)
+    Swag.require(Utf8.contains(cast(string, bytes.toSlice()), "North Basin field station ambience"))
+
+    let sound = expect SoundFile.load(fileName)
+    Swag.require(sound.sampleRateHz() == 22_050 and sound.numChannels() == 2)
+    Swag.require(sound.sampleStorageBits() == 16 and sound.sampleFrameCount() == 132_300)
+    Swag.require(Math.abs(sound.durationInSeconds() - 6) < 0.001)
+
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 420)
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view     = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    finishWaveform(view)
+
+    Swag.require(view.sound.numChannels() == 2 and view.duration == 6)
+    Swag.require(view.waveform.samples.count == 4096 and view.waveform.readyCount == 4096)
+    var highest = 0'f32
+    var lowest  = Swag.F32.Max
+    for sample in view.waveform.samples
+    {
+        highest = Math.max(highest, sample.peak)
+        lowest  = Math.min(lowest, sample.peak)
+    }
+    // The panel mixes both channels to mono before drawing: the intentionally phase-opposed
+    // transient is quieter there, while the burst envelope still stands well above silence.
+    Swag.require(highest > 0.25 and lowest < 0.02)
+}
+
 // Answers a sound that has been played through with the continuation stored on the view.
 func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 {
@@ -624,6 +661,33 @@ func pcm16Wav(samples: const [..] s16)->Array'u8
     return result
 }
 
+func soundCuePath(fileName: string)->String
+{
+    return Path.combine(Path.directoryName(fileName) orelse "",
+                        Format.toString("%.cue", Path.fileNameWithoutExtension(fileName) orelse fileName))
+}
+
+func writeSoundCue(fileName: string)->String
+{
+    let cuePath  = soundCuePath(fileName)
+    let media    = Path.fileName(fileName) orelse fileName
+    let fileType = Path.lowercaseExtension(fileName) == ".flac" ? "FLAC" : "WAVE"
+    let source   = Format.toString("FILE \"%\" %\n TRACK 01 AUDIO\n  TITLE \"Opening\"\n  INDEX 01 00:01:00\n TRACK 02 AUDIO\n  TITLE \"Riverside\"\n  INDEX 01 00:02:00\n TRACK 03 AUDIO\n  TITLE \"Invalid timing\"\n  INDEX 01 00:60:00\n", media, fileType)
+    expect File.writeAllText(cuePath, source)
+    return cuePath
+}
+
+func writeGeneratedCueFlac(fileName: string)
+{
+    var writer = expect Flac.Writer.create(fileName, 1, 8_000)
+    var samples: Array's16
+    samples.resize(8_000 * 4)
+    for index in samples.count do
+        samples[index] = cast(s16, cast(s32, index % 401) - 200)
+    expect writer.addFrames(samples.toSlice())
+    expect writer.end()
+}
+
 // Opens `bytes` as a WAV, measures it in full, and returns what the information sheet reads.
 func soundInformation(bytes: const [..] u8)->String
 {
@@ -751,4 +815,189 @@ func soundInformation(bytes: const [..] u8)->String
     Swag.require(found)
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == "0:01", Clipboard.getString())
+}
+
+// The sound time prompt accepts absolute and relative times, and keeps malformed or out-of-range input visible.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var samples: Array's16
+    samples.resize(8_000 * 4)
+    let fileName = Gui.Testing.tempFilePath("scope-sound-time-", ".wav")
+    let bytes    = pcm16Wav(samples.toSlice())
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.duration > 3.9 and not view.playing)
+
+    view.seekSeconds(0.5)
+    let absolute = view.createTimeDialog()
+    absolute.setText("0:02")
+    Swag.require(absolute.edit!.revalidate() == .Valid)
+    Swag.require(absolute.validateResult!(absolute, Dialog.BtnOk))
+    Swag.require(Math.abs(view.elapsed - 2) < 0.01 and not view.playing)
+    absolute.surface!.destroy()
+
+    let relative = view.createTimeDialog()
+    relative.setText("-0.5")
+    Swag.require(relative.edit!.revalidate() == .Valid)
+    Swag.require(relative.validateResult!(relative, Dialog.BtnOk))
+    Swag.require(Math.abs(view.elapsed - 1.5) < 0.01 and not view.playing)
+    relative.surface!.destroy()
+
+    let end     = view.createTimeDialog()
+    let endText = Viewer.timeText(cast(f64, view.duration))
+    end.setText(endText)
+    Swag.require(end.edit!.revalidate() == .Valid)
+    Swag.require(end.validateResult!(end, Dialog.BtnOk))
+    Swag.require(Math.abs(view.elapsed - view.duration) < 0.01 and not view.playing)
+    end.surface!.destroy()
+    view.seekSeconds(1.5)
+
+    for input in ["4.5", "+3", "2:60", "1:2:3:4"]
+    {
+        let invalid = view.createTimeDialog()
+        invalid.setText(input)
+        Swag.require(invalid.edit!.revalidate() == .InvalidVisible)
+        Swag.require(not invalid.validateResult!(invalid, Dialog.BtnOk))
+        Swag.require(Math.abs(view.elapsed - 1.5) < 0.01 and not view.playing)
+        invalid.surface!.destroy()
+    }
+}
+
+// Accepting a modal jump preserves both a paused recording and active playback.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var samples: Array's16
+    samples.resize(8_000 * 4)
+    let fileName = Gui.Testing.tempFilePath("scope-sound-time-active-", ".wav")
+    let bytes    = pcm16Wav(samples.toSlice())
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.require(Sound.texts().cmd_GoToTime == "Aller à une position…")
+    var lensResults = Testing.lensResults("Sound")
+    var lensEntries = Viewer.LensEntries.create(&lensResults, "Sound", host.theme)
+    view.describeLens(&lensEntries)
+    var hasGoToTime = false
+    for &entry in lensResults.sections[0]!.entries where entry.title == Sound.texts().cmd_GoToTime
+    {
+        Swag.require(entry.detail == Input.formatKeyShortcut(.Control, .G) and not entry.disabled)
+        hasGoToTime = true
+    }
+    Swag.require(hasGoToTime)
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    var goTo = KeyEvent{kind: .Pressed, key: .G, modifiers: .Control}
+    view.sendEvent(&goTo)
+    Swag.require(host.autoHandled and Math.abs(view.elapsed) < 0.01 and not view.playing)
+
+    view.togglePlayback()
+    Swag.require(view.playing and view.voice!.isPlaying())
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    view.promptGoToTime()
+    Swag.require(host.autoHandled and Math.abs(view.elapsed) < 0.01 and view.playing)
+    view.seekSeconds(1)
+    Swag.require(Math.abs(view.elapsed - 1) < 0.01 and view.playing)
+    Swag.require(view.voice!.isPlaying())
+    view.stopPlayback()
+}
+
+// Sidecar landmarks seek in both directions; session markers and navigation history stay in memory.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var samples: Array's16
+    samples.resize(8_000 * 4)
+    let fileName = Gui.Testing.tempFilePath("scope-sound-cues-", ".wav")
+    let cuePath  = writeSoundCue(fileName)
+    let parsedCue = Sound.readCueSidecar(fileName)
+    Swag.require(parsedCue.markers.count == 2 and parsedCue.invalid)
+    defer discard catch File.delete(cuePath)
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, pcm16Wav(samples.toSlice()).toSlice())
+    let originalCue = expect File.readAllText(cuePath)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.landmarks.count == 2 and view.landmarkWarning)
+    Swag.require(view.landmarks[0].source == .Sidecar and view.landmarks[0].label == "Opening")
+    Swag.require(Math.abs(view.landmarks[0].seconds - 1) < 0.01)
+    Swag.require(view.landmarks[1].label == "Riverside" and Math.abs(view.landmarks[1].seconds - 2) < 0.01)
+
+    view.seekNextLandmark()
+    Swag.require(Math.abs(view.elapsed - 1) < 0.01)
+    view.seekNextLandmark()
+    Swag.require(Math.abs(view.elapsed - 2) < 0.01)
+    view.seekPreviousLandmark()
+    Swag.require(Math.abs(view.elapsed - 1) < 0.01)
+
+    view.seekSeconds(0.5)
+    view.addSessionMarker()
+    Swag.require(view.landmarks.count == 3 and view.landmarks[2].source == .Session)
+    Swag.require(view.landmarks[2].label == "Marker 1")
+    Swag.require(expect File.readAllText(cuePath) == originalCue)
+
+    view.navigateBack()
+    Swag.require(Math.abs(view.elapsed - 1) < 0.01)
+    view.navigateForward()
+    Swag.require(Math.abs(view.elapsed - 0.5) < 0.01)
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    Swag.require(Sound.texts().cmd_AddMarker == "Ajouter un repère de session")
+    var results = Testing.lensResults("Riverside")
+    var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where Utf8.contains(entry.title, "Riverside") and Utf8.contains(entry.title, "fichier cue") do
+        found = true
+    Swag.require(found)
+}
+
+// A generated FLAC uses the same read-only CUE landmarks and starts without session markers.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    let fileName = Gui.Testing.tempFilePath("scope-sound-cues-", ".flac")
+    let cuePath  = writeSoundCue(fileName)
+    defer discard catch File.delete(cuePath)
+    defer discard catch File.delete(fileName)
+    writeGeneratedCueFlac(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.duration > 3.9 and view.landmarks.count == 2 and view.landmarkWarning)
+    Swag.require(view.landmarks[0].source == .Sidecar and view.landmarks[0].label == "Opening")
+    Swag.require(view.landmarks[1].source == .Sidecar and view.landmarks[1].label == "Riverside")
+    Swag.require(view.sessionMarkerCount == 0)
 }

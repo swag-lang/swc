@@ -12,6 +12,8 @@ using Swag, Core, Pixel
     defer host.shutdown()
 
     host.theme.setLight()
+    // The fixture pins the card width because the headless monitor follows the machine running it.
+    host.theme.metrics.trayNotice_MinWidth = host.theme.metrics.trayNotice_Width
     host.notify(.ThemeChanged)
     let notice = unwrap TrayNotice.open(&host.surface, "Capture continues in the background.", "Open it from the notification area to continue.", "Do not show this message again")
     var image  = host.renderSurface(unwrap notice.surface)

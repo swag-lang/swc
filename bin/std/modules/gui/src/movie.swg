@@ -210,6 +210,17 @@ impl Movie
         return &.reader.info.frames[cast(u32, .frameIndex)]
     }
 
+    // Returns indexed image metadata without decoding that image's pixels.
+    //
+    // Readers use this for item selectors that must describe independent pages, variants, layers,
+    // and texture subresources without eagerly decoding a collection.
+    mtd const frameInfo(index: s32)->const *ImageFrameInfo?
+    {
+        if not .reader.isOpen() or index < 0 or index >= .frameCount do
+            return null
+        return &.reader.info.frames[cast(u32, index)]
+    }
+
     // Returns how long the current frame is displayed, in seconds.
     //
     // The encoded duration applies when `usesFrameDurations` is set and that duration is positive;

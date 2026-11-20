@@ -8,8 +8,10 @@ the professional listening and inspection surface; decoder and output-engine wor
 ### app.scope.audio.003 — The waveform cannot zoom, pan, or navigate precisely
 
 - Evidence: one 4,096-column envelope represents the entire file. Dense transients and long
-  recordings cannot be examined below that aggregate, and the timeline has no navigator, sample
-  address, or high-resolution redraw.
+  recordings cannot be examined below that aggregate. The transport now offers a validated modal
+  time jump in `mm:ss`, `hh:mm:ss` or relative seconds; it rejects malformed and out-of-duration
+  values while preserving paused or playing state. It still has no sample/frame address, navigator,
+  or high-resolution redraw.
 - Next: build multiresolution min/max/RMS waveform tiles with a bounded cache and visible-range
   prioritization.
 - Done when: zoom reaches individual samples where the decoder permits, pan and overview stay
@@ -43,12 +45,18 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.004 — Audio has no markers, chapters, cue-sheet, or navigation history
 
-- Evidence: embedded chapter/cue metadata and sidecar `.cue` files are not presented; a listener
-  cannot create temporary landmarks or return through seeks and search-like jumps.
-- Next: normalize embedded chapters, cue points, and sidecars into a read-only landmark track, then
-  add session bookmarks and back/forward.
-- Done when: landmarks show labels and times, previous/next and filtered list navigation work,
-  temporary bookmarks can be exported without modifying media, and invalid cue timing warns.
+- Evidence: an adjacent `.cue` sidecar is read without changing the media; matching `FILE` records
+  contribute validated `INDEX 01` landmarks, and malformed, out-of-order, or out-of-duration times
+  are omitted with a warning. The lens lists and filters labeled landmarks, previous/next marker
+  actions seek through them, and a listener can add temporary session markers plus bounded
+  back/forward seek history. Sidecar and session origins remain distinct. Markers and history last
+  only for this viewer session. The audio engine and current `SoundTags` reader expose no embedded
+  chapters or cue sheet, so embedded landmarks are not yet available.
+- Next: add a read-only embedded-chapter/cue API to `std.audio` for ID3 CHAP/CTOC and FLAC CUESHEET,
+  then export temporary markers as a standalone sidecar without writing the source media.
+- Done when: embedded and sidecar landmarks show labels and times, previous/next and filtered list
+  navigation work, temporary bookmarks can be exported without modifying media, back/forward
+  history remains bounded to the session, and invalid cue timing warns.
 
 ### app.scope.audio.005 — Audio channels cannot be isolated, mixed, or compared
 

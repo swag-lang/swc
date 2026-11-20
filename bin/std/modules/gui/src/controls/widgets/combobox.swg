@@ -54,7 +54,10 @@ struct ComboBox
 
         minimumPopupWidth:  f32 = 100     // Minimum drop-down width in logical units.
         maximumPopupHeight: f32 = 300     // Maximum drop-down height in logical units.
+        popupItemHeight:    f32 = 24      // Height of each selectable row in the drop-down list.
+        popupIconSize:      f32 = 16      // Icon size used by drop-down entries; zero uses each icon's size.
         sigChanged:         SigArray'func||(*Wnd, u32)     // Emitted after a notifying selection change.
+        sigPopupChanged:    SigArray'func||(*Wnd, *PopupListCtrl, bool)     // Emitted after opening and before closing the drop-down.
 
         // What the combo shows. Add items through the methods, which keep the popup and the
         // measured icon width in step, and select through [[Gui.ComboBox.setSelectedIndex]].
@@ -594,6 +597,8 @@ private impl ComboBox
         .popup = popup
         popup.minimumWidth  = .minimumPopupWidth
         popup.maximumHeight = .maximumPopupHeight
+        popup.itemHeight    = .popupItemHeight
+        popup.iconSize      = .popupIconSize
         popup.fitVertically = true
 
         for itemIt in .items
@@ -621,6 +626,7 @@ private impl ComboBox
 
         let rect = .surfaceRect()
         popup.show(rect.x, rect.bottom(), rect.width)
+        .sigPopupChanged.call(me, popup, true)
     }
 
     mtd hidePopup()
@@ -630,6 +636,7 @@ private impl ComboBox
             return
 
         let restoreFocus = .hasFocus() and not .hasVisibleFocus() ? .pointerFocusReturn : null
+        .sigPopupChanged.call(me, popup, false)
         .popup = null
         popup.destroy()
         .pointerFocusReturn = null
@@ -646,6 +653,9 @@ private impl ComboBox
 
 impl ComboBox
 {
+    // Closes the drop-down list, emitting `sigPopupChanged` before its borrowed popup is destroyed.
+    mtd closePopup() => .hidePopup()
+
     // Aligns the selected text within the space between the icon column and the drop-down arrow.
     //
     // This affects selection mode only; editable text and popup entries keep their own layout.

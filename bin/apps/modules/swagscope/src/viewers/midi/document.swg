@@ -214,6 +214,19 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
     return Math.make32(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
 }
 
+// MIDI's SMPTE division stores a negative frame-rate code in its high byte and ticks per frame
+// in its low byte. Only the four rates named by SMF are valid.
+private func validDivision(division: u16)->bool
+{
+    if not (division & 0x8000) do
+        return division != 0
+
+    let frameCode     = cast(u8, division >> 8)
+    let ticksPerFrame = cast(u8, division & 0xFF)
+    return ticksPerFrame != 0 and
+           (frameCode == 0xE8 or frameCode == 0xE7 or frameCode == 0xE3 or frameCode == 0xE2)
+}
+
 // Reads a MIDI variable-length quantity at `at`. The result is invalid when it runs past `end` or
 // past four bytes.
 private func readVlq(bytes: const [..] u8, at, end: u64)->Vlq
@@ -467,7 +480,8 @@ func loadDocument(fileName: string)->Document fail
         .division       = readU16(bytes, 12)
     }
 
-    if result.format > 2 or not result.declaredTracks or not result.division do
+    if result.format > 2 or not result.declaredTracks or not validDivision(result.division) or
+       (result.format == 0 and result.declaredTracks != 1) do
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 
     var scan = 8 + headerLength

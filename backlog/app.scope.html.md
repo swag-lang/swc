@@ -8,12 +8,15 @@ lives in [std.gui.html.md](std.gui.html.md).
 - Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
   unreadable page. The information sheet gives the title, language and description the head of
   the page writes (`HtmlView.documentFacts`), refreshed when a streamed head changes them. There is
-  no extracted reading view, standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
+  now a reversible Reader View toggle in the viewer lens. It applies a reading stylesheet to the
+  existing parsed DOM, hides navigation, aside, footer and form furniture, and narrows semantic
+  blocks; authored layout remains the default. Since it retains the same DOM and HtmlView, local
+  fragments and same-page links continue to work, and the reading position is restored on reflow.
+  There is no standards quirks indicator or list of layout/parser warnings. A heading outline already ships
   through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings. An
   unstyled HTML page opened during the outline test starts at the left edge, where an optional
   reading layout could supply a comfortable measure without changing faithful rendering.
-- Next: surface document metadata and engine diagnostics first, then derive a clearly labelled
-  reader view from semantic blocks without replacing faithful mode.
+- Next: surface engine diagnostics and expose metadata, headings, landmarks, and warnings together.
 - Done when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017

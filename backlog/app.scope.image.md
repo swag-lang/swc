@@ -15,39 +15,7 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   previews through bounded container ranges and distinguish missing or unsupported previews.
 - Done when: the embedded preview of the common TIFF-based RAW containers is extracted and
   displayed, with its source and preview metadata in the existing `MediaInfoPanel` and any encoded
-  orientation applied through app.scope.image.011.
-- Related: app.scope.image.011, app.scope.image.013, app.scope.image.014
-
-### app.scope.image.011 — Apply encoded image orientation exactly once
-
-- Evidence: `loadViewerContent` decodes the movie and reports EXIF properties through
-  `MediaInfoData.addImageMetadata`, but does not normalize the encoded orientation. Temporary
-  rotate/mirror commands operate on the view independently.
-- Next: expose a normalized source orientation and apply it exactly once during loading,
-  preserving the authored metadata and the coordinate mapping owned by app.scope.image.004.
-- Done when: all eight EXIF orientations display correctly without double rotation, reset
-  returns to the oriented source, and metadata still identifies the encoded value.
-- Related: app.scope.image.004, app.scope.image.013, app.scope.image.014
-
-### app.scope.image.013 — Embedded ICC profiles have no readable identity
-
-- Evidence: split from app.scope.image.011. `MediaInfoData.addImageMetadata` interprets EXIF
-  and PNG text; ICC records receive only an opaque byte-count description.
-- Next: expose bounded profile identity and descriptive fields, distinguishing embedded data
-  from the display conversion that app.scope.image.003 owns.
-- Done when: supported profile names and source color-space identities are visible,
-  malformed profiles report their limitation, and inspection does not imply an applied conversion.
-- Related: app.scope.image.003, std.pixel.image.019
-
-### app.scope.image.014 — XMP image properties remain opaque
-
-- Evidence: split from app.scope.image.011. The metadata panel does not interpret image XMP
-  packets.
-- Next: parse a bounded set of XMP descriptive properties with namespace-aware field identity,
-  preserving unrecognized packets and source provenance.
-- Done when: supported XMP fields are readable and copyable, conflicting EXIF/XMP values
-  remain distinguishable, and malformed or oversized packets fail within explicit limits.
-
+  orientation applied during load.
 ### app.scope.image.007 — Animated images have no frame-step, speed, or disposal inspection
 
 - Evidence: GIF, APNG, and WebP playback share play/pause, a frame slider, and frame count. The
@@ -58,15 +26,16 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   Timestamps, playback speed, disposal/blend metadata, composited-versus-raw frame view, and
   dropped-frame indicators remain absent.
 - Next: expose animation frame metadata and complete the transport around the existing cached movie.
-- Done when: frame stepping is exact, delay and timestamp are visible, 0.25x–4x rates
-  are covered together with the existing loop policy, raw and composited frames can be compared,
-  and invalid timing/disposal warns.
+- Done when: timestamps are visible, 0.25x–4x rates work with the existing loop policy, raw and
+  composited frames can be compared, and invalid timing/disposal warns.
 
 ### app.scope.image.003 — Color management and HDR state are invisible to the reader
 
-- Evidence: std.pixel.001/std.pixel.image.019 record that the pixel stack has no colour/ICC handling. The image
-  panel reports pixel format and total bit depth, but not interpreted profile, transfer function, primaries,
-  conversion, monitor target, or out-of-gamut/clipping status.
+- Evidence: the image information panel now inspects WebP ICC and sequenced JPEG ICC profiles for
+  their source color space, PCS, and supported `desc`/`mluc` identity, explicitly without implying
+  conversion. std.pixel.001/std.pixel.image.019 still record that the pixel stack has no color
+  conversion pipeline; transfer function, primaries, display target, and out-of-gamut/clipping status
+  are not interpreted.
 - Next: define the viewer information and soft-proof controls now, then connect them to the pixel
   color pipeline as it lands.
 - Done when: source and display color spaces are named, embedded profiles can be inspected,
@@ -79,25 +48,13 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 - Evidence: the viewer has a complete non-destructive dihedral view transform and its information
   panel reports EXIF orientation, but there is no normalized orientation value. Coordinate consumers have no
   shared source-to-display coordinate contract.
-- Next: expose normalized source orientation through app.scope.image.011, then define one coordinate mapping for
-  image dimensions, pan, selection, probes, animation frames, and the products in app.scope.image.009.
+- Next: define one coordinate mapping for image dimensions, pan, selection, probes, animation
+  frames, and the products in app.scope.image.009, with normalized source orientation applied
+  during loading.
 - Done when: source orientation and temporary orientation are stated separately; every image
   coordinate consumer agrees with the displayed transform; raw export keeps source bytes; and
   rendered export declares the applied orientation.
-- Related: app.scope.image.011
-
-### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
-
-- Evidence: the image viewer (`Viewers.Picture.Panel`) browses every indexed format through
-  `Movie` and one `timeline` slider; `src/tests/cases/functional/viewers/image/imageset.swg` covers all nine multi-image codec
-  paths, including unequal dimensions. Over independent items (sizes, pages, layers, texture
-  levels) the summary names the item in view: its dimensions, its level, layer and face, and its
-  name. The selector itself shows a counter and a slider only, with no list of the items or their
-  thumbnails.
-- Next: present those properties and lazy thumbnails in a collection selector over the existing
-  reader, keeping animation playback distinct from independent-image selection.
-- Done when: item identity survives view changes and the selector shows each item's description,
-  dimensions, thumbnail, and format-specific relationships without decoding the whole collection.
+- Related: app.scope.image.009
 
 ### app.scope.image.010 — Huge and damaged images cannot degrade progressively
 
@@ -108,8 +65,8 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 - Next: connect progressive or region decoding to background publication, beginning with one large
   raster format and retaining the existing cache ceilings.
 - Done when: metadata and a bounded preview appear before full decode where possible, visible
-  tiles have priority, animation cache has an explicit budget, cancellation is prompt, and partial
-  damage is marked without discarding valid regions.
+  tiles have priority, cancellation is prompt, and partial damage is marked without discarding valid
+  regions.
 - Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
 
 ### app.scope.image.001 — The pixel probe cannot be copied, stepped or measured with
@@ -123,9 +80,9 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   or angle between points are absent.
 - Next: let the keyboard move a probe one pixel at a time at high zoom and copy its reading, then
   add a non-destructive line/rectangle measurement overlay.
-- Done when: coordinates and exact stored/converted channel values are copyable, alpha and
-  out-of-bounds states are explicit, keyboard movement reaches individual pixels at high zoom, and
-  distance/size can be reported in pixels and physical units when resolution metadata exists.
+- Done when: stored and converted channel values are distinguished, alpha and out-of-bounds states
+  are explicit, keyboard movement reaches individual pixels at high zoom, and distance/size can be
+  reported in pixels and physical units when resolution metadata exists.
 
 ### app.scope.image.002 — Image analysis has no histogram, channel, clipping, or transparency views
 
@@ -170,16 +127,6 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   can export individual GIF and APNG frames.
 - Next: define raw, decoded-source, and rendered-view interchange products and expose only the forms
   the codec/pixel stack can produce faithfully.
-- Done when: clipboard and export name dimensions, pixel format, orientation, color space,
-  alpha, and frame/page; raw extraction never transcodes; rendered output declares conversions;
-  and large exports are cancellable.
-
-### app.scope.image.015 — Give the transformed-image reading room to breathe
-
-- Evidence: `viewer.image.transformed.paper` shows a 300% zoom, 270° rotation and mirror in a
-  132-unit zoom control. The combined reading crowds the right edge of the information band and
-  makes the leading percentage hard to read.
-- Next: compose zoom and orientation as distinct compact readings or let the information band
-  allocate enough space for the complete value, with the full transform available on demand.
-- Done when: zoom and orientation remain readable without clipping at narrow window widths in
-  Encre and Papier, and the control still exposes its zoom actions.
+- Done when: raw extraction never transcodes, decoded-source and rendered-view outputs state their
+  pixel format, orientation, color space, alpha and frame/page policy, rendered output declares
+  conversions, and large exports are cancellable.

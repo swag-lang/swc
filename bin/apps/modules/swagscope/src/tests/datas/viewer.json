@@ -1,6 +1,12 @@
 {
-  "name": "Swag Scope",
-  "features": ["streaming", "search", "syntax highlighting"],
-  "verified": true,
-  "maxResidentBytes": 262144
+  "station": "North Basin 14B",
+  "surveyDate": "2026-10-18",
+  "observer": "Mira Chen",
+  "readings": [
+    {"site": "north gauge", "waterLevelMetres": 1.42, "quality": "checked"},
+    {"site": "reed bed", "waterLevelMetres": 1.38, "quality": "estimated"}
+  ],
+  "notes": ["rain easing at dusk", "sample jars sealed"],
+  "utf8": "café · Ελληνικά · 日本語 · 🙂",
+  "verificationMarker": "fictional field record"
 }

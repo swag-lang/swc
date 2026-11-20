@@ -1,7 +1,10 @@
-Swag Scope plain-text verification fixture
-
+North Basin field station · fictional evening log
+Survey 14B | 2026-10-18 | observer: Mira Chen
+Weather: light rain easing at dusk; water level 1.42 m at the north gauge.
+Transect: reed bed → footbridge → lower weir; three sample jars sealed for review.
 ASCII punctuation: ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
-UTF-8 text: café, naïve, Ελληνικά, 日本語, 한국어, العربية, and 🙂.
-Tabs:	first	second	third
+UTF-8 notes: café light, naïve gulls, Ελληνικά label, 日本語 map key, 한국어 tag, العربية mark, 🙂.
+Tabs: station	reading	unit
+N-03	1.42	m
 A deliberately long logical line follows: 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 The plain-text verification marker is searchable.

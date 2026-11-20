@@ -172,7 +172,25 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         if token.kind == .Start
         {
-            if token.isElement("row")
+            if token.isElement("pane") and (token.attribute("state") == "frozen" or token.attribute("state") == "frozenSplit")
+            {
+                // Frozen panes split at integral cells; reject fractional or unbounded requests.
+                if let split = token.attribute("xSplit")
+                {
+                    let columns = catch StrConv.toU32(split) { fail Errors.InvalidFormatError{texts().err_Invalid} }
+                    if columns > 255 do
+                        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    result.frozenColumns = columns
+                }
+                if let split = token.attribute("ySplit")
+                {
+                    let rows = catch StrConv.toU32(split) { fail Errors.InvalidFormatError{texts().err_Invalid} }
+                    if rows > 256 do
+                        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    result.frozenRows = rows
+                }
+            }
+            elif token.isElement("row")
             {
                 let rowValue  = token.attribute("r") orelse ""
                 let rowNumber = rowValue.count ?

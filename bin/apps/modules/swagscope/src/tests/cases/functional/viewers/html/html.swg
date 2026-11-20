@@ -5,6 +5,26 @@ using Core, Pixel, Gui, Viewers
 
 func htmlViewerFixturePath()->String => Path.combine(scopeTestDataDirectory(), "viewer.html")
 
+// A generated handbook exercises navigation and search inside a long, structured reading page.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.field-guide.html")
+    let source   = expect File.readAllText(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(820, 560)
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
+    finishHtmlViewer(&host, &result)
+
+    let phrase = "Standard equipment checklist"
+    let offset = source.indexOf(phrase)
+    Swag.require(offset != Swag.U64.Max)
+    let match = Viewer.SearchMatch{offset: offset, length: phrase.count}
+    Swag.require(result.revealMatch!(match, phrase))
+    var bounds: Math.Rectangle
+    Swag.require(result.searchBounds!(match, &bounds) and not bounds.isEmpty())
+}
+
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
     Swag.require(result.isLoading != null)
@@ -19,6 +39,29 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     }
 
     Swag.require(not result.isLoading())
+}
+
+// The reader sheet is reversible, keeps the rendered DOM alive, and retains fragment navigation.
+#test
+{
+    let fileName = scopeTestDataPath("viewer.field-guide.html")
+    let source   = expect File.readAllText(fileName)
+    var host: Testing.HeadlessHost
+    host.setup(820, 560)
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
+    finishHtmlViewer(&host, &result)
+
+    let panel = assume cast(*Html.Panel, result.view)
+    let offset = source.indexOf("Safety and access")
+    Swag.require(offset != Swag.U64.Max and panel.view.revealFileOffset(offset, "Safety and access"))
+    let readingOffset = panel.view.readingOffset()
+    Swag.require(readingOffset != Swag.U64.Max)
+
+    panel.view.setReaderMode(true)
+    Swag.require(panel.view.isReaderMode() and panel.view.readingOffset() == readingOffset)
+    Swag.require(panel.view.navigateToFragment("#contacts") and panel.view.isReaderMode())
+    panel.view.setReaderMode(false)
+    Swag.require(not panel.view.isReaderMode() and panel.view.navigateToFragment("#sampling"))
 }
 
 // The viewer remains a thin ABI adapter around the reusable GUI control.

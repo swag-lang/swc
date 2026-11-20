@@ -1,0 +1,62 @@
+WEBVTT - North Basin survey
+Kind: captions
+Language: en
+
+NOTE This generated transcript follows one fictional morning field visit.
+All names and readings are invented for repository tests.
+
+STYLE
+::cue { color: white; }
+
+REGION
+id:lower-third
+width:80%
+lines:3
+
+opening
+00:00:00.000 --> 00:00:03.800 align:start position:10%
+<v Mara>Good morning from North Basin; the boardwalk is clear today.</v>
+
+arrival
+00:00:04.100 --> 00:00:08.200
+We will visit the marsh station first, then follow the marked trail east.
+
+weather
+00:00:09.000 --> 00:00:13.000
+The air is cool, with a light wind moving across the water.
+
+equipment
+00:00:13.800 --> 00:00:18.400
+The meter is calibrated and the sample bottles are labelled before use.
+
+reading-one
+00:00:19.000 --> 00:00:23.500
+North Marsh: fourteen point two degrees; water level, thirty-eight centimetres.
+
+reading-two
+00:00:24.000 --> 00:00:28.800
+Conductivity is stable. We will compare the result with next week's visit.
+
+trail
+00:00:30.000 --> 00:00:35.000
+The lower path is dry, but the eastern gate is muddy after yesterday's rain.
+
+observation
+00:00:36.000 --> 00:00:40.500
+Three herons are feeding near the reed beds. We note them without approaching.
+
+sample
+00:00:42.000 --> 00:00:47.000
+The second bottle is sealed and placed upright in the cooler.
+
+review
+00:00:48.000 --> 00:00:54.000
+<v Ilya>Labels match the field sheet.</v> <v Mara>Thanks; mark this station complete.</v>
+
+return
+00:00:55.000 --> 00:01:01.000
+We are returning by the raised path and leaving the gate as we found it.
+
+closing
+00:01:02.000 --> 00:01:06.000 align:end position:90%
+The next survey is planned for Monday. See you then at the field office café.

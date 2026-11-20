@@ -19,6 +19,7 @@ struct Texts
     ui_Preparing:    string = "Preparing presentation…"
     ui_Details:      string = "Presentation · % slides · % images not shown"
     ui_Slide:        string = "Slide %"
+    ui_Thumbnails:   string = "Slides"
     ui_ImageOmitted: string = "[Image not shown]"
     err_Invalid:     string = "This presentation has a damaged structure."
     err_TooLarge:    string = "This presentation is too large to open safely."

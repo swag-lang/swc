@@ -1,1 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Scope XHTML</title></head><body><h1>Reading XHTML</h1><p>A well-formed page.</p></body></html>
+<?xml version="1.0" encoding="UTF-8"?>
+<fieldReport id="north-basin-14b" date="2026-10-18">
+  <observer>Mira Chen</observer>
+  <weather>Light rain easing at dusk</weather>
+  <reading site="north gauge" unit="m" quality="checked">1.42</reading>
+  <reading site="reed bed" unit="m" quality="estimated">1.38</reading>
+  <note>Fictional observations; samples sealed for laboratory review.</note>
+</fieldReport>

@@ -38,7 +38,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let registry = createViewerPluginRegistry()
-    Swag.require(registry.plugins.count == 24)
+    Swag.require(registry.plugins.count == 25)
     for plugin in registry.plugins do
         Swag.require(plugin.apiVersion == Viewer.ApiVersion and
                      plugin.create != null and
@@ -139,7 +139,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
                  tableChoices[1].key == "binary" and
                  tableChoices[2].key == "hex")
     Swag.require(registry.choices("family.ttf")[0].key == "font")
-    Swag.require(registry.choices("outlines.otf")[0].key == "binary")
+    Swag.require(registry.choices("outlines.otf")[0].key == "font")
     Swag.require(registry.choices("movie.mp4")[0].key == "video")
     Swag.require(registry.choices("movie.mkv")[0].key == "video")
     Swag.require(registry.choices("score.mid")[0].key == "midi")
@@ -199,7 +199,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     for choice in registry.choices(viewerRegistryFixturePath("viewer.pdf")) do
         Swag.require(choice.key != PlainText.ViewerKey)
-    for choice in registry.choices(viewerRegistryFixturePath("segoeui.ttf")) do
+    for choice in registry.choices(viewerRegistryFixturePath("viewer.arabic.ttf")) do
         Swag.require(choice.key != PlainText.ViewerKey)
 }
 
@@ -207,8 +207,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 // recognized through a copy renamed to an extension nothing claims.
 #test
 {
-    const Fixtures: [5] string = ["viewer.pdf", "viewer.mid", "segoeui.ttf", "viewer.archive.zip", "viewer.html"]
-    const Keys:     [5] string = ["pdf", "midi", "font", "archive", "html"]
+    const Fixtures: [6] string = ["viewer.pdf", "viewer.mid", "viewer.arabic.ttf", "viewer.archive.zip", "viewer.html", "font-fixture-cjk.otf"]
+    const Keys:     [6] string = ["pdf", "midi", "font", "archive", "html", "font"]
 
     let registry = createViewerPluginRegistry()
     for fixture, index in Fixtures

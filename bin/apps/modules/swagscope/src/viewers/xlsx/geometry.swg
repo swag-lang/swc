@@ -75,7 +75,8 @@ impl Sheet
 
         if scan.damaged do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        .rowCount         = Math.max(.rowCount, 1)
+        .rowCount         = Math.max(.rowCount, .frozenRows + 1)
+        columnCount       = Math.max(columnCount, .frozenColumns + 1)
         .defaultRowHeight = defaultHeight
         .hiddenRanges     = defaultHeight == 0 or defaultWidth == 0
         .columns.resize(columnCount)

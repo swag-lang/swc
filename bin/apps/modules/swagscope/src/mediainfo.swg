@@ -196,12 +196,18 @@ struct MediaInfoStrings
     track:          string = "Track %"
     empty:          string = "None"
     unavailable:    string = "Read error"
+    iccProfile:     string = "Embedded ICC profile"
+    iccInspectionOnly: string = "% · inspection only"
+    iccProfileError: string = "Embedded ICC profile cannot be inspected: %"
+    xmpPacketError: string = "XMP packet cannot be inspected: %"
 }
 
 private const FrenchMediaStringsName = "lang/fr/scope.media.tweak"
 private const FrenchMediaStrings     = #include("../datas/lang/fr/scope.media.tweak")
 
 private var g_MediaInfoStrings: MediaInfoStrings
+
+func mediaInfoStrings()->*MediaInfoStrings => &g_MediaInfoStrings
 
 const VideoInfoFormatTag      = "ScopeVideoFormat"
 const VideoInfoCodecTag       = "ScopeVideoCodec"
@@ -401,6 +407,483 @@ func glyphCountText(count: u64)->String => Format.toString(g_MediaInfoStrings.gl
 func trackText(number: u64)->String => Format.toString(g_MediaInfoStrings.track, number)
 
 // Owns values independently of the decoded pixels, file mapping, and language table.
+private const IccProfileLimit = 1024'u64 * 1024
+private const XmpPacketLimit  = 1024'u64 * 1024
+
+private struct XmpBinding
+{
+    prefix: String
+    uri:    String
+    depth:  u32
+}
+
+private struct XmpField
+{
+    name:  String
+    value: String
+}
+
+private func xmpQNameParts(name: string, prefix: *String, local: *String)->bool
+{
+    let separator = Utf8.indexOf(name, ":")
+    if separator == Swag.U64.Max or separator == 0 or separator + 1 >= name.count do
+        return false
+    prefix[] = String.from(name[until separator])
+    local[]  = String.from(name[separator + 1 to])
+    return true
+}
+
+private func xmpNamespace(bindings: const [..] XmpBinding, prefix: string)->string?
+{
+    var index = bindings.count
+    while index
+    {
+        index -= 1
+        if bindings[index].prefix == prefix do
+            return bindings[index].uri.toString()
+    }
+    if prefix == "xml" do
+        return "http://www.w3.org/XML/1998/namespace"
+    return null
+}
+
+private func xmpProperty(name: string, bindings: const [..] XmpBinding, attribute: bool)->String
+{
+    var prefix: String
+    var local:  String
+    if not xmpQNameParts(name, &prefix, &local)
+    {
+        // XML's default namespace applies to element names, but never to attributes.
+        if attribute or not name.count do return {}
+        local = String.from(name)
+    }
+    let uri = xmpNamespace(bindings, prefix)
+    if not uri do
+        return {}
+    if uri == "http://purl.org/dc/elements/1.1/" and
+       (local == "title" or local == "creator" or local == "description" or local == "rights" or local == "subject") do
+        return Format.toString("XMP %", name)
+    if uri == "http://ns.adobe.com/xap/1.0/" and
+       (local == "CreateDate" or local == "ModifyDate" or local == "CreatorTool") do
+        return Format.toString("XMP %", name)
+    return {}
+}
+
+// Parses a small descriptive XMP subset by namespace URI. The XML scanner disables DTDs and
+// external entities; size and depth are bounded before any value is surfaced.
+private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *String)->bool
+{
+    if bytes.count > XmpPacketLimit
+    {
+        problem[] = "XMP packet exceeds the 1 MiB inspection limit"
+        return false
+    }
+    if not bytes.count or not Utf8.isValid(bytes)
+    {
+        problem[] = "XMP packet is empty or is not valid UTF-8"
+        return false
+    }
+
+    let source = cast(string, bytes)
+    var scanner = Viewers.Package.Scanner.create(source)
+    var token: Viewers.Package.Token
+    var bindings: Array'XmpBinding
+    var elements: Array'String
+    var activeName: String
+    var activeValue: String
+    var activeDepth = 0'u32
+    var depth       = 0'u32
+    var rootSeen    = false
+    var rootClosed  = false
+
+    while scanner.next(&token)
+    {
+        switch token.kind
+        {
+        case .Start:
+            if depth >= 64
+            {
+                problem[] = "XMP XML nesting exceeds the 64-element limit"
+                return false
+            }
+            if not depth
+            {
+                if rootSeen
+                {
+                    problem[] = "XMP packet contains more than one root element"
+                    return false
+                }
+                rootSeen = true
+            }
+            depth += 1
+            elements.add(String.from(token.name))
+
+            // Preserve namespace scope by recording declarations at their source depth; bindings
+            // are removed as their elements close, so a nested prefix override cannot leak out.
+            for &attribute in token.attributes
+            {
+                if attribute.name == "xmlns" do
+                    bindings.add(XmpBinding{{}, String.from(attribute.value), depth})
+                elif Utf8.startsWith(attribute.name.toString(), "xmlns:")
+                    do bindings.add(XmpBinding{String.from(cast(string, attribute.name.toSlice()[6 to])), String.from(attribute.value), depth})
+            }
+
+            // XMP commonly stores simple values as attributes on rdf:Description as well as child
+            // elements. Keep their qualified property names so they remain distinct from EXIF.
+            let propertyName = xmpProperty(token.name, bindings.toSlice(), false)
+            if propertyName.count and not activeName.count
+            {
+                activeName  = propertyName
+                activeValue.clear()
+                activeDepth = depth
+            }
+            for &attribute in token.attributes
+            {
+                let attributeName = xmpProperty(attribute.name.toString(), bindings.toSlice(), true)
+                if attributeName.count
+                {
+                    let value = Latin1.trim(attribute.value.toString())
+                    if value.count do
+                        fields.add(XmpField{attributeName, String.from(value)})
+                }
+            }
+
+            if token.empty
+            {
+                if activeName.count and activeDepth == depth
+                {
+                    let value = Latin1.trim(activeValue.toString())
+                    if value.count do
+                        fields.add(XmpField{#move activeName, String.from(value)})
+                    activeValue.clear()
+                    activeDepth = 0
+                }
+                while bindings.count and bindings[bindings.count - 1].depth == depth do
+                    bindings.removeBack()
+                elements.removeBack()
+                depth -= 1
+                if not depth do
+                    rootClosed = true
+            }
+
+        case .Text:
+            if activeName.count and depth >= activeDepth and token.text.count
+            {
+                if activeValue.count and Latin1.trim(token.text.toString()).count do
+                    activeValue += "; "
+                activeValue += token.text
+            }
+
+        case .End:
+            if not depth or elements[depth - 1] != token.name
+            {
+                problem[] = "XMP XML has mismatched or unexpected closing elements"
+                return false
+            }
+            if activeName.count and activeDepth == depth
+            {
+                let value = Latin1.trim(activeValue.toString())
+                if value.count do
+                    fields.add(XmpField{#move activeName, String.from(value)})
+                activeValue.clear()
+                activeDepth = 0
+            }
+            while bindings.count and bindings[bindings.count - 1].depth == depth do
+                bindings.removeBack()
+            elements.removeBack()
+            depth -= 1
+            if not depth do
+                rootClosed = true
+        }
+    }
+
+    if scanner.damaged or not rootSeen or not rootClosed or depth
+    {
+        problem[] = "XMP XML is malformed or incomplete"
+        return false
+    }
+    return true
+}
+
+private func readIccU32(bytes: const [..] u8, offset: u64, value: *u32)->bool
+{
+    if offset > bytes.count or bytes.count - offset < 4 do
+        return false
+    value[] = (cast(u32, bytes[offset]) << 24) |
+              (cast(u32, bytes[offset + 1]) << 16) |
+              (cast(u32, bytes[offset + 2]) << 8) |
+              cast(u32, bytes[offset + 3])
+    return true
+}
+
+private func iccSignature(bytes: const [..] u8, offset: u64)->String
+{
+    var result: #returntype
+    for index in 4
+    {
+        let byte = bytes[offset + index]
+        result += cast(rune, byte >= 32 and byte <= 126 ? byte : '?')
+    }
+    return result
+}
+
+// Reads a bounded ICC `mluc` description, preferring an English locale and otherwise the first
+// valid record. Malformed UTF-16 or record ranges fail rather than displaying replacement text.
+private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *String)->bool
+{
+    if bytes.count < 16 or iccSignature(bytes, 0) != "mluc"
+    {
+        problem[] = "profile `mluc` description header is truncated"
+        return false
+    }
+
+    var count: u32
+    var recordSize: u32
+    if not readIccU32(bytes, 8, &count) or not readIccU32(bytes, 12, &recordSize) or
+       count == 0 or count > 64 or recordSize < 12 or recordSize > 128
+    {
+        problem[] = "profile `mluc` record table is invalid or exceeds the inspection limit"
+        return false
+    }
+    if cast(u64, count) > (bytes.count - 16) / recordSize
+    {
+        problem[] = "profile `mluc` record table is truncated"
+        return false
+    }
+
+    let tableEnd = 16 + cast(u64, count) * recordSize
+    var firstValid: String
+    var english: String
+    for index in count
+    {
+        let at = 16 + cast(u64, index) * recordSize
+        var byteLength: u32
+        var offset: u32
+        if not readIccU32(bytes, at + 4, &byteLength) or not readIccU32(bytes, at + 8, &offset) or
+           byteLength > 512 or byteLength % 2 != 0 or
+           cast(u64, offset) < tableEnd or cast(u64, offset) > bytes.count or
+           cast(u64, byteLength) > bytes.count - cast(u64, offset)
+        {
+            problem[] = "profile `mluc` text range is invalid or exceeds the 512-byte limit"
+            return false
+        }
+        if not byteLength do
+            continue
+
+        var units: Array'u16
+        units.resize(byteLength / 2)
+        for unit in units.count
+        {
+            let byteAt = cast(u64, offset) + unit * 2
+            units[unit] = (cast(u16, bytes[byteAt]) << 8) | cast(u16, bytes[byteAt + 1])
+            let value = units[unit]
+            if value >= Utf16.Surr1 and value < Utf16.Surr2
+            {
+                if unit + 1 >= units.count or units[unit + 1] < Utf16.Surr2 or units[unit + 1] >= Utf16.Surr3
+                {
+                    problem[] = "profile `mluc` text contains an unpaired high surrogate"
+                    return false
+                }
+            }
+            elif value >= Utf16.Surr2 and value < Utf16.Surr3
+            {
+                if unit == 0 or units[unit - 1] < Utf16.Surr1 or units[unit - 1] >= Utf16.Surr2
+                {
+                    problem[] = "profile `mluc` text contains an unpaired low surrogate"
+                    return false
+                }
+            }
+        }
+
+        var candidate = Utf8.fromUtf16(units.toSlice())
+        candidate = Latin1.trim(candidate)
+        if not candidate.count do
+            continue
+        if not firstValid.count do
+            firstValid = candidate
+        let englishLocale = bytes[at] == 'e' and bytes[at + 1] == 'n'
+        if englishLocale and not english.count do
+            english = candidate
+    }
+
+    if english.count do
+        name[] = #move english
+    elif firstValid.count do
+        name[] = #move firstValid
+    else
+    {
+        problem[] = "profile `mluc` has no nonempty valid locale description"
+        return false
+    }
+    return true
+}
+
+// Reads only the bounded ICC header and optional ASCII `desc` tag. This names embedded profile
+// data; it does not validate color transforms or imply that the display pipeline applies it.
+private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem: *String)->bool
+{
+    if bytes.count > IccProfileLimit
+    {
+        problem[] = "profile exceeds the 1 MiB inspection limit"
+        return false
+    }
+    if bytes.count < 128
+    {
+        problem[] = "profile header is shorter than 128 bytes"
+        return false
+    }
+
+    var declaredSize: u32
+    if not readIccU32(bytes, 0, &declaredSize) or declaredSize < 128 or declaredSize > bytes.count
+    {
+        problem[] = "declared profile size is outside the embedded data"
+        return false
+    }
+    let profile = bytes[until declaredSize]
+    if iccSignature(profile, 36) != "acsp"
+    {
+        problem[] = "profile header has no `acsp` signature"
+        return false
+    }
+
+    let colorSpace = iccSignature(profile, 16)
+    let pcs        = iccSignature(profile, 20)
+    var name: String
+    var tagCount: u32
+    if declaredSize >= 132 and readIccU32(profile, 128, &tagCount)
+    {
+        // Profile tag tables are small in conforming files; do not walk attacker-sized tables.
+        if tagCount > 256 or cast(u64, tagCount) > (declaredSize - 132) / 12
+        {
+            problem[] = "profile tag table is truncated or exceeds the inspection limit"
+            return false
+        }
+        for index in tagCount
+        {
+            let recordAt = 132 + cast(u64, index) * 12
+            if iccSignature(profile, recordAt) != "desc" do
+                continue
+
+            var offset: u32
+            var length: u32
+            if not readIccU32(profile, recordAt + 4, &offset) or not readIccU32(profile, recordAt + 8, &length) or
+               offset > declaredSize or length < 12 or cast(u64, offset) + length > declaredSize
+            {
+                problem[] = "profile description tag points outside the embedded data"
+                return false
+            }
+            let description = profile[offset until cast(u64, offset) + length]
+            if iccSignature(description, 0) == "mluc"
+            {
+                if not readIccMlucName(description, &name, problem) do
+                    return false
+            }
+            elif iccSignature(description, 0) == "desc"
+            {
+                var textLength: u32
+                if not readIccU32(description, 8, &textLength) or textLength > 512 or textLength > length - 12
+                {
+                    problem[] = "profile description text is truncated or too long"
+                    return false
+                }
+                for byte in description[12 until 12 + textLength]
+                {
+                    if byte == 0 do
+                        break
+                    name += cast(rune, byte >= 32 and byte <= 126 ? byte : '?')
+                }
+                name = Latin1.trim(name)
+            }
+            break
+        }
+    }
+
+    identity[] = Format.toString("Embedded ICC · % · PCS %", colorSpace, pcs)
+    if name.count do
+        identity[] += Format.toString(" · %", name)
+    return true
+}
+
+private struct JpegIccChunk
+{
+    bytes:   Array'u8
+    present: bool
+}
+
+// Reassembles bounded JPEG APP2 ICC_PROFILE records in their declared sequence order.
+private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: *Array'u8, problem: *String)->bool
+{
+    var segmentCount: u8
+    var chunkCount: u64
+    for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
+    {
+        chunkCount += 1
+        let bytes = record.toSlice()
+        if bytes.count < 2
+        {
+            problem[] = "JPEG ICC segment is missing its sequence header"
+            return false
+        }
+
+        let sequence = bytes[0]
+        let count = bytes[1]
+        if count == 0 or sequence == 0 or sequence > count
+        {
+            problem[] = "JPEG ICC segment has an invalid sequence number"
+            return false
+        }
+        if segmentCount and segmentCount != count
+        {
+            problem[] = "JPEG ICC segments disagree on their total count"
+            return false
+        }
+        segmentCount = count
+    }
+
+    if not chunkCount do
+        return false
+    if chunkCount != segmentCount
+    {
+        problem[] = "JPEG ICC profile is missing one or more segments"
+        return false
+    }
+
+    var chunks: Array'JpegIccChunk
+    chunks.resize(segmentCount)
+    var totalBytes = 0'u64
+    for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
+    {
+        let bytes = record.toSlice()
+        let sequence = bytes[0]
+        let payloadSize = bytes.count - 2
+        if chunks[sequence - 1].present
+        {
+            problem[] = "JPEG ICC profile contains a duplicate segment"
+            return false
+        }
+        if payloadSize > IccProfileLimit - totalBytes
+        {
+            problem[] = "JPEG ICC profile exceeds the 1 MiB assembly limit"
+            return false
+        }
+        totalBytes += payloadSize
+        chunks[sequence - 1].bytes = bytes[2 to]
+        chunks[sequence - 1].present = true
+    }
+
+    profile[].reserve(totalBytes)
+    for chunk in chunks
+    {
+        if not chunk.present
+        {
+            problem[] = "JPEG ICC profile is missing one or more segments"
+            return false
+        }
+        profile[].add(chunk.bytes.toSlice())
+    }
+    return true
+}
+
 struct MediaInfoData
 {
     rows: Array'MediaInfoRow
@@ -512,6 +995,24 @@ impl MediaInfoData
             return
         }
 
+        var hasJpegIcc = false
+        for record in records where record.signature == 2 and record.isTag("ICC_PROFILE") do
+            hasJpegIcc = true
+        if hasJpegIcc
+        {
+            let strings = &g_MediaInfoStrings
+            var profile: Array'u8
+            var identity: String
+            var problem: String
+            if assembleJpegIccProfile(records, &profile, &problem)
+            {
+                if inspectIccProfile(profile.toSlice(), &identity, &problem)
+                    do .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
+                else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+            }
+            else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+        }
+
         for record in records
         {
             if record.signature == 1 and record.isTag("Exif")
@@ -529,6 +1030,36 @@ impl MediaInfoData
                     .addText(property.name(), property.value)
                 continue
             }
+
+            if record.isTag("ICC")
+            {
+                let strings = &g_MediaInfoStrings
+                var identity: String
+                var problem: String
+                if inspectIccProfile(record.toSlice(), &identity, &problem)
+                    do .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
+                else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+                continue
+            }
+
+            let jpegXmp = record.signature == 1 and cast(string, record.tag.toSlice()) == "http://ns.adobe.com/xap/1.0/"
+            if record.isTag("XMP") or jpegXmp
+            {
+                var fields: Array'XmpField
+                var problem: String
+                if readXmp(record.toSlice(), &fields, &problem)
+                {
+                    for &field in fields do
+                        .addText(field.name, field.value)
+                    if not fields.count do
+                        .addText("XMP packet", "No supported descriptive fields")
+                }
+                else do .add(.Unavailable, Format.toString(g_MediaInfoStrings.xmpPacketError, problem))
+                continue
+            }
+
+            if record.signature == 2 and record.isTag("ICC_PROFILE") do
+                continue
 
             var tag: String
             for byte in record.tag do

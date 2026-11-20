@@ -74,6 +74,7 @@ struct Track
     {
         textStorage:         String
         allocationAllocator: IAllocator?
+        discardedCues:      u64
     }
 }
 
@@ -244,19 +245,32 @@ private func decodeSubRip(track: *Track, source: string) fail
         if index >= lines.count do
             break
 
-        if Utf8.indexOf(lines[index], "-->") == Swag.U64.Max do
-            index += 1
-        if index >= lines.count do
-            break
-        let times = try cueTimeLine(lines[index])
-        index += 1
-        let first = index
-        while index < lines.count and (Latin1.trim(lines[index])).count do
-            index += 1
+        let blockFirst = index
+        var blockEnd = index
+        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
+            blockEnd += 1
+        var timeAt = blockFirst
+        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
+            timeAt += 1 // Optional cue identifier or sequence number.
+        if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
+        {
+            track.noteDiscardedCue()
+            index = blockEnd
+            continue
+        }
+        let times = catch cueTimeLine(lines[timeAt])
+        {
+            track.noteDiscardedCue()
+            index = blockEnd
+            continue
+        }
         var text: String
-        joinCueLines(&text, lines.toSlice(), first, index)
+        joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
         if text.length do
             track.addCue(times.startSeconds, times.endSeconds, text.toString())
+        else do
+            track.noteDiscardedCue()
+        index = blockEnd
     }
 }
 
@@ -284,27 +298,32 @@ private func decodeWebVtt(track: *Track, source: string) fail
             continue
         }
 
-        if Utf8.indexOf(lines[index], "-->") == Swag.U64.Max do
-            index += 1
-        if index >= lines.count do
-            break
-        if Utf8.indexOf(lines[index], "-->") == Swag.U64.Max
+        let blockFirst = index
+        var blockEnd = index
+        while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
+            blockEnd += 1
+        var timeAt = blockFirst
+        if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
+            timeAt += 1 // Optional WebVTT cue identifier.
+        if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
         {
-            // Ignore the rest of a metadata block, without consuming the next cue's timing.
-            while index < lines.count and (Latin1.trim(lines[index])).count do
-                index += 1
+            track.noteDiscardedCue()
+            index = blockEnd
             continue
         }
-
-        let times = try cueTimeLine(lines[index])
-        index += 1
-        let first = index
-        while index < lines.count and (Latin1.trim(lines[index])).count do
-            index += 1
+        let times = catch cueTimeLine(lines[timeAt])
+        {
+            track.noteDiscardedCue()
+            index = blockEnd
+            continue
+        }
         var text: String
-        joinCueLines(&text, lines.toSlice(), first, index)
+        joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
         if text.length do
             track.addCue(times.startSeconds, times.endSeconds, text.toString())
+        else do
+            track.noteDiscardedCue()
+        index = blockEnd
     }
 }
 
@@ -377,14 +396,27 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             continue
 
         let event = Latin1.trim(line[9 to])
-        let start = try parseTimestamp(commaField(event, startField))
-        let end   = try parseTimestamp(commaField(event, endField))
-        if end <= start do
+        let start = catch parseTimestamp(commaField(event, startField))
+        {
+            track.noteDiscardedCue()
             continue
+        }
+        let end = catch parseTimestamp(commaField(event, endField))
+        {
+            track.noteDiscardedCue()
+            continue
+        }
+        if end <= start
+        {
+            track.noteDiscardedCue()
+            continue
+        }
         var text: String
         stripSubtitleMarkup(&text, commaTail(event, textField - 1))
         if text.length do
             track.addCue(start, end, text.toString())
+        else do
+            track.noteDiscardedCue()
     }
 }
 
@@ -400,19 +432,41 @@ private func decodeLyric(track: *Track, source: string) fail
         while line.count and line[0] == '['
         {
             let close = Utf8.indexOf(line, "]")
-            if close == Swag.U64.Max do
+            if close == Swag.U64.Max
+            {
+                if Utf8.indexOf(line, ":") != Swag.U64.Max do
+                    track.noteDiscardedCue()
                 break
+            }
             let stamp = line[1 until close]
             if Utf8.indexOf(stamp, ":") == Swag.U64.Max do
                 break
-            times.add(try parseLrcTimestamp(stamp))
+            let seconds = catch parseLrcTimestamp(stamp)
+            {
+                track.noteDiscardedCue()
+                line = line[close + 1 to]
+                continue
+            }
+            times.add(seconds)
             line = line[close + 1 to]
         }
 
         var text: String
         stripSubtitleMarkup(&text, Latin1.trim(line))
-        for start in times where text.length do
-            track.addCue(start, start + 5, text.toString())
+        if text.length
+        {
+            for start in times do
+                track.addCue(start, start + 5, text.toString())
+        }
+        else
+        {
+            var discarded = times.count
+            while discarded
+            {
+                track.noteDiscardedCue()
+                discarded -= 1
+            }
+        }
     }
 
     track.sortCues()
@@ -426,16 +480,35 @@ private func decodeMicroDvd(track: *Track, source: string) fail
     for raw in lines
     {
         let line = Latin1.trim(raw)
-        if line.count < 6 or line[0] != '{' do
+        if not line.count or line[0] != '{' do
             continue
+        if line.count < 6
+        {
+            track.noteDiscardedCue()
+            continue
+        }
         let firstClose = Utf8.indexOf(line, "}")
-        if firstClose == Swag.U64.Max or firstClose + 1 >= line.count or line[firstClose + 1] != '{' do
+        if firstClose == Swag.U64.Max or firstClose + 1 >= line.count or line[firstClose + 1] != '{'
+        {
+            track.noteDiscardedCue()
             continue
+        }
         let secondClose = Utf8.indexOf(line, "}", firstClose + 2)
-        if secondClose == Swag.U64.Max do
+        if secondClose == Swag.U64.Max
+        {
+            track.noteDiscardedCue()
             continue
-        let first = catch StrConv.toU64(line[1 until firstClose]) orelse 0
-        let last  = catch StrConv.toU64(line[firstClose + 2 until secondClose]) orelse 0
+        }
+        let first = catch StrConv.toU64(line[1 until firstClose])
+        {
+            track.noteDiscardedCue()
+            continue
+        }
+        let last = catch StrConv.toU64(line[firstClose + 2 until secondClose])
+        {
+            track.noteDiscardedCue()
+            continue
+        }
         if firstClose == 2 and first == 1 and last == 1
         {
             let declared = catch StrConv.toF64(Latin1.trim(line[secondClose + 1 to])) orelse 0
@@ -444,14 +517,19 @@ private func decodeMicroDvd(track: *Track, source: string) fail
             continue
         }
 
-        if last <= first do
+        if last <= first
+        {
+            track.noteDiscardedCue()
             continue
+        }
         var text = String.from(line[secondClose + 1 to])
         text.replace('|'rune, "\n")
         var clean: String
         stripSubtitleMarkup(&clean, text.toString())
         if clean.length do
             track.addCue(cast(f64, first) / framesPerSecond, cast(f64, last) / framesPerSecond, clean.toString())
+        else do
+            track.noteDiscardedCue()
     }
 }
 
@@ -488,6 +566,16 @@ impl Track
     // Returns the number of timed cues.
     #[Swag.NoInline]
     mtd const cueCount()->u64 => .cues.count
+
+    // Returns the number of malformed or empty cue records the decoder could isolate.
+    #[Swag.NoInline]
+    mtd const discardedCueCount()->u64 => .discardedCues
+
+    // Records one recognized cue block that cannot be represented in the decoded track.
+    private mtd noteDiscardedCue()
+    {
+        .discardedCues += 1
+    }
 
     // Borrows one cue, or returns null when `index` is outside the track.
     mtd const cue(index: u64)->const *Cue? => index < .cues.count ? &.cues[index] : null
@@ -594,6 +682,7 @@ impl Track
         result.language.clear()
         result.cues.clear()
         result.textStorage.clear()
+        result.discardedCues = 0
         result.textStorage.reserve(17)
         result.format = try inferFormat(fileName, source)
         switch result.format
@@ -687,8 +776,11 @@ impl Track
     // after appending container cues that are not already ordered.
     mtd addCue(startSeconds, endSeconds: f64, text: string)
     {
-        if not text.count or startSeconds < 0 or endSeconds <= startSeconds do
+        if not text.count or startSeconds < 0 or endSeconds <= startSeconds
+        {
+            .noteDiscardedCue()
             return
+        }
         let cue = .cues.emplaceInitAddress()
         cue.startSeconds = startSeconds
         cue.endSeconds   = endSeconds
@@ -708,6 +800,8 @@ impl Track
         stripSubtitleMarkup(&clean, content)
         if not clean.isEmpty() do
             .addCue(startSeconds, endSeconds, clean.toString())
+        else do
+            .noteDiscardedCue()
     }
 
     // Orders cues by start time and then by end time.

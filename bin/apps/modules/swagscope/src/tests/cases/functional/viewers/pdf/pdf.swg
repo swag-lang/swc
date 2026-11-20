@@ -19,6 +19,144 @@ internal func createPdfFixture()->String
     return fileName
 }
 
+internal func createMultipagePdfFixture(pageCount: u32)->String
+{
+    let fileName = Gui.Testing.tempFilePath("scope-pdf-pages-", ".pdf")
+    var document = Pdf.Document.create()
+    for index in 0 until pageCount
+    {
+        var page = Pdf.Page.create(300 + cast(f32, index % 5 * 5), 420)
+        page.addText(Format.toString("Generated report page %", index + 1), 24, 32, 18, Color.fromArgb(Argb.Black))
+        page.addText("Summary · analysis · references", 24, 76, 11, Color.fromArgb(Argb.Black))
+        document.addPage(#move page)
+    }
+    expect document.save(fileName)
+    return fileName
+}
+
+// A generated thousand-page document keeps only the active five-page neighborhood and follows
+// the current tile into view when the rail itself has to scroll.
+#test
+{
+    let fileName = createMultipagePdfFixture(1000)
+    defer discard catch File.delete(fileName)
+    var host: HeadlessHost
+    host.setup(680, 520)
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName)
+    let view = assume cast(*PdfDocument.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    view.resize(680, 500)
+    view.applyLayout()
+    view.thumbnailTask.wait()
+    host.pump()
+    Swag.require(view.pdfView.pageCount() == 1000 and view.thumbnails.count == 5 and view.thumbnailButtons.count == 5)
+    Swag.require(view.thumbnailStart == 0 and view.thumbnailScroll.scrollSize.y == 730)
+
+    view.pdfView.showPage(999)
+    Swag.require(view.pdfView.pageIndex == 999)
+    host.pump()
+    view.thumbnailTask.wait()
+    host.pump()
+    Swag.require(view.thumbnailStart == 995)
+    for button, slot in view.thumbnailButtons
+    {
+        let pageNumber = 996 + slot
+        let expected = pageNumber == 1000 ? Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, pageNumber) : Format.toString("%", pageNumber)
+        Swag.require(button.text() == expected, Format.toString("slot % shows '%', expected '%'.", slot, button.text(), expected))
+    }
+    Swag.require(view.thumbnailScroll.scrollPosition().y > 0)
+    for imageView in view.thumbnails
+    {
+        if let image = imageView.picture() do
+            Swag.require(image.isValid() and image.width <= 112 and image.height <= 112)
+        else do
+            Swag.require(false)
+    }
+
+    view.thumbnailButtons[1].button.sigPressed.call(view.thumbnailButtons[1])
+    Swag.require(view.pdfView.pageIndex == 996)
+    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 997))
+    Swag.require(view.thumbnailScroll.scrollPosition().y > 0)
+}
+
+// Exporting rasterizes one selected PDF page at the reader's stated 300 DPI without rewriting it.
+#test
+{
+    let source = createPdfFixture()
+    defer discard catch File.delete(source)
+    let target = Gui.Testing.tempFilePath("scope-pdf-export-", ".png")
+    defer discard catch File.delete(target)
+
+    var host: HeadlessHost
+    host.setup(640, 450)
+    var reader = expect Pdf.Reader.open(source)
+    let originalPages = reader.pageCount()
+    let originalSize = (expect File.info(source)).size
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, source)
+    let view = assume cast(*PdfDocument.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    view.resize(640, 420)
+    view.applyLayout()
+    view.pdfView.showPage(1)
+    Swag.require(view.pdfView.pageIndex == 1)
+    Swag.require(view.exportPageButton.isEnabled())
+    Swag.require(expect PdfDocument.savePagePng(source, target, view.pdfView.pageIndex) == target)
+    let image = expect Image.load(target)
+    Swag.require(image.isValid() and image.width >= 1333 and image.height >= 916)
+    reader = expect Pdf.Reader.open(source)
+    Swag.require(reader.pageCount() == originalPages and (expect File.info(source)).size == originalSize)
+
+    let asyncTarget = Gui.Testing.tempFilePath("scope-pdf-export-worker-", ".png")
+    defer discard catch File.delete(asyncTarget)
+    view.startPageExport(view.pdfView.pageIndex, asyncTarget)
+    view.pageExportTask.wait()
+    view.finishPageExport()
+    Swag.require(not view.pageExporting and expect Image.load(asyncTarget).isValid())
+
+    let rangeFolder = Gui.Testing.tempFilePath("scope-pdf-range-", "")
+    expect Directory.create(rangeFolder)
+    defer discard catch Directory.delete(rangeFolder, recurse: true)
+    var range: PdfDocument.PageRange
+    Swag.require(PdfDocument.parsePageRange("1-2", originalPages, &range) and range.first == 0 and range.last == 1)
+    for invalid in ["", "0-1", "2-1", "1-3", "one-two", "1-51"]
+    {
+        var rejected: PdfDocument.PageRange
+        Swag.require(not PdfDocument.parsePageRange(invalid, originalPages, &rejected), invalid)
+    }
+    var capped: PdfDocument.PageRange
+    Swag.require(not PdfDocument.parsePageRange("1-51", 100, &capped))
+    view.startPageRangeExport(range, rangeFolder, "fixture", 150)
+    view.pageExportTask.wait()
+    view.finishPageExport()
+    let firstExport = expect Image.load(PdfDocument.pageRangeFileName(rangeFolder, "fixture", 0))
+    let lastExport = expect Image.load(PdfDocument.pageRangeFileName(rangeFolder, "fixture", 1))
+    Swag.require(firstExport.width == 667 and lastExport.width == 667 and firstExport.height == 459)
+    var overwriteFailure: Swag.Error
+    discard catch PdfDocument.savePageRange(source, rangeFolder, "fixture", 0, 1, 150) as overwriteFailure
+    Swag.require(overwriteFailure.value() != null)
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "PDF", host.theme)
+    view.describeLens(&entries)
+    var found = false
+    for entry in results.sections[0]!.entries where entry.title == PdfDocument.texts().ui_ExportPage
+    {
+        Swag.require(not entry.disabled)
+        found = true
+    }
+    Swag.require(found)
+    var rangeLens = Lens.Results{}
+    var rangeEntries = Viewer.LensEntries.create(&rangeLens, "PDF", host.theme)
+    view.describeLens(&rangeEntries)
+    found = false
+    for entry in rangeLens.sections[0]!.entries where entry.title == PdfDocument.texts().ui_ExportRange
+    {
+        Swag.require(not entry.disabled)
+        found = true
+    }
+    Swag.require(found)
+}
+
 // Files from different PDF producers and page encodings open as readable pages.
 #test
 {
@@ -45,6 +183,27 @@ internal func createPdfFixture()->String
     let last  = expect reader.loadPage(66)
     Swag.require(first.width > 0 and first.height > 0)
     Swag.require(last.width > 0 and last.height > 0)
+
+    // A real embedded-font document keeps searchable text through its opening and final index pages.
+    let firstText = expect reader.loadPageText(0)
+    let lastText  = expect reader.loadPageText(66)
+    Swag.require(Utf8.contains(firstText, "LLVM OpenMP") and
+                 Utf8.contains(lastText, "__kmpc_dispatch_init_4"))
+}
+
+// The mixed fixture keeps its first-page text searchable and renders its scanned attachment as a
+// raster page with no extracted text layer.
+#test
+{
+    var reader = expect Pdf.Reader.open(scopeTestDataPath("viewer.mixed-text-scan.pdf"))
+    Swag.require(reader.pageCount() == 2)
+    let text = expect reader.loadPageText(0)
+    Swag.require(Utf8.contains(text, "ALPHA marker is searchable"))
+
+    let scanned = expect reader.loadPage(1)
+    let image   = expect scanned.render({scale: 0.25, maxDimension: 256, maxPixels: 65_536})
+    Swag.require(image.isValid() and image.width > 0 and image.height > 0)
+    Swag.require(expect reader.loadPageText(1) == "")
 }
 
 #test
@@ -64,7 +223,20 @@ internal func createPdfFixture()->String
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.require(view.children.count == 1 and view.children[0] == cast(*Wnd, view.pdfView))
+    view.thumbnailTask.wait()
+    host.pump()
+    Swag.require(view.children.count == 2 and view.children.contains(cast(*Wnd, view.pdfView)) and
+                 view.thumbnails.count == 5 and view.thumbnailButtons.count == 5)
+    if let firstThumbnail = view.thumbnails[0].picture() do
+        Swag.require(firstThumbnail.isValid())
+    else do
+        Swag.require(false)
+    if let secondThumbnail = view.thumbnails[1].picture() do
+        Swag.require(secondThumbnail.isValid())
+    else do
+        Swag.require(false)
+    Swag.require(view.thumbnailButtons[0].isEnabled() and view.thumbnailButtons[1].isEnabled() and
+                 not view.thumbnailButtons[2].isEnabled())
     assertViewerInfoButton(view.zoomLabel)
     Swag.require(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
     Swag.require(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")
@@ -113,6 +285,10 @@ internal func createPdfFixture()->String
     pdf.showPage(1)
     Swag.require(pdf.pageIndex == 1)
     Swag.require(view.previousButton.isEnabled() and not view.nextButton.isEnabled())
+    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 2))
+    view.thumbnailButtons[0].button.sigPressed.call(view.thumbnailButtons[0])
+    Swag.require(pdf.pageIndex == 0)
+    pdf.showPage(1)
 
     let oldTip  = String.from(view.pageLabel.toolTip)
     let oldZoom = pdf.effectiveZoom()
@@ -121,6 +297,8 @@ internal func createPdfFixture()->String
     Swag.require(view.pageLabel.toolTip == PdfDocument.texts().ui_GoToPage and view.pageLabel.toolTip != oldTip)
     Swag.require(view.previousButton.toolTip == appStrings().ui_PreviousPage and view.nextButton.toolTip == appStrings().ui_NextPage)
     Swag.require(view.zoomLabel.toolTip == PdfDocument.texts().ui_ZoomMenu)
+    Swag.require(view.thumbnailHeading.text() == PdfDocument.texts().ui_Thumbnails)
+    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 2))
     Swag.require(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -128,6 +306,46 @@ internal func createPdfFixture()->String
     Swag.require(view.goToTypedPage("1") and pdf.pageIndex == 0)
     Swag.require(not view.goToTypedPage("0") and not view.goToTypedPage("3") and not view.goToTypedPage("page"))
     Testing.assertContentFits(view)
+}
+
+// The thumbnail rail follows a page jump with a bounded five-page window, and a tile click navigates.
+#test
+{
+    let fileName = createMultipagePdfFixture(9)
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(680, 520)
+    var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view = assume cast(*PdfDocument.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+
+    let directBatch = expect PdfDocument.loadThumbnailBatch(fileName, 4, 9)
+    Swag.require(directBatch.first == 4 and directBatch.images.count == 5)
+    view.thumbnailTask.wait()
+    host.pump()
+    Swag.require(view.thumbnailStart == 0 and view.thumbnails.count == 5)
+    view.resize(680, 500)
+    view.applyLayout()
+    Swag.require(view.thumbnailScroll.scrollSize.y >= 730)
+    view.pdfView.showPage(6)
+    Swag.require(view.pdfView.pageIndex == 6)
+    host.pump()
+    view.thumbnailTask.wait()
+    host.pump()
+    Swag.require(view.thumbnailStart == 4)
+    Swag.require(not view.thumbnailTask.isDone())
+    Swag.require(view.thumbnailButtons[2].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 7),
+                 Format.toString("Current thumbnail text was '%', page index is %", view.thumbnailButtons[2].text(), view.pdfView.pageIndex))
+    for imageView in view.thumbnails
+    {
+        if let image = imageView.picture() do
+            Swag.require(image.isValid() and image.width <= 112 and image.height <= 112)
+        else do
+            Swag.require(false)
+    }
+    view.thumbnailButtons[4].button.sigPressed.call(view.thumbnailButtons[4])
+    Swag.require(view.pdfView.pageIndex == 8)
 }
 
 #test

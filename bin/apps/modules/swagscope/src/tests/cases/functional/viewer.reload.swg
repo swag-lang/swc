@@ -77,6 +77,9 @@ using Core, Gui, Viewers
         .setZoom(1.5)
         .showPage(1)
     }
+    let panel = assume cast(*PdfDocument.Panel, window.currentView)
+    panel.thumbnailTask.wait()
+    host.pump()
 
     let zoomMode = view.zoomMode
     var page     = Pdf.Page.create(320, 220)

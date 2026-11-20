@@ -21,6 +21,16 @@ struct PopupListCtrlItem
     commandId: String     // Owns a dynamically supplied identifier for as long as this item exists.
 }
 
+// Half-open item-index range intersecting a popup list's scroll viewport.
+struct PopupListVisibleRange
+{
+    public
+    {
+        first: u32     // First visible item index.
+        end:   u32     // One past the last visible item index.
+    }
+}
+
 // Displays a temporary list that commits one highlighted item or reports cancellation.
 struct PopupListCtrl
 {
@@ -54,6 +64,56 @@ struct PopupListCtrl
     }
 
     maxIconSize: s32     // Widest item icon, used to align labels.
+}
+
+public impl PopupListCtrl
+{
+    // Returns the half-open item range intersecting the current viewport. Separator rows count
+    // as items, and partially visible rows are included.
+    mtd visibleItemRange()->PopupListVisibleRange
+    {
+        var result: PopupListVisibleRange
+        let top    = .scrollWnd.scrollPosition().y
+        let bottom = top + .scrollWnd.paddedClientRect().height
+        if bottom <= top or .items.count == 0 do
+            return result
+
+        var y = 0'f32
+        for itemIt, i in .items
+        {
+            let item = unwrap itemIt
+            let height = item.isSeparator ? .separatorHeight : .itemHeight
+            if y + height > top and y < bottom
+            {
+                if result.end == 0 do
+                    result.first = cast(u32, i)
+                result.end = cast(u32, i + 1)
+            }
+            y += height
+            if y >= bottom do
+                break
+        }
+        return result
+    }
+
+    // Replaces an entry's icon after it has been added, then refreshes the visible popup.
+    mtd setItemIcon(index: u32, icon: Icon)
+    {
+        if index >= .items.count do
+            return
+        .items[index]!.icon = icon
+        .maxIconSize = 0
+        for itemIt in .items
+        {
+            let item = unwrap itemIt
+            if item.icon.isValid()
+            {
+                let iconWidth = .iconSize != 0 ? .iconSize : item.icon.sizeX
+                .maxIconSize = Math.max(.maxIconSize, cast(s32, iconWidth))
+            }
+        }
+        .scrollWnd.view.invalidate()
+    }
 }
 
 // Implements painting and input inside a popup list.

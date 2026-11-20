@@ -3,6 +3,21 @@
 
 using Core, Viewers
 
+// An expanded generated briefing keeps speaker notes separate and preserves vector drawing bounds.
+#test
+{
+    let presentation = expect Odp.load(scopeTestDataPath("viewer.watershed.odp"))
+    Swag.require(presentation.slides.count == 3)
+    let slide = &presentation.slides[2]
+    Swag.require(slide.title == "Field station status" and slide.shapes.count == 5)
+    Swag.require(slide.shapes[1].round and slide.shapes[1].positioned)
+    Swag.require(Utf8.contains(slide.shapes[1].plainText, "North Marsh"))
+    Swag.require(slide.shapes[2].unsupported and slide.shapes[2].positioned)
+    Swag.require(slide.shapes[3].unsupported and slide.shapes[3].positioned)
+    Swag.require(slide.simplified and Utf8.contains(slide.notesHtml, "Recalibrate the lower marker"))
+    Swag.require(presentation.omittedImages == 0)
+}
+
 // Master dimensions, static drawings and backgrounds survive, while master placeholder text stays out.
 #test
 {

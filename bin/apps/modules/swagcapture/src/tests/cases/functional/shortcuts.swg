@@ -93,6 +93,8 @@ func pickCaptureShortcut(host: *Testing.HeadlessHost, root: *Wnd, key: Input.Key
         case .PickAvailable:
             step = .CloseOptions
             pickCaptureShortcut(host, root, .F8)
+
+        case .CloseOptions, .Done: break
         }
     }
 

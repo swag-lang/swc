@@ -277,6 +277,19 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                 try fault(0x03)
         }
 
+        if format == 4
+        {
+            let segCountX2 = try readU16(subTable, 6)
+            if not segCountX2 or (segCountX2 & 1) != 0 do
+                try fault(0x03)
+
+            // Four parallel arrays each contain segCount 16-bit entries, with
+            // the fixed header and reservedPad taking 16 bytes in total.
+            let requiredLength = 16'u64 + cast(u64, segCountX2) * 4
+            if subTable.count < requiredLength do
+                try fault(0x03)
+        }
+
         if format == 8
         {
             let groupCount = try readU32(subTable, 8204)

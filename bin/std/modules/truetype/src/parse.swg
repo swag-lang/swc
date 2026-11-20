@@ -474,11 +474,23 @@ func parseKern(faceData: *FaceImpl) fail
         // Only horizontal format-0 pair tables; skip minimum/cross-stream variants.
         if format == 0 and horizontal and (coverage & 0x0002) == 0
         {
-            let nPairs  = try readU16(table, offset + 6)
-            var pairOff = offset + 14     // after nPairs/searchRange/entrySelector/rangeShift
+            // A format-0 subtable needs its 14-byte header before any pair record.
+            // Keep the pair scan inside the declared subtable, even when the next
+            // subtable (or another table) gives the backing slice more bytes.
+            if length == 0 do
+                break
+            if length < 14
+            {
+                offset += length
+                continue
+            }
+
+            let subtableEnd = offset + length
+            let nPairs      = try readU16(table, offset + 6)
+            var pairOff     = offset + 14     // after nPairs/searchRange/entrySelector/rangeShift
             for nPairs
             {
-                if pairOff + 6 > table.count do
+                if pairOff + 6 > subtableEnd do
                     break
                 let left  = try readU16(table, pairOff + 0)
                 let right = try readU16(table, pairOff + 2)

@@ -2,6 +2,24 @@
 
 using Swag, Core
 
+// A format-0 kern subtable cannot read pair records beyond its declared length,
+// even when the overall table contains enough trailing bytes for that record.
+#test
+{
+    var bytes: Array'u8
+    bytes.add([
+        0x00, 0x00, 0x00, 0x01,     // version, subtable count
+        0x00, 0x00, 0x00, 0x0E, 0x00, 0x01,      // format, length, horizontal coverage
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // one pair, search fields
+        0x00, 0x01, 0x00, 0x02, 0xFF, 0x38])     // pair is outside declared length
+
+    var faceData: FaceImpl
+    faceData.fontData.add(bytes.toSlice())
+    faceData.tables.add({tag: TAG_KERN, offset: 0, length: cast(u32, bytes.count)})
+    expect parseKern(&faceData)
+    Swag.require(faceData.kernPairs.isEmpty())
+}
+
 #test
 {
     var faceScope: FaceScope

@@ -39,7 +39,7 @@ impl IForm for FormStep
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = catch cast(*FormStep?, ptr)
+        let other = catch cast(*FormStep?, ptr) orelse null
         if not other do
             return false
         return .isSameBase(ptr) and

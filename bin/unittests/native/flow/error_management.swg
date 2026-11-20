@@ -325,7 +325,7 @@ func traceFailCatch()->s64
 
 func catchAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(70)
+    return catch aggregateSuccess(70) orelse AggregateResult{}
 }
 
 func inlineCatchFailureInfo()->CatchInfo
@@ -405,14 +405,14 @@ func catchStrictEnumFailureInfo()->bool
 
 func dismissAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(80)
+    return catch aggregateSuccess(80) orelse AggregateResult{}
 }
 
 func inlineDismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch inlineAlwaysFailValue(42)
+    // Keep the written fallback and release the error without a capture.
+    result.value  = catch inlineAlwaysFailValue(42) orelse 0
     result.hasErr = false
     result.code   = 0
     return result
@@ -421,8 +421,8 @@ func inlineDismissFailureInfo()->CatchInfo
 func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch propagateExplicitFailure()
+    // Keep the written fallback and release the error without a capture.
+    result.value  = catch propagateExplicitFailure() orelse 0
     result.hasErr = false
     result.code   = 0
     return result
@@ -431,8 +431,8 @@ func dismissFailureInfo()->CatchInfo
 func dismissAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch aggregateFailure(72)
+    // Keep the written fallback and release the error without a capture.
+    result.value  = catch aggregateFailure(72) orelse AggregateResult{}
     result.hasErr = false
     result.code   = 0
     return result
@@ -495,7 +495,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func dismissNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  *s32? = catch nullablePointerFailure(76)
+    let value:  *s32? = catch nullablePointerFailure(76) orelse null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -505,7 +505,7 @@ func dismissNullablePointerFailureInfo()->NullInfo
 func dismissNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  string? = catch nullableStringFailure(77)
+    let value:  string? = catch nullableStringFailure(77) orelse null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -515,7 +515,7 @@ func dismissNullableStringFailureInfo()->NullInfo
 func dismissNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  [..] s32? = catch nullableSliceFailure(78)
+    let value:  [..] s32? = catch nullableSliceFailure(78) orelse null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -569,7 +569,7 @@ func dismissErrDeferOverrideFailureInfo()->TraceInfo
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = catch errDeferOverrideFailure()
+    result.value  = catch errDeferOverrideFailure() orelse 0
     result.trace  = ErrorTrace
     result.hasErr = false
     result.code   = 0
@@ -597,9 +597,9 @@ func errIsAsFailureInfo()->ErrCastInfo
     catch alwaysFailTypedVoid(86) as err7Outcome
     let err7 = err7Outcome.value()
 
-    let exactErr = catch cast(*ErrValue?, err7)
-    let baseErr  = catch cast(*Swag.BaseError?, err7)
-    let otherErr = catch cast(*OtherErrValue?, err7)
+    let exactErr = catch cast(*ErrValue?, err7) orelse null
+    let baseErr  = catch cast(*Swag.BaseError?, err7) orelse null
+    let otherErr = catch cast(*OtherErrValue?, err7) orelse null
 
     result.exactType     = (err7 is ErrValue)
     result.baseType      = (err7 is Swag.BaseError)
@@ -802,7 +802,7 @@ func notNullSliceSuccess()->s32
 
 #test
 {
-    let value = catch aggregateSuccess(80)
+    let value = catch aggregateSuccess(80) orelse AggregateResult{}
     Swag.require(value.first == 80)
     Swag.require(value.second == 81)
     Swag.require(value.payload[0] == 82)

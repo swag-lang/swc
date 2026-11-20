@@ -133,8 +133,8 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     let nameTable = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
 
-    var familyName = catch decodeBestName(nameTable, NAME_ID_FAMILY)
-    var styleName  = catch decodeBestName(nameTable, NAME_ID_STYLE)
+    var familyName = catch decodeBestName(nameTable, NAME_ID_FAMILY) orelse {}
+    var styleName  = catch decodeBestName(nameTable, NAME_ID_STYLE) orelse {}
     if familyName.isEmpty() do
         familyName = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     if styleName.isEmpty() do
@@ -143,9 +143,9 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     // The descriptive names only inform a reader, so a record that does not decode leaves its
     // name empty rather than refusing a face that renders perfectly well.
-    faceData.face.setDescription(catch decodeBestName(nameTable, NAME_ID_VERSION),
-                                 catch decodeBestName(nameTable, NAME_ID_DESIGNER),
-                                 catch decodeBestName(nameTable, NAME_ID_COPYRIGHT))
+    faceData.face.setDescription(catch decodeBestName(nameTable, NAME_ID_VERSION) orelse {},
+                                 catch decodeBestName(nameTable, NAME_ID_DESIGNER) orelse {},
+                                 catch decodeBestName(nameTable, NAME_ID_COPYRIGHT) orelse {})
 }
 
 func parsePost(faceData: *FaceImpl, allowMissing: bool) fail

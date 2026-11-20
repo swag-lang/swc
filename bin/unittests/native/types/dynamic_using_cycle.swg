@@ -19,7 +19,7 @@ func query(target, source: typeinfo)->bool => source is target
     second.next = &first
     let boxed: any = &first
     Swag.require(not (boxed is Unrelated))
-    Swag.require((catch cast(*Cycle?, boxed)) == &first)
+    Swag.require((catch cast(*Cycle?, boxed) orelse null) == &first)
     Swag.require(not query(Unrelated, Cycle))
 }
 
@@ -37,5 +37,5 @@ func query(target, source: typeinfo)->bool => source is target
     node.next = &node
     var holder     = CycleHolder{cycle: &node}
     let boxed: any = &holder
-    Swag.require((catch cast(*CycleLeaf?, boxed)) == &holder.leaf)
+    Swag.require((catch cast(*CycleLeaf?, boxed) orelse null) == &holder.leaf)
 }

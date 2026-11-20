@@ -86,9 +86,9 @@ namespace LinuxDrag
     {
         switch effect
         {
-        case .Copy: return catch LinuxDesktop.atom(context, "XdndActionCopy")
-        case .Move: return catch LinuxDesktop.atom(context, "XdndActionMove")
-        case .Link: return catch LinuxDesktop.atom(context, "XdndActionLink")
+        case .Copy: return catch LinuxDesktop.atom(context, "XdndActionCopy") orelse 0
+        case .Move: return catch LinuxDesktop.atom(context, "XdndActionMove") orelse 0
+        case .Link: return catch LinuxDesktop.atom(context, "XdndActionLink") orelse 0
         }
 
         return 0
@@ -307,7 +307,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
     if packet.format != 32 do
         return false
     let context = catch LinuxDesktop.ensure() { return false; }
-    if packet.type == catch LinuxDesktop.atom(context, "XdndStatus")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndStatus") orelse 0)
     {
         let source = LinuxDrag.activeSource
         if source and packet.window == source.window and packet.data[0] == source.target
@@ -321,7 +321,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         return true
     }
 
-    if packet.type == catch LinuxDesktop.atom(context, "XdndFinished")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndFinished") orelse 0)
     {
         let source = LinuxDrag.activeSource
         if source and packet.window == source.window and packet.data[0] == source.target
@@ -340,7 +340,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
     if packet.window != surface.windowId do
         return false
     let target = &surface.dropTarget
-    if packet.type == catch LinuxDesktop.atom(context, "XdndEnter")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndEnter") orelse 0)
     {
         if target.source do
             surface.app.dragLeave(&target.data)
@@ -350,10 +350,10 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         if target.version < 3 or target.version > 5 do
             return true
         target.source    = packet.data[0]
-        target.selection = catch LinuxDesktop.atom(context, "XdndSelection")
+        target.selection = catch LinuxDesktop.atom(context, "XdndSelection") orelse 0
         if packet.data[1] & 1
         {
-            let formats = LinuxDrag.property(context, target.source, catch LinuxDesktop.atom(context, "XdndTypeList"))
+            let formats = LinuxDrag.property(context, target.source, catch LinuxDesktop.atom(context, "XdndTypeList") orelse 0)
             if formats.valid and
                formats.type == 4 and
                formats.format == 32 and
@@ -366,7 +366,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
                 target.formats.add(packet.data[index])
         }
 
-        let actions = LinuxDrag.property(context, target.source, catch LinuxDesktop.atom(context, "XdndActionList"))
+        let actions = LinuxDrag.property(context, target.source, catch LinuxDesktop.atom(context, "XdndActionList") orelse 0)
         if actions.valid and
            actions.type == 4 and
            actions.format == 32 and
@@ -383,7 +383,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
 
     if packet.data[0] != target.source or target.source == 0 do
         return false
-    if packet.type == catch LinuxDesktop.atom(context, "XdndLeave")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndLeave") orelse 0)
     {
         surface.app.dragLeave(&target.data)
         target.data.clear()
@@ -391,7 +391,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         return true
     }
 
-    if packet.type == catch LinuxDesktop.atom(context, "XdndPosition")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndPosition") orelse 0)
     {
         target.position = {cast(f32, cast(s16, packet.data[2] >> 16)), cast(f32, cast(s16, packet.data[2] & 0xFFFF))}
         let pointer = context.xcb_query_pointer_reply(unwrap context.connection,
@@ -416,7 +416,7 @@ internal func dispatchDragNativeEvent(surface: *Surface, event: *Linux.xcb_gener
         return true
     }
 
-    if packet.type == catch LinuxDesktop.atom(context, "XdndDrop")
+    if packet.type == (catch LinuxDesktop.atom(context, "XdndDrop") orelse 0)
     {
         LinuxDrag.load(target)
         let effect   = surface.app.dragDrop(surface, target.position, &target.data, target.allowed, target.modifiers)
@@ -586,8 +586,8 @@ namespace LinuxDrag
             window = next
         }
 
-        let awareAtom = catch LinuxDesktop.atom(context, "XdndAware")
-        let proxyAtom = catch LinuxDesktop.atom(context, "XdndProxy")
+        let awareAtom = catch LinuxDesktop.atom(context, "XdndAware") orelse 0
+        let proxyAtom = catch LinuxDesktop.atom(context, "XdndProxy") orelse 0
         for 64
         {
             let aware = property(context, window, awareAtom)
@@ -678,7 +678,7 @@ namespace LinuxDrag
         {
             let image = data.image()
             if image do
-                bytes = catch image.encodeToBytes("drag.png", Png.EncodeOptions{compressionLevel: .BestSpeed})
+                bytes = catch image.encodeToBytes("drag.png", Png.EncodeOptions{compressionLevel: .BestSpeed}) orelse {}
         }
         else
         {

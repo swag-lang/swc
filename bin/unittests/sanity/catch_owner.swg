@@ -38,7 +38,7 @@ func returnCatchPointer()->*s32?
 {
     catch failBorrowedCapture()
     {
-        return (catch cast(*s32?, Swag.err))     // swc-expected-error {{sanity_err_borrow_escape}}
+        return (catch cast(*s32?, Swag.err) orelse null)     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
 }

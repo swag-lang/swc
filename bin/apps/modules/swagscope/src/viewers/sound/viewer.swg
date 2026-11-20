@@ -1422,7 +1422,7 @@ func embeddedSleeve(tags: *SoundTags, side = cast(s32, CoverSize * 2))->Image
     var result: Image
     if not tags.picture.isEmpty()
     {
-        result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice())
+        result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice()) orelse {}
         if result.isValid() do
             fitSleeve(&result, side)
     }
@@ -1443,7 +1443,7 @@ func localSleeve(fileName: string)->Image
         let candidate = Path.combine(folder, name)
         if not File.exists(candidate) do
             continue
-        let info = catch File.info(candidate)
+        let info = catch File.info(candidate) { continue }
         if info.size > MaxBytes do
             continue
         var image = catch Image.load(candidate) { continue }

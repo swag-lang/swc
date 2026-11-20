@@ -339,7 +339,7 @@ impl HeadlessHost
         // The words of the box are its labels: the message, and the detail under it.
         func addWords(wnd: *Wnd, result: *String)
         {
-            let label = catch cast(*Label?, wnd)
+            let label = catch cast(*Label?, wnd) orelse null
             if label and label.text().count != 0 do
                 result[] += Format.toString(". Message: '%'", label.text())
             for child in wnd.children do
@@ -1056,7 +1056,7 @@ impl HeadlessHost
     // Returns the popup menu holding the pointer capture, or `null` when none does.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
-        let menu = catch cast(*MenuCtrl?, .app.mouseCaptureWnd)
+        let menu = catch cast(*MenuCtrl?, .app.mouseCaptureWnd) orelse null
         if not menu do
             return null
         if menu.bar do
@@ -1069,7 +1069,7 @@ impl HeadlessHost
     //
     // Drive it through [[Gui.OptionSheet.View.activateRow]], [[Gui.OptionSheet.View.back]] and
     // [[Gui.OptionSheet.View.close]], or with the keys and the pointer of this host.
-    mtd capturedOptionSheet()->*OptionSheet.View? => catch cast(*OptionSheet.View?, .app.mouseCaptureWnd)
+    mtd capturedOptionSheet()->*OptionSheet.View? => catch cast(*OptionSheet.View?, .app.mouseCaptureWnd) orelse null
 
     // Activates the row worded `label` of the captured option sheet and reports whether it was found.
     //

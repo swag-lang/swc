@@ -35,7 +35,7 @@ impl ExplorerListingLoad
             {
                 operation.watcher.close()
                 if Directory.exists(operation.path) do
-                    operation.watcher = catch Directory.watch(operation.path)
+                    operation.watcher = catch Directory.watch(operation.path) orelse {}
             }
 
             catch

@@ -426,21 +426,6 @@ namespace
             builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
     }
 
-    // A value result lives in a register: build the default in the result storage, then load it.
-    Result emitDefaultFallibleExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, const SymbolVariable* resultStorage, TypeRef typeRef)
-    {
-        if (resultPayload.isAddress())
-            return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, typeRef, resultPayload.reg);
-
-        if (!resultStorage)
-            return raiseInternalCodeGenError(codeGen, "missing catch result storage for the default value");
-
-        const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(*resultStorage);
-        SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, typeRef, storagePayload.reg));
-        assignFallibleExprResult(codeGen, resultPayload, storagePayload, typeRef);
-        return Result::Continue;
-    }
-
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
     {
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
@@ -1592,25 +1577,20 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     const auto*      expression  = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>();
     const AstNodeRef fallbackRef = expression ? expression->nodeFallbackRef : AstNodeRef::invalid();
 
-    // A bare 'catch e' resumes with the default value of its type.
-    const bool            resumesWithDefault = hasResult && kind == FallibleHandlerKind::Catch && expression && fallbackRef.isInvalid() && !isDiscarded;
-    const bool            writesFallback     = fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock);
-    const SymbolVariable* resultStorage      = nullptr;
-    if (hasResult && kind == FallibleHandlerKind::Catch && (resumesWithDefault || writesFallback))
+    const bool writesFallback = fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock);
+    if (hasResult && kind == FallibleHandlerKind::Catch && writesFallback)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
-        resultStorage                           = resultPayload.runtimeStorageSym;
-        if (expression)
-        {
-            // The wrapper shares its payload slot with a contextual conversion. That slot
-            // can name the conversion's smaller result buffer while its register still
-            // addresses the operand. Reconstruct the operand's address on failure.
-            const SymbolVariable* operandStorage = codeGen.payload(expression->nodeExprRef).runtimeStorageSym;
-            if (!operandStorage)
-                operandStorage = codeGen.runtimeStorageSymbol(expression->nodeExprRef);
-            if (operandStorage)
-                resultStorage = operandStorage;
-        }
+        const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
+
+        // The wrapper shares its payload slot with a contextual conversion. That slot
+        // can name the conversion's smaller result buffer while its register still
+        // addresses the operand. Reconstruct the operand's address on failure.
+        const SymbolVariable* operandStorage = codeGen.payload(expression->nodeExprRef).runtimeStorageSym;
+        if (!operandStorage)
+            operandStorage = codeGen.runtimeStorageSymbol(expression->nodeExprRef);
+        if (operandStorage)
+            resultStorage = operandStorage;
 
         // An inlined callee whose only exit is fail emits no success-path definition
         // of the result register. Define its address here too, from the local stack
@@ -1668,7 +1648,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
 
     // 'catch e orelse V': evaluated on the failure path only, after the capture is bound so
     // 'V' can read 'Swag.err'. It writes the result slot the success value inherited, joining both
-    // paths. Without 'V', the default value of the type fills that slot the same way.
+    // paths.
     if (fallbackRef.isValid())
     {
         SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
@@ -1676,10 +1656,6 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             SWC_RESULT(emitDiscardedCallResult(codeGen, fallbackRef, resultType));
         else if (writesFallback)
             assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
-    }
-    else if (resumesWithDefault)
-    {
-        SWC_RESULT(emitDefaultFallibleExprResult(codeGen, codeGen.payload(nodeRef), resultStorage, resultType));
     }
 
     // 'catch e { H }': the anonymous lazy handler runs here (failure path only).

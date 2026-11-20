@@ -33,7 +33,7 @@ impl IForm for FormShape
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = catch cast(*FormShape?, ptr)
+        let other = catch cast(*FormShape?, ptr) orelse null
         if not other do
             return false
         return .isSameBase(ptr) and

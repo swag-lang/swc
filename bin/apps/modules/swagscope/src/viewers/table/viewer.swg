@@ -1065,7 +1065,7 @@ impl Panel
             return
         for c in query where not Latin1.isDigit(c) do
             return
-        let row = catch StrConv.toU64(query)
+        let row = catch StrConv.toU64(query) { return; }
         if not row or row > .document.rows.count do
             return
 

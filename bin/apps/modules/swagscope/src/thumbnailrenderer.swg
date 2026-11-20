@@ -43,7 +43,7 @@ impl ThumbnailRenderer
 
         if textual
         {
-            var source = catch .readText(path)
+            var source = catch .readText(path) orelse {}
             if source.count
             {
                 var content: RichString = #move source

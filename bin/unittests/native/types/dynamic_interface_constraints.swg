@@ -60,7 +60,7 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
 {
     var accepted  = GenericConstrainedDynamicValue's32{42}
     let boxedAccepted: any = &accepted
-    let converted = catch cast(IConstrainedDynamicValue?, boxedAccepted)
+    let converted = catch cast(IConstrainedDynamicValue?, boxedAccepted) orelse null
     Swag.require(converted != null)
     Swag.require(converted.value() == 42)
 
@@ -75,7 +75,7 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
     var value:  ConstrainedDynamicValue
     let direct: IConstrainedDynamicValue = &value
     let boxed:  any = &value
-    let converted   = catch cast(IConstrainedDynamicValue?, boxed)
+    let converted   = catch cast(IConstrainedDynamicValue?, boxed) orelse null
     Swag.require(converted != null)
     if let view = converted
     {

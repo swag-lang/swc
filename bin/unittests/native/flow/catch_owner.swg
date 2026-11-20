@@ -54,7 +54,7 @@ func catchOwnerBoolean()->bool fail
 func conditionalCatchOwner(take: bool)
 {
     var errorOutcome: Swag.Error
-    let result = take and (catch catchOwnerBoolean() as errorOutcome)
+    let result = take and (catch catchOwnerBoolean() as errorOutcome orelse false)
     let error  = errorOutcome.value()
     Swag.assert(not result)
     Swag.assert((error != null) == take)

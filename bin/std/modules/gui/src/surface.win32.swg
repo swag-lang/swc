@@ -865,7 +865,7 @@ impl Surface
 
         var img     = icon
         let tipText = String.from(tip orelse "")
-        let newIcon = catch img.toHicon()
+        let newIcon = catch img.toHicon() orelse null
         if not newIcon do
             return
 

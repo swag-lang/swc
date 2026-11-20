@@ -119,7 +119,7 @@ impl ExplorerPreview
         let localArtwork = .archivePath.isEmpty() ? localAlbumArtwork(media) : String.from("")
         if not localArtwork.isEmpty()
         {
-            let info = catch File.info(localArtwork)
+            let info = catch File.info(localArtwork) orelse {}
             member += Format.toString("\n%\n%\n%", localArtwork, info.size, Hash.hash64(info.lastWriteTime))
         }
 
@@ -127,7 +127,7 @@ impl ExplorerPreview
         if not .opening
         {
             ThumbnailCache.pruneOnce()
-            cache  = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
+            cache  = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
             .image = ThumbnailCache.read(cache)
             if .image.isValid() and (.online and onlinePreviewStamped(&.image)) do
                 return
@@ -204,9 +204,9 @@ impl ExplorerPreview
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
-                        .image = catch .service.render(localArtwork)
+                        .image = catch .service.render(localArtwork) orelse {}
                     if not .image.isValid() do
-                        .image = catch .service.render(file)
+                        .image = catch .service.render(file) orelse {}
                     if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                     let tags = SoundTags.read(file)
@@ -217,14 +217,14 @@ impl ExplorerPreview
                 {
                     // Online artwork does not depend on the local codec succeeding.
                     var failure: Swag.Error
-                    .image       = catch .service.render(file) as failure
+                    .image       = catch .service.render(file) as failure orelse {}
                     .error       = Viewer.failureText(failure.value())
                     .needsOnline = .archivePath.isEmpty() and
                                    onlinePreviewWanted(file, &settings, thumbnailDuration(&.image))
                 }
 
                 ThumbnailFraming.labelImage(&.image)
-                let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
+                let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
                 if .image.isValid() and not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image, source, .privacy)
                 return
@@ -297,7 +297,7 @@ impl ExplorerPreview
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
-                        .image = catch .service.render(localArtwork)
+                        .image = catch .service.render(localArtwork) orelse {}
                     if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                 }
@@ -333,7 +333,7 @@ impl ExplorerPreview
 
             ThumbnailFraming.labelImage(&.image)
             // A file replaced during rendering must not publish an image under its old identity.
-            let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
+            let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
             if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do
                 catch ThumbnailCache.write(cache, &.image, source, .privacy)
         }

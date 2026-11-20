@@ -632,7 +632,7 @@ func deferBreakToScope()->s64
 
 #test
 {
-    let v = catch deferConditionalReturnTrace()
+    let v = catch deferConditionalReturnTrace() orelse DeferReturnInfo{}
     Swag.require(v.value == 7)
     Swag.require(DeferTrace == 32)
 }
@@ -640,7 +640,7 @@ func deferBreakToScope()->s64
 #test
 {
     Swag.require(deferConditionalFailTrace() == 31)
-    // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both.
+    // Both statement catches handle the failure before the block exits and run its '#nofail' defer.
     Swag.require(deferConditionalCatchTrace() == 1242)
     Swag.require(deferConditionalCatchElseTrace() == 1242)
 }

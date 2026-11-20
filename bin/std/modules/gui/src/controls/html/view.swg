@@ -723,7 +723,7 @@ internal impl HtmlView
     {
         var probe: Array'u8
         probe.resize(HtmlCharsetProbeSize)
-        let count = catch .stream.read(probe.toSlice())
+            let count = catch .stream.read(probe.toSlice()) orelse 0
         probe.resize(count)
 
         var result       = Text.detectEncoding(probe.toSlice())

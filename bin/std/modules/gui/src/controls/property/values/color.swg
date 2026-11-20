@@ -51,7 +51,8 @@ internal impl Properties
             .setHexadecimalRange(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
             .sigCommitted += func|prop = me, color, item, opaque, keepAlpha|(ed)
             {
-                var result = cast(u32, (catch (StrConv.parseX64(ed.text()).value & 0xFFFFFFFF)))
+                let parsed = catch StrConv.parseX64(ed.text()).value orelse 0
+                var result = cast(u32, (parsed & 0xFFFFFFFF))
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do

@@ -155,7 +155,7 @@ impl FileDlg
     {
         // A file that cannot be read leaves an empty description, and the question stands without it.
         var detail: String
-        let info = catch File.info(path)
+        let info = catch File.info(path) orelse {}
         if info.size do
             detail = Format.toString(strings().fileDlg_ReplaceDetail, Format.byteSize(info.size), info.lastWriteTime.toString(.DateTimeIsoHm))
 

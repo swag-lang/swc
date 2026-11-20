@@ -209,7 +209,7 @@ impl MainWnd
         {
             if btnRatio.isChecked()
             {
-                let w = catch StrConv.toS32(edt.text())
+                let w = catch StrConv.toS32(edt.text()) { return; }
                 let h = Math.max(1, Math.roundS32(w / ratio))
                 edit1.setText(Format.toString("%", h), notify: false)
             }
@@ -219,7 +219,7 @@ impl MainWnd
         {
             if btnRatio.isChecked()
             {
-                let h = catch StrConv.toS32(edt.text())
+                let h = catch StrConv.toS32(edt.text()) { return; }
                 let w = Math.max(1, Math.roundS32(h * ratio))
                 edit0.setText(Format.toString("%", w), notify: false)
             }
@@ -230,8 +230,8 @@ impl MainWnd
         if result != Dialog.BtnOk do
             return
 
-        let w = catch StrConv.toS32(edit0.text())
-        let h = catch StrConv.toS32(edit1.text())
+        let w = catch StrConv.toS32(edit0.text()) { return; }
+        let h = catch StrConv.toS32(edit1.text()) { return; }
         if acceptsNewSize(w, h, capture.width, capture.height) do
             .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
     }
@@ -292,7 +292,7 @@ impl MainWnd
 
         edit0.sigTextChanged += func|ratio, edit1|(edt)
         {
-            g_Width = catch StrConv.toS32(edt.text())
+            g_Width = catch StrConv.toS32(edt.text()) orelse 0
             if g_KeepRatio
             {
                 g_Height = Math.max(1, Math.roundS32(g_Width / ratio))
@@ -302,7 +302,7 @@ impl MainWnd
 
         edit1.sigTextChanged += func|ratio, edit0|(edt)
         {
-            g_Height = catch StrConv.toS32(edt.text())
+            g_Height = catch StrConv.toS32(edt.text()) orelse 0
             if g_KeepRatio
             {
                 g_Width = Math.max(1, Math.roundS32(g_Height * ratio))

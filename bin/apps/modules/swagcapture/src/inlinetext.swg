@@ -91,7 +91,7 @@ func stepIndexOf(type: FormStepType, label: string)->u32
 {
     if type == .Number
     {
-        let {value, eat, ovf} = catch StrConv.parseU32(label)
+        let {value, eat, ovf} = catch StrConv.parseU32(label) { return 0 }
         if ovf or eat != label.count or value < 1 or value > MaxInlineStepNumber do
             return 0
         return value

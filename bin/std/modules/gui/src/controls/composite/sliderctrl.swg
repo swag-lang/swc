@@ -109,14 +109,17 @@ impl SliderCtrl
                     return
                 switch edit.inputMode
                 {
-                case .UnsignedInteger: let {value: val, eat: _, ovf: _} = catch StrConv.parseU64(edit.text())
-                    ctrl.slider.setValue(cast(f32, val))
+                case .UnsignedInteger:
+                    let value = catch StrConv.parseU64(edit.text()).value orelse 0
+                    ctrl.slider.setValue(cast(f32, value))
 
-                case .SignedInteger: let {value: val, eat: _, ovf: _} = catch StrConv.parseS64(edit.text())
-                    ctrl.slider.setValue(cast(f32, val))
+                case .SignedInteger:
+                    let value = catch StrConv.parseS64(edit.text()).value orelse 0
+                    ctrl.slider.setValue(cast(f32, value))
 
-                case .FloatingPoint: let {value: val, eat: _, ovf: _} = catch StrConv.parseF64(edit.text())
-                    ctrl.slider.setValue(cast(f32, val))
+                case .FloatingPoint:
+                    let value = catch StrConv.parseF64(edit.text()).value orelse 0
+                    ctrl.slider.setValue(cast(f32, value))
                 case .Text, .Hexadecimal: break
                 }
             }

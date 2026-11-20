@@ -39,8 +39,8 @@ struct ReadOnlyDynamicWrapper
 {
     var value: DynamicBase
     var wrapper = ReadOnlyDynamicWrapper{&value}
-    Swag.require((catch cast(const *DynamicBase?, &wrapper)) == &value)
-    Swag.require((catch cast(*DynamicBase?, &wrapper)) == null)
+    Swag.require((catch cast(const *DynamicBase?, &wrapper) orelse null) == &value)
+    Swag.require((catch cast(*DynamicBase?, &wrapper) orelse null) == null)
     Swag.require(&wrapper is DynamicBase)
 }
 
@@ -55,7 +55,7 @@ func copyDynamicBase(value: DynamicBase)->DynamicBase
     let base  = &owner.child.base
     var moved = #relocate base[]
     base[] = DynamicBase{value: 23}
-    Swag.require((catch cast(*DynamicGrandchild?, base)) == &owner)
+    Swag.require((catch cast(*DynamicGrandchild?, base) orelse null) == &owner)
     Swag.require(base.value == 23)
     Swag.require(not (&moved is DynamicChild))
 }
@@ -79,13 +79,13 @@ struct ResetDynamicChild
     var owner: ResetDynamicChild
     let base  = &owner.base
     var moved = #move base[]
-    Swag.require((catch cast(*ResetDynamicChild?, base)) == &owner)
+    Swag.require((catch cast(*ResetDynamicChild?, base) orelse null) == &owner)
     Swag.require(not (&moved is ResetDynamicChild))
 }
 
 func inspectDynamic(base: *DynamicBase)
 {
-    let child = catch cast(*DynamicChild?, base)
+    let child = catch cast(*DynamicChild?, base) orelse null
     Swag.assert(child != null)
     Swag.assert(child.extra == 45)
     Swag.assert(not (base is DynamicSibling))
@@ -98,7 +98,7 @@ func inspectDynamic(base: *DynamicBase)
     var value: DynamicGrandchild
     inspectDynamic(&value)
     let base: *DynamicBase = &value
-    let grandchild         = catch cast(*DynamicGrandchild?, base)
+    let grandchild         = catch cast(*DynamicGrandchild?, base) orelse null
     Swag.require(grandchild == &value)
     Swag.require(grandchild!.tail == 67)
 }
@@ -118,17 +118,17 @@ func inspectDynamic(base: *DynamicBase)
     Swag.require(not (&copied is DynamicChild))
     value.child.base = copied
     let base: *DynamicBase = &value
-    Swag.require((catch cast(*DynamicGrandchild?, base)) == &value)
+    Swag.require((catch cast(*DynamicGrandchild?, base) orelse null) == &value)
     var moved = #move value
     let movedBase: *DynamicBase = &moved
-    Swag.require((catch cast(*DynamicGrandchild?, movedBase)) == &moved)
+    Swag.require((catch cast(*DynamicGrandchild?, movedBase) orelse null) == &moved)
 }
 
 func inspectPresentDynamic(base: *DynamicBase?)->bool
 {
     while base
     {
-        let child = catch cast(*DynamicChild?, base)
+        let child = catch cast(*DynamicChild?, base) orelse null
         if child and child.extra == 45 do
             return true
         return false
@@ -157,7 +157,7 @@ func inspectPresentDynamic(base: *DynamicBase?)->bool
     for &item in copies
     {
         let base: *DynamicBase = item
-        Swag.require((catch cast(*DynamicGrandchild?, base)) == item)
+        Swag.require((catch cast(*DynamicGrandchild?, base) orelse null) == item)
     }
 }
 
@@ -166,8 +166,8 @@ func inspectPresentDynamic(base: *DynamicBase?)->bool
     var pair:   DynamicPair
     let first:  *DynamicBase = &pair.first
     let second: *DynamicBase = &pair.second
-    Swag.require((catch cast(*DynamicChild?, first)) == &pair.first)
-    Swag.require((catch cast(*DynamicChild?, second)) == &pair.second)
+    Swag.require((catch cast(*DynamicChild?, first) orelse null) == &pair.first)
+    Swag.require((catch cast(*DynamicChild?, second) orelse null) == &pair.second)
     Swag.require(assume cast (*DynamicChild, second) == &pair.second)
     Swag.require(assume cast (*DynamicPair, second) == &pair)
     Swag.require(cast(*DynamicBase?, second) == second)

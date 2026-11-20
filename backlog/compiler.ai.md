@@ -5,25 +5,10 @@ compiling patch more likely to satisfy the task, make semantic changes visible, 
 the path from a concrete failure to a verified repair. The compiler's plain-text reports
 carry the evidence for these tasks.
 
-Start with explicit recovery (`compiler.ai.002`),
-runtime fault parity (`compiler.ai.035`), semantic queries (`compiler.ai.037`), and
+Start with runtime fault parity (`compiler.ai.035`), semantic queries (`compiler.ai.037`), and
 reproducible tests with observed values (`compiler.ai.040`, `compiler.ai.041`). Use the
 behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-heavy changes.
 [README.md](README.md) defines entry and completion rules.
-
-### compiler.ai.002 — Make value-producing error recovery explicit
-
-- Evidence: [bare catch](../bin/reference/modules/language/src/013_001_error_management.swg#L130)
-  turns a failed port read into zero and a failed settings read into an ordinary default struct.
-  An inventory of assignment, argument, return and condition lines finds hundreds of likely
-  bare expressions to classify, including many compiler tests.
-- Next: classify value-consuming bare catches by recovery intent. Write an error fallback or
-  an exiting handler for each consumer, then reject implicit defaults in value contexts.
-  Preserve `try` for propagation, failure-only `catch e orelse V`, ordinary null coalescing,
-  and statement forms for discarding or capturing errors.
-- Done when: a caller cannot accidentally receive a default on failure. Tests reject a bare
-  catch whose result is read and distinguish a present success, successful null and failure,
-  including when the fallback reads `Swag.err`.
 
 ### compiler.ai.003 — `if let` combines binding with an implicit truthiness test
 
@@ -441,7 +426,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   to handle the entire closed set.
 - Done when: consumers can recover from absence, propagate access errors and distinguish
   invalid input without guessing payloads or treating every error as the same outcome.
-- Related: compiler.ai.002, compiler.ai.016, compiler.ai.051.
+- Related: compiler.ai.016, compiler.ai.051.
 
 ### compiler.ai.023 — Mixins resolve their body in the caller's scope
 

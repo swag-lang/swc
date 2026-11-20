@@ -217,7 +217,7 @@ func getImage()->Image
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
-            return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {})
+            return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {}) orelse Image{}
         }
     }
 
@@ -232,7 +232,7 @@ func getImage()->Image
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
-            return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {})
+            return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {}) orelse Image{}
         }
     }
 
@@ -406,5 +406,5 @@ func clear()
 
 #init
 {
-    g_PngFormat = catch RegisterClipboardFormatA(("PNG").buffer)
+    g_PngFormat = catch RegisterClipboardFormatA(("PNG").buffer) orelse 0
 }

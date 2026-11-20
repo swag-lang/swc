@@ -233,8 +233,8 @@ impl ViewerInformation
         if not .settings.isEmpty() and settings != .settings
         {
             .onlinePending = false
-            let previous = catch ThumbnailSettings.decode(.settings)
-            let current  = catch ThumbnailSettings.decode(settings)
+            let previous = catch ThumbnailSettings.decode(.settings) orelse {}
+            let current  = catch ThumbnailSettings.decode(settings) orelse {}
             if previous.onlineMovies and not current.onlineMovies do
                 .entry.movie = {}
             if previous.onlineMusic and not current.onlineMusic do

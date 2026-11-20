@@ -72,14 +72,14 @@ func catchesAndInspects(present: bool)->s32
     return value
 }
 
-// Dismiss on purpose: the type default stands in.
+// Replace a failure with an explicit sentinel.
 func dismisses(present: bool)->s32
 {
-    return catch load(present)
+    return catch load(present) orelse 0
 }
 
 // Handle on the failure path only: the handler runs instead of the rest, and can divert the
-// flow. 'catch ... else' applies to the CALL, so the fallible helper writes its result out.
+// flow. This statement catch handles the failure of the helper that writes the result.
 func loadInto(out: *s32, present: bool) fail
 {
     out[] = try load(present)
@@ -101,7 +101,7 @@ func discardsOnPurpose()
 
 #test
 {
-    Swag.require((catch propagates(true)) == 1)
+    Swag.require((catch propagates(true) orelse 0) == 1)
     Swag.require(catchesAndInspects(true) == 1)
     Swag.require(catchesAndInspects(false) == -7)
     Swag.require(dismisses(false) == 0)

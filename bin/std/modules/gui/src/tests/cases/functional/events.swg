@@ -170,7 +170,7 @@ impl OffsetOwnedEvent
     evt.drops = &drops
     let base: *Event = evt
     Swag.require(cast(*void, base) != cast(*void, evt))
-    Swag.require((catch cast(*OffsetOwnedEvent?, base)) == evt)
+    Swag.require((expect cast(*OffsetOwnedEvent, base)) == evt)
     host.root.postEvent(evt)
     host.pumpPostedEvents()
     Swag.require(drops == 1)
@@ -183,7 +183,7 @@ impl OffsetOwnedEvent
     defer Memory.delete(evt)
     let view: IEvent = evt
     Swag.require(Swag.kindOf(view) == #typeof(CommandStateEvent))
-    Swag.require((catch cast(*CommandStateEvent?, view)) == evt)
+    Swag.require((expect cast(*CommandStateEvent, view)) == evt)
     Swag.require(not evt.accepted)
 
     evt.kind          = .Apply

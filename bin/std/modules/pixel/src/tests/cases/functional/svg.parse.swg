@@ -56,7 +56,7 @@ using Swag, Core
         Swag.require(Math.abs(drawing.naturalSize().y - 48) < 0.001)
     }
 
-    for length in ["100%", "auto", "2em", "-4", "0"]
+    for length in ["100%", "auto", "2em", "-4", "0", ".", "-."]
     {
         let source  = Format.toString("<svg width='%' height='50' viewBox='0 0 200 100'/>", length)
         let drawing = expect Svg.Drawing.parse(source.toString())

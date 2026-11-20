@@ -200,7 +200,7 @@ impl PropWnd
     // survives to the kind the editor was made for reads one form's bytes as another's, and a
     // field the two do not share comes back as whatever lay at that offset — which is how a
     // '#complete switch' over a three-value enum ends up with a value it has no case for.
-    mtd(T) getSelectedForm()->*T? => (catch cast(*T?, .getSelectedBaseForm()))
+    mtd(T) getSelectedForm()->*T? => catch cast(*T?, .getSelectedBaseForm()) orelse null
 
     mtd getSelectedFormType()->typeinfo
     {
@@ -1139,7 +1139,7 @@ impl PropWnd
             {
                 if ed.revalidate() != .Valid do
                     return
-                let {value, eat: _, ovf: _} = catch StrConv.parseF64(ed.text())
+                let {value, eat: _, ovf: _} = catch StrConv.parseF64(ed.text()) { return; }
                 let capture = prop.main.getCapture()
                 if not capture or not capture.isTimed() or capture.selection.count != 1 do
                     return
@@ -1198,7 +1198,7 @@ impl PropWnd
             {
                 if ed.revalidate() != .Valid do
                     return
-                let {value: v, eat: _, ovf: _} = catch StrConv.parseS32(ed.text())
+                let {value: v, eat: _, ovf: _} = catch StrConv.parseS32(ed.text()) { return; }
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }

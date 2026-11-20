@@ -182,7 +182,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 // what it holds draws the same picture whatever ran before.
 func testEmptyTrash()
 {
-    let files = catch Library.enumerateTrash()
+    let files = catch Library.enumerateTrash() { return; }
     for file in files do
         discard catch File.delete(file.fullName)
 }

@@ -323,7 +323,7 @@ impl SelectionBar
     // Adds the shapes a step marker can take to the mini-bar, the one in force checked.
     mtd addStepKinds()
     {
-        let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm())
+        let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm()) orelse null
         if not found do
             return
         let current = found.kind
@@ -357,7 +357,7 @@ impl SelectionBar
     // Adds the number of the selected step marker to the mini-bar, as a stepper.
     mtd addStepNumber()
     {
-        let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm())
+        let found = catch cast(*FormStep?, .main.getCapture()?.getSelectedBaseForm()) orelse null
         if not found do
             return
         let step = found

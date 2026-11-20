@@ -960,7 +960,7 @@ impl FileBrowserCtrl
 
                 if fileBrowser.options.showDrives
                 {
-                    let volumes = catch Directory.drives()
+                    let volumes = catch Directory.drives() orelse {}
                     for volume in volumes
                     {
                         var name = String.from(volume.toString())
@@ -1182,7 +1182,7 @@ impl FileBrowserCtrl
             .recurse         = false
         }
 
-        .currentEntries = catch Directory.enumerate(.currentFolder, options)
+        .currentEntries = catch Directory.enumerate(.currentFolder, options) orelse {}
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)

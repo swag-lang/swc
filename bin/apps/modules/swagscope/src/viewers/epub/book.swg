@@ -92,7 +92,7 @@ impl Book
         if navigationPath.count
         {
             var navigationError: Swag.Error
-            result.navigation = catch readNavigation(fileName, &archive, navigationPath, index.navPath.isEmpty()) as navigationError
+            result.navigation = catch readNavigation(fileName, &archive, navigationPath, index.navPath.isEmpty()) as navigationError orelse {}
             if navigationError.value() do
                 result.navigation.failure = Viewer.failureText(navigationError.value())
             result.navigation.bind(result.chapters.toSlice())

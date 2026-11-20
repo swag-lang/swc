@@ -401,7 +401,7 @@ func storageTrimmed()->StorageText
     resetStorageHooks()
     scope
     {
-        let x = catch storageFailDefer(true)
+        let x = catch storageFailDefer(true) orelse StorageTracked{}
         Swag.require(x.value == 5)
         Swag.require(StorageSink == 0)
     }
@@ -411,7 +411,7 @@ func storageTrimmed()->StorageText
     resetStorageHooks()
     scope
     {
-        let x = catch storageFailDefer(false)
+        let x = catch storageFailDefer(false) orelse StorageTracked{}
         Swag.require(x.value == 0)
         Swag.require(StorageSink == 5)
     }

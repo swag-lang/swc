@@ -75,7 +75,7 @@ impl Capture
     // through `dirty`); the cache honors those triggers without an undo.
     func formContentFresh(f: IForm)->bool
     {
-        let fi = catch cast(*FormImage?, f)
+        let fi = catch cast(*FormImage?, f) orelse null
         if not fi do
             return true
 

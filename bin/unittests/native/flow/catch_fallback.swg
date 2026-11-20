@@ -1,8 +1,7 @@
 #global private
 
-// 'catch e else V' yields V when 'e' fails. V is evaluated on the failure path only, after an
-// 'as err' capture is bound, and it converts to the operand's result type. It needs no implicit
-// default, so results that have none can be caught too.
+// 'catch e orelse V' evaluates V only when e fails and converts it to the result type.
+// V can read 'Swag.err' for this failure.
 
 struct FallbackError
 {
@@ -80,23 +79,23 @@ func fallbackCode(err: any?)->s32 => err == null ? 0 : assume cast(FallbackError
     Swag.require(other == 4)
 }
 
-// An aggregate fallback is the one written, not zeroed storage.
+// Aggregate fallback construction uses the initializer written in the source.
 #test
 {
-    let point = catch fallbackPoint(false)
+    let point = catch fallbackPoint(false) orelse FallbackPoint{}
     Swag.require(point.x == 5 and point.y == 7)
 
     let explicit = catch fallbackPoint(false) orelse {x: -1, y: -2}
     Swag.require(explicit.x == -1 and explicit.y == -2)
 
-    let success = catch fallbackPoint(true)
+    let success = catch fallbackPoint(true) orelse FallbackPoint{}
     Swag.require(success.x == 1 and success.y == 2)
 
     let pair = catch fallbackTuple(false) orelse {value: -1, valid: false}
     Swag.require(pair.value == -1 and not pair.valid)
 }
 
-// A non-null pointer has no default; 'else' supplies the replacement.
+// 'orelse' supplies a non-null pointer on failure.
 #test
 {
     let item = catch fallbackItem(false) orelse &g_fallbackOther

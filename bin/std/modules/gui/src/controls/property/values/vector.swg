@@ -45,7 +45,7 @@ internal impl Properties
                 .sigCommitted += func|prop = me, item, fieldOffset|(ed)
                 {
                     // Write this component into every edited instance, leaving the others.
-                    prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text()))
+                    prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text()) orelse 0)
                     prop.commitItemChange(item)
                 }
             }

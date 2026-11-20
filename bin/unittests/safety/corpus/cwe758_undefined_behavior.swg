@@ -161,6 +161,6 @@ func voidOwesNothing(flag: bool)
     Swag.require(loopWithoutBreak() == 1)
     Swag.require(nestedBreakDoesNotEscape() == 1)
     Swag.require(endsInUnreachable(opaqueBool(true)) == 1)
-    Swag.require((catch endsInFail(opaqueBool(true))) == 1)
+    Swag.require((catch endsInFail(opaqueBool(true)) orelse 0) == 1)
     Swag.require(expressionBody(1) == 2)
 }

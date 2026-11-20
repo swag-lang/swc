@@ -220,7 +220,7 @@ impl ColorPopover
             .style.setFont(me.theme().res.fontDefaultFs)
             .sigCommitted += func|popover = me|(edit)
             {
-                let {value, eat, ovf} = catch StrConv.parseX64(edit.text())
+                let {value, eat, ovf} = catch StrConv.parseX64(edit.text()) { return; }
                 if eat != 6 or ovf do
                     return
                 var color = Color.fromArgb(0xFF000000'u32 | cast(u32, value))

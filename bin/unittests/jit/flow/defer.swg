@@ -619,15 +619,14 @@ func deferReturnDropInfo()->DeferDropInfo
         return DeferTrace
     }
 
-    const returnInfo = #run catch deferConditionalReturnTrace()
+    const returnInfo = #run catch deferConditionalReturnTrace() orelse DeferReturnInfo{}
     const failTrace  = #run deferConditionalFailTrace()
     const catchTrace = #run deferConditionalCatchTrace()
     const tryTrace   = #run deferConditionalCatchElseTrace()
     #assert(returnInfo.value == 7)
     #assert(returnInfo.trace == 32)
     #assert(failTrace == 31)
-    // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both:
-    // a plain catch and a catch-else produce the same trace.
+    // Both statement catches handle the failure before the block exits and run its '#nofail' defer.
     #assert(catchTrace == 312)
     #assert(tryTrace == 312)
 }

@@ -61,6 +61,12 @@ func catchDefaultCount(succeed: bool)->s32 fail
     return 7
 }
 
+#[Swag.Discardable]
+func catchDefaultDiscardable(succeed: bool)->s32 fail
+{
+    return try catchDefaultCount(succeed)
+}
+
 #[Swag.NoInline]
 func catchDefaultFlag(succeed: bool)->bool fail
 {
@@ -89,26 +95,26 @@ func catchDefaultNameReplacement(error: any)->string
     return "error fallback"
 }
 
-// A failure resumes with the value 'var x: T' would hold: field initializers run.
+// An explicit default initializer uses the aggregate's declared field values.
 #test
 {
-    let item = catch catchDefaultItem(false)
+    let item = catch catchDefaultItem(false) orelse CatchDefaultItem{}
     Swag.require(item.width == 640 and item.ratio == 1.5 and item.name == "untitled")
-    let found = catch catchDefaultItem(true)
+    let found = catch catchDefaultItem(true) orelse CatchDefaultItem{}
     Swag.require(found.width == 3 and found.name == "item")
 
-    Swag.require((catch catchDefaultFloat(false)) == 0.0)
-    Swag.require((catch catchDefaultFloat(true)) == 2.5)
-    Swag.require((catch catchDefaultName(false)) == null)
-    Swag.require((catch catchDefaultMode(false)) == .First)
-    Swag.require((catch catchDefaultMode(true)) == .Second)
+    Swag.require((catch catchDefaultFloat(false) orelse 0.0) == 0.0)
+    Swag.require((catch catchDefaultFloat(true) orelse 0.0) == 2.5)
+    Swag.require((catch catchDefaultName(false) orelse null) == null)
+    Swag.require((catch catchDefaultMode(false) orelse .First) == .First)
+    Swag.require((catch catchDefaultMode(true) orelse .First) == .Second)
 }
 
-// Assigning a caught result writes the default into an existing variable too.
+// An assignment replaces the current value with the written fallback on failure.
 #test
 {
     var item = CatchDefaultItem{width: 1, ratio: 0.5, name: "old"}
-    item = catch catchDefaultItem(false)
+    item = catch catchDefaultItem(false) orelse CatchDefaultItem{}
     Swag.require(item.width == 640 and item.name == "untitled")
 }
 
@@ -122,8 +128,8 @@ func catchDefaultNameReplacement(error: any)->string
     Swag.require(CatchDefaultReplacements == 1)
 
     // The operand binds tightly: the comparison reads the caught result.
-    Swag.require(catch catchDefaultCount(false) == 0)
-    Swag.require(catch catchDefaultCount(true) == 7)
+    Swag.require((catch catchDefaultCount(false) orelse 0) == 0)
+    Swag.require((catch catchDefaultCount(true) orelse 0) == 7)
 }
 
 // 'Swag.err' reads the error in the replacement and in the handler.
@@ -162,6 +168,22 @@ func catchDefaultNameReplacement(error: any)->string
     Swag.require(value == 3 and not saved.isEmpty())
     discard catch catchDefaultCount(true) as saved
     Swag.require(saved.isEmpty())
+
+    discard catch catchDefaultCount(false) as saved
+    let error = assume cast(Swag.BaseError, saved.value())
+    Swag.require(error.message == "no count")
+}
+
+// A discardable call can be caught as a statement with or without an error owner.
+#test
+{
+    catch catchDefaultDiscardable(false)
+
+    var saved: Swag.Error
+    catch catchDefaultDiscardable(false) as saved
+    Swag.require(assume cast(Swag.BaseError, saved.value()).message == "no count")
+    catch catchDefaultDiscardable(true) as saved
+    Swag.require(saved.isEmpty())
 }
 
 func catchDefaultLeave(succeed: bool)->s32
@@ -192,11 +214,11 @@ func catchDefaultLeave(succeed: bool)->s32
 #test
 {
     var taken = 0
-    if catch catchDefaultFlag(true) { taken += 1 }
-    if catch catchDefaultFlag(false) { taken += 1000 }
-    if catch catchDefaultFlag(true) do taken += 10
-    while catch catchDefaultFlag(false) { taken += 1000 }
-    switch catch catchDefaultCount(false)
+    if catch catchDefaultFlag(true) orelse false { taken += 1 }
+    if catch catchDefaultFlag(false) orelse false { taken += 1000 }
+    if catch catchDefaultFlag(true) orelse false do taken += 10
+    while catch catchDefaultFlag(false) orelse false { taken += 1000 }
+    switch catch catchDefaultCount(false) orelse 0
     {
     case 0:
         taken += 100

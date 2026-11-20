@@ -35,15 +35,15 @@
 Pointer casts borrow the stored value. Constant-backed values such as literals can only
 be borrowed through a const pointer; a mutable pointer cast fails. Use `const *T` to
 read any stored value, and use `*T` only when the 'any' refers to mutable storage.
-Use `catch cast(const *T?, boxed)` or `catch cast(*T?, boxed)` when a failed
-conversion should produce null.
+Use `catch cast(const *T?, boxed) orelse null` or `catch cast(*T?, boxed) orelse null`
+when a failed conversion should produce null.
 */
 
 #test
 {
     let a: any = 6
-    Swag.require((catch cast(*s32?, a)) == null)
-    let ptr = catch cast(const *s32?, a)
+    Swag.require((catch cast(*s32?, a) orelse null) == null)
+    let ptr = catch cast(const *s32?, a) orelse null
     Swag.require(ptr != null)
     Swag.require(ptr[] == 6)
 }
@@ -52,7 +52,7 @@ conversion should produce null.
 {
     var value: s32 = 6
     var a:     any = value
-    let ptr        = catch cast(*s32?, a)
+    let ptr        = catch cast(*s32?, a) orelse null
     Swag.require(ptr != null)
     ptr[] = 7
     Swag.require(value == 7)

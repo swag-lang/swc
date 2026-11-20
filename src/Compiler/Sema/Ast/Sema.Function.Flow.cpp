@@ -13,7 +13,6 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
@@ -1880,9 +1879,6 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     SWC_RESULT(notePersistentCatchMutation(sema, nodeCaptureRef));
 
-    // Only 'catch' resumes after a failure: with 'orelse V', or with the default value of the
-    // result type. 'expect' terminates on failure, so its successful value may have a type
-    // with no implicit default.
     const bool    isNotNullUnwrap = codeGenPayload && codeGenPayload->notNullUnwrap;
     const TokenId tokenId         = sema.token(codeRef()).id;
     const bool    hasResult       = resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid();
@@ -1905,18 +1901,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     }
     else if (!isNotNullUnwrap && hasResult && tokenId == TokenId::KwdCatch && !isErrorManagementResultDiscarded(sema))
     {
-        // The failure resumes with the value 'var x: T' would hold. A type that has none,
-        // such as a non-null pointer, needs the replacement to be written.
-        SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
-        if (SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_catch_value_needs_fallback, sema.curNodeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, resultTypeRef));
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_catch_value_needs_fallback, codeRef(), resultTypeRef);
     }
 
     if (tokenId != TokenId::KwdTry && resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())

@@ -87,7 +87,7 @@ impl ViewerWindow
         defer .updatingReadingAppearance = false
 
         let active = not .isExploring()
-        let markdown = active ? catch cast(*Markdown.View?, .currentView) : null
+        let markdown = active ? (catch cast(*Markdown.View?, .currentView) orelse null) : null
         let customMarkdown = markdown and Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
         let background = active ? .authoredReadingBackground() : Color{}
         var documentTheme = AppearanceTheme.System

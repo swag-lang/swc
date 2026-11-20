@@ -41,17 +41,15 @@ impl Document
         let themePath = Package.relationshipPath(relations.toSlice(), "/theme")
         var themeError: Swag.Error
         if not themePath.isEmpty() do
-            theme.read(catch parts.text(themePath, required: false) as themeError)
+            theme.read(catch parts.text(themePath, required: false) as themeError orelse {})
         var stylePath      = Package.relationshipPath(relations.toSlice(), "/styles")
         let declaredStyles = not stylePath.isEmpty()
         if stylePath.isEmpty() do
             stylePath = "word/styles.xml"
         var styleReadError:  Swag.Error
-        let styleSource = catch parts.text(stylePath, required: false, limit: 4 * 1024 * 1024) as styleReadError
+        let styleSource = catch parts.text(stylePath, required: false, limit: 4 * 1024 * 1024) as styleReadError orelse {}
         var styleParseError: Swag.Error
-        var styles      = catch StyleCatalog.parse(styleSource, &theme) as styleParseError
-        if styleParseError.value() do
-            styles = {}
+        var styles      = catch StyleCatalog.parse(styleSource, &theme) as styleParseError orelse {}
         let limited = themeError.value() != null or
                       styleReadError.value() != null or
                       styleParseError.value() != null or

@@ -108,7 +108,7 @@ impl VaultRow
         // the paint.
         .containerSize = 0
         if not drive and not .path.isEmpty() do
-            .containerSize = catch File.info(.path).size
+            .containerSize = catch File.info(.path).size orelse 0
 
         .arrangeActions()
         .invalidate()

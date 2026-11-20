@@ -574,9 +574,9 @@ impl RecentWnd
         .loadJob = job
         job.task.submit(func|job|()
         {
-            let before = catch File.info(job.file)
+            let before = catch File.info(job.file) orelse {}
             catch { job.capture = try Capture.load(job.file) } as job.error
-            let after = catch File.info(job.file)
+            let after = catch File.info(job.file) orelse {}
             if RecentCaptureCache.sameRevision(before, after) do
                 job.revision = after
         },
@@ -598,7 +598,7 @@ impl RecentWnd
         }
 
         if not .readyRevision.fullName.isEmpty() and
-           not RecentCaptureCache.sameRevision(.readyRevision, catch File.info(.readyFile))
+           not RecentCaptureCache.sameRevision(.readyRevision, catch File.info(.readyFile) orelse {})
         {
             .discardReadyCapture()
             .startRequestedSelection()
@@ -768,7 +768,7 @@ impl RecentWnd
         // The recent strip needs only the newest capture names. Validating every SCC in the
         // library here would open the complete collection before the first thumbnail could
         // appear, so that index stays lazy: each recent candidate is validated as it is loaded.
-        var result = catch Directory.enumerateFiles(Library.getFolder())
+        var result = catch Directory.enumerateFiles(Library.getFolder()) orelse {}
         result.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
         // The application state is an SCC container too, but never a capture to open.

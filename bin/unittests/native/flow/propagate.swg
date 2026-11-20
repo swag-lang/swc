@@ -54,7 +54,7 @@ func propagateSum(first, second: bool)->s32 fail
 func propagateAfterCatch(ok: bool)->s32 fail
 {
     var errOutcome: Swag.Error
-    let recovered = catch propagateCount(false, 3) as errOutcome
+    let recovered = catch propagateCount(false, 3) as errOutcome orelse 0
     let err       = errOutcome.value()
     Swag.assert(recovered == 0 and propagateErrorCode(err) == 3)
     return propagateCount(ok, 4)
@@ -62,7 +62,7 @@ func propagateAfterCatch(ok: bool)->s32 fail
 
 #test
 {
-    Swag.require((catch propagateAfterCatch(true)) == 10)
+    Swag.require((catch propagateAfterCatch(true) orelse 0) == 10)
     var errOutcome: Swag.Error
     discard catch propagateAfterCatch(false) as errOutcome
     let err = errOutcome.value()
@@ -84,8 +84,8 @@ func propagateIntoBlock(ok: bool)->s32 fail
 
 #test
 {
-    Swag.require((catch propagateIntoBlock(true)) == 11)
-    Swag.require((catch propagateIntoBlock(false)) == -5)
+    Swag.require((catch propagateIntoBlock(true) orelse 0) == 11)
+    Swag.require((catch propagateIntoBlock(false) orelse 0) == -5)
 }
 
 struct PropagateReader
@@ -110,7 +110,7 @@ func propagateNested(reader: *PropagateReader, boxed: any)->s32 fail
 #test
 {
     var reader: PropagateReader
-    Swag.require((catch propagateNested(&reader, 5's32)) == 15)
+    Swag.require((catch propagateNested(&reader, 5's32) orelse 0) == 15)
 
     var castErrorOutcome: Swag.Error
     discard catch propagateNested(&reader, "text") as castErrorOutcome
@@ -155,13 +155,13 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.require((catch propagateInline(true)) == 11)
+    Swag.require((catch propagateInline(true) orelse 0) == 11)
     var inlineErrorOutcome: Swag.Error
     discard catch propagateInline(false) as inlineErrorOutcome
     let inlineError = inlineErrorOutcome.value()
     Swag.require(propagateErrorCode(inlineError) == 8)
 
-    Swag.require((catch propagateGeneric(3's32, true)) == 3)
+    Swag.require((catch propagateGeneric(3's32, true) orelse 0) == 3)
     var genericErrorOutcome: Swag.Error
     discard catch propagateGeneric(1.5'f32, false) as genericErrorOutcome
     let genericError = genericErrorOutcome.value()
@@ -177,7 +177,7 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.require((catch propagateBlockSecond(true)) == 20)
+    Swag.require((catch propagateBlockSecond(true) orelse 0) == 20)
     var errOutcome: Swag.Error
     discard catch propagateBlockSecond(false) as errOutcome
     let err = errOutcome.value()

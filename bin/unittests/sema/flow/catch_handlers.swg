@@ -35,7 +35,7 @@ func doNotKeep(error: any?)->s32
 func persistentCaptureResumesWithDefault()
 {
     var owner: Swag.Error
-    let value = catch scopedCatchValue() as owner
+    let value = catch scopedCatchValue() as owner orelse 0
     discard value
 }
 

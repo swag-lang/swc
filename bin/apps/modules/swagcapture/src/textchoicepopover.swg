@@ -227,7 +227,7 @@ impl TextChoicePopover
     // The search field keeps typing focus; Down moves into the results, Return picks the first.
     mtd filterKey(evt: IEvent)->bool
     {
-        let key = catch cast(*KeyEvent?, evt)
+        let key = catch cast(*KeyEvent?, evt) orelse null
         if not key or key.kind != .Pressed do
             return false
         switch key.key

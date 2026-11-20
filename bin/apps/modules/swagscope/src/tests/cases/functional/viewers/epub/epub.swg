@@ -83,11 +83,13 @@ using Core, Gui, Gui.Testing, Viewers
         expect File.writeAllBytes(fileName, bytes.toSlice())
 
         var loadError: Swag.Error
-        let book = catch Epub.Book.load(fileName) as loadError
-        if not loadError.value() do
+        catch
+        {
+            let book = try Epub.Book.load(fileName)
             Swag.require(book.chapters.count == 2 and
                          book.chapters[0].path == "first.xhtml" and
                          book.chapters[1].path == "first.xhtml")
+        } as loadError
         return loadError
     }
 

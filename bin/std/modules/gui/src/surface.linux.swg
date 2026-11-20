@@ -698,7 +698,7 @@ impl Surface
         {
             let window = pending.back()
             pending.removeBack()
-            let property = catch LinuxDesktop.readProperty(context, window, identity)
+            let property = catch LinuxDesktop.readProperty(context, window, identity) orelse {}
             if property.count == surfaceId.count and Utf8.compare(property.toSlice(), surfaceId) == 0
             {
                 var event: Linux.xcb_client_message_event_t

@@ -98,7 +98,7 @@ internal func updateThreadProc(th: const *Threading.Thread)
                     continue
 
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
-                if not (catch voice.updateNative())
+                if not (catch voice.updateNative() orelse false)
                 {
                     voice.closeBuffer()
                     voice.resetState(.Playing)

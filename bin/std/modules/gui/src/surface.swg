@@ -801,7 +801,7 @@ impl Surface
             else do
                 .colorDisabled = Argb.White
 
-            if not (catch .presentNativeTarget(target, paintedRect, dimmed or opacity < 1))
+            if not (catch .presentNativeTarget(target, paintedRect, dimmed or opacity < 1) orelse false)
             {
                 .renderFailure = "OpenGL could not copy the window presentation target"
                 .finishFrameWithoutPresent()

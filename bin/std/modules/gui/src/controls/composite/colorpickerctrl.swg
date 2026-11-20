@@ -309,9 +309,9 @@ impl ColorPickerCtrl
             .editR.setMaximumLength(3)
             .editR.sigCommitted += func|v|(ed)
             {
-                let res      = catch StrConv.parseU32(ed.text())
+                let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.r = cast(Math.clamp(res.value, 0, 255))
+                v.selectedColor.r = cast(Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -319,9 +319,9 @@ impl ColorPickerCtrl
             .editG.setMaximumLength(3)
             .editG.sigCommitted += func|v|(ed)
             {
-                let res      = catch StrConv.parseU32(ed.text())
+                let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.g = cast(Math.clamp(res.value, 0, 255))
+                v.selectedColor.g = cast(Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -329,9 +329,9 @@ impl ColorPickerCtrl
             .editB.setMaximumLength(3)
             .editB.sigCommitted += func|v|(ed)
             {
-                let res      = catch StrConv.parseU32(ed.text())
+                let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.b = cast(Math.clamp(res.value, 0, 255))
+                v.selectedColor.b = cast(Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -339,9 +339,9 @@ impl ColorPickerCtrl
             .editA.setMaximumLength(3)
             .editA.sigCommitted += func|v|(ed)
             {
-                let res      = catch StrConv.parseU32(ed.text())
+                let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.a = cast(Math.clamp(res.value, 0, 255))
+                v.selectedColor.a = cast(Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -349,11 +349,11 @@ impl ColorPickerCtrl
             .editHex.setMaximumLength(8)
             .editHex.sigCommitted += func|v|(ed)
             {
-                var res      = catch StrConv.parseX64(ed.text())
+                var argb     = catch StrConv.parseX64(ed.text()).value orelse 0
                 let previous = v.selectedColor
                 if not v.flags.has(.AllowAlpha) do
-                    res.value |= 0xFF000000
-                v.selectedColor.argb = cast(u32, res.value)
+                    argb |= 0xFF000000
+                v.selectedColor.argb = cast(u32, argb)
                 v.publishEditedColor(previous)
             }
 

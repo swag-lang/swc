@@ -17,7 +17,7 @@ func copyEmptyDynamicStorage(value: EmptyDynamicStorage)->EmptyDynamicStorage =>
     var base = copyEmptyDynamicStorage(owner.base)
     Swag.require(not (&base is EmptyDynamicChild))
     let embedded = &owner.base
-    Swag.require((catch cast(*EmptyDynamicChild?, embedded)) == &owner)
+    Swag.require((catch cast(*EmptyDynamicChild?, embedded) orelse null) == &owner)
 }
 
 #[Swag.DynCast, Swag.Pack(1)]

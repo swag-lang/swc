@@ -412,7 +412,7 @@ impl ViewerWindow
         if results.prefix == .Line and number
         {
             let lineText = separator == Swag.U64.Max ? query : query[0 until separator]
-            let wanted   = catch StrConv.toU64(lineText)
+            let wanted   = catch StrConv.toU64(lineText) { return; }
             if not wanted or wanted > starts.count do
                 return
 
@@ -430,7 +430,7 @@ impl ViewerWindow
             }
 
             // A column past the end of the line stops at its end, and the row says where.
-            let column  = catch StrConv.toU64(query[separator + 1 to])
+            let column  = catch StrConv.toU64(query[separator + 1 to]) orelse 1
             var offset  = start
             var reached = 1'u64
             while reached < column and

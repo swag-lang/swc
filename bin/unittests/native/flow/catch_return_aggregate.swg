@@ -29,7 +29,7 @@ func fallback(ok: bool)->Owner
     return catch load(ok) orelse Owner{}
 }
 #[Swag.NoInline]
-func defaultFallback(ok: bool)->Owner => catch load(ok)
+func expressionFallback(ok: bool)->Owner => catch load(ok) orelse Owner{}
 
 #[Swag.Inline]
 func inlineFallback(ok: bool)->Owner => catch load(ok) orelse Owner{}
@@ -42,8 +42,8 @@ func inlineFallback(ok: bool)->Owner => catch load(ok) orelse Owner{}
         {
             let result = fallback(index % 2 == 0)
             Swag.require(result.data == (index % 2 == 0 ? &target : null))
-            let defaultResult = defaultFallback(index % 2 == 0)
-            Swag.require(defaultResult.data == result.data)
+            let expressionResult = expressionFallback(index % 2 == 0)
+            Swag.require(expressionResult.data == result.data)
             let inlineResult = inlineFallback(index % 2 == 0)
             Swag.require(inlineResult.data == result.data)
         }

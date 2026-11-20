@@ -74,7 +74,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     with result.facts
     {
         .pageCount = result.reader.pageCount()
-        .pageSize  = catch result.reader.pageSize(0)
+        .pageSize  = catch result.reader.pageSize(0) orelse {}
         .title     = String.from(Latin1.trim(metadata.title.toString()))
         .author    = String.from(Latin1.trim(metadata.author.toString()))
     }

@@ -75,7 +75,7 @@ func formatDuration(seconds: u64)->String
 func thumbnailDuration(image: const *Image)->u64
 {
     for &record in image.metadata where record.isTag(cast(const [..] u8, Viewer.ThumbnailDurationTag)) do
-        return catch StrConv.toU64(cast(string, record.toSlice()))
+        return catch StrConv.toU64(cast(string, record.toSlice())) orelse 0
     return 0
 }
 
@@ -2200,7 +2200,7 @@ impl Explorer
            not albumAudio(entry.path) and
            Reader.canOpen(entry.path)
         {
-            let settings = catch ThumbnailSettings.decode(preview.settings)
+            let settings = catch ThumbnailSettings.decode(preview.settings) orelse {}
             if onlinePreviewWanted(entry.path, &settings, entry.duration) do
                 online = true
         }

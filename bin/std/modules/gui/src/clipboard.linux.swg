@@ -592,8 +592,8 @@ namespace LinuxSelection
                    targets.bytes.count > 2048 do
                     return false
                 let atoms     = cast(const [*]u32, targets.bytes.storage())
-                let multiple  = catch atom("MULTIPLE")
-                let timestamp = catch atom("TIMESTAMP")
+                let multiple  = catch atom("MULTIPLE") orelse 0
+                let timestamp = catch atom("TIMESTAMP") orelse 0
                 for index in targets.bytes.count / 4
                 {
                     let offered = atoms[index]

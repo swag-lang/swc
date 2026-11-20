@@ -90,7 +90,7 @@ internal func absolutePath(path: string)->String
 
     // Only the returned length decides: the call does not clear the thread's last error, so a
     // stale one would send an otherwise successful resolution down the fallback path.
-    let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null)
+    let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null) { return "" }
 
     // A failed canonicalization must never become a literal prefix accepted by containment.
     if written == 0 or written >= MaxLength do

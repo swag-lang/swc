@@ -722,7 +722,7 @@ impl LibraryWnd
         // Counting a folder lists it and asks the decoders about every file, so a count is kept
         // until the folder is written to or the library changes.
         var counts: Array'LibraryFolderCount
-        let dirs = catch Directory.enumerateDirectories(root)
+        let dirs = catch Directory.enumerateDirectories(root) orelse {}
         for d in dirs
         {
             let isTrash = d.fullName == Library.getTrashFolder()
@@ -741,9 +741,9 @@ impl LibraryWnd
             if count == Swag.U64.Max
             {
                 if isTrash do
-                    count = (catch Library.enumerateTrash()).count
+                    count = catch Library.enumerateTrash().count orelse 0
                 else do
-                    count = (catch Library.enumerateSupportedFiles(d.fullName)).count
+                    count = catch Library.enumerateSupportedFiles(d.fullName).count orelse 0
             }
 
             counts.add({d.fullName, d.lastWriteTime, g_Library.revision, count})
@@ -1700,7 +1700,7 @@ impl LibraryWnd
         .lensFolders.add(Library.getFolder())
         for folder in .tabFolders where not .lensFolders.contains(folder[]) do
             .lensFolders.add(folder[])
-        let dirs = catch Directory.enumerateDirectories(.currentFolder())
+        let dirs = catch Directory.enumerateDirectories(.currentFolder()) orelse {}
         for d in dirs where not .lensFolders.contains(d.fullName) do
             .lensFolders.add(d.fullName)
 

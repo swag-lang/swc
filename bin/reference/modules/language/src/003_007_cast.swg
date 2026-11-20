@@ -98,10 +98,8 @@ The destination also states the presence contract. `*T` requires a present value
 When only nullability changes, the checked conversion tests presence without a
 dynamic type lookup. An assumed presence conversion follows `.Assume` safety.
 
-Use `catch cast(*T?, value)` when a failed conversion should produce null: like
-any caught expression, it resumes with the default value of its destination, and
-a nullable destination defaults to null. A handler reads the conversion error
-with `Swag.err`.
+Use `catch cast(*T?, value) orelse null` when a failed conversion should produce
+null. A handler or fallback reads the conversion error with `Swag.err`.
 
 These forms apply to `any`, interfaces, and pointers to dynamic structs. A plain
 struct pointer can expose a concrete enclosing type only when its struct is marked
@@ -129,7 +127,7 @@ struct CastButton
 {
     var button: CastButton
     let node:   *CastNode = &button
-    let found = catch cast(*CastButton?, node)
+    let found = catch cast(*CastButton?, node) orelse null
     if found != null do
         Swag.require(found.label == "Apply")
     Swag.require(found != null)
@@ -168,12 +166,12 @@ the caller already guarantees compatibility.
 ## Leaving Early on Another Type
 
 A pattern binding lives only in its branch. When a function returns early for the other
-types, bind with `catch cast(*T?, value)` instead: the test that leaves narrows the name to
+types, bind with `catch cast(*T?, value) orelse null`. The early return narrows the name to
 `*T` for the rest of the function.
 */
 func countOf(view: ICount)->s32
 {
-    let counter = catch cast(*Counter?, view)
+    let counter = catch cast(*Counter?, view) orelse null
     if not counter do
         return -1
     return counter.value

@@ -475,7 +475,7 @@ impl QuickStylePaintForm
 // printed there, it would overflow the cell on both axes and cross the sample it names.
 func quickStyleTip(itf: IForm)->string
 {
-    let image = catch cast(*FormImage?, itf)
+    let image = catch cast(*FormImage?, itf) orelse null
     if not image do
         return ""
     return quickStyleKindName(image.kind)
@@ -1555,7 +1555,7 @@ impl QuickWnd
             return false
         }
 
-        let key = catch cast(*KeyEvent?, evt)
+        let key = catch cast(*KeyEvent?, evt) orelse null
         if not key or key.kind != .Pressed or not key.modifiers.equals(.None) do
             return false
 

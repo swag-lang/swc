@@ -5,7 +5,7 @@ func nestedCatches(levels: u32)->u32 fail
 {
     if levels == 0 do
         return 0
-    return (catch nestedCatches(levels - 1)) + 1
+    return (catch nestedCatches(levels - 1) orelse 0) + 1
 }
 
 // Every level fails, so each one hands an error to the level that catches it.
@@ -13,7 +13,7 @@ func nestedFailures(levels: u32)->u32 fail
 {
     if levels == 0 do
         fail Swag.BaseError{"deepest"}
-    let below = catch nestedFailures(levels - 1)
+    let below = catch nestedFailures(levels - 1) orelse 0
     if below == 0 do
         fail Swag.BaseError{"failed below"}
     return below
@@ -24,7 +24,7 @@ func nestedFailures(levels: u32)->u32 fail
 #test
 {
     let depth = Swag.getContext().errorIndex
-    Swag.require((catch nestedCatches(300)) == 300)
+    Swag.require((catch nestedCatches(300) orelse 0) == 300)
     Swag.require(Swag.getContext().errorIndex == depth)
 }
 

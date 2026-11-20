@@ -53,7 +53,7 @@ func paintProbe(gpu: IRenderer, target: *RenderTarget, font: *Font, texture: Tex
     watch.start()
     while not recovered and watch.elapsedMilliseconds() < 30000
     {
-        recovered = catch renderer.recoverLostDevice()
+        recovered = catch renderer.recoverLostDevice() orelse false
         if not recovered do
             Threading.Thread.sleep(50'ms)
     }

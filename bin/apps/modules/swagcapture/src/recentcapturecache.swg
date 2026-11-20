@@ -44,7 +44,7 @@ impl RecentCaptureCache
                 continue
             if entry.capture.file != file do
                 continue
-            let current = catch File.info(file)
+            let current = catch File.info(file) orelse {}
             let valid   = sameRevision(entry.revision, current)
             let result  = valid ? entry.capture : null
             if valid
@@ -64,7 +64,7 @@ impl RecentCaptureCache
     // Takes ownership even when the picture is too large or has become stale.
     mtd put(capture: *Capture, revision: File.FileInfo)
     {
-        let current = catch File.info(capture.file)
+        let current = catch File.info(capture.file) orelse {}
         if capture.changed or
            capture.isTimed() or
            g_CaptureSaves.writing(capture.file) or

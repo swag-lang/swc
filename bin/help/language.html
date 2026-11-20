@@ -2304,7 +2304,7 @@ swc test -w path/to/workspace -m messages</span></div>
 </ul>
 <p>An ordinary dynamic cast needs one of these policies, or a surrounding <span class="code-inline">catch</span>. A numeric conversion or a statically known conversion to an embedded parent does not gain a dynamic type lookup. An assumed downcast along a known by-value <span class="code-inline">using</span> path needs only its fixed address adjustment when <span class="code-inline">.Assume</span> safety is disabled. Other representations can still require work to locate their borrowed view.</p>
 <p>The destination also states the presence contract. <span class="code-inline">*T</span> requires a present value; <span class="code-inline">*T?</span> accepts null. There is no separate trailing <span class="code-inline">!</span> to add to the operand. When only nullability changes, the checked conversion tests presence without a dynamic type lookup. An assumed presence conversion follows <span class="code-inline">.Assume</span> safety.</p>
-<p>Use <span class="code-inline">catch cast(*T?, value)</span> when a failed conversion should produce null: like any caught expression, it resumes with the default value of its destination, and a nullable destination defaults to null. A handler reads the conversion error with <span class="code-inline">Swag.err</span>.</p>
+<p>Use <span class="code-inline">catch cast(*T?, value) orelse null</span> when a failed conversion should produce null. A handler or fallback reads the conversion error with <span class="code-inline">Swag.err</span>.</p>
 <p>These forms apply to <span class="code-inline">any</span>, interfaces, and pointers to dynamic structs. A plain struct pointer can expose a concrete enclosing type only when its struct is marked <span class="code-inline">#[Swag.DynCast]</span>, or inherits that capability through a by-value <span class="code-inline">using</span> field. The attribute adds a compiler-managed metadata pointer to object storage; pointers to the object retain their ordinary size. A pointer-valued <span class="code-inline">using</span> field does not make its pointee part of the enclosing object's storage.</p>
 <p>Use <span class="code-inline">value is T</span> for a boolean compatibility test, or <span class="code-inline">if value is T as name</span> to test and borrow the matching value without constructing a conversion error. Expression <span class="code-inline">as</span> is not a conversion operator; it introduces a binding in a type pattern or a caught error.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">DynCast]</span>
@@ -2320,7 +2320,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
-    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node)
+    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
     <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(found.label == <span class="SStr">"Apply"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(found != <span class="SKwd">null</span>)
@@ -2344,10 +2344,10 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h4 id="_003_007_cast_swg_Leaving_Early_on_Another_Type">Leaving Early on Another Type</h4>
-<p>A pattern binding lives only in its branch. When a function returns early for the other types, bind with <span class="code-inline">catch cast(*T?, value)</span> instead: the test that leaves narrows the name to <span class="code-inline">*T</span> for the rest of the function.</p>
+<p>A pattern binding lives only in its branch. When a function returns early for the other types, bind with <span class="code-inline">catch cast(*T?, value) orelse null</span>. The early return narrows the name to <span class="code-inline">*T</span> for the rest of the function.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countOf</span>(view: <span class="SCst">ICount</span>)-&gt;<span class="STpe">s32</span>
 {
-    <span class="SKwd">let</span> counter = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">Counter</span>?, view)
+    <span class="SKwd">let</span> counter = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">Counter</span>?, view) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
     <span class="SLgc">if</span> <span class="SLgc">not</span> counter <span class="SLgc">do</span>
         <span class="SLgc">return</span> -<span class="SNum">1</span>
     <span class="SLgc">return</span> counter.value
@@ -3886,12 +3886,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span> (<span class="STpe">bool</span>, a) == <span class="SKwd">true</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Working_with__any__and_Pointers">Working with <span class="code-inline">any</span> and Pointers</h3>
-<p>Pointer casts borrow the stored value. Constant-backed values such as literals can only be borrowed through a const pointer; a mutable pointer cast fails. Use <span class="code-inline">const *T</span> to read any stored value, and use <span class="code-inline">*T</span> only when the <span class="code-inline">any</span> refers to mutable storage. Use <span class="code-inline">catch cast(const *T?, boxed)</span> or <span class="code-inline">catch cast(*T?, boxed)</span> when a failed conversion should produce null.</p>
+<p>Pointer casts borrow the stored value. Constant-backed values such as literals can only be borrowed through a const pointer; a mutable pointer cast fails. Use <span class="code-inline">const *T</span> to read any stored value, and use <span class="code-inline">*T</span> only when the <span class="code-inline">any</span> refers to mutable storage. Use <span class="code-inline">catch cast(const *T?, boxed) orelse null</span> or <span class="code-inline">catch cast(*T?, boxed) orelse null</span> when a failed conversion should produce null.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>((<span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a)) == <span class="SKwd">null</span>)
-    <span class="SKwd">let</span> ptr = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>((<span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a) <span class="SLgc">orelse</span> <span class="SKwd">null</span>) == <span class="SKwd">null</span>)
+    <span class="SKwd">let</span> ptr = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr[] == <span class="SNum">6</span>)
 }
@@ -3900,7 +3900,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> value: <span class="STpe">s32</span> = <span class="SNum">6</span>
     <span class="SKwd">var</span> a:     <span class="STpe">any</span> = value
-    <span class="SKwd">let</span> ptr        = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a)
+    <span class="SKwd">let</span> ptr        = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr != <span class="SKwd">null</span>)
     ptr[] = <span class="SNum">7</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">7</span>)
@@ -9422,15 +9422,15 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">return</span> name.count
 }</span></div>
 <h3 id="_013_001_error_management_swg_Catching_Errors">Catching Errors</h3>
-<p><span class="code-inline">catch</span> handles an error locally. It reads in three ways:</p>
+<p><span class="code-inline">catch</span> handles an error locally. A call whose result is used needs an explicit fallback or a handler that exits the surrounding flow.</p>
 <ul>
-<li>'catch e' resumes with the default value of the result type when <span class="code-inline">e</span> fails.</li>
 <li>'catch e orelse V' resumes with <span class="code-inline">V</span> when <span class="code-inline">e</span> fails.</li>
 <li>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails.</li>
+<li>'catch e' handles a statement call. Use 'discard catch e' to ignore a required result.</li>
 </ul>
-<p>The operand binds like the operand of a unary operator: 'catch f() == 0' compares the caught result. The <span class="code-inline">orelse</span> value takes the rest of the expression, as it does for any <span class="code-inline">orelse</span>.</p>
+<p><span class="code-inline">catch</span> takes a unary operand. The <span class="code-inline">orelse</span> fallback takes the rest of the expression. Write '(catch count(name) orelse 1) == 0' to compare the recovered result.</p>
 <p>Inside the handler or the <span class="code-inline">orelse</span> value, <span class="code-inline">Swag.err</span> is the error: a borrowed <span class="code-inline">any</span>, non-null because the handler runs only on failure. In a nested <span class="code-inline">catch</span>, it names the innermost error. Outside a handler, <span class="code-inline">Swag.err</span> does not exist.</p>
-<p>A block handler used in a value expression must leave the surrounding flow with <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>.</p>
+<p>A block handler must leave the surrounding flow when the result is read, using <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>.</p>
 <p>Copies of the error view and pointers derived from it borrow the handler's lifetime and cannot escape it. Use 'fail Swag.err' to propagate the caught error. To retain it after the handler ends, give it an explicit <a href="swag.runtime.html#Swag_Error">Swag.Error</a> owner.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -9441,7 +9441,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Retaining_Errors">Retaining Errors</h3>
 <p><a href="swag.runtime.html#Swag_Error_capture">Swag.Error.capture</a> copies a live caught payload and retains its runtime message storage. The owner may then outlive the handler, including a worker thread. Other borrowed fields still need their original owners, and the backing allocator must remain alive until every error owner and raised capture ends.</p>
-<p>To store the outcome directly, declare the owner and write 'as saved'. The owner is evaluated once before the operand. Failure retains the handled payload without copying it; success resets the owner to empty. This form needs no handler: a result that is read still resumes with the default value of its type, or with 'orelse V'.</p>
+<p>To store the outcome directly, declare the owner and write 'as saved'. The owner is evaluated once before the operand. Failure retains the handled payload without copying it. Success resets the owner to empty. When the result is read, use 'orelse V' or an exiting handler. To retain only the error, use 'discard catch'.</p>
 <p><a href="swag.runtime.html#Swag_Error_value">Swag.Error.value</a> borrows the retained error for later inspection; an empty owner returns null. Resetting, replacing, or dropping the owner invalidates that view. 'try saved.raise()' propagates the retained error with its dynamic type. Copying an owner shares its retained payload. Access to the same owner across threads needs synchronization.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -9464,11 +9464,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> saved <span class="SLgc">orelse</span> <span class="SNum">17</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">17</span> <span class="SLgc">and</span> <span class="SLgc">not</span> saved.<span class="SFct">isEmpty</span>())
-    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SStr">"ready"</span>) <span class="SLgc">as</span> saved
+    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SStr">"ready"</span>) <span class="SLgc">as</span> saved <span class="SLgc">orelse</span> <span class="SNum">0</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(other == <span class="SNum">5</span> <span class="SLgc">and</span> saved.<span class="SFct">isEmpty</span>())
 }</span></div>
 <h3 id="_013_001_error_management_swg_Handling_on_Failure">Handling on Failure</h3>
-<p>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails; 'catch e do S' runs a single statement. <span class="code-inline">Swag.err</span> reads the error inside <span class="code-inline">H</span>. A handler on a statement may finish normally. A handler on a value expression must leave the surrounding flow.</p>
+<p>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails; 'catch e do S' runs a single statement. <span class="code-inline">Swag.err</span> reads the error inside <span class="code-inline">H</span>. A handler may finish normally when its result is unused. When the result is read, the handler must leave the surrounding flow.</p>
 <p>The block that follows a <span class="code-inline">catch</span> operand is always its handler. To pass trailing code to a macro under <span class="code-inline">catch</span>, write it as an explicit <span class="code-inline">#code</span> literal. In the header of <span class="code-inline">if</span>, <span class="code-inline">while</span>, <span class="code-inline">for</span>, <span class="code-inline">switch</span> or <span class="code-inline">with</span>, the <span class="code-inline">{</span> that follows a <span class="code-inline">catch</span> operand opens the statement body: give the handler parentheses there.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
@@ -9491,13 +9491,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(seen == -<span class="SNum">2</span>)     <span class="SCmt">// failure: the handler ran instead</span>
 }</span></div>
 <h3 id="_013_001_error_management_swg_Replacing_a_Failed_Result">Replacing a Failed Result</h3>
-<p>'catch e' yields the default value of the result type when <span class="code-inline">e</span> fails: the value 'var x: T' would hold, with struct field initializers applied, null for a nullable type, and zero for a number. A type that has no default value, such as a non-null pointer, needs the replacement to be written.</p>
-<p>'catch e orelse V' yields <span class="code-inline">V</span> instead. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and is evaluated only when it is needed, so it can read <span class="code-inline">Swag.err</span>. Because the replacement is written, the result type needs no default: a non-null pointer can be caught too.</p>
+<p>Write 'catch e orelse V' to supply <span class="code-inline">V</span> when <span class="code-inline">e</span> fails. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and runs only on failure, so it can read <span class="code-inline">Swag.err</span>. The fallback can be a non-null pointer or an explicit default such as zero or an empty record.</p>
 <p>A successful nullable result stays nullable. Parenthesize the <span class="code-inline">catch</span> expression before writing a second <span class="code-inline">orelse</span> to supply a value for a successful null.</p>
 <p>When the result is not needed, write 'discard catch': success drops its result and failure drops its error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name)
+    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">orelse</span> <span class="SNum">0</span>
 }
 
 <span class="SKwd">func</span> <span class="SFct">countOrCode</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
@@ -9542,11 +9541,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SCmt">// The default of a struct is the one its field initializers give.</span>
-    <span class="SKwd">let</span> settings = <span class="SKwd">catch</span> <span class="SFct">loadSettings</span>(<span class="SKwd">null</span>)
+    <span class="SKwd">let</span> settings = <span class="SKwd">catch</span> <span class="SFct">loadSettings</span>(<span class="SKwd">null</span>) <span class="SLgc">orelse</span> <span class="SCst">Settings</span>{}
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(settings.width == <span class="SNum">640</span> <span class="SLgc">and</span> settings.title == <span class="SStr">"untitled"</span>)
 
-    <span class="SCmt">// A nullable result defaults to null.</span>
-    <span class="SKwd">let</span> name = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>)
+    <span class="SCmt">// Recover with null when no name is available after an error.</span>
+    <span class="SKwd">let</span> name = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>) <span class="SLgc">orelse</span> <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(name == <span class="SKwd">null</span>)
 
     <span class="SKwd">let</span> unknown = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>) <span class="SLgc">orelse</span> <span class="SStr">"unknown"</span>
@@ -9565,7 +9564,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> errOutcome <span class="SLgc">orelse</span> <span class="SNum">0</span>
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(err == <span class="SKwd">null</span>)
@@ -9574,9 +9573,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
-    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">0</span>)
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
@@ -9590,9 +9588,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
-    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">0</span>)
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
@@ -9639,9 +9636,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
-    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">0</span>)
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }
@@ -9661,7 +9657,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SKwd">func</span> <span class="SFct">implicitTotal</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">let</span> first  = <span class="SFct">count</span>(name0)
-    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1)
+    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1) <span class="SLgc">orelse</span> <span class="SNum">0</span>
     <span class="SLgc">return</span> first + second + <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
 }
 
@@ -9673,15 +9669,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(caught == <span class="SNum">4</span>)
 
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> errOutcome
-    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">0</span>)
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
 <p><span class="code-inline">expect</span> returns the successful result or panics. This contract holds in every build configuration, including release and code with safety guards disabled. A panic hook may report the error or transfer control, but returning from the hook terminates the process. Use <span class="code-inline">expect</span> for an invariant, not for an ordinary failure that the caller should recover from.</p>
 <p>A failed function produces no result. <span class="code-inline">try</span> propagates its error without constructing a replacement, and <span class="code-inline">expect</span> stops without one. Both accept result types with no default, including non-null pointers. A successful nullable result remains nullable: <span class="code-inline">expect</span> checks success, not presence.</p>
-<p>A <span class="code-inline">catch</span> expression resumes with the default value of its type, names its replacement with <span class="code-inline">orelse</span>, or uses a block handler that leaves the surrounding flow. With <span class="code-inline">orelse</span> or such a handler, it accepts non-null results.</p>
+<p>A <span class="code-inline">catch</span> expression names its replacement with <span class="code-inline">orelse</span> or uses a block handler that leaves the surrounding flow. Both forms accept non-null results.</p>
 <p>Inside <span class="code-inline">#test</span>, write <span class="code-inline">expect</span> when an error must stop the test. <span class="code-inline">try</span> follows the ordinary propagation rule and needs an enclosing error-handling block. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -9731,9 +9726,8 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SCst">DeferTrace</span> = <span class="SNum">0</span>
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
-    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">0</span>)
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SCst">DeferTrace</span> == <span class="SNum">1</span>)
 }</span></div>

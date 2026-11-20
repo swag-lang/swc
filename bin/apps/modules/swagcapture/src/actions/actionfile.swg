@@ -392,7 +392,7 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
 
     if capture.rating do
         addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
-    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
+    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size orelse 0))
     rows.computeLayout()
     dialog.applyLayout()
     dialog.fitHeightToContent(rows.measure(Math.Point{rows.position.width, 0}).preferred.y)
@@ -724,8 +724,8 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let {value: w, eat: _, ovf: _} = catch StrConv.parseS32(edit0.text())
-        let {value: h, eat: _, ovf: _} = catch StrConv.parseS32(edit1.text())
+        let w = catch StrConv.parseS32(edit0.text()).value orelse 512
+        let h = catch StrConv.parseS32(edit1.text()).value orelse 512
         var image = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

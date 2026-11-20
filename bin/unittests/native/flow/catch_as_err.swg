@@ -59,7 +59,7 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 #test
 {
     var errOutcome: Swag.Error
-    let x   = catch catchAsErrInlineFoldable(63) as errOutcome
+    let x   = catch catchAsErrInlineFoldable(63) as errOutcome orelse 0
     let err = errOutcome.value()
     Swag.require(x == 63)
     Swag.require(err == null)
@@ -109,7 +109,7 @@ func catchAsErrReraise(ok: bool)->s32 fail
 
 #test
 {
-    Swag.require(catch (catchAsErrReraise(true) == 5))
+    Swag.require(catch (catchAsErrReraise(true) == 5) orelse false)
     var seen = 0
     discard catch catchAsErrReraise(false) { seen = assume cast(CatchAsErrError, Swag.err).code }
     Swag.require(seen == 7)

@@ -8,7 +8,7 @@ func cachedMediaIsFresh(image: const *Image, nowTicks: u64)->bool
     for &record in image.metadata where record.isTag(cast(const [..] u8, MovieCachedAtTag)) or
                                         record.isTag(cast(const [..] u8, MusicCachedAtTag))
     {
-        let cachedAt = catch StrConv.toU64(cast(string, record.toSlice()))
+        let cachedAt = catch StrConv.toU64(cast(string, record.toSlice())) { return false }
         return cachedAt != 0 and cachedAt <= nowTicks and nowTicks - cachedAt < 120 * Time.TicksPerDay
     }
 

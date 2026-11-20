@@ -228,7 +228,7 @@ impl ExplorerListing
             for &entry in result.entries where entry.directory and counted < 64
             {
                 counted += 1
-                let inside = catch Directory.enumerate(entry.path, {})
+                let inside = catch Directory.enumerate(entry.path, {}) orelse {}
                 entry.children = inside.count
                 var tracks = 0'u64
                 var first: String

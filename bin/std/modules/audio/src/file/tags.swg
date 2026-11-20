@@ -62,7 +62,7 @@ impl SoundTags
         defer file.close()
 
         var head: [Id3HeaderSize] u8
-        if not (catch file.readExactAt(0, head)) do
+        if not (catch file.readExactAt(0, head) orelse false) do
             return result
 
         if head[0] == 'I' and head[1] == 'D' and head[2] == '3'
@@ -74,7 +74,7 @@ impl SoundTags
                 return result
             var tag: Array'u8
             tag.resize(size)
-            if catch file.readExactAt(0, tag.toSlice()) do
+            if catch file.readExactAt(0, tag.toSlice()) orelse false do
                 result.decodeId3(tag.toSlice(), withPicture)
             return result
         }
@@ -87,7 +87,7 @@ impl SoundTags
             for
             {
                 var block: [4] u8
-                if not (catch file.readExactAt(offset, block)) do
+                if not (catch file.readExactAt(offset, block) orelse false) do
                     break
                 let last   = (block[0] & 0x80) != 0
                 let kind   = block[0] & 0x7F
@@ -98,7 +98,7 @@ impl SoundTags
                 {
                     var comment: Array'u8
                     comment.resize(length)
-                    if catch file.readExactAt(offset + 4, comment.toSlice()) do
+                    if catch file.readExactAt(offset + 4, comment.toSlice()) orelse false do
                         result.decodeVorbisComment(comment.toSlice())
                     if not withPicture do
                         break
@@ -107,7 +107,7 @@ impl SoundTags
                 {
                     var picture: Array'u8
                     picture.resize(length)
-                    if catch file.readExactAt(offset + 4, picture.toSlice()) do
+                    if catch file.readExactAt(offset + 4, picture.toSlice()) orelse false do
                         result.decodeFlacPicture(picture.toSlice())
                 }
 

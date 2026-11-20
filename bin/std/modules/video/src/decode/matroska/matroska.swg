@@ -2295,7 +2295,7 @@ private impl Decoder
         if declared and observed * 2 < declared * 3 and declared * 2 < observed * 3 do
             return
 
-        .info.frameRate = catch frameRateFromDuration(observed)
+        .info.frameRate = catch frameRateFromDuration(observed) orelse {}
     }
 
     // Converts an absolute container timestamp to the first display rank not earlier than it.

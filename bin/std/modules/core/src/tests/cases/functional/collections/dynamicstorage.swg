@@ -17,7 +17,7 @@ struct CollectionDynamicChild
     Reflection.assign(&base, &child.base, CollectionDynamicBase)
     Swag.require(not (&base is CollectionDynamicChild))
     Reflection.assign(&child.base, &base, CollectionDynamicBase)
-    Swag.require((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
+    Swag.require((expect cast(*CollectionDynamicChild, &child.base)) == &child)
 }
 
 #test
@@ -26,7 +26,7 @@ struct CollectionDynamicChild
     child.value = 42
     Reflection.reset(&child.base, CollectionDynamicBase)
     Swag.require(child.value == 17)
-    Swag.require((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
+    Swag.require((expect cast(*CollectionDynamicChild, &child.base)) == &child)
 }
 
 #test
@@ -36,7 +36,7 @@ struct CollectionDynamicChild
     defer Memory.delete(storage, type)
     let value = cast(*CollectionDynamicChild, storage)
     let base: *CollectionDynamicBase = value
-    Swag.require((catch cast(*CollectionDynamicChild?, base)) == value)
+    Swag.require((expect cast(*CollectionDynamicChild, base)) == value)
     Swag.require(base.value == 17)
 }
 
@@ -61,8 +61,8 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     right.value = 42
     swap(&left.base, &right.base)
     Swag.require(left.value == 42 and right.value == 17)
-    Swag.require((catch cast(*CollectionSwapChild?, &left.base)) == &left)
-    Swag.require((catch cast(*CollectionSwapChild?, &right.base)) == &right)
+    Swag.require((expect cast(*CollectionSwapChild, &left.base)) == &left)
+    Swag.require((expect cast(*CollectionSwapChild, &right.base)) == &right)
 }
 
 // A base view and an independent value have different identities but equal keys.

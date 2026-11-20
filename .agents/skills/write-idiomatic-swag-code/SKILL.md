@@ -577,13 +577,13 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   `expect`, and `assume` stand out. Do not write `try` inside it: the compiler reports it as
   redundant. Keep explicit `try` in code that builds state by hand and must undo it on failure,
   where each exit point matters to the reader.
-- A bare `catch operation()` resumes with the default value of the result type. Name a
-  different replacement with `catch operation() orelse value`, or handle the failure with a
-  block right after the operand: `catch operation() { ... }`, which must leave the surrounding
-  flow when the result is read. `Swag.err` is the borrowed error inside that handler or
-  replacement. A successful null stays null. To replace it too, use an ordinary `orelse`
-  after the parenthesized `catch` expression. For delayed inspection, declare a `Swag.Error`
-  owner and write `catch operation() as owner`. The owner is empty on success and retains
+- When reading a caught result, write its replacement with `catch operation() orelse value`
+  or leave the surrounding flow from a handler in `catch operation() { ... }`.
+  Use `discard catch operation()` when ignoring a result. `Swag.err` is the borrowed error inside
+  the handler or replacement. A successful null stays null. To replace it too, use an ordinary
+  `orelse` after the parenthesized `catch` expression. For delayed inspection, declare a
+  `Swag.Error` owner and write `as owner` after the operand and before its fallback. Use
+  `discard catch operation() as owner` to keep just the error. The owner is empty on success and retains
   the error on failure. Borrow `.value()` only while that owner is alive and has not been
   replaced or reset. The operand binds tightly: `catch f() == 0` compares the caught result.
 - Use `assume operation()` only when the caller guarantees success. `.Assume` safety checks

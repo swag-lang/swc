@@ -97,7 +97,7 @@ struct(T) Holder where (T is IValue)
 
     let same = cast(IValue, pointer)
     Swag.require(same.value() == 42)
-    let concrete = catch cast(*Counter?, pointer)
+    let concrete = catch cast(*Counter?, pointer) orelse null
     Swag.require(concrete!.count == 42)
     Swag.require((pointer is Counter))
 }

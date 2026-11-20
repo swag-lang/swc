@@ -829,7 +829,7 @@ private impl Application
         {
             // A renderer that cannot create a replacement context yet stays lost and draws
             // nothing; the next frame asks again.
-            if not catch ogl.recoverLostDevice() do
+            if not (catch ogl.recoverLostDevice() orelse false) do
                 return
 
             .theme.restoreLostTextures(.renderer)

@@ -430,7 +430,7 @@ func voidNeedsNothing(flag: bool)
     Swag.require(excludedLoopBreak() == 4)
     Swag.require(excludedGuardBreaks([1]) == 5)
     Swag.require(endsInUnreachable(true) == 1)
-    Swag.require((catch endsInFail(true)) == 1)
+    Swag.require((catch endsInFail(true) orelse 0) == 1)
 }
 
 // Attributes preserve the body's paths; they do not turn a conditional exit into a total one.

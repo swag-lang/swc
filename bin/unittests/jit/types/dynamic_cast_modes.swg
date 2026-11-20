@@ -38,12 +38,12 @@ func(T) readCastValue(value: *T)->s32
 {
     var value: CastValue
     let itf      = cast(ICastValue, &value)
-    let concrete = catch cast(*CastValue?, itf)
+    let concrete = catch cast(*CastValue?, itf) orelse null
     Swag.require(concrete == &value)
-    let castResult1 = catch cast(*OtherCastValue?, itf)
+    let castResult1 = catch cast(*OtherCastValue?, itf) orelse null
     Swag.require(castResult1 == null)
     Swag.require(assume cast (*CastValue, itf) == &value)
-    let label = catch cast(ICastLabel?, itf)
+    let label = catch cast(ICastLabel?, itf) orelse null
     if label != null do
         Swag.require(label.label() == "value")
     Swag.require(label != null)
@@ -56,10 +56,10 @@ func(T) readCastValue(value: *T)->s32
 {
     var value: CastValue
     var boxed: any = &value
-    Swag.require((catch cast(*CastValue?, boxed)) == &value)
-    let castResult2 = catch cast(*OtherCastValue?, boxed)
+    Swag.require((catch cast(*CastValue?, boxed) orelse null) == &value)
+    let castResult2 = catch cast(*OtherCastValue?, boxed) orelse null
     Swag.require(castResult2 == null)
-    let view = catch cast(ICastValue?, boxed)
+    let view = catch cast(ICastValue?, boxed) orelse null
     if view != null do
         Swag.require(view.value() == 42)
     Swag.require(view != null)
@@ -68,10 +68,10 @@ func(T) readCastValue(value: *T)->s32
 #test
 {
     var boxed: any = 17's32
-    let value      = catch cast(*s32?, boxed)
+    let value      = catch cast(*s32?, boxed) orelse null
     Swag.require(value == null)
-    Swag.require(catch cast(const *s32?, boxed) != null)
-    let castResult3 = catch cast(*s64?, boxed)
+    Swag.require((catch cast(const *s32?, boxed) orelse null) != null)
+    let castResult3 = catch cast(*s64?, boxed) orelse null
     Swag.require(castResult3 == null)
     Swag.require(assume cast (s32, boxed) == 17)
 }
@@ -81,8 +81,8 @@ func(T) readCastValue(value: *T)->s32
 {
     var literalBox: any = 42's32
     Swag.require(Swag.kindOf(literalBox) == s32)
-    Swag.require((catch cast(*s32?, literalBox)) == null)
-    Swag.require(catch cast(const *s32?, literalBox) != null)
+    Swag.require((catch cast(*s32?, literalBox) orelse null) == null)
+    Swag.require((catch cast(const *s32?, literalBox) orelse null) != null)
     if literalBox is s32 as number do
         number[] = 0
     Swag.require(assume cast(s32, literalBox) == 42)
@@ -90,14 +90,14 @@ func(T) readCastValue(value: *T)->s32
     const value: s32 = 43
     var constantBox: any = value
     Swag.require(Swag.kindOf(constantBox) == s32)
-    Swag.require((catch cast(*s32?, constantBox)) == null)
-    Swag.require(catch cast(const *s32?, constantBox) != null)
+    Swag.require((catch cast(*s32?, constantBox) orelse null) == null)
+    Swag.require((catch cast(const *s32?, constantBox) orelse null) != null)
     Swag.require(assume cast(s32, constantBox) == 43)
 
     var recordBox: any = CastValue{number: 46}
     Swag.require(Swag.kindOf(recordBox) == CastValue)
-    Swag.require((catch cast(*CastValue?, recordBox)) == null)
-    let recordValue = catch cast(const *CastValue?, recordBox)
+    Swag.require((catch cast(*CastValue?, recordBox) orelse null) == null)
+    let recordValue = catch cast(const *CastValue?, recordBox) orelse null
     Swag.require(recordValue != null)
     if recordValue != null do
         Swag.require(recordValue[].number == 46)
@@ -113,7 +113,7 @@ func(T) readCastValue(value: *T)->s32
 {
     var value: s32 = 44
     var boxed: any = value
-    let pointer    = catch cast(*s32?, boxed)
+    let pointer    = catch cast(*s32?, boxed) orelse null
     Swag.require(pointer != null)
     pointer[] = 45
     Swag.require(value == 45)
@@ -128,7 +128,7 @@ func(T) readCastValue(value: *T)->s32
     var value:    CastValue
     let readOnly: const *CastValue = &value
     let boxed:    const any        = readOnly
-    Swag.require((catch cast(const *CastValue?, boxed)) == readOnly)
+    Swag.require((catch cast(const *CastValue?, boxed) orelse null) == readOnly)
     let absent: *CastValue? = null
     let castResult4         = cast(*CastValue?, absent)
     Swag.require(castResult4 == null)
@@ -139,8 +139,8 @@ func(T) readCastValue(value: *T)->s32
     var value: CastValue
     let itf        = cast(ICastValue, &value)
     let boxed: any = itf
-    Swag.require((catch cast(*CastValue?, boxed)) == &value)
-    let label = catch cast(ICastLabel?, boxed)
+    Swag.require((catch cast(*CastValue?, boxed) orelse null) == &value)
+    let label = catch cast(ICastLabel?, boxed) orelse null
     Swag.require(label != null)
     Swag.require(label.label() == "value")
 }
@@ -148,10 +148,10 @@ func(T) readCastValue(value: *T)->s32
 #test
 {
     let source = Swag.makeInterface(null, CastValue, ICastValue)
-    let target = catch cast(ICastLabel?, source)
+    let target = catch cast(ICastLabel?, source) orelse null
     Swag.require(target != null)
     Swag.require(target.label() == "value")
-    let castResult5 = catch cast(*CastValue?, source)
+    let castResult5 = catch cast(*CastValue?, source) orelse null
     Swag.require(castResult5 == null)
     let absent: *CastValue? = null
     let castResult6         = cast(ICastLabel?, absent)

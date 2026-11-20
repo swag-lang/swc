@@ -91,6 +91,25 @@ private func renderConvexPolygon(clockwise: bool, usePolygonApi: bool)->Image
     return renderCpu(36, 38, &painter)
 }
 
+private func renderTranslucentConvexQuad()->Image
+{
+    var path: LinePath
+    path.start(4, 4)
+    path.lineTo(28, 4)
+    path.lineTo(28, 28)
+    path.lineTo(4, 28)
+    path.close()
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.fillPath(&path, Color.fromArgb(128, Argb.Red))
+    painter.end()
+
+    return renderCpu(32, 32, &painter)
+}
+
 private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
 {
     var path: LinePath
@@ -140,6 +159,16 @@ private func renderConcavePolygon(clockwise: bool, usePolygonApi: bool)->Image
         let concaveAnticlockwise = renderConcavePolygon(false, usePolygonApi)
         Testing.assertImagesNear(&concaveClockwise, &concaveAnticlockwise, "fill.concave.winding", {maxChannelDelta: 1})
     }
+}
+
+// A convex quadrilateral composites every interior pixel once across its triangle split.
+#test
+{
+    let image      = renderTranslucentConvexQuad()
+    let firstHalf  = image.pixelColor(20, 8)
+    let secondHalf = image.pixelColor(8, 20)
+    Swag.require(firstHalf == secondHalf)
+    Swag.require(firstHalf.a == 128)
 }
 
 // Cleaning a counterclockwise concave contour for fill does not rewrite its cached winding.

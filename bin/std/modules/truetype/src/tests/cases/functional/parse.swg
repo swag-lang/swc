@@ -65,6 +65,35 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
 
 #test
 {
+    // A format-0 charset must contain one SID for every glyph after .notdef.
+    const TruncatedCharset: [32] u8 = [
+        0x01, 0x00, 0x04, 0x04,                                   // header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,                       // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05, 0xA2, 0x11, 0xAA, 0x0F,     // Top DICT
+        0x00, 0x00, 0x00, 0x00,                                   // String and GlobalSubrs INDEX
+        0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E,           // CharStrings INDEX
+        0x00     // Charset format 0, missing glyph SID
+        ]
+    var rejected: Swag.Error
+    discard catch parseCffFont(TruncatedCharset) as rejected
+    Swag.require(rejected.value() != null)
+
+    // A format-0 encoding's declared code count must fit its table extent.
+    const TruncatedEncoding: [33] u8 = [
+        0x01, 0x00, 0x04, 0x04,                                   // header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,                       // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05, 0xA2, 0x11, 0xAA, 0x10,     // Top DICT
+        0x00, 0x00, 0x00, 0x00,                                   // String and GlobalSubrs INDEX
+        0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E,           // CharStrings INDEX
+        0x00, 0x01     // Encoding format 0, count 1, missing code
+        ]
+    rejected = {}
+    discard catch parseCffFont(TruncatedEncoding) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     var faceData: FaceImpl
     faceData.face.setGlyphCount(1)
     faceData.indexToLocFormat = 2

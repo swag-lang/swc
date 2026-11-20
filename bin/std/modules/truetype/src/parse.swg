@@ -290,6 +290,13 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                 try fault(0x03)
         }
 
+        if format == 6
+        {
+            let entryCount = try readU16(subTable, 8)
+            if cast(u64, entryCount) > (subTable.count - 10) / 2 do
+                try fault(0x03)
+        }
+
         if format == 8
         {
             let groupCount = try readU32(subTable, 8204)

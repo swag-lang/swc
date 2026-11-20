@@ -150,6 +150,25 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(glyph1 == 0)
 }
 
+// Format 6's glyph array must fit within the subtable's declared length.
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap6Fixture)
+    writeBigU16(&cmap, 14, 12)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 #test
 {
     // A platform-zero format-12 map must report the record that was selected,

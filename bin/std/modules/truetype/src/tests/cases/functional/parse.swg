@@ -50,6 +50,51 @@ using Swag, Core
     Swag.require(rejected.value() != null)
 }
 
+#test
+{
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(1)
+    faceData.indexToLocFormat = 2
+
+    var rejected: Swag.Error
+    discard catch buildGlyphLocations(&faceData) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // Short loca offsets must be non-decreasing across the glyph array.
+    const Loca: [4] u8 = [0x00, 0x02, 0x00, 0x00]
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(1)
+    faceData.indexToLocFormat = 0
+    faceData.fontData.add(Loca)
+    faceData.fontData.add([0x00, 0x00, 0x00, 0x00])
+    faceData.tables.add({tag: TAG_LOCA, offset: 0, length: 4})
+    faceData.tables.add({tag: TAG_GLYF, offset: 4, length: 4})
+
+    var rejected: Swag.Error
+    discard catch buildGlyphLocations(&faceData) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // The final loca entry cannot extend past the glyf table.
+    const Loca: [4] u8 = [0x00, 0x00, 0x00, 0x03]
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(1)
+    faceData.indexToLocFormat = 0
+    faceData.fontData.add(Loca)
+    faceData.fontData.add([0x00, 0x00, 0x00, 0x00])
+    faceData.tables.add({tag: TAG_LOCA, offset: 0, length: 4})
+    faceData.tables.add({tag: TAG_GLYF, offset: 4, length: 4})
+
+    var rejected: Swag.Error
+    discard catch buildGlyphLocations(&faceData) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.
 #test
 {

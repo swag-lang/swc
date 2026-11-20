@@ -263,6 +263,9 @@ impl Button
 
                 return notifyPressed
             }
+
+        default:
+            break
         }
 
         return false

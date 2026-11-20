@@ -28,9 +28,8 @@ func readPixel(image: Image, source: const [*] u8)->Pixel
     case .RGBA8: return Pixel{source[0], source[1], source[2], source[3]}
     case .BGR8:  return Pixel{source[2], source[1], source[0], 255}
     case .BGRA8: return Pixel{source[2], source[1], source[0], source[3]}
+    default:     return {}
     }
-
-    return {}
 }
 
 #[Swag.Inline]

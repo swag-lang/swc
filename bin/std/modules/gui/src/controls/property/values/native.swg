@@ -27,6 +27,7 @@ internal impl Properties
             case .S64: setEd's64()
             case .F32: setEd'f32()
             case .F64: setEd'f64()
+            default:   break
             }
 
             .setEditMixed(item, item.sliderBox.edit, short: true)
@@ -53,6 +54,7 @@ internal impl Properties
             case .S64: setEd's64()
             case .F32: setEd'f32()
             case .F64: setEd'f64()
+            default:   break
             }
 
             .setEditMixed(item, item.editBox)
@@ -85,6 +87,7 @@ internal impl Properties
             case .S64: setEd's64()
             case .F32: setEd'f32()
             case .F64: setEd'f64()
+            default:   break
             }
         }
         elif item.editBox != null
@@ -109,6 +112,7 @@ internal impl Properties
             case .S64: setEd's64()
             case .F32: setEd'f32()
             case .F64: setEd'f64()
+            default:   break
             }
         }
 
@@ -162,6 +166,9 @@ internal impl Properties
                     slider.setSignedBounds(cast(minV), cast(maxV))
                 else do
                     slider.setFloatBounds(minV, maxV)
+
+            default:
+                break
             }
 
             return
@@ -208,6 +215,9 @@ internal impl Properties
                 ctrl.edit.setFloatingPointRange()
             else do
                 ctrl.edit.setFloatingPointRange(cast(minV), cast(maxV))
+
+        default:
+            break
         }
     }
 
@@ -254,6 +264,7 @@ internal impl Properties
             case .U8, .U16, .U32, .U64: slider.setUnsignedBounds(cast(minV), cast(maxV))
             case .S8, .S16, .S32, .S64: slider.setSignedBounds(cast(minV), cast(maxV))
             case .F32, .F64: slider.setFloatBounds(minV, maxV)
+            default:        break
             }
         }
         else
@@ -342,6 +353,9 @@ internal impl Properties
                     ed.setFloatingPointRange()
                 else do
                     ed.setFloatingPointRange(cast(minV), cast(maxV))
+
+            default:
+                break
             }
         }
 

@@ -36,6 +36,9 @@ func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelF
         result.addNative(src[1])
         result.addNative(src[0])
         result.addNative(src[3])
+
+    default:
+        break
     }
 }
 
@@ -119,6 +122,9 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         case .RGBA8:
             PackedPixel.swapRedBlue32Row(rawSource, converted.buffer, rawCount)
             result.addBytes(Swag.makeSlice(converted.buffer, rawCount * bytesPerPixel))
+
+        default:
+            break
         }
     }
 }

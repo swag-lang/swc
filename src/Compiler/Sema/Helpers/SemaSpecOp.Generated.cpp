@@ -893,12 +893,14 @@ namespace
             source += " == other.";
             source += memberName;
             source += "\n";
+            source += "            default:\n";
+            source += "                return false\n";
             source += "            }\n";
         }
 
+        source += "        default:\n";
+        source += "            return true\n";
         source += "        }\n";
-        source += "\n";
-        source += "        return true\n";
         source += "    }\n";
     }
 

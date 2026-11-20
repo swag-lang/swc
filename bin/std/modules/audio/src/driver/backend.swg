@@ -80,6 +80,9 @@ impl DriverNative
             {
                 .fAudio.destroyFAudio()
             }
+
+        case .Default:
+            break
         }
 
         .kind = .Default
@@ -103,6 +106,9 @@ impl DriverNative
             {
                 .fAudio.stopEngineFAudio()
             }
+
+        case .Default, .NoSound:
+            break
         }
     }
 
@@ -128,6 +134,9 @@ impl DriverNative
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -149,6 +158,9 @@ impl DriverNative
             {
                 return .fAudio.outputVolumeFAudio()
             }
+
+        case .Default:
+            break
         }
 
         return 0
@@ -222,6 +234,9 @@ impl Voice
             {
                 .destroyFAudio()
             }
+
+        case .Default:
+            break
         }
     }
 
@@ -249,6 +264,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
 
         return false
@@ -276,6 +294,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -301,6 +322,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -327,6 +351,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -344,6 +371,9 @@ impl Voice
         case .FAudio:
             #static if #os == Swag.TargetOs.Linux do
                 return .playedFramesFAudio()
+
+        case .Default:
+            break
         }
 
         return 0
@@ -373,6 +403,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -415,6 +448,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -458,6 +494,9 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 }
@@ -495,6 +534,9 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -523,6 +565,9 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
 
         return 0
@@ -562,6 +607,9 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -590,6 +638,9 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
 
         return 0
@@ -633,6 +684,9 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
 
         for i in .routingBusCount
@@ -696,6 +750,9 @@ impl Bus
             {
                 .destroyFAudio()
             }
+
+        case .Default:
+            break
         }
     }
 }
@@ -733,6 +790,9 @@ public impl Bus
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
     }
 
@@ -761,6 +821,9 @@ public impl Bus
             }
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
+
+        case .Default:
+            break
         }
 
         return 0

@@ -381,6 +381,9 @@ impl RichEditCtrl
                 return
             .copyToClipboard()
             .deleteSelection()
+
+        case .None:
+            break
         }
     }
 

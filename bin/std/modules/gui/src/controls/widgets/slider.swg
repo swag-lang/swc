@@ -331,6 +331,9 @@ impl IWnd for Slider
                 .invalidate()
                 .endChange()
             }
+
+        default:
+            break
         }
     }
 

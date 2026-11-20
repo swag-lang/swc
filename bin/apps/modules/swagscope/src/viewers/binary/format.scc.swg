@@ -134,9 +134,8 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
     case .Float:    return Format.toString("%", value.floatValue)
     case .Boolean:  return Format.toString("%", value.booleanValue)
     case .Bytes:    return StrConv.toDisplaySize(value.bytesValue.count)
+    default:        return NoValue
     }
-
-    return NoValue
 }
 
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.

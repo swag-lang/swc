@@ -675,6 +675,7 @@ impl MainWindow
         {
         case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
         case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintPrivacy)
+        default:                                break
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())
@@ -1221,6 +1222,9 @@ impl IWnd for MainWindow
             .optionsButton.button.setIcon(.theme().icon(.Settings, .themeMetrics().wnd_CaptionButtonGlyph))
             .refreshVaults()
             .dropHighlight.refreshTheme()
+
+        default:
+            break
         }
 
         .wnd.IWnd.onNotifyEvent(evt)

@@ -228,6 +228,9 @@ impl IWnd for Circular
                 .invalidate()
                 .endChange()
             }
+
+        default:
+            break
         }
     }
 }

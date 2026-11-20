@@ -82,6 +82,13 @@ func catchDefaultReplacement()->s32
     return 9
 }
 
+func catchDefaultNameReplacement(error: any)->string
+{
+    CatchDefaultReplacements += 1
+    Swag.require(assume cast(Swag.BaseError, error).message == "no name")
+    return "error fallback"
+}
+
 // A failure resumes with the value 'var x: T' would hold: field initializers run.
 #test
 {
@@ -126,15 +133,25 @@ func catchDefaultReplacement()->s32
     Swag.require(message == 5)
 }
 
-// With a nullable result, 'orelse' also replaces a successful null.
+// A caught error and a successful null take separate branches.
 #test
 {
-    let present: string = catch catchDefaultName(true) orelse "fallback"
+    CatchDefaultReplacements = 0
+    let present = catch catchDefaultName(true) orelse catchDefaultNameReplacement(Swag.err)
+    #assert(#typeof(present) == string?)
     Swag.require(present == "name")
-    let failed: string = catch catchDefaultName(false) orelse "fallback"
-    Swag.require(failed == "fallback")
-    let empty: string = catch catchDefaultNoName() orelse "fallback"
-    Swag.require(empty == "fallback")
+
+    let missing = catch catchDefaultNoName() orelse catchDefaultNameReplacement(Swag.err)
+    Swag.require(missing == null)
+    Swag.require(CatchDefaultReplacements == 0)
+
+    let failed = catch catchDefaultName(false) orelse catchDefaultNameReplacement(Swag.err)
+    Swag.require(failed == "error fallback")
+    Swag.require(CatchDefaultReplacements == 1)
+
+    let filled = (catch catchDefaultNoName() orelse "error fallback") orelse "missing fallback"
+    #assert(#typeof(filled) == string)
+    Swag.require(filled == "missing fallback")
 }
 
 // 'as owner' keeps the error in a declared 'Swag.Error'.

@@ -321,6 +321,7 @@ impl IWnd for Tab
             case .Flat:      painter.fillRect(clientRect, colors.tabBar_FlatBk)
             case .FlatRound: theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
             case .Round:     theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
+            case .Transparent: break
             }
 
             // A flat bar of words stands on one hairline, which the underline of the active tab
@@ -347,6 +348,9 @@ impl IWnd for Tab
         case .Round:
             subRect = &rects.tabView_RoundBk
             colorBk = colors.tabView_RoundBk
+
+        case .None:
+            break
         }
 
         theme.drawSubRect(painter, clientRect, subRect, colorBk)
@@ -438,6 +442,9 @@ impl IWnd for Tab
                     .setSelectedIndex(hit)
                 }
             }
+
+        default:
+            break
         }
     }
 

@@ -651,6 +651,7 @@ private impl Reader
         var css: String
         switch .state.alignment
         {
+        case .Left:    break
         case .Center:  css += "text-align:center;"
         case .Right:   css += "text-align:right;"
         case .Justify: css += "text-align:justify;"

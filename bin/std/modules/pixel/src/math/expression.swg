@@ -243,22 +243,19 @@ internal func mathStyleScale(style: MathStyle, options: MathLayoutOptions)->f32
 {
     switch style
     {
-    case .Script:       return options.scriptScale
-    case .ScriptScript: return options.scriptScriptScale
+    case .Display, .Text: return 1.0
+    case .Script:         return options.scriptScale
+    case .ScriptScript:   return options.scriptScriptScale
     }
-
-    return 1.0
 }
 
 internal func mathNextStyle(style: MathStyle)->MathStyle
 {
     switch style
     {
-    case .Display: return .Script
-    case .Text:    return .Script
+    case .Display, .Text:        return .Script
+    case .Script, .ScriptScript: return .ScriptScript
     }
-
-    return .ScriptScript
 }
 
 internal func mathCrampedStyle(style: MathStyle)->MathStyle

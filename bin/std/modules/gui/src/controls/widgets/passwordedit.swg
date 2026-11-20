@@ -123,6 +123,9 @@ private impl PasswordEdit
 
             case .Leave:
                 .setRevealed(false)
+
+            default:
+                break
             }
         }
 

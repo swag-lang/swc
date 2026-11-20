@@ -21,8 +21,6 @@ impl SwitchSortCommands
         case .Recent: return 1
         case .Name:   return 2
         }
-
-        return 0
     }
 
     // The label of an enum switch nested in a switch on the receiver's own constants.

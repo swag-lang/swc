@@ -668,8 +668,10 @@ AstNodeRef Parser::parseDiscard()
 
 AstNodeRef Parser::parseSwitchCaseDefault()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchCaseStmt>(ref());
-    if (consumeIf(TokenId::KwdCase).isValid())
+    const bool     isDefault       = is(TokenId::KwdDefault);
+    const TokenRef labelRef        = consume();
+    auto [nodeRef, nodePtr]         = ast_->makeNode<AstNodeId::SwitchCaseStmt>(labelRef);
+    if (!isDefault && isNot(TokenId::KwdWhere))
     {
         SmallVector<AstNodeRef> nodeExpressions;
         const bool              binding  = isAny(TokenId::KwdLet, TokenId::KwdVar, TokenId::KwdConst);
@@ -694,14 +696,22 @@ AstNodeRef Parser::parseSwitchCaseDefault()
     }
     else
     {
-        consume();
         nodePtr->spanExprRef.setInvalid();
     }
 
     if (consumeIf(TokenId::KwdWhere).isValid())
+    {
+        if (isDefault)
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_guarded_switch_default, labelRef);
+            diag.report(*ctx_);
+        }
         nodePtr->nodeWhereRef = parseExpression();
+    }
     else
+    {
         nodePtr->nodeWhereRef.setInvalid();
+    }
 
     expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
     return nodeRef;

@@ -19,8 +19,8 @@ before(async () => {
     grammar = await registry.loadGrammar('source');
 });
 
-function scopesAt(line, position) {
-    return grammar.tokenizeLine(line, INITIAL).tokens.find(token =>
+function scopesAt(line, position, stack = INITIAL) {
+    return grammar.tokenizeLine(line, stack).tokens.find(token =>
         token.startIndex <= position && token.endIndex > position).scopes;
 }
 
@@ -36,6 +36,35 @@ test('keyword spellings inside identifiers, strings and comments keep their cont
         assert.ok(!scopes.includes('keyword.control'), line);
         assert.ok(!scopes.includes('invalid'), line);
     }
+});
+
+test('ordinary strings mark non-ASCII hex escapes as invalid', () => {
+    for (const line of ['"\\x80"', '"""\\xa0"""', '"\\xFFend"']) {
+        const offset = line.indexOf('\\x');
+        for (let index = offset; index < offset + 4; index++) {
+            assert.ok(scopesAt(line, index).includes('invalid'), line);
+        }
+    }
+    for (const line of ['"\\x7F"', '"\\u00FF"', '"""\\U0001F642"""', '"\\\\xFF"']) {
+        const offset = line.indexOf('\\');
+        assert.ok(scopesAt(line, offset).includes('constant.character.escape'), line);
+        assert.ok(!scopesAt(line, line.length - 2).includes('invalid'), line);
+    }
+    assert.ok(scopesAt("'\\xFF'u8", 4).includes('string.quoted.single'));
+});
+
+test('raw strings keep hex spellings literal through adjacent comments and line breaks', () => {
+    for (const line of ['#raw "\\xFF" "\\xFF"', '#raw /* note */ """\\xFF""" "\\xFF"']) {
+        const scopes = scopesAt(line, line.indexOf('\\xFF'));
+        assert.ok(scopes.includes('string.quoted.double'), line);
+        assert.ok(!scopes.includes('constant.character.escape') && !scopes.includes('invalid'), line);
+        assert.ok(scopesAt(line, line.lastIndexOf('\\xFF')).includes('invalid'), line);
+    }
+    const { ruleStack } = grammar.tokenizeLine('#raw // note', INITIAL);
+    const line = '"\\xFF"';
+    const scopes = scopesAt(line, line.indexOf('\\xFF'), ruleStack);
+    assert.ok(scopes.includes('string.quoted.double'));
+    assert.ok(!scopes.includes('constant.character.escape') && !scopes.includes('invalid'));
 });
 
 test('a generic type argument keeps its type scope beside a call', () => {

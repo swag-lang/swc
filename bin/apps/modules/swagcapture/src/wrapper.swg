@@ -178,9 +178,8 @@ impl MainWnd
         {
         case .Highlight: return .Highlight
         case .PixSel:    return .PixSel
+        case .None:      return formToEditMode(f)
         }
-
-        return formToEditMode(f)
     }
 
     mtd editModeToModel(mode: EditMode)->IForm
@@ -190,9 +189,8 @@ impl MainWnd
         case .Favorites, .Selection: return .mdlFavorite
         case .Highlight: return .mdlHighlight
         case .PixSel:    return .mdlPixSel
+        default: return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
         }
-
-        return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
     }
 
     // Creates a form of the kind `mode` draws, styled as its model. `clear` drops the content the

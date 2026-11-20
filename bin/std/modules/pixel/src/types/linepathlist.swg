@@ -279,12 +279,12 @@ impl LinePathList
         if Math.isZeroEpsilon(value) do
             return
 
-        var joinType = Clipper.JoinType.Square
+        var joinType: Clipper.JoinType
         switch joinStyle
         {
-        case .Round: joinType = .Round
-        case .Bevel: joinType = .Square
-        case .Miter: joinType = .Miter
+        case .Round:                    joinType = .Round
+        case .None, .Bevel, .MiterBevel: joinType = .Square
+        case .Miter:                    joinType = .Miter
         }
 
         var newList: LinePathList

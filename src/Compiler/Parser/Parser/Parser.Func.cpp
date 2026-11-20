@@ -464,7 +464,7 @@ AstNodeRef Parser::parseFunctionParam()
     }
 
     const PushContextFlags ctx(this, ParserContextFlagsE::InFunctionParam);
-    return parseVarDecl();
+    return parseVarDecl(true);
 }
 
 AstNodeRef Parser::parseFunctionParamList()

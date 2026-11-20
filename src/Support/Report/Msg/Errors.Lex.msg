@@ -16,6 +16,7 @@ SWC_DIAG_DEF(lex_err_unclosed_char, Error, "unclosed character literal; [help] a
 SWC_DIAG_DEF(lex_err_invalid_hex_digit, Error, "digit '{tok}' does not belong in a hexadecimal literal; [help] use 0-9, a-f, or A-F")
 SWC_DIAG_DEF(lex_err_incomplete_hex_escape, Error, "incomplete hexadecimal escape '{tok}'; [help] '\\x' takes 2 digits, '\\u' takes 4, '\\U' takes 8 (expected {value})")
 SWC_DIAG_DEF(lex_err_empty_hex_escape, Error, "empty hexadecimal escape '{tok}'; [help] add the expected hex digits after '\\x', '\\u', or '\\U'")
+SWC_DIAG_DEF(lex_err_non_ascii_string_escape, Error, "string escape '{tok}' is outside ASCII; [help] use '{value}' for Unicode text, or a 'u8' array for bytes")
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "character literal contains {value} characters; [help] use a string literal \"...\" for multiple characters")
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "character literal contains more than one character; [help] use a string literal \"...\" for multiple characters")
 SWC_DIAG_DEF(lex_err_invalid_number_suffix, Error, "identifier '{tok}' is attached to a numeric literal; [help] separate it with a space, or use an apostrophe for a literal suffix as in '10'u32'")

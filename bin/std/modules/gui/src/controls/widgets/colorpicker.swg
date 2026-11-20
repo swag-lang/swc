@@ -404,6 +404,9 @@ impl IWnd for ColorPicker
                 .releaseMouse()
                 .invalidate()
             }
+
+        default:
+            break
         }
     }
 

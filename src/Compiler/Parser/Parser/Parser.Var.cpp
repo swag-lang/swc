@@ -138,7 +138,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseVarDecl()
+AstNodeRef Parser::parseVarDecl(bool isParameter)
 {
     EnumFlags<AstVarDeclFlagsE>    flags        = AstVarDeclFlagsE::Zero;
     const TokenRef                 tokStart     = ref();
@@ -166,7 +166,7 @@ AstNodeRef Parser::parseVarDecl()
         {
             // A parameter named '_' is one the body leaves unnamed.
             TokenRef tokName = TokenRef::invalid();
-            if (Token::isCompilerUniq(id()) || (hasContextFlag(ParserContextFlagsE::InFunctionParam) && is(TokenId::KwdUnnamed)))
+            if (Token::isCompilerUniq(id()) || (isParameter && is(TokenId::KwdUnnamed)))
                 tokName = consume();
             else
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
@@ -197,13 +197,18 @@ AstNodeRef Parser::parseVarDecl()
         AstNodeRef     nodeInit  = AstNodeRef::invalid();
         const TokenRef tokAssign = consumeIf(TokenId::SymEqual);
         if (tokAssign.isValid())
+        {
+            if (isParameter && tokNames.size() > 1)
+                raiseError(DiagnosticId::parser_err_grouped_parameter_default, tokAssign);
+
             nodeInit = parseInitializerExpression(tokAssign);
+        }
 
         // What a single and a multiple declaration share, everything but their names.
         const auto setDeclCommon = [&](auto* nodePtr) {
             nodePtr->flags()      = flags;
             nodePtr->storageFlags = storageFlags;
-            if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
+            if (isParameter)
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);

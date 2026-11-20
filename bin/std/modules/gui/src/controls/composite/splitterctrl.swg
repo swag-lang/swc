@@ -110,6 +110,9 @@ impl IWnd for SplitterCtrl
                 .moving = false
                 .surface!.app.releaseMouse()
             }
+
+        default:
+            break
         }
 
         if .hotIdx != Swag.U32.Max do

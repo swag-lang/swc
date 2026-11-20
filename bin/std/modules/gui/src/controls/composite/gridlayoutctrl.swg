@@ -407,7 +407,7 @@ impl GridLayoutCtrl
     //
     // Reassigning a child moves it from its previous cells. Overlap with another assigned
     // child is rejected.
-    mtd setCell(child: *Wnd, column, row: s32, columnSpan, rowSpan: s32 = 1)
+    mtd setCell(child: *Wnd, column, row: s32, columnSpan: s32 = 1, rowSpan: s32 = 1)
     {
         .ensureStorage()
         Swag.assert(child.parent == me)

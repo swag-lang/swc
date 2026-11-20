@@ -107,6 +107,9 @@ private impl FileDlg
             let count = .browser.selectedPaths().count
             if count > 1 do
                 text = Format.toString(strings().fileDlg_BtnOpenCount, count)
+
+        case .CreateFile, .SelectFile, .SelectFolder:
+            break
         }
 
         // Keep a translated count from displacing the other actions.

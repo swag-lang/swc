@@ -581,6 +581,8 @@ impl IWnd for MainWnd
 
         case .Hide:
             .saveAppState()
+
+        case .Disable: break
         }
     }
 
@@ -1270,9 +1272,9 @@ impl MainWnd
 
         case .PixSel:
             return formToEditMode(.mdlPixSel)
-        }
 
-        return .editMode
+        default: return .editMode
+        }
     }
 
     // Freezes the forms the capture holds now, so the mouse only reaches forms drawn after them,

@@ -64,7 +64,7 @@ impl ComboCtrl
     }
 
     // Changes label width, combo width, and spacing, then reapplies layout.
-    mtd setLayoutMetrics(labelWidth, comboWidth, spacing: f32 = 5)
+    mtd setLayoutMetrics(labelWidth: f32 = 5, comboWidth: f32 = 5, spacing: f32 = 5)
     {
         Swag.assert(labelWidth >= 0 and comboWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .comboWidth == comboWidth and .spacing == spacing do

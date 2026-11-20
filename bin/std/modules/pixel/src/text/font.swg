@@ -384,7 +384,8 @@ public impl FontCache
     //
     // `mode` selects the rendering technique. `Auto`, the default, adapts between bitmap and MSDF
     // rendering at draw time. The returned view is owned by this cache; never delete it.
-    mtd createFont(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
+    mtd createFont(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto,
+                   forceBold = false, forceItalic = false)->*Font
     {
         switch mode
         {
@@ -397,11 +398,12 @@ public impl FontCache
 
             // Multi-channel SDF, size-independent reference atlas.
             return .createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
-        }
 
-        // Auto: an MSDF reference view that substitutes a crisp bitmap at small on-screen sizes
-        // (resolved per draw, see resolveDrawFont).
-        return .createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
+        case .Auto:
+
+            // An MSDF reference view substitutes a crisp bitmap at small on-screen sizes.
+            return .createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
+        }
     }
 
     // Loads a typeface file and creates a font at the requested draw size.
@@ -409,7 +411,8 @@ public impl FontCache
     // The file is loaded by [[Pixel.TypeFace.load]], which reports a missing or malformed file
     // through `fail`. Typefaces are shared process-wide: they are immutable parsed files with no
     // graphics resource of their own, so loading the same one through two caches parses it once.
-    mtd createFont(fullName: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
+    mtd createFont(fullName: string, size: u32, mode = FontRenderMode.Auto,
+                   forceBold = false, forceItalic = false)->*Font fail
     {
         Swag.assert(fullName.count != 0)
         let typeFace = try TypeFace.load(fullName)

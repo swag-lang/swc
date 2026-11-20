@@ -26,6 +26,7 @@ namespace Fuse
             case .IsDirectory:       return -Linux.EISDIR
             case .DirectoryNotEmpty: return -Linux.ENOTEMPTY
             case .DiskFull:          return -Linux.ENOSPC
+            default:                break
             }
         }
 

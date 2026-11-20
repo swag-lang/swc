@@ -714,6 +714,8 @@ impl IWnd for Panel
         {
         case .LanguageChanged: .retranslate()
         case .ThemeChanged:    .applyMeasure()
+
+        case .ChildFocusChanged, .PressedElsewhere, .KeyboardLayoutChanged: break
         }
 
         evt.accepted = evt.kind == .LanguageChanged

@@ -46,6 +46,8 @@ impl IWnd for TaskStrip
         case .ThemeChanged:
             .frozenButton.setIconColor(.themeColors().arc)
             .shortcutWarning.setIconColor(.themeColors().critical)
+
+        default: break
         }
     }
 

@@ -160,6 +160,9 @@ impl IWnd for Toast
                 .sigAction.call(me)
                 .dismiss()
             }
+
+        default:
+            break
         }
     }
 

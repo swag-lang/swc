@@ -174,17 +174,27 @@ Ordinary constants and other case expressions remain valid.
 }
 
 /**
-# The '#complete' Modifier
+# Exhaustive Enum Switches
 
-Write `switch #complete` when matching enums to enforce exhaustive case handling. Every
-declared enum value must have a `case`, and the switch cannot have a `default`.
+A runtime `switch` over a closed enum or a tagged union with a closed enum tag must cover
+every declared value. Several enum names can name the same value. A case for one name covers
+those aliases. Numeric and rune ranges cover the declared values they contain. A guarded case
+with values or ranges counts when the compiler proves its guard is always true.
 
-`#complete` is a modifier and not an attribute because it selects a variant of **this one
-statement**: a statement carries no symbol, so there is nothing for an attribute to
-annotate or for reflection to report.
+When its storage type has a default value, a plain enum can also be initialized to zero,
+false, or absence, depending on that type. If no case covers that value, control can continue
+past the switch even when all named values are covered. A type that needs explicit
+initialization introduces no extra value. A tagged union is created with a named tag, so
+covering all declared tags is sufficient.
 
-`#static switch` accepts it too, with the same meaning and the same two rules: every
-declared enum value needs a `case`, and a `default` is rejected.
+Use `default` for all remaining values, or `default: break` when ignoring them is intentional.
+Flags enums, `#[Swag.Incomplete]` enums and dynamic type switches can have unmatched values.
+Write an explicit fallback when their callers need every path to produce a result.
+
+`switch #complete` forbids `default` and asserts that some case matches. On an enum it needs
+cases for every declared value. On other operands it asserts coverage in the presence of the
+`.Switch` runtime guard. `#static switch #complete` likewise checks declared enum coverage and
+forbids `default` when selecting code at compile time.
 */
 
 #test
@@ -192,7 +202,7 @@ declared enum value needs a `case`, and a `default` is rejected.
     enum Color { Red, Green, Blue }
     let color = Color.Red
 
-    switch #complete color
+    switch color
     {
     case .Red:   break
     case .Green: Swag.require(false)
@@ -263,9 +273,12 @@ so a guard with a cost or a side effect runs only for the values its case select
 }
 
 /**
-# Using 'where' with 'default'
+# Cases With Only a Guard
 
-A `where` clause can also modify the `default` case for conditional fallbacks.
+Write `case where` to test a guard without comparing case values. The switch tries it
+in source order and enters the arm if the guard is true. This form also works in a
+switch without a subject. A `fallthrough` into this arm enters its body directly.
+A switch can have one unconditional `default` arm.
 */
 
 #test
@@ -276,7 +289,7 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
     {
     case 6 where y == 10:  Swag.require(false)
     case 7 where y == 9:   Swag.require(false)
-    default where y == 10: break
+    case where y == 10:   break
     default: Swag.require(false)
     }
 }

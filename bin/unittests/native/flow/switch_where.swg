@@ -27,6 +27,7 @@ func countedGuard(calls: *s32, result: bool)->bool
         switch tag
         {
         case .C where countedGuard(&calls, true): hits += 1
+        default: break
         }
     }
 

@@ -114,8 +114,9 @@ private func markedPixels(frame: const *Image)->u64
 // An image takes its coverage in its own alpha channel rather than through a second texture.
 #test
 {
-    var objects = #move luminosityMaskObjects()
-    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", cast(const [..] u8, "\xFF\xFF\xFF\xFF"))
+    var objects        = #move luminosityMaskObjects()
+    let samples: [4] u8 = [255, 255, 255, 255]
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", samples)
 
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Im0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs q 100 0 0 100 0 0 cm /Im0 Do Q", objects.toSlice())
@@ -124,7 +125,7 @@ private func markedPixels(frame: const *Image)->u64
 
     let image = unwrap item.imageValue()
     Swag.require(image.pixelFormat == .RGBA8)
-    Swag.require(image.pixelColor(0, 1).a == 255)
+    Swag.require(image.pixelColor(0, 1) == Color.fromArgb(255, 255, 255, 255))
     Swag.require(image.pixelColor(1, 0).a == 0)
 }
 

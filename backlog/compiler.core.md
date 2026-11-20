@@ -563,3 +563,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   symbol publication, and native lowering if the unknown-name diagnostic recurs.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.118 — A null-valued string enum case aborts code generation
+
+- Evidence: with `enum State: string? { Absent = null, Ready = "ready" }`, a runtime
+  `switch state` with `case .Absent` and an explicit `default` aborts in
+  `CodeGen::emitConstant`, which asserts `isStruct()` on the case constant.
+  The failure predates implicit enum exhaustiveness.
+- Next: reduce enum constant lowering for a nullable string to one source fixture. Trace
+  the null representation from the enum constant to case comparison and preserve its
+  storage type through lowering.
+- Done when: matching a null-valued enum case reaches code generation without an
+  assertion, and JIT and native tests exercise the declared case, a present value,
+  and the explicit fallback with the documented string comparison rules.

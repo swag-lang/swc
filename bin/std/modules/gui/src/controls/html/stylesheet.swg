@@ -400,8 +400,6 @@ impl HtmlStyleSheet
         case .Contains:
             return expected.count and Utf8.contains(value, expected)
         }
-
-        return false
     }
 
     private mtd const matchesPseudo(part: const *HtmlSelectorPart, element: u32, context: const *HtmlMatchContext)->bool
@@ -529,8 +527,6 @@ impl HtmlStyleSheet
 
             return false
         }
-
-        return false
     }
 
     // Answers every media query the sheet carries, in rule-index order.

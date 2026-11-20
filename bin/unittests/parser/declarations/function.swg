@@ -10,5 +10,7 @@ func(T, N: s32) toto(a, b: bool...) => 0
 
 #assert(func|mask = base | (bit)|()->s32 { return mask })
 
+func withGroupedFieldDefaults(value: struct { x, y: s32 = 0 }) {}
+
 func declarationWithoutBody()
 func declarationWithoutBody(value: s32)->s32 fail

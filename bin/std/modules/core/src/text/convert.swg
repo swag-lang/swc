@@ -312,6 +312,9 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         case .String:
             buf.addBytes(cast(const *string, unwrap valueData)[])
             return
+
+        default:
+            break
         }
     }
 
@@ -371,6 +374,7 @@ func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat
     {
     case .F32: value64 = cast(f64, cast(const *f32, unwrap dataof)[])
     case .F64: value64 = cast(const *f64, unwrap dataof)[]
+    default:   break
     }
 
     Dtoa.append(buf, value64, fmt.fmt, cast(s64, fmt.precision), fmt.forceSign)
@@ -388,6 +392,7 @@ public func convertFloatInvariant(buf: *ConcatBuffer, value: const any?, fmt: Co
     {
     case .F32: value64 = cast(f64, cast(const *f32, unwrap dataof)[])
     case .F64: value64 = cast(const *f64, unwrap dataof)[]
+    default:   break
     }
 
     Dtoa.appendInvariant(buf, value64, fmt.fmt, cast(s64, fmt.precision), fmt.forceSign)
@@ -439,6 +444,9 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 
     case .U64:
         value64 = cast(const *u64, unwrap dataof)[]
+
+    default:
+        break
     }
 
     const Tbl = "0123456789ABCDEF"

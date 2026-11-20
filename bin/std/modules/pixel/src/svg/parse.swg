@@ -2376,6 +2376,7 @@ private impl Parser
         var fileName = .options.fontFileName
         switch kind
         {
+        case .Sans:  break
         case .Serif: fileName = .options.serifFontFileName
         case .Mono:  fileName = .options.monoFontFileName
         }

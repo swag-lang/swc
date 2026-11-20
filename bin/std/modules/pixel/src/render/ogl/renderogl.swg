@@ -2288,6 +2288,9 @@ impl RenderOgl
                          .ResetTexture0, .BindTexture0, .ResetTextureFont,
                          .BindTextureFont, .SetFontEffect, .DrawTriangles:
                         try .executeCommand(dc, cmd1, cast(u64, i))
+
+                    default:
+                        break
                     }
                 }
 

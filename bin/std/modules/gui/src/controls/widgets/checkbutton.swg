@@ -206,6 +206,9 @@ impl IWnd for CheckButton
         case .Space, .Return:
             .toggle()
             evt.accepted = true
+
+        default:
+            break
         }
     }
 }

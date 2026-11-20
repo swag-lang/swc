@@ -348,6 +348,9 @@ private func registerTypeGraphNoLock(type: typeinfo?)
             registerTypeGraphNoLock(field.pointedType)
         for &generic in typeStruct.generics do
             registerTypeGraphNoLock(generic.pointedType)
+
+    default:
+        break
     }
 }
 

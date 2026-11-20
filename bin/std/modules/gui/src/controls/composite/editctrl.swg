@@ -63,7 +63,7 @@ impl EditCtrl
     }
 
     // Changes label width, edit width, and spacing, then reapplies layout.
-    mtd setLayoutMetrics(labelWidth, editWidth, spacing: f32 = 5)
+    mtd setLayoutMetrics(labelWidth: f32 = 5, editWidth: f32 = 5, spacing: f32 = 5)
     {
         Swag.assert(labelWidth >= 0 and editWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .editWidth == editWidth and .spacing == spacing do

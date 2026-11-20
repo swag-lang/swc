@@ -104,8 +104,7 @@ func switchSafetyEnabled()->bool
     Swag.require(value == 20)
 }
 
-// The guard covers 'switch #complete' only. A plain enum switch missing a case reaches
-// no case and keeps going, whatever '.Switch' is set to.
+// A default covers the remaining values even with switch safety enabled.
 #test
 {
     enum Color
@@ -116,18 +115,47 @@ func switchSafetyEnabled()->bool
     }
 
     #[Swag.Safety(.Switch, true)]
-    func plainEnumSwitchFallsThrough(color: Color)->s32
+    func enumSwitchWithDefault(color: Color)->s32
     {
         switch color
         {
         case .Red:   return 1
         case .Green: return 2
+        default:     break
         }
 
         return -1
     }
 
-    Swag.require(plainEnumSwitchFallsThrough(Color.Blue) == -1)
-    const value = #run plainEnumSwitchFallsThrough(Color.Blue)
+    Swag.require(enumSwitchWithDefault(Color.Blue) == -1)
+    const value = #run enumSwitchWithDefault(Color.Blue)
     Swag.require(value == -1)
+}
+
+#test
+{
+    enum Color { Red, Green, Blue }
+
+    func invalidColor()->Color
+    {
+        var color = Color.Red
+        var bits  = 9's32
+        Swag.memcpy(&color, &bits, #sizeof(Color))
+        return color
+    }
+
+    #[Swag.Safety(.Switch, true)]
+    func exhaustiveEnumSwitchPanic(color: Color)->bool
+    {
+        var matched = false
+        switch color     // swc-expected-error {{safety_err_runtime}}
+        {
+        case .Red, .Green, .Blue: matched = true
+        }
+
+        return matched
+    }
+
+    const value = #run exhaustiveEnumSwitchPanic(invalidColor())
+    Swag.require(not value)
 }

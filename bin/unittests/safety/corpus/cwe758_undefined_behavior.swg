@@ -16,6 +16,9 @@ using Corpus
 
 enum Season { Summer, Winter }
 
+#[Swag.Incomplete]
+enum OpenSeason { Summer, Winter }
+
 // --- Faults ---
 
 func noReturnAtAll(flag: bool)->s32     // swc-expected-error {{sema_err_missing_return}}
@@ -29,9 +32,8 @@ func returnOnOneBranchOnly(flag: bool)->s32     // swc-expected-error {{sema_err
         return 1
 }
 
-// A plain 'switch' is not exhaustive whatever its cases cover, so a value outside the set
-// walks past it and off the end of the function.
-func plainSwitchOverEveryMember(season: Season)->s32     // swc-expected-error {{sema_err_missing_return}}
+// An open enum can carry a value outside the listed cases and reach the end of the function.
+func openSwitchOverEveryMember(season: OpenSeason)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
     switch season
     {
@@ -69,11 +71,10 @@ func everyBranchReturns(flag: bool)->s32
     return 2
 }
 
-// '#complete' is the promise that some case always matches, and it is what lets the switch
-// end the function without a dead 'return' after it.
+// The switch covers the closed enum. Each arm ends the function.
 func completeSwitchEndsTheFunction(season: Season)->s32
 {
-    switch #complete season
+    switch season
     {
     case .Summer: return 92
     case .Winter: return 90

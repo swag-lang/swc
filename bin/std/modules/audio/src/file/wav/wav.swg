@@ -265,6 +265,9 @@ private func parseFormat(bytes: const [..] u8)->Format fail
            result.blockAlign != expectedAlign or
            expectedRate != averageBytes do
             fail InvalidFormatError{"WAV PCM/float frame alignment or byte rate is inconsistent"}
+
+    default:
+        break
     }
 
     if extraEnd > extraStart do

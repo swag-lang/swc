@@ -379,9 +379,8 @@ impl HtmlComputedStyle
         switch .display
         {
         case .Inline, .InlineBlock, .InlineFlex, .InlineGrid: return true
+        default: return false
         }
-
-        return false
     }
 
     // Reports whether the box lays its own children out, rather than contributing text to the
@@ -391,9 +390,8 @@ impl HtmlComputedStyle
         switch .display
         {
         case .Inline, .None, .Contents: return false
+        default: return true
         }
-
-        return true
     }
 
     mtd const isFlexContainer()->bool => .display == .Flex or .display == .InlineFlex
@@ -417,9 +415,8 @@ impl HtmlComputedStyle
         // A unitless line height is stored as a percentage of the font size, which is how it
         // keeps meaning when a descendant changes its own size.
         case .Percent: return .lineHeight.value * .fontSize
+        default: return fontHeight
         }
-
-        return fontHeight
     }
 }
 
@@ -1758,6 +1755,8 @@ impl HtmlComputedStyle
                 .content    = context.pool.addString("")
                 .hasContent = true
             }
+
+        case .Unknown, .Custom: break
         }
     }
 }

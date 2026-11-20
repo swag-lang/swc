@@ -160,6 +160,9 @@ impl IWnd for SurfaceWnd
                 srfn.setPosition(pos)
                 srfn.invalidate()
             }
+
+        default:
+            break
         }
     }
 
@@ -188,6 +191,9 @@ impl IWnd for SurfaceWnd
 
         case .Close:
             srfn.destroy()
+
+        default:
+            break
         }
     }
 

@@ -84,6 +84,7 @@ impl IWnd for FrameWnd
         {
         case .Square: subRectBk = &rects.frameWnd_SquareBk
         case .Round:  subRectBk = &rects.frameWnd_RoundBk
+        case .Transparent: break
         }
 
         switch
@@ -119,6 +120,7 @@ impl IWnd for FrameWnd
         {
         case .Square: subRectBorder = &rects.frameWnd_SquareBorder
         case .Round:  subRectBorder = &rects.frameWnd_RoundBorder
+        case .Transparent: break
         }
 
         switch
@@ -140,6 +142,7 @@ impl IWnd for FrameWnd
             {
             case .Square: marginA = metrics.frameWnd_AnchorSquareBorderMargin
             case .Round:  marginA = metrics.frameWnd_AnchorRoundBorderMargin
+            case .Transparent: break
             }
 
             switch .anchor
@@ -179,6 +182,9 @@ impl IWnd for FrameWnd
                 clientRect.height = metrics.frameWnd_AnchorWidth
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorRightBk, .usedBackgroundColor)
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorRight, colorBorder, false)
+
+            case .None:
+                break
             }
         }
     }
@@ -222,7 +228,7 @@ impl FrameWnd
     }
 
     // Adds and removes frame decoration flags.
-    mtd setFrameFlags(add, remove = FrameWndFlags.None)
+    mtd setFrameFlags(add = FrameWndFlags.None, remove = FrameWndFlags.None)
     {
         .frameFlags.add(add)
         .frameFlags.remove(remove)

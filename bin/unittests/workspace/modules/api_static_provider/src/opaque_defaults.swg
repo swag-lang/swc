@@ -26,7 +26,7 @@ struct OpaqueDefaultText
         prefix:      u8         = 3
         text:        string     = "ready\n\"quoted\"\\path\0end"
         names:       [2] string = ["first", "second"]
-        unicodeText: string     = "\x80\xFF\u00E9\U0001F642"
+        unicodeText: string     = "\u0080\u00FF\u00E9\U0001F642"
         optional:    string?
         suffix:      u16        = 513
     }
@@ -39,7 +39,7 @@ impl OpaqueDefaultText
     {
         return .prefix == 3 and .text == "ready\n\"quoted\"\\path\0end" and
                .names[0] == "first" and .names[1] == "second" and
-               .unicodeText == "\x80\xFF\u00E9\U0001F642" and
+               .unicodeText == "\u0080\u00FF\u00E9\U0001F642" and
                .optional == null and .suffix == 513
     }
 

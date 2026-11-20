@@ -564,6 +564,22 @@ func testAssertFormFitsItsMargin(itf: IForm)
     Swag.require(image.IForm.isSame(&imageCopy))
 }
 
+// A form without a named font uses the closest available weight in its own theme.
+#test
+{
+    var fixture: HeadlessFixture
+    fixture.setup()
+    defer fixture.shutdown()
+
+    var form: FormText
+    form.capture   = fixture.capture
+    form.fontStyle = .Light
+    Swag.require(form.resolveFace() == fixture.gui.app.theme.res.defaultTypeFaceR)
+
+    form.fontStyle = .SemiBold
+    Swag.require(form.resolveFace() == fixture.gui.app.theme.res.defaultTypeFaceB)
+}
+
 // An attached form uses its own application's theme and keeps texture ownership when
 // another Capture window becomes the module's active global application.
 #test

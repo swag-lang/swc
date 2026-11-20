@@ -104,6 +104,9 @@ internal impl IImageEncoder for Encoder
             case .BGR8, .BGRA8:
                 result.addBytes(Swag.makeSlice(psrc, rowBytes))
                 psrc += rowBytes
+
+            default:
+                break
             }
 
             let padding = stride - rowBytes

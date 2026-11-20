@@ -119,6 +119,9 @@ impl IWnd for RichEditView
                     edn.ensureCaretIsVisible()
                 }
             }
+
+        default:
+            break
         }
     }
 
@@ -173,6 +176,9 @@ impl IWnd for RichEditView
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
+
+        default:
+            break
         }
     }
 

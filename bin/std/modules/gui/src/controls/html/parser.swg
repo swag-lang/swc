@@ -179,9 +179,8 @@ impl HtmlParser
         switch tag
         {
         case .Base, .Link, .Meta, .Title, .Style, .Script, .NoScript, .Template: return true
+        default: return false
         }
-
-        return false
     }
 
     // Takes a written `html`, `head` or `body` start tag as the one the document already has, and
@@ -208,9 +207,9 @@ impl HtmlParser
             .ensureBody(offset)
             .readSectionAttributes(.bodyElement, source)
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 
     // Reads a section's attributes while they can still extend that element's run of the pool.
@@ -287,9 +286,8 @@ impl HtmlParser
         case .TBody, .THead, .TFoot: return tag == .TBody or tag == .THead or tag == .TFoot
         case .Head:    return tag == .Body
         case .A:       return tag == .A
+        default:       return false
         }
-
-        return false
     }
 
     // Reports whether an open element lets an implied close look past it. Phrasing content never
@@ -301,9 +299,9 @@ impl HtmlParser
         case .A, .Abbr, .B, .Cite, .Code, .Del, .Dfn, .Em, .I, .Ins, .Kbd, .Label, .Mark, .Output,
              .Q, .Rp, .Rt, .Ruby, .S, .Samp, .Small, .Span, .Strong, .Sub, .Sup, .Time, .U, .Var:
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 
     // Closes the elements an HTML author is allowed to leave open before `tag` starts.
@@ -344,9 +342,9 @@ impl HtmlParser
              .FigCaption, .Figure, .Footer, .Form, .H1, .H2, .H3, .H4, .H5, .H6, .Header, .HGroup,
              .Hr, .Li, .Main, .Menu, .Nav, .Ol, .P, .Pre, .Section, .Summary, .Table, .Ul:
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 
     // Returns how many bytes to skip when the HTML rules discard the newline that immediately
@@ -579,9 +577,9 @@ impl HtmlParser
         case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot,
              .Tr, .Td, .Th, .Script, .Style, .Template, .Form:
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 
     // Returns the table to insert in front of when the insertion point sits in the table
@@ -672,9 +670,8 @@ impl HtmlParser
         switch tag
         {
         case .A, .B, .Code, .Em, .I, .S, .Small, .Strong, .U: return true
+        default: return false
         }
-
-        return false
     }
 
     // Closes an element from the raw name the source wrote, which the tree keeps folded to lower

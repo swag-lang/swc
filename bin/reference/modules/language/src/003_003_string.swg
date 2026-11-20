@@ -240,7 +240,12 @@ An escape sequence starts with a backslash ('\') followed by a specific characte
 /**
 # ASCII and Unicode Escape Sequences
 
-Escape sequences can represent characters via their ASCII or Unicode values.
+In ordinary strings, '\x' takes two hexadecimal digits from '\x00' through
+'\x7F' and encodes one ASCII byte. Use '\u' with four digits or '\U' with
+eight digits to encode a Unicode code point as UTF-8. For example, '\u00FF'
+encodes U+00FF as two bytes in a string. Use a 'u8' array for binary data.
+
+In a character literal, '\x' accepts the full range from '\x00' through '\xFF'.
 */
 #test
 {
@@ -249,6 +254,11 @@ Escape sequences can represent characters via their ASCII or Unicode values.
         const a = "\x26"
         const b = "\u2626"
         const c = "\U00101234"
+        #assert(a == "&")
+        #assert("\x7F".count == 1)
+        #assert("\u00FF" == "ÿ")
+        #assert("\u00FF".count == 2)
+        #assert('\xFF'u8 == 255)
     }
 
     scope

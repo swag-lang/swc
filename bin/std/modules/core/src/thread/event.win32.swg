@@ -37,7 +37,7 @@ impl Event
     //
     // `manual` selects a manual-reset event, and `initState` starts it signaled. A failure of
     // the operating system panics.
-    mtd init(manual, initState = false)
+    mtd init(manual = false, initState = false)
     {
         Swag.assert(.handle == null)
         .handle = expect CreateEventA(null, manual ? TRUE : FALSE, initState ? TRUE : FALSE, null)
@@ -52,7 +52,7 @@ impl Event
     // The default is an initially unsignaled event that releases one waiter per signal.
     // Failure leaves this value invalid. Each opener owns its handle until release or drop;
     // releasing one handle does not invalidate another opener's event.
-    mtd initNamed(name: string, manual, initState = false) fail
+    mtd initNamed(name: string, manual = false, initState = false) fail
     {
         Swag.assert(.handle == null)
         if name.count == 0 do

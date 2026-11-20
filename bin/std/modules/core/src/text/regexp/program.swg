@@ -200,8 +200,6 @@ impl Program
         case .Repeat:
             return try .emitRepeat(ast, node, next)
         }
-
-        return next
     }
 
     // Emits one scalar value as the bytes of its UTF-8 encoding.
@@ -713,6 +711,7 @@ func assertionHolds(kind: AssertKind, hay: const [..] u8, pos: u64)->bool
     case .EndText:   return pos == count
     case .StartLine: return pos == 0 or hay[pos - 1] == '\n'
     case .EndLine:   return pos == count or hay[pos] == '\n'
+    case .WordBoundary, .NotWordBoundary: break
     }
 
     var beforeIsWord = false

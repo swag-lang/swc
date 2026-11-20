@@ -124,9 +124,8 @@ impl ICodec for CodecPcmToPcm16
         switch encoding
         {
         case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32: return true
+        default:                                   return false
         }
-
-        return false
     }
 
     mtd impl initialize(_: const [*] void, _: u64)->u64 fail => 0
@@ -146,8 +145,7 @@ impl ICodec for CodecPcmToPcm16
         case .Pcm24:   return convertSamples'(3, Pcm24)(destination, destinationSize, source, sourceSize)
         case .Pcm32:   return convertSamples'(4, Pcm32)(destination, destinationSize, source, sourceSize)
         case .Float32: return convertSamples'(4, Float32)(destination, destinationSize, source, sourceSize)
+        default:      fail UnsupportedFormatError{"invalid encoding"}
         }
-
-        fail UnsupportedFormatError{"invalid encoding"}
     }
 }

@@ -39,6 +39,9 @@
       "include": "#compiler-keywords"
     },
     {
+      "include": "#raw-strings"
+    },
+    {
       "include": "#compiler-modifiers"
     },
     {
@@ -357,7 +360,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|copy|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
+          "match": "\\#(prom|wrap|nodrop|copy|move|relocate|fwd|bit|unconst|complete|fail|nofail|simd)\\b"
         }
       ]
     },
@@ -561,14 +564,53 @@
         }
       ]
     },
+    "raw-strings": {
+      "begin": "(#raw)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.intrinsic"
+        }
+      },
+      "end": "(?<=\")|(?=\\S)",
+      "applyEndPatternLast": true,
+      "patterns": [
+        {
+          "include": "#one-line-comment"
+        },
+        {
+          "include": "#multi-line-comment"
+        },
+        {
+          "name": "string.quoted.double",
+          "begin": "\"\"\"",
+          "end": "\"\"\""
+        },
+        {
+          "name": "string.quoted.double",
+          "begin": "\"",
+          "end": "\"|$"
+        }
+      ]
+    },
+    "string-escapes": {
+      "patterns": [
+        {
+          "name": "invalid",
+          "match": "\\\\x[89A-Fa-f][0-9A-Fa-f]"
+        },
+        {
+          "name": "constant.character.escape",
+          "match": "\\\\(?:x[0-7][0-9A-Fa-f]|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|.)"
+        }
+      ]
+    },
     "multi-strings": {
       "name": "string.quoted.double",
       "begin": "\"\"\"",
       "end": "\"\"\"",
       "patterns": [
         {
-          "name": "constant.character.escape",
-          "match": "\\\\."
+          "include": "#string-escapes"
         }
       ]
     },
@@ -578,8 +620,7 @@
       "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape",
-          "match": "\\\\."
+          "include": "#string-escapes"
         }
       ]
     },

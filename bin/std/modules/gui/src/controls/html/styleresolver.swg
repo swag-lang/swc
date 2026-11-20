@@ -324,6 +324,8 @@ impl HtmlStyleResolver
 
         case .Span, .Label, .Abbr, .Time, .Q, .Ruby, .Rt, .Rp, .NoScript, .Svg, .Br, .Wbr:
             style.display = .Inline
+
+        default: break
         }
 
         // A closed disclosure shows its summary and nothing else. The rule belongs here rather

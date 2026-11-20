@@ -5,44 +5,25 @@ compiling patch more likely to satisfy the task, make semantic changes visible, 
 the path from a concrete failure to a verified repair. The compiler's plain-text reports
 carry the evidence for these tasks.
 
-Start with exhaustive cases and explicit recovery (`compiler.ai.001`, `compiler.ai.002`),
+Start with explicit recovery (`compiler.ai.002`),
 runtime fault parity (`compiler.ai.035`), semantic queries (`compiler.ai.037`), and
 reproducible tests with observed values (`compiler.ai.040`, `compiler.ai.041`). Use the
 behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-heavy changes.
 [README.md](README.md) defines entry and completion rules.
 
-### compiler.ai.001 — Enum switches are silently non-exhaustive
-
-- Evidence: a `switch` over a three-value enum that handles two of them compiles with no error, no warning,
-  and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
-  opt-in through `switch #complete`
-  ([005_005_switch.swg](../bin/reference/modules/language/src/005_005_switch.swg)).
-- Elsewhere: Swift requires exhaustive switches, including a fallback when the cases do not cover the domain
-  ([Swift control flow](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ControlFlow.md)).
-- Proposed contract: Switches over closed enums and tagged unions should be exhaustive without `#complete`. Existing type-pattern
-  switches over any/interfaces remain open and need an explicit fallback when their result must
-  be total. Guards do not cover a case unless coverage is proven; flags combinations are not a
-  finite list of mutually exclusive cases. Do not add a second exhaustiveness mechanism.
-- Next: Prototype the default on ordinary closed-enum switches, classify missing arms in bin/,
-  and distinguish deliberate ignore arms from accidentally omitted cases. Reuse the current
-  #complete diagnostics and coverage analysis. Define enum aliases, duplicate values and tag coverage. Value-producing switches are a separate outcome in compiler.ai.015.
-- Done when: adding a closed enum member exposes incomplete consumers, deliberate partial handling
-  remains explicit, and guarded, aliased, flags, and open-type switches have executable rules.
-- Related: compiler.safety.010 owns forged enum values, including fall-through past `switch #complete`
-  when the runtime Switch guard is disabled, independently of this default. compiler.ai.016
-  owns closed payload-carrying choices; decide their exhaustiveness policy alongside enum switches.
-
 ### compiler.ai.002 — Make value-producing error recovery explicit
 
 - Evidence: [bare catch](../bin/reference/modules/language/src/013_001_error_management.swg#L130)
   turns a failed port read into zero and a failed settings read into an ordinary default struct.
-  With a nullable success type, `catch e orelse V` can take the same fallback for an error and
-  for a successful null, even though only the error has `Swag.err`.
-- Next: inventory value-consuming catches. Require a written error fallback or a handler that
-  exits the enclosing flow. Give successful absence its own non-error path, preserve `try` for
-  propagation, and keep explicit statement forms for discarding or capturing errors.
-- Done when: a caller cannot accidentally receive a default on failure. Tests distinguish
-  a non-null success, a successful null and an error, including when a fallback reads `Swag.err`.
+  An inventory of assignment, argument, return and condition lines finds hundreds of likely
+  bare expressions to classify, including many compiler tests.
+- Next: classify value-consuming bare catches by recovery intent. Write an error fallback or
+  an exiting handler for each consumer, then reject implicit defaults in value contexts.
+  Preserve `try` for propagation, failure-only `catch e orelse V`, ordinary null coalescing,
+  and statement forms for discarding or capturing errors.
+- Done when: a caller cannot accidentally receive a default on failure. Tests reject a bare
+  catch whose result is read and distinguish a present success, successful null and failure,
+  including when the fallback reads `Swag.err`.
 
 ### compiler.ai.003 — `if let` combines binding with an implicit truthiness test
 
@@ -277,20 +258,6 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: the collection convention is documented and represented consistently in examples and
   APIs, with empty, adjacent, inverted and maximum-endpoint cases covered using existing syntax.
 
-### compiler.ai.013 — `"\x89"` is two bytes, though code reads it as one
-
-- Evidence: in a string literal, `\xHH` above `0x7F` names the code point U+00HH and is stored as
-  its two UTF-8 bytes (`"\x89PNG"` has five bytes, the first `0xC2`). Code written as if it were
-  one byte was silently wrong: Swag Scope's binary viewer named no gzip, XZ, Zstandard, 7-Zip, OLE,
-  PNG, JPEG, Matroska or Java class file by its signature until the signatures became `[N] u8`
-  constants. `bin/std/modules/gui/src/tests/cases/functional/pdf.transparency.swg` still writes image samples
-  as `"\xFF\xFF\xFF\xFF"`, and `bin/unittests/native/flow/switch.swg` writes `"caf\xC3\xA9"`, both
-  in the byte reading. The reference only shows `"\x26"`.
-- Next: reject `\x80` through `\xFF` in text literals. Point to a byte array for binary data or
-  `\u00HH` for Unicode. Migrate binary samples and add lexer or sema coverage.
-- Done when: the reference states what `"\xFF"` holds, a fixture pins it, and no source under
-  `bin/` relies on the other reading.
-
 ### compiler.ai.014 — Make units checkable at standard-library boundaries
 
 - Evidence: [string count and indexing](../bin/reference/modules/language/src/003_003_string.swg)
@@ -303,7 +270,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   Migrate real callers and provide explicit conversions at mixed-unit boundaries.
 - Done when: passing a rune index to a byte-offset operation is diagnosed and common callers
   can obtain and combine the right quantities without generic casts.
-- Related: compiler.ai.007, compiler.ai.012, compiler.ai.013.
+- Related: compiler.ai.007, compiler.ai.012.
 
 ### compiler.ai.015 — Produce values directly from a switch
 
@@ -326,12 +293,12 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   requirement to import all Rust patterns or coercion rules.
 - Next: prototype enum-to-string selection, an owning String factory and a borrowed pointer
   result using existing cases. Verify side-effect counters, a failing arm, a non-returning arm,
-  and source lifetime before migrating real helpers. Coordinate exhaustiveness with
-  compiler.ai.001; use the terminal failure contract of `expect` for non-returning arms.
+  and source lifetime before migrating real helpers. Reuse the statement switch coverage rules
+  and the terminal failure contract of `expect` for non-returning arms.
 - Done when: a local initializer and a function return can use a total multi-arm expression
   without a mutable relay; JIT/native tests cover type inference, evaluation order, cleanup and
   borrowed-result escapes, and the formatter/reference/editor agree on the chosen syntax.
-- Related: compiler.ai.001, compiler.ai.016.
+- Related: compiler.ai.016.
 
 ### compiler.ai.016 — Describe a tagged union's tag in reflection
 
@@ -355,9 +322,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   encoder and decoder to write the tag and the active member, and migrate `Scc.MetadataValue`.
 - Done when: a tagged union round-trips through TagBin with only its active member, a forged tag
   is rejected on decode, and `Scc.MetadataValue` is a tagged union.
-- Related: compiler.ai.001 — a switch over a tagged union has a closed domain, which is the
-  strongest case for default exhaustiveness; decide both together. compiler.ai.017,
-  std.gui.pdf.043, std.core.036. compiler.safety.010 owns forged tags coming
+- Related: compiler.ai.017, std.gui.pdf.043, std.core.036. compiler.safety.010 owns forged tags coming
   from `Swag.memcpy`, `#relocate`, a binary read or a `#[Foreign]` call: the `!` check and the
   Switch guard catch them only when safety is enabled.
 
@@ -476,7 +441,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   to handle the entire closed set.
 - Done when: consumers can recover from absence, propagate access errors and distinguish
   invalid input without guessing payloads or treating every error as the same outcome.
-- Related: compiler.ai.001, compiler.ai.002, compiler.ai.016, compiler.ai.051.
+- Related: compiler.ai.002, compiler.ai.016, compiler.ai.051.
 
 ### compiler.ai.023 — Mixins resolve their body in the caller's scope
 
@@ -690,50 +655,6 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: one receiver grammar is selected and applied across compiler/reference/editor
   and bin/ without a permanent synonym, or a measured comparison rejects the simplification and
   this entry is removed rather than left as an indefinite style preference.
-
-### compiler.ai.031 — One default in a grouped declaration silently defaults every name in the group
-
-- Evidence: `x, y: s32 = 0` declares two parameters and gives *both* the default `0`. The
-  grouped form was introduced to share a type
-  ([003_005_variables.swg](../bin/reference/modules/language/src/003_005_variables.swg));
-  sharing the initializer as well is the same rule applied one token further, and it means a
-  parameter list can hand out a default nobody asked for. A caller can then omit an argument that
-  reads as required, and get a zero.
-- Evidence: `func f(x, y: s32 = 0) => x + y * 2` accepts `f(x: 10)` (→ 10) *and* `f(y: 10)` (→ 20).
-  The reference shows exactly this call pair and treats it as ordinary
-  ([007_001_declaration.swg](../bin/reference/modules/language/src/007_001_declaration.swg)).
-  The *type* travels the same way: `func sum3(x, y = 0.0)` gives both parameters `f32`, so one
-  omitted annotation types the whole group
-  ([007_001_declaration.swg](../bin/reference/modules/language/src/007_001_declaration.swg)).
-- Elsewhere: Go permits grouped parameter names with one type, but its parameter grammar has no default
-  initializer ([Go function types](https://go.dev/ref/spec#Function_types)). This separates the two
-  design choices that Swag combines.
-- Next: find grouped parameter defaults in `bin/` and expand them mechanically to one default
-  per parameter. Compare omission and named-call behavior before rejecting the grouped form.
-- Done when: every optional parameter has its own written default and the migrated signatures
-  preserve the behavior of named calls that omit each parameter.
-
-### compiler.ai.032 — A `switch` accepts several `default` clauses
-
-- Evidence: a `default` can carry a `where`, and once it can, a switch can hold several of them
-  ([005_005_switch.swg](../bin/reference/modules/language/src/005_005_switch.swg)).
-  A guarded `default` only runs when its condition succeeds, so several such arms can precede
-  the final unconditional fallback. The open question is whether their spelling communicates that order.
-- Evidence: `AstSwitchCaseStmt::semaPreNodeChild` exempts guarded defaults from duplicate-default
-  checking. Constant case values are checked only when the guard is absent or folds to true;
-  nonconstant guards may repeat a value. The old assertion that duplicate values were rejected
-  regardless of their guard was incorrect. See `checkDuplicateConstCaseValue` and
-  `checkDuplicateCaseValuesAfterWhere` in
-  [Sema.Switch.cpp](../src/Compiler/Sema/Ast/Sema.Switch.cpp).
-- Elsewhere: Rust permits guarded wildcard patterns and checks arms in order
-  ([Rust match expressions](https://doc.rust-lang.org/reference/expressions/match-expr.html#match-guards)).
-  Guarded catch-all arms therefore have a precedent even though Rust does not call them `default`.
-- Next: `case where <cond>` already expresses a valueless guarded arm in an expression-less
-  `switch` ([005_005_switch.swg](../bin/reference/modules/language/src/005_005_switch.swg)).
-  Inventory guarded fallbacks and migrate them to an explicit guarded case. Reserve
-  `default` for at most one unguarded fallback.
-- Done when: a switch has one unmistakable fallback form, existing guarded fallbacks use explicit guards, and
-  duplicate-arm tests protect the rule.
 
 ### compiler.ai.033 — The apostrophe carries three unrelated roles
 
@@ -1151,6 +1072,43 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: the campaign reports first-patch and final behavioral success, false greens,
   repair attempts, time to verified success and use of unchecked assertions or escape
   hatches. Use the results to rank migrations with compatibility costs, including generic
-  delimiters and multidimensional array forms.
-- Related: compiler.ai.001, compiler.ai.033, compiler.ai.034, compiler.ai.038, compiler.ai.040,
-  compiler.core.004.
+  delimiters, multidimensional array forms, conditional chains and control-body delimiters.
+- Related: compiler.ai.033, compiler.ai.034, compiler.ai.038, compiler.ai.040,
+  compiler.ai.060, compiler.ai.061, compiler.core.004.
+
+### compiler.ai.060 — Use one spelling for chained conditions
+
+- Evidence: Swag spells a continuation `elif` in both ordinary and `#static if` chains.
+  The parser already represents each continuation as another conditional in the else slot.
+  `else if` currently lacks that same grammar, and `else do if` is parsed as an embedded
+  statement. A word search finds about 1,900 `elif` occurrences across 530 Swag files in `bin/`,
+  including the bootstrap runtime.
+- Proposed contract: compare one canonical `else if` spelling with the existing `elif`.
+  In the prototype `else if` continues the same chain and uses the same scope and guard rules
+  in both phases. An explicitly braced `else` containing an `if` remains a nested statement.
+- Next: prototype `else if` in the runtime and compiler parsers and migrate a representative
+  slice with the formatter, including comments between branches and `#static` declarations.
+  Compare syntax-repair rate and task success on compiler.ai.059; record the source migration
+  and old-compiler bootstrap cost before choosing one spelling.
+- Done when: one spelling is selected; if it changes, ordinary, binding and compile-time
+  chains preserve branch order, short-circuiting, name visibility and formatter behavior.
+
+### compiler.ai.061 — Use one delimiter for control bodies
+
+- Evidence: `if`, `while`, `for` and `#static if` accept a braced body or `do` followed by
+  one statement or declaration. `do` followed by braces is diagnosed, except when the braces
+  open a destructuring assignment. The parser has separate runtime and compile-time entry
+  points, and the formatter has a branch-body uniformity option. A word search finds about
+  31,500 `do` occurrences across 2,825 Swag files in `bin/`.
+- Proposed contract: compare braced control bodies with the current two forms, including a
+  compact `{ statement }` layout for simple guards. Use an explicit inner block for constructs
+  that need one. Classify trailing code passed to macros and single-statement forms on `with`
+  and `defer` before deciding which grammar the rule covers.
+- Next: prototype a syntax-aware `do`-to-brace rewrite for guards, loops and top-level
+  `#static if`. Keep a destructuring assignment inside its new body, as in
+  `{ {field: target} = record }`. Check bindings, scope and cleanup order, `break` and
+  `continue`, comments and generated source. Compare edit reliability on compiler.ai.059 and report
+  source growth and formatter stability before selecting a syntax.
+- Done when: one rule for supported control bodies is selected from those results, with
+  a verified syntax migration and consistent parser, formatter, reference and editor behavior
+  if the rule changes.

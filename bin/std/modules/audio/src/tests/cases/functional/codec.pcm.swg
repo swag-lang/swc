@@ -21,10 +21,11 @@ private func audioPcmReferenceSample(encoding: SoundFileEncoding, source: const 
     case .Float32:
         let sample = cast(const [*] f32, source)[0] * 32768.0
         return cast(s16, Math.clamp(cast #wrap (s32, sample), -32768, 32767))
-    }
 
-    Swag.require(false)
-    return 0
+    default:
+        Swag.require(false)
+        return 0
+    }
 }
 
 private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fail

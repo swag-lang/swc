@@ -107,6 +107,8 @@ impl GizmoPoints
                 return false
             .hotAnchor = Swag.U32.Max
             return true
+
+        default: break
         }
 
         return false

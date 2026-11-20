@@ -945,9 +945,10 @@ impl Ast
             }
 
             return current.count > 0
-        }
 
-        return false
+        case .Empty, .Literal, .Class, .Backref:
+            return false
+        }
     }
 
     // Shortest match of one node, in bytes. A lower bound is enough: it only ever stops a
@@ -1002,9 +1003,10 @@ impl Ast
             }
 
             return current.count == 0 ? 0 : shortest
-        }
 
-        return 0
+        case .Empty, .Assert, .Backref:
+            return 0
+        }
     }
 }
 

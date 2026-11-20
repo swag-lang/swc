@@ -347,9 +347,9 @@ impl MediaInfoRow
              .Channels, .SampleSize, .SamplePeak, .RmsLevel, .FullScale, .Bookmarks, .UnitsPerEm,
              .Faces, .Meter, .LineEnds, .LongestLine, .ControlCharacters, .Replacements:
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 }
 

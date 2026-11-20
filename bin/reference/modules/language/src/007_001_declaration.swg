@@ -25,12 +25,11 @@ func toto1()->s32
 A function that declares a return type is rejected when its body can reach the end without
 returning: the promise is part of the signature, and a value the caller reads has to exist.
 
-What counts as leaving the function is 'return', 'fail', 'unreachable', 'Swag.panic' and a
-call to a function marked '#[Swag.NoReturn]', an 'if' whose branches all leave, a loop with no way out of it, and a 'switch' where every case
-leaves and some case always matches — a 'default' arm, or 'switch #complete' over an enum. A
-plain 'switch' is deliberately not exhaustive whatever its cases cover, so a value outside the
-set walks past it: writing '#complete' is what states the promise, and it stays free of any
-range test in the generated code.
+What counts as leaving the function is 'return', 'fail', 'unreachable', 'Swag.panic', a call to
+a function marked '#[Swag.NoReturn]', an 'if' whose branches all leave, a loop with no way out,
+or an exhaustive 'switch' whose branches all leave. For a closed enum, a switch can prove
+every value covered when its cases include the default-initialized value as well as every
+declared value, or when it has an unconditional 'default' arm.
 
 'unreachable' is the escape hatch when a path cannot happen for a reason the compiler cannot
 see. It costs nothing once its guard is off.
@@ -39,9 +38,7 @@ enum Season { Summer, Winter }
 
 func seasonLength(season: Season)->s32
 {
-    // Without '#complete' this switch would not end the function, and the missing return
-    // would be reported.
-    switch #complete season
+    switch season
     {
     case .Summer: return 92
     case .Winter: return 90
@@ -89,7 +86,8 @@ func sum(x, y: s32) => x + y
 /**
 # Defining Parameters in Functions
 
-Parameters are declared within parentheses after the function name, each with a name and type.
+Parameters are declared within parentheses after the function name. Required parameters
+with the same type can share a type annotation.
 */
 func sum1(x, y: s32, scale: f32)->f32
 {
@@ -99,7 +97,8 @@ func sum1(x, y: s32, scale: f32)->f32
 /**
 # Using Default Parameter Values
 
-Parameters may have default values, used when not provided by the caller.
+Each optional parameter declares its own default value with '='. The caller can omit
+that argument.
 */
 func sum2(x, y: s32, scale: f32 = 1)->f32
 {
@@ -111,7 +110,7 @@ func sum2(x, y: s32, scale: f32 = 1)->f32
 
 If a parameter has a default value, its type can be inferred from it.
 */
-func sum3(x, y = 0.0)
+func sum3(x = 0.0, y = 0.0)
 {
     #assert(#typeof(x) == f32)
     #assert(#typeof(y) == f32)
@@ -163,7 +162,7 @@ Named parameters allow calling functions with arguments in any order.
 
     scope
     {
-        func returnMe(x, y: s32 = 0) => x + y * 2
+        func returnMe(x: s32 = 0, y: s32 = 0) => x + y * 2
         Swag.require(returnMe(x: 10) == 10)
         Swag.require(returnMe(y: 10) == 20)
     }

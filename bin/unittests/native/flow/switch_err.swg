@@ -98,7 +98,7 @@
     var hit = 0
     switch 1
     {
-    default where true:
+    case where true:
         hit = 1
         break
     }
@@ -110,7 +110,7 @@
     var hit = 0
     switch 1
     {
-    default where false:
+    case where false:
         hit = 1
         break
     default:
@@ -123,12 +123,12 @@
 #test
 {
     var hit = 0
-    switch 1
+    switch
     {
-    default where false:
+    case where false:
         hit = 1
         break
-    default where 1 < 2:
+    case where 1 < 2:
         hit = 2
         break
     }
@@ -155,9 +155,21 @@
     case 1:
         hit = 1
         break
-    default where false:
+    case where false:
         hit = 2
         break
+    }
+    Swag.require(hit == 1)
+}
+
+#test
+{
+    var hit = 0
+    switch 1
+    {
+    case 1: fallthrough
+    case where false: hit = 1
+    default: hit = 2
     }
     Swag.require(hit == 1)
 }

@@ -106,7 +106,7 @@ public impl AboutDlg
 
     // Creates an about dialog; a zero width uses 500 units and a zero height fits the content.
     #[Swag.Discardable]
-    func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
+    func create(from: *Surface, params: AboutDlgParams, width: s32 = 0, height: s32 = 0)->*AboutDlg
     {
         Swag.assert(from != null)
         Swag.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")

@@ -267,6 +267,9 @@ public impl IWnd for ScrollWnd
                 .hitTest(evt.surfacePos)
                 .invalidate()
             }
+
+        default:
+            break
         }
     }
 

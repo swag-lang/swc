@@ -293,6 +293,8 @@ impl TextChoicePopover
                 case .Down:
                     if index + 1 < count do
                         index += 1
+
+                default: break
                 }
 
                 .list.setFocusedIndex(index)

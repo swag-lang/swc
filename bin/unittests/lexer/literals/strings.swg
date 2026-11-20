@@ -310,8 +310,9 @@ until finally it ends"""
 "\x00"
 "\x1F"
 "\x7E"
-"\xFF"
+"\x7F"
 "\x0A"
+#raw "\xFF"
 
 // --- Unicode short escapes (\uXXXX) ---
 "\u0000"

@@ -313,6 +313,7 @@ public impl ImageReader
                 let prior = &.info.frames[cast(u32, .lastIndex)]
                 switch prior.disposal
                 {
+                case .Keep:       break
                 case .Background: .clearRectangle(prior[])
                 case .Previous:   .canvas = .previous
                 }

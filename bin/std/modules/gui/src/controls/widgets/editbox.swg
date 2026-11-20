@@ -147,6 +147,9 @@ impl IWnd for EditBox
             .sigCommitted.call(me)
             .sigFocusLost.call(me)
             .invalidate()
+
+        default:
+            break
         }
     }
 
@@ -401,6 +404,9 @@ impl IWnd for EditBox
         case .Leave:
             .isHot = false
             .invalidate()
+
+        default:
+            break
         }
     }
 
@@ -652,6 +658,9 @@ private impl EditBox
 
             .deleteSelection()
             return true
+
+        default:
+            break
         }
 
         return false
@@ -745,6 +754,9 @@ private impl EditBox
                 res = .classifyParseResult(err, val.eat, val.ovf)
                 if res == .Valid and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
                     res = .InvalidVisible
+
+            case .Text:
+                break
             }
         }
 

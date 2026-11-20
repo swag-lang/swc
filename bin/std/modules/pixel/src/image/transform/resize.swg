@@ -132,6 +132,7 @@ namespace ResizeTools
     {
         switch rmode
         {
+        case .Nearest:    return 0
         case .Bilinear:   return 1
         case .Hermite:    return 1
         case .Hamming:    return 1
@@ -140,14 +141,15 @@ namespace ResizeTools
         case .CatmullRom: return 2
         case .Gaussian:   return 3
         }
-
-        return 0
     }
 
     func getFilter(resf: f64, rmode: Image.ResizeMode)->f64
     {
         switch rmode
         {
+        case .Nearest:
+            return 0
+
         case .Bilinear:
             let res = Math.abs(resf)
             return res < 1 ? 1 - res : 0
@@ -212,8 +214,6 @@ namespace ResizeTools
                 return (0.5 * (resf - 1.5) * (resf - 1.5))
             return 0
         }
-
-        return 0
     }
 
     func calcContributions(lineSize, srcSize: s64, scale: f64, rmode: Image.ResizeMode)->LineContrib

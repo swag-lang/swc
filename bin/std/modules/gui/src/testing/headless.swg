@@ -366,6 +366,7 @@ impl HeadlessHost
         case .PopupSubMenu: return .openPopupSubMenu(stage.label.toString())
         case .PopupItem:    return .clickPopupMenuItem(stage.button)
         case .OptionRow:    return .activateOptionRow(stage.label.toString(), stage.step)
+        case .ModalButton:  break
         }
 
         if not stage.file.isEmpty()
@@ -503,7 +504,8 @@ impl HeadlessHost
         .autoButtonIds.clear()
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder, file, label: string? = null)->*AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder: string? = null,
+                             file: string? = null, label: string? = null)->*AutoStage
     {
         let stage = cast(*AutoStage, .autoStages.emplaceInitAddress())
         stage.kind   = kind

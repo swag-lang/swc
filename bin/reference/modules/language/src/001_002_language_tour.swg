@@ -96,8 +96,6 @@ func tourStateLabel(state: TourState)->string
     case .Running: return "running"
     case .Failed:  return "failed"
     }
-
-    unreachable
 }
 
 #test

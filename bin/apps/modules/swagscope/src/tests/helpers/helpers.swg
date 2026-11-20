@@ -187,8 +187,9 @@ func expireViewerLoadingLinger(window: *ViewerWindow)
 // Completes file classification without waiting for the selected viewer's own background work.
 func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    var steps = 0'u32
-    while not window.pendingFile.isEmpty() and steps < 4_096
+    var watch: Time.Stopwatch
+    watch.start()
+    while not window.pendingFile.isEmpty() and watch.elapsedMilliseconds() < 5_000
     {
         // Classification can also be waiting for the previous viewer to retire.
         // Complete worker jobs and deliver the events that report their end before
@@ -199,7 +200,9 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
 
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
-        steps += 1
+        elif window.awaitingRetirement do
+            // A video decoder retires on its own executor, outside the shared worker pool.
+            Threading.Thread.sleep(1'ms)
     }
 
     Swag.require(window.pendingFile.isEmpty())

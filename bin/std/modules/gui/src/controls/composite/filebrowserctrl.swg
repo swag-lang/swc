@@ -185,6 +185,9 @@ impl IWnd for FilePlacesBar
         case .Pressed:
             if evt.button == .Left and hit != Swag.U64.Max do
                 .browser.setCurrentFolder(.stops[hit].path)
+
+        default:
+            break
         }
     }
 }
@@ -506,6 +509,9 @@ private impl FileBrowserCtrl
         case .Up where modifiers.equals(.Alt):
             discard .goUp()
             return true
+
+        default:
+            break
         }
 
         return false
@@ -552,6 +558,9 @@ private impl FileBrowserCtrl
 
             if count do
                 text = Format.toString(strings().browser_Chosen, count, Format.byteSize(bytes))
+
+        case .CreateFile, .SelectFile:
+            break
         }
 
         .choiceLabel.setText(text.toString())
@@ -747,6 +756,9 @@ private impl FileBrowserCtrl
                         list.setFocus()
                         evt.accepted = true
                     }
+
+                default:
+                    break
                 }
             }
 

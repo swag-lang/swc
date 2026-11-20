@@ -58,6 +58,8 @@ impl IWnd for PinnedCapture
         case .Released where .isDragging:
             .isDragging = false
             .releaseMouse()
+
+        default: break
         }
     }
 

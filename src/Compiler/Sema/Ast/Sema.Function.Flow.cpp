@@ -560,15 +560,6 @@ namespace
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_catch_owner_not_error_variable, captureRef, ownerTypeRef);
     }
 
-    bool isNullableResultType(Sema& sema, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(sema.ctx());
-        return type.isSupportsNullableQualifier() && type.isNullable();
-    }
-
     Result notePersistentCatchMutation(Sema& sema, AstNodeRef captureRef)
     {
         if (captureRef.isInvalid())
@@ -1815,10 +1806,6 @@ Result AstErrorManagementExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 {
     if (childRef == nodeFallbackRef && errNameTokRef.isValid())
     {
-        // A nullable result also takes 'orelse V' after a successful null, where no error exists.
-        if (sema.node(childRef).isNot(AstNodeId::EmbeddedBlock) && isNullableResultType(sema, sema.viewType(nodeExprRef).typeRef()))
-            return SemaError::raise(sema, DiagnosticId::sema_err_catch_err_after_nullable_orelse, SourceCodeRef{srcViewRef(), errNameTokRef});
-
         if (!sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef()) || !sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef())->errBindingSym)
             sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
         SWC_RESULT(registerCatchErrCapture(sema, *this, errNameTokRef));
@@ -1893,7 +1880,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     SWC_RESULT(notePersistentCatchMutation(sema, nodeCaptureRef));
 
-    // Only 'catch' resumes after a failure: with 'default V', or with the default value of the
+    // Only 'catch' resumes after a failure: with 'orelse V', or with the default value of the
     // result type. 'expect' terminates on failure, so its successful value may have a type
     // with no implicit default.
     const bool    isNotNullUnwrap = codeGenPayload && codeGenPayload->notNullUnwrap;
@@ -1913,16 +1900,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 
             SemaNodeView fallbackView = sema.viewNodeTypeConstant(nodeFallbackRef);
             SWC_RESULT(SemaCheck::isValue(sema, fallbackView.nodeRef()));
-            const TypeRef fallbackTypeRef = fallbackView.typeRef();
             SWC_RESULT(Cast::cast(sema, fallbackView, resultTypeRef, CastKind::Implicit));
-
-            // Like any 'orelse', a nullable result also takes 'V' when it succeeds with null,
-            // and then holds a value whenever 'V' does.
-            if (isNullableResultType(sema, resultTypeRef))
-            {
-                SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).catchCoalescesNull = true;
-                sema.setType(sema.curNodeRef(), SemaHelpers::nullCoalescingResultType(sema, resultTypeRef, fallbackTypeRef));
-            }
         }
     }
     else if (!isNotNullUnwrap && hasResult && tokenId == TokenId::KwdCatch && !isErrorManagementResultDiscarded(sema))

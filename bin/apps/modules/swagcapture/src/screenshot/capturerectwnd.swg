@@ -193,6 +193,8 @@ impl IWnd for CaptureRectWnd
                 .testAutoGrab()
                 .invalidate()
             }
+
+        default: break
         }
     }
 

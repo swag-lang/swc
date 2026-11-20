@@ -534,7 +534,7 @@ impl RichString
     }
 
     // Adds the chunk covering the text bytes from `first` up to `last`, styled by `span`.
-    private mtd addChunk(first, last: u64, span: const *RichSpan?, space, eol: bool = false)
+    private mtd addChunk(first, last: u64, span: const *RichSpan?, space: bool = false, eol: bool = false)
     {
         if last == first do
             return

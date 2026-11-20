@@ -102,6 +102,9 @@ impl IWnd for ComboBox
             // A click elsewhere made an explicit focus choice; closing the popup must not undo it.
             if evt.other != .popup do
                 .pointerFocusReturn = null
+
+        default:
+            break
         }
     }
 
@@ -330,6 +333,9 @@ impl IWnd for ComboBox
             .isHot      = false
             .hotSegment = Swag.U32.Max
             .invalidate()
+
+        default:
+            break
         }
     }
 

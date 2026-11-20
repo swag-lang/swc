@@ -182,9 +182,6 @@ func groupMaskIndex(state: GroupState)->u32
     case GroupState.NeedThird:
         return 2
     }
-
-    Swag.assert(false)
-    return 0
 }
 
 func nextGroupState(state: GroupState)->GroupState
@@ -200,9 +197,6 @@ func nextGroupState(state: GroupState)->GroupState
     case GroupState.NeedThird:
         return GroupState.NeedFirst
     }
-
-    Swag.assert(false)
-    return GroupState.NeedFirst
 }
 
 impl ILineScorer for DuplicateScorer

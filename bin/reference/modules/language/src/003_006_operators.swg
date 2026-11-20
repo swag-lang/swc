@@ -308,6 +308,10 @@ zero one. A non-null fallback makes the result non-null even when the left opera
 was nullable; a nullable fallback can still produce null. When narrowing the left
 operand gives exactly the fallback's underlying type, the result retains the
 fallback's strict alias, if it has one.
+
+In 'catch operation() orelse fallback', the fallback handles an error. To also
+replace a successful null, put the null-coalescing operator after the parenthesized
+'catch' expression.
 */
 #test
 {

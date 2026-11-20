@@ -83,6 +83,7 @@ public impl MessageDlg
             case .Question:    dlg.setTitleMark(.Question)
             case .Warning:     dlg.setTitleMark(.Warning)
             case .Critical:    dlg.setTitleMark(.Critical)
+            case .None:        break
             }
         }
 

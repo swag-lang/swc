@@ -269,6 +269,9 @@ impl Decoder
 
                 if not found do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
+
+            default:
+                break
             }
 
             try validateDecodedEnumValue(enumType, data)

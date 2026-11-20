@@ -406,6 +406,7 @@ impl Ghost
             {
             case .UP:   .dir = DOWN
             case .DOWN: .dir = UP
+            case .NONE, .RIGHT, .LEFT: break
             }
         }
     }
@@ -493,6 +494,7 @@ impl Ghost
         case .RIGHT: offset.x += offsetSize
         case .DOWN:  offset.y -= offsetSize
         case .LEFT:  offset.x -= offsetSize
+        case .NONE:  break
         }
 
         return offset
@@ -538,6 +540,8 @@ impl Ghost
         case .YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
                 target = {0, -2}
+
+        case .RED: break
         }
 
         .dir = .targetTile(target)
@@ -679,6 +683,7 @@ impl Ghost
         case .RIGHT: .dir = LEFT
         case .DOWN:  .dir = UP
         case .LEFT:  .dir = RIGHT
+        case .NONE:  break
         }
 
         .reverse = false
@@ -846,6 +851,7 @@ impl Ghost
             case .CHASE:      .aiChase(redGhost)
             case .FRIGHTENED: .aiFrightened()
             case .DEAD:       .aiDead()
+            case .LEAVE, .SPAWN: break
             }
         }
 
@@ -876,6 +882,8 @@ impl Ghost
             .y -= .dPos
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
                 .x = Math.round(.x)
+
+        case .NONE: break
         }
     }
 
@@ -955,6 +963,7 @@ impl Ghost
             case .RIGHT: eyesTex = g_EyeTexR
             case .UP:    eyesTex = g_EyeTexD
             case .DOWN:  eyesTex = g_EyeTexU
+            case .NONE:  break
             }
 
             // Draw direction-based eyes sprite atop ghost body
@@ -1225,6 +1234,7 @@ impl Pacman
         case .RIGHT: .angle = 180.0
         case .DOWN:  .angle = 90.0
         case .LEFT:  .angle = 0.0
+        case .NONE:  break
         }
 
         thePainter().rotateTransformInPlace(Math.toRadians(.angle))
@@ -1283,6 +1293,7 @@ func drawMap()
             case .o: thePainter().drawTexture(0, 0, 8, 8, g_PillTex)
             case .O: thePainter().drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
             case .F: drawFruit(x, y)
+            default: break
             }
 
             translateMapCoords(0, 1)
@@ -1505,6 +1516,8 @@ func display()
     case .GAMEOVER:
         drawPlayScreen()
         drawGameOver()
+
+    case .NONE: break
     }
 }
 
@@ -1862,6 +1875,7 @@ func resetMap()
             {
             case .F, .e: setTile(x, y, .o)
             case .E:     setTile(x, y, .O)
+            default: break
             }
         }
     }
@@ -2052,6 +2066,8 @@ func gameLoop()
                 g_Mode = .READY
             }
         }
+
+    case .NONE, .PAUSE, .GAMEOVER: break
     }
 
     // Increment game ticks once the frame is drawn, but only if not paused

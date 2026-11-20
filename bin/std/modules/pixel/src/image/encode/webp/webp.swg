@@ -147,6 +147,9 @@ impl Encoder
                     green = pixel[1]
                     blue  = pixel[2]
                     alpha = pixel[3]
+
+                default:
+                    break
                 }
 
                 destination[output] = cast(u32, red) | (cast(u32, green) << 8) |

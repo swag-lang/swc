@@ -132,6 +132,9 @@ impl IWnd for PalettePicker
                 .hotIndex = Swag.S32.Max
                 .invalidate()
             }
+
+        default:
+            break
         }
     }
 

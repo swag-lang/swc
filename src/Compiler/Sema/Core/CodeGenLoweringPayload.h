@@ -32,7 +32,6 @@ struct CodeGenLoweringPayload
     int8_t valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
     bool   ifVarDeclWhereUsesConditionBinding = false;
     bool   notNullUnwrap                      = false;
-    bool   catchCoalescesNull                 = false; // 'catch e orelse V' with a nullable result
 
     // A UFCS pointer parameter receives the receiver's address as its value;
     // the receiver's bits are never converted numerically.

@@ -1063,6 +1063,7 @@ impl Wnd
         case .InformationPanel: theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().informationBar_Bk)
         case .CommandBar:       painter.fillRect(.position, theme.colors.commandBar_Bk)
         case .ToolBar:          painter.fillRect(.position, theme.colors.toolBar_Bk)
+        case .Transparent:      break
         }
 
         painter.translateTransform(.position.x, .position.y)
@@ -1534,7 +1535,7 @@ impl Wnd
     // An edge crossing the far side of the parent is pulled back, or, with `simX` or `simY`,
     // the window flips to the other side of where it was placed, as a popup does against a
     // screen edge. The near edges are then kept visible too.
-    mtd fitPosInParent(marginW, marginH: f32 = 0, simX, simY = false)
+    mtd fitPosInParent(marginW: f32 = 0, marginH: f32 = 0, simX = false, simY = false)
     {
         let parent = unwrap .parent
         var pos    = .position
@@ -1653,7 +1654,8 @@ impl Wnd
     }
 
     // Updates selected outer margins; `Swag.F32.Inf` leaves an edge unchanged.
-    mtd setMargin(left, top, right, bottom: f32 = Swag.F32.Inf)
+    mtd setMargin(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf,
+                  right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
     {
         with me.margin
         {
@@ -1678,7 +1680,8 @@ impl Wnd
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
     // Updates selected inner paddings; `Swag.F32.Inf` leaves an edge unchanged.
-    mtd setPadding(left, top, right, bottom: f32 = Swag.F32.Inf)
+    mtd setPadding(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf,
+                   right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
     {
         with me.padding
         {
@@ -1982,6 +1985,9 @@ impl Wnd
 
             case .Center, .CenterKeepSizeVert:
                 centerLayout.add(c)
+
+            case .None, .Float:
+                break
             }
         }
 
@@ -2021,7 +2027,7 @@ impl Wnd
     // The result is this window when no child is there, and `null` when the position is outside
     // it. Hidden and disabled children are skipped unless `includeHidden` or `includeDisabled`
     // asks for them.
-    mtd windowAt(x, y: f32, includeDisabled, includeHidden = false)->*Wnd?
+    mtd windowAt(x, y: f32, includeDisabled = false, includeHidden = false)->*Wnd?
     {
         if not .position.contains(x, y) do
             return null

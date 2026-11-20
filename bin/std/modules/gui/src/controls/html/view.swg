@@ -463,6 +463,8 @@ internal impl HtmlView
 
             case .Meta where result.description.isEmpty() and Latin1.compare(.document.attribute(element, "name"), "description", ignoreCase: true) == 0:
                 result.description = Latin1.trim(.document.attribute(element, "content"))
+
+            default: break
             }
         }
 

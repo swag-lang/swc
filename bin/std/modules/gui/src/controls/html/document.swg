@@ -501,9 +501,8 @@ impl HtmlDocument
         case .Var:        return "var"
         case .Video:      return "video"
         case .Wbr:        return "wbr"
+        case .Unknown:    return ""
         }
-
-        return ""
     }
 
     // Reports whether an element never has content or an end tag.
@@ -514,9 +513,9 @@ impl HtmlDocument
         case .Area, .Base, .Br, .Col, .Embed, .Hr, .Img, .Input,
              .Link, .Meta, .Param, .Source, .Track, .Wbr:
             return true
-        }
 
-        return false
+        default: return false
+        }
     }
 
     // Reports whether an element's content is text that never contains markup.
@@ -525,9 +524,8 @@ impl HtmlDocument
         switch tag
         {
         case .Script, .Style, .TextArea, .Title: return true
+        default: return false
         }
-
-        return false
     }
 
     // Reports whether an element's content never becomes part of the rendered document.
@@ -539,9 +537,8 @@ impl HtmlDocument
         switch tag
         {
         case .Script, .Template, .IFrame, .Object, .Canvas, .Video, .Svg: return true
+        default: return false
         }
-
-        return false
     }
 
     // Prepares an empty tree holding only its document node.

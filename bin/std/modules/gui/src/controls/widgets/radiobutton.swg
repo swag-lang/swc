@@ -192,6 +192,7 @@ impl IWnd for RadioButton
         {
         case .Up, .Left:    evt.accepted = .selectSibling(forward: false)
         case .Down, .Right: evt.accepted = .selectSibling(forward: true)
+        default:            break
         }
     }
 }

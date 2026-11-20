@@ -337,6 +337,9 @@ impl IWnd for Header
                     .invalidate()
                 }
             }
+
+        default:
+            break
         }
     }
 }

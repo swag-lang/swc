@@ -77,6 +77,9 @@ internal impl IWnd for PopupListView
             // dismiss it.
             if not .closing and evt.other != .parent do
                 .close(Swag.U32.Max)
+
+        default:
+            break
         }
     }
 

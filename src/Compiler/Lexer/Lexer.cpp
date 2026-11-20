@@ -532,6 +532,14 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
         }
     }
 
+    if (escapeType == 'x' && containerToken != TokenId::Character && buffer_[2] > '7')
+    {
+        const auto offset = static_cast<uint32_t>(buffer_ - startBuffer_);
+        auto       diag   = reportTokenError(DiagnosticId::lex_err_non_ascii_string_escape, offset, 4);
+        diag.addArgument(Diagnostic::ARG_VALUE, std::format("\\u00{}", srcView_->codeView(offset + 2, 2)));
+        diag.report(*ctx_);
+    }
+
     buffer_ += 2 + expectedDigits;
 }
 

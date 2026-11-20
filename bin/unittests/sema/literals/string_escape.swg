@@ -7,6 +7,7 @@
 #assert('\x0D' == '\r')
 #assert('\x09' == '\t')
 #assert('\x00' == '\0')
+#assert('\xFF' == 'ÿ')
 
 #assert(#stringof("\n", "\t") == "\n\t")
 #assert(#stringof("\r", "\n") == "\r\n")
@@ -53,13 +54,15 @@
 #assert(#stringof("", "\0", "") == "\0")
 
 #assert("\x42" == "B")
-#assert("\x42" == "\x42")
-#assert("\xFF" == "\xFF")
-#assert("\x7F" == "\x7F")
+#assert("\x7F".count == 1)
+#assert("\x7F"[0] == 0x7F)
+#assert("""\x7F""" == "\x7F")
 
 #assert("\u0000" == "\0")
 #assert("\u0061" == "a")
 #assert("\u00E9" == "é")
+#assert("\u00FF" == "ÿ")
+#assert("\u00FF".count == 2)
 #assert("\u4E00" == "一")
 
 #assert("\U00000041" == "A")
@@ -69,6 +72,8 @@
 #assert(#raw "Line\nNo\tEscape" == "Line\\nNo\\tEscape")
 #assert(#raw "C:\Path\To\File" == "C:\\Path\\To\\File")
 #assert(#raw "\n" == "\\n")
+#assert(#raw "\xFF" == "\\xFF")
+#assert(#raw """\xFF""" == "\\xFF")
 // A quote is literal inside a raw literal. It cannot sit right before the closing
 // delimiter, so the text continues after it.
 #assert(#raw """\"end""" == "\\\"end")

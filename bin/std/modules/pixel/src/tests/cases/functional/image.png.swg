@@ -118,6 +118,9 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             pix[1] = g
             pix[2] = b
             pix[3] = a
+
+        default:
+            break
         }
 
         pix += img.bytesPerPixel

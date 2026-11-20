@@ -18,9 +18,11 @@ func onlyOneBranch(flag: bool)->s32     // swc-expected-error {{sema_err_missing
         return 1
 }
 
-// A plain 'switch' is not exhaustive, whatever its cases cover: a value outside the enum
-// reaches no case and walks past the switch.
-func plainSwitch(dir: Direction)->s32     // swc-expected-error {{sema_err_missing_return}}
+#[Swag.Incomplete]
+enum OpenDirection { North, South }
+
+// Listing every named value of an open enum still leaves room for an unmatched value.
+func openEnumSwitch(dir: OpenDirection)->s32     // swc-expected-error {{sema_err_missing_return}}
 {
     switch dir     // swc-expected-note {{sema_note_switch_miss_continues}}
     {
@@ -268,7 +270,7 @@ func typedFallthroughWithTrueGuard(value: const any)->s32
     {
     default:  fallthrough
     case s32: return 1
-    default where true: return 2
+    case where true: return 2
     }
 }
 

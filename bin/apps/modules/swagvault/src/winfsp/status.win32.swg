@@ -51,6 +51,7 @@ namespace WinFsp
             case .IsDirectory:       return StatusFileIsDirectory
             case .DirectoryNotEmpty: return StatusDirectoryNotEmpty
             case .DiskFull:          return StatusDiskFull
+            default:                break
             }
         }
 

@@ -359,7 +359,7 @@ private:
     AstNodeRef parseUnionDecl();
     AstNodeRef parseUnreachable();
     AstNodeRef parseUsing();
-    AstNodeRef parseVarDecl();
+    AstNodeRef parseVarDecl(bool isParameter = false);
     AstNodeRef parseWhile();
     AstNodeRef parseWith();
 

@@ -64,12 +64,13 @@ internal func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamily
     var weight     = cast(s32, face.metadata.weight)
     if (face.metadata.style & .Bold) != 0 do
         weight = Math.max(weight, 700)
-    var desired = 400
+    var desired: s32
     switch style
     {
+    case .Regular, .Italic:  desired = 400
     case .Bold, .BoldItalic: desired = 700
-    case .Light:    desired = 300
-    case .SemiBold: desired = 600
+    case .Light:            desired = 300
+    case .SemiBold:         desired = 600
     }
 
     let slant = italic == wantItalic ? 0'u32 : 1000000'u32

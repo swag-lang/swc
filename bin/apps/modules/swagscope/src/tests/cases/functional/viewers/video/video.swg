@@ -218,26 +218,6 @@ func playVideoThrough(view: *Film.Panel)
     view.updatePlayback()
 }
 
-// Completes the hand-over to the file a play mode queued.
-//
-// The movie on its way out retires on its own thread, so the classification is pumped with
-// real time between turns rather than spun.
-func completeVideoHandover(host: *Testing.HeadlessHost, window: *ViewerWindow)
-{
-    var steps = 0'u32
-    while not window.pendingFile.isEmpty() and steps < 5_000
-    {
-        Threading.Thread.sleep(1'ms)
-        Swag.drainWork()
-        host.pump()
-        if window.startupTimer do
-            host.fireTimer(window.startupTimer)
-        steps += 1
-    }
-
-    Swag.require(window.pendingFile.isEmpty())
-}
-
 internal func waitForVideoFrame(view: *Film.Panel)
 {
     // Playback runs a producer ahead of the clock, so a picture reaches the screen only when
@@ -1008,7 +988,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
         playVideoThrough(view)
         Swag.require(not view.playing and Path.fileName(window.pendingFile) == expected)
-        completeVideoHandover(&host, window)
+        completeViewerWindowClassification(&host, window)
         Swag.require(Path.fileName(window.currentFile) == expected)
     }
 }

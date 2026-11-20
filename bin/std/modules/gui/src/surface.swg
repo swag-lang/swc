@@ -541,7 +541,7 @@ impl Surface
     //
     // `topLeft` and `bottomRight` select which corners are constrained. `margin` keeps the
     // selected edges that many physical pixels away from the monitor boundary.
-    mtd constrainPositionToScreen(topLeft, bottomRight = true, margin = 0'f32)
+    mtd constrainPositionToScreen(topLeft = true, bottomRight = true, margin = 0'f32)
     {
         if .isMaximized or .isMinimized do
             return
@@ -1309,6 +1309,9 @@ impl Surface
             }
 
             return .pressStandardButton(.cancelButton)
+
+        default:
+            break
         }
 
         return false

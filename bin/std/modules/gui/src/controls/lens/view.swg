@@ -296,6 +296,9 @@ impl IWnd for View
 
         case .Wheel:
             .scrollBy(-evt.delta.y * .themeMetrics().lens_RowHeight)
+
+        default:
+            break
         }
     }
 

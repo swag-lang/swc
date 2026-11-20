@@ -147,6 +147,9 @@ internal impl IImageEncoder for Encoder
                     rawData.add(psrc[1])
                     rawData.add(psrc[0])
                     rawData.add(psrc[3])
+
+                default:
+                    break
                 }
 
                 psrc += image.bytesPerPixel

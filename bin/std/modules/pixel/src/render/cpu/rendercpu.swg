@@ -2971,6 +2971,9 @@ private impl RenderCpu
                  .ResetTextureFont, .BindTextureFont, .SetFontEffect, .StartClippingRegion,
                  .SetClippingRegionMode, .EndClippingRegion, .ResetClippingRegion, .DrawTriangles:
                 .executeCommand(painter, replay, i)
+
+            default:
+                break
             }
         }
 

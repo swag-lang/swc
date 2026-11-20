@@ -734,6 +734,7 @@ impl Explorer
         {
         case .Names:   return text.explore_Names
         case .Details: return text.explore_Details
+        case .Small, .Medium, .Large: break
         }
 
         switch .listingBoard()
@@ -752,6 +753,7 @@ impl Explorer
         {
         case .Names:   return .File
         case .Details: return .Outline
+        case .Small, .Medium, .Large: break
         }
 
         switch .listingBoard()
@@ -2617,6 +2619,7 @@ impl ExplorerGrid
         {
         case .Small: narrowest *= 0.75
         case .Large: narrowest *= 1.4
+        case .Names, .Details, .Medium: break
         }
 
         let room = Math.max(.clientRect().width - 2 * CellInset, narrowest)

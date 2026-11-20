@@ -3,7 +3,7 @@
 func A() {}
 func B(_: s32) {}
 func C(_: s32, _: s32) {}
-func D(_, _: s32 = 0) {}
+func D(_: s32 = 0, _: s32 = 0) {}
 struct Point
 {
     x: s32
@@ -63,4 +63,4 @@ func F0() {}
 func F1(_: s32) {}
 
 func F5(_: s32, _: s32 = 0) {}
-func F6(_, _: s32 = 0) {}
+func F6(_: s32 = 0, _: s32 = 0) {}

@@ -389,6 +389,9 @@ impl IWnd for ListView
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - offset
             selChanged = true
+
+        default:
+            break
         }
 
         if selChanged

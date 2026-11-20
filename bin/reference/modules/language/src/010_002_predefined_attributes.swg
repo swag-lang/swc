@@ -119,8 +119,8 @@ them explicitly for tests that need a GPU, a native window, or another host reso
 | 'EnumFlags()' | Define an enum whose values form a bit mask |
 | 'NoDuplicate()' | Reject duplicate enum values |
 
-Exhaustive matching is not an attribute: a 'switch' carries no symbol, so it is
-requested with the 'switch #complete' modifier.
+Runtime switches over closed enums are exhaustive by default. The 'switch #complete'
+modifier requires explicit case coverage without a 'default' arm.
 
 # Layout, Ownership, and Export
 

@@ -613,6 +613,8 @@ impl IWnd for ViewerWindow
             .refreshHome()
             .dropHighlight.refreshTheme()
             .layoutFloatingParts()
+
+        case .ChildFocusChanged, .PressedElsewhere, .KeyboardLayoutChanged: break
         }
 
         .wnd.IWnd.onNotifyEvent(evt)

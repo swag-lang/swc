@@ -70,6 +70,9 @@ internal impl Properties
                 .redo()
                 evt.accepted = true
                 return
+
+            default:
+                break
             }
         }
 
@@ -205,6 +208,9 @@ internal impl Properties
             .moveSel(shift ? -1 : 1)
             .activateSel()
             return true
+
+        default:
+            break
         }
 
         return false

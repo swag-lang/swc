@@ -425,10 +425,10 @@ func switchStringName(value: string)->s32
     case "abcdefghijklmnoq":  return 22
     case "abcdefghijklmnopq": return 23
     case "abcdefghijklmnopr": return 24
-    case "caf\xC3\xA9":       return 25
-    case "caf\xC3\xB4":       return 26
-    case "\xFF\xFE":          return 27
-    case "\xFF\xFF":          return 28
+    case "café":              return 25
+    case "cafô":              return 26
+    case "\u00FF\u00FE":      return 27
+    case "\u00FF\u00FF":      return 28
     }
 
     return 0
@@ -451,8 +451,8 @@ func switchStringAtRuntime(buffer: [*] u8, text: string)->string
         "", "a", "b", "ab", "ba", "abc", "abd", "xbc", "abcd", "abce",
         "abcde", "abcdf", "xbcde", "abcdefg", "abcdefh", "abcdefgh", "abcdefgi",
         "abcdefghi", "abcdefghj", "bbcdefghi", "abcdefghijklmnop", "abcdefghijklmnoq",
-        "abcdefghijklmnopq", "abcdefghijklmnopr", "caf\xC3\xA9", "caf\xC3\xB4",
-        "\xFF\xFE", "\xFF\xFF"]
+        "abcdefghijklmnopq", "abcdefghijklmnopr", "café", "cafô",
+        "\u00FF\u00FE", "\u00FF\u00FF"]
 
     for text, index in expected
     {

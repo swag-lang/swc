@@ -42,6 +42,7 @@ internal impl Properties
         case .Error:   return colors.critical
         case .Warning: return colors.caution
         case .Info:    return colors.info
+        case .None:    break
         }
 
         return colors.label_Text

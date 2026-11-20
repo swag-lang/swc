@@ -143,7 +143,8 @@ like any other, which a function takes, returns or stores.
 # Reading the Case
 
 `switch` on a tagged union selects on its tag, and `u is .Circle` tests one case.
-`Swag.kindOf(u)` returns the tag itself, as a value of the enum.
+`Swag.kindOf(u)` returns the tag itself, as a value of the enum. A switch on a union with a
+closed enum tag covers all its declared tags, including those without payloads.
 
 A member is read or written only where the flow proves that its case is the active one: inside
 the matching `case`, after an `is` test, after `Swag.assert(u is .Circle)`, or right after the
@@ -170,7 +171,7 @@ assigned again.
         {
         case .Circle: return 3 * shape.circle.radius * shape.circle.radius
         case .Rect:   return shape.rect.w * shape.rect.h
-        default:      return 0
+        case .None:   return 0
         }
     }
 

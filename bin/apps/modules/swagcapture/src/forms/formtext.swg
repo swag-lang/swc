@@ -81,7 +81,7 @@ impl FormText
     }
 
     // The typeface of the form: the one its font names, loaded once and again when the font
-    // changes, or the interface face of the same style when it names none or cannot be found.
+    // changes, or the closest interface face when it names none or cannot be found.
     mtd resolveFace()->*TypeFace
     {
         if not .typeFace or .isDirtyFont
@@ -104,10 +104,10 @@ impl FormText
             let app = .ownerApp()
             switch .fontStyle
             {
-            case .Regular:    result = app.theme.res.defaultTypeFaceR
-            case .Bold:       result = app.theme.res.defaultTypeFaceB
-            case .Italic:     result = app.theme.res.defaultTypeFaceI
-            case .BoldItalic: result = app.theme.res.defaultTypeFaceBI
+            case .Regular, .Light: result = app.theme.res.defaultTypeFaceR
+            case .Bold, .SemiBold: result = app.theme.res.defaultTypeFaceB
+            case .Italic:         result = app.theme.res.defaultTypeFaceI
+            case .BoldItalic:     result = app.theme.res.defaultTypeFaceBI
             }
         }
 

@@ -83,17 +83,18 @@ impl Capture
         {
         case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
         case .Capture: return fi.texture.isValid() and fi.textureKind == fi.kind
-        }
 
-        return fi.texture.isValid() and
-               fi.textureKind == fi.kind and
-               not fi.dirty and
-               fi.xc == fi.x and
-               fi.yc == fi.y and
-               fi.wc == fi.w and
-               fi.hc == fi.h and
-               fi.stc == fi.strength and
-               fi.serial == fi.capture!.serialBackTexture
+        case .Blur, .Pixelate, .Zoom:
+            return fi.texture.isValid() and
+                   fi.textureKind == fi.kind and
+                   not fi.dirty and
+                   fi.xc == fi.x and
+                   fi.yc == fi.y and
+                   fi.wc == fi.w and
+                   fi.hc == fi.h and
+                   fi.stc == fi.strength and
+                   fi.serial == fi.capture!.serialBackTexture
+        }
     }
 
     // Turns the painter by `degrees` about the center of `around`, and

@@ -322,8 +322,6 @@ impl Prefilter
         case .PairSet:  return ScanCostPair + .candidatesPerThousand() * candidateCost
         case .Sequence: return ScanCostSet + .candidatesPerThousand() * candidateCost
         }
-
-        return AutomatonCost
     }
 
     // Adds a second offset to the scan when testing two of them stops far more often than
@@ -424,8 +422,6 @@ impl Prefilter
             let paired = (rarest * cast(u32, ByteFrequency[.literal[.rareHigh]])) / 1000
             return paired < 1 ? 1 : paired
         }
-
-        return 1000
     }
 
     // Picks the two offsets of the literal whose bytes are rarest, which are the ones worth
@@ -468,6 +464,9 @@ impl Prefilter
 
         switch .kind
         {
+        case .None:
+            return at
+
         case .Bytes:
             let from = at + .offsets[0]
             if from >= count do
@@ -497,8 +496,6 @@ impl Prefilter
         case .Literal:
             return .findLiteral(hay, at)
         }
-
-        return at
     }
 
     // Scans for a fixed shape: one byte set per offset.

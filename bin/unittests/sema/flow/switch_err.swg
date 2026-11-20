@@ -4,7 +4,7 @@ func semaTest001()
 {
     switch 1
     {
-    default where true:
+    case where true:
         break
     default:
         break
@@ -15,7 +15,7 @@ func semaTest002()
 {
     switch 1
     {
-    default where false:
+    case where false:
         break
     default:
         break
@@ -26,9 +26,9 @@ func semaTest003()
 {
     switch 1
     {
-    default where false:
+    case where false:
         break
-    default where 1 < 2:
+    case where 1 < 2:
         break
     }
 }
@@ -39,7 +39,7 @@ func semaTest004()
     {
     case 1:
         break
-    default where false:
+    case where false:
         break
     }
 }

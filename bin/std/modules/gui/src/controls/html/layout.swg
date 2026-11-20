@@ -215,9 +215,8 @@ impl HtmlLayout
         case .Table:             return .Table
         case .TableRow:          return .TableRow
         case .TableCell:         return .TableCell
+        default:                 return .Block
         }
-
-        return .Block
     }
 
     // Builds the whole box tree from a styled document.
@@ -531,6 +530,7 @@ impl HtmlLayout
             switch item.kind
             {
             case .Text, .Atomic, .Break: return true
+            case .Space, .OpenInline, .CloseInline: break
             }
         }
 
@@ -614,9 +614,9 @@ impl HtmlLayout
                 result = result.toLower()
             result += "."
             return result
-        }
 
-        return ""
+        case .None: return ""
+        }
     }
 
     private func romanNumeral(value: u32)->String
@@ -698,6 +698,8 @@ private impl HtmlLayout
         case .Capitalize:
             if result.count do
                 buffer[result.start] = Latin1.toUpper(buffer[result.start])
+
+        case .None: break
         }
 
         return result
@@ -1837,6 +1839,7 @@ private impl HtmlLayout
         {
         case .Center: shift = extra * 0.5
         case .Right:  shift = extra
+        case .Start, .Left, .Justify: break
         }
 
         // Justification stretches the spaces of every line but the one that ends the paragraph.
@@ -1873,6 +1876,7 @@ private impl HtmlLayout
             case .Top:    item.y = top
             case .Bottom: item.y = top + height - (item.ascent + item.descent)
             case .Middle: item.y = top + (height - (item.ascent + item.descent)) * 0.5
+            case .Baseline, .TextTop, .TextBottom: break
             }
 
             if item.kind == .Atomic and item.box != HtmlNoNode
@@ -1908,6 +1912,8 @@ private impl HtmlLayout
             case .OpenInline, .CloseInline:
                 if item.width do
                     return true
+
+            case .Break: break
             }
         }
 
@@ -2239,6 +2245,8 @@ private impl HtmlLayout
                     .boxes[child].rect.height    += extra
                     .boxes[child].content.height = Math.max(.boxes[child].rect.height - .verticalExtra(child, contentWidth), 0)
                 }
+
+            case .Start, .Baseline: break
             }
         }
     }
@@ -2326,6 +2334,8 @@ private impl HtmlLayout
             let slot = extra / cast(f32, (itemCount + 1))
             pen     += slot
             between = gap + slot
+
+        case .Start: break
         }
 
         var height = 0.0'f32
@@ -2361,6 +2371,8 @@ private impl HtmlLayout
                     .boxes[child].rect.height    = height
                     .boxes[child].content.height = Math.max(height - .verticalExtra(child, contentWidth), 0)
                 }
+
+            case .Start, .Baseline: break
             }
         }
 
@@ -2388,6 +2400,7 @@ private impl HtmlLayout
             {
             case .Center: .translate(child, (contentWidth - .boxes[child].rect.width) * 0.5, 0)
             case .End:    .translate(child, contentWidth - .boxes[child].rect.width, 0)
+            case .Stretch, .Start, .Baseline: break
             }
 
             y = .boxes[child].rect.bottom()

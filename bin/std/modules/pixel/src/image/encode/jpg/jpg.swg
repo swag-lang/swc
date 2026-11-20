@@ -269,6 +269,9 @@ impl Encoder
                     line[column].r = pref[0]
                     pref += 4
                 }
+
+            default:
+                break
             }
 
             let lastcolor = line[.imageX - 1]

@@ -159,6 +159,7 @@ impl Theme
         case .FileAudio:   result.color = .colors.fileKind_Audio
         case .FileVideo:   result.color = .colors.fileKind_Video
         case .FileArchive: result.color = .colors.fileKind_Archive
+        default:           break
         }
 
         return result

@@ -380,6 +380,9 @@ impl IWnd for IconButton
                 if .form != .Circle and not bc.isDisabled do
                     theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colors.btnIcon_CheckedRing)
                 .focusRingRadius = subRectBk.radius
+
+            case .None, .Ink, .Frame:
+                break
             }
         }
 
@@ -482,6 +485,9 @@ impl IWnd for IconButton
                 arrowX = pos.horzCenter() - side * 0.5
                 arrowY = pos.bottom() - side - marginArrow
                 pos.setBottom(arrowY - metrics.btnIcon_SpacingArrowV)
+
+            case .None:
+                break
             }
 
             arrow.paint(bc.painter, arrowX, arrowY, colorIcon)

@@ -120,6 +120,9 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
         let typeEnum = assume cast(const *TypeInfoEnum, type)
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
+
+    default:
+        break
     }
 
     return result
@@ -150,6 +153,9 @@ func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
         let typeEnum = assume cast(const *TypeInfoEnum, type)
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
+
+    default:
+        break
     }
 
     return null

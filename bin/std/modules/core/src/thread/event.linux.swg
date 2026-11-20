@@ -69,7 +69,7 @@ public impl Event
     //
     // `manual` selects a manual-reset event; `initState` starts it signaled. Allocation or
     // native initialization failure panics. Initialization must finish before sharing the event.
-    mtd init(manual, initState = false)
+    mtd init(manual = false, initState = false)
     {
         Swag.assert(not .isValid())
         .state = expect createEventState(manual, initState)

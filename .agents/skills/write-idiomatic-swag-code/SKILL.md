@@ -581,7 +581,8 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   different replacement with `catch operation() orelse value`, or handle the failure with a
   block right after the operand: `catch operation() { ... }`, which must leave the surrounding
   flow when the result is read. `Swag.err` is the borrowed error inside that handler or
-  replacement. Keep immediate recovery there. For delayed inspection, declare a `Swag.Error`
+  replacement. A successful null stays null. To replace it too, use an ordinary `orelse`
+  after the parenthesized `catch` expression. For delayed inspection, declare a `Swag.Error`
   owner and write `catch operation() as owner`. The owner is empty on success and retains
   the error on failure. Borrow `.value()` only while that owner is alive and has not been
   replaced or reset. The operand binds tightly: `catch f() == 0` compares the caught result.

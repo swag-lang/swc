@@ -838,6 +838,7 @@ impl LibraryView
         {
         case .Captures, .Animations, .ScreenCaptures, .ImportedCaptures where it.kind != .Capture: return false
         case .Images where it.kind != .Image: return false
+        default: break
         }
 
         // Nothing is known about an item until its preview loads. While a search or a filter on
@@ -855,6 +856,7 @@ impl LibraryView
         case .ScreenCaptures where not capture or capture.sourceKind != .Screen: return false
         case .ImportedCaptures where not capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): return false
         case .Animations where not capture or not capture.isTimed(): return false
+        default: break
         }
 
         if it.kind == .Image do
@@ -1116,6 +1118,8 @@ impl LibraryView
 
             case .FileSize:
                 value = b.fi.size <=> a.fi.size
+
+            case .Similar: break
             }
 
             if not value do

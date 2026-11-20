@@ -370,6 +370,9 @@ impl IWnd for InfoSheet
                 .itf.onLayout()
                 .invalidate()
             }
+
+        default:
+            break
         }
     }
 

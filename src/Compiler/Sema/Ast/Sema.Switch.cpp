@@ -43,6 +43,8 @@ const TypeInfo* SemaSwitch::enumType(Sema& sema, const TypeInfo& originalType)
 
 namespace
 {
+    Result checkEnumCaseCoverage(Sema& sema, bool* outMatchesDefault, const SwitchSeenCases& seen, const TypeInfo& enumType, AstNodeRef errorRef);
+
     Result ensureSwitchRuntimePanicSymbol(Sema& sema, SwitchPayload& payload, const SourceCodeRef& codeRef)
     {
         if (payload.runtimePanicSymbol != nullptr)
@@ -92,18 +94,6 @@ namespace
 
         const TypeInfo& ultimateType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return ultimateType.isAnyPointer() && !ultimateType.isAnyTypeInfo(sema.ctx());
-    }
-
-    Result attachSwitchExprRuntimeDependencies(Sema& sema, SwitchPayload& payload, TypeRef exprTypeRef, const SourceCodeRef& codeRef)
-    {
-        const TypeInfo& originalType = sema.typeMgr().get(exprTypeRef);
-        SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, originalType, sema.curNodeRef()));
-
-        const TypeInfo& finalType = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
-        if (finalType.isString())
-            SWC_RESULT(SemaHelpers::requireRuntimeStringCmpDependency(sema, codeRef));
-
-        return setupSwitchRuntimeSafety(sema, payload, codeRef);
     }
 
     TypeRef dynamicStructSwitchExprTypeRef(Sema& sema, AstNodeRef switchRef)
@@ -462,18 +452,35 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     SwitchPayload* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
     SWC_ASSERT(payload != nullptr);
 
-    if (payload->exprTypeRef.isInvalid())
-        SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, sema.node(sema.curNodeRef()).codeRef()));
-
     // Close the borrow-flow alternatives; the entry state joins them (a switch may
     // fall through every case).
     if (payload->escapeBranchPushed)
+    {
         sema.popEscapeBranch(true);
+        payload->escapeBranchPushed = false;
+    }
 
-    if (!payload->isComplete)
-        return Result::Continue;
+    const auto& switchStmt       = sema.node(sema.curNodeRef()).cast<AstSwitchStmt>();
+    const bool  explicitComplete = switchStmt.modifierFlags.has(AstModifierFlagsE::Complete);
+    if (payload->exprTypeRef.isValid() && payload->firstDefaultRef.isInvalid())
+    {
+        const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(payload->exprTypeRef));
+        if (enumType)
+        {
+            const SymbolEnum& symbol = enumType->payloadSymEnum();
+            if (explicitComplete || (!symbol.isEnumFlags() && !symbol.isIncomplete()))
+            {
+                // A tagged value needs an explicit case at construction. A plain enum can
+                // also be default-initialized even when no name denotes its zero value.
+                const bool needsDefaultProof = !explicitComplete && !payload->taggedUnion;
+                bool       matchesDefault    = false;
+                SWC_RESULT(checkEnumCaseCoverage(sema, needsDefaultProof ? &matchesDefault : nullptr, payload->seen, *enumType, sema.curNodeRef()));
+                payload->isComplete = !needsDefaultProof || matchesDefault;
+            }
+        }
+    }
 
-    return SemaSwitch::checkEnumExhaustive(sema, payload->seen, payload->exprTypeRef, sema.curNodeRef());
+    return setupSwitchRuntimeSafety(sema, *payload, sema.node(sema.curNodeRef()).codeRef());
 }
 
 bool SemaSwitch::usesDynamicDispatch(Sema& sema, const AstSwitchStmt& switchStmt, TypeRef typeRef)
@@ -536,33 +543,142 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
     return false;
 }
 
-Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef)
+namespace
 {
-    if (exprTypeRef.isInvalid())
-        return Result::Continue;
-
-    const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(exprTypeRef));
-    if (!enumType)
-        return Result::Continue;
-
-    std::vector<const Symbol*> symbols;
-    enumType->payloadSymEnum().getAllSymbols(symbols);
-
-    for (const Symbol* sym : symbols)
+    void collectUnconditionalCaseExpressions(Sema& sema, SmallVector<AstNodeRef>& expressions, const AstSwitchStmt& switchStmt)
     {
-        SWC_ASSERT(sym != nullptr);
-        if (!sym->isEnumValue())
-            continue;
-
-        const auto&       value  = sym->cast<SymbolEnumValue>();
-        const ConstantRef cstRef = value.cstRef();
-        if (cstRef.isInvalid())
-            continue;
-
-        if (!seen.contains(cstRef))
+        SmallVector<AstNodeRef> cases;
+        sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
+        for (const AstNodeRef caseRef : cases)
         {
+            const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+            if (caseStmt.nodeWhereRef.isValid() && sema.viewConstant(caseStmt.nodeWhereRef).cstRef() != sema.cstMgr().cstTrue())
+                continue;
+
+            sema.ast().appendNodes(expressions, caseStmt.spanExprRef);
+        }
+    }
+
+    const ConstantValue& enumStorageConstant(Sema& sema, ConstantRef enumValueRef)
+    {
+        return sema.cstMgr().get(sema.cstMgr().get(enumValueRef).getEnumValue());
+    }
+
+    bool enumRangeCoversValue(Sema& sema, const AstRangeExpr& range, const ConstantValue& value)
+    {
+        if (!value.isInt() && !value.isFloat() && !value.isChar() && !value.isRune())
+            return false;
+
+        if (range.nodeExprDownRef.isValid())
+        {
+            const ConstantRef lowerRef = sema.viewConstant(range.nodeExprDownRef).cstRef();
+            if (!enumStorageConstant(sema, lowerRef).le(value))
+                return false;
+        }
+
+        if (range.nodeExprUpRef.isInvalid())
+            return true;
+
+        const ConstantRef upperRef = sema.viewConstant(range.nodeExprUpRef).cstRef();
+        const auto&       upper    = enumStorageConstant(sema, upperRef);
+        return range.hasFlag(AstRangeExprFlagsE::Inclusive) ? value.le(upper) : value.lt(upper);
+    }
+
+    bool caseCoversEnumValue(Sema& sema, AstNodeRef exprRef, ConstantRef valueRef)
+    {
+        const auto& value = enumStorageConstant(sema, valueRef);
+        if (const auto* range = sema.node(exprRef).safeCast<AstRangeExpr>())
+            return enumRangeCoversValue(sema, *range, value);
+
+        const ConstantRef caseRef = sema.viewConstant(exprRef).cstRef();
+        if (caseRef == valueRef)
+            return true;
+
+        // Runtime floating-point equality treats signed zeroes as the same value.
+        return value.isFloat() && value.eq(enumStorageConstant(sema, caseRef));
+    }
+
+    bool matchesDefaultStorage(const ConstantValue& value)
+    {
+        switch (value.kind())
+        {
+            case ConstantKind::Bool:
+                return !value.getBool();
+            case ConstantKind::Char:
+                return value.getChar() == 0;
+            case ConstantKind::Rune:
+                return value.getRune() == 0;
+            case ConstantKind::String:
+                return value.getString().empty();
+            case ConstantKind::Int:
+                return value.getInt().isZero();
+            case ConstantKind::Float:
+                return value.getFloat().isZero();
+            case ConstantKind::Null:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool containsZeroRange(Sema& sema, std::span<const AstNodeRef> expressions, const TypeInfo& storageType)
+    {
+        const ConstantValue zero = storageType.isFloat() ? ConstantValue::makeFloat(sema.ctx(), ApFloat{}, storageType.payloadFloatBits()) :
+                                                           ConstantValue::makeFromIntLike(sema.ctx(), ApsInt{storageType.payloadIntLikeBits(), storageType.isIntUnsigned()}, storageType);
+        for (const AstNodeRef expressionRef : expressions)
+        {
+            const auto* range = sema.node(expressionRef).safeCast<AstRangeExpr>();
+            if (range && enumRangeCoversValue(sema, *range, zero))
+                return true;
+        }
+
+        return false;
+    }
+
+    Result checkEnumCaseCoverage(Sema& sema, bool* outMatchesDefault, const SwitchSeenCases& seen, const TypeInfo& enumType, AstNodeRef errorRef)
+    {
+        const SymbolEnum& enumSymbol    = enumType.payloadSymEnum();
+        const TypeInfo&   storageType   = enumSymbol.underlyingType(sema.ctx()).unwrapAliasTypeOrSelf(sema.ctx());
+        const auto*       runtimeSwitch = sema.node(errorRef).safeCast<AstSwitchStmt>();
+        const bool        floatDispatch = runtimeSwitch && storageType.isFloat();
+        // A non-nullable storage type needs explicit initialization, such as a string-backed enum.
+        if (outMatchesDefault)
+            *outMatchesDefault = storageType.isNonNullable();
+
+        std::optional<SmallVector<AstNodeRef>> caseExpressions;
+        std::vector<const Symbol*>             symbols;
+        enumSymbol.getAllSymbols(symbols);
+
+        for (const Symbol* sym : symbols)
+        {
+            SWC_ASSERT(sym != nullptr);
+            if (!sym->isEnumValue())
+                continue;
+
+            const auto&       value  = sym->cast<SymbolEnumValue>();
+            const ConstantRef cstRef = value.cstRef();
+            if (cstRef.isInvalid())
+                continue;
+
+            if (outMatchesDefault && !*outMatchesDefault)
+                *outMatchesDefault = matchesDefaultStorage(enumStorageConstant(sema, cstRef));
+
+            const bool canMatch = !floatDispatch || !enumStorageConstant(sema, cstRef).getFloat().isNaN();
+            if (canMatch && seen.contains(cstRef))
+                continue;
+
+            // The duplicate-case table indexes literal values only. A range may cover more values,
+            // and an inline copy can still prove a guard true without indexing it for duplicates.
+            if (runtimeSwitch && canMatch)
+            {
+                if (!caseExpressions)
+                    collectUnconditionalCaseExpressions(sema, caseExpressions.emplace(), *runtimeSwitch);
+                if (std::ranges::any_of(*caseExpressions, [&](AstNodeRef exprRef) { return caseCoversEnumValue(sema, exprRef, cstRef); }))
+                    continue;
+            }
+
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, errorRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, enumType->typeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, enumType.typeRef());
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
             diag.last().addArgument(Diagnostic::ARG_VALUE, value.getFullScopedName(sema.ctx()));
@@ -571,7 +687,25 @@ Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, 
             diag.report(sema.ctx());
             return Result::Error;
         }
+
+        if (outMatchesDefault && !*outMatchesDefault && runtimeSwitch && storageType.isScalarNumeric())
+        {
+            if (!caseExpressions)
+                collectUnconditionalCaseExpressions(sema, caseExpressions.emplace(), *runtimeSwitch);
+            *outMatchesDefault = containsZeroRange(sema, caseExpressions->span(), storageType);
+        }
+
+        return Result::Continue;
     }
+}
+
+Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef)
+{
+    if (exprTypeRef.isInvalid())
+        return Result::Continue;
+
+    if (const TypeInfo* enumType = SemaSwitch::enumType(sema, sema.typeMgr().get(exprTypeRef)))
+        return checkEnumCaseCoverage(sema, nullptr, seen, *enumType, errorRef);
 
     return Result::Continue;
 }
@@ -679,7 +813,9 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprTypeRef));
         payload->exprTypeRef = exprTypeRef;
 
-        SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprTypeRef, sema.node(sema.curNodeRef()).codeRef()));
+        const TypeInfo& storageType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), exprTypeRef);
+        if (storageType.isString())
+            SWC_RESULT(SemaHelpers::requireRuntimeStringCmpDependency(sema, sema.node(sema.curNodeRef()).codeRef()));
 
         // Keep the enum scope available throughout the case labels and bodies.
         SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, sema.typeMgr().get(exprTypeRef)));
@@ -750,16 +886,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     if (payload->taggedUnion && !payload->taggedPath.empty() && spanExprRef.isValid() && (childRef == nodeWhereRef || childRef == nodeBodyRef))
         pushTaggedCaseFact(sema, *this, childRef);
 
-    // This is a 'default' case (no expressions). Validate default-specific rules once.
-    if (!spanExprRef.isValid() && childRef == nodeBodyRef)
-    {
-        // A 'default' with a 'where' clause is always conditional and does not
-        // participate in duplicate-default checks.
-        if (nodeWhereRef.isValid())
-            return Result::Continue;
-
+    // Only a case without expressions or a guard is the unconditional fallback.
+    if (!spanExprRef.isValid() && nodeWhereRef.isInvalid() && childRef == nodeBodyRef)
         return validateDefaultSwitchCase(sema, switchRef, sema.frame().currentSwitchCase());
-    }
 
     if (switchTypeRef.isInvalid())
         return Result::Continue;

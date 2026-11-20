@@ -381,12 +381,9 @@ Example:
 #[Swag.Safety(.Switch, true)]
 ```
 
-The guard covers 'switch #complete' only. Such a switch has an arm for every
-declared value of its enum, so the only value that can reach no case is one
-outside that set — and that is what Swag panics on.
-
-A plain 'switch' is not guarded: an unmatched value simply reaches no case and
-execution continues after the switch, in every build configuration.
+The guard panics on an unmatched value in a closed-enum switch proven to match every value,
+or in any `switch #complete`. The proof for an ordinary enum includes its default-initialized
+value as well as the declared values. A switch with a `default` handles its own fallback.
 */
 #test
 {
@@ -399,15 +396,12 @@ execution continues after the switch, in every build configuration.
 
     func colorRank(color: Color)->s32
     {
-        // A plain switch: 'Blue' matches nothing and falls through to the return below.
-        // 'switch #complete' here would reject the missing 'Blue' case at compile time.
         switch color
         {
         case .Red:   return 1
         case .Green: return 2
+        default:     return -1
         }
-
-        return -1
     }
 
     Swag.require(colorRank(Color.Blue) == -1)

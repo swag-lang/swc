@@ -1378,6 +1378,9 @@ impl TagBin
                 case .F64:
                     let v = try .stream.readNative'f64()
                     return cast(NT, v)
+
+                default:
+                    break
                 }
             }
 

@@ -193,6 +193,10 @@ impl Undo
 
         case .SetImage, .RestoreOrg, .Flatten, .FlattenAll:
             capture.invalidateImageFormCaches()
+
+        case .MoveCapture, .MoveToFront, .MoveToBack, .MoveForward, .MoveBackward,
+             .CreateForm, .DeleteSelection, .Group, .Ungroup, .SetTimeSpan, .SetTrim:
+            break
         }
     }
 
@@ -388,6 +392,8 @@ impl Undo
         case .DeleteSelection:
             .selection = capture.selection
             .oldForms  = capture.forms
+
+        case .CreateForm, .MoveBaseForm, .MoveCapture, .MovePoint: break
         }
     }
 

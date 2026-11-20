@@ -873,6 +873,9 @@ impl Painter
             case .Underline:
                 let yUnder = y - font.underlinePos
                 .drawLine(drawLeft, yUnder, drawLeft + shaped.metrics.width * zoom, yUnder, pen)
+
+            case .None:
+                break
             }
 
             .canSetTexture0 = true
@@ -1278,6 +1281,7 @@ impl Painter
 
         switch format.vertAlignment
         {
+        case .Top:    break
         case .Bottom: y = pos.bottom() - totalHeight
         case .Center: y = pos.vertCenter() - (totalHeight * 0.5)
 
@@ -1300,9 +1304,9 @@ impl Painter
 
             switch format.horzAlignment
             {
-            case .Left:   break
-            case .Right:  x1 = pos.right() - l.measure.width
-            case .Center: x1 = pos.horzCenter() - l.measure.width * 0.5
+            case .Left, .Justify: break
+            case .Right:          x1 = pos.right() - l.measure.width
+            case .Center:         x1 = pos.horzCenter() - l.measure.width * 0.5
             }
 
             if l.end > l.start

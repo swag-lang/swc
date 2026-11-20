@@ -186,6 +186,9 @@ private func appendDib(result: *ConcatBuffer, image: Image)
                 result.addNative(255'u8)
                 psrc += 3
             }
+
+        default:
+            break
         }
     }
 

@@ -8,7 +8,6 @@
 #include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenGlobalVariablePayload.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -425,16 +424,6 @@ namespace
         }
         else
             builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
-    }
-
-    // A nullable result coalesces like 'orelse': test the same presence the operator tests.
-    void emitJumpIfNullResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef, MicroLabelRef label)
-    {
-        const TypeInfo&   type     = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(type, codeGen.ctx());
-        const MicroReg    condReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, resultPayload, typeRef, type, condBits);
-        CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, type, condBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen, type, CodeGenCompareHelpers::falseyCondition(type), label);
     }
 
     // A value result lives in a register: build the default in the result storage, then load it.
@@ -1584,20 +1573,8 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
 
     SWC_RESULT(codeGen.popDeferScope());
 
-    // 'catch e orelse V' with a nullable result: a successful null takes 'V' as well.
-    const bool          coalescesNull     = lowering && lowering->catchCoalescesNull;
-    const MicroLabelRef nullFallbackLabel = coalescesNull ? builder.createLabel() : MicroLabelRef::invalid();
     if (hasFallthrough && !codeGen.currentInstructionBlocksFallthrough())
-    {
-        if (coalescesNull)
-        {
-            const auto&   expression     = codeGen.node(ownerRef).cast<AstErrorManagementExpr>();
-            const TypeRef operandTypeRef = CodeGenExprView::payloadTypeRef(codeGen, codeGen.payload(expression.nodeExprRef), expression.nodeExprRef);
-            emitJumpIfNullResult(codeGen, codeGen.payload(nodeRef), operandTypeRef, nullFallbackLabel);
-        }
-
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->fallibleDoneLabel);
-    }
 
     builder.placeLabel(payload->fallibleFailLabel);
     if (kind == FallibleHandlerKind::Catch)
@@ -1615,7 +1592,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     const auto*      expression  = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>();
     const AstNodeRef fallbackRef = expression ? expression->nodeFallbackRef : AstNodeRef::invalid();
 
-    // 'catch e' without 'default V' or a handler resumes with the default value of its type.
+    // A bare 'catch e' resumes with the default value of its type.
     const bool            resumesWithDefault = hasResult && kind == FallibleHandlerKind::Catch && expression && fallbackRef.isInvalid() && !isDiscarded;
     const bool            writesFallback     = fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock);
     const SymbolVariable* resultStorage      = nullptr;
@@ -1692,7 +1669,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // 'catch e orelse V': evaluated on the failure path only, after the capture is bound so
     // 'V' can read 'Swag.err'. It writes the result slot the success value inherited, joining both
     // paths. Without 'V', the default value of the type fills that slot the same way.
-    if (fallbackRef.isValid() && !coalescesNull)
+    if (fallbackRef.isValid())
     {
         SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
         if (isDiscarded && writesFallback)
@@ -1716,18 +1693,6 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // Both owners release their references when the handler ends.
     if (kind == FallibleHandlerKind::Catch)
         SWC_RESULT(codeGen.popDeferScope());
-
-    // The nullable form evaluates 'V' once the handled error is released: a failure and a
-    // successful null both reach it, and neither reads 'Swag.err'.
-    if (coalescesNull)
-    {
-        builder.placeLabel(nullFallbackLabel);
-        SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
-        if (isDiscarded)
-            SWC_RESULT(emitDiscardedCallResult(codeGen, fallbackRef, resultType));
-        else
-            assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
-    }
 
     builder.placeLabel(payload->fallibleDoneLabel);
     clearFallibleWrapperPayload(*payload);

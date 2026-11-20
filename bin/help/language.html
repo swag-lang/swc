@@ -291,8 +291,6 @@
     <span class="SLgc">case</span> .<span class="SCst">Running</span>: <span class="SLgc">return</span> <span class="SStr">"running"</span>
     <span class="SLgc">case</span> .<span class="SCst">Failed</span>:  <span class="SLgc">return</span> <span class="SStr">"failed"</span>
     }
-
-    <span class="SLgc">unreachable</span>
 }
 
 <span class="SFct">#test</span>
@@ -1680,7 +1678,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">const</span> k = <span class="SStr">"this is ASCII code 0x5C:   \\"</span>
 }</span></div>
 <h3 id="_003_003_string_swg_ASCII_and_Unicode_Escape_Sequences">ASCII and Unicode Escape Sequences</h3>
-<p>Escape sequences can represent characters via their ASCII or Unicode values.</p>
+<p>In ordinary strings, <span class="code-inline">\x</span> takes two hexadecimal digits from <span class="code-inline">\x00</span> through <span class="code-inline">\x7F</span> and encodes one ASCII byte. Use <span class="code-inline">\u</span> with four digits or <span class="code-inline">\U</span> with eight digits to encode a Unicode code point as UTF-8. For example, <span class="code-inline">\u00FF</span> encodes U+00FF as two bytes in a string. Use a <span class="code-inline">u8</span> array for binary data.</p>
+<p>In a character literal, <span class="code-inline">\x</span> accepts the full range from <span class="code-inline">\x00</span> through <span class="code-inline">\xFF</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SLgc">scope</span>
@@ -1688,6 +1687,11 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SKwd">const</span> a = <span class="SStr">"\x26"</span>
         <span class="SKwd">const</span> b = <span class="SStr">"\u2626"</span>
         <span class="SKwd">const</span> c = <span class="SStr">"\U00101234"</span>
+        <span class="SCmp">#assert</span>(a == <span class="SStr">"&amp;"</span>)
+        <span class="SCmp">#assert</span>(<span class="SStr">"\x7F"</span>.count == <span class="SNum">1</span>)
+        <span class="SCmp">#assert</span>(<span class="SStr">"\u00FF"</span> == <span class="SStr">"Ã¿"</span>)
+        <span class="SCmp">#assert</span>(<span class="SStr">"\u00FF"</span>.count == <span class="SNum">2</span>)
+        <span class="SCmp">#assert</span>('\<span class="SFct">xFF</span>'<span class="STpe">u8</span> == <span class="SNum">255</span>)
     }
 
     <span class="SLgc">scope</span>
@@ -2130,6 +2134,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_006_operators_swg_Null-Coalescing_Operator">Null-Coalescing Operator</h3>
 <p>The <span class="code-inline">orelse</span> operator returns the left-hand expression when it is present, and the right-hand one when it is null. It substitutes a <b>missing</b> value, never a zero one. A non-null fallback makes the result non-null even when the left operand was nullable; a nullable fallback can still produce null. When narrowing the left operand gives exactly the fallback's underlying type, the result retains the fallback's strict alias, if it has one.</p>
+<p>In 'catch operation() orelse fallback', the fallback handles an error. To also replace a successful null, put the null-coalescing operator after the parenthesized <span class="code-inline">catch</span> expression.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> a: <span class="STpe">string</span>? = <span class="SStr">"string1"</span>
@@ -3415,7 +3420,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value.number == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_004_006_union_swg_Reading_the_Case">Reading the Case</h3>
-<p><span class="code-inline">switch</span> on a tagged union selects on its tag, and <span class="code-inline">u is .Circle</span> tests one case. <span class="code-inline">Swag.kindOf(u)</span> returns the tag itself, as a value of the enum.</p>
+<p><span class="code-inline">switch</span> on a tagged union selects on its tag, and <span class="code-inline">u is .Circle</span> tests one case. <span class="code-inline">Swag.kindOf(u)</span> returns the tag itself, as a value of the enum. A switch on a union with a closed enum tag covers all its declared tags, including those without payloads.</p>
 <p>A member is read or written only where the flow proves that its case is the active one: inside the matching <span class="code-inline">case</span>, after an <span class="code-inline">is</span> test, after <span class="code-inline">Swag.assert(u is .Circle)</span>, or right after the assignment that wrote the case. Any other access is rejected. A proof lasts until the union is assigned again.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3436,7 +3441,7 @@ swc test -w path/to/workspace -m messages</span></div>
         {
         <span class="SLgc">case</span> .<span class="SCst">Circle</span>: <span class="SLgc">return</span> <span class="SNum">3</span> * shape.circle.radius * shape.circle.radius
         <span class="SLgc">case</span> .<span class="SCst">Rect</span>:   <span class="SLgc">return</span> shape.rect.w * shape.rect.h
-        <span class="SLgc">default</span>:      <span class="SLgc">return</span> <span class="SNum">0</span>
+        <span class="SLgc">case</span> .<span class="SCst">None</span>:   <span class="SLgc">return</span> <span class="SNum">0</span>
         }
     }
 
@@ -5139,16 +5144,17 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">case</span> .<span class="SCst">Ready</span>: <span class="SLgc">break</span>
     }
 }</span></div>
-<h3 id="_005_005_switch_swg_The___complete__Modifier">The <span class="code-inline">#complete</span> Modifier</h3>
-<p>Write <span class="code-inline">switch #complete</span> when matching enums to enforce exhaustive case handling. Every declared enum value must have a <span class="code-inline">case</span>, and the switch cannot have a <span class="code-inline">default</span>.</p>
-<p><span class="code-inline">#complete</span> is a modifier and not an attribute because it selects a variant of <b>this one statement</b>: a statement carries no symbol, so there is nothing for an attribute to annotate or for reflection to report.</p>
-<p><span class="code-inline">#static switch</span> accepts it too, with the same meaning and the same two rules: every declared enum value needs a <span class="code-inline">case</span>, and a <span class="code-inline">default</span> is rejected.</p>
+<h3 id="_005_005_switch_swg_Exhaustive_Enum_Switches">Exhaustive Enum Switches</h3>
+<p>A runtime <span class="code-inline">switch</span> over a closed enum or a tagged union with a closed enum tag must cover every declared value. Several enum names can name the same value. A case for one name covers those aliases. Numeric and rune ranges cover the declared values they contain. A guarded case with values or ranges counts when the compiler proves its guard is always true.</p>
+<p>When its storage type has a default value, a plain enum can also be initialized to zero, false, or absence, depending on that type. If no case covers that value, control can continue past the switch even when all named values are covered. A type that needs explicit initialization introduces no extra value. A tagged union is created with a named tag, so covering all declared tags is sufficient.</p>
+<p>Use <span class="code-inline">default</span> for all remaining values, or <span class="code-inline">default: break</span> when ignoring them is intentional. Flags enums, <span class="code-inline">#[Swag.Incomplete]</span> enums and dynamic type switches can have unmatched values. Write an explicit fallback when their callers need every path to produce a result.</p>
+<p><span class="code-inline">switch #complete</span> forbids <span class="code-inline">default</span> and asserts that some case matches. On an enum it needs cases for every declared value. On other operands it asserts coverage in the presence of the <span class="code-inline">.Switch</span> runtime guard. <span class="code-inline">#static switch #complete</span> likewise checks declared enum coverage and forbids <span class="code-inline">default</span> when selecting code at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">enum</span> <span class="SCst">Color</span> { <span class="SCst">Red</span>, <span class="SCst">Green</span>, <span class="SCst">Blue</span> }
     <span class="SKwd">let</span> color = <span class="SCst">Color</span>.<span class="SCst">Red</span>
 
-    <span class="SLgc">switch</span> <span class="SItr">#complete</span> color
+    <span class="SLgc">switch</span> color
     {
     <span class="SLgc">case</span> .<span class="SCst">Red</span>:   <span class="SLgc">break</span>
     <span class="SLgc">case</span> .<span class="SCst">Green</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
@@ -5199,8 +5205,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
-<h3 id="_005_005_switch_swg_Using__where__with__default_">Using <span class="code-inline">where</span> with <span class="code-inline">default</span></h3>
-<p>A <span class="code-inline">where</span> clause can also modify the <span class="code-inline">default</span> case for conditional fallbacks.</p>
+<h3 id="_005_005_switch_swg_Cases_With_Only_a_Guard">Cases With Only a Guard</h3>
+<p>Write <span class="code-inline">case where</span> to test a guard without comparing case values. The switch tries it in source order and enters the arm if the guard is true. This form also works in a switch without a subject. A <span class="code-inline">fallthrough</span> into this arm enters its body directly. A switch can have one unconditional <span class="code-inline">default</span> arm.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x = <span class="SNum">7</span>
@@ -5209,7 +5215,7 @@ swc test -w path/to/workspace -m messages</span></div>
     {
     <span class="SLgc">case</span> <span class="SNum">6</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>:  <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     <span class="SLgc">case</span> <span class="SNum">7</span> <span class="SLgc">where</span> y == <span class="SNum">9</span>:   <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">default</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>: <span class="SLgc">break</span>
+    <span class="SLgc">case</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>:   <span class="SLgc">break</span>
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
@@ -6923,15 +6929,13 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_007_001_declaration_swg_Every_Path_Must_Produce_the_Value">Every Path Must Produce the Value</h3>
 <p>A function that declares a return type is rejected when its body can reach the end without returning: the promise is part of the signature, and a value the caller reads has to exist.</p>
-<p>What counts as leaving the function is <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">unreachable</span>, <span class="code-inline">Swag.panic</span> and a call to a function marked <span class="code-inline">#[Swag.NoReturn]</span>, an <span class="code-inline">if</span> whose branches all leave, a loop with no way out of it, and a <span class="code-inline">switch</span> where every case leaves and some case always matches — a <span class="code-inline">default</span> arm, or 'switch #complete' over an enum. A plain <span class="code-inline">switch</span> is deliberately not exhaustive whatever its cases cover, so a value outside the set walks past it: writing <span class="code-inline">#complete</span> is what states the promise, and it stays free of any range test in the generated code.</p>
+<p>What counts as leaving the function is <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">unreachable</span>, <span class="code-inline">Swag.panic</span>, a call to a function marked <span class="code-inline">#[Swag.NoReturn]</span>, an <span class="code-inline">if</span> whose branches all leave, a loop with no way out, or an exhaustive <span class="code-inline">switch</span> whose branches all leave. For a closed enum, a switch can prove every value covered when its cases include the default-initialized value as well as every declared value, or when it has an unconditional <span class="code-inline">default</span> arm.</p>
 <p><span class="code-inline">unreachable</span> is the escape hatch when a path cannot happen for a reason the compiler cannot see. It costs nothing once its guard is off.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Season</span> { <span class="SCst">Summer</span>, <span class="SCst">Winter</span> }
 
 <span class="SKwd">func</span> <span class="SFct">seasonLength</span>(season: <span class="SCst">Season</span>)-&gt;<span class="STpe">s32</span>
 {
-    <span class="SCmt">// Without '#complete' this switch would not end the function, and the missing return</span>
-    <span class="SCmt">// would be reported.</span>
-    <span class="SLgc">switch</span> <span class="SItr">#complete</span> season
+    <span class="SLgc">switch</span> season
     {
     <span class="SLgc">case</span> .<span class="SCst">Summer</span>: <span class="SLgc">return</span> <span class="SNum">92</span>
     <span class="SLgc">case</span> .<span class="SCst">Winter</span>: <span class="SLgc">return</span> <span class="SNum">90</span>
@@ -6966,20 +6970,20 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Use <span class="code-inline">=&gt;</span> for simple expressions when the return type can be inferred automatically.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum</span>(x, y: <span class="STpe">s32</span>) =&gt; x + y</span></div>
 <h3 id="_007_001_declaration_swg_Defining_Parameters_in_Functions">Defining Parameters in Functions</h3>
-<p>Parameters are declared within parentheses after the function name, each with a name and type.</p>
+<p>Parameters are declared within parentheses after the function name. Required parameters with the same type can share a type annotation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum1</span>(x, y: <span class="STpe">s32</span>, scale: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">f32</span>, x + y) * scale
 }</span></div>
 <h3 id="_007_001_declaration_swg_Using_Default_Parameter_Values">Using Default Parameter Values</h3>
-<p>Parameters may have default values, used when not provided by the caller.</p>
+<p>Each optional parameter declares its own default value with <span class="code-inline">=</span>. The caller can omit that argument.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum2</span>(x, y: <span class="STpe">s32</span>, scale: <span class="STpe">f32</span> = <span class="SNum">1</span>)-&gt;<span class="STpe">f32</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="STpe">f32</span>, x + y) * scale
 }</span></div>
 <h3 id="_007_001_declaration_swg_Inferred_Parameter_Types">Inferred Parameter Types</h3>
 <p>If a parameter has a default value, its type can be inferred from it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum3</span>(x, y = <span class="SNum">0.0</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sum3</span>(x = <span class="SNum">0.0</span>, y = <span class="SNum">0.0</span>)
 {
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x) == <span class="STpe">f32</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">f32</span>)
@@ -7018,7 +7022,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SLgc">scope</span>
     {
-        <span class="SKwd">func</span> <span class="SFct">returnMe</span>(x, y: <span class="STpe">s32</span> = <span class="SNum">0</span>) =&gt; x + y * <span class="SNum">2</span>
+        <span class="SKwd">func</span> <span class="SFct">returnMe</span>(x: <span class="STpe">s32</span> = <span class="SNum">0</span>, y: <span class="STpe">s32</span> = <span class="SNum">0</span>) =&gt; x + y * <span class="SNum">2</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">returnMe</span>(x: <span class="SNum">10</span>) == <span class="SNum">10</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">returnMe</span>(y: <span class="SNum">10</span>) == <span class="SNum">20</span>)
     }
@@ -8597,7 +8601,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td><span class="code-inline">NoDuplicate()</span></td><td>Reject duplicate enum values</td></tr>
 </tbody>
 </table>
-<p>Exhaustive matching is not an attribute: a <span class="code-inline">switch</span> carries no symbol, so it is requested with the 'switch #complete' modifier.</p>
+<p>Runtime switches over closed enums are exhaustive by default. The 'switch #complete' modifier requires explicit case coverage without a <span class="code-inline">default</span> arm.</p>
 <h3 id="_010_002_predefined_attributes_swg_Layout__Ownership__and_Export">Layout, Ownership, and Export</h3>
 <table class="table-markdown">
 <thead>
@@ -9421,7 +9425,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p><span class="code-inline">catch</span> handles an error locally. It reads in three ways:</p>
 <ul>
 <li>'catch e' resumes with the default value of the result type when <span class="code-inline">e</span> fails.</li>
-<li>'catch e orelse V' resumes with <span class="code-inline">V</span> instead.</li>
+<li>'catch e orelse V' resumes with <span class="code-inline">V</span> when <span class="code-inline">e</span> fails.</li>
 <li>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails.</li>
 </ul>
 <p>The operand binds like the operand of a unary operator: 'catch f() == 0' compares the caught result. The <span class="code-inline">orelse</span> value takes the rest of the expression, as it does for any <span class="code-inline">orelse</span>.</p>
@@ -9489,7 +9493,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_013_001_error_management_swg_Replacing_a_Failed_Result">Replacing a Failed Result</h3>
 <p>'catch e' yields the default value of the result type when <span class="code-inline">e</span> fails: the value 'var x: T' would hold, with struct field initializers applied, null for a nullable type, and zero for a number. A type that has no default value, such as a non-null pointer, needs the replacement to be written.</p>
 <p>'catch e orelse V' yields <span class="code-inline">V</span> instead. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and is evaluated only when it is needed, so it can read <span class="code-inline">Swag.err</span>. Because the replacement is written, the result type needs no default: a non-null pointer can be caught too.</p>
-<p>Like any <span class="code-inline">orelse</span>, <span class="code-inline">V</span> replaces a missing value: with a nullable result, a success that returns null takes <span class="code-inline">V</span> as well, and the expression then holds a value whenever <span class="code-inline">V</span> does. There is no error in that case, so <span class="code-inline">V</span> cannot read <span class="code-inline">Swag.err</span> there.</p>
+<p>A successful nullable result stays nullable. Parenthesize the <span class="code-inline">catch</span> expression before writing a second <span class="code-inline">orelse</span> to supply a value for a successful null.</p>
 <p>When the result is not needed, write 'discard catch': success drops its result and failure drops its error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
@@ -9530,6 +9534,8 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SLgc">if</span> id == <span class="SNum">0</span> <span class="SLgc">do</span>
         <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"unknown id"</span>}}
+    <span class="SLgc">if</span> id == <span class="SNum">1</span> <span class="SLgc">do</span>
+        <span class="SLgc">return</span> <span class="SKwd">null</span>
     <span class="SLgc">return</span> <span class="SStr">"first"</span>
 }
 
@@ -9543,9 +9549,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> name = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(name == <span class="SKwd">null</span>)
 
-    <span class="SCmt">// 'orelse' replaces a failure, and a successful null alike.</span>
-    <span class="SKwd">let</span> named = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>) <span class="SLgc">orelse</span> <span class="SStr">"anonymous"</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(named == <span class="SStr">"anonymous"</span>)
+    <span class="SKwd">let</span> unknown = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>) <span class="SLgc">orelse</span> <span class="SStr">"unknown"</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(unknown == <span class="SStr">"unknown"</span>)
+
+    <span class="SKwd">let</span> anonymous = (<span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">1</span>) <span class="SLgc">orelse</span> <span class="SStr">"unknown"</span>) <span class="SLgc">orelse</span> <span class="SStr">"anonymous"</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(anonymous == <span class="SStr">"anonymous"</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Propagating_Errors">Propagating Errors</h3>
 <p><span class="code-inline">try</span> propagates the current error to the caller, so it belongs inside a function that can itself return an error.</p>
@@ -9953,8 +9961,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_013_002_safety_swg_Switch_Safety">Switch Safety</h3>
 <p>Example:</p>
 <div class="code-block"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Switch, true)]</span></div>
-<p>The guard covers 'switch #complete' only. Such a switch has an arm for every declared value of its enum, so the only value that can reach no case is one outside that set — and that is what Swag panics on.</p>
-<p>A plain <span class="code-inline">switch</span> is not guarded: an unmatched value simply reaches no case and execution continues after the switch, in every build configuration.</p>
+<p>The guard panics on an unmatched value in a closed-enum switch proven to match every value, or in any <span class="code-inline">switch #complete</span>. The proof for an ordinary enum includes its default-initialized value as well as the declared values. A switch with a <span class="code-inline">default</span> handles its own fallback.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">enum</span> <span class="SCst">Color</span>
@@ -9966,15 +9973,12 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">func</span> <span class="SFct">colorRank</span>(color: <span class="SCst">Color</span>)-&gt;<span class="STpe">s32</span>
     {
-        <span class="SCmt">// A plain switch: 'Blue' matches nothing and falls through to the return below.</span>
-        <span class="SCmt">// 'switch #complete' here would reject the missing 'Blue' case at compile time.</span>
         <span class="SLgc">switch</span> color
         {
         <span class="SLgc">case</span> .<span class="SCst">Red</span>:   <span class="SLgc">return</span> <span class="SNum">1</span>
         <span class="SLgc">case</span> .<span class="SCst">Green</span>: <span class="SLgc">return</span> <span class="SNum">2</span>
+        <span class="SLgc">default</span>:     <span class="SLgc">return</span> -<span class="SNum">1</span>
         }
-
-        <span class="SLgc">return</span> -<span class="SNum">1</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SFct">colorRank</span>(<span class="SCst">Color</span>.<span class="SCst">Blue</span>) == -<span class="SNum">1</span>)
@@ -11904,11 +11908,11 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Handling Empty Cases with break|_005_005_switch_swg_Handling_Empty_Cases_with__break_|",
 "h|Variable and Expression Cases|_005_005_switch_swg_Variable_and_Expression_Cases|",
 "h|Enum Case Values|_005_005_switch_swg_Enum_Case_Values|",
-"h|The #complete Modifier|_005_005_switch_swg_The___complete__Modifier|",
+"h|Exhaustive Enum Switches|_005_005_switch_swg_Exhaustive_Enum_Switches|",
 "h|Matching Ranges in a switch Statement|_005_005_switch_swg_Matching_Ranges_in_a__switch__Statement|",
 "h|Overlapping Ranges|_005_005_switch_swg_Overlapping_Ranges|",
 "h|Using the where Clause in switch|_005_005_switch_swg_Using_the__where__Clause_in__switch_|",
-"h|Using where with default|_005_005_switch_swg_Using__where__with__default_|",
+"h|Cases With Only a Guard|_005_005_switch_swg_Cases_With_Only_a_Guard|",
 "h|Switching on Type with any or interface|_005_005_switch_swg_Switching_on_Type_with__any__or__interface_|",
 "h|Switch Without an Expression|_005_005_switch_swg_Switch_Without_an_Expression|",
 "h|Break|_005_006_break_swg|",

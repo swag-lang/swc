@@ -455,6 +455,8 @@ impl EditView
             other.setFocus()
             other.setSelection(pos, pos)
             return true
+
+        default: break
         }
 
         return false

@@ -262,6 +262,9 @@ impl IWnd for View
 
         case .Wheel:
             .scrollBy(-evt.delta.y * .themeMetrics().optionSheet_RowHeight)
+
+        default:
+            break
         }
     }
 

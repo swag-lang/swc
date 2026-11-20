@@ -212,6 +212,8 @@ impl IWnd for TimelineBar
             .isDragging = false
             .releaseMouse()
             .endEdgeDrag()
+
+        default: break
         }
     }
 

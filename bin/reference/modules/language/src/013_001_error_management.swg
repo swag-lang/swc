@@ -25,7 +25,7 @@ func count(name: string?)->u64 fail
 'catch' handles an error locally. It reads in three ways:
 
 - 'catch e' resumes with the default value of the result type when 'e' fails.
-- 'catch e orelse V' resumes with 'V' instead.
+- 'catch e orelse V' resumes with 'V' when 'e' fails.
 - 'catch e { H }' runs the handler 'H' only when 'e' fails.
 
 The operand binds like the operand of a unary operator: 'catch f() == 0' compares
@@ -138,9 +138,8 @@ pointer, needs the replacement to be written.
 evaluated only when it is needed, so it can read 'Swag.err'. Because the replacement
 is written, the result type needs no default: a non-null pointer can be caught too.
 
-Like any 'orelse', 'V' replaces a missing value: with a nullable result, a success
-that returns null takes 'V' as well, and the expression then holds a value whenever
-'V' does. There is no error in that case, so 'V' cannot read 'Swag.err' there.
+A successful nullable result stays nullable. Parenthesize the 'catch' expression
+before writing a second 'orelse' to supply a value for a successful null.
 
 When the result is not needed, write 'discard catch': success drops its result and
 failure drops its error.
@@ -184,6 +183,8 @@ func findName(id: s32)->string? fail
 {
     if id == 0 do
         fail MyError{base: Swag.BaseError{"unknown id"}}
+    if id == 1 do
+        return null
     return "first"
 }
 
@@ -197,9 +198,11 @@ func findName(id: s32)->string? fail
     let name = catch findName(0)
     Swag.require(name == null)
 
-    // 'orelse' replaces a failure, and a successful null alike.
-    let named = catch findName(0) orelse "anonymous"
-    Swag.require(named == "anonymous")
+    let unknown = catch findName(0) orelse "unknown"
+    Swag.require(unknown == "unknown")
+
+    let anonymous = (catch findName(1) orelse "unknown") orelse "anonymous"
+    Swag.require(anonymous == "anonymous")
 }
 
 /**

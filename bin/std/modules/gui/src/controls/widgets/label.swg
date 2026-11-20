@@ -123,6 +123,9 @@ impl IWnd for Label
                 .hotChunk = null
                 .invalidate()
             }
+
+        default:
+            break
         }
     }
 
@@ -181,6 +184,7 @@ impl IWnd for Label
             {
             case .Right:  posIcon.x = posIcon.right() - .icon.sizeX
             case .Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
+            case .Left, .Justify: break
             }
 
             switch .iconVerticalAlignment
@@ -197,6 +201,9 @@ impl IWnd for Label
                     posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
                 else do
                     posIcon.y = opticalTop(.font(), posIcon.vertCenter(), .icon.sizeY)
+
+            case .Top, .OpticalCenter:
+                break
             }
 
             // Icon

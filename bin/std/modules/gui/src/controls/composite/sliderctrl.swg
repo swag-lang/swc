@@ -91,6 +91,7 @@ impl SliderCtrl
                 case .UnsignedInteger: val = Format.toString("%", cast(u64, wnd.value()))
                 case .SignedInteger:   val = Format.toString("%", cast(s64, wnd.value()))
                 case .FloatingPoint:   val = Format.toString("%{f2}", wnd.value())
+                case .Text, .Hexadecimal: break
                 }
 
                 ctrl.edit.setText(val)
@@ -116,6 +117,7 @@ impl SliderCtrl
 
                 case .FloatingPoint: let {value: val, eat: _, ovf: _} = catch StrConv.parseF64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
+                case .Text, .Hexadecimal: break
                 }
             }
 
@@ -126,7 +128,7 @@ impl SliderCtrl
     }
 
     // Changes the label width, value-editor width, and spacing between child controls.
-    mtd setLayoutMetrics(labelWidth, valueWidth, spacing: f32 = 8)
+    mtd setLayoutMetrics(labelWidth: f32 = 8, valueWidth: f32 = 8, spacing: f32 = 8)
     {
         Swag.assert(labelWidth >= 0 and valueWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
         if .labelWidth == labelWidth and .valueWidth == valueWidth and .spacing == spacing do

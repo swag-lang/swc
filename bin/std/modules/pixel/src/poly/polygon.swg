@@ -500,11 +500,11 @@ impl Polygon
         if not .points.count do
             return
 
-        var joinType = Clipper.JoinType.Square
+        var joinType: Clipper.JoinType
         switch joinStyle
         {
-        case .Round: joinType = .Round
-        case .Bevel: joinType = .Square
+        case .Round:              joinType = .Round
+        case .None, .Bevel:       joinType = .Square
         case .Miter, .MiterBevel: joinType = .Miter
         }
 

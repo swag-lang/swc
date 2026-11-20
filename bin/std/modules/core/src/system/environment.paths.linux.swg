@@ -166,6 +166,9 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
 
     case .CommonPictures, .CommonVideos, .CommonMusic:
         return ""
+
+    default:
+        break
     }
 
     let home = homeDirectory()

@@ -11,7 +11,7 @@ var gBasicF6Last:  s32
 func A() { gBasicACalls += 1 }
 func B(x: s32) { gBasicBLast = x }
 func C(x: s32, y: s32) { gBasicCLast = x + y }
-func D(x, y: s32 = 0) { gBasicDLast = x * 10 + y }
+func D(x: s32 = 0, y: s32 = 0) { gBasicDLast = x * 10 + y }
 
 func T()->s32
 {
@@ -60,10 +60,15 @@ namespace NS {}
     Swag.require(gBasicDLast == 12)
     Swag.require(gBasicF5Last == 12)
     Swag.require(gBasicF6Last == 12)
+
+    D(x: 3)
+    Swag.require(gBasicDLast == 30)
+    D(y: 4)
+    Swag.require(gBasicDLast == 4)
 }
 
 func F0() { gBasicF0Calls += 1 }
 func F1(x: s32) { gBasicF1Last = x }
 
 func F5(a: s32, b: s32 = 0) { gBasicF5Last = a * 10 + b }
-func F6(a, b: s32 = 0) { gBasicF6Last = a * 10 + b }
+func F6(a: s32 = 0, b: s32 = 0) { gBasicF6Last = a * 10 + b }

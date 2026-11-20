@@ -283,7 +283,6 @@ SWC_DIAG_DEF(sema_err_catch_value_needs_fallback, Error, "'catch' needs a '{type
 SWC_DIAG_DEF(sema_err_catch_handler_needs_exit, Error, "'catch' handler can finish without a result; [help] leave the handler with 'return', 'fail', 'break', or 'continue', or use 'orelse <value>'")
 SWC_DIAG_DEF(sema_err_catch_fallback_without_result, Error, "the 'catch' operand has no result for 'orelse' to replace; [help] remove the 'orelse' value")
 SWC_DIAG_DEF(sema_err_catch_owner_not_error_variable, Error, "'catch ... as' needs a 'Swag.Error' variable to store the error, found '{type}'; [help] declare 'var saved: Swag.Error' and write 'as saved'")
-SWC_DIAG_DEF(sema_err_catch_err_after_nullable_orelse, Error, "'Swag.err' is not available in this 'orelse' value, because a nullable result also takes it after a success that returns null; [help] handle the error in a '{ ... }' handler, or store it with 'as <owner>'")
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_fallible, Error, "'{tok}' needs a fallible expression or block; [help] apply it to a call to a function declared with 'fail', or to a block that contains one")
 SWC_DIAG_DEF(sema_err_orelse_not_nullable_type, Error, "'orelse' substitutes a missing value, but '{type}' can never be null; [help] write an explicit condition for the fallback, for example 'value != 0 ? value : fallback' for a number")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing 'scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")

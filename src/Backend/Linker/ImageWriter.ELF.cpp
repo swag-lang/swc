@@ -17,8 +17,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_PAGE      = 4096;
-    constexpr size_t   K_NO_TARGET = SIZE_MAX;
+    constexpr uint64_t K_PAGE          = 4096;
+    constexpr size_t   K_NO_TARGET     = SIZE_MAX;
+    constexpr uint8_t  K_STT_FUNC      = 2;
+    constexpr uint8_t  K_STT_GNU_IFUNC = 10;
 
     struct OutputSection
     {
@@ -273,7 +275,7 @@ namespace
         for (size_t index = 1; index < file->symbols.size(); ++index)
         {
             const ELF::Symbol& symbol = file->symbols[index];
-            if (symbol.section && symbol.type() == 10)
+            if (symbol.section && symbol.type() == K_STT_GNU_IFUNC)
                 return fail(std::format("{}: relocatable ELF inputs do not yet support IFUNC resolver '{}'", name, symbol.name));
             if (!symbol.binding() || !symbol.section || symbol.name.empty())
                 continue;
@@ -979,7 +981,7 @@ namespace
         Target             target;
         target.name       = name;
         target.reference  = reference;
-        target.info       = imported ? static_cast<uint8_t>((symbol.binding() == 2 ? 0x20 : 0x10) | (symbol.type() == 10 ? 2 : symbol.type())) : symbol.info;
+        target.info       = imported ? static_cast<uint8_t>((symbol.binding() == 2 ? 0x20 : 0x10) | (symbol.type() == K_STT_GNU_IFUNC ? K_STT_FUNC : symbol.type())) : symbol.info;
         target.visibility = imported ? 0 : symbol.visibility;
         target.size       = symbol.size;
         target.weak       = symbol.binding() == 2;
@@ -1087,9 +1089,10 @@ namespace
                         target.copy = true;
                     }
                 }
-                const ELF::Section& source                  = file->sections[relocation.section];
-                const bool          importedFunctionAddress = !shared_ && target.imported && target.reference.file->shared &&
-                                                     target.reference.symbol().type() == 2 && relocation.type == ELF::R_ABS64 &&
+                const ELF::Section& source = file->sections[relocation.section];
+                // The target type already treats a shared IFUNC as a function. The GOT resolves its implementation.
+                const bool importedFunctionAddress = !shared_ && target.imported && target.reference.file->shared &&
+                                                     (target.info & 15) == K_STT_FUNC && relocation.type == ELF::R_ABS64 &&
                                                      source.output && (sections_[source.output].flags & ELF::SHF_ALLOC) &&
                                                      !(sections_[source.output].flags & ELF::SHF_WRITE);
                 if (relocation.type == ELF::R_GOTPCREL || relocation.type == ELF::R_GOTPCRELX || relocation.type == ELF::R_REX_GOTPCRELX ||

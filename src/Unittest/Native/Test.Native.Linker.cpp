@@ -1678,6 +1678,53 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ExecutesProcessEntryAndEagerLibcImports)
     }
 }
 SWC_TEST_END()
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ReadOnlyFunctionAddressResolvesImportedIfunc)
+{
+    const LinkerTestDirectory directory("internal_elf_ifunc_address");
+    SWC_RESULT(directory.write("provider.cpp", R"(extern "C" {
+static int implementation() { return 42; }
+static auto resolve() -> int (*)() { return &implementation; }
+int indirect() __attribute__((ifunc("resolve")));
+}
+)"));
+    uint32_t                    exitCode = 0;
+    std::string                 output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+    const std::vector<Utf8>     compile = {"-shared", "-fPIC", "-nostdlib", "-Wl,-soname,provider.so", "provider.cpp", "-o", "provider.so"};
+    if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+
+    LinkImage   image;
+    LinkSection code;
+    code.name  = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    // Materialize the address with movabs, call it, and return zero for the selected implementation.
+    NativeTest::emit(code.bytes, {0x48, 0x83, 0xec, 8, 0x48, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xd0, 0x48, 0x83, 0xc4, 8, 0x83, 0xe8, 42, 0xc3});
+    code.relocs.push_back({.offset = 6, .kind = LinkRelocKind::Abs64, .symbolName = "indirect"});
+    image.sections.push_back(std::move(code));
+    image.symbols.push_back({.name = "main"});
+
+    LinkJob job;
+    job.outputPath   = directory.path() / "program";
+    job.elfLibraries = {directory.path() / "provider.so", "c"};
+    job.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image))
+        return Result::Error;
+    ByteArray bytes;
+    Utf8      error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[ELF imported IFUNC address] {}", error);
+        return Result::Error;
+    }
+    SWC_RESULT(directory.write("program", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    std::error_code permissions;
+    fs::permissions(job.outputPath, fs::perms::owner_exec, fs::perm_options::add, permissions);
+    if (permissions || Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+}
+SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ELFImage_CopyRelocationsShareStorageWithGotReferences)
 {
     const LinkerTestDirectory directory("internal_elf_copy");

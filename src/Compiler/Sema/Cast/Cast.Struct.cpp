@@ -59,12 +59,6 @@ namespace
                 continue;
             }
 
-            if (node.is(AstNodeId::AutoCastExpr))
-            {
-                nodeRef = node.cast<AstAutoCastExpr>().nodeExprRef;
-                continue;
-            }
-
             return nodeRef;
         }
 
@@ -293,7 +287,6 @@ namespace
         if (!ownValue)
             elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
         elemCtx.probing = args.castRequest->probing;
-        elemCtx.applyAutoCast(*args.sema, valueNodeRef);
 
         return elemCtx;
     }
@@ -319,7 +312,7 @@ namespace
             TypeRef             setParamRef = TypeRef::invalid();
             const SourceCodeRef codeRef     = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
             SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, elemCtx.kind, setFn, setParamRef, valueNodeRef));
-            if (!setFn && !elemCtx.selectedStructOpCast && !args.sema->node(valueNodeRef).is(AstNodeId::AutoCastExpr))
+            if (!setFn && !elemCtx.selectedStructOpCast)
                 return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
         }
 

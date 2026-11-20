@@ -1069,7 +1069,6 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         // Cast-like nodes already convert to the resolved context type, so their
         // register really does hold a value of that type.
         if (payloadNode.isNot(AstNodeId::CastExpr) &&
-            payloadNode.isNot(AstNodeId::AutoCastExpr) &&
             payloadNode.isNot(AstNodeId::AsCastExpr) &&
             payloadNode.isNot(AstNodeId::IsTypeExpr))
         {

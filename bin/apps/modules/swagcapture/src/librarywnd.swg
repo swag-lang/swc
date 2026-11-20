@@ -969,7 +969,7 @@ impl LibraryWnd
         var result: #returntype
         for it, i in .view.items where not it.filtered
         {
-            if .view.selModel.isSelected(cast(i)) do
+            if .view.selModel.isSelected(cast(u32, i)) do
                 result.add(it.fi.fullName)
         }
 
@@ -1089,7 +1089,7 @@ impl LibraryWnd
     mtd selectedCaptureFiles()->Array'String
     {
         var result: #returntype
-        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(i)) do
+        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(u32, i)) do
             result.add(item.fi.fullName)
         return result
     }
@@ -1184,7 +1184,7 @@ impl LibraryWnd
         var favorite = false
         for item, i in .view.items
         {
-            if item.capture and .view.selModel.isSelected(cast(i)) and not item.capture.favorite do
+            if item.capture and .view.selModel.isSelected(cast(u32, i)) and not item.capture.favorite do
                 favorite = true
         }
 

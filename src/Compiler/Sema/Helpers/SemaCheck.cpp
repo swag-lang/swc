@@ -833,11 +833,9 @@ Result SemaCheck::typePattern(Sema& sema, AstNodeRef exprRef, bool binding)
     while (const auto* paren = sema.node(exprRef).safeCast<AstParenExpr>())
         exprRef = paren->nodeExprRef;
 
-    const AstNode& node     = sema.node(exprRef);
-    const auto*    cast     = node.safeCast<AstCastExpr>();
-    const auto*    autoCast = node.safeCast<AstAutoCastExpr>();
-    if (!(cast && cast->modifierFlags.has(AstModifierFlagsE::Try)) &&
-        !(autoCast && autoCast->modifierFlags.has(AstModifierFlagsE::Try)))
+    const AstNode& node = sema.node(exprRef);
+    const auto*    cast = node.safeCast<AstCastExpr>();
+    if (!cast || !cast->modifierFlags.has(AstModifierFlagsE::Try))
         return Result::Continue;
 
     // Patterns lower to casts too; their source token remains 'is'. Only a

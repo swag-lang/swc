@@ -477,42 +477,4 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstAutoCastExpr::semaPostNode(Sema& sema)
-{
-    if (SemaHelpers::isAssumedCast(sema))
-        modifierFlags.add(AstModifierFlagsE::Assume);
-    const SemaNodeView exprView = sema.viewTypeConstant(nodeExprRef);
-
-    // Value-check
-    if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
-        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
-
-    // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));
-
-    // We do not know the destination type here (it comes from context),
-    // but we still need the source expression type or constant. Copying the raw payload would
-    // keep a call's callee symbol payload and expose `func()->T` instead of the call result `T`.
-    if (exprView.hasConstant())
-        sema.setConstant(sema.curNodeRef(), exprView.cstRef());
-    else
-        sema.setType(sema.curNodeRef(), exprView.typeRef());
-
-    if (sema.isFoldedTypedConst(nodeExprRef))
-        sema.setFoldedTypedConst(sema.curNodeRef());
-
-    sema.setIsValue(*this);
-
-    // Resolve a contextual assumption before its error wrapper copies the result
-    // type. Otherwise a fallible operand would hide the explicit conversion from
-    // the enclosing binding.
-    if (modifierFlags.has(AstModifierFlagsE::Assume) && !sema.frame().bindingTypes().empty())
-    {
-        SemaNodeView view = sema.curViewNodeTypeConstant();
-        SWC_RESULT(Cast::cast(sema, view, sema.frame().bindingTypes().back(), CastKind::Explicit));
-    }
-
-    return Result::Continue;
-}
-
 SWC_END_NAMESPACE();

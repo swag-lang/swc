@@ -372,9 +372,6 @@ namespace
             case AstNodeId::InitializerExpr:
                 return storageProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, outProjection, depth + 1);
 
-            case AstNodeId::AutoCastExpr:
-                return storageProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, outProjection, depth + 1);
-
             case AstNodeId::AsCastExpr:
                 return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection, depth + 1);
 
@@ -483,9 +480,6 @@ namespace
 
             case AstNodeId::InitializerExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, depth + 1);
-
-            case AstNodeId::AutoCastExpr:
-                return ownedPayloadStorageRoot(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, depth + 1);
 
             case AstNodeId::AsCastExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, depth + 1);
@@ -608,9 +602,6 @@ namespace
             case AstNodeId::InitializerExpr:
                 return storageRootVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
-            case AstNodeId::AutoCastExpr:
-                return storageRootVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
-
             case AstNodeId::AsCastExpr:
                 return storageRootVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
@@ -724,8 +715,6 @@ namespace
             const AstNode& candidateNode = sema.node(candidateRef);
             if (candidateNode.is(AstNodeId::InitializerExpr))
                 candidateRef = candidateNode.cast<AstInitializerExpr>().nodeExprRef;
-            else if (candidateNode.is(AstNodeId::AutoCastExpr))
-                candidateRef = candidateNode.cast<AstAutoCastExpr>().nodeExprRef;
             else if (candidateNode.is(AstNodeId::AsCastExpr))
                 candidateRef = candidateNode.cast<AstAsCastExpr>().nodeExprRef;
             else if (candidateNode.is(AstNodeId::ParenExpr))
@@ -1637,8 +1626,6 @@ namespace
                 innerRef = node.cast<AstParenExpr>().nodeExprRef;
             else if (node.is(AstNodeId::InitializerExpr))
                 innerRef = node.cast<AstInitializerExpr>().nodeExprRef;
-            else if (node.is(AstNodeId::AutoCastExpr))
-                innerRef = node.cast<AstAutoCastExpr>().nodeExprRef;
             else if (node.is(AstNodeId::AsCastExpr))
                 innerRef = node.cast<AstAsCastExpr>().nodeExprRef;
             else
@@ -2276,8 +2263,6 @@ namespace
                 else
                     resolvedRef = sema.resolvedNodeRef(operandRef);
             }
-            else if (node.is(AstNodeId::AutoCastExpr))
-                resolvedRef = sema.resolvedNodeRef(node.cast<AstAutoCastExpr>().nodeExprRef);
             else if (node.is(AstNodeId::AsCastExpr))
                 resolvedRef = sema.resolvedNodeRef(node.cast<AstAsCastExpr>().nodeExprRef);
             else if (node.is(AstNodeId::ErrorManagementExpr) && Token::isPresenceAssertion(sema.token(node.codeRef()).id))
@@ -2837,9 +2822,6 @@ namespace
             case AstNodeId::InitializerExpr:
                 return destinationBaseVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, depth + 1);
 
-            case AstNodeId::AutoCastExpr:
-                return destinationBaseVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, depth + 1);
-
             case AstNodeId::AsCastExpr:
                 return destinationBaseVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, depth + 1);
 
@@ -3007,22 +2989,6 @@ namespace
 
             case AstNodeId::InitializerExpr:
                 return expressionEscapeInfoRec(sema, node.cast<AstInitializerExpr>().nodeExprRef, budget);
-
-            case AstNodeId::AutoCastExpr:
-            {
-                const auto& castNode = node.cast<AstAutoCastExpr>();
-
-                // Ordinary contextual conversions have a separate CastExpr wrapper.
-                // Dynamic conversions lower on this node and can borrow its operand's storage.
-                if (castNode.modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
-                    return castEscapeInfo(sema, resolvedRef, castNode.nodeExprRef, budget);
-
-                SemaEscapeInfo info = expressionEscapeInfoRec(sema, castNode.nodeExprRef, budget);
-                if (info.hasBorrow())
-                    info.typeRef = expressionTypeRef(sema, resolvedRef);
-
-                return info;
-            }
 
             case AstNodeId::AsCastExpr:
             {
@@ -3721,10 +3687,6 @@ namespace
 
             case AstNodeId::InitializerExpr:
                 iterationProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, out, ok, depth + 1);
-                return;
-
-            case AstNodeId::AutoCastExpr:
-                iterationProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
 
             case AstNodeId::AsCastExpr:
@@ -4640,7 +4602,6 @@ namespace
             case AstNodeId::RelationalExpr:
             case AstNodeId::CastExpr:
             case AstNodeId::AsCastExpr:
-            case AstNodeId::AutoCastExpr:
             case AstNodeId::IndexExpr:
             case AstNodeId::IndexListExpr:
             case AstNodeId::IntrinsicCallExpr:

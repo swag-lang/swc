@@ -390,23 +390,32 @@ impl QuickStylePaintForm
         {
             // The letter takes the width of the cell so its alignment is stable across fonts.
             let k = 1 / result.zoom
-            paintItf.setBaseForm(cast(QuickCellMargin * k), cast(rect.y * k), cast((QuickCellWidth - 2 * QuickCellMargin) * k), cast(rect.height * k))
+            paintItf.setBaseForm(cast(s32, QuickCellMargin * k),
+                                 cast(s32, rect.y * k),
+                                 cast(s32, (QuickCellWidth - 2 * QuickCellMargin) * k),
+                                 cast(s32, rect.height * k))
         }
         elif paintItf is FormDraw
         {
             // A free stroke keeps its own path, laid out larger and painted smaller.
             let k = 1 / result.zoom
-            paintItf.setBaseForm(cast(rect.x * k), cast(rect.y * k), cast(rect.width * k), cast(rect.height * k))
+            paintItf.setBaseForm(cast(s32, rect.x * k),
+                                 cast(s32, rect.y * k),
+                                 cast(s32, rect.width * k),
+                                 cast(s32, rect.height * k))
         }
         elif result.zoom != 1
         {
             // A stroke rises from the foot of the frame on the left to its top on the right.
             let k = 1 / result.zoom
-            paintItf.setBaseForm(cast(rect.x * k), cast(rect.bottom() * k), cast(rect.width * k), cast(-rect.height * k))
+            paintItf.setBaseForm(cast(s32, rect.x * k),
+                                 cast(s32, rect.bottom() * k),
+                                 cast(s32, rect.width * k),
+                                 cast(s32, -rect.height * k))
         }
         else
         {
-            paintItf.setBaseForm(cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
+            paintItf.setBaseForm(cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.width), cast(s32, rect.height))
         }
 
         // The tail of a callout lives in canvas space and is never carried by a style: the sample

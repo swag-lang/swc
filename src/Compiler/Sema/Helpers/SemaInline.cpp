@@ -96,8 +96,6 @@ namespace
                 return true;
             if (const auto* castNode = node.safeCast<AstCastExpr>())
                 exprRef = castNode->nodeExprRef;
-            else if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
-                exprRef = autoCastNode->nodeExprRef;
             else if (const auto* parenNode = node.safeCast<AstParenExpr>())
                 exprRef = parenNode->nodeExprRef;
             else
@@ -125,7 +123,7 @@ namespace
         if (paramType.isBlockPointer())
             return paramTypeRef;
         const AstNode& exprNode   = sema.node(exprRef);
-        const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
+        const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr);
         if (!isCastExpr && !isInlineCoercibleLiteralArg(exprNode) && !isInlineContextualLambdaArg(sema, exprRef) && !SemaHelpers::canUseContextualBinding(sema, exprRef))
             return TypeRef::invalid();
 
@@ -150,18 +148,6 @@ namespace
                     binding.cstRef  = exprView.cstRef();
                     return;
                 }
-            }
-
-            // The selected call has already folded a contextual `cast()` to the parameter
-            // type. Bind that result directly: cloning the still-destinationless syntax can
-            // make several deduced arguments share the last contextual substitute.
-            if (sema.node(exprRef).is(AstNodeId::AutoCastExpr) &&
-                exprView.cstRef().isValid() &&
-                exprView.typeRef() == paramTypeRef)
-            {
-                binding.typeRef = paramTypeRef;
-                binding.cstRef  = exprView.cstRef();
-                return;
             }
         }
 
@@ -553,7 +539,7 @@ namespace
             return AstNodeRef::invalid();
 
         const AstNode& argNode = sema.node(argRef);
-        if (argNode.is(AstNodeId::CastExpr) || argNode.is(AstNodeId::AutoCastExpr))
+        if (argNode.is(AstNodeId::CastExpr))
             return argRef;
 
         if (const auto* inlinePayload = SemaInline::expansionPayload(sema, argRef))
@@ -577,18 +563,9 @@ namespace
         return resolvedRef;
     }
 
-    AstNodeRef castExpressionRef(const AstNode& node)
+    AstNodeRef castInlinedValueSourceRef(Sema& sema, const AstCastExpr& castNode)
     {
-        if (const auto* castNode = node.safeCast<AstCastExpr>())
-            return castNode->nodeExprRef;
-        if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
-            return autoCastNode->nodeExprRef;
-        return AstNodeRef::invalid();
-    }
-
-    AstNodeRef castInlinedValueSourceRef(Sema& sema, const AstNode& castNode)
-    {
-        AstNodeRef exprRef = castExpressionRef(castNode);
+        AstNodeRef exprRef = castNode.nodeExprRef;
         for (uint32_t depth = 0; depth < 8 && exprRef.isValid(); ++depth)
         {
             const AstNode& exprNode = sema.node(exprRef);
@@ -606,7 +583,10 @@ namespace
                     return exprRef;
             }
 
-            exprRef = castExpressionRef(exprNode);
+            const auto* nestedCast = exprNode.safeCast<AstCastExpr>();
+            if (!nestedCast)
+                break;
+            exprRef = nestedCast->nodeExprRef;
         }
 
         return AstNodeRef::invalid();
@@ -752,10 +732,9 @@ namespace
             const AstNodeRef resolvedArgRef = bindingResolvedArgumentRef(sema, param, context.resolvedArgs, paramIndex, argRef);
             if (resolvedArgRef.isValid())
             {
-                const AstNode& resolvedArgNode = sema.node(resolvedArgRef);
-                if (resolvedArgNode.is(AstNodeId::CastExpr) || resolvedArgNode.is(AstNodeId::AutoCastExpr))
+                if (const auto* castNode = sema.node(resolvedArgRef).safeCast<AstCastExpr>())
                 {
-                    const AstNodeRef inlinedSourceRef = castInlinedValueSourceRef(sema, resolvedArgNode);
+                    const AstNodeRef inlinedSourceRef = castInlinedValueSourceRef(sema, *castNode);
                     if (inlinedSourceRef.isValid() && param.typeRef().isValid())
                         argValueRef = Cast::createCastNode(sema, param.typeRef(), inlinedSourceRef);
                     else
@@ -1406,11 +1385,6 @@ namespace
                 ref = castNode->nodeExprRef;
                 continue;
             }
-            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
-            {
-                ref = autoCastNode->nodeExprRef;
-                continue;
-            }
             if (const auto* parenNode = node.safeCast<AstParenExpr>())
             {
                 ref = parenNode->nodeExprRef;
@@ -1459,11 +1433,6 @@ namespace
             if (const auto* castNode = node.safeCast<AstCastExpr>())
             {
                 ref = castNode->nodeExprRef;
-                continue;
-            }
-            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
-            {
-                ref = autoCastNode->nodeExprRef;
                 continue;
             }
             if (const auto* parenNode = node.safeCast<AstParenExpr>())

@@ -115,10 +115,6 @@ struct Cast
         return castFlags;
     }
 
-    // cast() is explicit with a context-deduced destination. Share the flags
-    // between cast execution and overload matching so they interpret it alike.
-    static CastFlags autoCastFlags(AstModifierFlags modifierFlags);
-
     static Result castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastFlags flags);
 
     static AstNodeRef createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);

@@ -66,3 +66,4 @@ SWC_DIAG_DEF(parser_err_catch_else, Error, "'catch' does not accept 'else'; [hel
 SWC_DIAG_DEF(parser_err_discard_list_not_variable, Error, "a 'discard' list can only hold variable names; [help] discard this expression with its own 'discard'")
 SWC_DIAG_DEF(parser_err_simd_expected_array, Error, "'#simd' needs a fixed-size array type; [help] write the vector shape as '#simd [16] u8', '#simd [4] f32', or another 16-byte form")
 SWC_DIAG_DEF(parser_err_keyword_cast_as_name, Error, "keyword 'cast' cannot name a value; [help] rename the value, or write 'cast(Type, value)' to convert one")
+SWC_DIAG_DEF(parser_err_cast_requires_target, Error, "'cast' needs an explicit destination type; [help] write 'cast(Type, value)'")

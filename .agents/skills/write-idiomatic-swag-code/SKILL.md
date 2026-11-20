@@ -661,8 +661,8 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   for dynamic dispatch over `any`, interfaces, or pointers to dynamic structs. Concrete
   bindings are pointers; interface bindings are views. Both preserve source constness.
 - Use `try cast(T, value)` to propagate a conversion error, or `expect cast(T, value)`
-  to panic on failure in every build configuration. Keep statically resolved conversions
-  as `cast(T, value)`; a contextual conversion is `cast(value)`.
+  to panic on failure in every build configuration. Write `cast(T, value)` for
+  statically resolved conversions. Name the destination in every cast.
 - Use `catch cast(*T?, value)` when the nullable conversion result is itself needed: it is null on failure.
   Prefer type patterns when the purpose is testing compatibility or selecting a branch.
 - Use `assume cast(T, boxed)` or `assume cast(*T, value)` only when the concrete type

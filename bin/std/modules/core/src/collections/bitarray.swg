@@ -51,7 +51,7 @@ private impl BitArray
     {
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .buffer        = cast(Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator))
+        .buffer        = cast([*] u32?, Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator))
         .capacityBytes = newCapacityBytes
     }
 

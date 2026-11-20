@@ -153,7 +153,7 @@ internal impl Properties
             // Resize of the grid column
             if prop.resizingColumn
             {
-                prop.setNameColumnWidth(cast((pt.x - prop.gridMarginColumn * 0.5)))
+                prop.setNameColumnWidth(cast(s32, (pt.x - prop.gridMarginColumn * 0.5)))
                 return true
             }
 

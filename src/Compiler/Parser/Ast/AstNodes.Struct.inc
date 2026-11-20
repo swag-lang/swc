@@ -940,19 +940,6 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr, AstIsTypeExprFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
-{
-    AstModifierFlags modifierFlags;
-
-    AstNodeRef nodeExprRef;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-
-    Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
 enum class AstCastExprFlagsE : AstNode::ParserFlags
 {
     Zero            = 0,

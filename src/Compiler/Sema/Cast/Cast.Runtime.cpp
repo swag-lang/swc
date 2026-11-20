@@ -669,11 +669,9 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
     }
 
-    // Explicit address casts accept fitting integers, zero-extending narrow ones;
-    // enums use their underlying type. Keep destination-deduced cast() restricted
-    // to u64 so arbitrary integer arguments cannot bind pointer parameters and
-    // displace a method receiver during overload resolution.
-    const bool integerFitsAddress = castRequest.flags.has(CastFlagsE::DeducedDestination) ? srcTypeRef == sema.typeMgr().typeU64() : srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
+    // Explicit address casts accept fitting integers, zero-extending narrow ones.
+    // Enums use their underlying type.
+    const bool integerFitsAddress = srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
     if (integerFitsAddress)
     {
         if (castRequest.kind == CastKind::Explicit)

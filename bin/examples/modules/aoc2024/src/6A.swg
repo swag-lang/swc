@@ -107,7 +107,7 @@ func day6A()
         {
             let f = l.indexOf("^")
             if f != Swag.U64.Max do
-                sx = cast(f)
+                sx = cast(s32, f)
             else do
                 sy += 1
         }

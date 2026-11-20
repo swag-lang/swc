@@ -99,8 +99,8 @@ func day6B()
 
     var arr0:   Array'u8
     var sx, sy: s32
-    w = cast(lines[0].length)
-    h = cast(lines.count)
+    w = cast(s32, lines[0].length)
+    h = cast(s32, lines.count)
 
     for l in lines
     {
@@ -108,7 +108,7 @@ func day6B()
         {
             let f = l.indexOf("^")
             if f != Swag.U64.Max do
-                sx = cast(f)
+                sx = cast(s32, f)
             else do
                 sy += 1
         }

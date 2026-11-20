@@ -1830,13 +1830,6 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaErrorManagementPostNodeCommon(sema, nodeExprRef));
 
-    const auto& errorPayload = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
-    if (errorPayload.containsAssumedCast && !errorPayload.containsFallible && sema.node(nodeExprRef).is(AstNodeId::AutoCastExpr))
-    {
-        sema.setSubstitute(sema.curNodeRef(), nodeExprRef);
-        return Result::Continue;
-    }
-
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(nodeExprRef);
     const AstNodeRef   resolvedExprRef = exprView.nodeRef();
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);

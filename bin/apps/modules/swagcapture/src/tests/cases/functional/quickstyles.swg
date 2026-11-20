@@ -69,7 +69,7 @@ using Swag, Core
         {
             for x in image.width
             {
-                let color = image.pixelColor(cast(x), cast(y))
+                let color = image.pixelColor(cast(s32, x), cast(s32, y))
                 if color.r < 128 or color.g < 128 or color.b < 128 do
                     continue
                 x0 = Math.min(x0, cast(s32, x))
@@ -79,7 +79,7 @@ using Swag, Core
             }
         }
 
-        return Math.Rectangle{cast(x0), cast(y0), cast(f32, x1 - x0), cast(f32, y1 - y0)}
+        return Math.Rectangle{cast(f32, x0), cast(f32, y0), cast(f32, x1 - x0), cast(f32, y1 - y0)}
     }
 
     var f: HeadlessFixture

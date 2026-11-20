@@ -420,13 +420,6 @@ namespace
                         ref = node.cast<AstInitializerExpr>().nodeExprRef;
                         break;
 
-                    case AstNodeId::AutoCastExpr:
-                        if (node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
-                            return ref;
-
-                        ref = node.cast<AstAutoCastExpr>().nodeExprRef;
-                        break;
-
                     case AstNodeId::CastExpr:
                         if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible))
                             return ref;

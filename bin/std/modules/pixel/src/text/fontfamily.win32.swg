@@ -294,7 +294,7 @@ impl FontFamily
         }
 
         let hf = try CreateFontIndirectW(logFont.face)
-        defer catch DeleteObject(cast(hf))
+        defer catch DeleteObject(cast(HGDIOBJ, hf))
 
         let fontName = Format.toString("%_%", logFont.name, cast(u32, style))
         let typeFace = try TypeFace.createFromHfont(fontName, hf)

@@ -84,10 +84,10 @@ impl Color
     #[Inline]
     mtd setArgbF32(a, r, g, b: f32)
     {
-        .a = cast((Math.saturate(a) * 255))
-        .r = cast((Math.saturate(r) * 255))
-        .g = cast((Math.saturate(g) * 255))
-        .b = cast((Math.saturate(b) * 255))
+        .a = cast(u8, (Math.saturate(a) * 255))
+        .r = cast(u8, (Math.saturate(r) * 255))
+        .g = cast(u8, (Math.saturate(g) * 255))
+        .b = cast(u8, (Math.saturate(b) * 255))
     }
 
     // Sets the color components from bytes and makes the color opaque.
@@ -114,9 +114,9 @@ impl Color
     mtd setRgbF32(r, g, b: f32)
     {
         .a = 255
-        .r = cast((Math.saturate(r) * 255))
-        .g = cast((Math.saturate(g) * 255))
-        .b = cast((Math.saturate(b) * 255))
+        .r = cast(u8, (Math.saturate(r) * 255))
+        .g = cast(u8, (Math.saturate(g) * 255))
+        .b = cast(u8, (Math.saturate(b) * 255))
     }
 
     // Returns the four components normalized to [0, 1].

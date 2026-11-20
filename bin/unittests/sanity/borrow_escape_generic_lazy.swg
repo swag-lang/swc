@@ -32,7 +32,7 @@ impl BorrowLazyBuffer
         request.size    = (.capacity + 1) * #sizeof(T)
         request.oldSize = .capacity * #sizeof(T)
         Swag.getContext().allocator!.realloc(&request)
-        .data     = cast(request.address)
+        .data     = cast([*] T?, request.address)
         .capacity += 1
     }
 

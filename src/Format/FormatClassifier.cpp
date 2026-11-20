@@ -1497,7 +1497,6 @@ namespace
                 }
 
                 case AstNodeId::CastExpr:
-                case AstNodeId::AutoCastExpr:
                 {
                     if (span.valid())
                     {

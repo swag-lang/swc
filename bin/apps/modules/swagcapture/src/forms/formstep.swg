@@ -147,7 +147,7 @@ impl IForm for FormStep
                 t = Format.toString("%", cast(rune, ('a'rune + (curIndex - 1) % 26)))
             }
 
-            .pathl = expect face.buildStringOutline(t, cast(fSize))
+            .pathl = expect face.buildStringOutline(t, cast(u32, fSize))
             .pathl.flatten(painter.quality())
             .pathl.offset(1, JoinStyle.Round, 0.5)
             .pathl.clean()

@@ -363,7 +363,7 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     const auto& castNode     = sema.node(castNodeRef);
     if (remapsFields)
     {
-        const AstNodeRef sourceRef = castNode.is(AstNodeId::CastExpr) ? castNode.cast<AstCastExpr>().nodeExprRef : castNode.cast<AstAutoCastExpr>().nodeExprRef;
+        const AstNodeRef sourceRef = castNode.cast<AstCastExpr>().nodeExprRef;
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, sourceRef, srcTypeRef, srcTypeRef, AstModifierFlagsE::Zero, true));
         SemaHelpers::ensureCodeGenLoweringPayload(sema, castNodeRef).ownsValue = true;
     }
@@ -550,8 +550,6 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     AstNodeRef sourceRef = view.nodeRef();
     if (const auto* castNode = view.node()->safeCast<AstCastExpr>())
         sourceRef = castNode->nodeExprRef;
-    else if (const auto* autoCast = view.node()->safeCast<AstAutoCastExpr>())
-        sourceRef = autoCast->nodeExprRef;
 
     SemaNodeView    sourceView     = sema.viewTypeConstant(sourceRef);
     TypeRef         sourceTypeRef  = SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
@@ -730,14 +728,6 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
 
     view.recompute(sema);
     return Result::Continue;
-}
-
-CastFlags Cast::autoCastFlags(const AstModifierFlags modifierFlags)
-{
-    CastFlags castFlags = modifierCastFlags(modifierFlags);
-    castFlags.add(CastFlagsE::DeducedDestination);
-
-    return castFlags;
 }
 
 AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)

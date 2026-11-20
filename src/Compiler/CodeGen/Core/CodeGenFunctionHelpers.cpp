@@ -1520,7 +1520,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
             return false;
 
         const AstNode& parent = codeGen.node(parentRef);
-        if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::AutoCastExpr) || parent.is(AstNodeId::ParenExpr))
+        if (parent.is(AstNodeId::CastExpr) || parent.is(AstNodeId::ParenExpr))
             continue;
 
         if (parent.is(AstNodeId::ErrorManagementExpr))

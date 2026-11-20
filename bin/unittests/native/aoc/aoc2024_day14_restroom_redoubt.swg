@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 14: robots on a toroidal grid move with constant
 // velocity. Part 1: multiply quadrant populations after 100 steps.
 // Part 2: find the first step where robots cluster tightly (Christmas tree).
-// Exercises: with blocks, cast(value) auto-inference, compound assignment (*=,
+// Exercises: with blocks, explicit numeric casts, compound assignment (*=,
 // <<=), .count on fixed arrays, const arithmetic, #[Swag.Mixin].
 
 const SampleInput =
@@ -173,9 +173,8 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
         if bot.px == midX or bot.py == midY do
             continue
 
-        // Determine quadrant with cast(value) auto-inference
-        let right:  bool = cast((bot.px > midX))
-        let bottom: bool = cast((bot.py > midY))
+        let right:  bool = bot.px > midX
+        let bottom: bool = bot.py > midY
 
         if not right and not bottom do quads[QuadTL] += 1
         if right and not bottom do quads[QuadTR] += 1
@@ -306,13 +305,13 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     Swag.require(sf == 12'u64)
 }
 
-// cast(value) auto-inference
+// Explicit numeric casts
 #test
 {
     let v: s32  = 42
-    let b: bool = cast((v > 0))
+    let b = cast(bool, v)
     Swag.require(b)
-    let f: f32 = cast(v)
+    let f: f32 = cast(f32, v)
     Swag.require(f > 41.0 and f < 43.0)
 }
 

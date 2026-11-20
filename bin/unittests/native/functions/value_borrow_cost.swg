@@ -8,14 +8,14 @@
 func monotonicTicks()->u64
 {
     var counter: u64
-    Win32.QueryPerformanceCounter(cast(&counter))
+    Win32.QueryPerformanceCounter(cast(*Win32.LARGE_INTEGER, &counter))
     return counter
 }
 
 func monotonicFrequency()->u64
 {
     var frequency: u64
-    Win32.QueryPerformanceFrequency(cast(&frequency))
+    Win32.QueryPerformanceFrequency(cast(*Win32.LARGE_INTEGER, &frequency))
     return frequency
 }
 

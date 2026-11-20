@@ -47,7 +47,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Next: Compare lossless common-type promotion with rejection of all mixed signedness on actual
   bin/ callers. Cover arithmetic, ordering, bitwise operators and compound assignment separately;
   specify the destination check for compound assignment. Coordinate literal defaulting with
-  compiler.ai.006 and language.design.022 and conversion categories with compiler.ai.007.
+  compiler.ai.006 and language.design.022.
 - Done when: one promotion/comparison table is selected and tested at constant, JIT, guarded native
   and release boundaries, without configuration-dependent changes to signedness meaning.
 
@@ -101,42 +101,6 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   stable, and named constants, bare contextual literals, masks and boundary values are tested.
 - Related: [compiler.ai.005](compiler.ai.md#compilerai005--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
-
-### compiler.ai.007 — A contextual `cast(value)` performs whatever conversion the target turns out to need
-
-- Evidence: `cast(value)` with no type "allows the compiler to infer the target type"
-  ([003_007_cast.swg](../bin/reference/modules/language/src/003_007_cast.swg)), and
-  the conversion it then performs is whichever one that target requires — including a float
-  truncation and an integer narrowing, in a language that otherwise refuses both without a written
-  cast. The spelling is a blanket permission attached to a call site rather than to a conversion:
-  it says "convert this", never "convert this to that", so changing a parameter's type at the callee
-  silently changes what every `cast(value)` argument does. The reference's own example is a truncation
-  presented as a convenience.
-- Evidence: `testAutoCast(cast(1.4))` is the reference's illustration, and `1.4` arrives as `1`. An
-  isolated probe, `swc test -d <dir>`: one source expression, two targets, two different silent
-  conversions.
-
-  ```swag
-  func takeS32(value: s32)->s32 => value
-  func takeU8(value: u8)->u8 => value
-  Swag.print(takeS32(cast(1.9)), " ", takeU8(cast(1.9)))     // 1 1
-  ```
-
-- Elsewhere: Zig names conversion categories separately, including `@intCast` and `@truncate`, while
-  inferring destinations from context
-  ([Zig language reference](https://ziglang.org/documentation/master/#intCast)).
-  Target inference and the permitted conversion category are independent choices.
-- Proposed contract: Keep existing cast #bit, dynamic try/expect/assume cast, and type patterns distinct from
-  numeric conversion. The gap is target-inferred numeric permission: checked narrowing, fractional
-  truncation and saturation must not become interchangeable when a callee changes type. Infer
-  the target only after fixing the conversion category; remove conversions that are lossless
-  and already implicit.
-- Next: Classify blank numeric casts and compare explicit operations or modifiers for checked
-  narrowing, truncation and saturation. Reuse existing bit reinterpretation. Specify NaN,
-  infinity, negative-to-unsigned, boundary overflow and whether failure is recoverable; these
-  semantics must remain defined when optional safety guards are disabled.
-- Done when: numeric conversion categories and failure policies are explicit and tested, target
-  inference cannot silently choose another category, and no existing dynamic/bit cast is duplicated.
 
 ### compiler.ai.008 — Flag side effects inside a disabled-by-configuration assertion
 
@@ -231,7 +195,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
   Migrate real callers and provide explicit conversions at mixed-unit boundaries.
 - Done when: passing a rune index to a byte-offset operation is diagnosed and common callers
   can obtain and combine the right quantities without generic casts.
-- Related: compiler.ai.007, compiler.ai.012.
+- Related: compiler.ai.012.
 
 ### compiler.ai.015 — Produce values directly from a switch
 
@@ -721,7 +685,7 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Done when: fixtures for adding a competing import, changing a parameter type and
   changing a default expose exactly the affected calls. Pure formatting produces no
   semantic changes.
-- Related: compiler.ai.007, compiler.ai.010, compiler.ai.011, compiler.ai.037, compiler.ai.043.
+- Related: compiler.ai.010, compiler.ai.011, compiler.ai.037, compiler.ai.043.
 
 ### compiler.ai.039 — Offer semantic cleanup edits with explicit preservation checks
 

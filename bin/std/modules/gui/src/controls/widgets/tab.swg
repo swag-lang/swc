@@ -626,7 +626,7 @@ private impl Tab
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
-                return cast(idx)
+                return cast(u32, idx)
         }
 
         return Swag.U32.Max

@@ -99,16 +99,11 @@ namespace
         if (!castResultTypeRef.isValid())
             return false;
 
-        AstNodeRef     sourceRef       = AstNodeRef::invalid();
-        const AstNode& resolvedOperand = codeGen.node(resolvedOperandRef);
-        if (resolvedOperand.is(AstNodeId::CastExpr))
-            sourceRef = resolvedOperand.cast<AstCastExpr>().nodeExprRef;
-        else if (resolvedOperand.is(AstNodeId::AutoCastExpr))
-            sourceRef = resolvedOperand.cast<AstAutoCastExpr>().nodeExprRef;
-        else
+        const auto* cast = codeGen.node(resolvedOperandRef).safeCast<AstCastExpr>();
+        if (!cast)
             return false;
 
-        const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(cast->nodeExprRef, SemaNodeViewPartE::Type).typeRef();
         if (!storedSourceTypeRef.isValid())
             return false;
 
@@ -123,7 +118,7 @@ namespace
     SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
     {
         const AstNode& operand = codeGen.node(operandRef);
-        if (operand.is(AstNodeId::CastExpr) || operand.is(AstNodeId::AutoCastExpr) || operand.is(AstNodeId::AsCastExpr))
+        if (operand.is(AstNodeId::CastExpr) || operand.is(AstNodeId::AsCastExpr))
         {
             const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
             if (storedView.typeRef().isValid())
@@ -157,19 +152,6 @@ namespace
             if (!castNode.hasFlag(AstCastExprFlagsE::Explicit) && castNode.nodeExprRef.isValid())
             {
                 const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(castNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
-                if (storedSourceTypeRef.isValid())
-                    return resolveImplicitBinaryOperandSourceTypeRef(codeGen, storedSourceTypeRef, operandPayload.typeRef);
-            }
-
-            if (operandPayload.typeRef.isValid())
-                return operandPayload.typeRef;
-        }
-        else if (operand.is(AstNodeId::AutoCastExpr))
-        {
-            const auto& autoCastNode = operand.cast<AstAutoCastExpr>();
-            if (autoCastNode.nodeExprRef.isValid())
-            {
-                const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(autoCastNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
                 if (storedSourceTypeRef.isValid())
                     return resolveImplicitBinaryOperandSourceTypeRef(codeGen, storedSourceTypeRef, operandPayload.typeRef);
             }

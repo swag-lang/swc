@@ -764,7 +764,7 @@ impl Image
 
         var ii   = buildIntegral(pack.sblur, w, h)
         let area = cast(f32, (rect.width * rect.height))
-        let sumS = sumRect(&ii, w, h, cast(rect.x), cast(rect.y), cast(rect.right()), cast(rect.bottom()))
+        let sumS = sumRect(&ii, w, h, cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.right()), cast(s32, rect.bottom()))
         return sumS / area
     }
 
@@ -773,7 +773,7 @@ impl Image
         let w    = .width, h = .height
         var pack = .buildFeaturePack(w, h, opts, true)
         var ctx  = prepareScoreCtx(w, h, &pack, cast(f32, (w * h)), opts, cast(f32, opts.shrinkPrior))
-        let r    = scoreWindow(&ctx, cast(rect.x), cast(rect.y), cast(rect.width), cast(rect.height))
+        let r    = scoreWindow(&ctx, cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.width), cast(s32, rect.height))
         return r.score
     }
 }

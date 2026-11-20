@@ -102,7 +102,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             g_Texture = renderer.addImage(g_Image)
 
         if g_Texture.isValid() do
-            painter.drawTexture(cast(UX), 0, cast(W), cast(H), g_Texture)
+            painter.drawTexture(cast(f32, UX), 0, cast(f32, W), cast(f32, H), g_Texture)
     }
 
     return false

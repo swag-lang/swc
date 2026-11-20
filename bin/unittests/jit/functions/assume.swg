@@ -38,11 +38,11 @@ func assumedCastAndCall(value: *s32)->*s32 => assume cast(*s32, assumedPointer(v
 #[Swag.Safety(.Assume, false), Swag.NoInline]
 func parenthesizedAssumedCast(value: *s32?)->*s32 => assume (cast(*s32, value))
 
-func contextuallyAssumedCast(value: any)->s32 => assume cast(value)
+func assumedAnyCast(value: any)->s32 => assume cast(s32, value)
 
 func fallibleBox(value: any)->any fail { return value }
 
-func contextuallyAssumedCall(value: any)->s32 => assume cast(fallibleBox(value))
+func assumedAnyCastFromCall(value: any)->s32 => assume cast(s32, fallibleBox(value))
 
 func assumedBlock(value: *s32)
 {
@@ -62,8 +62,8 @@ func assumedBlock(value: *s32)
     Swag.require(pointer == &value)
     Swag.require(assumedCastAndCall(&value) == &value)
     Swag.require(parenthesizedAssumedCast(&value) == &value)
-    Swag.require(contextuallyAssumedCast(value) == 12)
-    Swag.require(contextuallyAssumedCall(value) == 12)
+    Swag.require(assumedAnyCast(value) == 12)
+    Swag.require(assumedAnyCastFromCall(value) == 12)
     assume assumedVoid(&value)
     Swag.require(value == 13)
     assumedBlock(&value)

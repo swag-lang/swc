@@ -331,7 +331,7 @@ impl PropWnd
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
-                sliderBox.setSignedBounds(cast(MinTextBorderSize), cast(MaxTextBorderSize))
+                sliderBox.setSignedBounds(cast(s64, MinTextBorderSize), cast(s64, MaxTextBorderSize))
                 sliderBox.setValueWithoutGesture(.getSelectedBaseForm().borderSize)
             }
         }

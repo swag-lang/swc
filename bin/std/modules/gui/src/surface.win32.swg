@@ -550,7 +550,7 @@ private impl Surface
             wc.hInstance     = GetModuleHandleW(null)
             wc.cbWndExtra    = #sizeof(*void?)
             wc.style         = CS_DBLCLKS
-            wc.lpfnWndProc   = cast(&winProc)
+            wc.lpfnWndProc   = cast(const *void?, &winProc)
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
             wc.hIcon         = hIcon
             wc.lpszClassName = className
@@ -739,7 +739,7 @@ impl Surface
         info.bmiHeader.biBitCount    = 32
         info.bmiHeader.biCompression = BI_RGB
         var pixels: *u8?
-        let bitmap = try CreateDIBSection(null, &info, cast(DIB_RGB_COLORS), &pixels, null, 0)
+        let bitmap = try CreateDIBSection(null, &info, cast(UINT, DIB_RGB_COLORS), &pixels, null, 0)
         if not SelectObject(dc, cast(HGDIOBJ, bitmap))
         {
             let error = GetLastError()

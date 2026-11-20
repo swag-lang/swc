@@ -545,7 +545,7 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
 {
     let context = Swag.getContext()
     if not context.errorAllocator.capacity do
-        context.errorAllocator.setCapacity(cast(__buildCfg.errorAllocatorCapacity), __runtimeAllocator())
+        context.errorAllocator.setCapacity(cast(u64, __buildCfg.errorAllocatorCapacity), __runtimeAllocator())
     let allocator = unwrap context.errorAllocator.allocator
     let record    = cast(*ErrorRecord, __allocateErrMemory(allocator, #sizeof(ErrorRecord)))
     record[] = ErrorRecord{allocator: allocator}

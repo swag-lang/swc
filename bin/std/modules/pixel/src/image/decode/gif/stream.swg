@@ -60,7 +60,7 @@ impl Decoder
             let size = try .readU8()
             if not size do
                 break
-            try .seek(cast(size))
+            try .seek(cast(u64, size))
         }
     }
 

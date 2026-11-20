@@ -1547,7 +1547,7 @@ namespace
         const AstNodeRef resolvedSrcNodeRef = codeGen.resolvedNodeRef(srcNodeRef);
         const AstNode&   srcNode            = codeGen.node(resolvedSrcNodeRef);
         if (!needsRuntimeStorage &&
-            (srcNode.is(AstNodeId::CastExpr) || srcNode.is(AstNodeId::AutoCastExpr)) &&
+            srcNode.is(AstNodeId::CastExpr) &&
             srcPayload.typeRef.isValid() &&
             srcPayload.typeRef == dstTypeRef &&
             storedSourceTypeRef.isValid() &&
@@ -2135,11 +2135,6 @@ Result AstAsCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeR
         return Result::SkipChildren;
 
     return Result::Continue;
-}
-
-Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
 }
 
 void CodeGenStructHelpers::emitRecordOrTupleCast(CodeGen& codeGen, MicroReg destination, MicroReg source, TypeRef sourceType, TypeRef targetType)

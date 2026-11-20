@@ -31,7 +31,7 @@ impl BorrowFieldCache
         request.oldSize = .capacity * #sizeof(BorrowFieldEntry)
         request.size    = count * #sizeof(BorrowFieldEntry)
         Swag.getContext().allocator!.realloc(&request)
-        .data     = cast(request.address)
+        .data     = cast([*] BorrowFieldEntry?, request.address)
         .capacity = count
     }
 

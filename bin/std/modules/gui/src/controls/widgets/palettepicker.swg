@@ -106,7 +106,7 @@ impl IWnd for PalettePicker
         {
             if .itemRects[i].contains(pos)
             {
-                newHotIndex = cast(i)
+                newHotIndex = cast(s32, i)
                 break
             }
         }

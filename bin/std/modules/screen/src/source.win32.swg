@@ -562,7 +562,7 @@ impl Source
         if .cursorDC and .cursorOldBitmap do
             discard Gdi32.SelectObject(.cursorDC, .cursorOldBitmap)
         if .cursorBitmap do
-            discard catch Gdi32.DeleteObject(cast(.cursorBitmap))
+            discard catch Gdi32.DeleteObject(cast(Gdi32.HGDIOBJ, .cursorBitmap))
         if .cursorDC do
             discard catch Gdi32.DeleteDC(.cursorDC)
         .cursorPixels    = null
@@ -594,7 +594,7 @@ impl Source
             .cursorBitmap                = try Gdi32.CreateDIBSection(null, &info, Gdi32.DIB_RGB_COLORS, &.cursorPixels, null, 0)
             if not .cursorPixels do
                 fail Swag.SystemError{"cannot allocate screen cursor image"}
-            .cursorOldBitmap = Gdi32.SelectObject(.cursorDC, cast(.cursorBitmap))
+            .cursorOldBitmap = Gdi32.SelectObject(.cursorDC, cast(Gdi32.HGDIOBJ, .cursorBitmap))
             if not .cursorOldBitmap do
                 fail Swag.SystemError{"cannot select screen cursor image"}
         }
@@ -613,9 +613,9 @@ impl Source
         defer
         {
             if iconInfo.hbmMask do
-                discard catch Gdi32.DeleteObject(cast(iconInfo.hbmMask))
+                discard catch Gdi32.DeleteObject(cast(Gdi32.HGDIOBJ, iconInfo.hbmMask))
             if iconInfo.hbmColor do
-                discard catch Gdi32.DeleteObject(cast(iconInfo.hbmColor))
+                discard catch Gdi32.DeleteObject(cast(Gdi32.HGDIOBJ, iconInfo.hbmColor))
         }
 
         let iconBitmap = iconInfo.hbmColor ? iconInfo.hbmColor : iconInfo.hbmMask

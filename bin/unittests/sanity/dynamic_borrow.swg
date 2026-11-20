@@ -23,12 +23,6 @@ func returnDynamicLocal()->*DynamicBorrowChild?
     return cast(*DynamicBorrowChild?, value)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func returnDeducedDynamicLocal()->*DynamicBorrowChild?
-{
-    var value: DynamicBorrowChild
-    return cast(value)     // swc-expected-error {{sanity_err_borrow_escape}}
-}
-
 func returnAssumedDynamicLocal()->*DynamicBorrowChild
 {
     var value: DynamicBorrowChild

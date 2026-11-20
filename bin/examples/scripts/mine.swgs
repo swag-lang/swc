@@ -126,7 +126,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let sli = SliderCtrl.create(wnd, "Density", {CellSize + 120, (CellSize * 2) + GridSize * CellSize, 250})
         sli.slider.setBounds(1, 10)
         sli.edit.setUnsignedIntegerRange(1, 10)
-        sli.slider.setValue(cast(g_Density))
+        sli.slider.setValue(cast(f32, g_Density))
         sli.slider.sigChanged += func(sli) { g_Density = cast(s32, sli.value()) }
 
         setup()

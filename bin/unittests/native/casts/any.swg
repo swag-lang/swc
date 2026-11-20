@@ -6,7 +6,7 @@ alias AnyCastStrictAny = any
 #test
 {
     var a: any = 12
-    var b: s32 = assume cast(a)
+    var b: s32 = assume cast(s32, a)
     Swag.require(b == 12)
 }
 
@@ -21,7 +21,7 @@ alias AnyCastStrictAny = any
 {
     func takes(_: s32) {}
     var a: any = 12
-    var b: s32 = assume cast(a)
+    var b: s32 = assume cast(s32, a)
     takes(b)
     Swag.require(b == 12)
 }

@@ -1,36 +1,36 @@
 #global private
 
 const A: s32  = 1
-const B: bool = cast(A)
+const B: bool = cast(bool, A)
 #assert(B == true)
 
-var gAutoPtr: *u32?
-var gAutoS32: s32
-var gAutoU64: u64
-var gAutoF64: f64
-var gAutoX64: u64
-func toto(ptr: *u32) { gAutoPtr = ptr }
-func takes_s32(v: s32) { gAutoS32 = v }
-func takes_u64(v: u64) { gAutoU64 = v }
-func takes_f64(v: f64) { gAutoF64 = v }
+var gCastPtr: *u32?
+var gCastS32: s32
+var gCastU64: u64
+var gCastF64: f64
+var gCastX64: u64
+func toto(ptr: *u32) { gCastPtr = ptr }
+func takes_s32(v: s32) { gCastS32 = v }
+func takes_u64(v: u64) { gCastU64 = v }
+func takes_f64(v: f64) { gCastF64 = v }
 #test
 {
-    var ptr: *u64 = &gAutoX64
-    toto(cast(ptr))
-    Swag.require(gAutoPtr == cast(*u32, ptr))
+    var ptr: *u64 = &gCastX64
+    toto(cast(*u32, ptr))
+    Swag.require(gCastPtr == cast(*u32, ptr))
 }
 
 #test
 {
     var f: f32 = 12.75
-    takes_s32(cast(f))
-    Swag.require(gAutoS32 == 12)
+    takes_s32(cast(s32, f))
+    Swag.require(gCastS32 == 12)
 }
 
 #test
 {
     const B: bool = true
-    const S: s32  = cast(B)
+    const S: s32  = cast(s32, B)
     #assert(S == 1)
     Swag.require(S == 1)
 }
@@ -38,7 +38,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
     func ret_u64()->u64 { return 42 }
-    var y: s32 = cast(ret_u64())
+    var y: s32 = cast(s32, ret_u64())
     Swag.require(y == 42)
 }
 
@@ -46,17 +46,17 @@ func takes_f64(v: f64) { gAutoF64 = v }
 {
     #[Swag.Inline]
     func ret_u64()->u64 { return 42 }
-    var y: s32 = cast(ret_u64())
+    var y: s32 = cast(s32, ret_u64())
     Swag.require(y == 42)
 }
 
 #test
 {
     var v: u16 = 7
-    takes_u64(cast(v))
-    takes_f64(cast(v))
-    Swag.require(gAutoU64 == 7)
-    Swag.require(gAutoF64 == 7.0)
+    takes_u64(cast(u64, v))
+    takes_f64(cast(f64, v))
+    Swag.require(gCastU64 == 7)
+    Swag.require(gCastF64 == 7.0)
 }
 
 #test
@@ -100,16 +100,16 @@ func takes_f64(v: f64) { gAutoF64 = v }
 
 #[Swag.Inline]
 func ret_u64_short() => cast(u64, 42)
-func a_takes_s32(v: s32) { gAutoS32 = v }
+func a_takes_s32(v: s32) { gCastS32 = v }
 
 #test
 {
-    var y: s32 = cast(ret_u64_short())
+    var y: s32 = cast(s32, ret_u64_short())
     Swag.require(y == 42)
 }
 
 #test
 {
-    a_takes_s32(cast(ret_u64_short()))
-    Swag.require(gAutoS32 == 42)
+    a_takes_s32(cast(s32, ret_u64_short()))
+    Swag.require(gCastS32 == 42)
 }

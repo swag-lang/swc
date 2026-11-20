@@ -40,7 +40,7 @@ impl BorrowInvClosureBuffer
         let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
-        .data     = cast(req.address)
+        .data     = cast([*] u8?, req.address)
         .capacity = newCapacity
     }
 }

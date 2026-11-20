@@ -2566,7 +2566,7 @@ func verifyFaultCleanup()
         Swag.g_TestAbandoned = false
         Swag.g_TestContext = context
         Swag.g_TestThreadId = __hostCurrentThreadId()
-        context.panic = cast(&__testPanicHandler)
+        context.panic = cast((func(string?, Swag.SourceCodeLocation))?, &__testPanicHandler)
         Swag.g_TestRunning = true
         __hostTestCall(cast(*void, &uncaughtFaultBody))
         Swag.g_TestRunning = false

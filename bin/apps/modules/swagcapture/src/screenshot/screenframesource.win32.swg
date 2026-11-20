@@ -60,7 +60,7 @@ impl ScreenFrameSource
         if .memoryDC and .oldBitmap do
             discard SelectObject(.memoryDC, .oldBitmap)
         if .bitmap do
-            catch DeleteObject(cast(.bitmap))
+            catch DeleteObject(cast(HGDIOBJ, .bitmap))
         if .memoryDC do
             catch DeleteDC(.memoryDC)
         .memoryDC  = null
@@ -95,10 +95,10 @@ impl ScreenFrameSource
         info.bmiHeader.biPlanes      = 1
         info.bmiHeader.biBitCount    = 32
         info.bmiHeader.biCompression = BI_RGB
-        .bitmap = catch CreateDIBSection(desktopDC, &info, cast(DIB_RGB_COLORS), &.pixels, null, 0) { return false }
+        .bitmap = catch CreateDIBSection(desktopDC, &info, cast(UINT, DIB_RGB_COLORS), &.pixels, null, 0) { return false }
         if not .pixels do
             return false
-        .oldBitmap = SelectObject(.memoryDC, cast(.bitmap))
+        .oldBitmap = SelectObject(.memoryDC, cast(HGDIOBJ, .bitmap))
         if not .oldBitmap do
             return false
         ready = true
@@ -330,9 +330,9 @@ impl ScreenFrameSource
         defer
         {
             if info.hbmMask do
-                catch DeleteObject(cast(info.hbmMask))
+                catch DeleteObject(cast(HGDIOBJ, info.hbmMask))
             if info.hbmColor do
-                catch DeleteObject(cast(info.hbmColor))
+                catch DeleteObject(cast(HGDIOBJ, info.hbmColor))
         }
 
         var bitmap: BITMAP

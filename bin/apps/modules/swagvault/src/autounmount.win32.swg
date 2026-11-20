@@ -32,7 +32,7 @@ impl AutoUnmountMonitor
         let hwnd = window.surface!.win32Handle()
         if not hwnd do
             return
-        if not SetWindowSubclass(hwnd, cast(&autoUnmountSubclass), AutoUnmountSubclassId, cast(u64, window)) do
+        if not SetWindowSubclass(hwnd, cast(SUBCLASSPROC, &autoUnmountSubclass), AutoUnmountSubclassId, cast(u64, window)) do
             return
         .hwnd = hwnd
         discard WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION)
@@ -43,7 +43,7 @@ impl AutoUnmountMonitor
         if not .hwnd do
             return
         discard WTSUnRegisterSessionNotification(.hwnd)
-        discard RemoveWindowSubclass(.hwnd, cast(&autoUnmountSubclass), AutoUnmountSubclassId)
+        discard RemoveWindowSubclass(.hwnd, cast(SUBCLASSPROC, &autoUnmountSubclass), AutoUnmountSubclassId)
         .hwnd = null
     }
 }

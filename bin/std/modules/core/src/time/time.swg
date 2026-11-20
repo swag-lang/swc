@@ -95,10 +95,10 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
 func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, millisecond: u16 }
 {
     var result: #returntype
-    result.hour        = cast(((ticks / TicksPerHour) % 24))
-    result.minute      = cast(((ticks / TicksPerMinute) % 60))
-    result.second      = cast(((ticks / TicksPerSecond) % 60))
-    result.millisecond = cast(((ticks / TicksPerMillisecond) % 1000))
+    result.hour        = cast(u16, ((ticks / TicksPerHour) % 24))
+    result.minute      = cast(u16, ((ticks / TicksPerMinute) % 60))
+    result.second      = cast(u16, ((ticks / TicksPerSecond) % 60))
+    result.millisecond = cast(u16, ((ticks / TicksPerMillisecond) % 1000))
     return result
 }
 
@@ -153,9 +153,9 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
     let completeYears = complete400YearCycles * 400 + complete100YearCycles * 100 +
                         complete4YearCycles * 4 + yearsWithin4YearCycle
     var result: #returntype
-    result.year  = cast((completeYears + 1))
-    result.month = cast(month)
-    result.day   = cast((remainingDays - monthStartDays[month - 1] + 1))
+    result.year  = cast(u16, (completeYears + 1))
+    result.month = cast(u16, month)
+    result.day   = cast(u16, (remainingDays - monthStartDays[month - 1] + 1))
     return result
 }
 
@@ -167,6 +167,6 @@ func daysInMonth(year, month: u16)->u16
 {
     Swag.assert(1 <= month and month <= 12)
     if isLeapYear(year) do
-        return cast((DaysToMonth366[month] - DaysToMonth366[month - 1]))
-    return cast((DaysToMonth365[month] - DaysToMonth365[month - 1]))
+        return cast(u16, (DaysToMonth366[month] - DaysToMonth366[month - 1]))
+    return cast(u16, (DaysToMonth365[month] - DaysToMonth365[month - 1]))
 }

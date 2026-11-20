@@ -80,7 +80,6 @@ namespace
                 case AstNodeId::ConditionalExpr:
                 case AstNodeId::RangeExpr:
                 case AstNodeId::CastExpr:
-                case AstNodeId::AutoCastExpr:
                 case AstNodeId::AsCastExpr:
                 case AstNodeId::IsTypeExpr:
                 case AstNodeId::SwitchStmt:

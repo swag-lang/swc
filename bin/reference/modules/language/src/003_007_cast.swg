@@ -3,9 +3,9 @@
 /**
 # Explicit Cast with 'cast'
 
-Explicit casting converts a value from one type to another using the syntax
-'cast(type, value)'. This transformation changes the type of 'value' to the
-specified 'type'.
+Write 'cast(type, value)' to convert a value to the specified type.
+Every explicit cast names its destination, including in a context that already
+supplies a type.
 */
 #test
 {
@@ -263,44 +263,32 @@ func supportsRuntimeType(target, source: typeinfo)->bool
 }
 
 /**
-# Contextual Cast with 'cast(value)'
+# Explicit Casts in Typed Contexts
 
-A 'cast(value)' without an explicit type performs a **contextual cast**, allowing the compiler
-to infer the target type based on the left-hand side of the assignment.
+The destination in a cast determines the conversion before the result is
+passed to a function. Casting a float to 's32' drops its fractional part.
 */
-#test
+func checkIntegerArgument(value: s32)
 {
-    let x: f32 = 1.0
-    let y: s32 = cast(x)
-    #assert(#typeof(y) == s32)
-    Swag.require(y == 1)
-}
-
-/**
-Automatic casts can also be applied when passing function arguments.
-*/
-func testAutoCast(x: s32)
-{
-    Swag.assert(x == 1)
+    Swag.require(value == 1)
 }
 
 #test
 {
-    testAutoCast(cast(1.4))     // Automatically cast to 's32'
+    checkIntegerArgument(cast(s32, 1.4))
 }
 
 /**
-A structure field or a typed array element also supplies a destination. Named and
-positional fields follow the same rule; the cast remains explicit even though its
-destination is inferred.
+Write the destination in a cast used to initialize a structure field or array
+element.
 */
 struct CastCount { value: u16 }
 
 #test
 {
     var count:  u64     = 42
-    let field           = CastCount{value: cast(count)}
-    let values: [2] u16 = [cast(count), cast(count)]
+    let field           = CastCount{value: cast(u16, count)}
+    let values: [2] u16 = [cast(u16, count), cast(u16, count)]
     Swag.require(field.value == 42)
     Swag.require(values == [42'u16, 42'u16])
 }
@@ -403,10 +391,6 @@ pointer, any integer type that fits in an address is accepted, and a narrower on
 zero-extended; an enum crosses through its underlying type. Towards an integer, the
 destination has to be able to hold an address: 'u64' and 's64' do, and a narrower type
 is refused rather than silently losing the high half of the address.
-
-Naming the destination is part of it. A 'cast(value)' takes its destination from the context,
-and only 'u64' reaches a pointer that way: an integer that could bind any pointer
-parameter would let overload resolution pick a call nobody wrote.
 */
 enum CastPointerTag: u64
 {
@@ -431,8 +415,4 @@ enum CastPointerTag: u64
     // 'cast(u32, base)' is refused. Widen the address first, then narrow that value with
     // '#wrap' to say that dropping its high half is intended.
     Swag.require(cast #wrap (u32, address) == cast #wrap (u32, cast(u64, base)))
-
-    // A deduced destination reaches a pointer from 'u64' only.
-    let deduced: [*] u8 = cast(address)
-    Swag.require(deduced == base)
 }

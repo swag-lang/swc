@@ -200,8 +200,8 @@ impl MainWnd
         let edit0    = dialog.form.addTextField(appStrings().ui_Width, Format.toString("%", capture.width))
         let edit1    = dialog.form.addTextField(appStrings().ui_Height, Format.toString("%", capture.height))
         let btnRatio = dialog.form.addOptionField(appStrings().ui_KeepRatio)
-        edit0.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        edit1.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit0.setUnsignedIntegerRange(cast(u64, Capture.MinSize), cast(u64, Capture.MaxSize))
+        edit1.setUnsignedIntegerRange(cast(u64, Capture.MinSize), cast(u64, Capture.MaxSize))
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
         dialog.form.computeLayout()
 
@@ -287,8 +287,8 @@ impl MainWnd
         g_Height = h
         let edit0 = dialog.form.addTextField(appStrings().ui_Width, Format.toString("%", w))
         let edit1 = dialog.form.addTextField(appStrings().ui_Height, Format.toString("%", h))
-        edit0.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        edit1.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
+        edit0.setUnsignedIntegerRange(cast(u64, Capture.MinSize), cast(u64, Capture.MaxSize))
+        edit1.setUnsignedIntegerRange(cast(u64, Capture.MinSize), cast(u64, Capture.MaxSize))
 
         edit0.sigTextChanged += func|ratio, edit1|(edt)
         {

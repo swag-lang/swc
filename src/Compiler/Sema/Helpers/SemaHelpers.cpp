@@ -59,8 +59,6 @@ namespace
     {
         switch (node.id())
         {
-            case AstNodeId::AutoCastExpr:
-                return node.cast<AstAutoCastExpr>().nodeExprRef;
             case AstNodeId::CastExpr:
                 return node.cast<AstCastExpr>().nodeExprRef;
             case AstNodeId::AsCastExpr:
@@ -75,8 +73,6 @@ namespace
     {
         // Dynamic conversions can produce null from a present box containing a null pointer.
         if (node.is(AstNodeId::CastExpr) && (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible)))
-            return AstNodeRef::invalid();
-        if (node.is(AstNodeId::AutoCastExpr) && node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
             return AstNodeRef::invalid();
         if (node.is(AstNodeId::AsCastExpr))
             return AstNodeRef::invalid();

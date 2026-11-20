@@ -832,7 +832,7 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
     return 0
 }
 
-func __hostTestInstallHardwareFilter()->*void? => __Win32RT.SetUnhandledExceptionFilter(cast(&__hostTestUnhandledFilter))
+func __hostTestInstallHardwareFilter()->*void? => __Win32RT.SetUnhandledExceptionFilter(cast(*void?, &__hostTestUnhandledFilter))
 
 func __hostTestRestoreHardwareFilter(previous: *void?)
 {
@@ -842,7 +842,7 @@ func __hostTestRestoreHardwareFilter(previous: *void?)
 func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {
     using __Win32RT
-    return RtlCaptureStackBackTrace(skip + 1, cast(wh.count), cast(wh.buffer), null)
+    return RtlCaptureStackBackTrace(skip + 1, cast(ULONG, wh.count), cast(**void, wh.buffer), null)
 }
 
 // Returns the image that owns an address without changing its loader reference count.

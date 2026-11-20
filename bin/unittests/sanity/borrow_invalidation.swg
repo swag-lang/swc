@@ -77,7 +77,7 @@ impl BorrowInvBuffer
         let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
-        .data     = cast(req.address)
+        .data     = cast([*] u8?, req.address)
         .capacity = newCapacity
     }
 
@@ -1086,7 +1086,7 @@ impl BorrowInvTable
         let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
-        .slots    = cast(req.address)
+        .slots    = cast([*] *BorrowInvNode?, req.address)
         .capacity = newCapacity
     }
 

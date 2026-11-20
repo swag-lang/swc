@@ -116,7 +116,6 @@ namespace
             elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
         }
 
-        elemCtx.applyAutoCast(*args.sema, arrayElemValueNodeRef(*args.sema, location.nodeRef));
         return elemCtx;
     }
 

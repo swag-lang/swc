@@ -155,12 +155,12 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
 
-    g_HitTest.x = cast(x)
-    g_HitTest.y = cast(y)
+    g_HitTest.x = cast(LONG, x)
+    g_HitTest.y = cast(LONG, y)
 
     g_Hit    = null
     g_Ignore = srf.win32Handle()
-    EnumWindows(cast(&enumProc), 0)
+    EnumWindows(cast(WNDENUMPROC, &enumProc), 0)
     if not g_Hit do
         return null
 
@@ -256,9 +256,9 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
     defer
     {
         if ii.hbmMask do
-            catch DeleteObject(cast(ii.hbmMask))
+            catch DeleteObject(cast(HGDIOBJ, ii.hbmMask))
         if ii.hbmColor do
-            catch DeleteObject(cast(ii.hbmColor))
+            catch DeleteObject(cast(HGDIOBJ, ii.hbmColor))
     }
 
     let x = ci.ptScreenPos.x - offsetX - cast(s32, ii.xHotspot)
@@ -322,16 +322,16 @@ func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) f
     bi.bmiHeader.biCompression = BI_RGB
 
     var bits: *u8?
-    let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast(DIB_RGB_COLORS), &bits, null, 0)
+    let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast(UINT, DIB_RGB_COLORS), &bits, null, 0)
     if not memBMP or not bits do
         try failWinError(GetLastError())
-    defer catch DeleteObject(cast(memBMP))
+    defer catch DeleteObject(cast(HGDIOBJ, memBMP))
 
     // Keep the DC's original bitmap so we can re-select it before deleting memBMP:
     // GDI refuses to delete an object that is still selected into a DC. The defer
     // below runs (LIFO) before the DeleteObject/DeleteDC defers, restoring the DC
     // first so DeleteObject actually succeeds instead of silently leaking the DIB.
-    let oldBMP = SelectObject(memDC, cast(memBMP))
+    let oldBMP = SelectObject(memDC, cast(HGDIOBJ, memBMP))
     defer discard SelectObject(memDC, oldBMP)
 
     try BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)

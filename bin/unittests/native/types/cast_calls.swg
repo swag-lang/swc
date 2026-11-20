@@ -61,8 +61,8 @@ func checkedPresence(value: *s32?)->s32 fail
     Swag.require(expect checkedCastCall(base) == 42)
     Swag.require((expect cast(*CastCallChild, base)).extra == 42)
     Swag.require(cast(ICastCall, &child).value() == 42)
-    let inferred: s64 = cast(10 + 2)
-    Swag.require(inferred == 12)
+    let sum = cast(s64, 10 + 2)
+    Swag.require(sum == 12)
     Swag.require(cast(u64, cast(s64, 9) + 1) == 10)
 }
 

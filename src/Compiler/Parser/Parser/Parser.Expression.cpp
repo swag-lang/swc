@@ -355,8 +355,8 @@ AstNodeRef Parser::parseCast()
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    // A single argument infers its destination from context. Only a comma at
-    // this level separates an explicit type from its operand.
+    // Distinguish a missing destination from commas inside the operand, so
+    // the retired single-operand form gets one diagnostic at 'cast'.
     bool explicitTarget = false;
     int  depth          = 0;
     for (const Token* token = curToken_; token < lastToken_; ++token)
@@ -382,11 +382,10 @@ AstNodeRef Parser::parseCast()
 
     if (!explicitTarget)
     {
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>(tknOp);
-        nodePtr->modifierFlags        = modifierFlags;
-        nodePtr->nodeExprRef          = parseExpression();
+        raiseError(DiagnosticId::parser_err_cast_requires_target, tknOp);
+        const AstNodeRef operandRef = is(TokenId::SymRightParen) ? AstNodeRef::invalid() : parseExpression();
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-        return nodeRef;
+        return operandRef;
     }
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(tknOp);

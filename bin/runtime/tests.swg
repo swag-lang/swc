@@ -213,7 +213,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     let previousPanic  = cxt.panic
     let previousCheck  = cxt.testCheck
     let previousFilter = __hostTestInstallHardwareFilter()
-    cxt.panic = cast(&__testPanicHandler)
+    cxt.panic = cast((func(string?, SourceCodeLocation))?, &__testPanicHandler)
 
     cxt.testCheck = &recordTestCheckFailure
     g_TestRunning = true

@@ -1609,7 +1609,6 @@ SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNo
             break;
 
         case AstNodeId::CastExpr:
-        case AstNodeId::AutoCastExpr:
             if (const auto* payload = codeGen.sema().semaPayload<CastSpecOpPayload>(callRef))
             {
                 if (payload->kind == CastSpecialOpPayloadKind::OpCast)

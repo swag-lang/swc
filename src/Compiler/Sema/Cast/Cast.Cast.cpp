@@ -557,8 +557,6 @@ namespace
 
         if (view.node()->is(AstNodeId::CastExpr))
             sourceRef = view.node()->cast<AstCastExpr>().nodeExprRef;
-        else if (view.node()->is(AstNodeId::AutoCastExpr))
-            sourceRef = view.node()->cast<AstAutoCastExpr>().nodeExprRef;
         else
             return AstNodeRef::invalid();
 
@@ -1854,27 +1852,16 @@ DiagnosticArguments Cast::callSiteErrorArguments(const TaskContext& ctx, const C
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const CastCallSite* callSite)
 {
-    CastKind      effectiveKind  = castKind;
     CastFlags     effectiveFlags = castFlags;
     const TypeRef srcTypeRef     = view.typeRef();
     const auto    srcCstRef      = view.cstRef();
-
-    // Context-deduced cast() still requests an explicit conversion and retains
-    // its modifiers once the destination becomes known.
-    SWC_ASSERT(view.node() != nullptr);
-    if (view.node()->is(AstNodeId::AutoCastExpr))
-    {
-        const auto& autoCast = view.node()->cast<AstAutoCastExpr>();
-        effectiveKind        = CastKind::Explicit;
-        effectiveFlags.add(autoCastFlags(autoCast.modifierFlags));
-    }
 
     if (effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::Assume}))
     {
         bool assumedValueCast = false;
         if (effectiveFlags.has(CastFlagsE::Assume) && !effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::BitCast, CastFlagsE::NoOverflow, CastFlagsE::UnConst}))
         {
-            // A folded contextual assumption may be cast again by its binding.
+            // A folded assumption may be cast again by its binding.
             // Keep that identity from reopening the operand as a dynamic type query.
             assumedValueCast           = srcTypeRef == dstTypeRef;
             const TypeInfo& sourceType = SemaHelpers::aliasEnumType(sema, view);
@@ -1896,7 +1883,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (isConstSourceBinding(sema, sourceBindingView, view.cstRef()))
         effectiveFlags.add(CastFlagsE::ConstSource);
 
-    CastRequest castRequest(effectiveKind);
+    CastRequest castRequest(castKind);
     castRequest.flags        = effectiveFlags;
     castRequest.errorNodeRef = view.nodeRef();
     castRequest.setConstantFoldingSrc(view.cstRef());
@@ -1946,7 +1933,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
         StructSetCastData structSetData;
         if (!structOpCastData.calledFn)
-            SWC_RESULT(prepareStructSetCast(sema, structSetData, view, dstTypeRef, effectiveKind, effectiveFlags));
+            SWC_RESULT(prepareStructSetCast(sema, structSetData, view, dstTypeRef, castKind, effectiveFlags));
 
         if (structOpCastData.calledFn && castRequest.constantFoldingResult() == srcCstRef)
             castRequest.setConstantFoldingResult(ConstantRef::invalid());
@@ -2004,7 +1991,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 }
             }
 
-            // A contextual cast can carry flags like `UfcsArgument` even when the
+            // A conversion can carry flags like `UfcsArgument` even when the
             // source is already of the requested type. Re-wrapping the same node
             // in that case causes reentrant cast growth on revisits.
             if (srcTypeRef == dstTypeRef || nullableIdentityWiden)
@@ -2042,7 +2029,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             sema.setConstant(view.nodeRef(), castRequest.constantFoldingResult());
 
             bool needsRuntimeStorage = false;
-            SWC_RESULT(setupRuntimeArrayScalarFillIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef, effectiveKind, needsRuntimeStorage));
+            SWC_RESULT(setupRuntimeArrayScalarFillIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef, castKind, needsRuntimeStorage));
             if (needsRuntimeStorage)
                 SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
             else
@@ -2060,7 +2047,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         return Result::Continue;
     }
 
-    if (effectiveKind != CastKind::Explicit)
+    if (castKind != CastKind::Explicit)
     {
         CastRequest explicitCtx(CastKind::Explicit);
         explicitCtx.errorNodeRef = view.nodeRef();

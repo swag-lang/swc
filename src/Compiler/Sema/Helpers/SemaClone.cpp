@@ -1181,7 +1181,7 @@ namespace
             if (void* semaPayload = sema.semaPayload<void>(sourceRef); semaPayload && !sema.semaPayload<void>(clonedRef))
                 sema.setSemaPayload(clonedRef, semaPayload);
             copyClonedCastCallArguments(sema, sourceRef, clonedRef);
-            if (sema.node(sourceRef).is(AstNodeId::CastExpr) || sema.node(sourceRef).is(AstNodeId::AutoCastExpr))
+            if (sema.node(sourceRef).is(AstNodeId::CastExpr))
             {
                 const SemaClone::CloneContext detachedContext{std::span<const SemaClone::ParamBinding>{}, {}, false, nullptr, false, true};
                 copyImplicitCastLoweringPayload(sema, detachedContext, sourceRef, clonedRef);
@@ -2470,14 +2470,6 @@ AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) 
             sema.setIsValue(sema.node(newRef));
         }
     }
-    return newRef;
-}
-
-AstNodeRef AstAutoCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AutoCastExpr>(tokRef());
-    newPtr->modifierFlags = modifierFlags;
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

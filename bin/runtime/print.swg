@@ -253,7 +253,7 @@ func print(params: ...)
         if ko.flags & TypeInfoFlags.PointerRef
         {
             let ptr = cast(const *TypeInfoPointer, cast(const *void, ko))
-            ko = cast(ptr.pointedType)
+            ko = cast(typeinfo, ptr.pointedType)
             let val = cast(**u64, v.buffer)
             v = Swag.makeAny(val[], ko)
         }

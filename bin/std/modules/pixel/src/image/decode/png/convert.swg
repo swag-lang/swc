@@ -161,9 +161,9 @@ impl Decoder
             for pixelCount
             {
                 let color = .palette[src[0]]
-                dst[0] = cast(((color >> 16) & 0xFF))
-                dst[1] = cast(((color >> 8) & 0xFF))
-                dst[2] = cast((color & 0xFF))
+                dst[0] = cast(u8, ((color >> 16) & 0xFF))
+                dst[1] = cast(u8, ((color >> 8) & 0xFF))
+                dst[2] = cast(u8, (color & 0xFF))
                 src    += 1
                 dst    += 3
             }
@@ -221,9 +221,9 @@ impl Decoder
             {
                 let index = src[0]
                 let color = .palette[index]
-                dst[0] = cast(((color >> 16) & 0xFF))
-                dst[1] = cast(((color >> 8) & 0xFF))
-                dst[2] = cast((color & 0xFF))
+                dst[0] = cast(u8, ((color >> 16) & 0xFF))
+                dst[1] = cast(u8, ((color >> 8) & 0xFF))
+                dst[2] = cast(u8, (color & 0xFF))
                 dst[3] = index < (.safeTRNSData()).count ? .safeTRNSData()[index] : 255
                 src    += 1
                 dst    += 4

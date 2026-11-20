@@ -349,7 +349,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(g_Library.files.count == 3)
 
     for idx in view.items.count do
-        view.selModel.select(cast(idx))
+        view.selModel.select(cast(u32, idx))
 
     lib.removeSelected()
 

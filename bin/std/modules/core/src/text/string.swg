@@ -211,7 +211,7 @@ impl String
     mtd opPostMove()
     {
         if .buffer and .capacity <= StringSmallSize do
-            .buffer = cast(&.padding[0])
+            .buffer = cast([*] u8?, &.padding[0])
     }
 
     // Gives a copied string storage of its own.
@@ -222,7 +222,7 @@ impl String
 
         if .capacity <= StringSmallSize
         {
-            .buffer = cast(&.padding[0])
+            .buffer = cast([*] u8?, &.padding[0])
         }
         else
         {
@@ -240,7 +240,7 @@ impl String
         if not .buffer do
             return
 
-        if .buffer != cast(&.padding[0]) do
+        if .buffer != cast(*u8?, &.padding[0]) do
             Memory.free(.buffer, .capacity, .allocator)
     }
 
@@ -333,7 +333,7 @@ impl String
     {
         if .buffer do
             return
-        .buffer = cast(&.padding[0])
+        .buffer = cast([*] u8?, &.padding[0])
     }
 
     // Replaces every occurrence of the rune `what` with `by`.
@@ -591,7 +591,7 @@ impl String
         if newCapacity <= StringSmallSize
         {
             // Copy the bytes before releasing their previous allocation.
-            if .buffer and .buffer != cast(&.padding[0])
+            if .buffer and .buffer != cast(*u8?, &.padding[0])
             {
                 Memory.copy(&.padding[0], .buffer, .length + 1)
                 Memory.free(.buffer, .capacity, .allocator)
@@ -601,27 +601,27 @@ impl String
 
             // Point the header at its own inline storage.
             .capacity = StringSmallSize
-            .buffer   = cast(&.padding[0])
+            .buffer   = cast([*] u8?, &.padding[0])
         }
         // Grow from inline storage into an allocation.
-        elif .buffer == cast(&.padding[0])
+        elif .buffer == cast(*u8?, &.padding[0])
         {
             let oldBuffer = unwrap .buffer
-            .buffer = cast(Memory.alloc(newCapacity, .allocator))
+            .buffer = cast([*] u8, Memory.alloc(newCapacity, .allocator))
             Memory.copy(.buffer, oldBuffer, .length + 1)
             .capacity = newCapacity
         }
         // Allocate directly when no previous storage exists.
         elif not .buffer
         {
-            .buffer    = cast(Memory.alloc(newCapacity, .allocator))
+            .buffer    = cast([*] u8, Memory.alloc(newCapacity, .allocator))
             .capacity  = newCapacity
             .buffer[0] = 0
         }
         // Resize the existing allocation.
         else
         {
-            .buffer   = cast(Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
+            .buffer   = cast([*] u8?, Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
             .capacity = newCapacity
         }
     }

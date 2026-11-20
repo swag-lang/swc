@@ -862,10 +862,10 @@ impl FileBrowserCtrl
 
         let state = .options.state
         state.currentFolder       = .currentFolder
-        state.nameColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(0))
-        state.modifiedColumnWidth = cast(.listCtrl.header.itemWidthForColumn(1))
+        state.nameColumnWidth     = cast(s32, .listCtrl.header.itemWidthForColumn(0))
+        state.modifiedColumnWidth = cast(s32, .listCtrl.header.itemWidthForColumn(1))
         if .options.mode != .SelectFolder do
-            state.sizeColumnWidth = cast(.listCtrl.header.itemWidthForColumn(2))
+            state.sizeColumnWidth = cast(s32, .listCtrl.header.itemWidthForColumn(2))
     }
 
     // Hands the foot — the type filter and the line of what is chosen — to a host that shows it elsewhere, such as the bottom-left slot of a dialog.

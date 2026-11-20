@@ -139,14 +139,14 @@ impl FormText
         for t, idx in tokens
         {
             let pathl = &.paths[idx]
-            pathl[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
+            pathl[] = expect face.buildStringOutline(t, cast(u32, fSize), cast(u32, sSize))
             pathl.flatten(.High)
             pathl.clean()
 
             let borderPath = &.borderPaths[idx]
             if not Math.isZeroEpsilon(bSize) and .borderColor.a
             {
-                borderPath[] = expect face.buildStringOutline(t, cast(fSize), cast(sSize))
+                borderPath[] = expect face.buildStringOutline(t, cast(u32, fSize), cast(u32, sSize))
                 borderPath.flatten(.Normal)
                 borderPath.clean()
                 borderPath.offset(bSize, .joinStyle, 0.25)

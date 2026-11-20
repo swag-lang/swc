@@ -300,7 +300,7 @@ impl Voice
                 break
 
             let safePtrBuffer      = unwrap ptrBuffer
-            let buffer             = makeXAudio2Buffer(cast(const *BYTE, safePtrBuffer), cast(sizeBuffer), me)
+            let buffer             = makeXAudio2Buffer(cast(const *BYTE, safePtrBuffer), cast(u32, sizeBuffer), me)
             let submitSourceBuffer = handle.vtbl.submitSourceBuffer
             let hr                 = submitSourceBuffer(handle, &buffer, null)
             if hr != S_OK do
@@ -483,7 +483,7 @@ internal impl Voice
                 sfxSend[i].pOutputVoice = cast(*IXAudio2Voice, cast(*void, safeBusHandle))
             }
 
-            sfxSendList.sendCount = cast(count)
+            sfxSendList.sendCount = cast(UINT32, count)
             sfxSendList.pSends    = &sfxSend
             pSFXSEndList          = &sfxSendList
         }

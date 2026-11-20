@@ -112,7 +112,7 @@ public
     func toLower(c: rune)->rune
     {
         if isLatin1(c) do
-            return cast(Latin1.toLower(cast(u8, c)))
+            return cast(rune, Latin1.toLower(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.LowerCase, c, TableSpecialCaseRanges)
         if res.foundMapping do
@@ -127,7 +127,7 @@ public
     func toUpper(c: rune)->rune
     {
         if isAscii(c) do
-            return cast(Latin1.toUpper(cast(u8, c)))
+            return cast(rune, Latin1.toUpper(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.UpperCase, c, TableSpecialCaseRanges)
         if res.foundMapping do
@@ -143,7 +143,7 @@ public
     func toTitle(c: rune)->rune
     {
         if isAscii(c) do
-            return cast(Latin1.toUpper(cast(u8, c)))
+            return cast(rune, Latin1.toUpper(cast(u8, c)))
 
         var res = caseChangeTo(WantedCase.TitleCase, c, TableSpecialCaseRanges)
         if res.foundMapping do

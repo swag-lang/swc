@@ -156,7 +156,7 @@ public func getMonitors()->Array'Monitor
         return TRUE
     }
 
-    EnumDisplayMonitors(null, null, cast(&proc), cast #bit (LPARAM, cast(u64, &result)))
+    EnumDisplayMonitors(null, null, cast(MONITORENUMPROC, &proc), cast #bit (LPARAM, cast(u64, &result)))
     result.sort(func||(a, b) => a.bounds.x <=> b.bounds.x)
 
     return result
@@ -716,7 +716,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 
     var wc: WNDCLASSA
     wc.style       = CS_OWNDC
-    wc.lpfnWndProc = cast(&envWindowProc)
+    wc.lpfnWndProc = cast(const *void?, &envWindowProc)
     wc.hInstance   = GetModuleHandleA(null)
 
     // Both names are read up to their terminator, which a 'string' view does not guarantee.

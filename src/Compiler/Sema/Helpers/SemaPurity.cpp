@@ -209,7 +209,7 @@ namespace
             if (node.is(AstNodeId::Identifier) && !isPureVariableRead(sema, fn, currentRef))
                 return false;
 
-            if (node.is(AstNodeId::CastExpr) || node.is(AstNodeId::AutoCastExpr))
+            if (const auto* castNode = node.safeCast<AstCastExpr>())
             {
                 const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(currentRef);
                 if (lowering && lowering->fallibleDynamicCast)
@@ -220,7 +220,7 @@ namespace
                     return false;
                 if (!result.hasConstant() && (result.type()->isIntLike() || result.type()->isAnyPointer()))
                 {
-                    const AstNodeRef   operandRef = node.is(AstNodeId::CastExpr) ? node.cast<AstCastExpr>().nodeExprRef : node.cast<AstAutoCastExpr>().nodeExprRef;
+                    const AstNodeRef   operandRef = castNode->nodeExprRef;
                     const SemaNodeView operand    = sema.viewType(operandRef);
                     if (!operand.hasType())
                         return false;

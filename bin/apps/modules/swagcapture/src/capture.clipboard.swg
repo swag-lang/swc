@@ -126,7 +126,7 @@ impl Capture
         let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
         let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
         for itf in result do
-            itf.moveForm(cast(dx), cast(dy))
+            itf.moveForm(cast(s32, dx), cast(s32, dy))
 
         .addNewForms(result)
     }

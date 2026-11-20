@@ -79,7 +79,7 @@ func align(value: u64, alignment: u32)->u64
 
 // Rounds `value` up to an address that is a multiple of `alignment`, which must be a power of two.
 #[Inline]
-func align(value: const [*] void, alignment: u32)->const [*] void => cast(align(cast(u64, value), alignment))
+func align(value: const [*] void, alignment: u32)->const [*] void => cast(const [*] void, align(cast(u64, value), alignment))
 
 // Releases every allocation owned by the context's temporary allocator.
 func releaseTemporaryAllocations()

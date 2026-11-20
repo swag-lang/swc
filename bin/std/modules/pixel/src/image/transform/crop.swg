@@ -35,7 +35,7 @@ impl Image
     // Crops the image in place to `cropRect`, clamped as by the pixel-coordinate overload.
     public mtd crop(cropRect: Math.Rectangle)
     {
-        .crop(cast(cropRect.x), cast(cropRect.y), cast(cropRect.width), cast(cropRect.height))
+        .crop(cast(s32, cropRect.x), cast(s32, cropRect.y), cast(s32, cropRect.width), cast(s32, cropRect.height))
     }
 
     // Returns a copy cropped to a rectangle given in top-left pixel coordinates.
@@ -55,5 +55,5 @@ impl Image
         return result
     }
 
-    public mtd const cropped(cropRect: Math.Rectangle)->Image => .cropped(cast(cropRect.x), cast(cropRect.y), cast(cropRect.width), cast(cropRect.height))
+    public mtd const cropped(cropRect: Math.Rectangle)->Image => .cropped(cast(s32, cropRect.x), cast(s32, cropRect.y), cast(s32, cropRect.width), cast(s32, cropRect.height))
 }

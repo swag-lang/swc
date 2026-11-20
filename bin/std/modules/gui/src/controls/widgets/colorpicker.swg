@@ -569,7 +569,7 @@ private impl ColorPicker
         switch #complete .mode
         {
         case .SaturationLightness:
-            .cursorX = cast((.saturation * clientRect.width))
+            .cursorX = cast(s32, (.saturation * clientRect.width))
             let l1 = Math.lerp(1, 0.5, .saturation)
             var l2 = 1 - (.lightness / l1)
             if l2 < 0
@@ -577,74 +577,74 @@ private impl ColorPicker
                 l2       = -l2
                 l2       = 1 - l2
                 .cursorY = 0
-                .cursorX = cast((l2 * clientRect.width))
+                .cursorX = cast(s32, (l2 * clientRect.width))
             }
             else
             {
-                .cursorY = cast((l2 * clientRect.height))
+                .cursorY = cast(s32, (l2 * clientRect.height))
             }
 
         case .HueSaturation:
-            .cursorX = cast((.hue * clientRect.width))
-            .cursorY = cast(((1 - .saturation) * clientRect.height))
+            .cursorX = cast(s32, (.hue * clientRect.width))
+            .cursorY = cast(s32, ((1 - .saturation) * clientRect.height))
 
         case .HueLightness:
-            .cursorX = cast((.hue * clientRect.width))
-            .cursorY = cast(((1 - .lightness) * clientRect.height))
+            .cursorX = cast(s32, (.hue * clientRect.width))
+            .cursorY = cast(s32, ((1 - .lightness) * clientRect.height))
 
         case .GreenBlue:
-            .cursorX = cast((.green * clientRect.width))
-            .cursorY = cast((.blue * clientRect.height))
+            .cursorX = cast(s32, (.green * clientRect.width))
+            .cursorY = cast(s32, (.blue * clientRect.height))
 
         case .RedBlue:
-            .cursorX = cast((.red * clientRect.width))
-            .cursorY = cast((.blue * clientRect.height))
+            .cursorX = cast(s32, (.red * clientRect.width))
+            .cursorY = cast(s32, (.blue * clientRect.height))
 
         case .RedGreen:
-            .cursorX = cast((.red * clientRect.width))
-            .cursorY = cast((.green * clientRect.height))
+            .cursorX = cast(s32, (.red * clientRect.width))
+            .cursorY = cast(s32, (.green * clientRect.height))
 
         case .HueVertical:
-            .cursorY = cast((.hue * clientRect.height))
+            .cursorY = cast(s32, (.hue * clientRect.height))
 
         case .HueHorizontal:
-            .cursorX = cast((.hue * clientRect.width))
+            .cursorX = cast(s32, (.hue * clientRect.width))
 
         case .LightnessVertical:
-            .cursorY = cast((.lightness * clientRect.height))
+            .cursorY = cast(s32, (.lightness * clientRect.height))
 
         case .LightnessHorizontal:
-            .cursorX = cast((.lightness * clientRect.width))
+            .cursorX = cast(s32, (.lightness * clientRect.width))
 
         case .SaturationVertical:
-            .cursorY = cast((.saturation * clientRect.height))
+            .cursorY = cast(s32, (.saturation * clientRect.height))
 
         case .SaturationHorizontal:
-            .cursorX = cast((.saturation * clientRect.width))
+            .cursorX = cast(s32, (.saturation * clientRect.width))
 
         case .AlphaHorizontal:
-            .cursorX = cast((.alpha * clientRect.width))
+            .cursorX = cast(s32, (.alpha * clientRect.width))
 
         case .AlphaVertical:
-            .cursorY = cast((.alpha * clientRect.height))
+            .cursorY = cast(s32, (.alpha * clientRect.height))
 
         case .RedHorizontal:
-            .cursorX = cast((.red * clientRect.width))
+            .cursorX = cast(s32, (.red * clientRect.width))
 
         case .RedVertical:
-            .cursorY = cast((.red * clientRect.height))
+            .cursorY = cast(s32, (.red * clientRect.height))
 
         case .GreenHorizontal:
-            .cursorX = cast((.green * clientRect.width))
+            .cursorX = cast(s32, (.green * clientRect.width))
 
         case .GreenVertical:
-            .cursorY = cast((.green * clientRect.height))
+            .cursorY = cast(s32, (.green * clientRect.height))
 
         case .BlueHorizontal:
-            .cursorX = cast((.blue * clientRect.width))
+            .cursorX = cast(s32, (.blue * clientRect.width))
 
         case .BlueVertical:
-            .cursorY = cast((.blue * clientRect.height))
+            .cursorY = cast(s32, (.blue * clientRect.height))
         }
     }
 

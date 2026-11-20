@@ -318,7 +318,7 @@ impl Capture
                     .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
                 var cxt: FormPaintContext
                 cxt.z = zoom
-                cxt.renderScale = cast(textSuperSample)
+                cxt.renderScale = cast(f32, textSuperSample)
                 f.paint(painter, cxt)
                 .popTransform()
             }
@@ -426,7 +426,7 @@ impl Capture
             .translateTransform(((-boundRect.x * zoom) - clipOffset.x) * textSuperSample, ((-boundRect.y * zoom) - clipOffset.y) * textSuperSample)
             var cxt: FormPaintContext
             cxt.z           = zoom
-            cxt.renderScale = cast(textSuperSample)
+            cxt.renderScale = cast(f32, textSuperSample)
             cxt.quickMode   = quickMode
             f.paint(painter, cxt)
             .popTransform()

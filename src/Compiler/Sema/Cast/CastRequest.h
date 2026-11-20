@@ -7,7 +7,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
-class Sema;
 
 enum class CastKind
 {
@@ -35,7 +34,6 @@ enum class CastFlagsE : uint32_t
     ConstSource          = 1 << 7,
     ForceConstEval       = 1 << 8,
     AllowCopyToMoveRef   = 1 << 9,  // call argument: a plain value may bind a '#move' parameter via a temporary copy
-    DeducedDestination   = 1 << 10, // 'cast()': explicit, but the destination comes from the context instead of the source
     LateRelease          = 1 << 11, // 'slot = null' on a 'late' slot: the store that returns it to unset
     Try                  = 1 << 12,
     Assume               = 1 << 13,
@@ -102,7 +100,6 @@ struct CastRequest
     void        setConstantFoldingSrc(ConstantRef v);
     void        setConstantFoldingResult(ConstantRef v);
 
-    void applyAutoCast(const Sema& sema, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE();

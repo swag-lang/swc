@@ -311,7 +311,7 @@ impl ColorPickerCtrl
             {
                 let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.r = cast(Math.clamp(channel, 0, 255))
+                v.selectedColor.r = cast(u8, Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -321,7 +321,7 @@ impl ColorPickerCtrl
             {
                 let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.g = cast(Math.clamp(channel, 0, 255))
+                v.selectedColor.g = cast(u8, Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -331,7 +331,7 @@ impl ColorPickerCtrl
             {
                 let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.b = cast(Math.clamp(channel, 0, 255))
+                v.selectedColor.b = cast(u8, Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 
@@ -341,7 +341,7 @@ impl ColorPickerCtrl
             {
                 let channel  = catch StrConv.parseU32(ed.text()).value orelse 0
                 let previous = v.selectedColor
-                v.selectedColor.a = cast(Math.clamp(channel, 0, 255))
+                v.selectedColor.a = cast(u8, Math.clamp(channel, 0, 255))
                 v.publishEditedColor(previous)
             }
 

@@ -136,7 +136,6 @@ SWC_NODE_DEF(IntrinsicCallExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(DiscardExpr, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CastExpr, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AutoCastExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AsCastExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IsTypeExpr, AstNodeIdFlagsE::Zero)
 

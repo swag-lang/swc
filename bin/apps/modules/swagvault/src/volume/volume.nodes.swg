@@ -16,7 +16,7 @@ private func splitPath(path: string)->Array'string
             continue
         if i > start
         {
-            let name: string = cast(Swag.makeSlice(bytes.buffer + start, i - start))
+            let name: string = cast(string, Swag.makeSlice(bytes.buffer + start, i - start))
             result.add(name)
         }
 

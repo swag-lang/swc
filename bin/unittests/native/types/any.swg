@@ -31,7 +31,7 @@ func sumAny(a: any, b: any)->s64
 #test
 {
     const c: any = 987654321's64
-    let d: s64 = assume cast(c)
+    let d: s64 = assume cast(s64, c)
     Swag.require(d == 987654321)
 }
 

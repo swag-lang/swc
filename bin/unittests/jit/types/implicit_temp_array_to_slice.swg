@@ -1,6 +1,6 @@
 #global private
 
-func autocastTempArrayToSliceConsume(values: const [..] u16)->u16
+func implicitTempArrayToSliceConsume(values: const [..] u16)->u16
 {
     return values[0] + values[3]
 }
@@ -18,5 +18,5 @@ func autocastTempArrayToSliceConsume(values: const [..] u16)->u16
     Swag.require(view.count == 4)
     Swag.require(view[0] == 50'u16)
     Swag.require(view[3] == 80'u16)
-    Swag.require(autocastTempArrayToSliceConsume(cb(false)) == 130'u16)
+    Swag.require(implicitTempArrayToSliceConsume(cb(false)) == 130'u16)
 }

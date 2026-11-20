@@ -440,7 +440,7 @@ impl Header
         item.icon      = icon
         item.horzAlign = align
         item.width     = Math.max(width, 0)
-        item.column    = cast(.items.count)
+        item.column    = cast(u32, .items.count)
         .items.add(item)
         .invalidate()
         .invalidateLayout()

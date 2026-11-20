@@ -3,7 +3,7 @@
 func semaTest001()
 {
     var a: any = 12
-    var b: s32 = assume cast(a)
+    var b: s32 = assume cast(s32, a)
     Swag.assert(b == 12)
 }
 
@@ -11,7 +11,7 @@ func semaTest002()
 {
     func takes(_: s32) {}
     var a: any = 12
-    takes(assume cast(a))
+    takes(assume cast(s32, a))
 }
 
 func semaTest003()

@@ -586,8 +586,8 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
         if item.isReady()
         {
             entry.dwFlags       |= FD_FILESIZE
-            entry.nFileSizeLow  = cast((item.bytes.count & 0xFFFFFFFF))
-            entry.nFileSizeHigh = cast((item.bytes.count >> 32))
+            entry.nFileSizeLow  = cast(DWORD, (item.bytes.count & 0xFFFFFFFF))
+            entry.nFileSizeHigh = cast(DWORD, (item.bytes.count >> 32))
         }
     }
 
@@ -1139,9 +1139,9 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
         {
             let col = img.pixelColor(x, y)
             let at  = cast(u64, (y * img.width + x)) * 4
-            dest[at + 0] = cast((cast(u32, col.b) * cast(u32, col.a) / 255))
-            dest[at + 1] = cast((cast(u32, col.g) * cast(u32, col.a) / 255))
-            dest[at + 2] = cast((cast(u32, col.r) * cast(u32, col.a) / 255))
+            dest[at + 0] = cast(u8, (cast(u32, col.b) * cast(u32, col.a) / 255))
+            dest[at + 1] = cast(u8, (cast(u32, col.g) * cast(u32, col.a) / 255))
+            dest[at + 2] = cast(u8, (cast(u32, col.r) * cast(u32, col.a) / 255))
             dest[at + 3] = col.a
         }
     }

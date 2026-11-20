@@ -287,12 +287,6 @@ namespace
                 continue;
             }
 
-            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
-            {
-                exprRef = autoCastNode->nodeExprRef;
-                continue;
-            }
-
             if (const auto* asCastNode = node.safeCast<AstAsCastExpr>())
             {
                 exprRef = asCastNode->nodeExprRef;

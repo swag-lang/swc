@@ -231,7 +231,7 @@ impl Application
             modifiers |= .Control
         if msg.lParam & MOD_SHIFT do
             modifiers |= .Shift
-        let key = Keyboard.virtualKeyToKey(cast((msg.lParam >> 16)))
+        let key = Keyboard.virtualKeyToKey(cast(VirtualKey, (msg.lParam >> 16)))
 
         .dispatchHotKey(modifiers, key)
     }

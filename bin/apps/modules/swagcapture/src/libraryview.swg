@@ -389,7 +389,7 @@ impl IWnd for LibraryView
             content.icon = .mainWnd.icon(.Archive, 32)
         var options: FileTile.Options
         options.hovered      = index == .hotItem
-        options.selected     = .selModel.isSelected(cast(index))
+        options.selected     = .selModel.isSelected(cast(u32, index))
         options.nameTick     = .nameTick
         options.factsPainter = func|dateText = facts.toString(), favorite, rating|(host, painter, rect)
         {
@@ -762,7 +762,7 @@ impl LibraryView
         var result: #returntype
         for item, i in .items
         {
-            if .selModel.isSelected(cast(i)) do
+            if .selModel.isSelected(cast(u32, i)) do
                 result.files.add(item.fi.fullName)
             if i == .focusItem do
                 result.focused = item.fi.fullName
@@ -780,7 +780,7 @@ impl LibraryView
         for item, i in .items
         {
             if selection.files.contains(item.fi.fullName) do
-                .selModel.select(cast(i))
+                .selModel.select(cast(u32, i))
             if item.fi.fullName == selection.focused do
                 .focusItem = cast(u32, i)
         }

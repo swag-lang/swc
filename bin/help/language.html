@@ -2242,7 +2242,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_007_cast_swg">Cast</h3>
 <h3 id="_003_007_cast_swg_Explicit_Cast_with__cast_">Explicit Cast with <span class="code-inline">cast</span></h3>
-<p>Explicit casting converts a value from one type to another using the syntax 'cast(type, value)'. This transformation changes the type of <span class="code-inline">value</span> to the specified <span class="code-inline">type</span>.</p>
+<p>Write 'cast(type, value)' to convert a value to the specified type. Every explicit cast names its destination, including in a context that already supplies a type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x = <span class="SNum">1.0</span>     <span class="SCmt">// Defaults to 'f32'</span>
@@ -2402,33 +2402,25 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(number[] == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(view != <span class="SKwd">null</span>)
 }</span></div>
-<h3 id="_003_007_cast_swg_Contextual_Cast_with__cast_value__">Contextual Cast with <span class="code-inline">cast(value)</span></h3>
-<p>A <span class="code-inline">cast(value)</span> without an explicit type performs a <b>contextual cast</b>, allowing the compiler to infer the target type based on the left-hand side of the assignment.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+<h3 id="_003_007_cast_swg_Explicit_Casts_in_Typed_Contexts">Explicit Casts in Typed Contexts</h3>
+<p>The destination in a cast determines the conversion before the result is passed to a function. Casting a float to <span class="code-inline">s32</span> drops its fractional part.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">checkIntegerArgument</span>(value: <span class="STpe">s32</span>)
 {
-    <span class="SKwd">let</span> x: <span class="STpe">f32</span> = <span class="SNum">1.0</span>
-    <span class="SKwd">let</span> y: <span class="STpe">s32</span> = <span class="SKwd">cast</span>(x)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">s32</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(y == <span class="SNum">1</span>)
-}</span></div>
-<p>Automatic casts can also be applied when passing function arguments.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">testAutoCast</span>(x: <span class="STpe">s32</span>)
-{
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">1</span>)
 }
 
 <span class="SFct">#test</span>
 {
-    <span class="SFct">testAutoCast</span>(<span class="SKwd">cast</span>(<span class="SNum">1.4</span>))     <span class="SCmt">// Automatically cast to 's32'</span>
+    <span class="SFct">checkIntegerArgument</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>, <span class="SNum">1.4</span>))
 }</span></div>
-<p>A structure field or a typed array element also supplies a destination. Named and positional fields follow the same rule; the cast remains explicit even though its destination is inferred.</p>
+<p>Write the destination in a cast used to initialize a structure field or array element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CastCount</span> { value: <span class="STpe">u16</span> }
 
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> count:  <span class="STpe">u64</span>     = <span class="SNum">42</span>
-    <span class="SKwd">let</span> field           = <span class="SCst">CastCount</span>{value: <span class="SKwd">cast</span>(count)}
-    <span class="SKwd">let</span> values: [<span class="SNum">2</span>] <span class="STpe">u16</span> = [<span class="SKwd">cast</span>(count), <span class="SKwd">cast</span>(count)]
+    <span class="SKwd">let</span> field           = <span class="SCst">CastCount</span>{value: <span class="SKwd">cast</span>(<span class="STpe">u16</span>, count)}
+    <span class="SKwd">let</span> values: [<span class="SNum">2</span>] <span class="STpe">u16</span> = [<span class="SKwd">cast</span>(<span class="STpe">u16</span>, count), <span class="SKwd">cast</span>(<span class="STpe">u16</span>, count)]
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(field.value == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(values == [<span class="SNum">42</span>'<span class="STpe">u16</span>, <span class="SNum">42</span>'<span class="STpe">u16</span>])
 }</span></div>
@@ -2497,7 +2489,6 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_007_cast_swg_Casting_Between_Pointers_and_Integers">Casting Between Pointers and Integers</h3>
 <p>An address is an integer, so one explicit cast crosses in either direction. Towards a pointer, any integer type that fits in an address is accepted, and a narrower one is zero-extended; an enum crosses through its underlying type. Towards an integer, the destination has to be able to hold an address: <span class="code-inline">u64</span> and <span class="code-inline">s64</span> do, and a narrower type is refused rather than silently losing the high half of the address.</p>
-<p>Naming the destination is part of it. A <span class="code-inline">cast(value)</span> takes its destination from the context, and only <span class="code-inline">u64</span> reaches a pointer that way: an integer that could bind any pointer parameter would let overload resolution pick a call nobody wrote.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CastPointerTag</span>: <span class="STpe">u64</span>
 {
     <span class="SCst">First</span>  = <span class="SNum">7</span>
@@ -2521,10 +2512,6 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// 'cast(u32, base)' is refused. Widen the address first, then narrow that value with</span>
     <span class="SCmt">// '#wrap' to say that dropping its high half is intended.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>, address) == <span class="SKwd">cast</span> <span class="SItr">#wrap</span> (<span class="STpe">u32</span>, <span class="SKwd">cast</span>(<span class="STpe">u64</span>, base)))
-
-    <span class="SCmt">// A deduced destination reaches a pointer from 'u64' only.</span>
-    <span class="SKwd">let</span> deduced: [*] <span class="STpe">u8</span> = <span class="SKwd">cast</span>(address)
-    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(deduced == base)
 }</span></div>
 <h3 id="_003_008_alias_swg">Alias</h3>
 <h3 id="_003_008_alias_swg_Type_Alias">Type Alias</h3>
@@ -11746,7 +11733,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Values Stored in any|_003_007_cast_swg_Values_Stored_in__any_|",
 "h|Compile-Time Compatibility|_003_007_cast_swg_Compile-Time_Compatibility|",
 "h|Targets Chosen at Runtime|_003_007_cast_swg_Targets_Chosen_at_Runtime|",
-"h|Contextual Cast with cast(value)|_003_007_cast_swg_Contextual_Cast_with__cast_value__|",
+"h|Explicit Casts in Typed Contexts|_003_007_cast_swg_Explicit_Casts_in_Typed_Contexts|",
 "h|Bit Cast|_003_007_cast_swg_Bit_Cast|",
 "h|Implicit Casts|_003_007_cast_swg_Implicit_Casts|",
 "h|Implicit Cast Rules|_003_007_cast_swg_Implicit_Cast_Rules|",

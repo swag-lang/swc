@@ -304,6 +304,41 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                 try fault(0x03)
         }
 
+        if format == 14
+        {
+            let recordCount        = try readU32(subTable, 6)
+            let selectorRecordsEnd = 10'u64 + cast(u64, recordCount) * 11
+            if selectorRecordsEnd > subTable.count do
+                try fault(0x03)
+
+            var previousSelector = 0'u32
+            for index in recordCount
+            {
+                let record   = 10'u64 + cast(u64, index) * 11
+                let selector = try readU24(subTable, record)
+                if index and selector <= previousSelector do
+                    try fault(0x03)
+
+                previousSelector = selector
+                for listIndex in 2
+                {
+                    let offsetField = record + 3 + cast(u64, listIndex) * 4
+                    let listOffset  = cast(u64, try readU32(subTable, offsetField))
+                    if not listOffset do
+                        continue
+                    if listOffset < selectorRecordsEnd do
+                        try fault(0x03)
+
+                    try assertRange(subTable, listOffset, 4)
+                    let valueCount   = try readU32(subTable, listOffset)
+                    let recordSize   = listIndex == 0 ? 4'u64 : 5'u64
+                    let recordsStart = listOffset + 4
+                    if cast(u64, valueCount) > (subTable.count - recordsStart) / recordSize do
+                        try fault(0x03)
+                }
+            }
+        }
+
         if format == 12 or format == 13
         {
             let groupCount = try readU32(subTable, 12)

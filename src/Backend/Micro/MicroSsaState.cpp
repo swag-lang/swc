@@ -970,12 +970,31 @@ void MicroSsaState::placePhiNodes()
         inWorkStamp.resize(blocks_.size(), 0);
     if (hasPhiStamp.size() < blocks_.size())
         hasPhiStamp.resize(blocks_.size(), 0);
-    uint32_t    stamp = phiStamp_;
-    const auto& regs  = trackedRegs_.regs();
+    uint32_t    stamp              = phiStamp_;
+    const auto& regs               = trackedRegs_.regs();
+    uint32_t    lastSingletonBlock = K_INVALID_BLOCK;
+    uint32_t    lastSingletonBegin = 0;
+    uint32_t    lastSingletonEnd   = 0;
     std::ranges::sort(phiActiveDefRegs_);
     for (const uint32_t regIndex : phiActiveDefRegs_)
     {
-        const auto& defBlocks = defBlocksByReg[regIndex];
+        const auto&    defBlocks = defBlocksByReg[regIndex];
+        const MicroReg reg       = regs[regIndex];
+        const bool     singleton = defBlocks.size() == 1;
+        if (singleton)
+        {
+            const uint32_t blockIndex = defBlocks.front();
+            // One definition block determines the entire traversal. Reuse its
+            // output order for nearby registers with the same starting block.
+            if (blockIndex == lastSingletonBlock)
+            {
+                for (uint32_t phiIndex = lastSingletonBegin; phiIndex < lastSingletonEnd; ++phiIndex)
+                    createPhi(phiInfos_[phiIndex].blockIndex, reg, regIndex);
+                continue;
+            }
+            lastSingletonBlock = blockIndex;
+            lastSingletonBegin = phiInfoCount_;
+        }
 
         if (stamp == std::numeric_limits<uint32_t>::max())
         {
@@ -994,7 +1013,6 @@ void MicroSsaState::placePhiNodes()
             inWorkStamp[blockIndex] = currentStamp;
         }
 
-        const MicroReg reg = regs[regIndex];
         while (!workList.empty())
         {
             const uint32_t blockIndex = workList.back();
@@ -1015,6 +1033,8 @@ void MicroSsaState::placePhiNodes()
                 }
             }
         }
+        if (singleton)
+            lastSingletonEnd = phiInfoCount_;
     }
     phiStamp_ = stamp;
 }
@@ -1026,6 +1046,7 @@ void MicroSsaState::renameIntoSsa()
 
     RenameState& state           = renameState_;
     state.position               = 0;
+    state.restores.clear();
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
     if (reachingValuesByReg_.size() < trackedRegCount)
@@ -1042,8 +1063,8 @@ void MicroSsaState::renameIntoSsa()
 
 void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
-    BlockInfo&                 block = blocks_[blockIndex];
-    SmallVector8<RestorePoint> restores;
+    BlockInfo&   block        = blocks_[blockIndex];
+    const size_t restoreBegin = state.restores.size();
 
     // Every block contains instructions. If this block consumes the rest of
     // the rename walk, no later block can observe its scope restores.
@@ -1054,7 +1075,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
         PhiInfo& phi      = phiInfos_[phiIndex];
         phi.resultValueId = createValue(phi.reg, blockIndex, MicroInstrRef::invalid(), phiIndex);
         if (needsRestore)
-            pushCurrentValue(restores, state, phi.regIndex, phi.resultValueId, blockIndex);
+            pushCurrentValue(state, phi.regIndex, phi.resultValueId, blockIndex);
         else
             setCurrentValue(state, phi.regIndex, phi.resultValueId);
     }
@@ -1099,7 +1120,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             const MicroReg reg     = regs[regIndex];
             const uint32_t valueId = createValue(reg, blockIndex, instRef, K_INVALID_PHI);
             if (needsRestore)
-                pushCurrentValue(restores, state, regIndex, valueId, blockIndex);
+                pushCurrentValue(state, regIndex, valueId, blockIndex);
             else
                 setCurrentValue(state, regIndex, valueId);
         }
@@ -1118,8 +1139,14 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
     if (state.position == instructionRefs_.size())
         return;
 
-    for (const auto& restore : std::views::reverse(restores))
+    // A child visit restores and removes its own suffix before returning.
+    // Keep indices across recursion because a child can grow the shared stack.
+    for (size_t i = state.restores.size(); i > restoreBegin; --i)
+    {
+        const RestorePoint& restore = state.restores[i - 1];
         setCurrentValue(state, restore.regIndex, restore.previousId);
+    }
+    state.restores.resize(restoreBegin);
 }
 
 uint32_t MicroSsaState::currentValue(const RenameState& state, const uint32_t regIndex)
@@ -1158,7 +1185,7 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
     }
 }
 
-void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, const uint32_t regIndex, const uint32_t valueId, const uint32_t blockIndex)
+void MicroSsaState::pushCurrentValue(RenameState& state, const uint32_t regIndex, const uint32_t valueId, const uint32_t blockIndex)
 {
     SWC_ASSERT(regIndex < state.currentValues.size());
     const uint32_t previousId = state.currentValues[regIndex];
@@ -1166,7 +1193,7 @@ void MicroSsaState::pushCurrentValue(SmallVector8<RestorePoint>& restores, Renam
     // first definition of a register must save the value visible on entry;
     // intermediate restores would share one rename position and be overwritten.
     if (previousId == K_INVALID_VALUE || valueInfos_[previousId].blockIndex != blockIndex)
-        restores.push_back(RestorePoint{regIndex, previousId});
+        state.restores.push_back(RestorePoint{regIndex, previousId});
     setCurrentValue(state, regIndex, valueId);
 }
 

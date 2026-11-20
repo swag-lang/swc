@@ -387,7 +387,7 @@ const MicroControlFlowGraph& MicroBuilder::controlFlowGraph()
     if (hasControlFlowGraph_ && controlFlowGraphStorageRevision_ == storageRevision)
         return controlFlowGraph_;
 
-    controlFlowGraph_.build(instructions_, operands_, !labels_.empty());
+    controlFlowGraph_.build(instructions_, operands_);
     controlFlowGraphStorageRevision_ = storageRevision;
     hasControlFlowGraph_             = true;
     return controlFlowGraph_;

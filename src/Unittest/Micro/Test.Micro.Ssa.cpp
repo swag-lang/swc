@@ -579,8 +579,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
 {
-    constexpr MicroReg value    = MicroReg::virtualIntReg(1);
-    constexpr MicroReg terminal = MicroReg::virtualIntReg(2);
+    constexpr MicroReg   value     = MicroReg::virtualIntReg(1);
+    constexpr MicroReg   terminal  = MicroReg::virtualIntReg(2);
+    constexpr std::array singletons{MicroReg::virtualIntReg(3), MicroReg::virtualIntReg(4)};
+    std::array<MicroInstrRef, singletons.size()> singletonDefs;
     MicroBuilder       builder(ctx);
     const auto         right     = builder.createLabel();
     const auto         innerJoin = builder.createLabel();
@@ -590,6 +592,11 @@ SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
     builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, outerJoin);
     builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
     builder.emitLoadRegImm(value, ApInt(2, 64), MicroOpBits::B64);
+    for (size_t i = 0; i < singletons.size(); ++i)
+    {
+        builder.emitLoadRegImm(singletons[i], ApInt(i, 64), MicroOpBits::B64);
+        singletonDefs[i] = builder.instructions().lastInstructionRef();
+    }
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, innerJoin);
     builder.placeLabel(right);
     builder.emitLoadRegImm(value, ApInt(3, 64), MicroOpBits::B64);
@@ -610,7 +617,7 @@ SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
     ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
     const auto innerValue = ssa.reachingDef(value, inner);
     const auto outerValue = ssa.reachingDef(value, outer);
-    if (!innerValue.isPhi || !outerValue.isPhi || innerValue.valueId == outerValue.valueId || ssa.phis().size() != 2)
+    if (!innerValue.isPhi || !outerValue.isPhi || innerValue.valueId == outerValue.valueId || ssa.phis().size() != 2 + 2 * singletons.size())
         return Result::Error;
     const auto* outerPhi     = ssa.phiInfoForValue(outerValue.valueId);
     uint32_t    initialValue = MicroSsaState::K_INVALID_VALUE;
@@ -618,6 +625,21 @@ SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
         return Result::Error;
     if (outerPhi->incomingValueIds[0] != initialValue || outerPhi->incomingValueIds[1] != innerValue.valueId)
         return Result::Error;
+    for (size_t i = 0; i < singletons.size(); ++i)
+    {
+        const MicroReg reg        = singletons[i];
+        const auto     innerReach = ssa.reachingDef(reg, inner);
+        const auto     outerReach = ssa.reachingDef(reg, outer);
+        const auto*    innerPhi    = ssa.phiInfoForValue(innerReach.valueId);
+        const auto*    singletonPhi = ssa.phiInfoForValue(outerReach.valueId);
+        uint32_t       definition;
+        if (!innerPhi || !singletonPhi || !ssa.defValue(reg, singletonDefs[i], definition))
+            return Result::Error;
+        if (innerPhi->incomingValueIds.size() != 2 || innerPhi->incomingValueIds[0] != definition || innerPhi->incomingValueIds[1] != MicroSsaState::K_INVALID_VALUE)
+            return Result::Error;
+        if (singletonPhi->incomingValueIds.size() != 2 || singletonPhi->incomingValueIds[0] != MicroSsaState::K_INVALID_VALUE || singletonPhi->incomingValueIds[1] != innerReach.valueId)
+            return Result::Error;
+    }
     if (ssa.reachingDef(value, end).instRef != finalValue || !ssa.reachingDef(terminal, end).valid())
         return Result::Error;
     return Result::Continue;

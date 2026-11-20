@@ -144,10 +144,17 @@ private:
         uint32_t                 renameEnd = 0;
     };
 
+    struct RestorePoint
+    {
+        uint32_t regIndex;
+        uint32_t previousId;
+    };
+
     struct RenameState
     {
-        std::vector<uint32_t> currentValues;
-        uint32_t              position = 0;
+        std::vector<uint32_t>      currentValues;
+        SmallVector8<RestorePoint> restores;
+        uint32_t                   position = 0;
     };
 
     struct DominatorFrame
@@ -160,12 +167,6 @@ private:
     {
         uint32_t position;
         uint32_t valueId;
-    };
-
-    struct RestorePoint
-    {
-        uint32_t regIndex   = K_INVALID_VALUE;
-        uint32_t previousId = K_INVALID_VALUE;
     };
 
     static constexpr uint32_t K_INVALID_BLOCK = std::numeric_limits<uint32_t>::max();
@@ -186,7 +187,7 @@ private:
     void            renameBlock(uint32_t blockIndex, RenameState& state);
     static uint32_t currentValue(const RenameState& state, uint32_t regIndex);
     void            assignPhiInputs(uint32_t predecessorBlock, uint32_t successorBlock, const RenameState& state);
-    void            pushCurrentValue(SmallVector8<RestorePoint>& restores, RenameState& state, uint32_t regIndex, uint32_t valueId, uint32_t blockIndex);
+    void            pushCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId, uint32_t blockIndex);
     void            setCurrentValue(RenameState& state, uint32_t regIndex, uint32_t valueId);
     uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
     uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);

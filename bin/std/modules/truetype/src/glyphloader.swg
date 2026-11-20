@@ -29,10 +29,15 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     var offset       = 10'u64
     var contourEnds: Array'u16
     contourEnds.resize(contourCount)
+    var previousEnd = 0'u16
     for index in contourCount
     {
-        contourEnds[index] = peekU16(glyphData, offset)
-        offset += 2
+        let end = peekU16(glyphData, offset)
+        if index and end <= previousEnd do
+            try fault(0x14)
+        contourEnds[index] = end
+        previousEnd        = end
+        offset             += 2
     }
 
     let pointCount        = contourCount ? contourEnds.back() + 1 : 0

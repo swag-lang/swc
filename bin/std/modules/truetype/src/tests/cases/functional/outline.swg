@@ -18,6 +18,21 @@ using Swag, Core
 
 #test
 {
+    // Contour endpoints must increase; otherwise later outline walks can index past
+    // the point array using an endpoint from an earlier contour.
+    var glyphData: Array'u8
+    glyphData.add([
+        0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00])
+
+    var faceData: FaceImpl
+    var rejected: Swag.Error
+    discard catch appendSimpleGlyph(&faceData, glyphData.toSlice(), 1, 1) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     let identity = Matrix.Identity
     Swag.require(identity.xx == 65536 and identity.xy == 0)
     Swag.require(identity.yx == 0 and identity.yy == 65536)

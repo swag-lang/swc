@@ -884,10 +884,14 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     for idx in numTables
     {
-        let base = faceOffset + 12 + cast(u64, idx) * 16
+        let base   = faceOffset + 12 + cast(u64, idx) * 16
+        let offset = readU32(data, base + 8)
+        let length = readU32(data, base + 12)
+        assertRange(data, offset, length)
+
         faceData.tables[idx].tag    = readU32(data, base + 0)
-        faceData.tables[idx].offset = readU32(data, base + 8)
-        faceData.tables[idx].length = readU32(data, base + 12)
+        faceData.tables[idx].offset = offset
+        faceData.tables[idx].length = length
     }
 
     let cffTable = findTable(faceData, TAG_CFF)

@@ -484,6 +484,8 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
     {
         let count = try readU8(font.block, pos)
         pos += 1
+        if cast(u32, count) + 1 > font.charStrings.count() do
+            try fault(0x08)
         for i in count
         {
             font.codeToGid[cast(u32, try readU8(font.block, pos))] = cast(u32, i) + 1
@@ -502,6 +504,8 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
             pos += 2
             for k in left + 1
             {
+                if gid >= font.charStrings.count() do
+                    try fault(0x08)
                 font.codeToGid[first + cast(u32, k)] = gid
                 gid += 1
             }

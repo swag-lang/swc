@@ -111,11 +111,11 @@ struct Surface
     unpaintedSeconds: f32     // Loop time accumulated while a repaint was pending.
 
     // Recording and drawing measurements for the frame being presented.
-    paintRecordUs:     u64
-    paintTargetUs:     u64
-    paintArea:         u64
-    paintVertices:     u64
-    paintBatches:      u64
+    paintRecordUs: u64
+    paintTargetUs: u64
+    paintArea:     u64
+    paintVertices: u64
+    paintBatches:  u64
 
     presentationTarget: Pixel.RenderTarget
     presentedFrame:     bool
@@ -697,7 +697,7 @@ impl Surface
         // pass whose alpha has to survive to the compositor. The silhouette then premultiplies
         // the body ink and stamps its coverage, and the shadow pass erases the margin before
         // laying the shadow down, so it relies on the silhouette's fringe being in place.
-        let body = .bodyShape()
+        let body   = .bodyShape()
         let radius = .cornerRadius()
         .paintBorder(body, radius)
         if .clipInsideOpaqueBody(body, radius)
@@ -712,6 +712,7 @@ impl Surface
             .paintSilhouette(body, radius, bands)
             .paintShadowOutsideBody(body, radius, bands)
         }
+
         .painter.end()
 
         .paintRecordUs = 0
@@ -728,10 +729,10 @@ impl Surface
         // Paint to surface render target. The direct scissor works in physical
         // render-target pixels, unlike painter clip rectangles which stay logical.
         var physClip = clipRect
-        physClip.x         = Math.round(clipRect.x * .dpiScale)
-        physClip.y         = Math.round(clipRect.y * .dpiScale)
-        physClip.width     = Math.round(clipRect.right() * .dpiScale) - physClip.x
-        physClip.height    = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
+        physClip.x      = Math.round(clipRect.x * .dpiScale)
+        physClip.y      = Math.round(clipRect.y * .dpiScale)
+        physClip.width  = Math.round(clipRect.right() * .dpiScale) - physClip.x
+        physClip.height = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
 
         with cxt
         {
@@ -784,7 +785,7 @@ impl Surface
         // Offscreen consumers read the painted target directly.
         if native
         {
-            var target = &.rt
+            var target  = &.rt
             let dimmed  = .isDisabled and .app.fadeDisabledSurface
             let opacity = .frameOpacity()
             if dimmed or opacity < 1
@@ -796,10 +797,12 @@ impl Surface
                     return false
                 }
 
-                target   = &.presentationTarget
+                target = &.presentationTarget
             }
-            else do
+            else
+            {
                 .colorDisabled = Argb.White
+            }
 
             if not (catch .presentNativeTarget(target, paintedRect, dimmed or opacity < 1) orelse false)
             {
@@ -842,18 +845,20 @@ impl Surface
         {
             let destination = .app.theme.colors.surfaceDisabled
             let next        = Color.lerp(.colorDisabled, destination, .paintDeltaSeconds)
-            .colorDisabled  = next == .colorDisabled ? destination : next
+            .colorDisabled = next == .colorDisabled ? destination : next
             if .colorDisabled != destination
             {
                 .isDirty = true
                 .dirtyRect.clear()
             }
         }
-        else do
+        else
+        {
             .colorDisabled = Argb.White
+        }
 
         let dstRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
-        let tint = Color.lerp(Color{}, .colorDisabled, opacity)
+        let tint    = Color.lerp(Color{}, .colorDisabled, opacity)
 
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, tint)
         .painter.end()
@@ -1070,6 +1075,7 @@ impl Surface
                 .painter.fillRect(body, Argb.White)
             .painter.popClippingRect()
         }
+
         .painter.endClippingRegion()
 
         .painter.setColorMaskFull()
@@ -1082,6 +1088,7 @@ impl Surface
             .castShadow(body, radius)
             .painter.popClippingRect()
         }
+
         .painter.resetClippingRegion()
     }
 

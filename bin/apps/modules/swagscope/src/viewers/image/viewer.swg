@@ -130,6 +130,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     {
         let jpeg = isJpegExtension(extension)
         var originalMetadata: Array'ImageMetadata
+
         // JPEG has one still frame. Decode straight into the picture the view will own.
         if jpeg
         {
@@ -474,22 +475,34 @@ impl Panel
     {
         let texts = texts()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_RotateCounterClockwise, "scope.image.rotateLeft", .theme().icon(.Undo, themeRowIconSize(.themeMetrics())),
+        menu.addItem(texts.ui_RotateCounterClockwise,
+                     "scope.image.rotateLeft",
+                     .theme().icon(.Undo, themeRowIconSize(.themeMetrics())),
                      rightName: .keyShortcutName("scope.image.rotateCounterClockwise", "Shift R"))
-        menu.addItem(texts.ui_RotateClockwise, "scope.image.rotateRight", .theme().icon(.Redo, themeRowIconSize(.themeMetrics())),
+        menu.addItem(texts.ui_RotateClockwise,
+                     "scope.image.rotateRight",
+                     .theme().icon(.Redo, themeRowIconSize(.themeMetrics())),
                      rightName: .keyShortcutName("scope.image.rotateClockwise", "R"))
         menu.addSeparator()
-        menu.addItem(texts.ui_MirrorHorizontal, "scope.image.mirrorHorizontal", .theme().icon(.MirrorHorizontal, themeRowIconSize(.themeMetrics())),
+        menu.addItem(texts.ui_MirrorHorizontal,
+                     "scope.image.mirrorHorizontal",
+                     .theme().icon(.MirrorHorizontal, themeRowIconSize(.themeMetrics())),
                      rightName: .keyShortcutName("scope.image.mirrorHorizontal", "H"))
-        menu.addItem(texts.ui_MirrorVertical, "scope.image.mirrorVertical", .theme().icon(.MirrorVertical, themeRowIconSize(.themeMetrics())),
+        menu.addItem(texts.ui_MirrorVertical,
+                     "scope.image.mirrorVertical",
+                     .theme().icon(.MirrorVertical, themeRowIconSize(.themeMetrics())),
                      rightName: .keyShortcutName("scope.image.mirrorVertical", "V"))
         menu.addSeparator()
-        menu.addItem(texts.ui_ResetTransform, "scope.image.reset", .theme().icon(.Update, themeRowIconSize(.themeMetrics())),
+        menu.addItem(texts.ui_ResetTransform,
+                     "scope.image.reset",
+                     .theme().icon(.Update, themeRowIconSize(.themeMetrics())),
                      rightName: .keyShortcutName("scope.image.resetTransform", "Ctrl R"))
         if .imageView.picture()
         {
             menu.addSeparator()
-            menu.addItem(texts.ui_CopyImage, "scope.image.copy", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())),
+            menu.addItem(texts.ui_CopyImage,
+                         "scope.image.copy",
+                         .theme().icon(.Copy, themeRowIconSize(.themeMetrics())),
                          rightName: .keyShortcutName("scope.image.copyImage", "Ctrl C"))
         }
 
@@ -579,7 +592,8 @@ impl Panel
                             view.imageView.setPaused(not view.imageView.movie.isPaused)
                             view.refreshFrame()
                         },
-                        defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.image.playPause")
+                        defaultKey: {modifiers: .None, key: .Space},
+                        bindId: "scope.image.playPause")
         }
 
         entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|() { view.playModeButton.showOptions() }, bindId: "scope.image.playMode")
@@ -611,8 +625,11 @@ impl Panel
         menu.addItem("100 %", "scope.image.zoom100", checked: percent == 100)
         menu.addItem("200 %", "scope.image.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
-                     rightName: .keyShortcutName("scope.image.tipFit", "F"), checked: .imageView.isFitted)
+        menu.addItem(texts().ui_TipFit,
+                     "scope.image.zoomFit",
+                     .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.tipFit", "F"),
+                     checked: .imageView.isFitted)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.image.zoom25":  .imageView.setZoom(0.25)

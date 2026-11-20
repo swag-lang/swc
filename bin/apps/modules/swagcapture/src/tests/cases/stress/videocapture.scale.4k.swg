@@ -11,10 +11,10 @@ using Swag, Core, Pixel
     const SourceHeight = 2168'u64
     const OutputWidth  = 4096'u64
     const OutputHeight = 1156'u64
-    var source       = Image.create(cast(s32, SourceWidth), cast(s32, SourceHeight), .BGRA8)
-    var output       = Image.create(cast(s32, OutputWidth), cast(s32, OutputHeight), .BGRA8)
-    var reference    = Image.create(cast(s32, OutputWidth), cast(s32, OutputHeight), .BGRA8)
-    let pixels       = cast([*] u32, source.pixels.storage())
+    var source    = Image.create(cast(s32, SourceWidth), cast(s32, SourceHeight), .BGRA8)
+    var output    = Image.create(cast(s32, OutputWidth), cast(s32, OutputHeight), .BGRA8)
+    var reference = Image.create(cast(s32, OutputWidth), cast(s32, OutputHeight), .BGRA8)
+    let pixels    = cast([*] u32, source.pixels.storage())
     for index in SourceWidth * SourceHeight do
         pixels[index] = cast #wrap (u32, (index * 2_654_435_761'u64) >> 16)
 

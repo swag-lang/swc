@@ -18,8 +18,7 @@ using Core, Pixel, Gui, Viewers
             {
                 // NTFS otherwise allocates and zeroes the gap when the file grows.
                 let path   = Utf16.toZeroTerminated(file)
-                let handle = expect Win32.CreateFileW(path.buffer, Win32.GENERIC_WRITE, 0, null,
-                                                      Win32.CREATE_NEW, Win32.FILE_ATTRIBUTE_NORMAL, null)
+                let handle = expect Win32.CreateFileW(path.buffer, Win32.GENERIC_WRITE, 0, null, Win32.CREATE_NEW, Win32.FILE_ATTRIBUTE_NORMAL, null)
                 defer Win32.CloseHandle(handle)
                 var returned: Win32.DWORD
                 let sparse = Win32.DeviceIoControl(handle, Win32.FSCTL_SET_SPARSE, null, 0, null, 0, &returned, null)

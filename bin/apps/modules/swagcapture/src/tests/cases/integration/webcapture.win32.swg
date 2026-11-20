@@ -184,8 +184,8 @@ private func webCaptureQuality()->VideoQuality
                     pointer.kind = .Released
                     overlay.sendEvent(&pointer)
                     if not g_CaptureAnchored or g_CaptureWindow.nativeWindow != cast(u64, browser) do
-                    Swag.require(g_CaptureAnchored and g_CaptureWindow.nativeWindow == cast(u64, browser),
-                                 "selected area must be linked to the actual browser window")
+                        Swag.require(g_CaptureAnchored and g_CaptureWindow.nativeWindow == cast(u64, browser),
+                                     "selected area must be linked to the actual browser window")
                     stage[] = 1
                     return
                 }
@@ -347,8 +347,8 @@ private func webCaptureQuality()->VideoQuality
     defer timeline.stop()
     Swag.require(Audio.activeDriverKind() == .XAudio2 and timeline.audioVoices[0] != null,
                  "editor must use the real native audio device")
-    let voice           = unwrap timeline.audioVoices[0]
-    let frames          = unwrap opened.frames
+    let voice  = unwrap timeline.audioVoices[0]
+    let frames = unwrap opened.frames
     var replayTone: WebCaptureTone
     var maxAudioFrame, maxPicture: u64
     var checkpoint: bool

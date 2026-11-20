@@ -192,10 +192,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Editor
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     g_StartGrabX = 10
     g_StartGrabY = 20
@@ -239,10 +239,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     defer f.shutdown()
     testRegisterIoActions(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Clipboard
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     f.main.monitors.clear()
     for 4 do
@@ -274,10 +274,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Editor
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ActiveWnd))
     f.gui.pump()
@@ -330,14 +330,14 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect window.show()
     paintCaptureWindow(&window, 0xFF0000)
 
-    main.captureOptions.hideEditorBefore = false
-    main.captureOptions.captureCursor    = false
+    main.captureOptions.hideEditorBefore   = false
+    main.captureOptions.captureCursor      = false
     main.captureOptions.pictureDestination = .Editor
-    main.captureOptions.delay            = 0
-    g_StartGrabX                         = 10
-    g_StartGrabY                         = 20
-    g_EndGrabX                           = 74
-    g_EndGrabY                           = 68
+    main.captureOptions.delay              = 0
+    g_StartGrabX                           = 10
+    g_StartGrabY                           = 20
+    g_EndGrabX                             = 74
+    g_EndGrabY                             = 68
 
     main.sendCommandEvent(ActionCapture.LastArea)
     let capture = unwrap main.editWnd.getCapture()

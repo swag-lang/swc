@@ -263,8 +263,8 @@ internal impl Properties
             {
             case .U8, .U16, .U32, .U64: slider.setUnsignedBounds(cast(u64, minV), cast(u64, maxV))
             case .S8, .S16, .S32, .S64: slider.setSignedBounds(cast(s64, minV), cast(s64, maxV))
-            case .F32, .F64: slider.setFloatBounds(minV, maxV)
-            default:        break
+            case .F32, .F64:            slider.setFloatBounds(minV, maxV)
+            default:                    break
             }
         }
         else

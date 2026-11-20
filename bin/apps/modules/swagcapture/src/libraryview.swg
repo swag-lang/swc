@@ -1119,7 +1119,8 @@ impl LibraryView
             case .FileSize:
                 value = b.fi.size <=> a.fi.size
 
-            case .Similar: break
+            case .Similar:
+                break
             }
 
             if not value do

@@ -4282,8 +4282,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
 
-    <span class="SLgc">if</span> <span class="SKwd">var</span> available = <span class="SNum">3</span> <span class="SLgc">where</span> available &gt;= <span class="SNum">10</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">var</span> available = <span class="SNum">3</span> <span class="SLgc">where</span> available &gt;= <span class="SNum">10</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
     <span class="SLgc">else</span>
     {
         available += <span class="SNum">1</span>
@@ -4315,8 +4317,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
 
-    <span class="SLgc">if</span> <span class="SKwd">var</span> text = <span class="SFct">readAbsent</span>() <span class="SLgc">where</span> text == <span class="SKwd">null</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SKwd">var</span> text = <span class="SFct">readAbsent</span>() <span class="SLgc">where</span> text == <span class="SKwd">null</span>
+    {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    }
     <span class="SLgc">else</span>
     {
         <span class="SNsp">Swag</span>.<span class="SFct">require</span>(text == <span class="SKwd">null</span>)
@@ -5209,8 +5213,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> y = <span class="SNum">10</span>
     <span class="SLgc">switch</span> x
     {
-    <span class="SLgc">case</span> <span class="SNum">6</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>:  <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
-    <span class="SLgc">case</span> <span class="SNum">7</span> <span class="SLgc">where</span> y == <span class="SNum">9</span>:   <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="SNum">6</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="SNum">7</span> <span class="SLgc">where</span> y == <span class="SNum">9</span>:  <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     <span class="SLgc">case</span> <span class="SLgc">where</span> y == <span class="SNum">10</span>:   <span class="SLgc">break</span>
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     }
@@ -5276,11 +5280,8 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="SKwd">const</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">0</span>)
-
-    <span class="SLgc">default</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="SKwd">const</span> count = <span class="SNum">0</span> <span class="SLgc">where</span> count == <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(count == <span class="SNum">0</span>)
+    <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
 <h3 id="_005_006_break_swg">Break</h3>
@@ -11301,7 +11302,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1177</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1178</div>
 </footer>
 </section>
 </main>

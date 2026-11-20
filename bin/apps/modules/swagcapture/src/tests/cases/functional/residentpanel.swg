@@ -102,11 +102,13 @@ using Swag, Core, Gui, Pixel
         Swag.require(panel.menu.items[index - 1]!.separator and panel.menu.items[index + 1]!.separator)
         Swag.require(panel.menu.items[index - 2]!.id == ResidentPanel.MoreCaptures)
     }
+
     for item, index in panel.menu.items where item and item.name.text == appStrings().ui_MenuCaptureSetup
     {
         Swag.require(not panel.menu.items[index - 1]!.separator)
         Swag.require(panel.menu.items[index - 2]!.name.text == appStrings().ui_AfterPictureCapture)
     }
+
     Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
     Swag.require(not testPanelOffers(panel, ActionOptions.Options))
     Swag.require(not testPanelOffers(panel, ActionCapture.LastArea))
@@ -248,7 +250,7 @@ using Swag, Core, Gui, Pixel
     Swag.require(main.captureOptions.pictureDestination == .Clipboard)
     Swag.require(main.residentPanel == panel and not panel.menu.isModalEnded())
 
-    var down = KeyEvent{kind: .Pressed, key: .Down}
+    var down      = KeyEvent{kind: .Pressed, key: .Down}
     var selecting = true
     var destinationHeading: bool
     for item in panel.menu.items
@@ -259,6 +261,7 @@ using Swag, Core, Gui, Pixel
             panel.sendEvent(&down)
             selecting = not destinationHeading
         }
+
         if entry.label and entry.name.text == appStrings().ui_AfterPictureCapture do
             destinationHeading = true
     }
@@ -302,7 +305,7 @@ using Swag, Core, Gui, Pixel
     for placement in [ResidentPanelPlacement.Centered, ResidentPanelPlacement.AtPointer]
     {
         let panel = testOpenResidentPanel(&host, main, placement)
-        var down = KeyEvent{kind: .Pressed, key: .Down}
+        var down  = KeyEvent{kind: .Pressed, key: .Down}
         for item in panel.menu.items where item and not item.disabled and not item.label and not item.separator
         {
             panel.sendEvent(&down)
@@ -324,8 +327,10 @@ using Swag, Core, Gui, Pixel
             Swag.require(main.residentPanel == panel)
             panel.close()
         }
-        else do
+        else
+        {
             Swag.require(main.residentPanel == null)
+        }
     }
 }
 

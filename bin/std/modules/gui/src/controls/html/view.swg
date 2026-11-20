@@ -464,7 +464,8 @@ internal impl HtmlView
             case .Meta where result.description.isEmpty() and Latin1.compare(.document.attribute(element, "name"), "description", ignoreCase: true) == 0:
                 result.description = Latin1.trim(.document.attribute(element, "content"))
 
-            default: break
+            default:
+                break
             }
         }
 
@@ -723,7 +724,7 @@ internal impl HtmlView
     {
         var probe: Array'u8
         probe.resize(HtmlCharsetProbeSize)
-            let count = catch .stream.read(probe.toSlice()) orelse 0
+        let count = catch .stream.read(probe.toSlice()) orelse 0
         probe.resize(count)
 
         var result       = Text.detectEncoding(probe.toSlice())

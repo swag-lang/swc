@@ -287,8 +287,8 @@ A switch can have one unconditional `default` arm.
     let y = 10
     switch x
     {
-    case 6 where y == 10:  Swag.require(false)
-    case 7 where y == 9:   Swag.require(false)
+    case 6 where y == 10: Swag.require(false)
+    case 7 where y == 9:  Swag.require(false)
     case where y == 10:   break
     default: Swag.require(false)
     }
@@ -393,10 +393,7 @@ decides whether the case matches and follows the rules for an ordinary
 {
     switch
     {
-    case const count = 0 where count == 0:
-        Swag.require(count == 0)
-
-    default:
-        Swag.require(false)
+    case const count = 0 where count == 0: Swag.require(count == 0)
+    default: Swag.require(false)
     }
 }

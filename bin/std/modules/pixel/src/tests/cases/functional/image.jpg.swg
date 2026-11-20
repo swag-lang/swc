@@ -203,8 +203,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
         var source = Image.create(size.width, size.height, .BGR8)
         fillSolidImage(&source, 24, 96, 180, 255)
         let encoded = expect source.encode("large.jpg")
-        let bytes = encoded.toArray()
-        let image = expect Image.decode("large.jpg", bytes.toSlice())
+        let bytes   = encoded.toArray()
+        let image   = expect Image.decode("large.jpg", bytes.toSlice())
         Swag.require(image.width == size.width and image.height == size.height)
         let corner = image.pixelColor(image.width - 1, image.height - 1)
         assertNearByte(corner.b, 24, 4)
@@ -333,7 +333,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     let bytes = expect File.readAllBytes(getTestDataPath("progh1v1.jpg"))
-    let end = bytes.count - 2
+    let end   = bytes.count - 2
     Swag.require(bytes[end] == 0xFF and bytes[end + 1] == 0xD9)
     var reader = expect ImageReader.decode("progressive.jpg", bytes.toSlice()[until end])
     Swag.require(reader.info.frames[0].width == 660 and reader.info.frames[0].height == 441)

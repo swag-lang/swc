@@ -615,7 +615,8 @@ impl HtmlLayout
             result += "."
             return result
 
-        case .None: return ""
+        case .None:
+            return ""
         }
     }
 
@@ -699,7 +700,8 @@ private impl HtmlLayout
             if result.count do
                 buffer[result.start] = Latin1.toUpper(buffer[result.start])
 
-        case .None: break
+        case .None:
+            break
         }
 
         return result
@@ -1913,7 +1915,8 @@ private impl HtmlLayout
                 if item.width do
                     return true
 
-            case .Break: break
+            case .Break:
+                break
             }
         }
 
@@ -2246,7 +2249,8 @@ private impl HtmlLayout
                     .boxes[child].content.height = Math.max(.boxes[child].rect.height - .verticalExtra(child, contentWidth), 0)
                 }
 
-            case .Start, .Baseline: break
+            case .Start, .Baseline:
+                break
             }
         }
     }
@@ -2335,7 +2339,8 @@ private impl HtmlLayout
             pen     += slot
             between = gap + slot
 
-        case .Start: break
+        case .Start:
+            break
         }
 
         var height = 0.0'f32
@@ -2372,7 +2377,8 @@ private impl HtmlLayout
                     .boxes[child].content.height = Math.max(height - .verticalExtra(child, contentWidth), 0)
                 }
 
-            case .Start, .Baseline: break
+            case .Start, .Baseline:
+                break
             }
         }
 

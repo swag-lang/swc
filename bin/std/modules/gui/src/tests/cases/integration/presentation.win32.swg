@@ -20,7 +20,8 @@ using Core, Pixel, Win32, Ogl
     Swag.require(expect Testing.verifyNativePresentation(surface))
 
     app.frameTrace.enabled = true
-    surface.isDirty = false
+    surface.isDirty        = false
+
     // Change the paint output while keeping this test independent of relayout.
     button.name.set("Changed")
     button.invalidate()

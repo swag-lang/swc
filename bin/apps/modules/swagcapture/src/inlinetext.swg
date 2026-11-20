@@ -456,7 +456,8 @@ impl EditView
             other.setSelection(pos, pos)
             return true
 
-        default: break
+        default:
+            break
         }
 
         return false

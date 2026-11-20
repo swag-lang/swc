@@ -2118,8 +2118,8 @@ namespace
         if (decodedException.kind == Runtime::ExceptionKind::Panic && runtimeContext && runtimeContext->runtimeFlags == Runtime::RuntimeFlags::Zero)
             info.diagId = DiagnosticId::safety_err_runtime_panic;
 
-        *outErrorKind                             = info.errorKind;
-        outExceptionAction                        = info.exceptionAction;
+        *outErrorKind      = info.errorKind;
+        outExceptionAction = info.exceptionAction;
 
         RuntimeExceptionReport report = buildRuntimeExceptionDiagnostic(ctx, info, decodedException.location);
 

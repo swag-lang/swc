@@ -99,7 +99,6 @@ struct CastRequest
     ConstantRef constantFoldingResult() const { return outConstRef; }
     void        setConstantFoldingSrc(ConstantRef v);
     void        setConstantFoldingResult(ConstantRef v);
-
 };
 
 SWC_END_NAMESPACE();

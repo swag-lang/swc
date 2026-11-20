@@ -18,8 +18,12 @@ public func addTypedValue(value: *void, type: typeinfo)
 {
     switch type
     {
-    case string:      return addString(cast(const *string, value)[])
-    case Core.String: return addString(cast(const *Core.String, value).toString())
+    case string:
+        return addString(cast(const *string, value)[])
+
+    case Core.String:
+        return addString(cast(const *Core.String, value).toString())
+
     case Pixel.Image:
         discard addImage(cast(const *Pixel.Image, value)[])
         return

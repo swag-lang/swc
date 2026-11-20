@@ -50,10 +50,10 @@ impl Document
         let styleSource = catch parts.text(stylePath, required: false, limit: 4 * 1024 * 1024) as styleReadError orelse {}
         var styleParseError: Swag.Error
         var styles      = catch StyleCatalog.parse(styleSource, &theme) as styleParseError orelse {}
-        let limited = themeError.value() != null or
-                      styleReadError.value() != null or
-                      styleParseError.value() != null or
-                      (declaredStyles and styleSource.isEmpty())
+        let limited     = themeError.value() != null or
+                          styleReadError.value() != null or
+                          styleParseError.value() != null or
+                          (declaredStyles and styleSource.isEmpty())
         var scan   = Package.Scanner.create(source)
         var token: Package.Token
         var images = try Package.ImageCatalog.load(fileName,

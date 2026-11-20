@@ -11,7 +11,7 @@ struct ViewerHomeRow
     glyph:     Icon        // Glyph of the file's kind, standing in for the picture until it arrives.
     texture:   Texture     // Preview of the file, rendered in the background; invalid until then.
     framing:   ThumbnailFraming
-    attempted: bool        // Whether its preview was asked for, whatever came of it.
+    attempted: bool     // Whether its preview was asked for, whatever came of it.
 
     // Only a viewer that decodes a picture of its file, or a text a reader can recognise, gives
     // the home a preview; a sample of the bytes of anything else says nothing about the file, so
@@ -746,11 +746,11 @@ impl ViewerHome
         content.texture = row.texture
         content.icon    = row.glyph
         var options: FileTile.Options
-        options.fit           = row.fit
+        options.fit            = row.fit
         options.previewPainter = row.cropPainter(.HomeHero)
-        options.hovered       = .hovered == 0
-        options.selected      = .chosen == 0 and .hasFocus()
-        options.showCaption   = false
+        options.hovered        = .hovered == 0
+        options.selected       = .chosen == 0 and .hasFocus()
+        options.showCaption    = false
         FileTile.paint(me, painter, place.hero, &content, options)
 
         if point
@@ -801,10 +801,10 @@ impl ViewerHome
         if not row.texture.isValid() do
             content.placeholder = Path.extension(file) orelse ""
         var options: FileTile.Options
-        options.fit           = row.fit
+        options.fit            = row.fit
         options.previewPainter = row.cropPainter(.Grid)
-        options.hovered       = index == .hovered
-        options.selected      = index == .chosen and .hasFocus()
+        options.hovered        = index == .hovered
+        options.selected       = index == .chosen and .hasFocus()
         FileTile.paint(me, painter, .pictureRect(index), &content, options)
     }
 

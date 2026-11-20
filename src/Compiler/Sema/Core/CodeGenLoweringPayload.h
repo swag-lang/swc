@@ -29,9 +29,9 @@ struct CodeGenLoweringPayload
     TokenId    fallibleWrapperTokenId  = TokenId::Invalid;
     uint16_t   runtimeSafetyMask       = 0;
 
-    int8_t valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
-    bool   conditionBindingTestsValue         = false;
-    bool   notNullUnwrap                      = false;
+    int8_t valueBorrowSafetyOverride  = -1; // Local override; otherwise use the function or inline body.
+    bool   conditionBindingTestsValue = false;
+    bool   notNullUnwrap              = false;
 
     // A UFCS pointer parameter receives the receiver's address as its value;
     // the receiver's bits are never converted numerically.

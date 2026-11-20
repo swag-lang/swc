@@ -20,8 +20,8 @@ using Core, Gui, Win32
 
     var point = surface.wnd.localToSurface(surface.wnd.captionRoomRect().center())
     surface.surfaceToScreen(&point)
-    let x = cast(u32, cast(s32, point.x)) & 0xFFFF
-    let y = cast(u32, cast(s32, point.y)) & 0xFFFF
+    let x   = cast(u32, cast(s32, point.x)) & 0xFFFF
+    let y   = cast(u32, cast(s32, point.y)) & 0xFFFF
     let hit = Win32.SendMessageW(handle, Win32.WM_NCHITTEST, 0, cast(Win32.LPARAM, x | (y << 16)))
     const CaptionHit = 2
     Swag.require(hit == CaptionHit, "the title must allow the system to drag the capture window")

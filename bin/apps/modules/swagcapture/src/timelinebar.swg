@@ -213,7 +213,8 @@ impl IWnd for TimelineBar
             .releaseMouse()
             .endEdgeDrag()
 
-        default: break
+        default:
+            break
         }
     }
 

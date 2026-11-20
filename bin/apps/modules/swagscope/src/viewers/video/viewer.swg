@@ -155,9 +155,9 @@ struct Panel
     frameToast:    *Toast?
 
     // Copy and save share a worker with a reader of its own. A destination selects file output.
-    frameExport:         Swag.Task'Image
-    frameExporting:      bool
-    frameExportPath:     String
+    frameExport:     Swag.Task'Image
+    frameExporting:  bool
+    frameExportPath: String
 
     subtitleLoad:        Viewer.BackgroundLoad'LoadedSubtitle
     pendingSubtitle:     String
@@ -735,8 +735,10 @@ private impl IWnd for Panel
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Pressed and evt.button == .Right and
-           .hasPausedFrame() and .imageView.pixelAt(.imageView.surfaceToLocal(evt.surfacePos)).inside
+        if evt.kind == .Pressed and
+           evt.button == .Right and
+           .hasPausedFrame() and
+           .imageView.pixelAt(.imageView.surfaceToLocal(evt.surfacePos)).inside
         {
             .showFrameMenu(evt.surfacePos)
             return

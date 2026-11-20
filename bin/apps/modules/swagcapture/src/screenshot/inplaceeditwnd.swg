@@ -276,7 +276,7 @@ impl InPlaceEditWnd
         let copyWidth = Math.ceil(Painter.measureString(texts.act_InpCopy, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin)
         with let copy = PushButton.create(.bar, texts.act_InpCopy, {0, 0, copyWidth, metrics.miniBar_ButtonSize}, form: .Strong)
         {
-            .toolTip = texts.tip_InpCopy
+            .toolTip    = texts.tip_InpCopy
             .sigPressed += func|editor = me|(_) { editor.copy() }
         }
 

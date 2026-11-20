@@ -59,8 +59,8 @@ using Core
     let search = EditBox.create(&host.root, "")
     search.setPosition({120, 52, 100, 32})
     var pressed, submitted, finished: bool
-    button.sigPressed += func|&pressed|(_) { pressed = true }
-    bar.sigSubmitted += func|&submitted|(_, _) { submitted = true }
+    button.sigPressed   += func|&pressed|(_) { pressed = true }
+    bar.sigSubmitted    += func|&submitted|(_, _) { submitted = true }
     bar.sigEditFinished += func|&finished|(_) { finished = true }
     host.root.applyLayout()
 

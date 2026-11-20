@@ -314,7 +314,8 @@ func performInPlaceEdit(capture: *Capture, surface: *Surface, main: *MainWnd, ta
         defer g_App.setGlobalHotKeysEnabled()
         accepted = waitForCapture()
     }
-    let copied   = inPlaceWnd.copied
+
+    let copied = inPlaceWnd.copied
     inPlaceWnd.editWnd.editView.capture = null
     if capture.backTexture.isValid() do
         inPlaceWnd.app().renderer.removeTexture(&capture.backTexture)
@@ -383,6 +384,7 @@ func captureRect(main: *MainWnd, destination: PictureDestination)->CaptureResult
         sf.destroy()
         return {capture: capture}
     }
+
     return try performInPlaceEdit(capture, sf, main, target)
 }
 
@@ -404,15 +406,15 @@ func captureFixedPicture(main: *MainWnd, target: CaptureTarget, destination: Pic
 
     // Direct destinations only need the requested pixels. The in-place view above keeps the
     // surrounding desktop visible to put the capture in context.
-    let img = try getScreenRectImage(drawCursor, cast(s32, area.x), cast(s32, area.y),
-                                    cast(s32, area.width), cast(s32, area.height))
+    let img = try getScreenRectImage(drawCursor, cast(s32, area.x), cast(s32, area.y), cast(s32, area.width), cast(s32, area.height))
     with let capture = Memory.new'Capture()
     {
         .width, .widthOrg   = img.width
         .height, .heightOrg = img.height
-        .backImg            = img
+        .backImg = img
         .setScreenSource(g_CaptureWindow)
     }
+
     return {capture: capture}
 }
 
@@ -476,7 +478,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     main.residentPanel?.close()
 
     // Keep the editor out of the desktop pixels unless the option says otherwise.
-    let surface   = unwrap main.surface
+    let surface       = unwrap main.surface
     let restoreEditor = main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized
     if restoreEditor do
         surface.hide()
@@ -497,7 +499,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     g_CaptureWindow   = {}
     g_CaptureAnchored = false
 
-    let picture = g_CaptureMedia == .Picture
+    let picture     = g_CaptureMedia == .Picture
     let destination = main.captureOptions.pictureDestination
     var result: CaptureResult
     let interactiveSelection = not setGrabBounds(main, captureMode, monitorIndex)

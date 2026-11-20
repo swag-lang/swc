@@ -26,7 +26,7 @@ struct AppearanceButton
     }
 
     offersDocumentTheme: bool
-    documentTheme: AppearanceTheme = .System
+    documentTheme:       AppearanceTheme = .System
 }
 
 private const AppearanceDarkCommand           = "Gui.Appearance.Theme.Dark"
@@ -34,7 +34,7 @@ private const AppearanceLightCommand          = "Gui.Appearance.Theme.Light"
 private const AppearanceSystemCommand         = "Gui.Appearance.Theme.System"
 private const AppearanceDocumentCommand       = "Gui.Appearance.Theme.Document"
 private const AppearanceSystemLanguageCommand = "Gui.Appearance.Language.System"
-private const DocumentThemeValues            = [AppearanceTheme.Dark, .Light, .System, .Document]
+private const DocumentThemeValues             = [AppearanceTheme.Dark, .Light, .System, .Document]
 
 private struct AppearanceLanguageCommand
 {
@@ -150,7 +150,7 @@ impl AppearanceButton
         let parent      = assume cast (*SurfaceWnd, surface.wnd)
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
-            .appearanceTheme = surface.app.appearance
+            .appearanceTheme     = surface.app.appearance
             .offersDocumentTheme = documentTheme
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
             .setForm(.RoundedRectangle)
@@ -369,9 +369,9 @@ private func appearanceThemeName(theme: AppearanceTheme)->string
 {
     switch #complete theme
     {
-    case .Dark:   return strings().appearance_Dark
-    case .Light:  return strings().appearance_Light
-    case .System: return strings().appearance_System
+    case .Dark:     return strings().appearance_Dark
+    case .Light:    return strings().appearance_Light
+    case .System:   return strings().appearance_System
     case .Document: return strings().appearance_Document
     }
 }
@@ -380,9 +380,9 @@ private func appearanceThemeCommandIndex(id: WndId)->u32
 {
     switch id
     {
-    case AppearanceDarkCommand:   return 0
-    case AppearanceLightCommand:  return 1
-    case AppearanceSystemCommand: return 2
+    case AppearanceDarkCommand:     return 0
+    case AppearanceLightCommand:    return 1
+    case AppearanceSystemCommand:   return 2
     case AppearanceDocumentCommand: return 3
     }
 

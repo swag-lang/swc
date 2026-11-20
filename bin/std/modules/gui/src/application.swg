@@ -33,10 +33,10 @@ func markReadsOn(ground: Pixel.Color)->bool => MarkVoltage.contrastRatio(ground)
 // meaning across releases.
 enum AppearanceTheme
 {
-    Dark   = 0     // Encre, the dark theme.
-    Light  = 1     // Papier, the light theme.
-    System = 2     // Encre or Papier, following the light or dark setting of the operating system.
-    Document = 3   // Encre or Papier, resolved by a document-aware [[Gui.AppearanceButton]].
+    Dark     = 0     // Encre, the dark theme.
+    Light    = 1     // Papier, the light theme.
+    System   = 2     // Encre or Papier, following the light or dark setting of the operating system.
+    Document = 3     // Encre or Papier, resolved by a document-aware [[Gui.AppearanceButton]].
 }
 
 // Themes in persisted index order: Dark, Light, System.
@@ -179,10 +179,10 @@ struct Application
 
     frameTrace: FrameTrace     // Per-frame cost recorder, armed from the command line.
 
-    statePath: String     // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
-    hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
+    statePath:          String     // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
+    hotKeys:            Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
     defaultUserHotKeys: Array'KeyShortcut
-    shortcutOverrides: Array'ShortcutOverride
+    shortcutOverrides:  Array'ShortcutOverride
 
     public
     {
@@ -1487,8 +1487,8 @@ impl Application
     {
         switch #complete .appearance
         {
-        case .Dark:   return false
-        case .Light:  return true
+        case .Dark:  return false
+        case .Light: return true
         case .System, .Document: return .systemPrefersLight
         }
     }
@@ -1637,6 +1637,7 @@ impl Application
             try ser.serialize("keyboardShortcuts", &bindings)
             .restoreShortcuts(#move bindings)
         }
+
         for s in .surfaces do
             try s.serializeState(ser)
         try ser.endSection()
@@ -2029,9 +2030,12 @@ impl Application
                     lost = true
                 }
             }
-            else do
+            else
+            {
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+            }
         }
+
         if lost do
             .notifyShortcutsChanged()
     }

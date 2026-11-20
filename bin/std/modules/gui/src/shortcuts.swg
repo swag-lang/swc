@@ -25,6 +25,7 @@ internal func setShortcutOverride(bindings: *Array'ShortcutOverride, id: WndId, 
         binding.source    = source
         return
     }
+
     bindings.add({command: id, modifiers: modifiers, key: key, source: source})
 }
 
@@ -46,8 +47,7 @@ internal func hasShortcutChord(shortcuts: const [..] KeyShortcut, shortcut: KeyS
     return false
 }
 
-internal func effectiveShortcuts(defaults: const [..] KeyShortcut, bindings: const [..] ShortcutOverride,
-                                 result: *Array'KeyShortcut)
+internal func effectiveShortcuts(defaults: const [..] KeyShortcut, bindings: const [..] ShortcutOverride, result: *Array'KeyShortcut)
 {
     for shortcut in defaults where not shortcutOverride(bindings, shortcut.id) do
         result.add(shortcut)
@@ -70,7 +70,7 @@ public impl Application
     // registers nothing. A native registration failure leaves the default in the options.
     mtd registerUserHotKey(modifiers: Input.KeyModifiers, key: Input.Key, id: WndId, target: *Wnd) fail
     {
-        let configured = shortcutOverride(.shortcutOverrides.toSlice(), id)
+        let configured        = shortcutOverride(.shortcutOverrides.toSlice(), id)
         var alreadyRegistered = false
         for shortcut in .defaultUserHotKeys where shortcut.id == id and shortcut.target == target
         {
@@ -88,12 +88,14 @@ public impl Application
             chord.modifiers = configured.modifiers
             chord.key       = configured.key
         }
+
         for current in .hotKeys where sameChord(chord, current)
         {
             if current.id == id and current.target == target do
                 return
             fail shortcutUnavailable(chord)
         }
+
         try .registerHotKey(chord.modifiers, chord.key, id, target)
     }
 
@@ -109,6 +111,7 @@ public impl Application
             if active.id != shortcut.id or active.wnd != shortcut.target do
                 result.add(Input.formatKeyShortcut(shortcut.modifiers, shortcut.key))
         }
+
         return result
     }
 
@@ -149,7 +152,9 @@ public impl Application
         {
             if binding.source do
                 hasSources = true
-            elif binding.key == key.key and binding.modifiers == key.modifiers and not .isUserHotKey(binding.command) do
+            elif binding.key == key.key and
+                 binding.modifiers == key.modifiers and
+                 not .isUserHotKey(binding.command) do
                 matchesLocal = true
         }
 
@@ -165,8 +170,10 @@ public impl Application
                 if shortcutOverride(overrides, chord.id) do
                     replacesDefault = true
             }
+
             node = node.ownerOrParent()
         }
+
         if lens and lens.routeSourceShortcut(target, key) do
             return true
         if matchesLocal or replacesDefault
@@ -177,6 +184,7 @@ public impl Application
                 return true
             }
         }
+
         return replacesDefault
     }
 
@@ -219,8 +227,10 @@ public impl Application
                         fail shortcutUnavailable(shortcut)
                     continue
                 }
+
                 claimed.add(shortcut)
             }
+
             active.add(shortcut)
         }
 
@@ -240,7 +250,8 @@ public impl Application
             for shortcut in .hotKeys where not hasShortcutChord(active.toSlice(), shortcut) do
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
-        .hotKeys   = #move active
+
+        .hotKeys  = #move active
         committed = true
         .notifyShortcutsChanged()
     }

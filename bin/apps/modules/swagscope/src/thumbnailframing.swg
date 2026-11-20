@@ -27,7 +27,7 @@ struct ThumbnailFraming
 
 impl ThumbnailFraming
 {
-    private const Tag = "scope.thumbnail.crop"
+    private const Tag     = "scope.thumbnail.crop"
     private const Aspects = [1.0 / ExplorerGrid.TileAspect, 1.0 / ExplorerFilmTileAspect,
                              1.0 / ExplorerGrid.PosterAspect, 1.0'f32, ViewerHome.HeroWidth / ViewerHome.HeroHeight]
 
@@ -57,7 +57,7 @@ impl ThumbnailFraming
             return
         let framing = analyze(image)
         var record: ImageMetadata
-        var text: String
+        var text:   String
         for mode in 2
         {
             for shape in Aspects.count do
@@ -71,6 +71,7 @@ impl ThumbnailFraming
             previous[] = #move record
             return
         }
+
         image.metadata.add(#move record)
     }
 
@@ -95,6 +96,7 @@ impl ThumbnailFraming
                     result.offsets[mode, shape] = digit(text[index]) * 16 + digit(text[index + 1])
                 }
             }
+
             result.valid = true
             return result
         }
@@ -113,13 +115,12 @@ impl ThumbnailFraming
         return {(width - cropWidth) * offset, (height - cropHeight) * offset, cropWidth, cropHeight}
     }
 
-    mtd const paint(host: *Wnd, painter: *Painter, texture: Texture, tile: Math.Rectangle,
-                    shape: ThumbnailShape, mode: Image.SmartCropMode)
+    mtd const paint(host: *Wnd, painter: *Painter, texture: Texture, tile: Math.Rectangle, shape: ThumbnailShape, mode: Image.SmartCropMode)
     {
-        var brush    = Brush.createTexture(texture)
+        var brush = Brush.createTexture(texture)
         brush.uvMode = .FillSubRect
         brush.uvRect = .crop(cast(f32, texture.width), cast(f32, texture.height), tile.width / tile.height, shape, mode)
-        let radius   = host.themeMetrics().corner_Control
+        let radius = host.themeMetrics().corner_Control
         painter.fillRoundRect(tile, radius, radius, brush)
     }
 }

@@ -182,8 +182,8 @@ impl IWnd for Label
 
             switch .iconHorizontalAlignment
             {
-            case .Right:  posIcon.x = posIcon.right() - .icon.sizeX
-            case .Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
+            case .Right:          posIcon.x = posIcon.right() - .icon.sizeX
+            case .Center:         posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
             case .Left, .Justify: break
             }
 

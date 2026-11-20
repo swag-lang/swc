@@ -206,7 +206,7 @@ impl Encoder
             case .S64:        .serializer.writeNative(cast(const *s64, data)[])
             case .F32:        .serializer.writeNative(cast(const *f32, data)[])
             case .F64:        .serializer.writeNative(cast(const *f64, data)[])
-            default:         break
+            default:          break
             }
 
             return

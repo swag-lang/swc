@@ -82,8 +82,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case .Square: subRectBk = &rects.frameWnd_SquareBk
-        case .Round:  subRectBk = &rects.frameWnd_RoundBk
+        case .Square:      subRectBk = &rects.frameWnd_SquareBk
+        case .Round:       subRectBk = &rects.frameWnd_RoundBk
         case .Transparent: break
         }
 
@@ -118,8 +118,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case .Square: subRectBorder = &rects.frameWnd_SquareBorder
-        case .Round:  subRectBorder = &rects.frameWnd_RoundBorder
+        case .Square:      subRectBorder = &rects.frameWnd_SquareBorder
+        case .Round:       subRectBorder = &rects.frameWnd_RoundBorder
         case .Transparent: break
         }
 
@@ -140,8 +140,8 @@ impl IWnd for FrameWnd
             var marginA: f32
             switch .frameForm
             {
-            case .Square: marginA = metrics.frameWnd_AnchorSquareBorderMargin
-            case .Round:  marginA = metrics.frameWnd_AnchorRoundBorderMargin
+            case .Square:      marginA = metrics.frameWnd_AnchorSquareBorderMargin
+            case .Round:       marginA = metrics.frameWnd_AnchorRoundBorderMargin
             case .Transparent: break
             }
 

@@ -415,7 +415,7 @@ impl HtmlComputedStyle
         // A unitless line height is stored as a percentage of the font size, which is how it
         // keeps meaning when a descendant changes its own size.
         case .Percent: return .lineHeight.value * .fontSize
-        default: return fontHeight
+        default:       return fontHeight
         }
     }
 }
@@ -1756,7 +1756,8 @@ impl HtmlComputedStyle
                 .hasContent = true
             }
 
-        case .Unknown, .Custom: break
+        case .Unknown, .Custom:
+            break
         }
     }
 }

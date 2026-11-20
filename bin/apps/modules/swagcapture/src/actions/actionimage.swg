@@ -130,8 +130,7 @@ impl MainWnd
     // Applies the image command `cmdId` to the background image, and resizes or turns
     // the canvas with it, as one undo step. `l, t, r, b` are the margins an expansion
     // adds; `w, h` the size of a resize.
-    mtd doProcessImage(cmdId: WndId, l: s32 = 0, t: s32 = 0, r: s32 = 0, b: s32 = 0,
-                       w: s32 = 0, h: s32 = 0)
+    mtd doProcessImage(cmdId: WndId, l: s32 = 0, t: s32 = 0, r: s32 = 0, b: s32 = 0, w: s32 = 0, h: s32 = 0)
     {
         let capture = unwrap .getCapture()
 

@@ -7,7 +7,11 @@ impl Panel
 {
     mtd const hasPausedFrame()->bool
     {
-        return .hasFrame and not .playing and not .awaitingFrame and not .thumbnail and not .retireRequested
+        return .hasFrame and
+               not .playing and
+               not .awaitingFrame and
+               not .thumbnail and
+               not .retireRequested
     }
 
     mtd copyFrame()

@@ -5,10 +5,10 @@ public impl Image
     // Selects how [[Pixel.Image.smartCropRect]] positions a cover crop.
     enum SmartCropMode
     {
-        Attention   // Centers the crop over the most visually salient region.
-        Entropy     // Trims the edges whose luminance histograms carry less information.
-        Center      // Centers the crop on the source.
-        None        // Keeps the entire source.
+        Attention     // Centers the crop over the most visually salient region.
+        Entropy       // Trims the edges whose luminance histograms carry less information.
+        Center        // Centers the crop on the source.
+        None          // Keeps the entire source.
     }
 
     // Returns the largest crop with the supplied width-to-height ratio, in source pixel coordinates.
@@ -32,12 +32,9 @@ public impl Image
         var center = Math.Point{width * 0.5, height * 0.5}
         switch #complete mode
         {
-        case .Attention:
-            center = .attentionCropCenter(cropWidth / width, cropHeight / height)
-        case .Entropy:
-            center = .entropyCropCenter(cropWidth / width, cropHeight / height)
-        case .Center, .None:
-            break
+        case .Attention:     center = .attentionCropCenter(cropWidth / width, cropHeight / height)
+        case .Entropy:       center = .entropyCropCenter(cropWidth / width, cropHeight / height)
+        case .Center, .None: break
         }
 
         return {Math.clamp(center.x - cropWidth * 0.5, 0, width - cropWidth),
@@ -63,8 +60,9 @@ private impl Image
                 let color   = sample.pixelColor(x, y)
                 let opacity = cast(f32, color.a) / 255
                 luminance[y, x] = color.relativeLuminance() * opacity
-                chroma[y, x]    = cast(f32, Math.max(color.r, color.g, color.b) -
-                                          Math.min(color.r, color.g, color.b)) * opacity / 255
+                chroma[y, x]    = cast(f32,
+                                       Math.max(color.r, color.g, color.b) -
+                                       Math.min(color.r, color.g, color.b)) * opacity / 255
             }
         }
 
@@ -90,6 +88,7 @@ private impl Image
             kernel[offset] = Math.exp(-cast(f32, offset * offset) / (2 * sigma * sigma))
 
         var horizontal: [AttentionSide, AttentionSide] f32
+
         // Zero padding keeps the blur from repeating scan borders outside the image.
         for y in AttentionSide
         {
@@ -102,10 +101,10 @@ private impl Image
             }
         }
 
-        let middle = cast(f32, AttentionSide - 1) * 0.5
+        let middle       = cast(f32, AttentionSide - 1) * 0.5
         var score: f32
         var bestDistance = Swag.F32.Max
-        var best = Math.Point{middle, middle}
+        var best         = Math.Point{middle, middle}
         for y in AttentionSide
         {
             for x in AttentionSide
@@ -156,13 +155,15 @@ private impl Image
                 let p = cast(f32, frequency) / count
                 score -= p * Math.log2(p)
             }
+
             return score
         }
 
         const MaxSide = 160
         let scale  = Math.min(1.0'f32, cast(f32, MaxSide) / Math.max(.width, .height))
         let sample = .resized(Math.max(1, Math.roundS32(.width * scale)),
-                              Math.max(1, Math.roundS32(.height * scale)), .Bilinear)
+                              Math.max(1, Math.roundS32(.height * scale)),
+                              .Bilinear)
         let across = widthFraction < heightFraction
         let length = across ? sample.width : sample.height
         let keep   = Math.max(1, Math.roundS32(length * Math.min(widthFraction, heightFraction)))

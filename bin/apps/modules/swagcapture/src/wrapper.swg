@@ -189,7 +189,7 @@ impl MainWnd
         case .Favorites, .Selection: return .mdlFavorite
         case .Highlight: return .mdlHighlight
         case .PixSel:    return .mdlPixSel
-        default: return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
+        default:         return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
         }
     }
 

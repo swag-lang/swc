@@ -556,10 +556,16 @@ private impl Panel
         menu.addItem("150 %", "scope.pdf.zoom150", checked: percent == 150)
         menu.addItem("200 %", "scope.pdf.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
-                     rightName: .keyShortcutName("scope.pdf.fit", "F"), checked: .pdfView.zoomMode == .FitPage)
-        menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())),
-                     rightName: .keyShortcutName("scope.pdf.fitWidth", "W"), checked: .pdfView.zoomMode == .FitWidth)
+        menu.addItem(texts().ui_Fit,
+                     "scope.pdf.zoomFit",
+                     .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.pdf.fit", "F"),
+                     checked: .pdfView.zoomMode == .FitPage)
+        menu.addItem(texts().ui_FitWidth,
+                     "scope.pdf.zoomFitWidth",
+                     .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.pdf.fitWidth", "W"),
+                     checked: .pdfView.zoomMode == .FitWidth)
         menu.addSeparator()
         menu.addItem(texts().ui_Continuous, "scope.pdf.layoutContinuous", .theme().icon(.Outline, themeRowIconSize(.themeMetrics())), checked: .pdfView.pageLayout == .Continuous)
         menu.addItem(texts().ui_SinglePage, "scope.pdf.layoutSingle", .theme().icon(.File, themeRowIconSize(.themeMetrics())), checked: .pdfView.pageLayout == .Single)

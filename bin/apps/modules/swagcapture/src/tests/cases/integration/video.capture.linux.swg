@@ -42,10 +42,10 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
 #[Swag.TestTag("integration.capture.x11")]
 #test
 {
-    var window  = expect Env.createWindow({identifier: "capture-video-source",
-                                           title: "Video capture fixture",
-                                           width: 64, height: 48,
-                                           stopLoopOnClose: false})
+    var window = expect Env.createWindow({identifier: "capture-video-source",
+                                          title: "Video capture fixture",
+                                          width: 64, height: 48,
+                                          stopLoopOnClose: false})
     expect window.setPosition(10, 20)
     expect window.show()
     paintVideoWindow(&window, 0xFF0000)

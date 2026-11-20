@@ -160,8 +160,11 @@ private impl Panel
         menu.addItem("100 %", "scope.midi.zoom100", checked: percent == 100)
         menu.addItem("200 %", "scope.midi.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
-                     rightName: .keyShortcutName("scope.midi.fit", "F"), checked: .roll.fit)
+        menu.addItem(texts().ui_Fit,
+                     "scope.midi.zoomFit",
+                     .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.midi.fit", "F"),
+                     checked: .roll.fit)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.midi.zoom25":  .roll.applyZoom(0.25)

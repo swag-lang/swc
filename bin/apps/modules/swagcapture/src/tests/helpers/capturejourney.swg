@@ -184,6 +184,7 @@ impl CaptureJourney
                             return
                         }
                     }
+
                     Swag.require(false, "the in-place bar did not offer Copy")
                 }
             }

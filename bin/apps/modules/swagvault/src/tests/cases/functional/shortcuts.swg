@@ -24,14 +24,17 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
             Swag.require(stage == 3)
             stage = 4
             Swag.require(host.clickModalButton(save ? Dialog.BtnOk : Dialog.BtnCancel))
+
         case 1:
             stage = 2
             host.keyPress(.O, .Control)
+
         case 2:
             if root is MessageDlg as confirm
             {
                 let message = Format.toString(Gui.strings().shortcuts_Taken,
-                                              Input.formatKeyShortcut(.Control, .O), appStrings().ui_OpenFile)
+                                              Input.formatKeyShortcut(.Control, .O),
+                                              appStrings().ui_OpenFile)
                 Swag.require(confirm.title.text == Gui.strings().shortcuts_Replace)
                 Swag.require(Utf8.contains(confirm.label.text(), message.toString()))
                 stage = 3
@@ -39,6 +42,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
             }
         }
     }
+
     host.clickWnd(window.optionsPage.shortcuts)
     host.app.sigFrame.clear()
     Swag.require(stage == 4)
@@ -71,7 +75,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
     }
 
     var reset: bool
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: 1024, height: 800)
     host.app.setStatePath(path)
     expect host.app.loadState()
@@ -98,6 +102,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
             Swag.require(host.clickModalButton(Dialog.BtnOk))
         }
     }
+
     host.clickWnd(window.optionsPage.shortcuts)
     host.app.sigFrame.clear()
     Swag.require(reset)
@@ -123,12 +128,12 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
         {
             if edited do
                 return
-            let root   = app.surfaces.back().view()
-            let filter = assume cast(*EditBox, unwrap root.childById("gui.shortcuts.filter"))
-            let change = unwrap root.childById("gui.shortcuts.change")
+            let root    = app.surfaces.back().view()
+            let filter  = assume cast(*EditBox, unwrap root.childById("gui.shortcuts.filter"))
+            let change  = unwrap root.childById("gui.shortcuts.change")
             let actions = unwrap change.parent
             filter.setText(appStrings().ui_NewVault)
-            let text = Gui.strings()
+            let text   = Gui.strings()
             let action = remove ? text.shortcuts_Clear : text.shortcuts_Reset
             for button in actions.children where button.name.text == action
             {
@@ -138,8 +143,10 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
                 Swag.require(host.clickModalButton(Dialog.BtnOk))
                 return
             }
+
             Swag.require(false, action)
         }
+
         host.clickWnd(window.optionsPage.shortcuts)
         host.app.sigFrame.clear()
         Swag.require(edited)

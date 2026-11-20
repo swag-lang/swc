@@ -88,9 +88,9 @@ impl SliderCtrl
                 var val: String
                 switch ctrl.edit.inputMode
                 {
-                case .UnsignedInteger: val = Format.toString("%", cast(u64, wnd.value()))
-                case .SignedInteger:   val = Format.toString("%", cast(s64, wnd.value()))
-                case .FloatingPoint:   val = Format.toString("%{f2}", wnd.value())
+                case .UnsignedInteger:    val = Format.toString("%", cast(u64, wnd.value()))
+                case .SignedInteger:      val = Format.toString("%", cast(s64, wnd.value()))
+                case .FloatingPoint:      val = Format.toString("%{f2}", wnd.value())
                 case .Text, .Hexadecimal: break
                 }
 
@@ -120,7 +120,9 @@ impl SliderCtrl
                 case .FloatingPoint:
                     let value = catch StrConv.parseF64(edit.text()).value orelse 0
                     ctrl.slider.setValue(cast(f32, value))
-                case .Text, .Hexadecimal: break
+
+                case .Text, .Hexadecimal:
+                    break
                 }
             }
 

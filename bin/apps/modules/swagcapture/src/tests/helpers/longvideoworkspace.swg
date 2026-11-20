@@ -21,7 +21,7 @@ impl LongVideoWorkspace
         expect Capture.duplicateFiles(.document, fixture)
         g_Library.fill()
         .openLibrary(1)
-        let main    = .main
+        let main = .main
         main.libWnd.view.openItem(main.libWnd.view.items[0])
         .waitFor("two-hour video opened", func|main|()->bool
         {

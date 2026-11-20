@@ -360,7 +360,7 @@ impl Application
         case .CommonVideos:   whatWin = .SIID_VIDEOFILES
         case .CommonPictures: whatWin = .SIID_IMAGEFILES
         case .CommonMusic:    whatWin = .SIID_AUDIOFILES
-        default:             break
+        default:              break
         }
 
         catch SHGetStockIconInfo(whatWin, SHGSI_ICON | (small ? SHGSI_SMALLICON : SHGSI_LARGEICON), &sgi)

@@ -259,6 +259,7 @@ private
                                    cmd.backdropPass.tint)
 
             default:
+
                 // Commands with no dumped parameters only print their names.
                 break
             }
@@ -284,9 +285,9 @@ private
 
             switch p.type
             {
-            case .LinearGradient:              .body.appendFormat(" from=(%,%) to=(%,%)", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientEnd.x), fmtF(p.gradientEnd.y))
-            case .RadialGradient:              .body.appendFormat(" center=(%,%) radius=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientRadius0), fmtF(p.gradientRadius1))
-            case .SweepGradient:               .body.appendFormat(" center=(%,%) angle=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientAngle0), fmtF(p.gradientAngle1))
+            case .LinearGradient: .body.appendFormat(" from=(%,%) to=(%,%)", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientEnd.x), fmtF(p.gradientEnd.y))
+            case .RadialGradient: .body.appendFormat(" center=(%,%) radius=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientRadius0), fmtF(p.gradientRadius1))
+            case .SweepGradient:  .body.appendFormat(" center=(%,%) angle=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientAngle0), fmtF(p.gradientAngle1))
             case .SolidColor, .Texture, .Hatch: break
             }
 

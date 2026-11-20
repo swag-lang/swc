@@ -29,10 +29,10 @@ using Swag, Core
     defer f.shutdown()
     testRegisterIoActions(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Clipboard
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     f.main.sendCommandEvent(ActionCapture.FullScreen)
 
@@ -49,10 +49,10 @@ using Swag, Core
     defer f.shutdown()
     testRegisterIoActions(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Clipboard
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     g_StartGrabX = 0
     g_StartGrabY = 0
@@ -80,10 +80,10 @@ using Swag, Core
     defer f.shutdown()
     testRegisterIoActions(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Clipboard
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     // Five monitors, and the fifth is the one captured: the per-monitor commands used to
     // stop at four, so a monitor past that could not be captured on its own. The first
@@ -114,10 +114,10 @@ using Swag, Core
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
-    f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.hideEditorBefore   = false
+    f.main.captureOptions.captureCursor      = false
     f.main.captureOptions.pictureDestination = .Editor
-    f.main.captureOptions.delay            = 0
+    f.main.captureOptions.delay              = 0
 
     g_StartGrabX = 0
     g_StartGrabY = 0

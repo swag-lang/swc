@@ -77,9 +77,9 @@ internal struct NativeSurface
     clientResizePending: bool
     clientLayoutScale:   f32
 
-    inDiscretePlacement:  bool
-    presentingPlacement:  bool
-    placementOrigin:      POINT
+    inDiscretePlacement: bool
+    presentingPlacement: bool
+    placementOrigin:     POINT
 
     presentationDC:     HDC
     presentationBitmap: HBITMAP
@@ -305,6 +305,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 let params = cast(const *NCCALCSIZE_PARAMS, cast #bit (u64, lParam))
                 surface.presentDiscretePlacement(params.rgrc[0])
             }
+
             return 0
 
         case WM_NCHITTEST:
@@ -485,8 +486,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 if width != surface.rc.width or height != surface.rc.height do
                     surface.setSizing(true)
             }
-            else do
+            else
+            {
                 surface.applyPendingNativeResize()
+            }
 
             return 0
 
@@ -612,7 +615,11 @@ private impl Surface
 impl Surface
 {
     private mtd const canPresentPlacement()->bool =>
-        not .isHidden and not .initializing and not .isMinimized and not .wnd.isPendingDestroy and not .inDesktopLoop
+        not .isHidden and
+        not .initializing and
+        not .isMinimized and
+        not .wnd.isPendingDestroy and
+        not .inDesktopLoop
 
     private mtd presentDiscretePlacement(bounds: RECT)
     {
@@ -627,7 +634,10 @@ impl Surface
 
         let destination = Math.Rectangle{cast(f32, bounds.left), cast(f32, bounds.top), cast(f32, width), cast(f32, height)}
         let scale       = Env.monitorForRectangle(destination).scaleFactor
-        if .presentedFrame and not .isDirty and destination == .position and scale == .clientLayoutScale do
+        if .presentedFrame and
+           not .isDirty and
+           destination == .position and
+           scale == .clientLayoutScale do
             return
 
         .placementOrigin     = {bounds.left, bounds.top}
@@ -672,7 +682,9 @@ impl Surface
         var client: RECT
         if not GetClientRect(.hWnd, &client) or client.right <= 0 or client.bottom <= 0 do
             return
-        if .clientLayoutScale == .dpiScale and .rc.width == client.right and .rc.height == client.bottom do
+        if .clientLayoutScale == .dpiScale and
+           .rc.width == client.right and
+           .rc.height == client.bottom do
             return
         .clientLayoutScale = .dpiScale
         .presentedFrame    = false
@@ -726,9 +738,9 @@ impl Surface
     {
         // Use the same high-water bounds as the retained OpenGL target. Dragging within
         // those bounds reuses both allocations, even when the client shrinks and grows.
-        let width = .rt.colorBuffer.width
+        let width  = .rt.colorBuffer.width
         let height = .rt.colorBuffer.height
-        let dc = try CreateCompatibleDC(null)
+        let dc     = try CreateCompatibleDC(null)
         defer #fail catch DeleteDC(dc)
 
         var info: BITMAPINFO
@@ -765,6 +777,7 @@ impl Surface
             try .createPresentationBitmap()
             rect = bounds
         }
+
         // Tints can change the complete frame while the controls repaint only part of it.
         if not .presentedFrame or tinted or .presentedTinted do
             rect = bounds
@@ -776,15 +789,16 @@ impl Surface
             return false
 
         let source = POINT{}
-        let blend = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
+        let blend  = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
         var update = UPDATELAYEREDWINDOWINFO{cbSize: cast(u32, #sizeof(UPDATELAYEREDWINDOWINFO)),
-                                            psize: &size, hdcSrc: .presentationDC, pptSrc: &source,
-                                            pblend: &blend, dwFlags: ULW_ALPHA | ULW_EX_NORESIZE, prcDirty: &dirty}
+                                             psize: &size, hdcSrc: .presentationDC, pptSrc: &source,
+                                             pblend: &blend, dwFlags: ULW_ALPHA | ULW_EX_NORESIZE, prcDirty: &dirty}
         if .presentingPlacement
         {
             update.pptDst  = &.placementOrigin
             update.dwFlags = ULW_ALPHA
         }
+
         if not UpdateLayeredWindowIndirect(.hWnd, &update) do
             return false
         .presentedTinted = tinted
@@ -822,8 +836,7 @@ impl Surface
         // at the top of the allocation, and each may have a different amount of spare space.
         let offset = (cast(u64, .presentationHeight - dirty.bottom) * cast(u64, .presentationWidth) + cast(u64, dirty.left)) * 4
         let pixels = cast([*] u8, unwrap .presentationPixels) + offset
-        glReadPixels(dirty.left, target.colorBuffer.height - dirty.bottom,
-                     dirty.right - dirty.left, dirty.bottom - dirty.top, GL_BGRA, GL_UNSIGNED_BYTE, pixels)
+        glReadPixels(dirty.left, target.colorBuffer.height - dirty.bottom, dirty.right - dirty.left, dirty.bottom - dirty.top, GL_BGRA, GL_UNSIGNED_BYTE, pixels)
         return glGetError() == GL_NO_ERROR
     }
 
@@ -1319,6 +1332,7 @@ impl Surface
         .inDiscretePlacement = true
         defer .finishDiscretePlacement()
         .invalidate()
+
         // Maximize the current window first. Changing its normal rectangle while it is
         // still normal would move it there before USER32 applies the maximized state.
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)

@@ -369,6 +369,7 @@ impl View
             .focusPolicy     = .Click
             .wndFlags.add(.Hidden)
         }
+
         owner.shortcutLens = result
 
         let metrics = result.themeMetrics()
@@ -735,13 +736,15 @@ impl View
             if split.prefix == .None or split.prefix == .Action do
                 .addCommandSections()
 
-            if .commands.count and split.rest.count >= 3 and (split.prefix == .None or split.prefix == .Action)
+            if .commands.count and
+               split.rest.count >= 3 and
+               (split.prefix == .None or split.prefix == .Action)
             {
                 let title = strings().shortcuts_Open
                 let found = match(.results.folded, title)
                 if found.matched
                 {
-                    let section = .results.addSection(strings().lens_Application)
+                    let section    = .results.addSection(strings().lens_Application)
                     with let entry = section.addEntry(title, found)
                     {
                         .glyph = me.theme().icon(.Settings, me.themeMetrics().menuPopup_IconSize)
@@ -757,9 +760,11 @@ impl View
             for &entry in section!.entries where not entry.bindId.isEmpty()
             {
                 if let binding = shortcutOverride(overrides, entry.bindId)
-                    do entry.detail = binding.key == .None ? String{} : Input.formatKeyShortcut(binding.modifiers, binding.key)
+                    do
+                    entry.detail = binding.key == .None ? String{} : Input.formatKeyShortcut(binding.modifiers, binding.key)
             }
         }
+
         .rankResults()
         .buildRows()
         .buildInlineChoices()
@@ -795,13 +800,15 @@ impl View
                     existing = command
                     break
                 }
+
                 if not existing
                 {
-                    existing = commands.emplaceInitAddress()
+                    existing        = commands.emplaceInitAddress()
                     existing.id     = entry.bindId
                     existing.title  = entry.title
                     existing.source = true
                 }
+
                 for chord in [entry.defaultKey, entry.alternateDefaultKey] where chord.key != .None
                 {
                     if not hasShortcutChord(existing.defaults.toSlice(), chord) do
@@ -809,6 +816,7 @@ impl View
                 }
             }
         }
+
         editKeyboardShortcuts(unwrap (from orelse owner.surface), commands.toSlice())
     }
 
@@ -825,9 +833,9 @@ impl View
     {
         if .isOpen() do
             return false
-        let overrides = .app().shortcutOverrides.toSlice()
-        let generated = .shortcutSourceRows()
-        let chord = KeyShortcut{key.modifiers, key.key}
+        let overrides       = .app().shortcutOverrides.toSlice()
+        let generated       = .shortcutSourceRows()
+        let chord           = KeyShortcut{key.modifiers, key.key}
         var replacesDefault = false
         for section in generated.sections
         {
@@ -842,10 +850,12 @@ impl View
                         entry.run()
                     return true
                 }
+
                 if sameChord(entry.defaultKey, chord) or sameChord(entry.alternateDefaultKey, chord) do
                     replacesDefault = true
             }
         }
+
         if replacesDefault do
             target.sendCommandEvent(target.keyShortcut(key.modifiers, key.key))
         return replacesDefault

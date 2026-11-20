@@ -43,9 +43,9 @@ using Core, Gui, Pixel, Video
         Swag.require(reopened.timeline.frameCount == 216_000)
     }
 
-    let target  = Path.combine(Env.sandboxRoot(), "twohours-trim.mp4")
+    let target = Path.combine(Env.sandboxRoot(), "twohours-trim.mp4")
     expect capture.exportVideo(target)
-    var cut      = expect Reader.open(target)
+    var cut = expect Reader.open(target)
     Swag.require(cut.frameCount() == 215_938 and cut.audioTrackCount() == 1)
     Swag.require(cut.audioTrack(0)!.sampleFrameCount() == 215_938'u64 * 1_600)
     for index in [0'u64, 29, 60_000, 215_937] do
@@ -54,7 +54,7 @@ using Core, Gui, Pixel, Video
     workspace.showFrame(900)
     workspace.drawForm(ActionToolMode.Arrow, .Arrow, {10, 20}, {120, 65})
     capture.forms.back().timeEnd = frames.timeOf(930)
-    let annotated    = Path.combine(Env.sandboxRoot(), "twohours-timed-overlay.mp4")
+    let annotated = Path.combine(Env.sandboxRoot(), "twohours-timed-overlay.mp4")
     expect capture.exportVideo(annotated)
     var originalPackets = expect Mp4.FragmentedPacketReader.open(source)
     var cutPackets      = expect Mp4.FragmentedPacketReader.open(annotated)
@@ -91,9 +91,9 @@ using Core, Gui, Pixel, Video
     workspace.drawForm(ActionToolMode.Arrow, .Arrow, {10, 20}, {120, 65})
     let shape = capture.forms.back()
     Swag.require(shape.timeStart == capture.playheadTime())
-    let target  = Path.combine(Env.sandboxRoot(), "twohours-annotated-tail.mp4")
+    let target = Path.combine(Env.sandboxRoot(), "twohours-annotated-tail.mp4")
     expect capture.exportVideo(target)
-    var result    = expect Reader.open(target)
+    var result = expect Reader.open(target)
     Swag.require(result.frameCount() == 89 and result.audioTrackCount() == 1)
     Swag.require(Math.abs(result.durationInSeconds() - 89.0 / 30) < 0.00001)
     Swag.require(Math.abs(cast(s64, result.audioTrack(0)!.sampleFrameCount()) - 89 * 1_600) <= 1)
@@ -103,7 +103,7 @@ using Core, Gui, Pixel, Video
     // A dimension change explicitly selects conversion and must also seek directly to tail audio.
     workspace.changeImageSize(ActionImage.ExpandCapture, 162, 96)
     Swag.require(capture.width == 162)
-    let converted       = Path.combine(Env.sandboxRoot(), "twohours-converted-tail.mp4")
+    let converted = Path.combine(Env.sandboxRoot(), "twohours-converted-tail.mp4")
     expect capture.exportVideo(converted)
     var conversion = expect Reader.open(converted)
     Swag.require(conversion.width() == 162 and conversion.frameCount() == 89)

@@ -34,7 +34,7 @@ using Core, Gui, Pixel
     journey.waitFor("context menu", func|main|()->bool => main.residentPanel != null)
     Swag.require(main.residentNotice == null)
     let contextMenu = main.residentPanel
-    let menu = unwrap contextMenu
+    let menu        = unwrap contextMenu
     Swag.require(menu.placement == .AtPointer and testPanelOffers(menu, ActionGlobal.ShowHub))
     var escape = KeyEvent{kind: .Pressed, key: .Escape}
     menu.sendEvent(&escape)
@@ -90,6 +90,7 @@ using Core, Gui, Pixel
         while settle.elapsedMilliseconds() < 500 do
             app.runFrame()
     }
+
     revealIcon()
     Gui.Testing.clickTrayIcon(journey.app, surface, .Right)
     var watch: Time.Stopwatch

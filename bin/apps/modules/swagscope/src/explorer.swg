@@ -117,7 +117,7 @@ struct Explorer
     }
 
     layingHeader:    bool
-    mode:            ExplorerMode = .Medium
+    mode:            ExplorerMode          = .Medium
     history:         NavigationHistory
     listing:         ExplorerListing
     entries:         Array'ExplorerEntry
@@ -134,19 +134,19 @@ struct Explorer
     draggingFile:    bool
     previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
     generation:      u64
-    selected:        u64 = Swag.U64.Max
-    pendingOpen:     u64 = Swag.U64.Max
+    selected:        u64                   = Swag.U64.Max
+    pendingOpen:     u64                   = Swag.U64.Max
     temporaryFiles:  Array'ExplorerTemporary
     cached:          Array'u64
     sortColumn:      u32
     descending:      bool
     kindFilter:      ExplorerKindFilter
     artworkSource:   ExplorerArtworkSource = .Online
-    thumbnailCrop:   Image.SmartCropMode = .Attention
+    thumbnailCrop:   Image.SmartCropMode   = .Attention
     menuPaths:       Array'String
     previewSettings: String
     previewEpoch:    u64
-    previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
+    previewAspect:   f32                   = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     extraction:      ArchiveExtraction
     cacheClear:      ExplorerCacheClear
     clearingCaches:  bool
@@ -411,14 +411,26 @@ impl Explorer
 
         with .address = PathBar.create(.window, "scope.explorer.address")
         {
-            .focusPolicy               = .Click
+            .focusPolicy                = .Click
             .breadcrumb.maxVisibleItems = 3
             .breadcrumb.overflowIcon    = .Folder
             .breadcrumb.overflowCommand = ViewerCommands.ChooseFolder
             .position.height            = ToolHeight
-            .sigNavigate                += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
-            .sigEditFinished            += func|explorer = me|(_) { explorer.focusContent() }
-            .breadcrumb.sigFillMenu     += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
+            .sigNavigate                += func|explorer = me|(_, path)
+            {
+                explorer.navigateBreadcrumb(path)
+            }
+
+            .sigEditFinished += func|explorer = me|(_)
+            {
+                explorer.focusContent()
+            }
+
+            .breadcrumb.sigFillMenu += func|explorer = me|(_, index, menu)
+            {
+                explorer.fillBreadcrumbMenu(index, menu)
+            }
+
             .breadcrumb.hookOnEvent = func|explorer = me|(_, evt)
             {
                 if evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Right
@@ -441,8 +453,15 @@ impl Explorer
                 return false
             }
 
-            .edit.sigTextChanged += func|explorer = me|(_) { explorer.clearAddressError() }
-            .edit.sigFocusLost   += func|explorer = me|(_) { explorer.clearAddressError() }
+            .edit.sigTextChanged += func|explorer = me|(_)
+            {
+                explorer.clearAddressError()
+            }
+
+            .edit.sigFocusLost += func|explorer = me|(_)
+            {
+                explorer.clearAddressError()
+            }
         }
 
         // The breadcrumb names the folder: the title stays hidden and only holds the location's
@@ -1121,8 +1140,10 @@ impl Explorer
 
     private mtd updateWatchTimer()
     {
-        if not .isLocallyVisible() do
+        if not .isLocallyVisible()
+        {
             .stopTimer(&.watchTimer)
+        }
         elif not .load.started
         {
             if not .load.watcher.isOpen() do
@@ -1216,7 +1237,9 @@ impl Explorer
                 return true
             }
 
-            if typed.count > archive.count and Utf8.startsWith(typed, archive) and Path.isDirectorySeparator(typed[archive.count])
+            if typed.count > archive.count and
+               Utf8.startsWith(typed, archive) and
+               Path.isDirectorySeparator(typed[archive.count])
             {
                 var member = String.from(typed[archive.count + 1 to])
                 member.replace("\\", "/")
@@ -1240,8 +1263,8 @@ impl Explorer
 
         if not Path.isValidPathName(typed) do
             return false
-        let base = .listing.isArchive ? (Path.directoryName(.listing.path) orelse "") : .listing.path.toString()
-        let path = Path.isRooted(typed) ? String.from(typed) : Path.combine(base, typed)
+        let base     = .listing.isArchive ? (Path.directoryName(.listing.path) orelse "") : .listing.path.toString()
+        let path     = Path.isRooted(typed) ? String.from(typed) : Path.combine(base, typed)
         let absolute = catch Path.absolute(path) { return false }
         if Directory.exists(absolute) do
             .navigate(absolute)
@@ -1281,7 +1304,7 @@ impl Explorer
     {
         .address.endEdit()
         let initialFolder = .listing.isArchive ? (Path.directoryName(.nativeArchivePath()) orelse "") : .listing.path.toString()
-        let chosen = .window.selectExplorerFolder(initialFolder)
+        let chosen        = .window.selectExplorerFolder(initialFolder)
         if chosen.isEmpty() do
             return
         if .listing.isArchive or not Path.equals(chosen, .listing.path) do
@@ -1292,18 +1315,19 @@ impl Explorer
     private mtd showBreadcrumbMenu(position: Math.Point)
     {
         let breadcrumb = .address.breadcrumb
-        let point = breadcrumb.surfaceToLocal(position) + breadcrumb.scrollPos
-        var path = .listing.path.toString()
-        var folder = .folder.toString()
+        let point      = breadcrumb.surfaceToLocal(position) + breadcrumb.scrollPos
+        var path       = .listing.path.toString()
+        var folder     = .folder.toString()
         for &item in breadcrumb.items where item.bodyRect.contains(point) or item.arrowRect.contains(point)
         {
-            let tag = item.tag.toString()
+            let tag   = item.tag.toString()
             let split = Utf8.indexOf(tag, "\n")
             if split != Swag.U64.Max
             {
-                path = tag[0 until split]
+                path   = tag[0 until split]
                 folder = tag[split + 1 to]
             }
+
             break
         }
 
@@ -1311,46 +1335,56 @@ impl Explorer
             return
         if .listing.isArchive and path == .listing.path
         {
-            let archive = .logicalPath(path)
+            let archive  = .logicalPath(path)
             let location = folder.count == 0 ? String.from(archive) : Format.toString("%/%", archive, folder)
             .showLocationMenu(location, position, archive: .nativeArchivePath())
         }
-        else do
+        else
+        {
             .showLocationMenu(path, position, directory: true)
+        }
     }
 
     mtd showEntryMenu(row: u64, position: Math.Point)
     {
         if .load.started or row >= .shown.count do
             return
-        if .isThumbnailView() do
+        if .isThumbnailView()
+        {
             .grid.select(row)
+        }
         else
         {
             .selected = .shown[row]
             .showMediaInfo()
             .requestPreview()
         }
+
         let entry = &.entries[.shown[row]]
-        let path = String.from(entry.path)
+        let path  = String.from(entry.path)
         if .listing.isArchive
         {
-            let archive = .logicalPath(.listing.path)
+            let archive  = .logicalPath(.listing.path)
             let location = Format.toString("%/%", archive, path)
             .showLocationMenu(location, position, archive: .nativeArchivePath())
         }
-        elif entry.directory do
+        elif entry.directory
+        {
             .showLocationMenu(path, position, directory: true)
-        else do
+        }
+        else
+        {
             .window.showFileActions(path, position)
+        }
     }
 
     private mtd showLocationMenu(path: string, position: Math.Point, directory = false, archive: string = "")
     {
         let stableArchive = String.from(archive)
-        let texts = appStrings()
-        let size = themeRowIconSize(.themeMetrics())
-        let menu = MenuCtrl.createPopup(me, owner: me)
+        let texts         = appStrings()
+        let size          = themeRowIconSize(.themeMetrics())
+        let menu          = MenuCtrl.createPopup(me, owner: me)
+
         // The pointer supplies this menu's target. The lens computes state for the current location.
         menu.hookOnEvent = func(_, evt)
         {
@@ -1359,15 +1393,17 @@ impl Explorer
                 command.accepted = true
                 return true
             }
+
             return false
         }
+
         if directory do
             menu.addItem(texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder, .theme().icon(.OpenExternal, size))
         elif not stableArchive.isEmpty() do
             menu.addItem(texts.explore_RevealArchive, ViewerCommands.RevealArchive, .theme().icon(.Folder, size))
         menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyLocation, .theme().icon(.Copy, size))
         let location = String.from(path)
-        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
+        let chosen   = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
         if chosen
         {
             let target = chosen == ViewerCommands.RevealArchive ? stableArchive.toString() : location.toString()
@@ -1393,8 +1429,8 @@ impl Explorer
         // Include the current folder so the address names the complete location on its own.
         for ancestor in ancestors.reversed()
         {
-            let full = ancestor.toString()
-            let name = Path.fileName(full) orelse full
+            let full     = ancestor.toString()
+            let name     = Path.fileName(full) orelse full
             let hasArrow = full != .listing.path or not .folder.isEmpty()
             breadcrumb.addItem(name.count ? name : full, hasArrow: hasArrow, tag: Format.toString("%\n", full))
         }
@@ -2272,7 +2308,8 @@ impl IWnd for Explorer
             if .load.path != .requested or
                .load.folder != .requestedFolder or
                .load.sortColumn != .sortColumn or
-               .load.descending != .descending or .refreshPending
+               .load.descending != .descending or
+               .refreshPending
             {
                 .refreshPending = false
                 .startListing()
@@ -2290,7 +2327,9 @@ impl IWnd for Explorer
                 return
             }
 
-            if not .restoringView and Path.equals(.listing.path, listing.path) and .folder == .requestedFolder
+            if not .restoringView and
+               Path.equals(.listing.path, listing.path) and
+               .folder == .requestedFolder
             {
                 .restoredView  = ExplorerFolderState.capture(me)
                 .restoringView = true
@@ -2316,8 +2355,8 @@ impl IWnd for Explorer
 
                 if not preview.temporary.isEmpty()
                 {
-                    let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
-                    let path  = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
+                    let title   = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
+                    let path    = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
                     let archive = String.from(.sourceArchivePath(preview.archivePath))
                     .window.privacy.inherit(preview.temporary, preview.archivePath)
                     .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path, archive})
@@ -2486,7 +2525,7 @@ struct ExplorerGrid
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
     spinnerUse:    u64
     nameTimer:     *Timer?
-    nameScrolls:   [2] ExplorerNameScroll    // At most the hovered and selected titles.
+    nameScrolls:   [2] ExplorerNameScroll     // At most the hovered and selected titles.
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
@@ -2705,6 +2744,7 @@ impl ExplorerGrid
         var rect = tile
         rect.height += FileTile.captionHeight(me)
         let metrics = .themeMetrics()
+
         // Keep the selection stroke and its antialiased fringe inside the repaint.
         rect.inflate(metrics.fileTile_RingGap + metrics.fileTile_RingWidth * 2 + 2)
         return rect
@@ -2740,10 +2780,10 @@ impl ExplorerGrid
         content.badge       = badge
         content.placeholder = ext
         var options: FileTile.Options
-        options.fit            = .Contain
-        options.hovered        = .hovered == row
-        options.selected       = .explorer.selected == index
-        options.showCaption    = true
+        options.fit         = .Contain
+        options.hovered     = .hovered == row
+        options.selected    = .explorer.selected == index
+        options.showCaption = true
         for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
             options.nameTick = scroll.tick
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
@@ -2751,8 +2791,7 @@ impl ExplorerGrid
             let entry = &grid.explorer.entries[index]
             let glyph = grid.theme().fileGlyph(entry.name, entry.directory, 16)
             if entry.texture.isValid() and
-               (entry.texture.width > 1 or entry.texture.height > 1 or
-                glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
+               (entry.texture.width > 1 or entry.texture.height > 1 or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
             {
                 if grid.explorer.thumbnailCrop == .None do
                     return false
@@ -2980,8 +3019,10 @@ impl ExplorerGrid
                 let content = FileTile.Content{texture: cover.texture}
                 FileTile.paint(me, painter, coverRect, &content, {fit: .Contain, showCaption: false})
             }
-            else do
+            else
+            {
                 cover.framing.paint(me, painter, cover.texture, coverRect, .Square, explorer.thumbnailCrop)
+            }
         }
         else
         {

@@ -504,8 +504,7 @@ impl HeadlessHost
         .autoButtonIds.clear()
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder: string? = null,
-                             file: string? = null, label: string? = null)->*AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: WndId? = null, folder: string? = null, file: string? = null, label: string? = null)->*AutoStage
     {
         let stage = cast(*AutoStage, .autoStages.emplaceInitAddress())
         stage.kind   = kind

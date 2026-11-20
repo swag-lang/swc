@@ -461,7 +461,7 @@ Utf8 DiagnosticBuilder::buildMessage(std::string_view message, const DiagnosticE
             continue;
         }
 
-        const auto name = message.substr(i, end - i + 1);
+        const auto                name     = message.substr(i, end - i + 1);
         const DiagnosticArgument* argument = nullptr;
         if (element)
         {
@@ -480,8 +480,8 @@ Utf8 DiagnosticBuilder::buildMessage(std::string_view message, const DiagnosticE
 
         if (argument)
         {
-            const TypeRef* typeRef = std::get_if<TypeRef>(&argument->val);
-            const bool qualified   = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
+            const TypeRef* typeRef   = std::get_if<TypeRef>(&argument->val);
+            const bool     qualified = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
             result += argumentToString(*argument, qualified);
         }
         else

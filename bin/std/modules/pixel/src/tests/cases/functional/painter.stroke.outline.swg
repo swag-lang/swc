@@ -112,8 +112,8 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
 
     // And the head carries the contour the shaft carries.
     let borderedAll = outlineTestSpan(bordered, HeadX, whiteOnly: false)
-    let upper = borderedCore.top - borderedAll.top
-    let lower = borderedAll.bottom - borderedCore.bottom
+    let upper       = borderedCore.top - borderedAll.top
+    let lower       = borderedAll.bottom - borderedCore.bottom
     Swag.require(upper == 4 and lower == 4, Format.toString("arrowhead contour occupies % pixels above and % below", upper, lower))
 }
 

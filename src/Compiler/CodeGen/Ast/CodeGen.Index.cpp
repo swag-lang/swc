@@ -455,7 +455,7 @@ namespace
 
         const MicroReg baseReg = resolveIndexBaseAddress(codeGen, node.nodeExprRef, indexedType, indexedPayload);
 
-        const MicroReg lowReg = codeGen.nextVirtualIntRegister();
+        const MicroReg lowReg    = codeGen.nextVirtualIntRegister();
         bool           lowSigned = false;
         if (slicePayload->lowerBoundRef.isValid())
         {

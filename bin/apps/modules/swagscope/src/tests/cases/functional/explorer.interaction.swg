@@ -288,9 +288,9 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     {
         explorer.setMode(mode)
         window.applyLayout()
-        let source = mode == .Details ? cast(*Wnd, explorer.list.listView) : cast(*Wnd, explorer.grid)
-        let folder = mode == .Details ? explorer.list.cellTextRect(0, 0) : explorer.grid.tileRect(0)
-        let file   = mode == .Details ? explorer.list.cellTextRect(1, 0) : explorer.grid.tileRect(1)
+        let source      = mode == .Details ? cast(*Wnd, explorer.list.listView) : cast(*Wnd, explorer.grid)
+        let folder      = mode == .Details ? explorer.list.cellTextRect(0, 0) : explorer.grid.tileRect(0)
+        let file        = mode == .Details ? explorer.list.cellTextRect(1, 0) : explorer.grid.tileRect(1)
         let folderPoint = source.localToSurface(folder.center())
         let filePoint   = source.localToSurface(file.center())
 

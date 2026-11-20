@@ -268,8 +268,8 @@ func typedFallthroughWithTrueGuard(value: const any)->s32
 {
     switch value
     {
-    default:  fallthrough
-    case s32: return 1
+    default:         fallthrough
+    case s32:        return 1
     case where true: return 2
     }
 }

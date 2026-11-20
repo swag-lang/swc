@@ -11,17 +11,17 @@ struct ResidentPanel
 {
     using wnd: Wnd
 
-    late main: *MainWnd
-    late menu: *MenuCtrl
-    placement: ResidentPanelPlacement
-    anchor:    Math.Point
-    listSize:  Math.Point
+    late main:      *MainWnd
+    late menu:      *MenuCtrl
+    placement:      ResidentPanelPlacement
+    anchor:         Math.Point
+    listSize:       Math.Point
     pictureChoices: *StackLayoutCtrl?
-    watch:     *Gui.Timer?
-    floating:  bool             // Whether the panel owns its surface.
-    wasActive: bool             // Whether the detached menu has had desktop focus.
-    armed:     bool             // Whether the detached menu has claimed pointer input.
-    otherCaptures: bool
+    watch:          *Gui.Timer?
+    floating:       bool     // Whether the panel owns its surface.
+    wasActive:      bool     // Whether the detached menu has had desktop focus.
+    armed:          bool     // Whether the detached menu has claimed pointer input.
+    otherCaptures:  bool
 }
 
 impl IWnd for ResidentPanel
@@ -77,11 +77,11 @@ impl IWnd for ResidentPanel
 impl ResidentPanel
 {
     const WatchPeriod: Time.Duration = 30'ms
-    const MoreCaptures   = "capture.hub.moreCaptures"
-    const BackToCaptures = "capture.hub.backToCaptures"
-    const ClipboardPreviewId = "capture.hub.clipboardPreview"
-    const ClipboardPreviewWidth  = 120's32
-    const ClipboardPreviewHeight = 56's32
+    const MoreCaptures               = "capture.hub.moreCaptures"
+    const BackToCaptures             = "capture.hub.backToCaptures"
+    const ClipboardPreviewId         = "capture.hub.clipboardPreview"
+    const ClipboardPreviewWidth      = 120's32
+    const ClipboardPreviewHeight     = 56's32
 
     #[Swag.Discardable]
     func open(main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel?
@@ -96,12 +96,16 @@ impl ResidentPanel
         else
         {
             let point = main.hubBounds.isEmpty() ? pointer : main.hubBounds.topLeft()
-            surface = catch main.app().createSurface(cast(s32, point.x), cast(s32, point.y), 300, 300,
+            surface = catch main.app().createSurface(cast(s32, point.x),
+                                                     cast(s32, point.y),
+                                                     300,
+                                                     300,
                                                      .SmallCaption | .CloseButton)
             {
                 return null
             }
         }
+
         if not surface do
             return null
 
@@ -125,6 +129,7 @@ impl ResidentPanel
                 if surface.win32Handle() do
                     discard Win32.SetForegroundWindow(surface.win32Handle())
             }
+
             result.setFocus()
         }
 
@@ -154,9 +159,10 @@ impl ResidentPanel
         .stopTimer(&.watch)
         if .placement == .Centered and .floating
         {
-            .main.hubBounds = .surface!.position
+            .main.hubBounds        = .surface!.position
             .main.hubOtherCaptures = .otherCaptures
         }
+
         if .main.residentPanel == me do
             .main.residentPanel = null
         if .floating do
@@ -214,8 +220,11 @@ impl ResidentPanel
                     .addSeparator()
                 }
             }
-            else do
+            else
+            {
                 .addSeparator()
+            }
+
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main
@@ -231,12 +240,13 @@ impl ResidentPanel
 
     private mtd addClipboardPreview()
     {
-        let image = .main.clipboardPreview
+        let image    = .main.clipboardPreview
         with let row = StackLayoutCtrl.create(.menu, .Center)
         {
             .backgroundStyle = .Transparent
             .spacing         = .themeMetrics().menuPopup_SpaceLines
         }
+
         let preview = ImageRect.create(row, {width: image.width, height: image.height}, ClipboardPreviewId)
         preview.setImage(image)
         Label.create(row, appStrings().ui_HubLastCopied, flags: .SecondaryText)
@@ -272,7 +282,7 @@ impl ResidentPanel
 
     private mtd addHubItems()
     {
-        let texts   = appStrings()
+        let texts = appStrings()
         with .menu
         {
             .addLabel(texts.ui_MenuCapture)
@@ -340,7 +350,7 @@ impl ResidentPanel
         {
             .backgroundStyle = .Transparent
             .spacing         = metrics.menuPopup_SpaceLines
-            .hookOnEvent    = func|panel = me|(_, evt)->bool
+            .hookOnEvent     = func|panel = me|(_, evt)->bool
             {
                 if evt is KeyEvent as key where key.kind == .Pressed and (key.key == .Left or key.key == .Right)
                 {
@@ -348,15 +358,15 @@ impl ResidentPanel
                     key.accepted = true
                     return true
                 }
+
                 return false
             }
         }
 
         for id, index in PictureChoiceCommands
         {
-            let state = main.sendComputeCommandStateEvent(id)
-            with let button = IconButton.create(choices, state.icon,
-                                                {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75}, flags: .Radio)
+            let state       = main.sendComputeCommandStateEvent(id)
+            with let button = IconButton.create(choices, state.icon, {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75}, flags: .Radio)
             {
                 .preferredSize.x = 0
                 .padding         = metrics.btnIcon_Padding * 0.5
@@ -417,7 +427,7 @@ impl ResidentPanel
 
         let area   = Env.monitorForPoint(pointer).physicalWorkArea
         let corner = .main.hubBounds.isEmpty() ? Math.Point{area.horzCenter() - width * 0.5, area.vertCenter() - height * 0.5} :
-                                                 .main.hubBounds.topLeft()
+                     .main.hubBounds.topLeft()
 
         surface.setPosition({corner.x, corner.y, width, height})
         surface.constrainPositionToScreen()

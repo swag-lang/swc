@@ -5,11 +5,11 @@ struct ExplorerFolderState
 {
     path:       String
     folder:     String
-    mode:       ExplorerMode = .Medium
+    mode:       ExplorerMode          = .Medium
     forced:     bool
     board:      ExplorerBoard
     artwork:    ExplorerArtworkSource = .Online
-    crop:       Image.SmartCropMode = .Attention
+    crop:       Image.SmartCropMode   = .Attention
     kind:       ExplorerKindFilter
     sortColumn: u32
     descending: bool

@@ -128,7 +128,7 @@ namespace
     {
         const ConstantRef messageCstRef = CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), message);
         SWC_ASSERT(messageCstRef.isValid());
-        const auto messageArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, messageCstRef);
+        const auto       messageArg = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, messageCstRef);
         const std::array reportArgs = {messageArg.reg};
         return emitRuntimePanicCall(codeGen, runtimeFunction, node, reportArgs);
     }
@@ -871,7 +871,7 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
 
 Result CodeGenSafety::normalizeAndCheckSliceBounds(CodeGen& codeGen, AstNodeRef nodeRef, const SliceBounds& bounds)
 {
-    nodeRef = codeGen.resolvedNodeRef(nodeRef);
+    nodeRef                 = codeGen.resolvedNodeRef(nodeRef);
     const auto* nodePayload = nodeRef.isValid() ? codeGen.loweringPayload(nodeRef) : nullptr;
     const bool  checkBounds = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck);
 

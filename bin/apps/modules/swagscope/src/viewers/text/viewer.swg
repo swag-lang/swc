@@ -714,7 +714,6 @@ impl IWnd for Panel
         {
         case .LanguageChanged: .retranslate()
         case .ThemeChanged:    .applyMeasure()
-
         case .ChildFocusChanged, .PressedElsewhere, .KeyboardLayoutChanged, .ShortcutsChanged: break
         }
 
@@ -825,14 +824,15 @@ impl Panel
         // The tab stops and the encodings answer a query rather than fill the empty lens; the
         // options list them too.
         for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
-            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace,
-                        func|view = me, width|() { view.setTabWidth(width) },
-                        checked: .tabWidth == width, bindId: Format.toString("scope.text.tabWidth.%", width))
+            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width, bindId: Format.toString("scope.text.tabWidth.%", width))
         for encoding in Encodings where entries.query.count or entries.results.collectingShortcuts
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
-            entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) },
-                        checked: encoding == .encoding, bindId: Format.toString("scope.text.encoding.%", encoding))
+            entries.add(name,
+                        .FileCode,
+                        func|view = me, encoding|() { view.applyEncoding(encoding) },
+                        checked: encoding == .encoding,
+                        bindId: Format.toString("scope.text.encoding.%", encoding))
         }
 
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })

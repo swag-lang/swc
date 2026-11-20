@@ -176,6 +176,7 @@ impl PathBar
     {
         if not .editing do
             return
+
         // Clearing focus calls back through the editor's focus-loss signal.
         .editing = false
         .app().unregisterHookEvents(me)
@@ -208,8 +209,10 @@ impl IWnd for PathBar
             if mouse.target != .edit and not .edit.isOwnerOf(mouse.target) do
                 .endEdit()
         }
-        elif evt is NotifyEvent as notify where notify.kind == .PressedElsewhere do
+        elif evt is NotifyEvent as notify where notify.kind == .PressedElsewhere
+        {
             .endEdit()
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)

@@ -206,6 +206,7 @@ func createViewer(host: Viewer.Host)
             result.canvasColor = color
             result.services.informationChanged(result)
         }
+
         if result.factsFinal and not loading do
             return
         result.factsFinal = not loading

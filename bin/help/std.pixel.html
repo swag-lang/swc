@@ -170,7 +170,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">50</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">51</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Pixel_Clipper_ClipType">Clipper.ClipType</a></li>
@@ -186,6 +186,7 @@
 <li><a href="#Pixel_Image_MixMode">Image.MixMode</a></li>
 <li><a href="#Pixel_Image_ResizeMode">Image.ResizeMode</a></li>
 <li><a href="#Pixel_Image_Rotation">Image.Rotation</a></li>
+<li><a href="#Pixel_Image_SmartCropMode">Image.SmartCropMode</a></li>
 <li><a href="#Pixel_AlphaMode">Pixel.AlphaMode</a></li>
 <li><a href="#Pixel_Argb">Pixel.Argb</a></li>
 <li><a href="#Pixel_BackdropBlur">Pixel.BackdropBlur</a></li>
@@ -251,7 +252,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">527</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">530</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Gif_AnimationWriter_addFrame">AnimationWriter.addFrame</a></li>
@@ -452,6 +453,7 @@
 <li><a href="#Pixel_Image_setChannel">Image.setChannel</a></li>
 <li><a href="#Pixel_Image_setTransparentColor">Image.setTransparentColor</a></li>
 <li><a href="#Pixel_Image_smartCrop">Image.smartCrop</a></li>
+<li><a href="#Pixel_Image_smartCropRect">Image.smartCropRect</a></li>
 <li><a href="#Pixel_Image_toHicon">Image.toHicon</a></li>
 <li><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></li>
 <li><a href="#Pixel_Image_withKernelApplied">Image.withKernelApplied</a></li>
@@ -686,6 +688,8 @@
 <li><a href="#Pixel_RenderCpu_opDrop">RenderCpu.opDrop</a></li>
 <li><a href="#Pixel_RenderCpu_reset">RenderCpu.reset</a></li>
 <li><a href="#Pixel_RenderCpu_surfaceImage">RenderCpu.surfaceImage</a></li>
+<li><a href="#Pixel_RenderOgl_blitRenderTargetToWindow">RenderOgl.blitRenderTargetToWindow</a></li>
+<li><a href="#Pixel_RenderOgl_finishFrameWithoutPresent">RenderOgl.finishFrameWithoutPresent</a></li>
 <li><a href="#Pixel_RenderOgl_opDrop">RenderOgl.opDrop</a></li>
 <li><a href="#Pixel_RenderOgl_recoverLostDevice">RenderOgl.recoverLostDevice</a></li>
 <li><a href="#Pixel_RenderOgl_resetScratchCounters">RenderOgl.resetScratchCounters</a></li>
@@ -1497,6 +1501,8 @@ material.<span class="SFct">draw</span>(&amp;painter, <span class="SCst"><a href
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_Rotation">Image.Rotation</a></td><td><p>Clockwise rotation applied by <a href="#Pixel_Image_rotate">Pixel.Image.rotate</a> and <a href="#Pixel_Image_rotated">Pixel.Image.rotated</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_Image_SmartCropMode">Image.SmartCropMode</a></td><td><p>Selects how <a href="#Pixel_Image_smartCropRect">Pixel.Image.smartCropRect</a> positions a cover crop.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_AlphaMode">Pixel.AlphaMode</a></td><td><p>States how RGB samples relate to alpha in formats that store alpha.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Argb">Pixel.Argb</a></td><td><p>Provides named opaque colors packed as <span class="code-inline">0xAARRGGBB</span>.</p>
@@ -2017,6 +2023,8 @@ material.<span class="SFct">draw</span>(&amp;painter, <span class="SCst"><a href
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_smartCrop">Image.smartCrop</a></td><td><p>Reframes and crops the image to the size of <span class="code-inline">rect</span>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_Image_smartCropRect">Image.smartCropRect</a></td><td><p>Returns the largest crop with the supplied width-to-height ratio, in source pixel coordinates.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_toHicon">Image.toHicon</a></td><td><p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></td><td><p>Visits pixels in parallel using chunks separated by <span class="code-inline">stride</span> pixels.</p>
@@ -2484,6 +2492,10 @@ material.<span class="SFct">draw</span>(&amp;painter, <span class="SCst"><a href
 <tr><td class="code-type"><a href="#Pixel_RenderCpu_reset">RenderCpu.reset</a></td><td><p>Resets all renderer-owned resources and returns to an empty deterministic state.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderCpu_surfaceImage">RenderCpu.surfaceImage</a></td><td><p>Returns an owned copy of the current surface pixels.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_blitRenderTargetToWindow">RenderOgl.blitRenderTargetToWindow</a></td><td><p>Copies the visible top-left rectangle of a render target into the window back buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_finishFrameWithoutPresent">RenderOgl.finishFrameWithoutPresent</a></td><td><p>Finishes the current frame while retaining the contents of the native front buffer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_opDrop">RenderOgl.opDrop</a></td><td><p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 </td></tr>
@@ -4331,6 +4343,8 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_Rotation">Rotation</a></td><td><p>Clockwise rotation applied by <a href="#Pixel_Image_rotate">Pixel.Image.rotate</a> and <a href="#Pixel_Image_rotated">Pixel.Image.rotated</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_Image_SmartCropMode">SmartCropMode</a></td><td><p>Selects how <a href="#Pixel_Image_smartCropRect">Pixel.Image.smartCropRect</a> positions a cover crop.</p>
+</td></tr>
 </tbody>
 </table>
 <h3 id="Pixel_Image_methods">Methods</h3>
@@ -4472,6 +4486,8 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 <tr><td class="code-type"><a href="#Pixel_Image_setTransparentColor">setTransparentColor</a></td><td><p>Replaces the color of every fully transparent pixel with <span class="code-inline">color</span>, leaving alpha alone.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_smartCrop">smartCrop</a></td><td><p>Reframes and crops the image to the size of <span class="code-inline">rect</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Image_smartCropRect">smartCropRect</a></td><td><p>Returns the largest crop with the supplied width-to-height ratio, in source pixel coordinates.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_toHicon">toHicon</a></td><td><p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 </td></tr>
@@ -5600,6 +5616,10 @@ painter.<span class="SFct">end</span>()</span></div>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_blitRenderTargetToWindow">blitRenderTargetToWindow</a></td><td><p>Copies the visible top-left rectangle of a render target into the window back buffer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_finishFrameWithoutPresent">finishFrameWithoutPresent</a></td><td><p>Finishes the current frame while retaining the contents of the native front buffer.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_opDrop">opDrop</a></td><td><p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_recoverLostDevice">recoverLostDevice</a></td><td><p>Rebuilds the renderer after the driver reset its graphics device, and reports whether it had to.</p>
@@ -6733,8 +6753,6 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <tbody>
 <tr><td id="Pixel_Testing_ImageGoldenOptions_acceptEdgeChoice" class="code-type">acceptEdgeChoice</td><td class="code-type">bool</td><td><p>Whether a renderer comparison accepts a boundary between two areas sitting one pixel off.</p>
 </td></tr>
-<tr><td id="Pixel_Testing_ImageGoldenOptions_cpuRendered" class="code-type">cpuRendered</td><td class="code-type">bool</td><td><p>Whether the image comes from the CPU renderer whatever renderer the run selected.</p>
-</td></tr>
 <tr><td id="Pixel_Testing_ImageGoldenOptions_maxChannelDelta" class="code-type">maxChannelDelta</td><td class="code-type">u8</td><td><p>Maximum absolute difference accepted for each ARGB channel.</p>
 </td></tr>
 <tr><td id="Pixel_Testing_ImageGoldenOptions_maxDifferentPixels" class="code-type">maxDifferentPixels</td><td class="code-type">u64</td><td><p>Maximum number of pixels allowed outside the channel tolerance.</p>
@@ -7070,6 +7088,25 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <tr><td id="Image_Rotation_Clockwise90" class="code-type">Clockwise90</td><td><p>Rotate clockwise by 90 degrees.</p>
 </td></tr>
 <tr><td id="Image_Rotation_HalfTurn" class="code-type">HalfTurn</td><td><p>Rotate by 180 degrees.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pixel_Image_SmartCropMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Image.SmartCropMode</span> <a class="api-item-permalink" href="#Pixel_Image_SmartCropMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcroprect.swg#L6">src</a></div>
+<p>Selects how <a href="#Pixel_Image_smartCropRect">Pixel.Image.smartCropRect</a> positions a cover crop.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">SmartCropMode</span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Image_SmartCropMode_Attention" class="code-type">Attention</td><td><p>Centers the crop over the most visually salient region.</p>
+</td></tr>
+<tr><td id="Image_SmartCropMode_Center" class="code-type">Center</td><td><p>Centers the crop on the source.</p>
+</td></tr>
+<tr><td id="Image_SmartCropMode_Entropy" class="code-type">Entropy</td><td><p>Trims the edges whose luminance histograms carry less information.</p>
+</td></tr>
+<tr><td id="Image_SmartCropMode_None" class="code-type">None</td><td><p>Keeps the entire source.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8188,27 +8225,27 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidRenderTargetHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidRenderTargetHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidRenderTargetHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L68">src</a></div>
 <p>Sentinel that identifies no framebuffer.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidRenderTargetHandle</span>: <span class="SCst"><a href="#Pixel_RenderTargetHandle">RenderTargetHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidRenderTargetHandle</span>: <span class="SCst"><a href="#Pixel_RenderTargetHandle">RenderTargetHandle</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="#Pixel_RenderTargetHandle">RenderTargetHandle</a></span>, <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidRenderTargetSurfaceHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidRenderTargetSurfaceHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidRenderTargetSurfaceHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L72">src</a></div>
 <p>Sentinel that identifies no surface.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidRenderTargetSurfaceHandle</span>: <span class="SCst"><a href="#Pixel_RenderTargetSurfaceHandle">RenderTargetSurfaceHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidRenderTargetSurfaceHandle</span>: <span class="SCst"><a href="#Pixel_RenderTargetSurfaceHandle">RenderTargetSurfaceHandle</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="#Pixel_RenderTargetSurfaceHandle">RenderTargetSurfaceHandle</a></span>, <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidShaderHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidShaderHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidShaderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/shader.swg#L7">src</a></div>
 <p>Sentinel that identifies no shader program.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidShaderHandle</span>: <span class="SCst"><a href="#Pixel_ShaderHandle">ShaderHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidShaderHandle</span>: <span class="SCst"><a href="#Pixel_ShaderHandle">ShaderHandle</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="#Pixel_ShaderHandle">ShaderHandle</a></span>, <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidShaderParamHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidShaderParamHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidShaderParamHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/shader.swg#L11">src</a></div>
 <p>Sentinel for an unavailable uniform.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidShaderParamHandle</span>: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span> = <span class="SKwd">cast</span>(-<span class="SNum">1</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidShaderParamHandle</span>: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span>, -<span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_InvalidTextureHandle" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.InvalidTextureHandle</span> <a class="api-item-permalink" href="#Pixel_InvalidTextureHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L64">src</a></div>
 <p>Sentinel that identifies no texture.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidTextureHandle</span>: <span class="SCst"><a href="#Pixel_TextureHandle">TextureHandle</a></span> = <span class="SKwd">cast</span>(<span class="SNum">0</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InvalidTextureHandle</span>: <span class="SCst"><a href="#Pixel_TextureHandle">TextureHandle</a></span> = <span class="SKwd">cast</span>(<span class="SCst"><a href="#Pixel_TextureHandle">TextureHandle</a></span>, <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-const"><span id="Pixel_LineCapStyleValues" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Pixel.LineCapStyleValues</span> <a class="api-item-permalink" href="#Pixel_LineCapStyleValues" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/types/pen.swg#L19">src</a></div>
@@ -8712,19 +8749,19 @@ glass.<span class="SFct">draw</span>(&amp;painter, panelRect)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3618">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3619">src</a></div>
 <p>Returns the preferred image dimensions in CSS pixels.</p>
 <p>Absolute root <span class="code-inline">width</span> and <span class="code-inline">height</span> attributes determine this size. A missing or relative dimension is inferred from the other dimension and the view-box aspect ratio; if neither dimension is absolute, the view-box size is returned. Nonpositive dimensions are treated as unspecified. This query does not change the user-space coordinates used by <a href="#Pixel_Svg_Drawing_paint">Pixel.Svg.Drawing.paint</a> and <a href="#Pixel_Svg_Drawing_rasterize">Pixel.Svg.Drawing.rasterize</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">naturalSize</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3726">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3727">src</a></div>
 <p>Paints the drawing with its origin at <span class="code-inline">(x, y)</span> of the current path space, scaled by <span class="code-inline">scale</span>.</p>
 <p>Fills follow the fill rule of each shape, normalized when the document is parsed, and strokes honor width, caps, and joins scaled by <span class="code-inline">scale</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">paint</span>(painter: *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, x, y: <span class="STpe">f32</span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3648">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3649">src</a></div>
 <p>Parses an SVG document authored in the supported subset.</p>
 <p>The result owns its shapes and decoded images. Text supports one-level <span class="code-inline">tspan</span> runs with <span class="code-inline">x</span>, <span class="code-inline">y</span>, <span class="code-inline">dx</span>, <span class="code-inline">dy</span>, size, family class, anchor, weight, style, letter and word spacing, solid fill, and opacity, and runs along the direction its element is turned by. Images stretch into their declared rectangle. Patterns repeat vector shape tiles in user or object-bounding-box units. Filters support either a Gaussian blur followed by offsets, or a standalone <span class="code-inline">feDropShadow</span>.</p>
 <p>A <span class="code-inline">clip-path</span> is instantiated in the space of the element that names it, a <span class="code-inline">use</span> fits a referenced <span class="code-inline">symbol</span>'s view box into the size it asks for, and markers are placed on authored vertices with the tangent orientation <span class="code-inline">orient="auto"</span> states. A reference to an identifier the document does not define leaves its element alone. Missing, nonpositive, or unrepresentable natural dimensions fail.</p>
@@ -8732,7 +8769,7 @@ glass.<span class="SFct">draw</span>(&amp;painter, panelRect)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(text: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Svg_ParseOptions">ParseOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Svg_Drawing">Drawing</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L4132">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L4133">src</a></div>
 <p>Rasterizes the drawing into an owned image of exactly <span class="code-inline">width</span> by <span class="code-inline">height</span> pixels.</p>
 <p>The drawing is scaled uniformly from its view box to <span class="code-inline">width</span>, antialiased, on a transparent ground. Rasterization is done in software: no window, no GPU.</p>
 <p><span class="code-inline">supersample</span> renders that many samples per axis and box-filters them down, replacing the renderer's screen-space edge feather with near-exact coverage. The default doubles sampling, a good balance for icon and atlas work.</p>
@@ -8744,7 +8781,7 @@ glass.<span class="SFct">draw</span>(&amp;painter, panelRect)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rasterize</span>(renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span>, width, height: <span class="STpe">s32</span>, supersample: <span class="STpe">u8</span> = <span class="SNum">2</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3609">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3610">src</a></div>
 <p>Returns the number of parsed shapes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">shapeCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -8782,81 +8819,81 @@ glass.<span class="SFct">draw</span>(&amp;painter, panelRect)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">prepare</span>(pathList: *<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, scale: <span class="STpe">f32</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_getGlyphDesc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.getGlyphDesc</span> <a class="api-item-permalink" href="#Pixel_Font_getGlyphDesc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L495">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_getGlyphDesc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.getGlyphDesc</span> <a class="api-item-permalink" href="#Pixel_Font_getGlyphDesc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L496">src</a></div>
 <p>Returns a rune's descriptor, including fallback, in this font's reference-size units.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getGlyphDesc</span>(c: <span class="STpe">rune</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_GlyphDesc">GlyphDesc</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_getGlyphDescByIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.getGlyphDescByIndex</span> <a class="api-item-permalink" href="#Pixel_Font_getGlyphDescByIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L498">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_getGlyphDescByIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.getGlyphDescByIndex</span> <a class="api-item-permalink" href="#Pixel_Font_getGlyphDescByIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L499">src</a></div>
 <p>Returns the descriptor of a glyph index of this font's typeface, in reference-size pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getGlyphDescByIndex</span>(glyphIndex: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_GlyphDesc">GlyphDesc</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndex</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L504">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndex</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L505">src</a></div>
 <p>Returns a rune's glyph index in this typeface alone, or zero when absent.</p>
 <p>Use <a href="#Pixel_Font_resolveRune">Pixel.Font.resolveRune</a> first when fallback is wanted. Glyph indices are local to a face; explicit indices, PDF encodings, and glyph-name lookups never use fallback.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndex</span>(c: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByCid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByCid</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByCid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L522">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByCid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByCid</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByCid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L523">src</a></div>
 <p>Returns the glyph index a character identifier selects in a CID-keyed typeface.</p>
 <p>Zero is returned for any typeface that is not CID-keyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByCid</span>(cid: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByCode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByCode</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByCode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L517">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByCode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByCode</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByCode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L518">src</a></div>
 <p>Returns the glyph index the typeface's own built-in encoding places at one code.</p>
 <p>This is the encoding the font program declares, not a Unicode map. Zero is returned for a typeface that declares none, and for an unused code.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByCode</span>(code: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByName</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L511">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_glyphIndexByName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.glyphIndexByName</span> <a class="api-item-permalink" href="#Pixel_Font_glyphIndexByName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L512">src</a></div>
 <p>Returns the glyph index a PostScript glyph name selects, or zero when the typeface names no glyph so.</p>
 <p>A CFF or Type 1 program keys its outlines by name, which is how a document format addresses them; a TrueType face names none and always answers zero.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_kerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.kerning</span> <a class="api-item-permalink" href="#Pixel_Font_kerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L528">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_kerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.kerning</span> <a class="api-item-permalink" href="#Pixel_Font_kerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L529">src</a></div>
 <p>Returns the horizontal kerning between two glyph indices, in pixels at the drawing size.</p>
 <p>Returns zero when the typeface carries no kerning for the pair. Pass the indices returned by <a href="#Pixel_Font_glyphIndex">Pixel.Font.glyphIndex</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">kerning</span>(leftIndex, rightIndex: <span class="STpe">u32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_opticalLineTop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalLineTop</span> <a class="api-item-permalink" href="#Pixel_Font_opticalLineTop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L446">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_opticalLineTop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalLineTop</span> <a class="api-item-permalink" href="#Pixel_Font_opticalLineTop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L447">src</a></div>
 <p>Returns the top of a line box of this font whose capitals are centered on <span class="code-inline">centerY</span>.</p>
 <p>This is how a single line is centered in something a reader sees the edges of — a field, a cell, a button. Centering the line <i>box</i> instead hands the placement to the internal leading of the face: two fields of one form, one set in the interface face and one in the fixed-width one, then put their words on centers a couple of pixels apart, and neither on the center of the frame around it. What the eye compares is the ink, so it is the ink that is centered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opticalLineTop</span>(centerY: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_opticalOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalOffset</span> <a class="api-item-permalink" href="#Pixel_Font_opticalOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L434">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_opticalOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalOffset</span> <a class="api-item-permalink" href="#Pixel_Font_opticalOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L435">src</a></div>
 <p>Returns the distance from the middle of a line box to the middle of the text a reader sees in it.</p>
 <p>A line box reaches from the ascender to the descender, but a word is read on its capitals, and the two middles are not the same point: the ascender keeps room above the capitals for accents the word may not carry, and the descender keeps room below the baseline for tails it may not carry either. The sign therefore belongs to the face, not to the rule — a text face with generous accent room reads low in its line box, a compact one reads high. Add it to the center of a rectangle a single line box is centered in to place anything that has to look level with that line, such as a leading icon or a check mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opticalOffset</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_opticalTop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalTop</span> <a class="api-item-permalink" href="#Pixel_Font_opticalTop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L437">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_opticalTop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.opticalTop</span> <a class="api-item-permalink" href="#Pixel_Font_opticalTop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L438">src</a></div>
 <p>Returns the top of an item <span class="code-inline">size</span> pixels tall placed level with a line of this font centered on <span class="code-inline">centerY</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opticalTop</span>(centerY, size: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_renderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.renderMode</span> <a class="api-item-permalink" href="#Pixel_Font_renderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L449">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_renderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.renderMode</span> <a class="api-item-permalink" href="#Pixel_Font_renderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L450">src</a></div>
 <p>Returns the render mode requested at creation, which can be <span class="code-inline">Auto</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">renderMode</span>()-&gt;<span class="SCst"><a href="#Pixel_FontRenderMode">FontRenderMode</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_resolveDrawFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.resolveDrawFont</span> <a class="api-item-permalink" href="#Pixel_Font_resolveDrawFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L538">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_resolveDrawFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.resolveDrawFont</span> <a class="api-item-permalink" href="#Pixel_Font_resolveDrawFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L539">src</a></div>
 <p>Resolves the concrete font for an on-screen pixel size.</p>
 <p><span class="code-inline">effectivePx</span> is the glyph size in physical device pixels, including zoom and display scale. An MSDF font returns itself: it is size independent. A bitmap font re-rasterizes at the effective size when it differs from its own, so the atlas always matches the device pixels it lands on. An automatic font uses the size-independent MSDF view at or above the automatic quality threshold, and a crisp bitmap rasterized at the exact device pixel size below it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">resolveDrawFont</span>(font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, effectivePx: <span class="STpe">f32</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_resolveRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.resolveRune</span> <a class="api-item-permalink" href="#Pixel_Font_resolveRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L457">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_resolveRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.resolveRune</span> <a class="api-item-permalink" href="#Pixel_Font_resolveRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L458">src</a></div>
 <p>Resolves the font used to draw a Unicode character, including configured fallbacks.</p>
 <p>The returned view belongs to the same cache and has the same size, reference units, and rendering mode. If no face covers <span class="code-inline">c</span>, returns this font for its missing glyph. Successful and unsuccessful searches are cached. System lookup can load font data. This resolves individual scalars; it does not perform cluster shaping or bidi layout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resolveRune</span>(c: <span class="STpe">rune</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Font_scale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.scale</span> <a class="api-item-permalink" href="#Pixel_Font_scale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L423">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Font_scale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Font.scale</span> <a class="api-item-permalink" href="#Pixel_Font_scale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L424">src</a></div>
 <p>Returns the factor that scales reference-size glyph metrics to this font's draw size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">scale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -8870,12 +8907,10 @@ glass.<span class="SFct">draw</span>(&amp;painter, panelRect)
 <div class="api-item api-item-func"><span id="Pixel_FontCache_createFont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCache.createFont</span> <a class="api-item-permalink" href="#Pixel_FontCache_createFont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L387">src</a></div>
 <p>Creates a font from an existing typeface and draw size.</p>
 <p><span class="code-inline">mode</span> selects the rendering technique. <span class="code-inline">Auto</span>, the default, adapts between bitmap and MSDF rendering at draw time. The returned view is owned by this cache; never delete it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createFont</span>(typeFace: *<span class="SCst"><a href="#Pixel_TypeFace">TypeFace</a></span>, size: <span class="STpe">u32</span>, mode = <span class="SCst"><a href="#Pixel_FontRenderMode">FontRenderMode</a></span>.<span class="SCst"><a href="#Pixel_FontRenderMode_Auto">Auto</a></span>,
-               forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createFont</span>(typeFace: *<span class="SCst"><a href="#Pixel_TypeFace">TypeFace</a></span>, size: <span class="STpe">u32</span>, mode = <span class="SCst"><a href="#Pixel_FontRenderMode">FontRenderMode</a></span>.<span class="SCst"><a href="#Pixel_FontRenderMode_Auto">Auto</a></span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span></span></div>
 <p>Loads a typeface file and creates a font at the requested draw size.</p>
 <p>The file is loaded by <a href="#Pixel_TypeFace_load">Pixel.TypeFace.load</a>, which reports a missing or malformed file through <span class="code-inline">fail</span>. Typefaces are shared process-wide: they are immutable parsed files with no graphics resource of their own, so loading the same one through two caches parses it once.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createFont</span>(fullName: <span class="STpe">string</span>, size: <span class="STpe">u32</span>, mode = <span class="SCst"><a href="#Pixel_FontRenderMode">FontRenderMode</a></span>.<span class="SCst"><a href="#Pixel_FontRenderMode_Auto">Auto</a></span>,
-               forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createFont</span>(fullName: <span class="STpe">string</span>, size: <span class="STpe">u32</span>, mode = <span class="SCst"><a href="#Pixel_FontRenderMode">FontRenderMode</a></span>.<span class="SCst"><a href="#Pixel_FontRenderMode_Auto">Auto</a></span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;*<span class="SCst"><a href="#Pixel_Font">Font</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_FontCache_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCache.opDrop</span> <a class="api-item-permalink" href="#Pixel_FontCache_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/font.swg#L289">src</a></div>
@@ -8892,36 +8927,36 @@ cache.<span class="SFct">setFallbackTypeFaces</span>([symbols], <span class="SKw
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFallbackTypeFaces</span>(faces: <span class="SKwd">const</span> [..] (*<span class="SCst"><a href="#Pixel_TypeFace">TypeFace</a></span>), useSystemFonts = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_addDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.addDirectory</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_addDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L114">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_addDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.addDirectory</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_addDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L115">src</a></div>
 <p>Adds supported font files from a directory tree and returns the number of faces added.</p>
 <p>Searches <span class="code-inline">.ttf</span>, <span class="code-inline">.otf</span>, <span class="code-inline">.ttc</span>, and <span class="code-inline">.otc</span> files, ignoring extension case. Does not follow child directory symbolic links. Unreadable or malformed font files are skipped independently; use <a href="#Pixel_FontCatalog_addFile">Pixel.FontCatalog.addFile</a> when each file's failure must be reported. A directory enumeration failure leaves this catalog unchanged. Repeated paths add no duplicate faces.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addDirectory</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_addFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.addFile</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_addFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_addFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.addFile</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_addFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L89">src</a></div>
 <p>Adds every face of an sfnt font or collection and returns the number added.</p>
 <p>Uses an absolute path and the target's path equality rules to suppress repeated paths; returns zero for an existing path, without rereading it. Symbolic-link aliases remain distinct. All metadata is parsed before the catalog changes: file or metadata errors leave it intact. Adding a file invalidates previously borrowed face pointers and slices.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addFile</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.clear</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L133">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.clear</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L134">src</a></div>
 <p>Removes all metadata and invalidates previously borrowed face pointers and slices.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_familyNames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.familyNames</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_familyNames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L144">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_familyNames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.familyNames</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_familyNames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L145">src</a></div>
 <p>Returns owned family names in Unicode case-insensitive order.</p>
 <p>Case variants form one family; its bytewise-smallest spelling is returned. Names are not Unicode-normalized, and the returned array outlives the catalog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">familyNames</span>()-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_findFace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.findFace</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_findFace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L165">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_findFace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.findFace</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_findFace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L166">src</a></div>
 <p>Borrows the closest available face of a family, or returns <span class="code-inline">null</span> if it is absent.</p>
 <p>Matches typographic family names with Unicode simple case folding. If no such family exists, searches legacy family names instead. Prefers the requested slant, then normal width, then the nearest weight (300 light, 400 regular, 600 semibold, 700 bold). Ties follow the catalog's stable ordering, independently of insertion order. No synthetic style is applied. The pointer remains valid until this catalog is mutated or destroyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">findFace</span>(family: <span class="STpe">string</span>, style = <span class="SCst"><a href="#Pixel_FontFamilyStyle">FontFamilyStyle</a></span>.<span class="SCst"><a href="#Pixel_FontFamilyStyle_Regular">Regular</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_FontFileFace">FontFileFace</a></span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_FontCatalog_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.toSlice</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L138">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_FontCatalog_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FontCatalog.toSlice</span> <a class="api-item-permalink" href="#Pixel_FontCatalog_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/fontcatalog.swg#L139">src</a></div>
 <p>Borrows all faces, sorted by family name, path, and collection index.</p>
 <p>The slice remains valid until this catalog is mutated or destroyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSlice</span>()-&gt;<span class="SKwd">const</span> [..] <span class="SCst"><a href="#Pixel_FontFileFace">FontFileFace</a></span></span></div>
@@ -9456,6 +9491,12 @@ cache.<span class="SFct">setFallbackTypeFaces</span>([symbols], <span class="SKw
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">smartCrop</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>, opts: <span class="SCst"><a href="#Pixel_Image_SmartCropSearchOpts">SmartCropSearchOpts</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Image_smartCropRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.smartCropRect</span> <a class="api-item-permalink" href="#Pixel_Image_smartCropRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/transform/smartcroprect.swg#L19">src</a></div>
+<p>Returns the largest crop with the supplied width-to-height ratio, in source pixel coordinates.</p>
+<p><span class="code-inline">aspect</span> must be finite and positive. The source must be valid. The result can have fractional edges, for use when sampling a texture. With <span class="code-inline">.None</span>, the result is the source bounds. The analysis uses a reduced working copy and leaves the source pixels unchanged.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">smartCropRect</span>(aspect: <span class="STpe">f32</span>, mode = <span class="SCst"><a href="#Pixel_Image_SmartCropMode">SmartCropMode</a></span>.<span class="SCst"><a href="#Image_SmartCropMode_Attention">Attention</a></span>)-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_toHicon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.toHicon</span> <a class="api-item-permalink" href="#Pixel_Image_toHicon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.win32.swg#L45">src</a></div>
 <p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toHicon</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HICON">HICON</a></span> <span class="SKwd">fail</span></span></div>
@@ -9551,7 +9592,7 @@ canvas.painter.<span class="SFct">drawString</span>(<span class="SNum">8</span>,
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.load</span> <a class="api-item-permalink" href="#Pixel_ImageReader_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L257">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.load</span> <a class="api-item-permalink" href="#Pixel_ImageReader_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L258">src</a></div>
 <p>Loads a file into owned storage and indexes its images.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Propagate">Propagate</a>]</span>
 <span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span> <span class="SKwd">fail</span></span></div>
@@ -9562,7 +9603,7 @@ canvas.painter.<span class="SFct">drawString</span>(<span class="SNum">8</span>,
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.read</span> <a class="api-item-permalink" href="#Pixel_ImageReader_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L267">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.read</span> <a class="api-item-permalink" href="#Pixel_ImageReader_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L268">src</a></div>
 <p>Decodes a zero-based image index, failing for a closed reader or an out-of-range index.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -10055,29 +10096,29 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">measure</span>(font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, options: <span class="SCst"><a href="#Pixel_MathLayoutOptions">MathLayoutOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_MathMetrics">MathMetrics</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_MathExpression_nodeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.nodeCount</span> <a class="api-item-permalink" href="#Pixel_MathExpression_nodeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1178">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_MathExpression_nodeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.nodeCount</span> <a class="api-item-permalink" href="#Pixel_MathExpression_nodeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1175">src</a></div>
 <p>Returns the number of parsed nodes, for diagnostics and cache accounting.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">nodeCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_MathExpression_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.opDrop</span> <a class="api-item-permalink" href="#Pixel_MathExpression_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1117">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_MathExpression_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.opDrop</span> <a class="api-item-permalink" href="#Pixel_MathExpression_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1114">src</a></div>
 <p>Releases the parsed expression tree and its cached layout data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_MathExpression_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_MathExpression_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1126">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_MathExpression_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.opPostCopy</span> <a class="api-item-permalink" href="#Pixel_MathExpression_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1123">src</a></div>
 <p>Produces an independent copy of the parsed expression.</p>
 <p>The owned node array is copied deeply. The root and every edge are rebound through stable parse-time node identifiers.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_MathExpression_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.parse</span> <a class="api-item-permalink" href="#Pixel_MathExpression_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1158">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_MathExpression_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.parse</span> <a class="api-item-permalink" href="#Pixel_MathExpression_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1155">src</a></div>
 <p>Parses a reusable TeX-like mathematical expression.</p>
 <p>Malformed or unsupported input is reported through <span class="code-inline">fail</span>, with the byte offset where parsing stopped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(source: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pixel_MathExpression">MathExpression</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_MathExpression_sourceText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.sourceText</span> <a class="api-item-permalink" href="#Pixel_MathExpression_sourceText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1175">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_MathExpression_sourceText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MathExpression.sourceText</span> <a class="api-item-permalink" href="#Pixel_MathExpression_sourceText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/math/expression.swg#L1172">src</a></div>
 <p>Returns the original TeX-like source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourceText</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
@@ -10140,7 +10181,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">clippingRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.computeLayout</span> <a class="api-item-permalink" href="#Pixel_Painter_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L958">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.computeLayout</span> <a class="api-item-permalink" href="#Pixel_Painter_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L961">src</a></div>
 <p>Lays out a rich string inside <span class="code-inline">pos</span>.</p>
 <p><span class="code-inline">deviceScale</span> must match the scale the text is drawn with. Chunk widths are measured with the same resolved draw font and device-snapped advances the draw pass uses, so wrapped lines, alignment, and inter-chunk gaps land where the glyphs actually end; measuring with nominal advances instead lets a per-glyph drift accumulate until a space between two chunks visually vanishes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">computeLayout</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>, text: *<span class="SCst"><a href="#Pixel_RichString">RichString</a></span>, format: <span class="SCst"><a href="#Pixel_RichStringFormat">RichStringFormat</a></span>, deviceScale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
@@ -10240,7 +10281,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>, pen: <span class="SCst"><a href="#Pixel_Pen">Pen</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawRichString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawRichString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawRichString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L1362">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawRichString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawRichString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawRichString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L1366">src</a></div>
 <p>Draws a rich string inside <span class="code-inline">pos</span>, laying it out when needed.</p>
 <p>The layout is recomputed on the first call, whenever <span class="code-inline">pos</span> or the device scale changes, and when <span class="code-inline">forceCompute</span> is true. With <a href="#Pixel_StringFormatFlags_Clip">Pixel.StringFormatFlags.Clip</a>, drawing is clipped to <span class="code-inline">pos</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawRichString</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>, text: *<span class="SCst"><a href="#Pixel_RichString">RichString</a></span>, format: <span class="SCst"><a href="#Pixel_RichStringFormat">RichStringFormat</a></span>, forceCompute = <span class="SKwd">false</span>)</span></div>
@@ -10268,7 +10309,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawShapedRun</span>(left, top: <span class="STpe">f32</span>, shaped: *<span class="SCst"><a href="#Pixel_ShapedRun">ShapedRun</a></span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>, effect: <span class="SCst"><a href="#Pixel_TextEffect">TextEffect</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst"><a href="#Pixel_UnderlineStyle_None">None</a></span>, zoom = <span class="SNum">1.0</span>, underlineOpacity = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L902">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawString</span> <a class="api-item-permalink" href="#Pixel_Painter_drawString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L905">src</a></div>
 <p>Draws a single-line string with its top-left corner at <span class="code-inline">(left, top)</span>.</p>
 <p>The text is shaped with the draw font resolved for the current transform, so an automatic font draws crisp bitmap glyphs at small on-screen sizes. <span class="code-inline">zoom</span> scales the text from its top-left corner. <span class="code-inline">underlineOpacity</span> attenuates the decoration independently, clamped to 0–1.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawString</span>(left, top: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst"><a href="#Pixel_UnderlineStyle_None">None</a></span>, zoom = <span class="SNum">1.0</span>, underlineOpacity = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
@@ -10280,7 +10321,7 @@ shape.<span class="SFct">intersect</span>(&amp;frame)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawString</span>(left, top: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, brush: <span class="SCst"><a href="#Pixel_Brush">Brush</a></span>, effect: <span class="SCst"><a href="#Pixel_TextEffect">TextEffect</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst"><a href="#Pixel_UnderlineStyle_None">None</a></span>, zoom = <span class="SNum">1.0</span>, underlineOpacity = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_drawStringCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawStringCenter</span> <a class="api-item-permalink" href="#Pixel_Painter_drawStringCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L888">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_drawStringCenter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.drawStringCenter</span> <a class="api-item-permalink" href="#Pixel_Painter_drawStringCenter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawstring.swg#L891">src</a></div>
 <p>Draws a single-line string centered on <span class="code-inline">(x, y)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">drawStringCenter</span>(x, y: <span class="STpe">f32</span>, text: <span class="STpe">string</span>, font: *<span class="SCst"><a href="#Pixel_Font">Font</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, under = <span class="SCst"><a href="#Pixel_UnderlineStyle">UnderlineStyle</a></span>.<span class="SCst"><a href="#Pixel_UnderlineStyle_None">None</a></span>, zoom = <span class="SNum">1.0</span>, underlineOpacity = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
@@ -10896,26 +10937,38 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">name</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3102">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3183">src</a></div>
 <p>Starts a CPU frame with the requested positive BGRA surface dimensions.</p>
 <p>Reusing the same dimensions preserves the surface pixels until they are cleared or drawn over. No native context is created.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(width, height: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3083">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3164">src</a></div>
 <p>Releases pooled render-target descriptors owned by the renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3092">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3173">src</a></div>
 <p>Resets all renderer-owned resources and returns to an empty deterministic state.</p>
 <p>Every outstanding texture and render-target handle from this renderer becomes invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3144">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L3225">src</a></div>
 <p>Returns an owned copy of the current surface pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_blitRenderTargetToWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.blitRenderTargetToWindow</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_blitRenderTargetToWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L876">src</a></div>
+<p>Copies the visible top-left rectangle of a render target into the window back buffer.</p>
+<p>Call after unbinding the target, with its window context current. The target may be larger than the drawable. Returns false when the rectangle is invalid or OpenGL rejects the copy. Call <a href="#Pixel_IRenderer_end">Pixel.IRenderer.end</a> to present the copied frame.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">blitRenderTargetToWindow</span>(target: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, width, height: <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_finishFrameWithoutPresent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.finishFrameWithoutPresent</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_finishFrameWithoutPresent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L845">src</a></div>
+<p>Finishes the current frame while retaining the contents of the native front buffer.</p>
+<p>Use when recording into an offscreen target for a later presentation or when abandoning a frame that could not be rendered. GPU commands remain ordered with later submissions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">finishFrameWithoutPresent</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L789">src</a></div>
@@ -10935,7 +10988,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetScratchCounters</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_selectProgram" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.selectProgram</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_selectProgram" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L2478">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_selectProgram" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.selectProgram</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_selectProgram" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L2537">src</a></div>
 <p>Makes <span class="code-inline">shader</span> the program of the commands that follow, as a painter command asks.</p>
 <p>A planar texture swaps in its own program and restores the displaced one when the next texture is bound; a program chosen after it supersedes that restore. Otherwise the reset that follows a font program's start would bring back the program the picture displaced, and the glyphs would be drawn by it: text right after a video frame came out as raw, blurred distance fields.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectProgram</span>(shader: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>?)</span></div>
@@ -10947,7 +11000,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setOffscreen</span>(enabled = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L2487">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L2546">src</a></div>
 <p>Makes <span class="code-inline">shader</span> the current OpenGL program, or the built-in antialiased program when <span class="code-inline">null</span>.</p>
 <p>The matrices, blending, and clipping uniforms of the program are refreshed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>? = <span class="SKwd">null</span>)</span></div>
@@ -11211,7 +11264,7 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">vertAlign</span>(align: <span class="SCst"><a href="#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_parseImageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Svg.parseImageSize</span> <a class="api-item-permalink" href="#Pixel_Svg_parseImageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3589">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_parseImageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Svg.parseImageSize</span> <a class="api-item-permalink" href="#Pixel_Svg_parseImageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3590">src</a></div>
 <p>Parses the root viewport's natural image size in CSS pixels without decoding its contents.</p>
 <p>The same width, height and view-box rules as <a href="#Pixel_Svg_Drawing_naturalSize">Pixel.Svg.Drawing.naturalSize</a> apply. Missing, nonpositive, or unrepresentable natural dimensions fail. Child elements and their resources are deliberately not validated; use <a href="#Pixel_Svg_Drawing_parse">Pixel.Svg.Drawing.parse</a> to prepare the complete drawing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseImageSize</span>(text: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span> <span class="SKwd">fail</span></span></div>
@@ -11270,7 +11323,7 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">triangulate</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L38">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L37">src</a></div>
 <p>Compares the display list recorded by <span class="code-inline">painter</span> against the golden named <span class="code-inline">name</span>.</p>
 <p>The painter is serialized with <a href="#Pixel_Testing_dumpPainter">Pixel.Testing.dumpPainter</a>, so this asserts on the <i>commands</i> a drawing emits, not on the pixels it would produce: it needs no GPU and no window, and its result is identical on every machine.</p>
 <p>Goldens live in <span class="code-inline">src/tests/goldens</span>, beside the categorized cases folder, one <span class="code-inline">.txt</span> file per name. <span class="code-inline">name</span> may contain <span class="code-inline">/</span> to group goldens in sub-folders.</p>
@@ -11280,28 +11333,27 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertGolden</span>(painter: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, name: <span class="STpe">string</span>, level = <span class="SCst"><a href="#Pixel_Testing_DumpLevel">DumpLevel</a></span>.<span class="SCst"><a href="#Pixel_Testing_DumpLevel_Full">Full</a></span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertGoldenText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertGoldenText</span> <a class="api-item-permalink" href="#Pixel_Testing_assertGoldenText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L50">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertGoldenText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertGoldenText</span> <a class="api-item-permalink" href="#Pixel_Testing_assertGoldenText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L49">src</a></div>
 <p>Compares arbitrary text against the golden named <span class="code-inline">name</span>.</p>
 <p>Behaves exactly like <a href="#Pixel_Testing_assertGolden">Pixel.Testing.assertGolden</a> but takes the snapshot text directly, for callers that build their own normalized representation. Both sides are compared with end of lines normalized to <span class="code-inline">\n</span>, so a CRLF checkout never changes the outcome. The check remains active when Pixel is built as a release dependency.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertGoldenText</span>(text: <span class="STpe">string</span>, name: <span class="STpe">string</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertImageGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImageGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImageGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L183">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertImageGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImageGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImageGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L174">src</a></div>
 <p>Compares owned pixels against the PNG golden named <span class="code-inline">name</span>.</p>
 <p>Goldens live under <span class="code-inline">src/tests/goldens/&lt;name&gt;.png</span>. A PNG golden is a CPU reference: only <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> produces the same pixels on every machine, so a golden is recorded, compared and replaced from a CPU render and from nothing else. The comparison is exact. A missing golden is created and passes, like <a href="#Pixel_Testing_assertGolden">Pixel.Testing.assertGolden</a>. A mismatch writes <span class="code-inline">&lt;name&gt;.actual.png</span>, reports its first differing pixel, and fails the test through <a href="swag.runtime.html#Swag_check">Swag.check</a>, which lets it compare its other goldens.</p>
-<p>An image is a CPU render when the run selected that renderer (<span class="code-inline">SWAG_TEST_RENDERER=cpu</span>, which the launchers set for every golden run) or when <a href="#Pixel_Testing_ImageGoldenOptions_cpuRendered">Pixel.Testing.ImageGoldenOptions.cpuRendered</a> says the test rendered it with the CPU backend itself. Any other image comes from a GPU host: it is not compared, and the first one of a run says so. What a GPU draws is checked against the CPU by the renderer parity tests, through <a href="#Pixel_Testing_assertRenderersAgree">Pixel.Testing.assertRenderersAgree</a>.</p>
-<p>The parity sweep (<span class="code-inline">SWAG_TEST_PARITY_SWEEP=1</span>) turns a GPU-hosted golden scene into such a check: the image is compared with the CPU golden under the parity tolerance, and never recorded. It is a way to find a divergence in a real scene, to reduce into a parity test.</p>
+<p>GUI headless hosts produce CPU pixels. Tests that compare renderers explicitly use <a href="#Pixel_Testing_assertRenderersAgree">Pixel.Testing.assertRenderersAgree</a>.</p>
 <p><a href="#Pixel_Testing_ImageGoldenOptions">Pixel.Testing.ImageGoldenOptions</a> can tolerate bounded codec or raster differences; both limits default to exact comparison. The check remains active when Pixel is built as a release dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased samples slightly differently: a release build also accepts a channel delta of two and four pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertImageGolden</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, name: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Testing_ImageGoldenOptions">ImageGoldenOptions</a></span> = {}, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertImagesNear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImagesNear</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImagesNear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertImagesNear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImagesNear</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImagesNear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L88">src</a></div>
 <p>Compares two owned pixel buffers with the same bounded tolerance as image goldens.</p>
 <p><span class="code-inline">expected</span> and <span class="code-inline">actual</span> must be valid images. Dimensions must match exactly. A channel delta at or below <a href="#Pixel_Testing_ImageGoldenOptions_maxChannelDelta">Pixel.Testing.ImageGoldenOptions.maxChannelDelta</a> is accepted; at most <a href="#Pixel_Testing_ImageGoldenOptions_maxDifferentPixels">Pixel.Testing.ImageGoldenOptions.maxDifferentPixels</a> pixels may exceed it. A failed comparison writes <span class="code-inline">&lt;name&gt;.expected.png</span> and <span class="code-inline">&lt;name&gt;.actual.png</span> beside the calling test, and fails it through <a href="swag.runtime.html#Swag_check">Swag.check</a> without stopping it. The check remains active when Pixel is built as a release dependency.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertImagesNear</span>(expected, actual: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, name: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Testing_ImageGoldenOptions">ImageGoldenOptions</a></span> = {}, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertRenderersAgree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertRenderersAgree</span> <a class="api-item-permalink" href="#Pixel_Testing_assertRenderersAgree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L134">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertRenderersAgree" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertRenderersAgree</span> <a class="api-item-permalink" href="#Pixel_Testing_assertRenderersAgree" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L133">src</a></div>
 <p>Compares what the CPU and a GPU renderer drew from the same scene.</p>
 <p><span class="code-inline">cpu</span> and <span class="code-inline">gpu</span> must be valid images of the same size. This is the comparison of the renderer parity campaign, and it accepts what separates one graphics device from another: each channel may be off by three levels anywhere, for rounding in blending, and by a share of the contrast around the pixel, for antialiasing and filtering. A flat area therefore only gets the rounding slack, while a shape that moved by a pixel, lost a stroke or changed color costs the whole contrast and is a difference. Rejected pixels count only when they form a shape. <a href="#Pixel_Testing_ImageGoldenOptions_maxChannelDelta">Pixel.Testing.ImageGoldenOptions.maxChannelDelta</a> raises the rounding slack and <a href="#Pixel_Testing_ImageGoldenOptions_maxDifferentPixels">Pixel.Testing.ImageGoldenOptions.maxDifferentPixels</a> accepts that many pixels of difference.</p>
 <p><a href="#Pixel_Testing_ImageGoldenOptions_acceptEdgeChoice">Pixel.Testing.ImageGoldenOptions.acceptEdgeChoice</a> also accepts a boundary between two areas that sits exactly one pixel off. That is what a picture drawn in pixel mode shows where a pixel centre maps onto a texel boundary: OpenGL leaves the side to the implementation, so one row or column of the picture reads the neighbouring texel. A boundary two pixels off, and a rule or stem that is missing rather than moved, stay differences. The option cannot tell such a tie from a filled shape whose edge really moved by one pixel, so a dedicated parity scene leaves it off and avoids the tie instead; the parity sweep, which draws real application scenes, turns it on.</p>
@@ -11370,13 +11422,13 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_TypeFace_buildRuneOutline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.buildRuneOutline</span> <a class="api-item-permalink" href="#Pixel_TypeFace_buildRuneOutline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L303">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_TypeFace_buildRuneOutline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.buildRuneOutline</span> <a class="api-item-permalink" href="#Pixel_TypeFace_buildRuneOutline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L305">src</a></div>
 <p>Builds the outline and advance of one rune at the requested size.</p>
 <p>Coordinates are in pixels with the baseline at zero and <span class="code-inline">y</span> growing downward. <span class="code-inline">embolden</span> widens the outline and the advance by that many pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">buildRuneOutline</span>(c: <span class="STpe">rune</span>, size: <span class="STpe">u32</span>, embolden: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;{outline: <span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, advance: <span class="STpe">f32</span>} <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_TypeFace_buildStringOutline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.buildStringOutline</span> <a class="api-item-permalink" href="#Pixel_TypeFace_buildStringOutline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L327">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_TypeFace_buildStringOutline" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.buildStringOutline</span> <a class="api-item-permalink" href="#Pixel_TypeFace_buildStringOutline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L329">src</a></div>
 <p>Builds the outlines of a UTF-8 string at the requested size.</p>
 <p>Runes are laid out on one baseline by their advances, without kerning. The contours of each rune form one group, so path-list boolean operations keep the glyphs apart.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">buildStringOutline</span>(text: <span class="STpe">string</span>, size: <span class="STpe">u32</span>, embolden: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span> <span class="SKwd">fail</span></span></div>
@@ -11447,22 +11499,19 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 <p>Rasterizes one glyph index as a grayscale bitmap at <span class="code-inline">size</span> pixels, like <a href="#Pixel_TypeFace_renderGlyph">Pixel.TypeFace.renderGlyph</a>.</p>
 <p><span class="code-inline">penOffsetX</span> moves the outline right by a fraction of a pixel before rasterization, so a glyph drawn from a fractional pen position keeps its exact ink while its bitmap stays aligned to whole pixels. The bitmap's left edge accounts for the offset.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Propagate">Propagate</a>]</span>
-<span class="SKwd">mtd</span> <span class="SFct">renderGlyphByIndex</span>(glyphIndex: <span class="STpe">u32</span>, size: <span class="STpe">u32</span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>,
-                       penOffsetX = <span class="SNum">0.0</span>'<span class="STpe">f32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">mtd</span> <span class="SFct">renderGlyphByIndex</span>(glyphIndex: <span class="STpe">u32</span>, size: <span class="STpe">u32</span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>, penOffsetX = <span class="SNum">0.0</span>'<span class="STpe">f32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_TypeFace_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.renderGlyphMsdf</span> <a class="api-item-permalink" href="#Pixel_TypeFace_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L280">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_TypeFace_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.renderGlyphMsdf</span> <a class="api-item-permalink" href="#Pixel_TypeFace_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L279">src</a></div>
 <p>Renders one rune as a multi-channel signed distance field at <span class="code-inline">size</span> pixels.</p>
 <p><span class="code-inline">spread</span> is the distance range in pixels. The bitmap belongs to the typeface and is overwritten by the next rasterization.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(c: <span class="STpe">rune</span>, size, spread: <span class="STpe">u32</span>,
-                    forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(c: <span class="STpe">rune</span>, size, spread: <span class="STpe">u32</span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_TypeFace_renderGlyphMsdfByIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.renderGlyphMsdfByIndex</span> <a class="api-item-permalink" href="#Pixel_TypeFace_renderGlyphMsdfByIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L286">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_TypeFace_renderGlyphMsdfByIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.renderGlyphMsdfByIndex</span> <a class="api-item-permalink" href="#Pixel_TypeFace_renderGlyphMsdfByIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.swg#L284">src</a></div>
 <p>Renders one glyph index as a multi-channel signed distance field, like <a href="#Pixel_TypeFace_renderGlyphMsdf">Pixel.TypeFace.renderGlyphMsdf</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Propagate">Propagate</a>]</span>
-<span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdfByIndex</span>(glyphIndex: <span class="STpe">u32</span>, size, spread: <span class="STpe">u32</span>,
-                           forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
+<span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdfByIndex</span>(glyphIndex: <span class="STpe">u32</span>, size, spread: <span class="STpe">u32</span>, forceBold = <span class="SKwd">false</span>, forceItalic = <span class="SKwd">false</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="std.truetype.html#TrueType_Bitmap">Bitmap</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_YuvPlanarView_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">YuvPlanarView.chromaHeight</span> <a class="api-item-permalink" href="#Pixel_YuvPlanarView_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/yuvplanar.swg#L78">src</a></div>
@@ -11496,7 +11545,7 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1178</div>
 </footer>
 </section>
 </main>
@@ -12177,7 +12226,6 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 "v|Pixel.Svg.TraceOptions.tolerance|Pixel_Svg_TraceOptions_tolerance|Contour simplification tolerance, in source pixels. Larger values produce",
 "s|Pixel.Testing.ImageGoldenOptions|Pixel_Testing_ImageGoldenOptions|Configures tolerated differences for image-to-image and PNG-golden comparisons.",
 "v|Pixel.Testing.ImageGoldenOptions.acceptEdgeChoice|Pixel_Testing_ImageGoldenOptions_acceptEdgeChoice|Whether a renderer comparison accepts a boundary between two areas sitting one pixel off.",
-"v|Pixel.Testing.ImageGoldenOptions.cpuRendered|Pixel_Testing_ImageGoldenOptions_cpuRendered|Whether the image comes from the CPU renderer whatever renderer the run selected.",
 "v|Pixel.Testing.ImageGoldenOptions.maxChannelDelta|Pixel_Testing_ImageGoldenOptions_maxChannelDelta|Maximum absolute difference accepted for each ARGB channel.",
 "v|Pixel.Testing.ImageGoldenOptions.maxDifferentPixels|Pixel_Testing_ImageGoldenOptions_maxDifferentPixels|Maximum number of pixels allowed outside the channel tolerance.",
 "s|Pixel.Font|Pixel_Font|Represents a lightweight view of a shared Pixel.GlyphCache at one draw size.",
@@ -12476,6 +12524,11 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 "k|Image.Rotation.Clockwise270|Image_Rotation_Clockwise270|Rotate clockwise by 270 degrees.",
 "k|Image.Rotation.Clockwise90|Image_Rotation_Clockwise90|Rotate clockwise by 90 degrees.",
 "k|Image.Rotation.HalfTurn|Image_Rotation_HalfTurn|Rotate by 180 degrees.",
+"e|Pixel.Image.SmartCropMode|Pixel_Image_SmartCropMode|Selects how Pixel.Image.smartCropRect positions a cover crop.",
+"k|Image.SmartCropMode.Attention|Image_SmartCropMode_Attention|Centers the crop over the most visually salient region.",
+"k|Image.SmartCropMode.Center|Image_SmartCropMode_Center|Centers the crop on the source.",
+"k|Image.SmartCropMode.Entropy|Image_SmartCropMode_Entropy|Trims the edges whose luminance histograms carry less information.",
+"k|Image.SmartCropMode.None|Image_SmartCropMode_None|Keeps the entire source.",
 "e|Pixel.MathStyle|Pixel_MathStyle|Selects sizing and limit placement for a mathematical expression.",
 "k|Pixel.MathStyle.Display|Pixel_MathStyle_Display|Full-size stand-alone formula with limits above and below large operators.",
 "k|Pixel.MathStyle.Script|Pixel_MathStyle_Script|First-level subscript or superscript style.",
@@ -12959,6 +13012,7 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 "f|Pixel.Image.rotate|Pixel_Image_rotate|Rotates the image clockwise by a predefined angle.",
 "f|Pixel.Image.rotated|Pixel_Image_rotated|Returns a clockwise-rotated copy of the image.",
 "f|Pixel.Image.smartCrop|Pixel_Image_smartCrop|Reframes and crops the image to the size of rect.",
+"f|Pixel.Image.smartCropRect|Pixel_Image_smartCropRect|Returns the largest crop with the supplied width-to-height ratio, in source pixel coordinates.",
 "f|Pixel.MathExpression.measure|Pixel_MathExpression_measure|Measures the expression without drawing it.",
 "f|Pixel.MathExpression.nodeCount|Pixel_MathExpression_nodeCount|Returns the number of parsed nodes, for diagnostics and cache accounting.",
 "f|Pixel.MathExpression.opDrop|Pixel_MathExpression_opDrop|Releases the parsed expression tree and its cached layout data.",
@@ -13153,6 +13207,8 @@ title.<span class="SFct">setMarkup</span>(<span class="SCst"><a href="std.core.h
 "f|Pixel.RenderCpu.opDrop|Pixel_RenderCpu_opDrop|Releases pooled render-target descriptors owned by the renderer.",
 "f|Pixel.RenderCpu.reset|Pixel_RenderCpu_reset|Resets all renderer-owned resources and returns to an empty deterministic state.",
 "f|Pixel.RenderCpu.surfaceImage|Pixel_RenderCpu_surfaceImage|Returns an owned copy of the current surface pixels.",
+"f|Pixel.RenderOgl.blitRenderTargetToWindow|Pixel_RenderOgl_blitRenderTargetToWindow|Copies the visible top-left rectangle of a render target into the window back buffer.",
+"f|Pixel.RenderOgl.finishFrameWithoutPresent|Pixel_RenderOgl_finishFrameWithoutPresent|Finishes the current frame while retaining the contents of the native front buffer.",
 "f|Pixel.RenderOgl.opDrop|Pixel_RenderOgl_opDrop|Releases queued and currently bound render-target descriptors, and the glyph atlases.",
 "f|Pixel.RenderOgl.recoverLostDevice|Pixel_RenderOgl_recoverLostDevice|Rebuilds the renderer after the driver reset its graphics device, and reports whether it had to.",
 "f|Pixel.RenderOgl.resetScratchCounters|Pixel_RenderOgl_resetScratchCounters|Resets the scratch-clear counters, so a caller measures a frame rather than a session.",

@@ -183,9 +183,9 @@ struct Results
     {
         readonly
         {
-            query:    String     // What the reader typed, without its prefix.
-            folded:   Query      // The query folded once, for [[Gui.Lens.match]] against each row.
-            prefix:   Prefix     // Prefix the reader typed, or [[Gui.Lens.Prefix.None]].
+            query:    String               // What the reader typed, without its prefix.
+            folded:   Query                // The query folded once, for [[Gui.Lens.match]] against each row.
+            prefix:   Prefix               // Prefix the reader typed, or [[Gui.Lens.Prefix.None]].
             sections: ArrayPtr'Section     // Groups of rows, in the order they show.
             collectingShortcuts: bool      // The editor is asking for bindable commands, including choices normally shown only after a query.
         }

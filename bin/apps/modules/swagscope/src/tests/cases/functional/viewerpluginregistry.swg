@@ -92,7 +92,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     let registry = createViewerPluginRegistry()
     var host: Testing.HeadlessHost
-    let window = createFramedViewerWindow(&host, false)
+    let window   = createFramedViewerWindow(&host, false)
     for plugin in registry.plugins where plugin.key != "archive"
     {
         let file = viewerRegistryFixturePath(plugin.smokeFixture)

@@ -31,6 +31,7 @@ using Core, Gui
                 selected = true
                 return
             }
+
             Swag.require(not (surface.view() is InPlaceEditWnd), "clipboard mode opened the in-place editor")
         }
     }

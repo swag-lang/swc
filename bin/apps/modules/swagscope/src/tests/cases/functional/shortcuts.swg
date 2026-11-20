@@ -11,10 +11,10 @@ using Core, Gui
     discard expect File.writeAllText(fileName, "A line of plain text to wrap.\n")
 
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let window = openFramedViewerWindow(&host, fileName, light: false, width: 1100, height: 860)
     registerAppStrings(&host.app.resources)
-    let view = assume cast(*PlainText.Panel, unwrap window.currentView)
+    let view     = assume cast(*PlainText.Panel, unwrap window.currentView)
     let wrapping = view.wrapping
     view.editor.setFocus()
     host.keyPress(.W, .Control)
@@ -37,6 +37,7 @@ using Core, Gui
                 stage = 4
                 Swag.require(host.clickModalButton(Dialog.BtnCancel))
             }
+
         case 1:
             let filter = assume cast(*EditBox, unwrap root.childById("gui.shortcuts.filter"))
             let list   = assume cast(*ListCtrl, unwrap root.childById("gui.shortcuts.list"))
@@ -49,6 +50,7 @@ using Core, Gui
             host.clickWnd(unwrap root.childById("gui.shortcuts.change"))
             Swag.require(stage == 3)
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 2:
             stage = 3
             host.keyPress(.F8, .Control)

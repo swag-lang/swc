@@ -465,15 +465,11 @@ impl Panel
         // A typed language name offers to color the source as that language instead.
         if entries.query.count or entries.results.collectingShortcuts
         {
-            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode,
-                        func|view = me|() { view.highlightAs(.C, swag: true) },
-                        checked: .languageName == "Swag", bindId: "scope.code.language.Swag")
+            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode, func|view = me|() { view.highlightAs(.C, swag: true) }, checked: .languageName == "Swag", bindId: "scope.code.language.Swag")
             for language in SourceLanguage
             {
                 let name = displayName(language)
-                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode,
-                            func|view = me, language|() { view.highlightAs(language) },
-                            checked: .languageName == name, bindId: Format.toString("scope.code.language.%", language))
+                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode, func|view = me, language|() { view.highlightAs(language) }, checked: .languageName == name, bindId: Format.toString("scope.code.language.%", language))
             }
         }
 
@@ -484,9 +480,7 @@ impl Panel
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
         for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
-            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace,
-                        func|view = me, width|() { view.setTabWidth(width) },
-                        checked: .editor.tabSize == width, bindId: Format.toString("scope.code.tabWidth.%", width))
+            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .editor.tabSize == width, bindId: Format.toString("scope.code.tabWidth.%", width))
     }
 
     mtd showZoomMenu()

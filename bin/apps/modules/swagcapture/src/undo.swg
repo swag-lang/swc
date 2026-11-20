@@ -393,7 +393,8 @@ impl Undo
             .selection = capture.selection
             .oldForms  = capture.forms
 
-        case .CreateForm, .MoveBaseForm, .MoveCapture, .MovePoint: break
+        case .CreateForm, .MoveBaseForm, .MoveCapture, .MovePoint:
+            break
         }
     }
 

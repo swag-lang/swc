@@ -1072,12 +1072,12 @@ func __indexPanic(index: u64, length: u64, signedIndex: bool, loc: SourceCodeLoc
     const middle = " is outside the collection of length "
 
     // Space for both full-width integers and the conversion helpers' terminator.
-    var buffer: [prefix.count + 20 + middle.count + 20 + 1] u8
+    var buffer:  [prefix.count + 20 + middle.count + 20 + 1] u8
     let message: [*] u8 = &buffer[0]
     var cursor = __appendPanicText(message, prefix)
-    cursor     = __appendPanicNumber(cursor, index, signedIndex)
-    cursor     = __appendPanicText(cursor, middle)
-    cursor     = __utoa(cursor, length)
+    cursor = __appendPanicNumber(cursor, index, signedIndex)
+    cursor = __appendPanicText(cursor, middle)
+    cursor = __utoa(cursor, length)
     Swag.safetyPanic(Swag.makeString(message, cast(u64, cursor - message)), loc)
 }
 
@@ -1098,16 +1098,17 @@ func __sliceBoundsPanic(start, endExclusive, length: u64, flags: SlicePanicFlags
     let signedStart = flags & .SignedStart ? true : false
     let signedEnd   = flags & .SignedEnd ? true : false
     let hasLength   = flags & .HasLength ? true : false
+
     // Undo the same unsigned adjustment that formed the exclusive end, including wraparound.
     let end = inclusive ? endExclusive - 1 : endExclusive
 
     // Four full-width integers take at most 80 characters. The rest is fixed text.
-    var buffer: [192] u8
+    var buffer:  [192] u8
     let message: [*] u8 = &buffer[0]
     var cursor = __appendPanicText(message, "slice ")
-    cursor     = __appendPanicNumber(cursor, start, signedStart)
-    cursor     = __appendPanicText(cursor, inclusive ? " to " : " until ")
-    cursor     = __appendPanicNumber(cursor, end, signedEnd)
+    cursor = __appendPanicNumber(cursor, start, signedStart)
+    cursor = __appendPanicText(cursor, inclusive ? " to " : " until ")
+    cursor = __appendPanicNumber(cursor, end, signedEnd)
     if inclusive
     {
         cursor = __appendPanicText(cursor, " (exclusive end ")
@@ -1149,11 +1150,11 @@ func __loopCountPanic(count: s64, loc: SourceCodeLocation)
 {
     const prefix = "loop count "
     const suffix = " is negative"
-    var buffer: [prefix.count + 20 + suffix.count + 1] u8
+    var buffer:  [prefix.count + 20 + suffix.count + 1] u8
     let message: [*] u8 = &buffer[0]
     var cursor = __appendPanicText(message, prefix)
-    cursor     = __itoa(cursor, count)
-    cursor     = __appendPanicText(cursor, suffix)
+    cursor = __itoa(cursor, count)
+    cursor = __appendPanicText(cursor, suffix)
     Swag.safetyPanic(Swag.makeString(message, cast(u64, cursor - message)), loc)
 }
 

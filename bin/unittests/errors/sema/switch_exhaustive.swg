@@ -50,7 +50,7 @@ enum Kind { Absent = 1, Number }
 
 union Value(Kind)
 {
-case .Number:
+    case .Number:
     number: s32
 }
 

@@ -2,6 +2,19 @@
 
 using Swag, Core
 
+func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
+{
+    for index in readBigU16(bytes, 4)
+    {
+        let record = 12'u64 + cast(u64, index) * 16
+        if readBigU32(bytes, record) == tag do
+            return record
+    }
+
+    Swag.require(false, "font fixture must contain the requested table")
+    return 0
+}
+
 #test
 {
     let valueU16 = expect readU16(ReaderBytes, 0)
@@ -92,6 +105,44 @@ using Swag, Core
 
     var rejected: Swag.Error
     discard catch buildGlyphLocations(&faceData) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // The public face loader rejects a descending loca pair before glyph loading.
+    var bytes      = loadFontBytes("arial.ttf")
+    let locaRecord = parseTestTableRecord(&bytes, TAG_LOCA)
+    let locaOffset = readBigU32(&bytes, locaRecord + 8)
+    let headRecord = parseTestTableRecord(&bytes, TAG_HEAD)
+    let headOffset = readBigU32(&bytes, headRecord + 8)
+    Swag.require(readBigU16(&bytes, headOffset + 50) == 1)
+    writeBigU32(&bytes, locaOffset + 0, 4)
+    writeBigU32(&bytes, locaOffset + 4, 0)
+
+    var rejected: Swag.Error
+    discard catch Face.load(bytes.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // The public face loader rejects a final loca entry beyond glyf's table extent.
+    var bytes      = loadFontBytes("arial.ttf")
+    let locaRecord = parseTestTableRecord(&bytes, TAG_LOCA)
+    let locaOffset = readBigU32(&bytes, locaRecord + 8)
+    let headRecord = parseTestTableRecord(&bytes, TAG_HEAD)
+    let headOffset = readBigU32(&bytes, headRecord + 8)
+    let maxpRecord = parseTestTableRecord(&bytes, TAG_MAXP)
+    let maxpOffset = readBigU32(&bytes, maxpRecord + 8)
+    let glyfRecord = parseTestTableRecord(&bytes, TAG_GLYF)
+    let glyfLength = readBigU32(&bytes, glyfRecord + 12)
+    let glyphCount = readBigU16(&bytes, maxpOffset + 4)
+    Swag.require(readBigU16(&bytes, headOffset + 50) == 1)
+    writeBigU32(&bytes, locaOffset + cast(u64, glyphCount) * 4, glyfLength + 1)
+
+    var rejected: Swag.Error
+    discard catch Face.load(bytes.toSlice()) as rejected
     Swag.require(rejected.value() != null)
 }
 

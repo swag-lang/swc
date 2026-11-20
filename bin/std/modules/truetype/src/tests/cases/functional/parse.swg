@@ -171,6 +171,19 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
     Swag.require(rejected.value() != null)
 }
 
+#test
+{
+    // Even an optional table the face parser does not otherwise consume must fit
+    // within the font before its directory record is accepted.
+    var bytes      = loadFontBytes("arial.ttf")
+    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
+    writeBigU32(&bytes, dsigRecord + 8, cast(u32, bytes.count + 1))
+
+    var rejected: Swag.Error
+    discard catch Face.load(bytes.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.
 #test
 {

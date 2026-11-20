@@ -486,7 +486,11 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 
 func buildGlyphLocations(faceData: *FaceImpl) fail
 {
+    if faceData.indexToLocFormat != 0 and faceData.indexToLocFormat != 1 do
+        try fault(0x08)
+
     let loca = try getTableSlice(faceData, TAG_LOCA, 0x90)
+    let glyf = try getTableSlice(faceData, TAG_GLYF, 0x8E)
     faceData.glyphLocations.resize(faceData.face.glyphCount + 1)
 
     if faceData.indexToLocFormat == 0
@@ -498,6 +502,14 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     {
         for index in faceData.glyphLocations.count do
             faceData.glyphLocations[index] = try readU32(loca, cast(u64, index) * 4)
+    }
+
+    var previous = 0'u32
+    for offset in faceData.glyphLocations
+    {
+        if offset < previous or cast(u64, offset) > glyf.count do
+            try fault(0x08)
+        previous = offset
     }
 }
 

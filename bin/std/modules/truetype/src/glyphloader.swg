@@ -23,7 +23,7 @@ func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
     faceData.outlineTags.add(onCurve ? CURVE_TAG_ON : 0)
 }
 
-func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32)
+func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32) fail
 {
     let contourCount = cast(u32, peekS16(glyphData, 0))
     var offset       = 10'u64
@@ -52,6 +52,8 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         {
             let repeat = peekU8(glyphData, offset)
             offset += 1
+            if cast(u32, repeat) > pointCount - i do
+                try fault(0x14)
             for repeat
             {
                 flags[i] = flag
@@ -257,7 +259,7 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
     let data  = try getSlice(glyf, start, stop - start)
     let count = peekS16(data, 0)
     if count >= 0 do
-        appendSimpleGlyph(faceData, data, xPpem, yPpem)
+        try appendSimpleGlyph(faceData, data, xPpem, yPpem)
     else do
         try appendCompositeGlyph(faceData, data, xPpem, yPpem, depth)
 }

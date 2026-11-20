@@ -851,10 +851,16 @@ func pthreadProbeEntry(argument: *void?)->*void?
     var guarded: { before: u64, bytes: [4097] u8, after: u64 }
     guarded.before = 0x123456789ABCDEF0
     guarded.after  = 0xFEDCBA9876543210
+
+    // readlinkat writes the path bytes without appending a C-string terminator.
+    for index in guarded.bytes.count do
+        guarded.bytes[index] = 0xA5
+
     let tiny = readlinkat(AT_FDCWD, "/proc/self/exe".buffer, guarded.bytes.buffer, 1)
-    Swag.require(tiny == 1 and guarded.bytes[0] == '/' and guarded.bytes[1] == 0)
+    Swag.require(tiny == 1 and guarded.bytes[0] == '/' and guarded.bytes[1] == 0xA5)
     let length = readlinkat(AT_FDCWD, "/proc/self/exe".buffer, guarded.bytes.buffer, 4096)
-    Swag.require(length > 0 and length < 4096 and guarded.bytes[cast(u64, length)] == 0)
+    Swag.require(length > 0 and length < 4096 and guarded.bytes[cast(u64, length)] == 0xA5)
+    guarded.bytes[cast(u64, length)] = 0
     let original = openat(AT_FDCWD, "/proc/self/exe".buffer, O_RDONLY | O_CLOEXEC)
     Swag.require(original >= 0)
     defer discard close(original)

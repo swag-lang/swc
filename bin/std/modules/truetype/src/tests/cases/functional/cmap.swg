@@ -540,6 +540,32 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(not expect hasVariationSequence(&faceData, 0x41, 0xFF01))
 }
 
+// Format-14 selector records and their nested lists stay within the declared extent.
+#test
+{
+    var malformed: Array'u8
+    malformed.add(CmapVariationFixture)
+    writeBigU32(&malformed, 54, 30)     // Two selector records need at least 32 bytes.
+
+    var shortRecords: FaceImpl
+    shortRecords.fontData.add(malformed.toSlice())
+    shortRecords.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    var rejected: Swag.Error
+    discard catch parseCMap(&shortRecords, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    malformed = {}
+    malformed.add(CmapVariationFixture)
+    writeBigU32(&malformed, 65, 48)     // The default range count cannot fit at this offset.
+
+    var shortList: FaceImpl
+    shortList.fontData.add(malformed.toSlice())
+    shortList.tables.add({tag: TAG_CMAP, length: cast(u32, malformed.count)})
+    rejected = {}
+    discard catch parseCMap(&shortList, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A face declaring no variation sequence ignores the selector rather than losing
 // the character it qualifies.
 #test

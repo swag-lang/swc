@@ -53,6 +53,17 @@ private func findSoundFileFormat(path: string)->u64
     return Swag.U64.Max
 }
 
+private func maxPacketChannelCount(encoding: SoundFileEncoding)->u32
+{
+    switch encoding
+    {
+    case .AacLc, .Ac3, .Eac3, .Dts:        return 6
+    case .Flac, .Vorbis: return 8
+    case .AdpcmMs, .AdpcmIma, .Mp3, .Opus: return 2
+    default: return 0
+    }
+}
+
 // Identifies which sound-file properties were discovered while loading.
 #[Swag.EnumFlags]
 enum SoundFileFields
@@ -355,14 +366,18 @@ impl SoundFile
     // `path` and are read only as playback reaches them. Memory holds the compact packet index,
     // never the compressed media payload. `frameCount` is validated against the sum of packet
     // durations. `options.timelineStartSeconds` locates frame zero on an enclosing media timeline;
-    // voice seeking and playback positions remain local to this sound. The optional display name
-    // and language are copied from `options` and remain valid for this value's lifetime.
+    // voice seeking and playback positions remain local to this sound. AAC, AC-3, E-AC-3, and DTS
+    // support up to six channels; MP3, Opus, and WAVE ADPCM support up to two; FLAC and Vorbis
+    // support up to eight. The optional display name and language are copied from `options` and
+    // remain valid for this value's lifetime.
     func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
         if not isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
-        if not sampleRateHz or not channels or channels > 8 do
-            fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
+        if not sampleRateHz or not channels do
+            fail BadParameterError{"packetized sound needs a non-zero sample rate and channel count"}
+        if channels > maxPacketChannelCount(encoding) do
+            fail UnsupportedFormatError{"packetized sound encoding does not support this channel count"}
         if not packets.count do
             fail BadParameterError{"packetized sound needs packets"}
         if packetEncodingNeedsConfig(encoding) and not decoderConfig.count do

@@ -131,14 +131,32 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
         var arg2 = 0's32
         if (flags & CMP_ARG_1_AND_2_ARE_WORDS) != 0
         {
-            arg1   = peekS16(glyphData, offset + 0)
-            arg2   = peekS16(glyphData, offset + 2)
+            if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
+            {
+                arg1 = peekS16(glyphData, offset + 0)
+                arg2 = peekS16(glyphData, offset + 2)
+            }
+            else
+            {
+                arg1 = cast(s32, peekU16(glyphData, offset + 0))
+                arg2 = cast(s32, peekU16(glyphData, offset + 2))
+            }
+
             offset += 4
         }
         else
         {
-            arg1   = cast #bit (s8, peekU8(glyphData, offset + 0))
-            arg2   = cast #bit (s8, peekU8(glyphData, offset + 1))
+            if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
+            {
+                arg1 = cast #bit (s8, peekU8(glyphData, offset + 0))
+                arg2 = cast #bit (s8, peekU8(glyphData, offset + 1))
+            }
+            else
+            {
+                arg1 = cast(s32, peekU8(glyphData, offset + 0))
+                arg2 = cast(s32, peekU8(glyphData, offset + 1))
+            }
+
             offset += 2
         }
 

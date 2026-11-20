@@ -694,7 +694,10 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
     func ReadFile(hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
     func PeekNamedPipe(hNamedPipe: HANDLE, lpBuffer: LPVOID?, nBufferSize: DWORD, lpBytesRead: LPDWORD?, lpTotalBytesAvail: LPDWORD?, lpBytesLeftThisMessage: LPDWORD?)->BOOL
-    func CloseHandle(handle: HANDLE)
+
+    // Closes an object handle and returns nonzero on success. Do not close pseudo-handles.
+    #[Discardable]
+    func CloseHandle(handle: HANDLE)->BOOL
     func RtlZeroMemory(destination: LPVOID, length: SIZE_T)
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL
     func SystemTimeToTzSpecificLocalTime(lpTimeZoneInformation: const *void?, lpUniversalTime: const *SYSTEMTIME, lpLocalTime: *SYSTEMTIME)->BOOL

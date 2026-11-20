@@ -1,5 +1,4 @@
 #global if #command == Swag.CompilerCommand.Test
-#global private
 
 using Swag
 
@@ -7,6 +6,16 @@ using Swag
 struct HashSetNonCopyKey
 {
     value: u32
+}
+
+struct HashSetCollisionKey
+{
+    value: s32
+}
+
+impl Hash.IHash32 for HashSetCollisionKey
+{
+    mtd const impl compute()->u32 => 7
 }
 
 #test
@@ -105,6 +114,45 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     for value in values do
         sum += value
     Swag.require(sum == 4)
+}
+
+// Colliding keys remain findable across removal, tombstone reuse, and rehashing.
+#test
+{
+    var values: HashSet'HashSetCollisionKey
+    values.add({value: 1})
+    values.add({value: 2})
+    values.add({value: 3})
+
+    Swag.require(values.count == 3)
+    Swag.require(values.contains({value: 1}))
+    Swag.require(values.contains({value: 2}))
+    Swag.require(values.contains({value: 3}))
+
+    values.add({value: 3})
+    Swag.require(values.count == 3)
+
+    values.remove({value: 2})
+    Swag.require(not values.contains({value: 2}))
+    Swag.require(values.contains({value: 1}) and values.contains({value: 3}))
+
+    values.add({value: 3})
+    Swag.require(values.count == 2)
+
+    Swag.require(not values.toggle({value: 3}))
+    Swag.require(not values.contains({value: 3}))
+    Swag.require(values.count == 1)
+
+    Swag.require(values.toggle({value: 3}))
+    Swag.require(values.contains({value: 3}) and values.count == 2)
+
+    values.add({value: 4})
+    Swag.require(values.count == 3 and values.contains({value: 4}))
+
+    values.reserve(128)
+    Swag.require(values.contains({value: 1}))
+    Swag.require(values.contains({value: 3}))
+    Swag.require(values.contains({value: 4}))
 }
 
 #test

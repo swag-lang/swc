@@ -944,20 +944,6 @@ behavioral benchmark in `compiler.ai.059` to decide the order of compatibility-h
 - Related: compiler.ai.053, compiler.ai.042, platform.portability.009,
   platform.portability.080.
 
-### compiler.ai.048 — Make file source, destination and replacement intentional
-
-- Evidence: [`File.move(newName, oldName)` and `File.duplicate`](../bin/std/modules/core/src/filesystem/file.swg)
-  take two strings in destination-first order and replace an existing destination. Passing
-  the arguments in reverse satisfies the same type signature.
-- Next: migrate these operation families to mandatory named `source:` and `destination:`
-  roles and an explicit replacement policy, with a distinct no-replace path and clear
-  behavior on failure. Migrate consumers by semantic argument identity and exercise the
-  platform implementations.
-- Done when: positional reversal is rejected and overwriting a destination always follows
-  the requested policy. Cover same-file operations, failure with an existing target and
-  cross-filesystem behavior.
-- Related: compiler.ai.039.
-
 ### compiler.ai.049 — Use one contract for a normal lookup miss
 
 - Evidence: [`HashTable.find`](../bin/std/modules/core/src/collections/hashtable.swg#L811)

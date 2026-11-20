@@ -395,4 +395,18 @@ new module rather than growth inside `core`.
   `S64.Max`, and zero inputs.
 - Related: std.core.039.
 
+### std.core.041 — Make file transfer roles and replacement explicit
+
+- Evidence: [`File.move` and `File.duplicate`](../bin/std/modules/core/src/filesystem/file.swg)
+  take two strings in destination-first order and replace an existing destination. Swapping
+  paths still type-checks. `duplicate` reads the source and writes directly to the destination.
+- Next: define explicit source and destination roles and an explicit replacement policy.
+  Specify same-file and cross-filesystem behavior, and how copying publishes a complete
+  replacement. Migrate callers by the role each argument already plays. Evaluate a request
+  record with named, required fields if the language keeps named arguments optional.
+- Done when: callers express both roles and the collision policy. Tests on Linux and Windows
+  cover refusing to replace an existing or concurrently created destination, preserving the
+  old destination on a failed replacement copy, same-file calls, and cross-filesystem moves.
+- Related: language.design.044, compiler.ai.039.
+
 ---

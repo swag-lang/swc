@@ -115,6 +115,23 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.
 
+### language.design.044 — Declare parameters that need named arguments
+
+- Evidence: [named arguments](../bin/reference/modules/language/src/007_001_declaration.swg)
+  are optional at the call site. An API with two same-typed parameters can give them distinct
+  names, but its declaration cannot prevent a positional call that reverses their roles.
+- Elsewhere: Python supports keyword-only parameters after `*`
+  ([PEP 3102](https://peps.python.org/pep-3102/)).
+- Next: prototype an opt-in parameter attribute such as `#[Swag.Named]` using the existing
+  parameter-attribute syntax. Have argument matching reject a positional binding to a marked
+  parameter and point to the required label. Define how a defaulted parameter may be omitted,
+  how the rule affects overload selection, and how exported signatures and indirect calls
+  carry the requirement. Compare the prototype with a named-field request record.
+- Done when: there is a documented decision on declaration-side enforcement. If adopted,
+  executable cases cover positional rejection, named calls, omission with defaults, overloads,
+  and calls through imported or indirect signatures.
+- Related: std.core.041.
+
 ---
 
 ## Generic contracts and execution semantics

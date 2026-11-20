@@ -409,8 +409,13 @@ impl SliceHeader
                     fail InvalidFormatError{"HEVC slice declares too many entry points"}
                 .entryPointOffsets.clear()
                 .entryPointOffsets.reserve(cast(u64, .numEntryPointOffsets))
-                for .numEntryPointOffsets do
-                    .entryPointOffsets.add(reader.read(offsetBits) + 1)
+                for .numEntryPointOffsets
+                {
+                    let offset = reader.read(offsetBits)
+                    if offset == Swag.U32.Max do
+                        fail InvalidFormatError{"HEVC slice entry-point offset exceeds the supported range"}
+                    .entryPointOffsets.add(offset + 1)
+                }
             }
         }
 

@@ -98,6 +98,21 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     Swag.require(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
 }
 
+// A maximum-width entry-point offset is rejected instead of wrapping to zero.
+#test
+{
+    var reader: BitReader
+    reader.init([0xEE'u8, 0x81, 0x07, 0xFF, 0xFF, 0xFF, 0xFC])
+    var sps: Hevc.Sps
+    var pps: Hevc.Pps
+    pps.tilesEnabled = true
+    var header, previous: Hevc.SliceHeader
+    var rejected:         Swag.Error
+    discard catch header.read(&reader, &sps, &pps, Hevc.NalIdrWRadl, &previous) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+    Swag.require(header.numEntryPointOffsets == 1 and reader.bitPos == 53)
+}
+
 // The same access units, muxed two ways, decode to the same pictures.
 //
 // `ffmpeg-hevc-main.mkv` is a stream copy of `ffmpeg-hevc-main.mp4`, so a difference between these

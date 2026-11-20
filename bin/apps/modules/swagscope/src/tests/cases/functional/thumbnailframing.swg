@@ -3,48 +3,69 @@
 
 using Core, Pixel, Video, Gui, Viewers
 
-// A tall crop keeps an off-centre subject; a wide crop follows vertical attention.
-#test
-{
-    var framing: ThumbnailFraming
-    framing.horizontal[25] = 255
-    framing.vertical[5]    = 255
-    let portrait = framing.crop(320, 180, 0.7)
-    Swag.require(portrait.x <= 250 and portrait.right() >= 260)
-    Swag.require(portrait.x > 100)
-    let landscape = framing.crop(180, 320, 2)
-    Swag.require(landscape.y < 60 and landscape.bottom() >= 60)
-    var image = Image.create(32, 24, .RGB8)
-    image.fill(Color.fromRgb(16, 16, 16))
-    framing.label(&image)
-    let path = Testing.tempFilePath("scope-framing-cache-", ".png")
-    defer catch File.delete(path)
-    expect ThumbnailCache.write(path, &image)
-    let cached = ThumbnailCache.read(path)
-    Swag.require(cached.isValid())
-    let restored = ThumbnailFraming.fromImage(&cached)
-    Swag.require(restored.horizontal[25] == 255 and restored.vertical[5] == 255)
-    Swag.require(restored.crop(320, 180, 0.7) == portrait)
-}
-
-// Analysis, rather than a fixed centre, locates detailed content near the edge of a photograph.
+// One cached preview can be framed in any display mode without decoding the source again.
 #test
 {
     var image = Image.create(128, 64, .RGB8)
     image.fill(Color.fromRgb(16, 16, 16))
-    for y in 8 until 56
+    image.visitPixels()
     {
-        for x in 96 until 120
+        if x >= 96 and y >= 8 and y < 56
         {
-            let pixel = image.pixels.storage() + cast(u64, y * image.rowStride + x * 3)
             let value = cast(u8, (x + y) % 2 == 0 ? 220 : 80)
-            Memory.set(pixel, value, 3)
+            Memory.set(pix, value, 3)
         }
     }
 
-    let framing = ThumbnailFraming.analyze(&image)
-    let crop    = framing.crop(128, 64, 0.7)
-    Swag.require(crop.x > 75 and crop.right() >= 120)
+    ThumbnailFraming.labelImage(&image)
+    let path = Testing.tempFilePath("scope-framing-cache-", ".png")
+    defer catch File.delete(path)
+    expect ThumbnailCache.write(path, &image)
+    let cached = ThumbnailCache.read(path)
+    Swag.require(cached.isValid() and cached.width == 128 and cached.height == 64)
+    let framing = ThumbnailFraming.fromImage(&cached)
+    for mode in [Image.SmartCropMode.Attention, .Entropy]
+    {
+        let crop = framing.crop(128, 64, 1, .Square, mode)
+        Swag.require(crop.x > 32 and crop.right() >= 120)
+    }
+    Swag.require(framing.crop(128, 64, 1, .Square, .Center) == Math.Rectangle{32, 0, 64, 64})
+    Swag.require(framing.crop(128, 64, 1, .Square, .None) == Math.Rectangle{0, 0, 128, 64})
+}
+
+// Disabling the crop shows the edge of an existing preview without replacing its texture.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, true, films: false, width: 880, height: 560)
+    let explorer = unwrap window.explorer
+    var image    = Image.create(160, 80, .RGB8)
+    image.visitPixels()
+    {
+        pix[0] = x < 24 ? 220 : 0
+        pix[1] = x < 24 ? 0 : 80
+        pix[2] = x < 24 ? 0 : 140
+    }
+
+    let texture = host.app.renderer.addImage(&image)
+    explorer.entries.add({name: "Preview.jpg", path: "Preview.jpg", texture: texture,
+                          framing: ThumbnailFraming.analyze(&image), attempted: true})
+    explorer.forceBoard(true, .Covers)
+    showBoard(&host, window, "Pictures", "Scans")
+    let grid = explorer.grid
+    let tile = grid.tileRect(0)
+    let left = grid.localToSurface(Math.Point{tile.x + grid.themeMetrics().fileTile_Inset + 3, tile.vertCenter()})
+    let x    = cast(s32, left.x)
+    let y    = cast(s32, left.y)
+
+    window.sendCommandEvent(ViewerCommands.ThumbnailCrops[2])
+    let cover = host.renderSettled(&host.surfaceWnd)
+    Swag.require(cover.pixelColor(x, y).b > 100 and cover.pixelColor(x, y).r < 10)
+
+    window.sendCommandEvent(ViewerCommands.ThumbnailCrops[3])
+    let whole = host.renderSettled(&host.surfaceWnd)
+    Swag.require(whole.pixelColor(x, y).r > 200 and whole.pixelColor(x, y).b < 10)
+    Swag.require(explorer.entries[0].texture.handle == texture.handle)
 }
 
 // Portrait video inside a wide canvas can have bands wider than a quarter of the frame.

@@ -283,6 +283,11 @@ struct AppStrings
     board_Grid:           string = "Grid"                       // Organization choice arranging tiles in an even grid.
     board_Covers:         string = "Covers"                     // Organization choice arranging tiles as square covers.
     board_Posters:        string = "Posters"                    // Organization choice arranging tiles as upright posters.
+    explore_ThumbnailFraming: string = "Thumbnail Framing"     // Display menu and lens group for crop choices.
+    crop_Attention:       string = "Crop by Attention"         // Center the crop on salient content.
+    crop_Entropy:         string = "Crop by Entropy"            // Keep the more informative edges.
+    crop_Center:          string = "Center Crop"                // Center the crop on the source.
+    crop_None:            string = "Show Whole Image"           // Fit the source inside the tile.
     artwork_Online:       string = "Online Artwork"             // Media illustration source using online artwork when available.
     artwork_Local:        string = "Local Previews"             // Media illustration source using local frames and artwork without network lookups.
     sort_Name:            string = "By name"                    // Quiet sort menu of the explored folder, ordered by name.

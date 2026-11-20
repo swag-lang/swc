@@ -514,7 +514,7 @@ private impl Panel
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.pdfView.actualSize() })
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
 
         // The commands of the page's context menu, so none of them needs a right click.
         entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), shortcut: Input.formatKeyShortcut(.Control, .C))
@@ -550,11 +550,11 @@ private impl Panel
     {
         let menu    = MenuCtrl.createPopup(me, owner: me)
         let percent = .zoomPercent()
-        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
-        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
-        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 125)
-        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 150)
-        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
+        menu.addItem("50 %", "scope.pdf.zoom50", checked: percent == 50)
+        menu.addItem("100 %", "scope.pdf.zoomActual", checked: percent == 100)
+        menu.addItem("125 %", "scope.pdf.zoom125", checked: percent == 125)
+        menu.addItem("150 %", "scope.pdf.zoom150", checked: percent == 150)
+        menu.addItem("200 %", "scope.pdf.zoom200", checked: percent == 200)
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
         menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())), rightName: "W", checked: .pdfView.zoomMode == .FitWidth)

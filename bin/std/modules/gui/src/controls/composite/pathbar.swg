@@ -6,7 +6,7 @@ using Core, Pixel
 //
 // The host owns navigation and fills child menus through [[Gui.BreadcrumbCtrl.sigFillMenu]].
 // Clicking the current level or the empty area edits the path; Enter submits it and Escape
-// restores the breadcrumbs. Losing focus cancels editing without submitting.
+// restores the breadcrumbs. A click outside the editor or loss of focus cancels without submitting.
 struct PathBar
 {
     public
@@ -26,6 +26,7 @@ struct PathBar
     }
 
     location:    String
+    editing:     bool
     returnFocus: bool
     internal externalEditor: *EditBox?     // Shared full-width editor when embedded inside a path field.
 }
@@ -157,9 +158,11 @@ impl PathBar
             return
         }
 
-        if .edit.isLocallyVisible() do
+        if .editing do
             return
+        .editing     = true
         .returnFocus = false
+        .app().registerHookEvents(me)
         .edit.setText(.location, notify: false)
         .pathScroll.hide()
         .edit.show()
@@ -171,8 +174,15 @@ impl PathBar
     // Cancels editing and restores the breadcrumb view.
     mtd endEdit()
     {
-        if not .edit.isLocallyVisible() do
+        if not .editing do
             return
+        // Clearing focus calls back through the editor's focus-loss signal.
+        .editing = false
+        .app().unregisterHookEvents(me)
+
+        // Hiding a focused control advances Tab traversal. Leave focus to the click instead.
+        if .edit.hasFocus() do
+            .surface!.clearFocus()
         .edit.hide()
         .pathScroll.show()
         .applyLayout()
@@ -188,6 +198,20 @@ impl PathBar
 
 impl IWnd for PathBar
 {
+    mtd impl onHookEvent(evt: IEvent)
+    {
+        if not .editing do
+            return
+
+        if evt is MouseEvent as mouse where mouse.kind == .Pressed
+        {
+            if mouse.target != .edit and not .edit.isOwnerOf(mouse.target) do
+                .endEdit()
+        }
+        elif evt is NotifyEvent as notify where notify.kind == .PressedElsewhere do
+            .endEdit()
+    }
+
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .applyLayout()

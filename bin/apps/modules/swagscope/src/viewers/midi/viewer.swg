@@ -155,10 +155,10 @@ private impl Panel
             return
         let menu    = MenuCtrl.createPopup(me, owner: me)
         let percent = .zoomPercent()
-        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
-        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
-        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
-        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
+        menu.addItem("25 %", "scope.midi.zoom25", checked: percent == 25)
+        menu.addItem("50 %", "scope.midi.zoom50", checked: percent == 50)
+        menu.addItem("100 %", "scope.midi.zoom100", checked: percent == 100)
+        menu.addItem("200 %", "scope.midi.zoom200", checked: percent == 200)
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .roll.fit)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
@@ -227,7 +227,7 @@ impl Panel
         entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing or not .roll.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, checked: not missing and .zoomPercent() == 100, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
         entries.add(texts().ui_Fit, .FitView, func|view = me|() { view.roll.zoomToFit() }, checked: not missing and .roll.fit, disabled: missing, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() }, disabled: missing)
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, disabled: missing)
     }
 
     // Opens what the roll shows and how: the track, the presentation, the names of the pitches,

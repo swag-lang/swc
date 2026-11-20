@@ -258,6 +258,11 @@ board_Automatic Automatique
 board_Grid Grille
 board_Covers Pochettes
 board_Posters Affiches
+explore_ThumbnailFraming Cadrage des vignettes
+crop_Attention Recadrer selon le contenu
+crop_Entropy Recadrer par entropie
+crop_Center Centrer le recadrage
+crop_None Afficher l’image entière
 explore_ArtworkSection Illustrations
 artwork_Online Illustrations en ligne
 artwork_Local Aperçus locaux

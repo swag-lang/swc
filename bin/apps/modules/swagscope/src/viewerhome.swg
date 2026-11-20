@@ -10,6 +10,7 @@ struct ViewerHomeRow
     opened:    u64         // Local ticks of the last time it was opened; zero when unknown.
     glyph:     Icon        // Glyph of the file's kind, standing in for the picture until it arrives.
     texture:   Texture     // Preview of the file, rendered in the background; invalid until then.
+    framing:   ThumbnailFraming
     attempted: bool        // Whether its preview was asked for, whatever came of it.
 
     // Only a viewer that decodes a picture of its file, or a text a reader can recognise, gives
@@ -17,6 +18,20 @@ struct ViewerHomeRow
     // its glyph stays. A picture fills its frame; a page of text stands whole inside it.
     previewable: bool
     fit = FileTile.Fit.Cover
+}
+
+impl ViewerHomeRow
+{
+    mtd cropPainter(shape: ThumbnailShape)->(func||(*Wnd, *Painter, Math.Rectangle)->bool)?
+    {
+        if .fit != .Cover or not .texture.isValid() do
+            return null
+        return func|row = me, shape|(host, painter, tile)->bool
+        {
+            row.framing.paint(host, painter, row.texture, tile, shape, .Attention)
+            return true
+        }
+    }
 }
 
 // One folder the home offers to explore: one the reader explored lately, or, on a first launch,
@@ -731,10 +746,11 @@ impl ViewerHome
         content.texture = row.texture
         content.icon    = row.glyph
         var options: FileTile.Options
-        options.fit         = row.fit
-        options.hovered     = .hovered == 0
-        options.selected    = .chosen == 0 and .hasFocus()
-        options.showCaption = false
+        options.fit           = row.fit
+        options.previewPainter = row.cropPainter(.HomeHero)
+        options.hovered       = .hovered == 0
+        options.selected      = .chosen == 0 and .hasFocus()
+        options.showCaption   = false
         FileTile.paint(me, painter, place.hero, &content, options)
 
         if point
@@ -785,9 +801,10 @@ impl ViewerHome
         if not row.texture.isValid() do
             content.placeholder = Path.extension(file) orelse ""
         var options: FileTile.Options
-        options.fit      = row.fit
-        options.hovered  = index == .hovered
-        options.selected = index == .chosen and .hasFocus()
+        options.fit           = row.fit
+        options.previewPainter = row.cropPainter(.Grid)
+        options.hovered       = index == .hovered
+        options.selected      = index == .chosen and .hasFocus()
         FileTile.paint(me, painter, .pictureRect(index), &content, options)
     }
 
@@ -880,6 +897,7 @@ impl IWnd for ViewerHome
                 if .rows[index].texture.isValid() do
                     .app().renderer.removeTexture(&.rows[index].texture)
                 .rows[index].texture = uploaded
+                .rows[index].framing = ThumbnailFraming.fromImage(&.preview.image)
             }
         }
 

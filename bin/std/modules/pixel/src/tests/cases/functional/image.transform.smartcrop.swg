@@ -83,3 +83,46 @@ using Swag, Core
     Swag.require(cropped.width == cropped.height)
     Swag.require(source.width == 64 and source.height == 32)
 }
+
+// A square cover retains the header of a portrait scan with a dark line at the bottom.
+#test
+{
+    var source = Image.create(140, 160, .RGB8)
+    source.visitPixels()
+    {
+        let row    = image.height - 1 - y
+        let header = x >= 57 and x < 83 and (row == 7 or row == 9)
+        let text   = x >= 35 and x < 105 and row >= 24 and row < 80 and row % 5 < 2
+        let paper  = cast(u8, 250 - Math.max(row - 125, 0) / 2)
+        let bottom = row == image.height - 1 and x >= 90
+        let ink    = bottom ? 0'u8 : 80
+        let dark   = text or bottom
+        pix[0] = header ? 190 : dark ? ink : 253
+        pix[1] = header ? 223 : dark ? ink : 250
+        pix[2] = header ? 173 : dark ? ink : paper
+    }
+
+    let attention = source.smartCropRect(1)
+    Swag.require(attention.width == 140 and attention.height == 140)
+    Swag.require(attention.y <= 7 and attention.bottom() >= 80)
+    Swag.require(source.smartCropRect(1, .Center) == Math.Rectangle{0, 10, 140, 140})
+    Swag.require(source.smartCropRect(1, .None) == Math.Rectangle{0, 0, 140, 160})
+    Swag.require(source.pixelColor(60, 7) == Color.fromRgb(190, 223, 173))
+}
+
+// Entropy follows textured strips and covers even a thin target without rounding its aspect.
+#test
+{
+    var source = Image.create(80, 40, .Gray8)
+    source.fill(Color.fromRgb(64, 64, 64))
+    source.visitPixels()
+    {
+        if x >= 60 do
+            pix[0] = cast(u8, (x + y) % 2 == 0 ? 20 : 220)
+    }
+
+    let entropy = source.smartCropRect(1, .Entropy)
+    Swag.require(entropy.x > 20 and entropy.right() == 80)
+    let thin = source.smartCropRect(0.01, .Center)
+    Swag.require(Math.abs(thin.width - 0.4) < 0.001 and thin.height == 40)
+}

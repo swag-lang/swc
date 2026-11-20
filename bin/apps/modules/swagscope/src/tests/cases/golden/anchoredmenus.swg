@@ -63,9 +63,15 @@ internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *
         let menu  = host.capturedPopupMenu()
         let sheet = host.capturedOptionSheet()
         Swag.require(menu != null or sheet != null)
-        if menu do
-            for item in menu.items where item and not item.separator and not item.label do
-                Swag.require(item.icon.isValid(), item.id)
+        if menu
+        {
+            for item in menu.items where item and not item.separator and not item.label
+            {
+                let title     = item.name.text.toString()
+                let zoomLevel = title.count and Latin1.isDigit(title[0]) and Utf8.endsWith(title, " %")
+                Swag.require(item.icon.isValid() == not zoomLevel, item.id)
+            }
+        }
         if sheet do
             for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle do
                 Swag.require(row.icon.isValid(), row.label.text)

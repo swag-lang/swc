@@ -353,7 +353,7 @@ impl Panel
         entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.grid.adjustFontSize(1) }, disabled: .grid.fontSize >= MaxFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.grid.adjustFontSize(-1) }, disabled: .grid.fontSize <= MinFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.grid.resetFontSize() })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
 
         // The checksums of the last analysis read in full, each copied whole with its own row.
         let result = &.analysisView.result

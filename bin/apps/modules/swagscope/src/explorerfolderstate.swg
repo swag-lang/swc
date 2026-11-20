@@ -1,4 +1,4 @@
-using Core, Gui
+using Core, Gui, Pixel
 
 // One location's presentation, including an archive's internal folder.
 struct ExplorerFolderState
@@ -9,6 +9,7 @@ struct ExplorerFolderState
     forced:     bool
     board:      ExplorerBoard
     artwork:    ExplorerArtworkSource = .Online
+    crop:       Image.SmartCropMode = .Attention
     kind:       ExplorerKindFilter
     sortColumn: u32
     descending: bool
@@ -31,6 +32,7 @@ impl ExplorerFolderState
             .forced     = explorer.forced
             .board      = explorer.forcedBoard
             .artwork    = explorer.artworkSource
+            .crop       = explorer.thumbnailCrop
             .kind       = explorer.kindFilter
             .sortColumn = explorer.sortColumn
             .descending = explorer.descending
@@ -50,6 +52,7 @@ impl ExplorerFolderState
         explorer.forced        = .forced
         explorer.forcedBoard   = cast(u32, .board) < ExplorerBoardValues.count ? .board : .Grid
         explorer.artworkSource = cast(u32, .artwork) < ExplorerArtworkSourceValues.count ? .artwork : .Online
+        explorer.thumbnailCrop = cast(u32, .crop) < ThumbnailCropModes.count ? .crop : .Attention
         explorer.kindFilter    = cast(u32, .kind) < ExplorerKindFilterValues.count ? .kind : .All
         explorer.sortColumn    = Math.min(.sortColumn, 3)
         explorer.descending    = .descending

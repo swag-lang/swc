@@ -274,6 +274,40 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     chooseInQuietMenu(&host, window, explorer.modeMenu, ViewerCommands.Boards[1])
     Swag.require(explorer.forced and explorer.forcedBoard == .Grid and explorer.grid.board == .Grid)
     Swag.require(explorer.modeMenu.text() == appStrings().board_Grid)
+
+    Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ThumbnailCrops[0]).checked)
+    let settings = explorer.previewSettings
+    var glyphs: Array's32
+    let otherGroups = [cast(const [..] string, ViewerCommands.Modes),
+                       cast(const [..] string, ViewerCommands.Boards),
+                       cast(const [..] string, ViewerCommands.Artwork)]
+    for commands in otherGroups
+    {
+        for command in commands
+        {
+            let state = window.sendComputeCommandStateEvent(command)
+            if not state.hidden and state.icon.isValid() do
+                glyphs.add(state.icon.index)
+        }
+    }
+    for command, index in ViewerCommands.ThumbnailCrops
+    {
+        chooseInQuietMenu(&host, window, explorer.modeMenu, command)
+        let state = window.sendComputeCommandStateEvent(command)
+        Swag.require(state.checked and not state.hidden and state.name == thumbnailCropNames()[index])
+        Swag.require(state.icon.isValid() and not glyphs.contains(state.icon.index))
+        glyphs.add(state.icon.index)
+        Swag.require(explorer.thumbnailCrop == ThumbnailCropModes[index] and explorer.previewSettings == settings)
+        window.lens.open(state.name)
+        var found = false
+        for section in window.lens.results.sections
+        {
+            for entry in section!.entries where entry.id == command do
+                found = true
+        }
+        Swag.require(found)
+        window.lens.close()
+    }
 }
 
 // A folder of films keeps its choice of online artwork or local previews in the view menu when

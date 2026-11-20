@@ -44,3 +44,45 @@ using Core
     Swag.require(submitted == "C:/Pictures")
     Swag.require(not bar.edit.isLocallyVisible())
 }
+
+// A click on a control that keeps keyboard focus where it was still dismisses the editor.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 120)
+    let bar = PathBar.create(&host.root)
+    bar.setPosition({0, 0, 400, 32})
+    bar.setPath("Original")
+    let button = PushButton.create(&host.root, "Outside")
+    button.setPosition({0, 52, 100, 32})
+    button.focusPolicy = .None
+    let search = EditBox.create(&host.root, "")
+    search.setPosition({120, 52, 100, 32})
+    var pressed, submitted, finished: bool
+    button.sigPressed += func|&pressed|(_) { pressed = true }
+    bar.sigSubmitted += func|&submitted|(_, _) { submitted = true }
+    bar.sigEditFinished += func|&finished|(_) { finished = true }
+    host.root.applyLayout()
+
+    bar.beginEdit()
+    bar.edit.setText("Draft")
+    host.click(bar.edit.surfaceRect().center())
+    Swag.require(bar.edit.hasFocus() and bar.edit.isLocallyVisible())
+
+    host.click(button.surfaceRect().center())
+    Swag.require(pressed and not submitted and not finished)
+    Swag.require(not bar.edit.isLocallyVisible() and bar.pathScroll.isLocallyVisible())
+    bar.beginEdit()
+    Swag.require(bar.edit.text() == "Original")
+    host.click(Math.Point{350, 100})
+    Swag.require(not bar.edit.isLocallyVisible() and not submitted)
+    Swag.require(bar.focusedWindow() == null)
+
+    bar.beginEdit()
+    host.app.notifyPressedElsewhere()
+    Swag.require(not bar.edit.isLocallyVisible() and bar.focusedWindow() == null)
+
+    bar.beginEdit()
+    host.click(search.surfaceRect().center())
+    Swag.require(not bar.edit.isLocallyVisible() and search.hasFocus())
+}

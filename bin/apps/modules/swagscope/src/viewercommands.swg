@@ -80,6 +80,8 @@ namespace ViewerCommands
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
                     "scope.explore.board.3"]
+    const ThumbnailCrops = ["scope.explore.crop.attention", "scope.explore.crop.entropy",
+                            "scope.explore.crop.center", "scope.explore.crop.none"]
     const Artwork     = [ArtworkOnline, ArtworkLocal]
     const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
                          FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
@@ -165,6 +167,7 @@ impl ViewerWindow
                                                                       ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle])
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Modes)
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Boards)
+            .addCommands(func()->string => appStrings().explore_ThumbnailFraming, ViewerCommands.ThumbnailCrops)
             .addCommands(func()->string => appStrings().lens_Artwork, ViewerCommands.Artwork)
             .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
@@ -963,7 +966,7 @@ impl ViewerWindow
             for id, index in ViewerCommands.Modes where evt.id == id
             {
                 let names = [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
-                let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
+                let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.ActualSize, ThemeIcons.ZoomIn]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
                 hidden  = not exploring
@@ -1007,6 +1010,16 @@ impl ViewerWindow
                 hidden  = not exploring or not .explorer!.showsMedia()
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.artworkSource) == index
+            }
+
+            for id, index in ViewerCommands.ThumbnailCrops where evt.id == id
+            {
+                let icons = [ThemeIcons.Eye, ThemeIcons.Histogram, ThemeIcons.CenterCrop, ThemeIcons.FitView]
+                name    = thumbnailCropNames()[index]
+                icon    = .commandGlyph(icons[index])
+                hidden  = not exploring or not .explorer!.isThumbnailView()
+                toggle  = true
+                checked = exploring and .explorer!.thumbnailCrop == ThumbnailCropModes[index]
             }
 
             if not name.count do
@@ -1290,6 +1303,12 @@ impl ViewerWindow
             for command, index in ViewerCommands.Artwork where id == command
             {
                 explorer.setArtworkSource(ExplorerArtworkSourceValues[index])
+                return true
+            }
+
+            for command, index in ViewerCommands.ThumbnailCrops where id == command
+            {
+                explorer.setThumbnailCrop(ThumbnailCropModes[index])
                 return true
             }
 

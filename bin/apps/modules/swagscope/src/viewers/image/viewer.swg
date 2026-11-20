@@ -563,7 +563,7 @@ impl Panel
             entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         }
 
-        entries.add(lens.cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(lens.cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
         if .playButton.isLocallyVisible()
         {
             entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause,
@@ -600,10 +600,10 @@ impl Panel
     {
         let menu    = MenuCtrl.createPopup(me, owner: me)
         let percent = .zoomPercent()
-        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
-        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
-        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
-        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
+        menu.addItem("25 %", "scope.image.zoom25", checked: percent == 25)
+        menu.addItem("50 %", "scope.image.zoom50", checked: percent == 50)
+        menu.addItem("100 %", "scope.image.zoom100", checked: percent == 100)
+        menu.addItem("200 %", "scope.image.zoom200", checked: percent == 200)
         menu.addSeparator()
         menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .imageView.isFitted)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""

@@ -142,6 +142,7 @@ struct Explorer
     descending:      bool
     kindFilter:      ExplorerKindFilter
     artworkSource:   ExplorerArtworkSource = .Online
+    thumbnailCrop:   Image.SmartCropMode = .Attention
     menuPaths:       Array'String
     previewSettings: String
     previewEpoch:    u64
@@ -558,6 +559,12 @@ impl Explorer
                 let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
                 discard menu.addRadioItem(boardNames[index], id, checked: checked)
             }
+
+            menu.addSeparator()
+            menu.addLabel(text.explore_ThumbnailFraming)
+            let cropNames = thumbnailCropNames()
+            for id, index in ViewerCommands.ThumbnailCrops do
+                discard menu.addRadioItem(cropNames[index], id, checked: .thumbnailCrop == ThumbnailCropModes[index])
         }
 
         if .showsMedia()
@@ -576,6 +583,14 @@ impl Explorer
     // online. The choice holds in every arrangement, an even grid included, because the films
     // and the albums of the page take their pictures from it whatever shape their tiles have.
     mtd showsMedia()->bool => .holdsMedia and .isThumbnailView() and not .listing.isArchive
+
+    mtd setThumbnailCrop(mode: Image.SmartCropMode)
+    {
+        if .thumbnailCrop == mode do
+            return
+        .thumbnailCrop = mode
+        .grid.invalidate()
+    }
 
     mtd setArtworkSource(source: ExplorerArtworkSource)
     {
@@ -2446,23 +2461,6 @@ impl IWnd for Explorer
     }
 }
 
-// A sound cover close to the tile's shape fills it; a mismatched shape stays whole inside it.
-private func soundCoverFillsTile(glyph: Icon, texture: Texture, tile: Math.Rectangle)->bool
-{
-    const MaxStretch = 1.4'f32
-    if glyph.index != cast(s32, ThemeIcons.FileAudio) do
-        return false
-    if not texture.isValid() or
-       texture.width <= 1 or
-       texture.height <= 1 or
-       tile.width <= 0 or
-       tile.height <= 0 do
-        return false
-    let picture = cast(f32, texture.width) / cast(f32, texture.height)
-    let cell    = tile.width / tile.height
-    return Math.max(picture, cell) <= Math.min(picture, cell) * MaxStretch
-}
-
 // Reports whether `entry` is a film file: what the video reader opens, apart from album audio.
 private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.directory and not albumAudio(entry.name) and Reader.canOpen(entry.name)
 
@@ -2739,11 +2737,7 @@ impl ExplorerGrid
         content.badge       = badge
         content.placeholder = ext
         var options: FileTile.Options
-        options.fit = .posters ? .Poster :
-                      (.board == .Covers or
-                       glyph.index == cast(s32, ThemeIcons.FileImage) or
-                       glyph.index == cast(s32, ThemeIcons.FileVideo) or
-                       soundCoverFillsTile(glyph, entry.texture, tile) ? .Cover : .Contain)
+        options.fit            = .Contain
         options.hovered        = .hovered == row
         options.selected       = .explorer.selected == index
         options.showCaption    = true
@@ -2754,9 +2748,15 @@ impl ExplorerGrid
             let entry = &grid.explorer.entries[index]
             let glyph = grid.theme().fileGlyph(entry.name, entry.directory, 16)
             if entry.texture.isValid() and
-               (glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
+               (entry.texture.width > 1 or entry.texture.height > 1 or
+                glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
             {
-                entry.framing.paint(grid, painter, entry.texture, tile)
+                if grid.explorer.thumbnailCrop == .None do
+                    return false
+                let shape: ThumbnailShape = grid.posters ? .Poster :
+                                            (grid.board == .Covers ? .Square :
+                                             (grid.explorer.previewAspect == ExplorerFilmPreviewAspect ? .Wide : .Grid))
+                entry.framing.paint(grid, painter, entry.texture, tile, shape, grid.explorer.thumbnailCrop)
                 return true
             }
 
@@ -2972,14 +2972,13 @@ impl ExplorerGrid
         painter.fillRoundRect(coverRect, radius, radius, colors.raised)
         if cover and cover.texture.width > 1
         {
-            let texture = cover.texture
-            let tw      = cast(f32, texture.width)
-            let th      = cast(f32, texture.height)
-            let side    = Math.min(tw, th)
-            var brush   = Brush.createTexture(texture)
-            brush.uvMode = .FillSubRect
-            brush.uvRect = Math.Rectangle{(tw - side) * 0.5, (th - side) * 0.5, side, side}
-            painter.fillRoundRect(coverRect, radius, radius, brush)
+            if explorer.thumbnailCrop == .None
+            {
+                let content = FileTile.Content{texture: cover.texture}
+                FileTile.paint(me, painter, coverRect, &content, {fit: .Contain, showCaption: false})
+            }
+            else do
+                cover.framing.paint(me, painter, cover.texture, coverRect, .Square, explorer.thumbnailCrop)
         }
         else
         {

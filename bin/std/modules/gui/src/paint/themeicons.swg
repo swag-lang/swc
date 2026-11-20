@@ -116,6 +116,9 @@ enum ThemeIcons
     SelectAll             // Select every item in the current content.
     MainMenu              // Opens the application's complete command menu.
     Whitespace            // Show the spaces and tabulations of a text.
+    Histogram             // Show or use the distribution of image tones.
+    CenterCrop            // Keep a crop centered on the image.
+    ZoomLevels            // Choose a magnification from several levels.
 }
 
 // Extensions read as each kind of file, compared without case.

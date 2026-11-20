@@ -25,14 +25,6 @@ referenced by the capture document, so a save never rewrites it; no memory grows
 duration; and the timeline, trimming and export work from indexes and streams, never from a
 whole recording loaded at once.
 
-### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
-
-- Next: persist shortcut choices in the existing options and add a conflict-resolution flow for
-  combinations already owned by another application.
-- Done when: users can rebind every capture command, conflicts identify the unavailable shortcuts,
-  and the chosen bindings survive restart.
-- Related: app.capture.010
-
 ### app.capture.015 — Assembling complete captures has no layout command
 
 - Evidence: `Capture.paste` inserts clipboard images or form groups into the active canvas with
@@ -164,9 +156,8 @@ whole recording loaded at once.
 
 - Next: persist named combinations of capture mode, delay, cursor policy and destination in the
   options.
-- Done when: a preset can be created, run, renamed and deleted, survives restart, and
-  app.capture.009 can bind a hotkey to it.
-- Related: app.capture.009
+- Done when: a preset can be created, run, renamed and deleted, survives restart, and can be
+  assigned a keyboard shortcut through the shared editor.
 
 ### app.capture.030 — Verify recording-control exclusion on Windows
 

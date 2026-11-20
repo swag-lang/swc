@@ -56,6 +56,29 @@ struct Strings
         lens_Actions:         string = "actions"                     // What the `>` prefix looks for, at the foot of the lens.
         lens_Recent:          string = "Last Used"                   // Section of the lens holding the commands chosen last.
         lens_Application:     string = "Application"                 // Section of the lens holding the About box of the application.
+        shortcuts_Open:        string = "Keyboard Shortcuts…"          // Action that opens the shortcut editor.
+        shortcuts_Title:       string = "Keyboard Shortcuts"           // Title of the shortcut editor.
+        shortcuts_Search:      string = "Filter commands"              // Placeholder in the command filter.
+        shortcuts_Command:     string = "Command"                      // Command name column.
+        shortcuts_Binding:     string = "Shortcut"                     // Assigned key column.
+        shortcuts_Scope:       string = "Scope"                        // Binding scope column.
+        shortcuts_Global:      string = "System"                      // Scope of a system-wide shortcut.
+        shortcuts_Local:       string = "Application"                 // Scope of an application shortcut.
+        shortcuts_Document:    string = "Document"                    // Scope of a contextual document shortcut.
+        shortcuts_Change:      string = "Change Shortcut…"            // Action that reads a new key combination.
+        shortcuts_Clear:       string = "Remove Shortcut"             // Action that clears the selected binding.
+        shortcuts_Reset:       string = "Restore Default"             // Action that restores the selected default.
+        shortcuts_ResetAll:    string = "Restore All Defaults"        // Action that restores all defaults.
+        shortcuts_Save:        string = "Save"                        // Action that commits the edited bindings.
+        shortcuts_Press:       string = "Press a shortcut"            // Placeholder while reading a key combination.
+        shortcuts_NoModifier:  string = "No Modifier"                 // First entry in the system shortcut modifier picker.
+        shortcuts_ChooseKey:   string = "Choose a Key"                // First entry in the system shortcut key picker.
+        shortcuts_Assign:      string = "Assign"                      // Action that uses the selected key and modifiers.
+        shortcuts_Replace:     string = "Replace Shortcut"            // Title of the replacement confirmation.
+        shortcuts_Failed:      string = "The keyboard shortcuts could not be saved."     // Error shown when committing bindings fails.
+        shortcuts_Taken:       string = "% is assigned to %. Replace its shortcut?"      // Confirmation naming the key and its current commands.
+        shortcuts_ResetTaken:  string = "A default shortcut is assigned to %. Remove that binding first."     // Error naming the command with a conflicting custom binding.
+        shortcuts_Unavailable: string = "The system could not register %."     // Error naming a key the operating system rejected.
 
         inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.
 

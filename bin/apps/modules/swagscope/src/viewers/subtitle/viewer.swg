@@ -659,14 +659,14 @@ impl Panel
             return
         }
 
-        entries.add(strings.ui_CopyCue, .Copy, func|view = me|() { view.copyCurrentCue() }, disabled: .currentCue >= count, shortcut: Input.formatKeyShortcut(.Control, .C))
-        entries.add(strings.ui_CopyDialogue, .Copy, func|view = me|() { Clipboard.setString(view.dialogueText()) }, disabled: not count)
-        entries.add(strings.ui_GoToCue, .GoTo, func|view = me|() { view.promptGoToCue() })
-        entries.add(strings.ui_GoToTime, .History, func|view = me|() { view.promptGoToTime() })
-        entries.add(strings.ui_PreviousCue, .ChevronLeft, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(strings.ui_NextCue, .ChevronRight, func|view = me|() { discard view.navigateCue(true) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
-        entries.add(strings.ui_FirstCue, .ChevronUp, func|view = me|() { discard view.navigateCueBoundary(false) }, shortcut: Input.formatKeyShortcut(.Control, .Home))
-        entries.add(strings.ui_LastCue, .ChevronDown, func|view = me|() { discard view.navigateCueBoundary(true) }, shortcut: Input.formatKeyShortcut(.Control, .End))
+        entries.add(strings.ui_CopyCue, .Copy, func|view = me|() { view.copyCurrentCue() }, disabled: .currentCue >= count, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.subtitle.copyCue")
+        entries.add(strings.ui_CopyDialogue, .Copy, func|view = me|() { Clipboard.setString(view.dialogueText()) }, disabled: not count, bindId: "scope.subtitle.copyDialogue")
+        entries.add(strings.ui_GoToCue, .GoTo, func|view = me|() { view.promptGoToCue() }, bindId: "scope.subtitle.goToCue")
+        entries.add(strings.ui_GoToTime, .History, func|view = me|() { view.promptGoToTime() }, bindId: "scope.subtitle.goToTime")
+        entries.add(strings.ui_PreviousCue, .ChevronLeft, func|view = me|() { discard view.navigateCue(false) }, defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.subtitle.previousCue")
+        entries.add(strings.ui_NextCue, .ChevronRight, func|view = me|() { discard view.navigateCue(true) }, defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.subtitle.nextCue")
+        entries.add(strings.ui_FirstCue, .ChevronUp, func|view = me|() { discard view.navigateCueBoundary(false) }, defaultKey: {modifiers: .Control, key: .Home}, bindId: "scope.subtitle.firstCue")
+        entries.add(strings.ui_LastCue, .ChevronDown, func|view = me|() { discard view.navigateCueBoundary(true) }, defaultKey: {modifiers: .Control, key: .End}, bindId: "scope.subtitle.lastCue")
     }
 
     mtd promptGoToCue()

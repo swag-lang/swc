@@ -160,7 +160,8 @@ private impl Panel
         menu.addItem("100 %", "scope.midi.zoom100", checked: percent == 100)
         menu.addItem("200 %", "scope.midi.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .roll.fit)
+        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.midi.fit", "F"), checked: .roll.fit)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.midi.zoom25":  .roll.applyZoom(0.25)
@@ -222,12 +223,12 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let missing = not .hasRoll()
-        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing or not .roll.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing or not .roll.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, checked: not missing and .zoomPercent() == 100, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
-        entries.add(texts().ui_Fit, .FitView, func|view = me|() { view.roll.zoomToFit() }, checked: not missing and .roll.fit, disabled: missing, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, disabled: missing)
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.midi.options")
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing or not .roll.canZoomIn(), defaultKey: {modifiers: .Control, key: .OemPlus}, bindId: "scope.midi.zoomIn")
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing or not .roll.canZoomOut(), defaultKey: {modifiers: .Control, key: .OemMinus}, bindId: "scope.midi.zoomOut")
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, checked: not missing and .zoomPercent() == 100, disabled: missing, defaultKey: {modifiers: .Control, key: .D0}, bindId: "scope.midi.zoomReset")
+        entries.add(texts().ui_Fit, .FitView, func|view = me|() { view.roll.zoomToFit() }, checked: not missing and .roll.fit, disabled: missing, defaultKey: {modifiers: .None, key: .F}, bindId: "scope.midi.fit")
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, disabled: missing, bindId: "scope.midi.zoomMenu")
     }
 
     // Opens what the roll shows and how: the track, the presentation, the names of the pitches,

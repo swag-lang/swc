@@ -363,6 +363,8 @@ struct Wnd
         layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
     }
 
+    internal shortcutLens: *Lens.View?
+
     private
     {
         cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
@@ -2487,22 +2489,56 @@ impl Wnd
     // Resolves a shortcut locally, then through the owner or parent chain.
     mtd keyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->WndId?
     {
-        for c in .keyShortcuts
+        var overrides: const [..] ShortcutOverride = []
+        if let surface = .surface
         {
-            if c.modifiers == modifiers and c.key == key do
-                return c.id
+            let app   = surface.app
+            overrides = app.shortcutOverrides.toSlice()
+            for &binding in overrides where not binding.source and binding.key == key and binding.modifiers == modifiers
+            {
+                let id = binding.command.toString()
+                if app.isUserHotKey(id) do
+                    continue
+                let state = .sendComputeCommandStateEvent(id)
+                if (state.accepted or state.updatedFields.has(.Name)) and not state.hidden do
+                    return id
+
+                var owner: *Wnd? = me
+                while owner and not state.hidden
+                {
+                    for chord in owner.keyShortcuts where chord.id == id do
+                        return id
+                    owner = owner.ownerOrParent()
+                }
+            }
         }
 
-        let p = .ownerOrParent()
-        if p do
-            return p.keyShortcut(modifiers, key)
+        var node: *Wnd? = me
+        while node
+        {
+            for chord in node.keyShortcuts where chord.key == key and chord.modifiers == modifiers and not shortcutOverride(overrides, chord.id) do
+                return chord.id
+            node = node.ownerOrParent()
+        }
         return null
     }
 
     // Formats the first shortcut associated with `wndId` in the routing chain.
-    mtd keyShortcutName(wndId: WndId)->String
+    //
+    // Returns `fallback` when no binding or override exists. A user-cleared shortcut returns
+    // an empty string, so a menu can use its original label as the fallback.
+    mtd keyShortcutName(wndId: WndId, fallback: string = "")->String
     {
         var result: #returntype
+        if let surface = .surface
+        {
+            if let binding = shortcutOverride(surface.app.shortcutOverrides.toSlice(), wndId)
+            {
+                if binding.key != .None do
+                    return Input.formatKeyShortcut(binding.modifiers, binding.key)
+                return result
+            }
+        }
         for c in .keyShortcuts
         {
             if c.id == wndId
@@ -2514,7 +2550,8 @@ impl Wnd
 
         let p = .ownerOrParent()
         if p do
-            return p.keyShortcutName(wndId)
+            return p.keyShortcutName(wndId, fallback)
+        result = fallback
         return result
     }
 
@@ -2737,7 +2774,7 @@ impl Wnd
         var sk = .keyShortcutName(safeCmdId)
         if sk.isEmpty() do
             sk = .app().hotKeyShortcutName(safeCmdId)
-        if not sk.isEmpty()
+        if not sk.isEmpty() or shortcutOverride(.app().shortcutOverrides.toSlice(), safeCmdId)
         {
             evtState.updatedFields.add(.Shortcut)
             evtState.shortcut = sk

@@ -460,27 +460,33 @@ impl Panel
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.code.zoomMenu")
 
         // A typed language name offers to color the source as that language instead.
-        if entries.query.count
+        if entries.query.count or entries.results.collectingShortcuts
         {
-            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode, func|view = me|() { view.highlightAs(.C, swag: true) }, checked: .languageName == "Swag")
+            entries.add(Format.toString(texts().ui_HighlightAs, "Swag"), .FileCode,
+                        func|view = me|() { view.highlightAs(.C, swag: true) },
+                        checked: .languageName == "Swag", bindId: "scope.code.language.Swag")
             for language in SourceLanguage
             {
                 let name = displayName(language)
-                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode, func|view = me, language|() { view.highlightAs(language) }, checked: .languageName == name)
+                entries.add(Format.toString(texts().ui_HighlightAs, name), .FileCode,
+                            func|view = me, language|() { view.highlightAs(language) },
+                            checked: .languageName == name, bindId: Format.toString("scope.code.language.%", language))
             }
         }
 
         // The pair is offered only when the caret stands by a bracket, which is when it means something.
         if .delimiterAtCaret().lineIndex != Swag.U64.Max do
-            entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, shortcut: Input.formatKeyShortcut(.Control, .Oem6))
-        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
+            entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, defaultKey: {modifiers: .Control, key: .Oem6}, bindId: "scope.code.matchingDelimiter")
+        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks), bindId: "scope.code.blanks")
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
-        for width in Viewer.TabWidths where entries.query.count do
-            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .editor.tabSize == width)
+        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
+            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace,
+                        func|view = me, width|() { view.setTabWidth(width) },
+                        checked: .editor.tabSize == width, bindId: Format.toString("scope.code.tabWidth.%", width))
     }
 
     mtd showZoomMenu()

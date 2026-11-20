@@ -38,6 +38,29 @@ lens_Files       fichiers
 lens_Actions     actions
 lens_Recent      Dernières utilisées
 lens_Application Application
+shortcuts_Open Raccourcis clavier…
+shortcuts_Title Raccourcis clavier
+shortcuts_Search Filtrer les commandes
+shortcuts_Command Commande
+shortcuts_Binding Raccourci
+shortcuts_Scope Portée
+shortcuts_Global Système
+shortcuts_Local Application
+shortcuts_Document Document
+shortcuts_Change Modifier le raccourci…
+shortcuts_Clear Supprimer le raccourci
+shortcuts_Reset Rétablir le raccourci par défaut
+shortcuts_ResetAll Rétablir tous les raccourcis par défaut
+shortcuts_Save Enregistrer
+shortcuts_Press Appuyez sur un raccourci
+shortcuts_NoModifier Sans modificateur
+shortcuts_ChooseKey Choisir une touche
+shortcuts_Assign Attribuer
+shortcuts_Replace Remplacer le raccourci
+shortcuts_Taken % est attribué à %. Remplacer son raccourci ?
+shortcuts_ResetTaken Un raccourci par défaut est attribué à %. Supprimez d’abord cette attribution.
+shortcuts_Failed Impossible d’enregistrer les raccourcis clavier.
+shortcuts_Unavailable Le système n’a pas pu enregistrer %.
 
 inspector_Tab Propriétés
 

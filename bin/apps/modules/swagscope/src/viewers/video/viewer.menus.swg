@@ -25,7 +25,8 @@ impl Panel
         let copyIcon = theme.icon(.Copy, theme.metrics.menuPopup_IconSize)
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(texts().cmd_CopyFrame, FrameAction.Copy, copyIcon, rightName: Input.formatKeyShortcut(.Control, .C), disabled: me.frameExporting)
+            .addItem(texts().cmd_CopyFrame, FrameAction.Copy, copyIcon,
+                     rightName: me.keyShortcutName("scope.video.copyFrame", Input.formatKeyShortcut(.Control, .C)), disabled: me.frameExporting)
             .addItem(texts().cmd_SaveFrame, FrameAction.Save, theme.icon(.SaveAs, theme.metrics.menuPopup_IconSize), disabled: me.frameExporting)
             .addSeparator()
             .addItem(timeText, FrameAction.Time, copyIcon)

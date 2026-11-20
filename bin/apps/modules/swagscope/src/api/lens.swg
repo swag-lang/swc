@@ -47,8 +47,10 @@ impl LensEntries
     // `shortcut` names the key that runs the same command, written at the end of the row; a
     // `checked` row is the choice or the setting in force, and a `disabled` one shows faint and
     // cannot be chosen. Returns `null` when the query answers neither the row nor the viewer.
+    // A stable `bindId` exposes the action for user key bindings and `defaultKey` records its chord.
     #[Swag.Discardable]
-    mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
+    mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "",
+            defaultKey: KeyShortcut = {}, bindId: WndId = "")->*Lens.Entry?
     {
         // The row takes the answer of its title along, so the lens does not match it again.
         var found = Lens.match(.results.folded, title)
@@ -64,7 +66,13 @@ impl LensEntries
             .run        = run
             .checked    = checked
             .disabled   = disabled
-            .detail     = shortcut
+            .bindId     = bindId
+            .defaultKey = defaultKey
+            if defaultKey.key == .OemPlus do
+                .alternateDefaultKey = {modifiers: defaultKey.modifiers, key: .Add}
+            elif defaultKey.key == .OemMinus do
+                .alternateDefaultKey = {modifiers: defaultKey.modifiers, key: .Subtract}
+            .detail     = defaultKey.key == .None ? String.from(shortcut) : Input.formatKeyShortcut(defaultKey.modifiers, defaultKey.key)
             .monoDetail = true
         }
 
@@ -82,9 +90,15 @@ impl LensEntries
         let texts = appStrings()
         switch #complete command
         {
-        case .In:    return .add(texts.cmd_ZoomIn, .ZoomIn, run, disabled: percent >= MaxZoom, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        case .Out:   return .add(texts.cmd_ZoomOut, .ZoomOut, run, disabled: percent <= MinZoom, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        case .Reset: return .add(texts.cmd_ZoomReset, .ActualSize, run, checked: percent == 100, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        case .In:
+            return .add(texts.cmd_ZoomIn, .ZoomIn, run, disabled: percent >= MaxZoom,
+                        defaultKey: {modifiers: .Control, key: .OemPlus}, bindId: "scope.viewer.zoomIn")
+        case .Out:
+            return .add(texts.cmd_ZoomOut, .ZoomOut, run, disabled: percent <= MinZoom,
+                        defaultKey: {modifiers: .Control, key: .OemMinus}, bindId: "scope.viewer.zoomOut")
+        case .Reset:
+            return .add(texts.cmd_ZoomReset, .ActualSize, run, checked: percent == 100,
+                        defaultKey: {modifiers: .Control, key: .D0}, bindId: "scope.viewer.zoomReset")
         }
     }
 }

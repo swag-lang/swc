@@ -113,6 +113,7 @@ struct OptionsPage
         timeout:    *Label
         resident:   *OptionRow
         startup:    *OptionRow
+        shortcuts:  *PushButton
         scroll:     *ScrollWnd
     }
 
@@ -173,6 +174,13 @@ impl OptionsPage
         result.resident.toggle.sigChanged += func|window|(button) { window.resident.setEnabled(button.isChecked()) }
         result.startup.toggle.sigChanged  += func|window|(button) { window.resident.setSessionStartup(button.isChecked()) }
 
+        with result.shortcuts = PushButton.create(result.column, Gui.strings().shortcuts_Open, form: .Flat)
+        {
+            .margin.y = RowPadding * 2
+            .fitWidthToLabel(result.themeMetrics().btnPush_Width)
+            .sigPressed += func|window|(_) { window.lens.showKeyboardShortcuts() }
+        }
+
         #static if SupportsWinFspInstall
         {
             with let action = Label.create(result.column, "", {}, null, .WordWrap | .SecondaryText | .LinkActions)
@@ -230,6 +238,8 @@ impl OptionsPage
         .idle.setTexts(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
         .resident.setTexts(texts.ui_Resident, texts.ui_ResidentHelp)
         .startup.setTexts(texts.ui_SessionStartup, texts.ui_SessionStartupHelp)
+        .shortcuts.setText(Gui.strings().shortcuts_Open)
+        .shortcuts.fitWidthToLabel(.themeMetrics().btnPush_Width)
         .setTimeout(.timeoutIndex)
         .refreshDriverAction()
     }

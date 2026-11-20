@@ -459,17 +459,17 @@ private impl Panel
             return
         }
 
-        entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
-        entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
-        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.epub.back")
+        entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.epub.forward")
+        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.epub.previous")
+        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.epub.next")
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
         entries.addZoom(.Out, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomOut(view.zoomPercent)) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me|() { view.setZoom(100) })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
-        entries.add(texts().ui_CompactColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Compact) }, checked: .readingColumn == .Compact)
-        entries.add(texts().ui_ComfortableColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Comfortable) }, checked: .readingColumn == .Comfortable)
-        entries.add(texts().ui_WideColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Wide) }, checked: .readingColumn == .Wide)
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.epub.zoomMenu")
+        entries.add(texts().ui_CompactColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Compact) }, checked: .readingColumn == .Compact, bindId: "scope.epub.compactColumn")
+        entries.add(texts().ui_ComfortableColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Comfortable) }, checked: .readingColumn == .Comfortable, bindId: "scope.epub.comfortableColumn")
+        entries.add(texts().ui_WideColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Wide) }, checked: .readingColumn == .Wide, bindId: "scope.epub.wideColumn")
     }
 
     internal mtd retire()->bool => .load.retire()

@@ -24,8 +24,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
   caret's offset as a `0x` address. Pattern search is
   discoverable through the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A),
   and Go To (Ctrl+G) have keyboard shortcuts.
-- Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
-  the dominant Go To and copy actions directly in the viewer band.
+- Next: expose the dominant Go To and copy actions directly in the viewer band and bring remaining
+  keyboard-only operations into the named actions used by the shared shortcut editor.
 - Done when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
   and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
   and remappable through the application convention; and the document remains the majority of the

@@ -864,28 +864,28 @@ impl Panel
             return
         }
 
-        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
-        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
-        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
-        entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.sound.playPause")
+        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled(), bindId: "scope.sound.stop")
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, defaultKey: {modifiers: .None, key: .Left}, bindId: "scope.sound.seekBackward")
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, defaultKey: {modifiers: .None, key: .Right}, bindId: "scope.sound.seekForward")
+        entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), defaultKey: {modifiers: .None, key: .M}, bindId: "scope.sound.mute")
 
         // The rate is stepped like a film's, and the row reads the rate in force.
         let strings = Sound.texts()
-        let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
+        let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
         if faster do
             faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
-        let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0])
+        let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0], bindId: "scope.sound.slower")
         if slower do
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
 
-        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready)
+        entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready, bindId: "scope.sound.copyTime")
 
         // A passage is looped between two points the reader marks while listening.
-        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
-        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
+        entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Oem4}, bindId: "scope.sound.loopStart")
+        entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Oem6}, bindId: "scope.sound.loopEnd")
         if .loopStart >= 0 do
-            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() })
+            entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() }, bindId: "scope.sound.loopClear")
     }
 
     // Plays the recording at `rate` source seconds per second, the pitch following it. Positions

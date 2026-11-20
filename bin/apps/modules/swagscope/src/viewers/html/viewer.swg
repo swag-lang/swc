@@ -84,7 +84,7 @@ private impl Panel
         entries.addZoom(.In, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { viewer.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { viewer.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|viewer = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { viewer.setZoom(percent) })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|viewer = me|() { viewer.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|viewer = me|() { viewer.showZoomMenu() }, bindId: "scope.html.zoomMenu")
     }
 
     mtd showZoomMenu()

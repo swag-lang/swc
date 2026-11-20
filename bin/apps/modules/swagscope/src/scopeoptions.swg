@@ -35,6 +35,11 @@ impl ViewerWindow
         let dialog = Dialog.create(unwrap .surface, 900, 700, title: appStrings().ui_GeneralOptionsTitle, flags: .Resizable)
         dialog.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         dialog.addButton(appStrings().ui_SaveOptions, Dialog.BtnOk, true)
+        let shortcuts = PushButton.create(dialog, Gui.strings().shortcuts_Open, form: .Flat)
+        shortcuts.fitWidthToLabel(.themeMetrics().btnPush_Width)
+        let lens = .lens
+        shortcuts.sigPressed += func|dialog, lens|(_) { lens.showKeyboardShortcuts(dialog.surface) }
+        dialog.setLeadingControl(shortcuts)
 
         with let grid = PropertiesCtrl.create(dialog.createContentView(), flags: .SectionNavigation | .SearchBar)
         {

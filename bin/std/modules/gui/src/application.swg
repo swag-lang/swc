@@ -181,6 +181,8 @@ struct Application
 
     statePath: String     // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
     hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
+    defaultUserHotKeys: Array'KeyShortcut
+    shortcutOverrides: Array'ShortcutOverride
 
     public
     {
@@ -228,6 +230,15 @@ private impl Application
         // Be sure we have a target
         if not event.target do
             return
+
+        if evt is KeyEvent as key where key.kind == .Pressed and .modalSurfaces.isEmpty()
+        {
+            if .routeCustomizedShortcut(event.target, key)
+            {
+                event.accepted = true
+                return
+            }
+        }
 
         // Parent hook events
         //
@@ -1616,6 +1627,16 @@ impl Application
     private mtd serializeState(ser: *Serializer) fail
     {
         try ser.beginSection(.Unordered)
+        if ser.isWrite
+        {
+            try ser.serialize("keyboardShortcuts", &.shortcutOverrides)
+        }
+        else
+        {
+            var bindings: Array'ShortcutOverride
+            try ser.serialize("keyboardShortcuts", &bindings)
+            .restoreShortcuts(#move bindings)
+        }
         for s in .surfaces do
             try s.serializeState(ser)
         try ser.endSection()
@@ -1717,6 +1738,7 @@ impl Application
     // Callers close a window with `Wnd.destroy`, which defers this to the end of the frame.
     internal mtd destroyWnd(wnd: *Wnd)
     {
+        .retireUserHotKeys(wnd)
         var evt = DestroyEvent{}
         wnd.sendEvent(&evt)
 
@@ -1988,20 +2010,30 @@ impl Application
     // Returns the native shell icon for a directory.
     mtd directoryIcon(name: string, small = true)->Icon => .fileOrDirectoryIcon(name, true, small)
 
-    // Enables or disables all shortcuts registered with [[Gui.Application.registerHotKey]].
+    // Enables or disables native delivery of the application's system-wide shortcuts.
     mtd setGlobalHotKeysEnabled(enabled = true)
     {
         if .hotKeysDisabled == not enabled do
             return
 
         .hotKeysDisabled = not enabled
-        for shortcut in .hotKeys
+        var lost: bool
+        for index in reversed(.hotKeys.count)
         {
-            if enabled do
+            let shortcut = .hotKeys[index]
+            if enabled
+            {
                 catch registerNativeHotKey(shortcut.modifiers, shortcut.key)
-                    do
-                    unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+                {
+                    .hotKeys.removeAtOrdered(index)
+                    lost = true
+                }
+            }
+            else do
+                unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
+        if lost do
+            .notifyShortcutsChanged()
     }
 
     // Registers or replaces a system-wide keyboard shortcut routed to `target` as `wndId`.
@@ -2017,9 +2049,9 @@ impl Application
             }
         }
 
-        .hotKeys.add(KeyShortcut{modifiers, key, wndId, target})
         if not .hotKeysDisabled do
             try registerNativeHotKey(modifiers, key)
+        .hotKeys.add(KeyShortcut{modifiers, key, wndId, target})
     }
 
     // Unregisters a system-wide keyboard shortcut and returns whether it existed.

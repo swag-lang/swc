@@ -161,6 +161,12 @@ internal struct Source
 
 impl IWnd for View
 {
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        if .owner and .owner.shortcutLens == me do
+            .owner.shortcutLens = null
+    }
+
     mtd impl onLayout()
     {
         let parent = .parent
@@ -363,6 +369,7 @@ impl View
             .focusPolicy     = .Click
             .wndFlags.add(.Hidden)
         }
+        owner.shortcutLens = result
 
         let metrics = result.themeMetrics()
         with result.input = EditBox.create(result, "", {})
@@ -727,8 +734,32 @@ impl View
 
             if split.prefix == .None or split.prefix == .Action do
                 .addCommandSections()
+
+            if .commands.count and split.rest.count >= 3 and (split.prefix == .None or split.prefix == .Action)
+            {
+                let title = strings().shortcuts_Open
+                let found = match(.results.folded, title)
+                if found.matched
+                {
+                    let section = .results.addSection(strings().lens_Application)
+                    with let entry = section.addEntry(title, found)
+                    {
+                        .glyph = me.theme().icon(.Settings, me.themeMetrics().menuPopup_IconSize)
+                        .run   = func|view = me|() { view.showKeyboardShortcuts() }
+                    }
+                }
+            }
         }
 
+        let overrides = .app().shortcutOverrides.toSlice()
+        for section in .results.sections
+        {
+            for &entry in section!.entries where not entry.bindId.isEmpty()
+            {
+                if let binding = shortcutOverride(overrides, entry.bindId)
+                    do entry.detail = binding.key == .None ? String{} : Input.formatKeyShortcut(binding.modifiers, binding.key)
+            }
+        }
         .rankResults()
         .buildRows()
         .buildInlineChoices()
@@ -737,6 +768,87 @@ impl View
         .moveChoice(1)
         .itf.onLayout()
         .invalidate()
+    }
+
+    // Opens the shared editor for the lens commands and the owner's registered shortcuts.
+    //
+    // Commands with no default shortcut can also be assigned. `from` optionally identifies
+    // an already open options surface that should own the modal editor.
+    mtd showKeyboardShortcuts(from: *Surface? = null)
+    {
+        let owner = unwrap .ownerOrParent()
+        var commands: Array'ShortcutCommand
+        for &command in .commands do
+            addShortcutCommand(&commands, owner, command.commandId, null)
+
+        collectShortcutCommands(owner, &commands)
+        for &chord in .app().defaultUserHotKeys do
+            addShortcutCommand(&commands, unwrap chord.target, chord.id, chord, system: true)
+        let generated = .shortcutSourceRows()
+        for section in generated.sections
+        {
+            for &entry in section!.entries where not entry.bindId.isEmpty() and entry.run
+            {
+                var existing: *ShortcutCommand?
+                for &command in commands where command.id == entry.bindId
+                {
+                    existing = command
+                    break
+                }
+                if not existing
+                {
+                    existing = commands.emplaceInitAddress()
+                    existing.id     = entry.bindId
+                    existing.title  = entry.title
+                    existing.source = true
+                }
+                for chord in [entry.defaultKey, entry.alternateDefaultKey] where chord.key != .None
+                {
+                    if not hasShortcutChord(existing.defaults.toSlice(), chord) do
+                        existing.defaults.add(chord)
+                }
+            }
+        }
+        editKeyboardShortcuts(unwrap (from orelse owner.surface), commands.toSlice())
+    }
+
+    private mtd shortcutSourceRows()->Results
+    {
+        var result: #returntype
+        result.reset("", .Action, collectingShortcuts: true)
+        for source in .sources where source.prefix == .Action do
+            source.provide(&result)
+        return result
+    }
+
+    internal mtd routeSourceShortcut(target: *Wnd, key: const *KeyEvent)->bool
+    {
+        if .isOpen() do
+            return false
+        let overrides = .app().shortcutOverrides.toSlice()
+        let generated = .shortcutSourceRows()
+        let chord = KeyShortcut{key.modifiers, key.key}
+        var replacesDefault = false
+        for section in generated.sections
+        {
+            for &entry in section!.entries where not entry.bindId.isEmpty() and entry.run
+            {
+                let binding = shortcutOverride(overrides, entry.bindId)
+                if not binding do
+                    continue
+                if binding.key == key.key and binding.modifiers == key.modifiers
+                {
+                    if not entry.disabled do
+                        entry.run()
+                    return true
+                }
+                if sameChord(entry.defaultKey, chord) or sameChord(entry.alternateDefaultKey, chord) do
+                    replacesDefault = true
+            }
+        }
+        if replacesDefault do
+            target.sendCommandEvent(target.keyShortcut(key.modifiers, key.key))
+        return replacesDefault
     }
 
     // Moves the choice by `delta` selectable rows, staying on the first or the last one.

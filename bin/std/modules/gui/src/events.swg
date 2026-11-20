@@ -453,6 +453,7 @@ struct NotifyEvent
             LanguageChanged           // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
             PressedElsewhere          // A press outside the application's windows, including on the system's window move or resize area; sent to global hooks only.
             KeyboardLayoutChanged     // The system's active keyboard layout or keymap changed.
+            ShortcutsChanged          // The configured shortcuts or available system registrations changed.
         }
 
         kind: Kind      // Notification kind.

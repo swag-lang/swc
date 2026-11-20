@@ -1051,12 +1051,12 @@ impl Panel
         if entries.results.prefix != .Line
         {
             let empty = not .document.rows.count
-            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.setString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
-            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.setString(view.selectionText(withNames: true)) }, disabled: empty)
+            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.setString(view.selectionText()) }, disabled: empty, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.table.copyRows")
+            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.setString(view.selectionText(withNames: true)) }, disabled: empty, bindId: "scope.table.copyRowsNames")
 
             // The column the table is sorted on, its values one per line in the order shown.
             if .sortColumn < .document.columns.count do
-                entries.add(Format.toString(texts().ui_CopyColumn, .document.columns[.sortColumn]), .Copy, func|view = me|() { Clipboard.setString(view.columnText(view.sortColumn)) })
+                entries.add(Format.toString(texts().ui_CopyColumn, .document.columns[.sortColumn]), .Copy, func|view = me|() { Clipboard.setString(view.columnText(view.sortColumn)) }, bindId: "scope.table.copyColumn")
             return
         }
 

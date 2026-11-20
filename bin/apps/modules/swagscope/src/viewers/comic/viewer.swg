@@ -472,10 +472,10 @@ private impl Panel
         // A manga turns back with the right arrow, so the row teaches the arrow that turns its way.
         let back    = .rightToLeft ? Input.Key.Right : .Left
         let forward = .rightToLeft ? Input.Key.Left : .Right
-        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, back))
-        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, forward))
-        entries.add(texts().ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, disabled: .book.pages.isEmpty())
-        entries.add(texts().ui_RightToLeft, .Sort, func|view = me|() { view.toggleReadingDirection() }, checked: .rightToLeft)
+        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, back), bindId: "scope.comic.previous")
+        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, forward), bindId: "scope.comic.next")
+        entries.add(texts().ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, disabled: .book.pages.isEmpty(), bindId: "scope.comic.goToPage")
+        entries.add(texts().ui_RightToLeft, .Sort, func|view = me|() { view.toggleReadingDirection() }, checked: .rightToLeft, bindId: "scope.comic.rightToLeft")
     }
 
     // Describes the book in the information sheet: its pages, then what its `ComicInfo.xml` says.

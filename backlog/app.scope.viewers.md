@@ -259,15 +259,14 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   shipped platform bridge exposes the same model.
 - Related: platform.portability.048, app.scope.hexa.014
 
-### app.scope.viewers.008 — Viewer commands lack complete discovery and shortcut management
+### app.scope.viewers.008 — Viewer commands need consistent discovery and state
 
-- Evidence: the lens now exposes common and viewer actions, but some operations remain split
-  between compact menus, context menus, and hard-coded key handlers. Scope still has no shortcut
-  reference, conflict check, remapping, or consistent disabled-state explanation.
-- Next: register every viewer action with a default gesture and applicability, then add shortcut
-  reference, conflict handling, remapping, and shared state across lens, menu, and key execution.
-- Done when: every non-pointer-only action can be found and invoked by name, shortcuts can be
-  inspected and remapped, conflicts are reported, and toolbar/menu/key execution share one state.
+- Evidence: Keyboard Shortcuts lists application commands and named actions in the active viewer.
+  Some operations still live in compact menus, context menus, or raw key handlers with separate
+  applicability checks. Disabled actions do not consistently say why they are unavailable.
+- Next: connect the remaining operations and their applicability to the named viewer actions.
+- Done when: every non-pointer-only action can be found and invoked by name, and the lens,
+  compact controls, menus, and key handlers share its applicability and presentation.
 - Related: app.scope.hexa.016
 
 ---

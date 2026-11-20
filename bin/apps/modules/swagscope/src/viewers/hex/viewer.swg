@@ -340,31 +340,31 @@ impl Panel
         let strings = texts()
         let bounded = .grid.selectionLength() > CopyLimit
         let limit   = StrConv.toDisplaySize(CopyLimit)
-        entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))
-        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .C))
-        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not .grid.doc.fileSize)
-        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not .grid.doc.fileSize)
-        entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize)
-        entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .A))
-        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+        entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.hex.goTo")
+        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.hex.copyBytes")
+        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyText")
+        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyDump")
+        entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyOffset")
+        entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.hex.selectAll")
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.hex.options")
 
         // The zoom keys step the size of the bytes within the grid's own bounds rather than the
         // shared ones, so only actual size is the shared row.
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.grid.adjustFontSize(1) }, disabled: .grid.fontSize >= MaxFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.grid.adjustFontSize(-1) }, disabled: .grid.fontSize <= MinFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.grid.adjustFontSize(1) }, disabled: .grid.fontSize >= MaxFontSize, defaultKey: {modifiers: .Control, key: .OemPlus}, bindId: "scope.hex.zoomIn")
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.grid.adjustFontSize(-1) }, disabled: .grid.fontSize <= MinFontSize, defaultKey: {modifiers: .Control, key: .OemMinus}, bindId: "scope.hex.zoomOut")
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.grid.resetFontSize() })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.hex.zoomMenu")
 
         // The checksums of the last analysis read in full, each copied whole with its own row.
         let result = &.analysisView.result
         if result.hasDigests
         {
-            let crc = entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.crc32Text()) })
+            let crc = entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.crc32Text()) }, bindId: "scope.hex.analysisCopyCrc32")
             if crc do
                 crc.detail = result.crc32Text()
-            entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha256Text()) })
-            entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.md5Text()) })
-            entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha1Text()) })
+            entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha256Text()) }, bindId: "scope.hex.analysisCopySha256")
+            entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.md5Text()) }, bindId: "scope.hex.analysisCopyMd5")
+            entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha1Text()) }, bindId: "scope.hex.analysisCopySha1")
         }
     }
 

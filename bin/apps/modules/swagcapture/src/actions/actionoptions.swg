@@ -73,6 +73,10 @@ impl IActionUI for ActionOptions
 
         let dlg = Dialog.create(unwrap view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
+        let shortcuts = PushButton.create(dlg, Gui.strings().shortcuts_Open, form: .Flat)
+        shortcuts.fitWidthToLabel(main.themeMetrics().btnPush_Width)
+        shortcuts.sigPressed += func|dlg, main|(_) { main.lens.showKeyboardShortcuts(dlg.surface) }
+        dlg.setLeadingControl(shortcuts)
 
         with let opt = PropertiesCtrl.create(dlg.createContentView(), flags: .SectionTabs | .SearchBar)
         {

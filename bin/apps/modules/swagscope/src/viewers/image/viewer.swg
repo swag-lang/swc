@@ -474,17 +474,23 @@ impl Panel
     {
         let texts = texts()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_RotateCounterClockwise, "scope.image.rotateLeft", .theme().icon(.Undo, themeRowIconSize(.themeMetrics())), rightName: "Shift R")
-        menu.addItem(texts.ui_RotateClockwise, "scope.image.rotateRight", .theme().icon(.Redo, themeRowIconSize(.themeMetrics())), rightName: "R")
+        menu.addItem(texts.ui_RotateCounterClockwise, "scope.image.rotateLeft", .theme().icon(.Undo, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.rotateCounterClockwise", "Shift R"))
+        menu.addItem(texts.ui_RotateClockwise, "scope.image.rotateRight", .theme().icon(.Redo, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.rotateClockwise", "R"))
         menu.addSeparator()
-        menu.addItem(texts.ui_MirrorHorizontal, "scope.image.mirrorHorizontal", .theme().icon(.MirrorHorizontal, themeRowIconSize(.themeMetrics())), rightName: "H")
-        menu.addItem(texts.ui_MirrorVertical, "scope.image.mirrorVertical", .theme().icon(.MirrorVertical, themeRowIconSize(.themeMetrics())), rightName: "V")
+        menu.addItem(texts.ui_MirrorHorizontal, "scope.image.mirrorHorizontal", .theme().icon(.MirrorHorizontal, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.mirrorHorizontal", "H"))
+        menu.addItem(texts.ui_MirrorVertical, "scope.image.mirrorVertical", .theme().icon(.MirrorVertical, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.mirrorVertical", "V"))
         menu.addSeparator()
-        menu.addItem(texts.ui_ResetTransform, "scope.image.reset", .theme().icon(.Update, themeRowIconSize(.themeMetrics())), rightName: "Ctrl R")
+        menu.addItem(texts.ui_ResetTransform, "scope.image.reset", .theme().icon(.Update, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.resetTransform", "Ctrl R"))
         if .imageView.picture()
         {
             menu.addSeparator()
-            menu.addItem(texts.ui_CopyImage, "scope.image.copy", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())), rightName: "Ctrl C")
+            menu.addItem(texts.ui_CopyImage, "scope.image.copy", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())),
+                         rightName: .keyShortcutName("scope.image.copyImage", "Ctrl C"))
         }
 
         return menu
@@ -532,38 +538,38 @@ impl Panel
     {
         let texts = texts()
         let lens  = appStrings()
-        entries.add(texts.ui_TipPrevious, .ChevronLeft, func|view = me|() { view.navigate(-1) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.ui_TipNext, .ChevronRight, func|view = me|() { view.navigate(1) }, shortcut: Input.formatKeyShortcut(.None, .Right))
-        entries.add(texts.ui_RotateCounterClockwise, .Undo, func|view = me|() { view.rotateCounterClockwise() }, shortcut: Input.formatKeyShortcut(.Shift, .R))
-        entries.add(texts.ui_RotateClockwise, .Redo, func|view = me|() { view.rotateClockwise() }, shortcut: Input.formatKeyShortcut(.None, .R))
-        entries.add(texts.ui_MirrorHorizontal, .MirrorHorizontal, func|view = me|() { view.mirrorHorizontally() }, shortcut: Input.formatKeyShortcut(.None, .H))
-        entries.add(texts.ui_MirrorVertical, .MirrorVertical, func|view = me|() { view.mirrorVertically() }, shortcut: Input.formatKeyShortcut(.None, .V))
-        entries.add(texts.ui_ResetTransform, .Update, func|view = me|() { view.resetTransform() }, shortcut: Input.formatKeyShortcut(.Control, .R))
+        entries.add(texts.ui_TipPrevious, .ChevronLeft, func|view = me|() { view.navigate(-1) }, defaultKey: {modifiers: .None, key: .Left}, bindId: "scope.image.tipPrevious")
+        entries.add(texts.ui_TipNext, .ChevronRight, func|view = me|() { view.navigate(1) }, defaultKey: {modifiers: .None, key: .Right}, bindId: "scope.image.tipNext")
+        entries.add(texts.ui_RotateCounterClockwise, .Undo, func|view = me|() { view.rotateCounterClockwise() }, defaultKey: {modifiers: .Shift, key: .R}, bindId: "scope.image.rotateCounterClockwise")
+        entries.add(texts.ui_RotateClockwise, .Redo, func|view = me|() { view.rotateClockwise() }, defaultKey: {modifiers: .None, key: .R}, bindId: "scope.image.rotateClockwise")
+        entries.add(texts.ui_MirrorHorizontal, .MirrorHorizontal, func|view = me|() { view.mirrorHorizontally() }, defaultKey: {modifiers: .None, key: .H}, bindId: "scope.image.mirrorHorizontal")
+        entries.add(texts.ui_MirrorVertical, .MirrorVertical, func|view = me|() { view.mirrorVertically() }, defaultKey: {modifiers: .None, key: .V}, bindId: "scope.image.mirrorVertical")
+        entries.add(texts.ui_ResetTransform, .Update, func|view = me|() { view.resetTransform() }, defaultKey: {modifiers: .Control, key: .R}, bindId: "scope.image.resetTransform")
         if .imageView.picture() do
-            entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.image.copyImage")
 
         // The pixel the pointer read last, whose color the reader may want elsewhere.
         let color = .probedColorText()
         if color.count do
-            entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, shortcut: Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .C))
+            entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .C}, bindId: "scope.image.copyColor")
 
         // The picture zooms by factors, far past the shared bounds, so only actual size, the 100 %
         // of the readout, is the shared row; it reads as chosen while the picture shows at it.
         // The steps read as unavailable at the picture view's own limits.
-        entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, checked: .imageView.isFitted, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, disabled: not .imageView.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, disabled: not .imageView.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, checked: .imageView.isFitted, defaultKey: {modifiers: .None, key: .F}, bindId: "scope.image.tipFit")
+        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, disabled: not .imageView.canZoomIn(), defaultKey: {modifiers: .Control, key: .OemPlus}, bindId: "scope.image.zoomIn")
+        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, disabled: not .imageView.canZoomOut(), defaultKey: {modifiers: .Control, key: .OemMinus}, bindId: "scope.image.zoomOut")
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.imageView.actualSize() })
         if .imageView.movie.frameCount > 1
         {
             // An animation steps by frames, an image set by pages.
             let info      = .imageView.movie.frameInfo()
             let animation = info and info.kind == .Animation
-            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.image.previousPage")
+            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.image.nextPage")
         }
 
-        entries.add(lens.cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
+        entries.add(lens.cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.image.zoomMenu")
         if .playButton.isLocallyVisible()
         {
             entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause,
@@ -573,10 +579,10 @@ impl Panel
                             view.imageView.setPaused(not view.imageView.movie.isPaused)
                             view.refreshFrame()
                         },
-                        shortcut: Input.formatKeyShortcut(.None, .Space))
+                        defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.image.playPause")
         }
 
-        entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|() { view.playModeButton.showOptions() })
+        entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|() { view.playModeButton.showOptions() }, bindId: "scope.image.playMode")
     }
 
     mtd showTransformMenu()
@@ -605,7 +611,8 @@ impl Panel
         menu.addItem("100 %", "scope.image.zoom100", checked: percent == 100)
         menu.addItem("200 %", "scope.image.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .imageView.isFitted)
+        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.image.tipFit", "F"), checked: .imageView.isFitted)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.image.zoom25":  .imageView.setZoom(0.25)

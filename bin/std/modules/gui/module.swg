@@ -30,6 +30,18 @@ var app: Application
 Coordinates and sizes are logical pixels. Windows are owned by their application;
 use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
 
+## User keyboard shortcuts
+
+Commands registered with [[Gui.Lens.View.addCommands]] appear in Keyboard Shortcuts,
+including commands without a default key. Declare local defaults with
+[[Gui.Wnd.registerKeyShortcut]] and system-wide defaults with
+[[Gui.Application.registerUserHotKey]]. For callback rows supplied by a lens source,
+give each command a stable [[Gui.Lens.Entry.bindId]].
+
+Open the shared editor from an options surface with [[Gui.Lens.View.showKeyboardShortcuts]].
+Set [[Gui.Application.setStatePath]] before loading application state so customized
+bindings survive restart. Keep command identifiers stable across releases and languages.
+
 ## Keep spacing on one grid
 
 Use 4 logical pixels for tight internal spacing, 8 between neighboring controls, 16 between

@@ -500,25 +500,25 @@ private impl Panel
         }
 
         let strings = texts()
-        entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
-        entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
-        entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
-        entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
+        entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pdf.previous")
+        entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pdf.next")
+        entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, bindId: "scope.pdf.goToPage")
+        entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.pdf.back")
+        entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.pdf.forward")
 
         // The page view zooms by factors, far past the shared bounds, so only actual size, the
         // 100 % of the readout, is the shared row; it reads as chosen while the pages show at it.
         // The steps read as unavailable at the page view's own limits.
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, disabled: not .pdfView.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, disabled: not .pdfView.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, disabled: not .pdfView.canZoomIn(), defaultKey: {modifiers: .Control, key: .OemPlus}, bindId: "scope.pdf.zoomIn")
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, disabled: not .pdfView.canZoomOut(), defaultKey: {modifiers: .Control, key: .OemMinus}, bindId: "scope.pdf.zoomOut")
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.pdfView.actualSize() })
-        entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
+        entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, defaultKey: {modifiers: .None, key: .F}, bindId: "scope.pdf.fit")
+        entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, defaultKey: {modifiers: .None, key: .W}, bindId: "scope.pdf.fitWidth")
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.pdf.zoomMenu")
 
         // The commands of the page's context menu, so none of them needs a right click.
-        entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), shortcut: Input.formatKeyShortcut(.Control, .C))
-        entries.add(strings.ui_SelectPage, .SelectAll, func|view = me|() { view.pdfView.selectAll() }, disabled: not .pdfView.pageCount(), shortcut: Input.formatKeyShortcut(.Control, .A))
+        entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.pdf.copyText")
+        entries.add(strings.ui_SelectPage, .SelectAll, func|view = me|() { view.pdfView.selectAll() }, disabled: not .pdfView.pageCount(), defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.pdf.selectPage")
     }
 
     mtd promptGoToPage()
@@ -556,8 +556,10 @@ private impl Panel
         menu.addItem("150 %", "scope.pdf.zoom150", checked: percent == 150)
         menu.addItem("200 %", "scope.pdf.zoom200", checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
-        menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())), rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
+        menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.pdf.fit", "F"), checked: .pdfView.zoomMode == .FitPage)
+        menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())),
+                     rightName: .keyShortcutName("scope.pdf.fitWidth", "W"), checked: .pdfView.zoomMode == .FitWidth)
         menu.addSeparator()
         menu.addItem(texts().ui_Continuous, "scope.pdf.layoutContinuous", .theme().icon(.Outline, themeRowIconSize(.themeMetrics())), checked: .pdfView.pageLayout == .Continuous)
         menu.addItem(texts().ui_SinglePage, "scope.pdf.layoutSingle", .theme().icon(.File, themeRowIconSize(.themeMetrics())), checked: .pdfView.pageLayout == .Single)

@@ -342,6 +342,13 @@ struct MainWnd
 
 impl IWnd for MainWnd
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .ShortcutsChanged do
+            .refreshUnavailableShortcuts()
+        .wnd.IWnd.onNotifyEvent(evt)
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         let job = .copyJob
@@ -1896,14 +1903,10 @@ impl MainWnd
         .registerKeyShortcut(.None, .I, ActionView.Inspector)
         .registerKeyShortcut(.CtrlShift, .H, ActionView.Recent)
 
-        // Keep failed registrations by Capture, where their absence affects the user.
-        .takenHotKeys.clear()
-
         #[Swag.Mixin]
         mtd registerHotKey(modifiers: Input.KeyModifiers, key: Input.Key, wndId: WndId)
         {
-            catch .app().registerHotKey(modifiers, key, wndId, me) do
-                .takenHotKeys.add(Input.formatKeyShortcut(modifiers, key))
+            catch .app().registerUserHotKey(modifiers, key, wndId, me)
         }
 
         .registerHotKey(.None, .PrintScreen, ActionCapture.Area)
@@ -1912,7 +1915,12 @@ impl MainWnd
         .registerHotKey(.Control, .PrintScreen, ActionCapture.FullScreen)
         .registerHotKey(.Alt, .PrintScreen, ActionCapture.ActiveWnd)
         .registerHotKey(.CtrlShift, .F10, ActionCapture.RecordVideo)
+        .refreshUnavailableShortcuts()
+    }
 
+    mtd refreshUnavailableShortcuts()
+    {
+        .takenHotKeys = .app().unavailableUserHotKeys()
         if .taskStrip != null do
             .taskStrip.showUnavailableShortcuts(not .takenHotKeys.isEmpty())
     }

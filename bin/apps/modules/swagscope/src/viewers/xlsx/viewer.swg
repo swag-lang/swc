@@ -302,16 +302,16 @@ private impl Panel
             return
         }
 
-        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.xlsx.previous")
+        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.xlsx.next")
         if .workbook.hiddenSheets do
-            entries.add(texts().ui_ShowHidden, .File, func|view = me|() { view.setShowHidden(not view.showHidden) }, checked: .showHidden)
-        entries.add(texts().ui_Grid, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode)
-        entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode)
+            entries.add(texts().ui_ShowHidden, .File, func|view = me|() { view.setShowHidden(not view.showHidden) }, checked: .showHidden, bindId: "scope.xlsx.showHidden")
+        entries.add(texts().ui_Grid, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode, bindId: "scope.xlsx.grid")
+        entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode, bindId: "scope.xlsx.readText")
         if .grid do
-            entries.add(texts().ui_CopyCell, .Copy, func|view = me|() { view.grid?.copy() }, disabled: not .grid.hasSelection, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts().ui_CopyCell, .Copy, func|view = me|() { view.grid?.copy() }, disabled: not .grid.hasSelection, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.xlsx.copyCell")
         if .sheet < .workbook.sheets.count and .workbook.sheets[.sheet].hiddenRanges do
-            entries.add(texts().ui_HiddenRanges, .File, func|view = me|() { view.setHiddenRanges(not view.showHiddenRanges) }, checked: .showHiddenRanges)
+            entries.add(texts().ui_HiddenRanges, .File, func|view = me|() { view.setHiddenRanges(not view.showHiddenRanges) }, checked: .showHiddenRanges, bindId: "scope.xlsx.hiddenRanges")
     }
 
     func create(host: Viewer.Host)->*Panel

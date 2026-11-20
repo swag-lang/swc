@@ -267,11 +267,11 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: .slide == 0 or .slide >= .presentation.slides.count, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: .slide >= .presentation.slides.count or .slide + 1 >= .presentation.slides.count, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
-        entries.add(texts().ui_ShowSlides, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode and not .notesMode)
-        entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode)
-        entries.add(texts().ui_ReadNotes, .Wrap, func|view = me|() { view.showNotes() }, checked: .notesMode)
+        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: .slide == 0 or .slide >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pptx.previous")
+        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: .slide >= .presentation.slides.count or .slide + 1 >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pptx.next")
+        entries.add(texts().ui_ShowSlides, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode and not .notesMode, bindId: "scope.pptx.showSlides")
+        entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode, bindId: "scope.pptx.readText")
+        entries.add(texts().ui_ReadNotes, .Wrap, func|view = me|() { view.showNotes() }, checked: .notesMode, bindId: "scope.pptx.readNotes")
     }
 
     func create(host: Viewer.Host)->*Panel

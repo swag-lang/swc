@@ -818,25 +818,28 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
-        entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
-        entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks)
+        entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.text.wrap")
+        entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
+        entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")
 
         // The tab stops and the encodings answer a query rather than fill the empty lens; the
         // options list them too.
-        for width in Viewer.TabWidths where entries.query.count do
-            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width)
-        for encoding in Encodings where entries.query.count
+        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
+            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace,
+                        func|view = me, width|() { view.setTabWidth(width) },
+                        checked: .tabWidth == width, bindId: Format.toString("scope.text.tabWidth.%", width))
+        for encoding in Encodings where entries.query.count or entries.results.collectingShortcuts
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
-            entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)
+            entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) },
+                        checked: encoding == .encoding, bindId: Format.toString("scope.text.encoding.%", encoding))
         }
 
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() })
-        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.text.zoomMenu")
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.text.options")
     }
 
     // Opens how the text is laid out and decoded: wrapping, line numbers, tab stops, and the

@@ -68,6 +68,9 @@ struct Entry
         checkable:  bool            // Whether the row is a setting or a choice, which `Ctrl Enter` runs keeping the lens open.
         id:         WndId?          // Command posted to the owner of the lens when the row is chosen; borrowed for the life of the row.
         run:        (func||())?     // Action run when the row is chosen, once the lens has left the screen.
+        bindId:     String          // Stable identifier for a bindable action supplied by a lens source.
+        defaultKey: KeyShortcut     // Default chord of that action, when it has one.
+        alternateDefaultKey: KeyShortcut     // Optional second default chord for the same action.
         spans:      Array'Span      // Runs of the title the query matched; the lens fills it when a source leaves it empty.
     }
 
@@ -184,6 +187,7 @@ struct Results
             folded:   Query      // The query folded once, for [[Gui.Lens.match]] against each row.
             prefix:   Prefix     // Prefix the reader typed, or [[Gui.Lens.Prefix.None]].
             sections: ArrayPtr'Section     // Groups of rows, in the order they show.
+            collectingShortcuts: bool      // The editor is asking for bindable commands, including choices normally shown only after a query.
         }
     }
 }
@@ -212,11 +216,12 @@ impl Results
         return result
     }
 
-    internal mtd reset(query: string, prefix: Prefix)
+    internal mtd reset(query: string, prefix: Prefix, collectingShortcuts = false)
     {
         .query  = query
         .folded = Query.create(query)
         .prefix = prefix
+        .collectingShortcuts = collectingShortcuts
         .sections.clear()
     }
 }

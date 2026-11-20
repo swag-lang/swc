@@ -1098,18 +1098,18 @@ impl Panel
                 view.showPage(not page)
                 if page do
                     view.list.setFocus()
-            })
+            }, bindId: "scope.binary.toggleStructure")
         }
 
-        entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
-        entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
+        entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.binary.menuBack")
+        entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled(), defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.binary.menuForward")
 
         // The commands of the report's context menu, so none of them needs a right click.
-        entries.add(strings.ui_MenuGoTo, .GoTo, func|view = me|() { view.promptGoToOffset() }, disabled: not .doc.image.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))
-        entries.add(strings.ui_MenuCopyAll, .Copy, func|view = me|() { view.copyReport() }, shortcut: Input.formatKeyShortcut(.Control, .C))
-        entries.add(strings.ui_MenuCopyLine, .Copy, func|view = me|() { view.copySelectedLine() }, disabled: .list.selectedLine() == null)
-        entries.add(strings.ui_MenuExpand, .ChevronRight, func|view = me|() { view.setExpandedAll(true) }, shortcut: Input.formatKeyShortcut(.Control, .E))
-        entries.add(strings.ui_MenuCollapse, .ChevronDown, func|view = me|() { view.setExpandedAll(false) }, shortcut: Input.formatKeyShortcut(.CtrlShift, .E))
+        entries.add(strings.ui_MenuGoTo, .GoTo, func|view = me|() { view.promptGoToOffset() }, disabled: not .doc.image.fileSize, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.binary.menuGoTo")
+        entries.add(strings.ui_MenuCopyAll, .Copy, func|view = me|() { view.copyReport() }, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.binary.menuCopyAll")
+        entries.add(strings.ui_MenuCopyLine, .Copy, func|view = me|() { view.copySelectedLine() }, disabled: .list.selectedLine() == null, bindId: "scope.binary.menuCopyLine")
+        entries.add(strings.ui_MenuExpand, .ChevronRight, func|view = me|() { view.setExpandedAll(true) }, defaultKey: {modifiers: .Control, key: .E}, bindId: "scope.binary.menuExpand")
+        entries.add(strings.ui_MenuCollapse, .ChevronDown, func|view = me|() { view.setExpandedAll(false) }, defaultKey: {modifiers: .CtrlShift, key: .E}, bindId: "scope.binary.menuCollapse")
     }
 
     // Creates the command group `host` registers for this viewer, and the history buttons in it.

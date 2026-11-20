@@ -227,7 +227,7 @@ private impl Panel
         {
             view.sampleEdit.setFocus()
             view.sampleEdit.selectAll()
-        })
+        }, bindId: "scope.font.editSample")
         entries.add(strings.ui_PreviousPage,
                     .ChevronLeft,
                     func|view = me|()
@@ -236,7 +236,7 @@ private impl Panel
                         view.refreshPageCommands()
                     },
                     disabled: not .previousButton.isEnabled(),
-                    shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+                    defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.font.previousPage")
         entries.add(strings.ui_NextPage,
                     .ChevronRight,
                     func|view = me|()
@@ -245,7 +245,7 @@ private impl Panel
                         view.refreshPageCommands()
                     },
                     disabled: not .nextButton.isEnabled(),
-                    shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+                    defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.font.nextPage")
 
         // The character marked in the map, to paste elsewhere.
         if .document != null and .document.shown
@@ -257,7 +257,7 @@ private impl Panel
                 var marked: String
                 marked.append(view.document.shown)
                 Clipboard.setString(marked)
-            })
+            }, bindId: "scope.font.copyCharacter")
         }
 
         // A typed character, or its code point after `U+`, is a cell of the map to go to.
@@ -289,7 +289,8 @@ private impl Panel
                             view.document.goToCharacterPage(range)
                             view.refreshPageCommands()
                         },
-                        disabled: .facts.coverage[index] == 0)
+                        disabled: .facts.coverage[index] == 0,
+                        bindId: Format.toString("scope.font.block.%", range))
         }
     }
 

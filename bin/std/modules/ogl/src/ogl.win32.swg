@@ -8,10 +8,19 @@ alias HGLRC = const *void?
 #[Swag.CallingConvention(.C)]
 alias WglSwapIntervalProc = func(s32)->BOOL
 
+// Rejects the non-null sentinel values used by wglGetProcAddress for unsupported entry points.
+internal func isValidWglProcAddress(address: const *void?)->bool
+{
+    if not address do
+        return false
+    let value = cast(u64, address)
+    return value != 1 and value != 2 and value != 3 and value != 0xFFFFFFFFFFFFFFFF
+}
+
 internal func getExtensionAddress(name: LPCSTR)->const *void?
 {
     let address = wglGetProcAddress(name)
-    return Ogl.isValidWglProcAddress(address) ? address : null
+    return isValidWglProcAddress(address) ? address : null
 }
 
 // Sets how many display refreshes a `SwapBuffers` waits for, and reports whether it was accepted.

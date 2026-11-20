@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global if #os == Swag.TargetOs.Windows
 #global private
 
 // WGL lookup treats unsupported sentinel addresses the same as a missing entry point.

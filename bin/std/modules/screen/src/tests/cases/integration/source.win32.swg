@@ -139,25 +139,29 @@ using Core, Pixel
     let monitors = Env.getMonitors()
     if not monitors.count do
         return
-    var source        = expect Source.openMonitor(0)
-    let selection     = source.captureOptions()
+
     let monitorBounds = monitors[0].physicalBounds
+    let center        = Math.Point{monitorBounds.x + monitorBounds.width / 2, monitorBounds.y + monitorBounds.height / 2}
+    var pointOptions: SourceOptions
+
+    // DXGI permits one live duplication per output in this process.
+    scope
+    {
+        let pointSource = expect Source.openMonitorAt(center)
+        pointOptions = pointSource.captureOptions()
+    }
+
+    var source    = expect Source.openMonitor(0)
+    let selection = source.captureOptions()
     Swag.require(selection.x == cast(s32, monitorBounds.x) and
                  selection.y == cast(s32, monitorBounds.y) and
                  selection.width == cast(s32, monitorBounds.width) and
                  selection.height == cast(s32, monitorBounds.height))
-    let pointSource = expect Source.openMonitorAt({monitorBounds.x + monitorBounds.width / 2,
-                                                   monitorBounds.y + monitorBounds.height / 2})
-    let pointOptions = pointSource.captureOptions()
     Swag.require(pointOptions.x == selection.x and
                  pointOptions.y == selection.y and
                  pointOptions.width == selection.width and
                  pointOptions.height == selection.height)
-    let native = source.sources[0]
-    Swag.require(expect native.beginGrab())
-    Swag.require(native.pending)
-    native.abortGrab()
-    Swag.require(not native.pending and native.pendingResource == null and native.pendingTexture == null)
+
     var image: Image
     let fresh = expect source.grabInto(&image)
     Swag.require(fresh)
@@ -165,6 +169,8 @@ using Core, Pixel
     Swag.require(lastCaptureTime > 0)
     let lastPresentationTime = source.lastFramePresentationMicroseconds()
     Swag.require(lastPresentationTime > 0)
+
+    let native    = source.sources[0]
     let originalX = native.options.x
     native.options.x = Env.getSystemMetric(.DesktopX) + Env.getSystemMetric(.DesktopWidth) + 32
     var rejected = false
@@ -175,12 +181,15 @@ using Core, Pixel
     rejected = false
     discard catch native.beginGrab() { rejected = true }
     Swag.require(rejected, "a failed reopen should leave a recoverable source")
+
     native.options.x = originalX
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     Swag.require(source.lastFramePresentationMicroseconds() == 0)
     Swag.require(expect native.beginGrab())
+    Swag.require(native.pending)
     native.abortGrab()
+    Swag.require(not native.pending and native.pendingResource == null and native.pendingTexture == null)
 }
 
 // A single output reuses its composed frame and updates a stable caller image.
@@ -257,16 +266,10 @@ using Core, Pixel
         Swag.require(not native.pending)
     Swag.require(image.width == right - left and image.height == Math.min(bottom - top, 128))
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount > 0)
-    var untouched = Image.create(image.width, image.height, .BGRA8)
-    Memory.set(untouched.pixels.storage(), 0x5A, untouched.byteCount)
-    let changed = expect source.grabInto(&untouched, copyUnchanged: false)
-    for native in source.sources do
-        Swag.require(not native.pending)
-    if not changed
-    {
-        for byte in untouched.pixels do
-            Swag.require(byte == 0x5A)
-    }
+    var replacement = Image.create(image.width, image.height, .BGRA8)
+    Memory.set(replacement.pixels.storage(), 0x5A, replacement.byteCount)
+    discard expect source.grabInto(&replacement, copyUnchanged: false)
+    Swag.require(Memory.compare(replacement.pixels.storage(), source.composed.pixels.storage(), replacement.byteCount) == 0)
 }
 
 // The virtual desktop may contain empty strips between vertically offset monitors.
@@ -309,11 +312,14 @@ using Core, Pixel
         for 12
         {
             discard expect source.grabInto(&image, copyUnchanged: false, updateChangedOnly: true)
-            for native in source.sources do
-                Swag.require(not native.pending)
             Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(), image.byteCount) == 0,
                          "incremental output differs from the composed desktop")
         }
+
+        // A nonblocking grab may defer GPU readbacks. A blocking grab drains them.
+        discard expect source.grabInto(&image)
+        for native in source.sources do
+            Swag.require(not native.pending)
     }
 }
 

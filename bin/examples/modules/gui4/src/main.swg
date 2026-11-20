@@ -289,8 +289,6 @@ func displayModeIndex(kind: PropertiesKind)->u32
     case .List:      return 2
     case .Panel:     return 3
     }
-
-    return 0
 }
 
 func displayModeFromIndex(idx: u32)->PropertiesKind
@@ -424,8 +422,6 @@ func cardRadius(card: *SceneCard, h: f32)->f32
     case .Banner: return Math.min(card.radius, 12)
     case .Pill:   return h * 0.5
     }
-
-    return card.radius
 }
 
 func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selected: bool)

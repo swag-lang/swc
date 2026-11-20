@@ -182,8 +182,6 @@ func currentModeName()->string
     case .Detailed: return "detailed"
     case .Columns:  return "columns"
     }
-
-    unreachable
 }
 
 func boolWord(value: bool)->string => value ? "on" : "off"

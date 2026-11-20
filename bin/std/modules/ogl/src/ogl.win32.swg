@@ -5,9 +5,14 @@
 using Swag, Core, Win32, Win32.Gdi32
 
 alias HGLRC = const *void?
-alias getExtensionAddress = wglGetProcAddress
 #[Swag.CallingConvention(.C)]
 alias WglSwapIntervalProc = func(s32)->BOOL
+
+internal func getExtensionAddress(name: LPCSTR)->const *void?
+{
+    let address = wglGetProcAddress(name)
+    return Ogl.isValidWglProcAddress(address) ? address : null
+}
 
 // Sets how many display refreshes a `SwapBuffers` waits for, and reports whether it was accepted.
 //

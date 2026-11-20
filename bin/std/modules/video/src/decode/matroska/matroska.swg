@@ -1871,10 +1871,20 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
         let track = &layout.tracks[trackIndex]
         if track.audioPackets.isEmpty() do
             continue
-        let timelineStart = Math.max(cast(f64, track.audioStart) / 1_000_000_000.0, 0)
-        let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
-        let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart, displayName: track.name.toString(), language: track.language.toString()}
-        let sound         = try SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32, Math.round(track.decodedSampleRate())), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
+        let packetStart   = cast(f64, track.audioStart) / 1_000_000_000.0
+        var timelineStart = Math.max(packetStart, 0)
+        var leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
+        if packetStart < 0
+        {
+            let beforeTimeline = Math.ceil(-packetStart * track.decodedSampleRate())
+            if beforeTimeline > cast(f64, Swag.U32.Max) do
+                fail UnsupportedFormatError{"Matroska audio lead-in exceeds the supported trim range"}
+            leadingTrim   = Math.max(leadingTrim, cast(u64, beforeTimeline))
+            timelineStart = Math.max(packetStart + cast(f64, leadingTrim) / track.decodedSampleRate(), 0)
+        }
+
+        let options = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart, displayName: track.name.toString(), language: track.language.toString()}
+        let sound   = try SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32, Math.round(track.decodedSampleRate())), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
         result.add(#move sound)
     }
 }

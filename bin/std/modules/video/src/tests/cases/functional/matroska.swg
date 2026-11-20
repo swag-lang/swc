@@ -241,6 +241,17 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(delayedSound.sampleFrameCount() + 1024 == plainSound.sampleFrameCount())
 }
 
+// A negative audio origin is trimmed at timeline zero after codec delay is removed.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("mkv-audio-negative-start.mkv"))
+    waitForMatroskaAudio(&reader, 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.timelineStartSeconds() == 0)
+    Swag.require(sound.sampleRateHz() == 48_000)
+    Swag.require(sound.sampleFrameCount() == 19_512)
+}
+
 // A long container catches cue-offset, timestamp accumulation, and distant-seek defects that the
 // compact fixture cannot reach. Its pictures repeat the short source stream, so a seek near ten
 // minutes can still be checked pixel for pixel without storing another reference image.

@@ -162,6 +162,8 @@ enum CaptureIcons
     TimelineStart       // Start boundary and the retained timeline after it.
     TimelineEnd         // End boundary and the retained timeline before it.
     Resident            // Puts the capture window in the notification area.
+    RecordScreen        // Records the screen containing the pointer.
+    RecordWindow        // Records the active window.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window
@@ -278,7 +280,7 @@ struct MainWnd
     // The resident home, centered or opened beside the pointer.
     residentPanel:          *ResidentPanel?
     residentNotice:         *TrayNotice?
-    openHubAfterRecentLoad: bool
+    startupHubSession:      bool     // The hub opened at startup, before entering resident mode.
     metadataTimer:          *Gui.Timer?
     copyTimer:              *Gui.Timer?
     copyJob:                *CaptureLoadJob?
@@ -297,6 +299,7 @@ struct MainWnd
     videoRecoveryCount:     u64
 
     icons:    IconSet
+    monitorGlyphs: ArrayPtr'CaptureMonitorGlyph
     appIcon:  ImageList
     monitors: Array'Env.Monitor
 
@@ -484,7 +487,7 @@ impl IWnd for MainWnd
             if .editorOptions.hideOnClose
             {
                 .surface?.hide()
-                .noticeResident()
+                .enterResident()
             }
             else
             {
@@ -571,6 +574,7 @@ impl IWnd for MainWnd
         .stopTimer(&.metadataTimer)
         discard g_CaptureSaves.flush()
         .saveAppState()
+        .monitorGlyphs.clear()
         .icons.free()
         .appIcon.release(.app().renderer)
     }
@@ -631,6 +635,13 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.recentColors", &me.recentColors)
                 try .serialize("MainWnd.inspectorFolded", &me.inspectorFolded)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
+                if .isReading()
+                {
+                    let legacy = me.captureOptions
+                    me.captureOptions.pictureDestination = legacy.legacyInPlaceEdit ? .InPlace :
+                                                           legacy.legacySendToEditor ? .Editor : .Clipboard
+                }
+                try .serialize("MainWnd.pictureDestination", &me.captureOptions.pictureDestination)
                 try .serialize("MainWnd.lastCapture", &me.lastCapture)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -881,6 +892,19 @@ impl MainWnd
         catch g_App.loadState()
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         .recentWnd.scheduleLoadRecent()
+    }
+
+    mtd openStartupHub()
+    {
+        .startupHubSession = true
+        .postCommandEvent(ActionGlobal.ShowHub)
+    }
+
+    // Keeps the app running behind the tray icon after its last window closes.
+    mtd enterResident()
+    {
+        .startupHubSession = false
+        .noticeResident()
     }
 
     // Shows the notification-area reminder after the last application window leaves the screen.

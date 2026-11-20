@@ -141,14 +141,72 @@ impl CaptureJourney
         overlay.sendEvent(&pointer)
     }
 
+    // Finish a picture through the in-place bar, optionally starting from an open hub.
+    mtd finishInPlacePicture(hub: *ResidentPanel?, cancel = false, command = ActionCapture.Area)
+    {
+        let app = .app
+        var finished: bool
+        expect Clipboard.resetFake()
+        defer app.sigFrame.clear()
+        app.sigFrame += func|journey = me, cancel, command, &finished|(_)
+        {
+            if finished do
+                return
+            for surface in journey.app.surfaces
+            {
+                if surface.view() is CaptureRectWnd as overlay
+                {
+                    Swag.require(command == ActionCapture.Area, "a fixed capture opened the area selector")
+                    journey.selectScreenArea(overlay)
+                    return
+                }
+
+                if surface.view() is InPlaceEditWnd as editor
+                {
+                    if cancel
+                    {
+                        var key = KeyEvent{kind: .Pressed, key: .Escape}
+                        editor.sendEvent(&key)
+                        Swag.require(key.accepted)
+                        finished = true
+                        return
+                    }
+
+                    for item in editor.bar.items
+                    {
+                        if item.wnd is PushButton as button where button.text() == appStrings().act_InpCopy
+                        {
+                            var pointer = MouseEvent{kind: .Pressed, button: .Left, surfacePos: button.surfaceRect().center()}
+                            button.sendEvent(&pointer)
+                            pointer.kind = .Released
+                            button.sendEvent(&pointer)
+                            finished = true
+                            return
+                        }
+                    }
+                    Swag.require(false, "the in-place bar did not offer Copy")
+                }
+            }
+        }
+
+        if hub do
+            hub.choose(command)
+        else do
+            .main.postCommandEvent(command)
+        app.runFrame()
+
+        Swag.require(finished, "the in-place editor did not handle the action")
+        Swag.require(Clipboard.hasImage() != cancel, "the clipboard did not match the capture action")
+        Swag.require(.surface.isHidden, "the area capture unexpectedly opened the editor")
+    }
+
     // Take an area picture through the native selector and open it in the editor.
     mtd captureScreenPicture()
     {
         let app  = .app
         let main = .main
         var selected: bool
-        main.captureOptions.inPlaceEdit  = false
-        main.captureOptions.sendToEditor = true
+        main.captureOptions.pictureDestination = .Editor
         defer app.sigFrame.clear()
         app.sigFrame += func|journey = me, selected = &selected|(_)
         {
@@ -178,7 +236,7 @@ impl CaptureJourney
         let app  = .app
         let main = .main
         var stage: u32
-        main.captureOptions.inPlaceEdit = true
+        main.captureOptions.pictureDestination = .InPlace
         defer app.sigFrame.clear()
         app.sigFrame += func|journey = me, stage = &stage|(_)
         {

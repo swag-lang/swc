@@ -3,6 +3,9 @@
 ui_MenuFile            Fichier
 ui_MenuCapture         Capture
 ui_MenuCaptureSetup    Réglages de capture
+ui_AfterPictureCapture Après la capture d’image
+ui_HubMoreCaptures     Autres captures
+ui_HubBackToCaptures   Retour à la capture
 ui_MenuLinkedImage     Image liée
 ui_MenuCaptureFile     Fichier de capture
 ui_MenuObject          Objet
@@ -198,7 +201,7 @@ act_ExpandCapture      Agrandir le canevas…
 act_ExpandImage        Agrandir l'image…
 act_Draw               Dessin
 act_Duplicate          Dupliquer
-act_EditInPlace        Modifier la zone capturée sur place
+act_EditInPlace        Annoter la capture sur place
 act_EmptyRecycleBin    Vider la corbeille
 act_Favorites          Favoris
 act_Fill               Remplir
@@ -443,12 +446,13 @@ prop_CaptureCursor         Capturer le curseur
 prop_CaptureCursorDesc     Inclure le curseur de la souris dans l'image capturée
 prop_HideEditorBefore      Masquer l'éditeur avant
 prop_HideEditorBeforeDesc  Masquer temporairement l'éditeur avant de démarrer la capture
-prop_SendToEditor          Envoyer vers l'éditeur
-prop_SendToEditorDesc      Envoyer l'image capturée vers l'éditeur
-prop_SendToClipboard       Envoyer vers le presse-papiers
-prop_SendToClipboardDesc   Copier l'image capturée dans le presse-papiers
-prop_InPlaceEdit           Édition sur place
-prop_InPlaceEditDesc       Annoter la zone capturée directement sur l'écran
+prop_PictureDestination     Destination de l’image
+prop_PictureDestinationDesc Choisir ce qui se passe après une capture d’image
+prop_PictureClipboard       Presse-papiers
+prop_PictureInPlace         Annoter sur place
+prop_PictureEditor          Ouvrir l’éditeur
+prop_ReturnToHubAfterCopy     Revenir à l’accueil après la copie
+prop_ReturnToHubAfterCopyDesc Rouvrir l’accueil après avoir copié une capture d’image lancée depuis celui-ci
 prop_Delay                 Délai
 prop_DelayDesc             Définir le délai, en secondes, avant la capture
 prop_RecordCountdown       Compte à rebours

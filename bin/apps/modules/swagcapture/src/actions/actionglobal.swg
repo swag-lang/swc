@@ -63,10 +63,7 @@ impl IActionUI for ActionGlobal
             main.showWindow()
 
         case .ShowHub:
-            if not main.recentWnd.hubSizeReady() do
-                main.openHubAfterRecentLoad = true
-            else do
-                ResidentPanel.open(main, .Centered)
+            ResidentPanel.open(main, .Centered)
 
         case .ShowLibrary:
             main.swapLibraryMode()
@@ -92,7 +89,7 @@ impl IActionUI for ActionGlobal
                 if not surface.isHidden
                 {
                     surface.hide()
-                    main.noticeResident()
+                    main.enterResident()
                 }
             }
         }

@@ -44,7 +44,7 @@ using Core, Gui, Pixel
     journey.waitFor("tray hub", func|main|()->bool => main.residentPanel != null)
     let hub = main.residentPanel
     Swag.require(hub.placement == .Centered)
-    watch.start()
+    watch.restart()
     while watch.elapsedMilliseconds() < 120
     {
         journey.app.runFrame()
@@ -84,14 +84,14 @@ using Core, Gui, Pixel
                      "the notification must stand beside the notification-area icon")
     choice.toggle()
     Swag.require(not main.editorOptions.showResidentNotice)
-    watch.start()
+    watch.restart()
     while watch.elapsedMilliseconds() < 180
     {
         journey.app.runFrame()
         Swag.require(main.residentPanel == null, "Escape must not reopen the tray hub")
     }
 
-    watch.start()
+    watch.restart()
     while (main.residentNotice != null or journey.app.surfaces.count != 1) and watch.elapsedMilliseconds() < 1000 do
         journey.app.runFrame()
     Swag.require(main.residentNotice == null, "the checked notification must dismiss itself")
@@ -140,7 +140,7 @@ using Core, Gui, Pixel
     Swag.require(main.residentPanel != null, "the desktop right-click must open the home")
     let menu = main.residentPanel
     Swag.require(menu.placement == .AtPointer)
-    watch.start()
+    watch.restart()
     while watch.elapsedMilliseconds() < 180
     {
         journey.app.runFrame()
@@ -151,7 +151,7 @@ using Core, Gui, Pixel
     scope
     {
         var input          = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
-        let choices        = assume cast(*StackLayoutCtrl, menu.menu.children[0])
+        let choices        = assume cast(*StackLayoutCtrl, menu.menu.children[1])
         let cursor         = assume cast(*IconButton, choices.children[0])
         let previousCursor = main.captureOptions.captureCursor
         input.click(cursor)
@@ -166,7 +166,7 @@ using Core, Gui, Pixel
         input.shortcut(.Escape, .None)
     }
 
-    watch.start()
+    watch.restart()
     while main.residentPanel != null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
     Swag.require(main.residentPanel == null and surface.isHidden,
@@ -174,12 +174,12 @@ using Core, Gui, Pixel
     journey.app.runFrame()
 
     Gui.Testing.clickTrayIcon(journey.app, surface, .Left, 2)
-    watch.start()
+    watch.restart()
     while main.residentPanel == null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
     Swag.require(main.residentPanel != null, "the desktop double-click must open the hub")
     Swag.require(main.residentPanel.placement == .Centered)
-    watch.start()
+    watch.restart()
     while watch.elapsedMilliseconds() < 180
     {
         journey.app.runFrame()

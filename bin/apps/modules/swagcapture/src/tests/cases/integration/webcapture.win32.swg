@@ -157,9 +157,8 @@ private func webCaptureQuality()->VideoQuality
     main.captureOptions.recordSystemSound  = true
     main.captureOptions.recordVideoQuality = webCaptureQuality()
     main.captureOptions.recordMicrophone   = false
-    main.captureOptions.inPlaceEdit        = true
+    main.captureOptions.pictureDestination = .InPlace
     main.captureOptions.hideEditorBefore   = true
-    main.captureOptions.sendToEditor       = true
     var stage: u32
     var stalled = false
     app.sigFrame += func|&journey, x, y, width, height, browser, stallMs, maxMissed, stage = &stage, stalled = &stalled|(_)
@@ -448,9 +447,8 @@ private func webCaptureQuality()->VideoQuality
     main.captureOptions.recordSystemSound  = false
     main.captureOptions.recordVideoQuality = webCaptureQuality()
     main.captureOptions.recordMicrophone   = false
-    main.captureOptions.inPlaceEdit        = true
+    main.captureOptions.pictureDestination = .InPlace
     main.captureOptions.hideEditorBefore   = true
-    main.captureOptions.sendToEditor       = true
     var stage: u32
     app.sigFrame += func|&journey, desktop, expected, videoWidth, videoHeight, maxMissed, durationSeconds, stage = &stage|(_)
     {

@@ -73,7 +73,7 @@ const OpenImageMessage = 1'u32
     // the surface is destroyed.
     surface.setTrayIcon(appIcon, ProductName)
     if startup == .Tray do
-        mainWnd.noticeResident()
+        mainWnd.enterResident()
 
     Env.registerApplication(ApplicationId, ProductName)
     Env.associateFileExtension(".png", ApplicationId, Env.executablePath())
@@ -82,7 +82,7 @@ const OpenImageMessage = 1'u32
     if startup == .Editor and imageToOpen.count do
         mainWnd.loadExternalImage(imageToOpen)
     elif startup == .Hub do
-        mainWnd.postCommandEvent(ActionGlobal.ShowHub)
+        mainWnd.openStartupHub()
 
     g_App.run()
 }

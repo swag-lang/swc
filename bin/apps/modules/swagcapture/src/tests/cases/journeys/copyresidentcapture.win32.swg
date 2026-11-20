@@ -3,55 +3,52 @@
 
 using Core, Gui, Pixel
 
-// Copy an area capture started from the resident hub, then check that the hidden app is explained.
+// Copy a picture from a resident session and optionally open the hub again.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
     var journey: CaptureJourney
     journey.setup()
     let main    = journey.main
-    let app     = journey.app
     let surface = journey.surface
     surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
     surface.hide()
-    main.captureOptions.inPlaceEdit       = true
-    main.editorOptions.showResidentNotice = true
+    main.captureOptions.pictureDestination = .InPlace
+    main.editorOptions.showResidentNotice = false
     main.editorOptions.residentNotices    = 0
     defer main.residentNotice?.close()
+    defer main.residentPanel?.close()
 
-    var copied: bool
-    defer app.sigFrame.clear()
-    app.sigFrame += func|journey = &journey, copied = &copied|(_)
-    {
-        if copied[] do
-            return
-        for candidate in g_App.surfaces
-        {
-            if candidate.view() is CaptureRectWnd as overlay
-            {
-                journey.selectScreenArea(overlay)
-                return
-            }
+    main.openStartupHub()
+    journey.waitFor("startup hub", func|main|()->bool => main.residentPanel != null)
+    let startupHub = main.residentPanel
+    (unwrap startupHub).choose(ActionGlobal.Minimize)
+    journey.app.runFrame()
+    Swag.require(main.residentPanel == null and main.residentNotice == null)
+    main.editorOptions.showResidentNotice = true
 
-            if candidate.view() is InPlaceEditWnd as editor
-            {
-                var enter = KeyEvent{kind: .Pressed, key: .Return, modifiers: .None}
-                editor.sendEvent(&enter)
-                copied[] = enter.accepted
-                return
-            }
-        }
-    }
+    Swag.require(not main.captureOptions.returnToHubAfterCopy)
+    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered))
+    Swag.require(main.residentPanel == null)
+    let notice = unwrap main.residentNotice
+    Swag.require(not notice.surface!.isHidden)
+    notice.close()
 
-    let hub = unwrap ResidentPanel.open(main, .Centered)
-    hub.choose(ActionCapture.Area)
-    app.runFrame()
+    main.captureOptions.returnToHubAfterCopy = true
+    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered))
+    journey.waitFor("hub reopened after copy", func|main|()->bool => main.residentPanel != null)
+    let currentHub = main.residentPanel
+    let hub = unwrap currentHub
+    Swag.require(hub.placement == .Centered and not hub.surface!.isHidden)
+    Swag.require(main.residentNotice == null)
+    hub.close()
 
-    Swag.require(copied, "the in-place editor did not copy the selected area")
-    Swag.require(surface.isHidden and main.residentPanel == null,
-                 "copying the area unexpectedly restored the main window")
-    let notice        = unwrap main.residentNotice
-    let noticeSurface = unwrap notice.surface
-    Swag.require(noticeSurface.isHidden == false,
-                 "copying an area capture from the hub must show the resident notice")
+    journey.finishInPlacePicture(null)
+    journey.app.runFrame()
+    Swag.require(main.residentPanel == null, "a capture started while resident must stay resident")
+    main.residentNotice?.close()
+
+    journey.finishInPlacePicture(unwrap ResidentPanel.open(main, .Centered), cancel: true)
+    journey.app.runFrame()
+    Swag.require(main.residentPanel == null, "canceling must leave the hub closed")
 }

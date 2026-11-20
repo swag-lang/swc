@@ -237,4 +237,14 @@
     <path d="M2 5h11"/>
     <circle cx="12" cy="12" r="2.25" fill="#ffffff" stroke="none"/>
   </g>
+  <g id="RecordScreen" transform="translate(96 168) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2.5" width="12" height="9.5" rx="1.25"/>
+    <path d="M8 12v2M5.75 14h4.5"/>
+    <circle cx="8" cy="7.25" r="1.7" fill="#ffffff" stroke="none"/>
+  </g>
+  <g id="RecordWindow" transform="translate(120 168) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="2.5" width="11" height="11" rx="1.25"/>
+    <path d="M2.5 5.75h11"/>
+    <circle cx="8" cy="9.5" r="1.55" fill="#ffffff" stroke="none"/>
+  </g>
 </svg>

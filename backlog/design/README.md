@@ -746,12 +746,14 @@ the screen to its work.
   alone and the editor; activating the icon opens the same thing, the hub standing in for the
   icon alone. One home opens centered on the screen at startup and beside the pointer on a right
   click on the icon, on a surface of its own: what to capture and what to record under their
-  section labels, with assigned keys, the
-  last captures as one row of pictures that open in the editor, then the editor, the library,
-  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts
-  before a choice. Both placements share every command and recent capture: picture then video, a
-  monitor of its own only when there are several, then one capture-settings row with the cursor
-  toggle and exclusive delay choices, before recent captures. While a recording runs, the home offers to stop or abandon it instead of
+  section labels, with assigned keys, then the editor, the library, the options, the way back
+  behind the icon and the way out. It has no accent: nothing in it acts
+  before a choice. Both placements start with area, full-screen and active-window capture,
+  video recording. Recent captures are available in the editor and library. More Captures opens a second page for the
+  last area, individual monitors and the other recording targets. The picture group has one
+  destination row shared by every still capture: Clipboard, Annotate in Place, or Editor.
+  The selected destination also applies to keyboard captures. One row on the main page groups
+  the cursor toggle and exclusive delay choices. While a recording runs, the home offers to stop or abandon it instead of
   starting another capture. It leaves on a choice, on `Esc`, and when another application
   takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
   without a choice, or closing the window, leaves nothing on screen: a small notification above
@@ -931,6 +933,8 @@ the screen to its work.
 small gear, `ThemeIcons.Settings`, in the caption, command menu and lens. The sliders glyph,
 `ThemeIcons.Options`, denotes adjustments local to a viewer or task, never the application's
 options page. Reuse these semantic glyphs instead of choosing a similar-looking alternative.
+Different commands shown together use distinct glyphs. Repeated targets carry a distinguishing
+mark, such as the monitor number in Capture.
 
 **Actions inside prose use RichString links.** A localized sentence owns its full layout,
 including the action and the words after it. Use `Gui.LabelFlags.LinkActions` on the label,

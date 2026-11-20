@@ -18,7 +18,7 @@ using Swag, Core
 }
 
 // Full-screen OS capture is tested without creating a Swag Capture library file:
-// sendToEditor=false keeps the result in the real clipboard only. The grab covers
+// The clipboard destination keeps the result out of the editor. The grab covers
 // the whole virtual desktop, so the check stops at clipboard presence: decoding a
 // desktop-sized PNG back would dominate the whole suite for no extra coverage.
 #[Swag.TestTag("integration.host.windows")]
@@ -31,9 +31,7 @@ using Swag, Core
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = true
-    f.main.captureOptions.sendToEditor     = false
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Clipboard
     f.main.captureOptions.delay            = 0
 
     f.main.sendCommandEvent(ActionCapture.FullScreen)
@@ -53,9 +51,7 @@ using Swag, Core
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = true
-    f.main.captureOptions.sendToEditor     = false
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Clipboard
     f.main.captureOptions.delay            = 0
 
     g_StartGrabX = 0
@@ -86,9 +82,7 @@ using Swag, Core
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = true
-    f.main.captureOptions.sendToEditor     = false
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Clipboard
     f.main.captureOptions.delay            = 0
 
     // Five monitors, and the fifth is the one captured: the per-monitor commands used to
@@ -122,9 +116,7 @@ using Swag, Core
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = false
-    f.main.captureOptions.sendToEditor     = true
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Editor
     f.main.captureOptions.delay            = 0
 
     g_StartGrabX = 0

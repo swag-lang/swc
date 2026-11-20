@@ -1244,6 +1244,8 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
                      (french ? "Équilibrée" : "Balanced"))
         Swag.require(resolvePropertyText("Record System Sound") ==
                      (french ? "Enregistrer le son système" : "Record System Sound"))
+        Swag.require(resolvePropertyText("Return To Hub After Copy") ==
+                     (french ? "Revenir à l’accueil après la copie" : "Return To Hub After Copy"))
     }
 }
 

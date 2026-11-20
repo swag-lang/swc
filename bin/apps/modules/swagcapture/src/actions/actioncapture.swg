@@ -23,6 +23,32 @@ impl ActionCapture
     newCmdId("ToEditor")
     newCmdId("ToClipboard")
 
+    // The same still-image commands run from the hub, the editor and global shortcuts.
+    func pictureTarget(id: WndId)->{found: bool, mode: CaptureMode, monitor: u64}
+    {
+        switch id
+        {
+        case ActionCapture.Area, ActionCapture.DoIt: return {found: true, mode: .Area, monitor: 0}
+        case ActionCapture.LastArea:                 return {found: true, mode: .LastArea, monitor: 0}
+        case ActionCapture.FullScreen:               return {found: true, mode: .FullScreen, monitor: 0}
+        case ActionCapture.ActiveWnd:                return {found: true, mode: .ActiveWindow, monitor: 0}
+        }
+
+        let monitor = screenIndex(id)
+        return {found: monitor != Swag.U64.Max, mode: .Monitor, monitor: monitor}
+    }
+
+    func destination(id: WndId)->{found: bool, value: PictureDestination}
+    {
+        switch id
+        {
+        case ActionCapture.ToClipboard: return {found: true, value: .Clipboard}
+        case ActionCapture.ToInPlace:   return {found: true, value: .InPlace}
+        case ActionCapture.ToEditor:    return {found: true, value: .Editor}
+        }
+        return {found: false, value: .InPlace}
+    }
+
     // The per-monitor commands are minted from the live monitor list rather than
     // declared one by one, so the fifth monitor of a machine is as addressable as the
     // first. A `WndId` is a borrowed string that a menu item and a queued command event
@@ -95,7 +121,7 @@ impl IActionUI for ActionCapture
                                                   monitor + 1,
                                                   main.monitors[monitor].bounds.width,
                                                   main.monitors[monitor].bounds.height)
-            evt.icon = main.icon(.Monitor)
+            evt.icon = main.monitorGlyph(monitor, recording: false)
             return true
         }
 
@@ -110,7 +136,7 @@ impl IActionUI for ActionCapture
                                                   recordedMonitor + 1,
                                                   main.monitors[recordedMonitor].bounds.width,
                                                   main.monitors[recordedMonitor].bounds.height)
-            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : main.monitorGlyph(recordedMonitor, recording: true)
             return true
         }
 
@@ -147,12 +173,12 @@ impl IActionUI for ActionCapture
         case .RecordScreen:
             evt.updatedFields |= .Name | .Icon
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordScreen
-            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : main.icon(.RecordScreen)
 
         case .RecordActiveWindow:
             evt.updatedFields |= .Name | .Icon
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordActiveWindow
-            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : main.icon(.RecordWindow)
 
         case .CancelRecording:
             evt.updatedFields |= .Name | .Icon | .Disabled
@@ -191,23 +217,23 @@ impl IActionUI for ActionCapture
 
         case .ToInPlace:
             evt.updatedFields |= .Name | .Checked | .Icon
-            evt.icon          = main.theme().icon(.Edit)
+            evt.icon          = main.icon(.Draw)
             evt.name          = appStrings().act_EditInPlace
-            evt.checked       = main.captureOptions.inPlaceEdit
+            evt.checked       = main.captureOptions.pictureDestination == .InPlace
             evt.accepted      = true
 
         case .ToEditor:
             evt.updatedFields |= .Name | .Checked | .Icon
             evt.icon          = main.theme().icon(.OpenExternal)
             evt.name          = appStrings().act_SendToEditor
-            evt.checked       = main.captureOptions.sendToEditor
+            evt.checked       = main.captureOptions.pictureDestination == .Editor
             evt.accepted      = true
 
         case .ToClipboard:
             evt.updatedFields |= .Name | .Checked | .Icon
             evt.icon          = main.theme().icon(.Copy)
             evt.name          = appStrings().act_SendToClipboard
-            evt.checked       = main.captureOptions.sendToClipboard
+            evt.checked       = main.captureOptions.pictureDestination == .Clipboard
             evt.accepted      = true
         }
 
@@ -218,11 +244,24 @@ impl IActionUI for ActionCapture
     {
         let main = mainWndOf(cxt)
 
-        let monitor = ActionCapture.screenIndex(cxt.id)
-        if monitor != Swag.U64.Max
+        let target = ActionCapture.pictureTarget(cxt.id)
+        if target.found
         {
-            main.lastCapture = cxt.id
-            main.captureScreen(.Monitor, monitor)
+            if cxt.id != .DoIt and (target.mode == .Monitor or not g_Recorder) do
+                main.lastCapture = cxt.id
+            main.captureScreen(target.mode, target.monitor)
+            return true
+        }
+
+        let destination = ActionCapture.destination(cxt.id)
+        if destination.found
+        {
+            if main.captureOptions.pictureDestination != destination.value
+            {
+                main.captureOptions.pictureDestination = destination.value
+                main.residentPanel?.updatePictureChoices()
+                main.saveAppState()
+            }
             return true
         }
 
@@ -242,20 +281,13 @@ impl IActionUI for ActionCapture
             main.sendCommandEvent(main.lastCaptureCommand())
             return true
 
-        case .Area, .Record, .RecordVideo, .RecordScreen,
-             .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
+        case .Record, .RecordVideo, .RecordScreen, .RecordActiveWindow:
             if not g_Recorder do
                 main.lastCapture = cxt.id
         }
 
         switch cxt.id
         {
-        case .DoIt:
-            main.captureScreen(.Area)
-
-        case .Area:
-            main.captureScreen(.Area)
-
         case .Record:
             main.recordScreen()
 
@@ -272,29 +304,12 @@ impl IActionUI for ActionCapture
             if g_Recorder do
                 g_Recorder!.cancel()
 
-        case .LastArea:
-            main.captureScreen(.LastArea)
-
-        case .FullScreen:
-            main.captureScreen(.FullScreen)
-
-        case .ActiveWnd:
-            main.captureScreen(.ActiveWindow)
-
-        case .ToInPlace:
-            main.captureOptions.inPlaceEdit = not main.captureOptions.inPlaceEdit
-
         case .HideEditor:
             main.captureOptions.hideEditorBefore = not main.captureOptions.hideEditorBefore
 
         case .CaptureCursor:
             main.captureOptions.captureCursor = not main.captureOptions.captureCursor
 
-        case .ToEditor:
-            main.captureOptions.sendToEditor = not main.captureOptions.sendToEditor
-
-        case .ToClipboard:
-            main.captureOptions.sendToClipboard = not main.captureOptions.sendToClipboard
         }
 
         return true

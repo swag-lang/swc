@@ -7,141 +7,10 @@ enum ResidentPanelPlacement
     AtPointer     // Beside the pointer, as a menu of the notification-area icon.
 }
 
-// The last captures, as one row of pictures in the hub. A click opens one in the editor.
-//
-// The pictures are the ones of the recent strip, drawn as it draws them: the row only shows the
-// first of them, and follows the strip while it is still loading.
-struct HubRecents
-{
-    using wnd: Wnd
-
-    late main:     *MainWnd
-    hovered:       u64 = Swag.U64.Max
-    keyboardIndex: u64 = Swag.U64.Max
-    chosen:        u64 = Swag.U64.Max     // The picture clicked, which the panel opens on its next watch.
-}
-
-impl IWnd for HubRecents
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        for index in .count()
-        {
-            let item = unwrap .main.recentWnd.recentView.items[index]
-            with var infos: RecentInfos
-            {
-                .hot        = index == (me.keyboardIndex != Swag.U64.Max ? me.keyboardIndex : me.hovered)
-                .duration   = item.duration
-                .showLinked = false
-            }
-
-            RecentView.paintRecent(me, evt.paintContext.painter, item.preview, .tileRect(index), infos)
-        }
-    }
-
-    mtd impl onMouseEvent(evt: *MouseEvent)
-    {
-        var hit = Swag.U64.Max
-        if evt.kind != .Leave
-        {
-            let pos = .surfaceToLocal(evt.surfacePos)
-            for index in .count() where .tileRect(index).contains(pos) do
-                hit = index
-        }
-
-        if hit != .hovered
-        {
-            .hovered = hit
-            .invalidate()
-        }
-
-        if evt.kind == .Released and evt.button == .Left and hit != Swag.U64.Max do
-            .chosen = hit
-        evt.accepted = true
-    }
-
-    mtd impl onKeyEvent(evt: *KeyEvent)
-    {
-        evt.accepted = false
-        if evt.kind != .Pressed or not .count() do
-            return
-
-        switch evt.key
-        {
-        case .Left:
-            .keyboardIndex = .keyboardIndex == Swag.U64.Max ? .count() - 1 :
-                             (.keyboardIndex + .count() - 1) % .count()
-
-        case .Right:
-            .keyboardIndex = .keyboardIndex == Swag.U64.Max ? 0 : (.keyboardIndex + 1) % .count()
-
-        case .Return, .Space:
-            .chosen = .keyboardIndex == Swag.U64.Max ? 0 : .keyboardIndex
-
-        default:
-            return
-        }
-
-        .invalidate()
-        evt.accepted = true
-    }
-}
-
-impl HubRecents
-{
-    // The row holds five pictures at 4:3, with the air the ring of a tile needs around them.
-    const MaxShown   = 5'u64
-    const TileWidth  = 80.0
-    const TileHeight = 60.0
-    const TileGap    = 8.0
-    const RowInset   = 6.0
-
-    func create(parent: *Wnd, main: *MainWnd)->*HubRecents
-    {
-        let width  = cast(f32, MaxShown) * TileWidth + cast(f32, MaxShown - 1) * TileGap + 2 * RowInset
-        let height = TileHeight + 2 * RowInset
-
-        with let result = Wnd.create'HubRecents(parent, {0, 0, width, height})
-        {
-            .main = main
-            .backgroundStyle = .Transparent
-            .preferredSize   = {width, height}
-        }
-
-        return result
-    }
-
-    // Returns how many captures `main` can show in the row now.
-    func available(main: *MainWnd)->u64
-    {
-        if main.recentWnd == null do
-            return 0
-        return Math.min(main.recentWnd.recentView.items.count, MaxShown)
-    }
-
-    mtd count()->u64 => available(.main)
-
-    mtd clearKeyboardSelection()
-    {
-        if .keyboardIndex == Swag.U64.Max do
-            return
-        .keyboardIndex = Swag.U64.Max
-        .invalidate()
-    }
-
-    // Returns the cell of the picture `index`.
-    mtd tileRect(index: u64)->Math.Rectangle
-    {
-        let room = .clientRect()
-        let left = room.x + RowInset + cast(f32, index) * (TileWidth + TileGap)
-        return {left, room.vertCenter() - TileHeight * 0.5, TileWidth, TileHeight}
-    }
-}
-
 // The floating list a resident Swag Capture answers its icon with, on a surface of its own: the
 // main window may be hidden while it is on screen.
 //
-// One home lists what to capture, what to record, the capture settings and recent captures,
+// One home lists what to capture, what to record and the capture settings,
 // then the editor, the library and the way back behind the icon. It opens centered at startup
 // or beside the pointer from the icon. While recording, it offers to stop or abandon the session.
 //
@@ -155,13 +24,15 @@ struct ResidentPanel
     late main: *MainWnd
     late menu: *MenuCtrl
     placement: ResidentPanelPlacement
-    anchor:    Math.Point       // Original screen anchor, retained while recent captures load.
+    anchor:    Math.Point       // Original screen anchor, retained when switching pages.
     listSize:  Math.Point       // Size the list asks for, before the surface docks it to its own.
-    recents:   *HubRecents?     // The row of recent captures, when the hub has some to show.
+    pictureChoices: *StackLayoutCtrl?
     watch:     *Gui.Timer?      // Watches for a choice while the panel floats.
     floating:  bool             // Whether the panel owns its surface, rather than standing in a host.
     wasActive: bool             // Whether the application was the active one since the panel opened.
     armed:     bool             // Whether the detached menu has claimed pointer input after opening.
+    captureQueued: bool         // The capture command will close the hub when it takes the screen.
+    otherCaptures: bool          // The page for less common capture and recording targets.
 }
 
 impl IWnd for ResidentPanel
@@ -172,21 +43,6 @@ impl IWnd for ResidentPanel
         {
             .choose(.menu.modalResult())
             return
-        }
-
-        // A hub opened before the recent captures takes their row when the first one arrives.
-        // RecentWnd invalidates this row whenever a later thumbnail changes.
-        if let recents = .recents
-        {
-            if recents.chosen != Swag.U64.Max
-            {
-                .openRecent(recents.chosen)
-                return
-            }
-        }
-        elif not g_Recorder and HubRecents.available(.main)
-        {
-            .rebuild()
         }
 
         if .placement == .AtPointer
@@ -205,9 +61,12 @@ impl IWnd for ResidentPanel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Character or
-           (evt.kind == .Pressed and (evt.key == .Up or evt.key == .Down or evt.key == .Home or evt.key == .End)) do
-            .recents?.clearKeyboardSelection()
+        if .otherCaptures and evt.kind == .Pressed and evt.key == .Escape
+        {
+            .choose(BackToCaptures)
+            evt.accepted = true
+            return
+        }
 
         .menu.handleKeyboard(evt)
         if .menu.isModalEnded() do
@@ -225,6 +84,8 @@ impl ResidentPanel
 {
     // Period of the watch for a choice: short enough that a click feels immediate.
     const WatchPeriod: Time.Duration = 30'ms
+    const MoreCaptures   = "capture.hub.moreCaptures"
+    const BackToCaptures = "capture.hub.backToCaptures"
 
     // On Windows, activation belongs to the process, so another window in this process can
     // take the foreground while Application.isActivated remains true.
@@ -310,12 +171,30 @@ impl ResidentPanel
     mtd choose(id: WndId?)
     {
         let main = .main
+        if .captureQueued do
+            return
+
+        if id == MoreCaptures or id == BackToCaptures
+        {
+            .otherCaptures = id == MoreCaptures
+            .rebuild()
+            return
+        }
+
+        // Keep the origin until the queued capture starts, then clear the hub before the grab.
+        if id and ActionCapture.pictureTarget(id).found
+        {
+            .captureQueued = true
+            .stopTimer(&.watch)
+            main.postCommandEvent(id)
+            return
+        }
 
         // Once the hub leaves, the application is resident behind its notification-area icon.
         let showNotice = (not id or id == ActionGlobal.Minimize) and main.surface!.isHidden
         .close()
         if showNotice do
-            main.noticeResident()
+            main.enterResident()
 
         if not id do
             return
@@ -330,34 +209,29 @@ impl ResidentPanel
         main.postCommandEvent(id)
     }
 
-    // Leaves the screen, then opens the recent capture `index` in the editor.
-    mtd openRecent(index: u64)
-    {
-        let main = .main
-        .close()
-        main.showWindow()
-        main.openRecent(index)
-    }
-
     // Lists what the panel offers now.
     private mtd fill()
     {
         .menu    = Wnd.create'MenuCtrl(me)
-        .recents = null
+        .pictureChoices = null
 
         // Every command that starts a recording stops the one that runs: it is offered once.
         if g_Recorder do
             .addRecordingItems()
+        elif .otherCaptures do
+            .addOtherCaptures()
         else do
             .addHubItems()
 
         with .menu
         {
-            .addItem(ActionOptions.Options)
-            .addSeparator()
-
-            .addItem(null, ActionGlobal.Minimize, rightName: Input.formatKeyShortcut(.None, .Escape), disabled: me.placement == .AtPointer)
-            .addItem(ActionGlobal.Exit)
+            if not me.otherCaptures or g_Recorder
+            {
+                .addItem(ActionOptions.Options)
+                .addSeparator()
+                .addItem(null, ActionGlobal.Minimize, rightName: Input.formatKeyShortcut(.None, .Escape), disabled: me.placement == .AtPointer)
+                .addItem(ActionGlobal.Exit)
+            }
 
             .owner     = me.main
             .dockStyle = .Center
@@ -402,41 +276,131 @@ impl ResidentPanel
     private mtd addHubItems()
     {
         let texts   = appStrings()
-        let main    = .main
-        let screens = main.monitors.count > 1 ? main.monitors.count : 0
         with .menu
         {
             .addLabel(texts.ui_MenuCapture)
             .addItem(ActionCapture.Area)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
-            .addItem(ActionCapture.LastArea)
-            for index in screens do
-                .addItem(ActionCapture.screenId(index))
-            .addLabel(texts.ui_HubRecord)
+        }
+
+        .addPictureChoices()
+
+        with .menu
+        {
+            .addSeparator()
             .addItem(ActionCapture.RecordVideo)
-            .addItem(ActionCapture.RecordScreen)
-            .addItem(ActionCapture.RecordActiveWindow)
-            .addItem(ActionCapture.Record)
-            for index in screens do
-                .addItem(ActionCapture.recordScreenId(index))
+            .addItem(texts.ui_HubMoreCaptures, MoreCaptures, me.theme().icon(.More))
             .addLabel(texts.ui_MenuCaptureSetup)
         }
 
         .main.addDelayChoices(.menu, includeCursor: true)
-
-        if HubRecents.available(.main)
-        {
-            .recents = HubRecents.create(.menu, .main)
-            .menu.addLabel(texts.lens_Recent)
-            .menu.addWidget(.recents, fullWidth: true)
-        }
 
         with .menu
         {
             .addSeparator()
             .addItem(ActionGlobal.ShowEditor)
             .addItem(ActionGlobal.ShowLibrary)
+        }
+    }
+
+    private mtd addOtherCaptures()
+    {
+        let texts   = appStrings()
+        let screens = .main.monitors.count > 1 ? .main.monitors.count : 0
+        with .menu
+        {
+            .addItem(texts.ui_HubBackToCaptures, BackToCaptures, me.theme().icon(.ChevronLeft))
+            .addLabel(texts.ui_MenuCapture)
+            .addItem(ActionCapture.LastArea)
+            for index in screens do
+                .addItem(ActionCapture.screenId(index))
+        }
+
+        .addPictureChoices()
+
+        with .menu
+        {
+            .addLabel(texts.ui_HubRecord)
+            .addItem(ActionCapture.RecordScreen)
+            .addItem(ActionCapture.RecordActiveWindow)
+            .addItem(ActionCapture.Record)
+            for index in screens do
+                .addItem(ActionCapture.recordScreenId(index))
+        }
+    }
+
+    const PictureChoiceCommands = [ActionCapture.ToClipboard, ActionCapture.ToInPlace, ActionCapture.ToEditor]
+
+    // A radio row changes the destination without closing the hub. The same commands are
+    // available from the editor's lens and command menu.
+    private mtd addPictureChoices()
+    {
+        let texts   = appStrings()
+        let main    = .main
+        let metrics = .themeMetrics()
+        let labels  = [texts.prop_PictureClipboard, texts.prop_PictureInPlace, texts.ui_SectionEditor]
+        .menu.addLabel(texts.ui_AfterPictureCapture)
+
+        with let choices = StackLayoutCtrl.create(.menu, .HorizontalCenter)
+        {
+            .backgroundStyle = .Transparent
+            .spacing         = metrics.menuPopup_SpaceLines
+            .hookOnEvent    = func|panel = me|(_, evt)->bool
+            {
+                if evt is KeyEvent as key where key.kind == .Pressed and (key.key == .Left or key.key == .Right)
+                {
+                    panel.stepPictureChoice(key.key == .Right)
+                    key.accepted = true
+                    return true
+                }
+                return false
+            }
+        }
+
+        for id, index in PictureChoiceCommands
+        {
+            let state = main.sendComputeCommandStateEvent(id)
+            with let button = IconButton.create(choices, state.icon,
+                                                {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75}, flags: .Radio)
+            {
+                .preferredSize.x = 0
+                .padding         = metrics.btnIcon_Padding * 0.5
+                .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+                .setText(labels[index])
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .toolTip = state.name
+                .sigCheckedChanged += func|main, id|(_) { main.sendCommandEvent(id) }
+            }
+        }
+
+        .pictureChoices = choices
+        .updatePictureChoices()
+        .menu.addWidget(choices, fullWidth: true)
+    }
+
+    mtd updatePictureChoices()
+    {
+        if let choices = .pictureChoices
+        {
+            for id, index in PictureChoiceCommands
+            {
+                let button = assume cast(*IconButton, choices.children[index])
+                button.setChecked(ActionCapture.destination(id).value == .main.captureOptions.pictureDestination)
+            }
+        }
+    }
+
+    private mtd stepPictureChoice(forward: bool)
+    {
+        let count = PictureChoiceCommands.count
+        for id, index in PictureChoiceCommands where ActionCapture.destination(id).value == .main.captureOptions.pictureDestination
+        {
+            let next = (index + (forward ? 1 : count - 1)) % count
+            .main.sendCommandEvent(PictureChoiceCommands[next])
+            return
         }
     }
 

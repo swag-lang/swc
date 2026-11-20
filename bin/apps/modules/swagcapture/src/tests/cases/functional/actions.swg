@@ -157,25 +157,22 @@ using Swag, Core
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.captureCursor != captureCursor)
 
-    let toInPlace = f.main.captureOptions.inPlaceEdit
     actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToInPlace)
     Swag.require(actionExecuted)
-    Swag.require(f.main.captureOptions.inPlaceEdit != toInPlace)
+    Swag.require(f.main.captureOptions.pictureDestination == .InPlace)
 
-    let toEditor = f.main.captureOptions.sendToEditor
     actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToEditor)
     Swag.require(actionExecuted)
-    Swag.require(f.main.captureOptions.sendToEditor != toEditor)
+    Swag.require(f.main.captureOptions.pictureDestination == .Editor)
 
-    let toClipboard = f.main.captureOptions.sendToClipboard
     actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToClipboard)
     Swag.require(actionExecuted)
-    Swag.require(f.main.captureOptions.sendToClipboard != toClipboard)
+    Swag.require(f.main.captureOptions.pictureDestination == .Clipboard)
 
     var capEvt = Gui.Testing.commandState(ActionCapture.ToClipboard)
     Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ToClipboard, &capEvt))
     Swag.require(capEvt.updatedFields.has(CommandStateEvent.UpdatedFields.Checked))
-    Swag.require(capEvt.checked == f.main.captureOptions.sendToClipboard)
+    Swag.require(capEvt.checked)
 
     let clip = f.main.editorOptions.clipToSelection
     f.main.sendCommandEvent(ActionView.Clip)

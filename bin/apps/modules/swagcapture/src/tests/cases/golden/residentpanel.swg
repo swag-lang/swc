@@ -3,8 +3,7 @@
 
 using Swag, Core, Gui, Pixel
 
-// The hub with three recent captures, in Encre: the labelled groups, the row of pictures, then
-// the pages of the window.
+// The compact startup hub in Encre, with the default picture destination.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -18,15 +17,12 @@ using Swag, Core, Gui, Pixel
 
     host.theme.setDark()
     host.notify(.ThemeChanged)
-    for index in 3 do
-        main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 80 * index), 8 + 12 * cast(s32, index)))
-
     let panel = testOpenResidentPanel(&host, main, .Centered)
     var image = host.renderSurface(unwrap panel.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.hub.encre")
 }
 
-// The keyboard moves through the hub into its recent pictures, with one selected tile in Papier.
+// The keyboard selects the active-window capture in Papier.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -40,29 +36,13 @@ using Swag, Core, Gui, Pixel
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
-    for index in 3 do
-        main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 80 * index), 8 + 12 * cast(s32, index)))
-
-    let panel       = testOpenResidentPanel(&host, main, .Centered)
-    let recents     = unwrap panel.recents
-    var down        = KeyEvent{kind: .Pressed, key: .Down}
-    var recentGroup = false
-    for item in panel.menu.items
-    {
-        if item!.label and item.name.text == appStrings().lens_Recent do
-            recentGroup = true
-        if not item.disabled and not item.separator and not item.label
-        {
-            panel.sendEvent(&down)
-            if recentGroup do
-                break
-        }
-    }
-
-    var right = KeyEvent{kind: .Pressed, key: .Right}
-    panel.sendEvent(&right)
-    panel.sendEvent(&right)
-    Swag.require(recents.keyboardIndex == 1)
+    let panel = testOpenResidentPanel(&host, main, .Centered)
+    var home  = KeyEvent{kind: .Pressed, key: .Home}
+    var down  = KeyEvent{kind: .Pressed, key: .Down}
+    panel.sendEvent(&home)
+    panel.sendEvent(&down)
+    panel.sendEvent(&down)
+    Swag.require(down.accepted)
     var image = host.renderSurface(unwrap panel.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.hub.keyboard.papier")
 }
@@ -90,4 +70,27 @@ using Swag, Core, Gui, Pixel
     let panel = testOpenResidentPanel(&host, main, .AtPointer)
     var image = host.renderSurface(unwrap panel.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.menu.papier")
+}
+
+// The second page groups the extra targets, and distinguishes individual displays from video.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+    testAddMonitorAt(main, {1440, 0, 1440, 900})
+    main.captureOptions.pictureDestination = .Clipboard
+
+    let panel = testOpenResidentPanel(&host, main, .Centered)
+    panel.choose(ResidentPanel.MoreCaptures)
+    var image = host.renderSurface(unwrap panel.surface)
+    Pixel.Testing.assertImageGolden(&image, "resident.othercaptures.encre")
 }

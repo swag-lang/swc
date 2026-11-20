@@ -61,6 +61,7 @@ struct InPlaceEditWnd
     }
 
     capture:          *Capture?
+    copied:           bool
     kindButton:       *IconButton?
     linkButton:       *IconButton?
     late source:      *MainWnd     // The application window the capture was started from.
@@ -479,6 +480,7 @@ impl InPlaceEditWnd
             assume .copyAll()
         }
 
+        .copied = true
         g_Main?.confirm(appStrings().msg_Copied)
         exitWithResult(false)
     }

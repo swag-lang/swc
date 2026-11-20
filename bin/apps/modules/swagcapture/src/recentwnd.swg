@@ -389,7 +389,7 @@ impl IWnd for RecentWnd
                     item.ownerApp.renderer.removeTexture(&item.preview)
                 item.ownerApp = .app()
                 item.preview  = .app().renderer.addImage(capture.preview)
-                .invalidateRecentViews()
+                .invalidate()
 
                 .main.libWnd.view.updateRecent(capture)
 
@@ -444,7 +444,7 @@ impl IWnd for RecentWnd
         .requestedFile.clear()
         .requestedMenu  = false
         .returnToEditor = false
-        .invalidateRecentViews()
+        .invalidate()
         if .startupSelection == file
         {
             .startupSelection.clear()
@@ -493,7 +493,7 @@ impl RecentWnd
         .requestedMenu  = false
         .returnToEditor = false
         .stopTimer(&.selectionTimer)
-        .invalidateRecentViews()
+        .invalidate()
     }
 
     mtd requestSelection(file: string, contextMenu: bool, pos: Math.Point, startup = false, returnToEditor = false)
@@ -510,7 +510,7 @@ impl RecentWnd
         .returnToEditor        = returnToEditor
         if returnToEditor and .main.libraryMode do
             .main.libWnd.view.imgSpin.show()
-        .invalidateRecentViews()
+        .invalidate()
         .startRequestedSelection()
     }
 
@@ -650,7 +650,7 @@ impl RecentWnd
         .requestedMenu = false
         let returnToEditor = .returnToEditor
         .returnToEditor = false
-        .invalidateRecentViews()
+        .invalidate()
 
         let previous = .recentView.selectLoaded(idx, loaded)
         if previous
@@ -671,13 +671,6 @@ impl RecentWnd
 
         if openMenu do
             .recentView.showContextMenu(.requestedMenuPos)
-    }
-
-    // The strip and the detached hub paint the same items on different surfaces.
-    private mtd invalidateRecentViews()
-    {
-        .invalidate()
-        .main.residentPanel?.recents?.invalidate()
     }
 
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
@@ -708,19 +701,6 @@ impl RecentWnd
         .loadTimer         = .addTimer(1'ms)
     }
 
-    // The hub can size itself once a first valid recent item is present or every candidate
-    // has been tried. A damaged first file must not make the hub grow a moment later.
-    mtd hubSizeReady()->bool => .loadDone and
-                                (not .recentView.items.isEmpty() or .pendingRecentIndex >= .pendingRecentFiles.count)
-
-    private mtd openPendingHub()
-    {
-        if not .main.openHubAfterRecentLoad or not .hubSizeReady() do
-            return
-        .main.openHubAfterRecentLoad = false
-        ResidentPanel.open(.main, .Centered)
-    }
-
     // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
@@ -749,7 +729,7 @@ impl RecentWnd
                     .recentView.selected -= 1
                 }
 
-                .invalidateRecentViews()
+                .invalidate()
                 break
             }
         }
@@ -779,7 +759,6 @@ impl RecentWnd
         // Enumeration already runs on the deferred startup turn. Show the first preview
         // now; another timer would allow a redundant empty-editor frame in between.
         .loadNextRecent()
-        .openPendingHub()
     }
 
     mtd scheduleLoadNextRecent()
@@ -813,7 +792,6 @@ impl RecentWnd
 
         .pendingRecentIndex += 1
         .scheduleLoadNextRecent()
-        .openPendingHub()
     }
 
     // Refreshes the selected item of the strip from the capture being edited, and restarts the
@@ -837,7 +815,7 @@ impl RecentWnd
             .duration       = capture.keptDuration()
         }
 
-        .invalidateRecentViews()
+        .invalidate()
     }
 
     mtd removeRecent()
@@ -907,7 +885,7 @@ impl RecentWnd
                 itn.linked         = linked
                 itn.linkedUpToDate = linkedUpToDate
                 itn.duration       = duration
-                .invalidateRecentViews()
+                .invalidate()
                 return
             }
         }
@@ -953,6 +931,6 @@ impl RecentWnd
             .recentView.items.count -= 1
         }
 
-        .invalidateRecentViews()
+        .invalidate()
     }
 }

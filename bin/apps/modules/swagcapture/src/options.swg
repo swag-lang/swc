@@ -72,6 +72,18 @@ impl VideoQuality
     }
 }
 
+// Where a new still image goes after the grab.
+enum PictureDestination
+{
+    Clipboard
+
+    #[Properties.Name("Annotate in Place")]
+    InPlace
+
+    #[Properties.Name("Open Editor")]
+    Editor
+}
+
 // The capture settings shown in the options grid: what a screenshot includes, how long it waits,
 // and where the result goes.
 #[Swag.Using(Properties)]
@@ -86,14 +98,18 @@ struct CaptureOptions
     #[Description("Temporarily hide the editor before starting the capture")]
     hideEditorBefore = true
 
-    #[Description("Send the captured image to the editor")]
-    sendToEditor = true
+    // Kept in the old record so existing settings can seed the separately stored destination.
+    #[Hidden, Serialization.Key("sendToEditor")]
+    legacySendToEditor = true
 
-    #[Description("Copy the captured image to the clipboard")]
-    sendToClipboard = true
+    #[Hidden, Serialization.Key("inPlaceEdit")]
+    legacyInPlaceEdit = true
 
-    #[Description("Edit captured area in place")]
-    inPlaceEdit = true
+    #[Description("Choose what happens after an image capture"), Serialization.NoSerialize]
+    pictureDestination: PictureDestination = .InPlace
+
+    #[Description("Reopen the hub after copying an image capture started there")]
+    returnToHubAfterCopy = false
 
     #[Description("Set the delay time, in seconds, before capturing"), Unit("s")]
     delay = 0

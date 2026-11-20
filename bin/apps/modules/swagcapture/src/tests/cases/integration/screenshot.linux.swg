@@ -194,9 +194,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = false
-    f.main.captureOptions.sendToEditor     = true
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Editor
     f.main.captureOptions.delay            = 0
 
     g_StartGrabX = 10
@@ -243,9 +241,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = true
-    f.main.captureOptions.sendToEditor     = false
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Clipboard
     f.main.captureOptions.delay            = 0
 
     f.main.monitors.clear()
@@ -280,9 +276,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     testPrepareRecentLibrary(f.main)
     f.main.captureOptions.hideEditorBefore = false
     f.main.captureOptions.captureCursor    = false
-    f.main.captureOptions.sendToClipboard  = false
-    f.main.captureOptions.sendToEditor     = true
-    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.pictureDestination = .Editor
     f.main.captureOptions.delay            = 0
 
     Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ActiveWnd))
@@ -338,9 +332,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 
     main.captureOptions.hideEditorBefore = false
     main.captureOptions.captureCursor    = false
-    main.captureOptions.sendToClipboard  = false
-    main.captureOptions.sendToEditor     = true
-    main.captureOptions.inPlaceEdit      = false
+    main.captureOptions.pictureDestination = .Editor
     main.captureOptions.delay            = 0
     g_StartGrabX                         = 10
     g_StartGrabY                         = 20

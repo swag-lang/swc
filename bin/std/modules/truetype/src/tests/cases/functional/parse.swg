@@ -40,6 +40,16 @@ using Swag, Core
     Swag.require(peekU32(ReaderBytes, Swag.U64.Max - 3) == 0)
 }
 
+#test
+{
+    // CFF INDEX offsets are one-based and must be monotonic. Otherwise a later
+    // item can point backward even though the final offset remains in bounds.
+    const BadCffIndex: [8] u8 = [0x00, 0x02, 0x01, 0x01, 0x03, 0x02, 0xAA, 0xBB]
+    var rejected: Swag.Error
+    discard catch readCffIndex(BadCffIndex, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.
 #test
 {

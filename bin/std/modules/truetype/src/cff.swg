@@ -178,34 +178,46 @@ func subrBias(count: u32)->s32
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
     var result: #returntype
-    let count = peekU16(block, offset)
+    let count = try readU16(block, offset)
     if not count
     {
         result.end = offset + 2
         return result
     }
 
-    let offSize = peekU8(block, offset + 2)
+    let offSize = try readU8(block, offset + 2)
     if offSize < 1 or offSize > 4 do
         try fault(0x08)
 
     // Item offsets are one-based and relative to the byte before the data block, which
     // is what makes the first item start exactly where the offset table ends.
-    let table    = offset + 3
-    let dataBase = table + (cast(u64, count) + 1) * offSize - 1
+    let table = offset + 3
+    let offsetTableSize = (cast(u64, count) + 1) * offSize
+    try assertRange(block, table, offsetTableSize)
+    let dataBase = table + offsetTableSize - 1
 
     result.starts.reserve(cast(u64, count) + 1)
+    var previousOffset = 0'u32
     for i in cast(u64, count) + 1
     {
         var value = 0'u32
-        for b in cast(u64, offSize) do
-            value = value << 8 | peekU8(block, table + i * offSize + b)
-        result.starts.add(cast(u32, (dataBase + value)))
+        for b in cast(u64, offSize)
+        {
+            let byte = try readU8(block, table + i * offSize + b)
+            value = value << 8 | byte
+        }
+
+        if not value or (i == 0 and value != 1) or value < previousOffset do
+            try fault(0x08)
+
+        let itemOffset = dataBase + cast(u64, value)
+        if itemOffset > block.count or itemOffset > Swag.U32.Max do
+            try fault(0x08)
+        result.starts.add(cast(u32, itemOffset))
+        previousOffset = value
     }
 
     result.end = result.starts.back()
-    if result.end > block.count do
-        try fault(0x08)
     return result
 }
 

@@ -130,13 +130,12 @@ struct Type2State
 
 private impl Type2State
 {
-    mtd push(value: f64)
+    mtd push(value: f64) fail
     {
-        if .depth < MaxCharstringStack
-        {
-            .stack[.depth] = value
-            .depth         += 1
-        }
+        if .depth >= MaxCharstringStack do
+            try fault(0x82)
+        .stack[.depth] = value
+        .depth         += 1
     }
 
     // Consumes the optional width that may precede the first stack-clearing operator, and
@@ -203,27 +202,29 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
         {
             if b0 == 28
             {
-                state.push(cast(f64, peekS16(code, pos)))
+                try state.push(cast(f64, peekS16(code, pos)))
                 pos += 2
             }
             elif b0 <= 246
             {
-                state.push(cast(f64, (cast(s32, b0) - 139)))
+                try state.push(cast(f64, (cast(s32, b0) - 139)))
             }
             elif b0 <= 250
             {
-                state.push(cast(f64, ((cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108)))
+                let decodedValue = (cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108
+                try state.push(cast(f64, decodedValue))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64, (-(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108)))
+                let decodedValue = -(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108
+                try state.push(cast(f64, decodedValue))
                 pos += 1
             }
             else
             {
                 // A 16.16 fixed-point literal, the only fractional operand the format has.
-                state.push(cast(f64, (try readS32(code, pos))) / 65536.0)
+                try state.push(cast(f64, (try readS32(code, pos))) / 65536.0)
                 pos += 4
             }
 
@@ -446,7 +447,7 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
         case 12:
             let b1 = peekU8(code, pos)
             pos += 1
-            execType2Escape(state, b1)
+            try execType2Escape(state, b1)
 
         default:
             state.depth = 0
@@ -465,7 +466,7 @@ private func emitRelativeCurve(state: *Type2State, i: u32)
 }
 
 // Runs the Type 2 escape operators for curves, arithmetic, logic, stack values, and random values.
-func execType2Escape(state: *Type2State, op: u8)
+func execType2Escape(state: *Type2State, op: u8) fail
 {
     switch op
     {
@@ -614,10 +615,9 @@ func execType2Escape(state: *Type2State, op: u8)
             state.stack[state.depth - 1] = Math.sqrt(Math.abs(state.stack[state.depth - 1]))
 
     case 27:
-        if state.depth and state.depth < MaxCharstringStack
+        if state.depth
         {
-            state.stack[state.depth] = state.stack[state.depth - 1]
-            state.depth += 1
+            try state.push(state.stack[state.depth - 1])
         }
 
     case 28:
@@ -692,18 +692,15 @@ func execType2Escape(state: *Type2State, op: u8)
         }
 
     case 23:
-        if state.depth < MaxCharstringStack
-        {
-            // Repeatable output keeps a glyph stable across renders while satisfying the
-            // Type 2 requirement that the generated value lies strictly between zero and one.
-            var value = state.randomState
-            value                    ^= value << 13
-            value                    ^= value >> 17
-            value                    ^= value << 5
-            state.randomState        = value
-            state.stack[state.depth] = (cast(f64, state.randomState) + 0.5) / 4294967296.0
-            state.depth              += 1
-        }
+
+        // Repeatable output keeps a glyph stable across renders while satisfying the
+        // Type 2 requirement that the generated value lies strictly between zero and one.
+        var value = state.randomState
+        value ^= value << 13
+        value ^= value >> 17
+        value ^= value << 5
+        state.randomState = value
+        try state.push((cast(f64, state.randomState) + 0.5) / 4294967296.0)
 
     default:
         state.depth = 0
@@ -812,13 +809,12 @@ struct Type1State
 
 private impl Type1State
 {
-    mtd push(value: f64)
+    mtd push(value: f64) fail
     {
-        if .depth < MaxCharstringStack
-        {
-            .stack[.depth] = value
-            .depth         += 1
-        }
+        if .depth >= MaxCharstringStack do
+            try fault(0x82)
+        .stack[.depth] = value
+        .depth         += 1
     }
 
     mtd pushResult(value: f64)
@@ -896,23 +892,25 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
         {
             if b0 <= 246
             {
-                state.push(cast(f64, (cast(s32, b0) - 139)))
+                try state.push(cast(f64, (cast(s32, b0) - 139)))
             }
             elif b0 <= 250
             {
-                state.push(cast(f64, ((cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108)))
+                let decodedValue = (cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108
+                try state.push(cast(f64, decodedValue))
                 pos += 1
             }
             elif b0 <= 254
             {
-                state.push(cast(f64, (-(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108)))
+                let decodedValue = -(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108
+                try state.push(cast(f64, decodedValue))
                 pos += 1
             }
             else
             {
                 // Type 1 spells its wide literals as plain 32-bit integers, not as the
                 // fixed-point form Type 2 introduced for the same encoding byte.
-                state.push(cast(f64, (try readS32(code, pos))))
+                try state.push(cast(f64, (try readS32(code, pos))))
                 pos += 4
             }
 
@@ -1085,11 +1083,11 @@ private func execType1Escape(state: *Type1State, op: u8) fail
         if state.resultDepth
         {
             state.resultDepth -= 1
-            state.push(state.results[state.resultDepth])
+            try state.push(state.results[state.resultDepth])
         }
         else
         {
-            state.push(0)
+            try state.push(0)
         }
 
     case 33:

@@ -702,6 +702,30 @@ namespace Integration
         verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")
     }
 
+    // The Windows file cache must not keep a closed file busy in Vault.
+    #[Swag.Propagate]
+    func runMappedFileUnmount(box: *Sandbox) fail
+    {
+        let root = driveRoot(box.mountPoint)
+        let path = Path.combine(root, "cached-before-unmount.txt")
+        let text = "The application closed this file before unmounting."
+        File.writeAllText(path, text)
+        var file   = File.MappedFile.open(path)
+        var region = file.mapAll()
+        verify(Slice.equals(region.bytes(), cast(const [..] u8, text)), "Windows must read the mapped file")
+        file.close()
+        var busy: Swag.Error
+        catch box.unmountVolume() as busy
+        verify(isBusyError(busy.value()), "ordinary unmount must still refuse an active mapped file")
+        region.close()
+
+        box.unmountVolume()
+        verify(not Directory.exists(root), "ordinary unmount must remove the drive after cached I/O")
+        box.mountVolume(password())
+        verify(File.readAllText(path) == text, "ordinary unmount must preserve the cached file")
+        File.delete(path)
+    }
+
     // Busy is a refusal, while explicit force invalidates live native handles and releases keys.
     #[Swag.Propagate]
     func runUnmountContract(box: *Sandbox) fail
@@ -814,6 +838,8 @@ namespace Integration
         trace("STAGE: first mount")
         box.mountVolume(password())
         trace("STAGE: first mount complete")
+        trace("STAGE: ordinary unmount after closing a mapped file")
+        runMappedFileUnmount(box)
         verify(Directory.exists(driveRoot(box.mountPoint)), "the mounted drive must be visible to Windows")
         let mountedRoot      = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")

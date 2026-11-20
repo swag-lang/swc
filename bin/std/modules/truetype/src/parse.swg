@@ -408,11 +408,20 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 
 func buildGlyphMetrics(faceData: *FaceImpl) fail
 {
+    let glyphCount = faceData.face.glyphCount
+    if not faceData.numLongMetrics or faceData.numLongMetrics > glyphCount do
+        try fault(0x95)
+
     let hmtx = try getTableSlice(faceData, TAG_HMTX, 0x93)
-    faceData.glyphMetrics.resize(faceData.face.glyphCount)
+    let shortMetricCount = glyphCount - faceData.numLongMetrics
+    let requiredBytes    = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    if hmtx.count < requiredBytes do
+        try fault(0x95)
+
+    faceData.glyphMetrics.resize(glyphCount)
 
     var lastAdvance = 0'u16
-    for index in faceData.face.glyphCount
+    for index in glyphCount
     {
         var metric: GlyphMetric
         if index < faceData.numLongMetrics

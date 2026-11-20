@@ -3,6 +3,15 @@ using Core, Swag, Core.StrConv
 #[AttrUsage(AttributeUsage.Function)]
 attr Extension()
 
+// Rejects the non-null sentinel values used by wglGetProcAddress for unsupported entry points.
+internal func isValidWglProcAddress(address: const *void?)->bool
+{
+    if not address do
+        return false
+    let value = cast(u64, address)
+    return value != 1 and value != 2 and value != 3 and value != 0xFFFFFFFFFFFFFFFF
+}
+
 struct OneFunc
 {
     type: const *TypeInfoFunc?

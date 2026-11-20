@@ -668,9 +668,9 @@ AstNodeRef Parser::parseDiscard()
 
 AstNodeRef Parser::parseSwitchCaseDefault()
 {
-    const bool     isDefault       = is(TokenId::KwdDefault);
-    const TokenRef labelRef        = consume();
-    auto [nodeRef, nodePtr]         = ast_->makeNode<AstNodeId::SwitchCaseStmt>(labelRef);
+    const bool     isDefault = is(TokenId::KwdDefault);
+    const TokenRef labelRef  = consume();
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::SwitchCaseStmt>(labelRef);
     if (!isDefault && isNot(TokenId::KwdWhere))
     {
         SmallVector<AstNodeRef> nodeExpressions;

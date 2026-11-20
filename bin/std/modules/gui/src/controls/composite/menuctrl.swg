@@ -414,7 +414,8 @@ public impl IWnd for MenuCtrl
 
                 // Restore a popup's capture after an icon button handles the event. An
                 // embedded menu leaves the pointer with the button for the usual click.
-                if menuHadCapture and widgetTarget is IconButton and
+                if menuHadCapture and
+                   widgetTarget is IconButton and
                    not .endModal and
                    (.mouseCapture() == null or .mouseCapture() == widgetTarget) do
                     .captureMouse()
@@ -833,6 +834,7 @@ impl MenuCtrl
         }
 
         .selectedIdx = Swag.U32.Max
+
         // A hover timer can call this with no open submenu, including in an embedded panel.
         if .bar do
             .releaseMouse()

@@ -195,7 +195,7 @@ public impl Keyboard
         case .MButton: button = 1 << 9
         case .RButton: button = 1 << 10
         case .XButton1, .XButton2: return false
-        default: break
+        default:       break
         }
 
         if button

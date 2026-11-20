@@ -1034,7 +1034,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
 
                 // Overloads and struct conversion decide whether each shorthand names a field.
                 sema.ensureSemaPayload<RepeatedBraceField>(sema.curNodeRef()).ref = child;
-                checkRecordNames = false;
+                checkRecordNames                                                  = false;
             }
         }
 

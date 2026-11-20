@@ -17,9 +17,11 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
         case Second: state.name = "Second command"
         default:     return false
         }
+
         state.updatedFields.add(.Name)
         return true
     }
+
     return false
 }
 
@@ -136,8 +138,10 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
             oldCount += 1
             return true
         }
+
         return false
     }
+
     lens.addSource(.Action, func|&newCount|(results)
     {
         with let entry = results.addSection("Document").addEntry("Read next page")
@@ -166,7 +170,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     host.setup(1000, 750)
     host.root.hookOnEvent = &shortcutState
     host.root.registerKeyShortcut(.Control, .F1, First)
@@ -193,16 +197,19 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
             Swag.require(stage == 3)
             stage = 4
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             Swag.require(host.app.modalSurfaces.count == 2)
             stage = 2
             host.keyPress(.F3, .Control)
+
         case 2:
             Swag.require(host.app.modalSurfaces.count == 2)
             stage = 3
             Swag.require(host.clickModalButton(Dialog.BtnYes))
         }
     }
+
     lens.showKeyboardShortcuts()
     host.app.sigFrame.clear()
     Swag.require(stage == 4)
@@ -214,7 +221,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     host.setup(1000, 750)
     host.app.setGlobalHotKeysEnabled(false)
     host.root.hookOnEvent = &shortcutState
@@ -236,6 +243,7 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
             Swag.require(stage == 2)
             stage = 3
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             let mods = assume cast(*ComboBox, unwrap root.childById("gui.shortcuts.modifiers"))
             let keys = assume cast(*ComboBox, unwrap root.childById("gui.shortcuts.key"))
@@ -245,10 +253,12 @@ func shortcutState(_: *Wnd, evt: IEvent)->bool
                 keys.setSelectedIndex(cast(u32, index))
                 break
             }
+
             stage = 2
             Swag.require(host.clickModalButton(Dialog.BtnOk))
         }
     }
+
     lens.showKeyboardShortcuts()
     host.app.sigFrame.clear()
     Swag.require(stage == 3)

@@ -21,8 +21,8 @@ private const ValueBorrowWideShard  = ValueBorrowShardCount
 #[Swag.Align(64)]
 private struct ValueBorrowShard
 {
-    low:   u64
-    high:  u64     // Inclusive, covering every range published by this shard.
+    low:  u64
+    high: u64     // Inclusive, covering every range published by this shard.
     #[Swag.Align(64)]
     lock:  u64
     head:  *ValueBorrowRecord?
@@ -262,6 +262,7 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, _: const *Sou
 func __valueBorrowLeave(storage: *void)
 {
     let record = cast(*ValueBorrowRecord, storage)
+
     // A resume boundary can return normally after panic cleanup removed its record.
     if record.size == 0 do
         return
@@ -306,6 +307,7 @@ func __valueBorrowReset(checkpoint: u64 = 0)
         valueBorrowResetShard(&registry.shards[index], thread, checkpoint)
         shards &= shards - 1
     }
+
     valueBorrowResetShard(&registry.shards[ValueBorrowWideShard], thread, checkpoint)
 }
 
@@ -327,6 +329,7 @@ private func valueBorrowOverlaps(shard: *ValueBorrowShard, start, size: u64)->bo
     while current
     {
         let borrowed = cast(u64, current.address)
+
         // Subtractions avoid an overflowing end address, including erased byte views.
         if start >= borrowed ? start - borrowed < current.size : borrowed - start < size do
             return true
@@ -364,8 +367,8 @@ func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLo
     if size == 0 do
         return
     let registry = valueBorrowRegistry()
-    let start = cast(u64, address)
-    let wide  = &registry.shards[ValueBorrowWideShard]
+    let start    = cast(u64, address)
+    let wide     = &registry.shards[ValueBorrowWideShard]
     if valueBorrowOverlaps(wide, start, size) do
         Swag.safetyPanic("write overlaps storage borrowed by a value argument", location[])
 

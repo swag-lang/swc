@@ -29,9 +29,9 @@ impl ActionCapture
         switch id
         {
         case ActionCapture.Area, ActionCapture.DoIt: return {found: true, mode: .Area, monitor: 0}
-        case ActionCapture.LastArea:                 return {found: true, mode: .LastArea, monitor: 0}
-        case ActionCapture.FullScreen:               return {found: true, mode: .FullScreen, monitor: 0}
-        case ActionCapture.ActiveWnd:                return {found: true, mode: .ActiveWindow, monitor: 0}
+        case ActionCapture.LastArea:   return {found: true, mode: .LastArea, monitor: 0}
+        case ActionCapture.FullScreen: return {found: true, mode: .FullScreen, monitor: 0}
+        case ActionCapture.ActiveWnd:  return {found: true, mode: .ActiveWindow, monitor: 0}
         }
 
         let monitor = screenIndex(id)
@@ -46,6 +46,7 @@ impl ActionCapture
         case ActionCapture.ToInPlace:   return {found: true, value: .InPlace}
         case ActionCapture.ToEditor:    return {found: true, value: .Editor}
         }
+
         return {found: false, value: .InPlace}
     }
 
@@ -262,6 +263,7 @@ impl IActionUI for ActionCapture
                 main.residentPanel?.updatePictureChoices()
                 main.saveAppState()
             }
+
             return true
         }
 
@@ -309,7 +311,6 @@ impl IActionUI for ActionCapture
 
         case .CaptureCursor:
             main.captureOptions.captureCursor = not main.captureOptions.captureCursor
-
         }
 
         return true

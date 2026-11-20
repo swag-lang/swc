@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Command/Command.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -16,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/ExternalModuleManager.h"
@@ -749,22 +749,10 @@ namespace
         return Result::Continue;
     }
 
-    Result findDependencyConfigurationDirectoryForBackend(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind expectedBackendKind)
+    const fs::path* findDependencyBackendDirectory(const std::span<const DependencyConfigCandidate> matches, const Runtime::BuildCfgBackendKind backendKind)
     {
-        outDir.clear();
-
-        std::vector<DependencyConfigCandidate> matches;
-        SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
-
-        const auto it = std::ranges::find(matches, expectedBackendKind, &DependencyConfigCandidate::backendKind);
-        if (it == matches.end())
-        {
-            outBecause = std::format("no '{}' dependency backend matches {}", backendKindName(expectedBackendKind).c_str(), dependencyConfigurationLabel(cmdLine).c_str());
-            return Result::Error;
-        }
-
-        outDir = it->path;
-        return Result::Continue;
+        const auto it = std::ranges::find(matches, backendKind, &DependencyConfigCandidate::backendKind);
+        return it == matches.end() ? nullptr : &it->path;
     }
 
     fs::path dependencyRootFromConfigurationDir(const fs::path& configDir)
@@ -778,7 +766,7 @@ namespace
     // The caller holds DirectoryAccess until both these bytes and .swc-deps are captured.
     Result captureModuleApiSources(TaskContext& ctx, std::vector<ModuleApi::SourceSnapshot>& outFiles, const fs::path& directory)
     {
-        std::vector<fs::path> paths;
+        std::vector<fs::directory_entry> entries;
 
         // An unreadable entry cannot be skipped: that would publish an incomplete snapshot
         // as a complete API even though the exporter itself finished successfully.
@@ -795,26 +783,26 @@ namespace
                 continue;
 
             if (ModuleApi::isPublishedFile(it->path()))
-                paths.push_back(it->path());
+                entries.push_back(*it);
         }
 
         if (ec)
             return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
 
-        std::ranges::sort(paths);
-        outFiles.reserve(paths.size());
+        std::ranges::sort(entries, {}, &fs::directory_entry::path);
+        outFiles.reserve(entries.size());
 
-        for (const fs::path& path : paths)
+        for (const fs::directory_entry& entry : entries)
         {
             ModuleApi::SourceSnapshot source;
-            source.path      = path;
-            source.writeTime = fs::last_write_time(path, ec);
+            source.path      = entry.path();
+            source.writeTime = entry.last_write_time(ec);
             if (ec)
-                return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, source.path, FileSystem::normalizeSystemMessage(ec));
 
             FileSystem::IoErrorInfo ioError;
             std::vector<char8_t>    bytes;
-            if (FileSystem::readBinaryFile(path, bytes, ioError, SourceContent::TRAILING_0) != Result::Continue)
+            if (FileSystem::readBinaryFile(source.path, bytes, ioError, SourceContent::TRAILING_0) != Result::Continue)
                 return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
 
             source.content = std::make_shared<const SourceContent>(std::move(bytes));
@@ -1012,7 +1000,7 @@ namespace
         for (fs::path& path : paths)
             path = FileSystem::normalizePath(path);
 
-        std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
+        std::ranges::sort(paths, {}, &fs::path::native);
         paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
@@ -1021,7 +1009,7 @@ namespace
         for (fs::path& path : paths)
             path = path.lexically_normal();
 
-        std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
+        std::ranges::sort(paths, {}, &fs::path::native);
         paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
@@ -1032,7 +1020,7 @@ namespace
 
     bool workspacePathListContainsAll(std::span<const fs::path> paths, std::span<const fs::path> expectedPaths)
     {
-        return std::ranges::includes(paths, expectedPaths, {}, [](const fs::path& path) { return path.native(); }, [](const fs::path& path) { return path.native(); });
+        return std::ranges::includes(paths, expectedPaths, {}, &fs::path::native, &fs::path::native);
     }
 
     bool tryGetWorkspacePathWriteTime(fs::file_time_type& outTime, const fs::path& path)
@@ -1053,8 +1041,8 @@ namespace
             if (ec)
                 return false;
 
-            fs::file_time_type entryTime;
-            if (!tryGetWorkspacePathWriteTime(entryTime, it->path()))
+            const auto entryTime = it->last_write_time(ec);
+            if (ec)
                 return false;
             if (entryTime > outTime)
                 outTime = entryTime;
@@ -1089,8 +1077,8 @@ namespace
                 return false;
             if (!regular || isWorkspaceDependencyTempPath(it->path()) || FileSystem::isMovedAsidePath(it->path()) || it->path().filename() == ".swc-api-incomplete")
                 continue;
-            fs::file_time_type writeTime;
-            if (!tryGetWorkspacePathWriteTime(writeTime, it->path()))
+            const auto writeTime = it->last_write_time(ec);
+            if (ec)
                 return false;
             outTime = std::max(outTime, writeTime);
         }
@@ -1120,8 +1108,8 @@ namespace
             if (!ModuleApi::isPublishedFile(path))
                 continue;
             outInputs.push_back(path.lexically_normal());
-            fs::file_time_type writeTime;
-            if (!tryGetWorkspacePathWriteTime(writeTime, path) || writeTime > readTime)
+            const auto writeTime = it->last_write_time(ec);
+            if (ec || writeTime > readTime)
                 return false;
         }
         return !ec;
@@ -1556,9 +1544,10 @@ namespace
         outManifest = {};
 
         FileSystem::IoErrorInfo ioError;
-        std::string             content;
-        if (FileSystem::readTextFile(manifestPath, content, ioError) != Result::Continue)
+        std::vector<char>      bytes;
+        if (FileSystem::readBinaryFile(manifestPath, bytes, ioError) != Result::Continue || bytes.empty())
             return false;
+        const std::string_view content(bytes.data(), bytes.size());
 
         enum class Section : uint8_t
         {
@@ -1583,7 +1572,7 @@ namespace
         while (start <= content.size())
         {
             size_t end = content.find('\n', start);
-            if (end == std::string::npos)
+            if (end == std::string_view::npos)
                 end = content.size();
 
             std::string_view line(content.data() + start, end - start);
@@ -1676,13 +1665,13 @@ namespace
                 switch (currentSection)
                 {
                     case Section::Inputs:
-                        outManifest.inputs.emplace_back(std::string(line));
+                        outManifest.inputs.emplace_back(line);
                         break;
                     case Section::ApiInputs:
-                        outManifest.apiInputs.emplace_back(std::string(line));
+                        outManifest.apiInputs.emplace_back(line);
                         break;
                     case Section::Dependencies:
-                        outManifest.dependencyDirs.emplace_back(std::string(line));
+                        outManifest.dependencyDirs.emplace_back(line);
                         break;
 
                     case Section::ApiReadTimes:
@@ -1697,7 +1686,7 @@ namespace
                         if (error != std::errc{} || last != line.data() + separator)
                             return false;
 
-                        fs::path directory{std::string(line.substr(separator + 1))};
+                        fs::path directory{line.substr(separator + 1)};
                         if (!directory.is_absolute())
                             return false;
 
@@ -1711,12 +1700,12 @@ namespace
                     }
 
                     case Section::Artifacts:
-                        outManifest.artifacts.emplace_back(std::string(line));
+                        outManifest.artifacts.emplace_back(line);
                         break;
 
                     case Section::LinkObjects:
                     {
-                        fs::path path{std::string(line)};
+                        fs::path path{line};
                         if (!path.is_absolute())
                             return false;
 
@@ -1878,27 +1867,15 @@ namespace
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
             return WorkspaceArtifactState::Stale;
 
-        std::vector<fs::path> absoluteArtifactPaths;
-        absoluteArtifactPaths.reserve(manifest.artifacts.size() + requiredArtifacts.size());
-        for (const fs::path& relativeArtifactPath : manifest.artifacts)
-        {
-            absoluteArtifactPaths.push_back((outDir / relativeArtifactPath).lexically_normal());
-        }
-
-        for (const fs::path& artifactPath : requiredArtifacts)
-            absoluteArtifactPaths.push_back(artifactPath);
-
-        normalizeWorkspacePaths(absoluteArtifactPaths);
-
         // Every recorded artifact must still exist, but we deliberately do not use the
         // earliest artifact mtime as the build timestamp. Some artifacts (notably the
         // linker-generated import library) are preserved as-is across rebuilds when their
         // contents are unchanged, so their mtime lags far behind the actual build. Using
         // that lagging mtime would make the module appear permanently stale.
-        for (const fs::path& artifactPath : absoluteArtifactPaths)
+        for (const fs::path& relativeArtifactPath : manifest.artifacts)
         {
             fs::file_time_type artifactTime;
-            if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath))
+            if (!tryGetWorkspacePathWriteTime(artifactTime, (outDir / relativeArtifactPath).lexically_normal()))
                 return WorkspaceArtifactState::Stale;
         }
 
@@ -2576,20 +2553,31 @@ Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::Resolve
     outPaths.staticDir.clear();
     outPaths.sourceRoot = FileSystem::normalizePath(dependencyRoot);
 
-    Utf8     because;
-    fs::path sharedDir;
-    if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
-        outPaths.sharedDir = std::move(sharedDir);
+    const CommandLine& cmdLine = instance().cmdLine();
+    Utf8 because;
+    std::vector<DependencyConfigCandidate> matches;
+    const Result collected = collectDependencyConfigurationMatches(matches, because, dependencyRoot, importRequest.moduleName.view(), cmdLine);
+    if (collected == Result::Continue)
+    {
+        if (const fs::path* sharedDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::SharedLibrary))
+            outPaths.sharedDir = *sharedDir;
 
-    fs::path staticDir;
-    if (findDependencyConfigurationDirectoryForBackend(staticDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), Runtime::BuildCfgBackendKind::StaticLibrary) == Result::Continue)
-        outPaths.staticDir = std::move(staticDir);
+        if (const fs::path* staticDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::StaticLibrary))
+            outPaths.staticDir = *staticDir;
+    }
 
     if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
     {
-        if (findDependencyConfigurationDirectoryForBackend(outPaths.linkDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), importRequest.linkBackendKind) != Result::Continue)
-            return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-        return Result::Continue;
+        if (collected == Result::Continue)
+        {
+            if (const fs::path* linkDir = findDependencyBackendDirectory(matches, importRequest.linkBackendKind))
+            {
+                outPaths.linkDir = *linkDir;
+                return Result::Continue;
+            }
+            because = std::format("no '{}' dependency backend matches {}", backendKindName(importRequest.linkBackendKind).c_str(), dependencyConfigurationLabel(cmdLine).c_str());
+        }
+        return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
     }
 
     if (!outPaths.sharedDir.empty())
@@ -4579,11 +4567,14 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
                 return FileSystem::reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 
             SWC_RESULT(collectImportedApiFolderFiles(ctx, importDir, moduleName.view()));
-            fs::path sharedDir;
-            if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, moduleName.view(), cmdLine, Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
+            std::vector<DependencyConfigCandidate> matches;
+            if (collectDependencyConfigurationMatches(matches, because, dependencyRoot, moduleName.view(), cmdLine) != Result::Continue)
+                matches.clear();
+            const fs::path* sharedDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::SharedLibrary);
+            if (sharedDir)
             {
-                registerImportedSharedModuleDir(sharedDir);
-                registerImportedDependencyLinkDir(sharedDir);
+                registerImportedSharedModuleDir(*sharedDir);
+                registerImportedDependencyLinkDir(*sharedDir);
             }
             else if (importBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
             {

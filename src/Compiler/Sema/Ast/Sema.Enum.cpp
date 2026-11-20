@@ -121,8 +121,8 @@ namespace
         }
 
         // Preserve explicit cast semantics when converting the initializer.
-        const auto* initCast = nodeInitView.node()->safeCast<AstCastExpr>();
-        const bool isExplicitInitCast = initCast && initCast->hasFlag(AstCastExprFlagsE::Explicit);
+        const auto* initCast           = nodeInitView.node()->safeCast<AstCastExpr>();
+        const bool  isExplicitInitCast = initCast && initCast->hasFlag(AstCastExprFlagsE::Explicit);
 
         const CastKind initCastKind = isExplicitInitCast ? CastKind::Explicit : CastKind::Initialization;
         SWC_RESULT(Cast::cast(sema, nodeInitView, symEnum.underlyingTypeRef(), initCastKind));

@@ -2238,7 +2238,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolume</span> <a class="api-item-permalink" href="#Audio_Bus_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L710">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolume</span> <a class="api-item-permalink" href="#Audio_Bus_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L767">src</a></div>
 <p>Sets this bus's linear gain.</p>
 <p>Finite <span class="code-inline">volume</span> values are clamped to the range <span class="code-inline">0</span> through <span class="code-inline">1</span>; non-finite values fail with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a>. <span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
@@ -2250,7 +2250,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeDb</span>(decibels: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Bus_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volume</span> <a class="api-item-permalink" href="#Audio_Bus_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L740">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Bus_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.volume</span> <a class="api-item-permalink" href="#Audio_Bus_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L800">src</a></div>
 <p>Returns this bus's current linear gain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -3008,7 +3008,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_frequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.frequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_frequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L569">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_frequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.frequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_frequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L617">src</a></div>
 <p>Returns the current playback frequency ratio.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frequencyRatio</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -3060,7 +3060,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seekSampleFrame</span>(frame: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setFrequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_setFrequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L537">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setFrequencyRatio" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatio</span> <a class="api-item-permalink" href="#Audio_Voice_setFrequencyRatio" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L582">src</a></div>
 <p>Sets the playback frequency ratio.</p>
 <p><span class="code-inline">1</span> preserves the source pitch, values below <span class="code-inline">1</span> lower it, and values above <span class="code-inline">1</span> raise it. Create the voice with <a href="#Audio_VoiceCreateFlags_PitchControl">Audio.VoiceCreateFlags.PitchControl</a> before changing this value. The ratio must be finite and greater than zero.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrequencyRatio</span>(ratio: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
@@ -3072,13 +3072,13 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPan</span>(pan: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setRouting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRouting</span> <a class="api-item-permalink" href="#Audio_Voice_setRouting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L602">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setRouting" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRouting</span> <a class="api-item-permalink" href="#Audio_Voice_setRouting" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L653">src</a></div>
 <p>Replaces the buses that receive this voice.</p>
 <p>An empty slice routes directly to the mastering output. Every bus must be valid and must outlive this routing relationship.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRouting</span>(buses: <span class="SKwd">const</span> [..] *<span class="SCst"><a href="#Audio_Bus">Bus</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolume</span> <a class="api-item-permalink" href="#Audio_Voice_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L472">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_setVolume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolume</span> <a class="api-item-permalink" href="#Audio_Voice_setVolume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L511">src</a></div>
 <p>Sets this voice's linear gain.</p>
 <p>Finite <span class="code-inline">volume</span> values are clamped to the range <span class="code-inline">0</span> through <span class="code-inline">1</span>; non-finite values fail with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a>. <span class="code-inline">batchId</span> is forwarded to backends that support deferred operation sets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchId: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
@@ -3096,7 +3096,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stop</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_Voice_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volume</span> <a class="api-item-permalink" href="#Audio_Voice_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L502">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_Voice_volume" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.volume</span> <a class="api-item-permalink" href="#Audio_Voice_volume" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L544">src</a></div>
 <p>Returns this voice's current linear gain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">volume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -3190,7 +3190,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1178</div>
 </footer>
 </section>
 </main>

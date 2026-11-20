@@ -115,7 +115,8 @@ impl GizmoRect
             .hotAnchor = Swag.U32.Max
             return true
 
-        default: break
+        default:
+            break
         }
 
         return false

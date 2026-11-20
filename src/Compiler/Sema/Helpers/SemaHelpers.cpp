@@ -922,7 +922,7 @@ namespace
         {
         }
 
-        bool continues(AstNodeRef nodeRef, FlowTargets targets = {});
+        bool       continues(AstNodeRef nodeRef, FlowTargets targets = {});
         AstNodeRef switchFallthrough(AstNodeRef switchRef, FlowTargets targets = {});
         AstNodeRef loopExitBreak(AstNodeRef bodyRef, ScopeExit* scopes = nullptr);
         AstNodeRef scopeExitBreak(AstNodeRef scopeRef, FlowTargets targets = {});
@@ -1038,9 +1038,9 @@ namespace
         const auto* payload         = sema_.semaPayload<SwitchPayload>(switchRef);
         const bool  dynamicDispatch = payload && SemaSwitch::usesDynamicDispatch(sema_, switchStmt, payload->exprTypeRef);
 
-        bool       canTest = true;
-        AstNodeRef fallthroughRef;
-        AstNodeRef resumedTestRef;
+        bool                    canTest = true;
+        AstNodeRef              fallthroughRef;
+        AstNodeRef              resumedTestRef;
         SmallVector<AstNodeRef> cases;
         sema_.ast().appendNodes(cases, switchStmt.spanChildrenRef);
         for (const AstNodeRef childRef : cases)
@@ -1066,7 +1066,7 @@ namespace
             }
 
             const ConstantRef guard = caseStmt->nodeWhereRef.isValid() ? sema_.viewConstant(caseStmt->nodeWhereRef).cstRef() : sema_.cstMgr().cstTrue();
-            entersBody = entersBody || (canTest && guard != sema_.cstMgr().cstFalse());
+            entersBody              = entersBody || (canTest && guard != sema_.cstMgr().cstFalse());
             if (canTest && guard == sema_.cstMgr().cstTrue() && caseTestAlwaysMatches(caseRef, *caseStmt, switchStmt.nodeExprRef.isInvalid()))
             {
                 canTest = false;
@@ -1133,14 +1133,14 @@ namespace
                 if (isFalseCondition(branch.nodeWhereRef))
                     return continues(branch.nodeElseBlockRef, targets);
 
-                const auto* lowering = sema_.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+                const auto*      lowering     = sema_.loweringPayload<CodeGenLoweringPayload>(nodeRef);
                 const AstNodeRef conditionRef = lowering && !lowering->conditionBindingTestsValue ? branch.nodeWhereRef : AstNodeRef::invalid();
                 return continuesBranch(conditionRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, targets);
             }
 
             case AstNodeId::CompilerIf:
             {
-                const auto& branch = node.cast<AstCompilerIf>();
+                const auto&        branch    = node.cast<AstCompilerIf>();
                 const SemaNodeView condition = sema_.viewConstant(branch.nodeConditionRef);
                 return !condition.cst() || continues(condition.cst()->getBool() ? branch.nodeIfBlockRef : branch.nodeElseBlockRef, targets);
             }
@@ -1224,8 +1224,8 @@ namespace
                 if (scope.tokNameRef.isInvalid())
                     return continues(scope.nodeBodyRef, targets);
 
-                ScopeExit  exit{nodeRef, targets.scopes, {}};
-                targets.scopes = &exit;
+                ScopeExit exit{nodeRef, targets.scopes, {}};
+                targets.scopes           = &exit;
                 const bool bodyContinues = continues(scope.nodeBodyRef, targets);
                 return bodyContinues || exit.breakRef.isValid();
             }

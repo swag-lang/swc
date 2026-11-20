@@ -21,18 +21,18 @@ namespace
     {
         SWC_RESULT(FileSystem::normalizeAbsolutePath(path, because));
 
-        std::error_code ec;
-        if (!fs::exists(path, ec))
+        std::error_code      ec;
+        const fs::file_status status = fs::status(path, ec);
+        if (!fs::exists(status))
         {
-            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(FileSystem::PathProblem::DoesNotExist);
+            because = ec && !fs::status_known(status) ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(FileSystem::PathProblem::DoesNotExist);
             return Result::Error;
         }
 
-        ec.clear();
-        const bool validType = expectFile ? fs::is_regular_file(path, ec) : fs::is_directory(path, ec);
+        const bool validType = expectFile ? fs::is_regular_file(status) : fs::is_directory(status);
         if (!validType)
         {
-            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(expectFile ? FileSystem::PathProblem::NotRegularFile : FileSystem::PathProblem::NotDirectory);
+            because = FileSystem::describePathProblem(expectFile ? FileSystem::PathProblem::NotRegularFile : FileSystem::PathProblem::NotDirectory);
             return Result::Error;
         }
 
@@ -48,8 +48,8 @@ namespace
     // (the working directory and on-disk symlink topology do not change during a build). Memoize it.
     struct NormalizePathCache
     {
-        std::shared_mutex                         mutex;
-        std::unordered_map<std::string, fs::path> entries;
+        std::shared_mutex                                   mutex;
+        std::unordered_map<fs::path::string_type, fs::path> entries;
     };
 
     NormalizePathCache& normalizePathCache()
@@ -83,7 +83,7 @@ fs::path FileSystem::normalizePath(const fs::path& path)
     if (path.empty())
         return path;
 
-    std::string         key   = path.string();
+    const auto&         key   = path.native();
     NormalizePathCache& cache = normalizePathCache();
 
     {
@@ -97,7 +97,7 @@ fs::path FileSystem::normalizePath(const fs::path& path)
 
     {
         const std::unique_lock lock(cache.mutex);
-        cache.entries.try_emplace(std::move(key), result);
+        cache.entries.try_emplace(key, result);
     }
 
     return result;

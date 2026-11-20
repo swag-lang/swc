@@ -19,11 +19,13 @@ using Core, Gui, Pixel
 
     journey.finishInPlacePicture(hub, cancel: true)
     let restored = main.residentPanel
-    Swag.require(main.workspace == .Hub and main.workspaceSurface().flags.has(.SmallCaption) and not surface.hasTrayIcon())
+    Swag.require(main.workspace == .Hub and
+                 main.workspaceSurface().flags.has(.SmallCaption) and
+                 not surface.hasTrayIcon())
     Swag.require(not main.clipboardPreview.isValid())
 
     journey.finishInPlacePicture(restored)
-    let copied = Clipboard.getImage()
+    let copied      = Clipboard.getImage()
     let hubWithCopy = main.residentPanel
     Swag.require(main.workspace == .Hub and not surface.hasTrayIcon() and main.residentNotice == null)
     Swag.require(hubWithCopy.childById(ResidentPanel.ClipboardPreviewId) != null)

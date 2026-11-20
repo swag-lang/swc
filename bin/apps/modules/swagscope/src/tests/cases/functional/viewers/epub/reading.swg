@@ -8,12 +8,12 @@ using Core, Gui, Pixel, Viewers
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.christmas-carol.epub"), false)
-    let panel = assume cast(*Epub.Panel, window.currentView)
+    let panel  = assume cast(*Epub.Panel, window.currentView)
     panel.showChapter(2)
     completeQueuedViewerFile(&host, window)
     Swag.require(panel.view!.authoredCanvasBackground().argb == Argb.White)
 
-    let dark = ThemeColors.encrePalette().ground
+    let dark  = ThemeColors.encrePalette().ground
     let light = ThemeColors.papierPalette().ground
     var frame = host.renderSettled(&host.surfaceWnd)
     Swag.require(frame.pixelColor(60, 8) == dark)

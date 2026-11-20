@@ -220,7 +220,7 @@ private struct RasterBatch
 private struct SubRectSampler
 {
     origin, size, span, sharpWidth: Vector2
-    minX, minY, maxX, maxY:          s32
+    minX, minY, maxX, maxY:         s32
     nearest, sharp:                 bool
 }
 
@@ -557,8 +557,9 @@ private impl RenderCpu
         let greenAlpha1 = ((b >> 8) | (b << 8)) & Lanes
         let blueRed     = ((blueRed0 * inverse + blueRed1 * weight) >> 16) & Lanes
         let greenAlpha  = ((greenAlpha0 * inverse + greenAlpha1 * weight) >> 16) & Lanes
-        return cast(u32, ((blueRed | (blueRed >> 16)) & Pair) |
-                         (((greenAlpha | (greenAlpha >> 16)) & Pair) << 8))
+        return cast(u32,
+                    ((blueRed | (blueRed >> 16)) & Pair) |
+                    (((greenAlpha | (greenAlpha >> 16)) & Pair) << 8))
     }
 
     #[Swag.Inline]
@@ -1085,9 +1086,12 @@ private impl RenderCpu
         if image.pixelFormat == .BGRA8
         {
             return sampleBgra8Bilinear(image,
-                                       Math.clamp(x0, 0, image.width - 1), Math.clamp(x1, 0, image.width - 1),
-                                       Math.clamp(y0, 0, image.height - 1), Math.clamp(y1, 0, image.height - 1),
-                                       bilinearWeight(fx), bilinearWeight(fy))
+                                       Math.clamp(x0, 0, image.width - 1),
+                                       Math.clamp(x1, 0, image.width - 1),
+                                       Math.clamp(y0, 0, image.height - 1),
+                                       Math.clamp(y1, 0, image.height - 1),
+                                       bilinearWeight(fx),
+                                       bilinearWeight(fy))
         }
 
         let c00 = readPixel(image, x0, y0)
@@ -1205,7 +1209,7 @@ private impl RenderCpu
             let tap = batch.blurTaps![i]
             let su  = horizontal ? u + tap.offset : u
             let sv  = horizontal ? v : v + tap.offset
-            sum    += normalizedChannels(sampleLinear(image, su, sv, false)) * tap.weight
+            sum += normalizedChannels(sampleLinear(image, su, sv, false)) * tap.weight
         }
 
         return Color.fromArgbF32(sum[3], sum[0], sum[1], sum[2])
@@ -2287,20 +2291,24 @@ private impl RenderCpu
             }
         }
 
-        if batch.paintImage and not batch.paintPlanar and .paint.uvMode == .FillSubRect and
-           .program != CpuProgram_Blur and .program != CpuProgram_Resolve and .program != CpuProgram_Backdrop
+        if batch.paintImage and
+           not batch.paintPlanar and
+           .paint.uvMode == .FillSubRect and
+           .program != CpuProgram_Blur and
+           .program != CpuProgram_Resolve and
+           .program != CpuProgram_Backdrop
         {
-            let p                 = &.paint
-            let sampler           = &batch.subRect
-            sampler.origin        = {p.boundRect.x, p.boundRect.y}
-            sampler.size          = {Math.max(p.boundRect.z - p.boundRect.x, 0.000001), Math.max(p.boundRect.w - p.boundRect.y, 0.000001)}
-            sampler.minX          = cast(s32, p.texturePixelBounds.x)
-            sampler.minY          = cast(s32, p.texturePixelBounds.y)
-            sampler.maxX          = cast(s32, p.texturePixelBounds.z)
-            sampler.maxY          = cast(s32, p.texturePixelBounds.w)
-            sampler.span          = {cast(f32, (sampler.maxX - sampler.minX + 1)), cast(f32, (sampler.maxY - sampler.minY + 1))}
-            sampler.nearest       = p.interpolationMode == .Pixel and .contentScale == 1
-            sampler.sharp         = p.interpolationMode == .Pixel and not sampler.nearest
+            let p       = &.paint
+            let sampler = &batch.subRect
+            sampler.origin  = {p.boundRect.x, p.boundRect.y}
+            sampler.size    = {Math.max(p.boundRect.z - p.boundRect.x, 0.000001), Math.max(p.boundRect.w - p.boundRect.y, 0.000001)}
+            sampler.minX    = cast(s32, p.texturePixelBounds.x)
+            sampler.minY    = cast(s32, p.texturePixelBounds.y)
+            sampler.maxX    = cast(s32, p.texturePixelBounds.z)
+            sampler.maxY    = cast(s32, p.texturePixelBounds.w)
+            sampler.span    = {cast(f32, (sampler.maxX - sampler.minX + 1)), cast(f32, (sampler.maxY - sampler.minY + 1))}
+            sampler.nearest = p.interpolationMode == .Pixel and .contentScale == 1
+            sampler.sharp   = p.interpolationMode == .Pixel and not sampler.nearest
             if sampler.sharp
             {
                 sampler.sharpWidth.x = Math.clamp((sampler.span.x / sampler.size.x) / .contentScale, 0.0001, 1.0)
@@ -2545,7 +2553,7 @@ private impl RenderCpu
             return
 
         // Both the Gaussian weights and the normalized tap offsets are constant over the draw.
-        var blurTaps: Array'BlurTap
+        var blurTaps:    Array'BlurTap
         var blurWeights: Array'f32
         if .program == CpuProgram_Blur and batch.paintImage
         {
@@ -2972,8 +2980,7 @@ private impl RenderCpu
                  .SetClippingRegionMode, .EndClippingRegion, .ResetClippingRegion, .DrawTriangles:
                 .executeCommand(painter, replay, i)
 
-            default:
-                break
+            default: break
             }
         }
 

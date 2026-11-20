@@ -88,7 +88,7 @@ func ifDeclMaybePtr(p: *s32)->*s32? => p
 
 #test
 {
-    var result = 0
+    var result     = 0
     var x: string? = null
     if x == null
     {
@@ -103,7 +103,7 @@ func ifDeclMaybePtr(p: *s32)->*s32? => p
 
 #test
 {
-    var result = 0
+    var result       = 0
     var x: [..] s32? = null
     if x == null
     {

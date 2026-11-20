@@ -195,7 +195,8 @@ func computeMoves()
         case .King:
             getKingMoves(g_Board, i, &moves)
 
-        case .None: break
+        case .None:
+            break
         }
 
         for move in moves

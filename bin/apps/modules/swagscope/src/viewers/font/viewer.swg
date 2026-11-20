@@ -223,11 +223,14 @@ private impl Panel
     internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_EditSample, .Edit, func|view = me|()
-        {
-            view.sampleEdit.setFocus()
-            view.sampleEdit.selectAll()
-        }, bindId: "scope.font.editSample")
+        entries.add(strings.ui_EditSample,
+                    .Edit,
+                    func|view = me|()
+                    {
+                        view.sampleEdit.setFocus()
+                        view.sampleEdit.selectAll()
+                    },
+                    bindId: "scope.font.editSample")
         entries.add(strings.ui_PreviousPage,
                     .ChevronLeft,
                     func|view = me|()
@@ -236,7 +239,8 @@ private impl Panel
                         view.refreshPageCommands()
                     },
                     disabled: not .previousButton.isEnabled(),
-                    defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.font.previousPage")
+                    defaultKey: {modifiers: .Control, key: .PageUp},
+                    bindId: "scope.font.previousPage")
         entries.add(strings.ui_NextPage,
                     .ChevronRight,
                     func|view = me|()
@@ -245,19 +249,23 @@ private impl Panel
                         view.refreshPageCommands()
                     },
                     disabled: not .nextButton.isEnabled(),
-                    defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.font.nextPage")
+                    defaultKey: {modifiers: .Control, key: .PageDown},
+                    bindId: "scope.font.nextPage")
 
         // The character marked in the map, to paste elsewhere.
         if .document != null and .document.shown
         {
             var text: String
             text.append(.document.shown)
-            entries.add(Format.toString(strings.ui_CopyCharacter, text), .Copy, func|view = me|()
-            {
-                var marked: String
-                marked.append(view.document.shown)
-                Clipboard.setString(marked)
-            }, bindId: "scope.font.copyCharacter")
+            entries.add(Format.toString(strings.ui_CopyCharacter, text),
+                        .Copy,
+                        func|view = me|()
+                        {
+                            var marked: String
+                            marked.append(view.document.shown)
+                            Clipboard.setString(marked)
+                        },
+                        bindId: "scope.font.copyCharacter")
         }
 
         // A typed character, or its code point after `U+`, is a cell of the map to go to.

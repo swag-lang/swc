@@ -15,10 +15,10 @@ func editExplorerLocation(journey: *ScopeJourney)
     let explorer = unwrap journey.window.explorer
     journey.waitFor("first folder", func|explorer, first = first.toString()|()->bool => not explorer.load.started and Path.equals(explorer.listing.path, first))
 
-    var input = Testing.DesktopInput.create(&journey.app, journey.surface)
+    var input   = Testing.DesktopInput.create(&journey.app, journey.surface)
     let address = explorer.address
-    let crumb = address.breadcrumb
-    let point = crumb.localToSurface(crumb.items.backPtr().bodyRect.center())
+    let crumb   = address.breadcrumb
+    let point   = crumb.localToSurface(crumb.items.backPtr().bodyRect.center())
     input.moveTo(crumb, point)
     var screen = point
     journey.surface.surfaceToScreen(&screen)

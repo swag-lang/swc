@@ -308,8 +308,8 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 // Explicit numeric casts
 #test
 {
-    let v: s32  = 42
-    let b = cast(bool, v)
+    let v: s32 = 42
+    let b      = cast(bool, v)
     Swag.require(b)
     let f: f32 = cast(f32, v)
     Swag.require(f > 41.0 and f < 43.0)

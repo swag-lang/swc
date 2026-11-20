@@ -107,7 +107,7 @@ enum Kind { Absent = 1, Number }
 
 union Value(Kind)
 {
-case .Number:
+    case .Number:
     number: s32
 }
 
@@ -131,7 +131,7 @@ func hasNumber(value: Value)->bool
 
 #test
 {
-    let absent: Value = .Absent
+    let absent:  Value = .Absent
     let present: Value = .Number{42}
     Swag.require(numberOrZero(absent) == 0)
     Swag.require(numberOrZero(present) == 42)

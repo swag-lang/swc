@@ -178,7 +178,7 @@ func addImage(image: Image)->bool
     var dibErrorOutcome: Swag.Error
     var dib: #decltype(expect image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}))
     catch { dib = try image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) } as dibErrorOutcome
-    let dibError = dibErrorOutcome.value()
+    let dibError    = dibErrorOutcome.value()
     let bitmapAdded = dibError == null and addNativeData(CF_DIB, dib.toSlice())
 
     var pngErrorOutcome: Swag.Error

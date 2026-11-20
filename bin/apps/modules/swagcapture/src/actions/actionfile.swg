@@ -724,8 +724,8 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let w = catch StrConv.parseS32(edit0.text()).value orelse 512
-        let h = catch StrConv.parseS32(edit1.text()).value orelse 512
+        let w     = catch StrConv.parseS32(edit0.text()).value orelse 512
+        let h     = catch StrConv.parseS32(edit1.text()).value orelse 512
         var image = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

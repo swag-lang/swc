@@ -114,7 +114,7 @@ private func markedPixels(frame: const *Image)->u64
 // An image takes its coverage in its own alpha channel rather than through a second texture.
 #test
 {
-    var objects        = #move luminosityMaskObjects()
+    var objects         = #move luminosityMaskObjects()
     let samples: [4] u8 = [255, 255, 255, 255]
     addStreamObject(&objects, 7, "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", samples)
 

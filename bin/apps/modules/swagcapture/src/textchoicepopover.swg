@@ -294,7 +294,8 @@ impl TextChoicePopover
                     if index + 1 < count do
                         index += 1
 
-                default: break
+                default:
+                    break
                 }
 
                 .list.setFocusedIndex(index)

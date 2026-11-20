@@ -8,7 +8,7 @@ using Core
 #test
 {
     var captured: bool
-    var host: Testing.HeadlessHost
+    var host:     Testing.HeadlessHost
     host.setup(1000, 750)
     host.app.setGlobalHotKeysEnabled(false)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
@@ -24,11 +24,13 @@ using Core
             case "test.open":    state.name = "Ouvrir un document"
             case "test.inspect": state.name = "Afficher l’inspecteur"
             case "test.capture": state.name = "Capturer une zone"
-            default:             return false
+            default: return false
             }
+
             state.updatedFields.add(.Name)
             return true
         }
+
         return false
     }
 
@@ -45,6 +47,7 @@ using Core
         Pixel.Testing.assertImageGolden(&image, "shortcuts.editor.paper")
         Swag.require(host.clickModalButton(Dialog.BtnCancel))
     }
+
     lens.showKeyboardShortcuts()
     host.app.sigFrame.clear()
     Swag.require(captured)
@@ -55,7 +58,7 @@ using Core
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     host.setup(1000, 750, 1.25)
     host.app.setGlobalHotKeysEnabled(false)
     host.theme.setDark()
@@ -76,13 +79,15 @@ using Core
             Swag.require(stage == 2)
             stage = 3
             Swag.require(host.clickModalButton(Dialog.BtnCancel))
+
         case 1:
             stage = 2
+
             // The CPU surface has no monitor to supply the native scale.
             let size  = surface.size()
             let scale = host.surface.dpiScale
             surface.setDpiScaleRaw(scale)
-            var position    = surface.position
+            var position = surface.position
             position.width  = Math.ceil(size.x * scale)
             position.height = Math.ceil(size.y * scale)
             surface.setPosition(position)
@@ -95,12 +100,14 @@ using Core
                 keys.setSelectedIndex(cast(u32, index))
                 break
             }
+
             Swag.require(keys.selectedItem()!.name.text == "F10")
             let image = host.renderSurface(surface)
             Pixel.Testing.assertImageGolden(&image, "shortcuts.system-picker.encre")
             Swag.require(host.clickModalButton(Dialog.BtnCancel))
         }
     }
+
     host.app.sigFrame += capture
     lens.showKeyboardShortcuts()
     host.app.sigFrame.clear()

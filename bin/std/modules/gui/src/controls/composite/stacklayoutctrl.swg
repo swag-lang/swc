@@ -102,7 +102,7 @@ private impl StackLayoutCtrl
         switch .mode
         {
         case .Left, .Right, .HorizontalEnd, .HorizontalCenter, .Center, .HorizontalFit: return true
-        case .Top, .Bottom, .VerticalCenter, .VerticalFit:                              break
+        case .Top, .Bottom, .VerticalCenter, .VerticalFit: break
         }
 
         return false

@@ -116,7 +116,8 @@ impl IWnd for EditView
                 .setZoom(zoomStep(.zoom, up: evt.delta.y > 0), true)
             }
 
-        default: break
+        default:
+            break
         }
     }
 

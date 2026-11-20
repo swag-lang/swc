@@ -253,7 +253,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">386</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">384</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Swag_Allocator_acquireBlock">Allocator.acquireBlock</a></li>
@@ -444,8 +444,6 @@
 <li><a href="#Swag_acos">Swag.acos</a></li>
 <li><a href="#Swag_Align">Swag.Align</a></li>
 <li><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></li>
-<li><a href="#Swag_allocatorCorruptedFreeList">Swag.allocatorCorruptedFreeList</a></li>
-<li><a href="#Swag_allocatorFreedBlockWritten">Swag.allocatorFreedBlockWritten</a></li>
 <li><a href="#Swag_allocatorIdleBytes">Swag.allocatorIdleBytes</a></li>
 <li><a href="#Swag_allocatorOsCommit">Swag.allocatorOsCommit</a></li>
 <li><a href="#Swag_allocatorOsDecommit">Swag.allocatorOsDecommit</a></li>
@@ -1301,9 +1299,6 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></td><td><p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Swag_allocatorCorruptedFreeList">Swag.allocatorCorruptedFreeList</a></td><td><p>Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Swag_allocatorFreedBlockWritten">Swag.allocatorFreedBlockWritten</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorIdleBytes">Swag.allocatorIdleBytes</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorOsCommit">Swag.allocatorOsCommit</a></td><td><p>Commits <span class="code-inline">size</span> bytes of a reservation, or returns false and changes nothing when the host refuses.</p>
 </td></tr>
@@ -1901,9 +1896,6 @@
 </td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorAcquireSegment">Swag.allocatorAcquireSegment</a></td><td><p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Swag_allocatorCorruptedFreeList">Swag.allocatorCorruptedFreeList</a></td><td><p>Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Swag_allocatorFreedBlockWritten">Swag.allocatorFreedBlockWritten</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorIdleBytes">Swag.allocatorIdleBytes</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Swag_allocatorOsCommit">Swag.allocatorOsCommit</a></td><td><p>Commits <span class="code-inline">size</span> bytes of a reservation, or returns false and changes nothing when the host refuses.</p>
 </td></tr>
@@ -2317,16 +2309,6 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_Build_Config_allocatorCaptureStack" class="code-type">allocatorCaptureStack</td><td class="code-type">bool</td><td><p>Capture a call stack for each tracked allocation</p>
-</td></tr>
-<tr><td id="Swag_Build_Config_allocatorElectricMode" class="code-type">allocatorElectricMode</td><td class="code-type">bool</td><td><p>Never reuse freed blocks</p>
-</td></tr>
-<tr><td id="Swag_Build_Config_allocatorFillMemory" class="code-type">allocatorFillMemory</td><td class="code-type">bool</td><td><p>Fill allocated/freed memory with debug patterns</p>
-</td></tr>
-<tr><td id="Swag_Build_Config_allocatorLeaks" class="code-type">allocatorLeaks</td><td class="code-type">bool</td><td><p>Report memory leaks at runtime shutdown</p>
-</td></tr>
-<tr><td id="Swag_Build_Config_allocatorTrackAllocations" class="code-type">allocatorTrackAllocations</td><td class="code-type">bool</td><td><p>Keep an exact allocation list for detailed leak reporting</p>
-</td></tr>
 <tr><td id="Swag_Build_Config_backend" class="code-type">backend</td><td class="code-type"><a href="#Swag_Build_Backend">Swag.Build.Backend</a></td><td><p>Backend options</p>
 </td></tr>
 <tr><td id="Swag_Build_Config_backendKind" class="code-type">backendKind</td><td class="code-type"><a href="#Swag_Build_BackendKind">Swag.Build.BackendKind</a></td><td><p>Backend type (executable, shared library, static library, export...)</p>
@@ -4617,7 +4599,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NegInf</span>    = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f64</span>, <span class="SNum">0xFFF0000000000000</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="HostResumeStorageSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">HostResumeStorageSize</span> <a class="api-item-permalink" href="#HostResumeStorageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L763">src</a></div>
+<div class="api-item api-item-const"><span id="HostResumeStorageSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">HostResumeStorageSize</span> <a class="api-item-permalink" href="#HostResumeStorageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/os.win32.swg#L764">src</a></div>
 <p>A resume point for <span class="code-inline">catchPanic</span>, in storage the caller keeps alive.</p>
 <p>RtlCaptureContext and RtlRestoreContext need a 16-byte aligned CONTEXT, so the storage leaves room to align one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HostResumeStorageSize</span> = <span class="SNum">1360</span> + <span class="SNum">15</span></span></div>
@@ -5929,17 +5911,6 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="api-item api-item-func"><span id="Swag_allocatorAcquireSegment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorAcquireSegment</span> <a class="api-item-permalink" href="#Swag_allocatorAcquireSegment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L923">src</a></div>
 <p>Hands the caller a segment shaped for <span class="code-inline">unitShift</span>, reusing an emptied one when possible.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">allocatorAcquireSegment</span>(owner: *<span class="STpe">void</span>, unitShift: <span class="STpe">u32</span>)-&gt;*<span class="SCst"><a href="#Swag_AllocatorSegment">AllocatorSegment</a></span>?</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorCorruptedFreeList" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorCorruptedFreeList</span> <a class="api-item-permalink" href="#Swag_allocatorCorruptedFreeList" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L278">src</a></div>
-<p>Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="#Swag_NoInline">NoInline</a>, </span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="#Swag_NoReturn">NoReturn</a>]</span>
-<span class="SKwd">func</span> <span class="SFct">allocatorCorruptedFreeList</span>()</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_allocatorFreedBlockWritten" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorFreedBlockWritten</span> <a class="api-item-permalink" href="#Swag_allocatorFreedBlockWritten" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L284">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="#Swag_NoInline">NoInline</a>, </span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="#Swag_NoReturn">NoReturn</a>]</span>
-<span class="SKwd">func</span> <span class="SFct">allocatorFreedBlockWritten</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Swag_allocatorIdleBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.allocatorIdleBytes</span> <a class="api-item-permalink" href="#Swag_allocatorIdleBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.pages.swg#L177">src</a></div>
@@ -7424,7 +7395,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1178</div>
 </footer>
 </section>
 </main>
@@ -7750,11 +7721,6 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "v|Swag.Build.BackendMath.noSignedZero|Swag_Build_BackendMath_noSignedZero|Allow transformations that ignore the sign of zero.",
 "v|Swag.Build.BackendMath.unsafe|Swag_Build_BackendMath_unsafe|Reserved permission for unsafe floating-point transformations; currently unused.",
 "s|Swag.Build.Config|Swag_Build_Config|The current module build configuration.",
-"v|Swag.Build.Config.allocatorCaptureStack|Swag_Build_Config_allocatorCaptureStack|Capture a call stack for each tracked allocation",
-"v|Swag.Build.Config.allocatorElectricMode|Swag_Build_Config_allocatorElectricMode|Never reuse freed blocks",
-"v|Swag.Build.Config.allocatorFillMemory|Swag_Build_Config_allocatorFillMemory|Fill allocated/freed memory with debug patterns",
-"v|Swag.Build.Config.allocatorLeaks|Swag_Build_Config_allocatorLeaks|Report memory leaks at runtime shutdown",
-"v|Swag.Build.Config.allocatorTrackAllocations|Swag_Build_Config_allocatorTrackAllocations|Keep an exact allocation list for detailed leak reporting",
 "v|Swag.Build.Config.backend|Swag_Build_Config_backend|Backend options",
 "v|Swag.Build.Config.backendKind|Swag_Build_Config_backendKind|Backend type (executable, shared library, static library, export...)",
 "v|Swag.Build.Config.backendSubKind|Swag_Build_Config_backendSubKind|Backend sub kind",
@@ -8426,8 +8392,6 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "f|Swag.Allocator.userAddress|Swag_Allocator_userAddress|",
 "f|Swag.Allocator.usesHeaderPath|Swag_Allocator_usesHeaderPath|Reports whether a request needs the header path.",
 "f|Swag.allocatorAcquireSegment|Swag_allocatorAcquireSegment|Hands the caller a segment shaped for 'unitShift', reusing an emptied one when possible.",
-"f|Swag.allocatorCorruptedFreeList|Swag_allocatorCorruptedFreeList|Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their ow...",
-"f|Swag.allocatorFreedBlockWritten|Swag_allocatorFreedBlockWritten|",
 "f|Swag.allocatorIdleBytes|Swag_allocatorIdleBytes|",
 "f|Swag.allocatorOsCommit|Swag_allocatorOsCommit|Commits 'size' bytes of a reservation, or returns false and changes nothing when the host refuses.",
 "f|Swag.allocatorOsDecommit|Swag_allocatorOsDecommit|",

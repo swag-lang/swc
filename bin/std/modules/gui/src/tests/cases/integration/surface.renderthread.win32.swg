@@ -55,7 +55,7 @@ struct PlacementObservation
     watchBounds:        bool
     intermediateBounds: u32
     surface:            *Surface?
-    calculationDepth:    u32
+    calculationDepth:   u32
     preparedFrames:     u32
 }
 
@@ -65,19 +65,21 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     let observation = cast(*PlacementObservation, data)
     if msg == WM_NCCALCSIZE and wParam and observation.surface
     {
-        let params = cast(const *NCCALCSIZE_PARAMS, cast #bit (u64, lParam))
-        let bounds = params.rgrc[0]
-        let old    = params.rgrc[2]
-        let width  = bounds.right - bounds.left
-        let height = bounds.bottom - bounds.top
+        let params      = cast(const *NCCALCSIZE_PARAMS, cast #bit (u64, lParam))
+        let bounds      = params.rgrc[0]
+        let old         = params.rgrc[2]
+        let width       = bounds.right - bounds.left
+        let height      = bounds.bottom - bounds.top
         let outerResize = observation.calculationDepth == 0 and
                           (width != old.right - old.left or height != old.bottom - old.top)
 
         observation.calculationDepth += 1
         defer observation.calculationDepth -= 1
         let result = DefSubclassProc(hWnd, msg, wParam, lParam)
-        if outerResize and observation.surface.presentedFrame and
-           observation.surface.rc.width == width and observation.surface.rc.height == height do
+        if outerResize and
+           observation.surface.presentedFrame and
+           observation.surface.rc.width == width and
+           observation.surface.rc.height == height do
             observation.preparedFrames += 1
         return result
     }
@@ -144,8 +146,8 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
 #test
 {
     var app: Application
-    let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test")
-    let context = Ogl.wglGetCurrentContext()
+    let surface  = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test")
+    let context  = Ogl.wglGetCurrentContext()
     let drawable = Ogl.wglGetCurrentDC()
     Swag.require(context != null, "the window owner must own the default OpenGL context")
     let windowDC = GetDC(surface.win32Handle())
@@ -173,7 +175,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     var app: Application
     let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-discrete-placement-test")
     surface.show()
-    let window = surface.win32Handle()
+    let window      = surface.win32Handle()
     var observation = PlacementObservation{surface: surface}
     Swag.require(SetWindowSubclass(window, &observePlacement, 1, cast(u64, &observation)))
     defer discard RemoveWindowSubclass(window, &observePlacement, 1)
@@ -185,6 +187,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
             paints += 1
         return false
     }
+
     let normal = surface.position
     surface.showMaximized()
 

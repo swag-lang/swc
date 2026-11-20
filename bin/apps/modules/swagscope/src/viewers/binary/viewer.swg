@@ -1093,12 +1093,15 @@ impl Panel
         if .hasPage
         {
             let page = .page.isLocallyVisible()
-            entries.add(page ? strings.ui_ShowStructure : strings.ui_ShowReport, page ? .Outline : .File, func|view = me, page|()
-            {
-                view.showPage(not page)
-                if page do
-                    view.list.setFocus()
-            }, bindId: "scope.binary.toggleStructure")
+            entries.add(page ? strings.ui_ShowStructure : strings.ui_ShowReport,
+                        page ? .Outline : .File,
+                        func|view = me, page|()
+                        {
+                            view.showPage(not page)
+                            if page do
+                                view.list.setFocus()
+                        },
+                        bindId: "scope.binary.toggleStructure")
         }
 
         entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.binary.menuBack")

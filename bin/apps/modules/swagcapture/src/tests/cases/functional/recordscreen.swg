@@ -90,7 +90,7 @@ impl Recorder
     f.gui.fireTimer(hud.screenChoices.watch)
     Swag.require(secondMenu.mouseCapture() == secondMenu)
     point = secondMenu.localToSurface(Math.Point{secondMenu.clientRect().horzCenter(),
-                                                  secondMenu.items[2]!.pos + secondMenu.items[2]!.size * 0.5})
+                                                 secondMenu.items[2]!.pos + secondMenu.items[2]!.size * 0.5})
     secondMenu.surface!.surfaceToScreen(&point)
     f.gui.click(point)
     Swag.require(secondMenu.isModalEnded())

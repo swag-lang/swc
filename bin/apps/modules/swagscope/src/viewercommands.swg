@@ -1119,8 +1119,8 @@ impl ViewerWindow
         case ViewerCommands.NextFile:
             .navigate(1)
 
-        case ViewerCommands.OpenDefault, ViewerCommands.OpenWith, ViewerCommands.Locate,
-             ViewerCommands.CopyPath, ViewerCommands.CopyName:
+        case ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
+             ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName:
             let path = contextPath orelse .fileActionPath()
             if path.count do
                 .runFileAction(id, path)

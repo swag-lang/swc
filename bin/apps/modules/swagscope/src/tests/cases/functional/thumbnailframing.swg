@@ -29,6 +29,7 @@ using Core, Pixel, Video, Gui, Viewers
         let crop = framing.crop(128, 64, 1, .Square, mode)
         Swag.require(crop.x > 32 and crop.right() >= 120)
     }
+
     Swag.require(framing.crop(128, 64, 1, .Square, .Center) == Math.Rectangle{32, 0, 64, 64})
     Swag.require(framing.crop(128, 64, 1, .Square, .None) == Math.Rectangle{0, 0, 128, 64})
 }

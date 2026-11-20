@@ -20,13 +20,16 @@ func setupShortcutEditor(host: *Testing.HeadlessHost)->*Lens.View
             case Open:    state.name = "Open document"
             case Close:   state.name = "Close document"
             case Inspect: state.name = "Show inspector"
-            default:     return false
+            default:      return false
             }
+
             state.updatedFields.add(.Name)
             return true
         }
+
         return false
     }
+
     let lens = Lens.View.create(&host.root)
     lens.addCommands("Document", [Open, Close, Inspect])
     return lens
@@ -39,9 +42,9 @@ func runShortcutEditor(host: *Testing.HeadlessHost, lens: *Lens.View, drive: Fra
     lens.showKeyboardShortcuts()
 }
 
-func editorList(editor: *Wnd)->*ListCtrl => assume cast(*ListCtrl, unwrap editor.childById("gui.shortcuts.list"))
+func editorList(editor: *Wnd)->*ListCtrl  => assume cast(*ListCtrl, unwrap editor.childById("gui.shortcuts.list"))
 func editorFilter(editor: *Wnd)->*EditBox => assume cast(*EditBox, unwrap editor.childById("gui.shortcuts.filter"))
-func editorChange(editor: *Wnd)->*Wnd => unwrap editor.childById("gui.shortcuts.change")
+func editorChange(editor: *Wnd)->*Wnd     => unwrap editor.childById("gui.shortcuts.change")
 
 func editorRow(editor: *Wnd, title: string)->*ListLine
 {
@@ -52,6 +55,7 @@ func editorRow(editor: *Wnd, title: string)->*ListLine
         if row.items[0]!.name.text == title do
             return row
     }
+
     Swag.panic(Format.toString("Missing shortcut row for %", title), #curlocation)
 }
 
@@ -66,7 +70,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
 #test
 {
     var checked: bool
-    var host: Testing.HeadlessHost
+    var host:    Testing.HeadlessHost
     let lens = setupShortcutEditor(&host)
     host.root.registerKeyShortcut(.Control, .F1, Open)
     host.root.registerKeyShortcut(.Shift, .F2, Open)
@@ -117,7 +121,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let lens = setupShortcutEditor(&host)
     host.root.registerKeyShortcut(.Control, .F1, Open)
     host.root.registerKeyShortcut(.Control, .F2, Open)
@@ -150,6 +154,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
             Swag.require(host.root.keyShortcut(.Control, .F2) == Close)
             stage = 3
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             if editor is MessageDlg as failure
             {
@@ -172,7 +177,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let lens = setupShortcutEditor(&host)
     host.app.setGlobalHotKeysEnabled(false)
     expect host.app.registerUserHotKey(.Control, .F6, Open, &host.root)
@@ -190,6 +195,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
             Swag.require(app.hotKeysDisabled)
             stage = 3
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             stage = 2
             let dialog = assume cast(*Dialog, editor)
@@ -235,7 +241,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
     defer discard catch File.delete(fixedPath)
 
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let lens = setupShortcutEditor(&host)
     host.root.registerKeyShortcut(.Control, .F1, Open)
     host.app.setStatePath(Path.combine(path, "preferences.scc"))
@@ -251,9 +257,11 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
             Swag.require(stage == 2)
             Swag.require(editorRow(editor, "Open document").items[1]!.name.text == "Ctrl F8")
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             stage = 2
             host.keyPress(.F8, .Control)
+
         case 2:
             if editor is MessageDlg as failure
             {
@@ -265,6 +273,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
                 stage = 3
                 Swag.require(host.clickModalButton(Dialog.BtnOk))
             }
+
         case 3:
             if editor.childById("gui.shortcuts.filter")
             {
@@ -288,7 +297,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
 #test
 {
     var stage: u32
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let lens = setupShortcutEditor(&host)
 
     let drive: FrameCallback = func|host = &host, &stage|(app)
@@ -311,10 +320,12 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
             Swag.require(host.root.keyShortcut(.Control, .F8) == null)
             stage = 5
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case 1:
             Swag.require(app.hotKeysDisabled)
             stage = 2
             Swag.require(host.clickModalButton(Dialog.BtnCancel))
+
         case 3:
             stage = 4
             host.keyPress(.F8, .Control)
@@ -355,17 +366,19 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
                 stage = 1
                 host.clickWnd(editorChange(editor))
                 Swag.require(stage == 3)
-                let open    = editorRow(editor, "Open document")
-                let close   = editorRow(editor, "Close document")
-                let read    = editorRow(editor, "Read page")
+                let open  = editorRow(editor, "Open document")
+                let close = editorRow(editor, "Close document")
+                let read  = editorRow(editor, "Read page")
                 Swag.require(open.items[1]!.name.text == (replace ? "Ctrl F3" : "Ctrl F1"))
                 Swag.require(close.items[1]!.name.text == (replace ? "" : "Ctrl F2, Ctrl F3"))
                 Swag.require(read.items[1]!.name.text == (replace ? "" : "Ctrl F3"))
                 stage = 4
                 Swag.require(host.clickModalButton(Dialog.BtnOk))
+
             case 1:
                 stage = 2
                 host.keyPress(.F3, .Control)
+
             case 2:
                 if editor is MessageDlg as prompt
                 {

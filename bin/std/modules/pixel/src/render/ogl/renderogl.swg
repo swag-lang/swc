@@ -876,9 +876,13 @@ impl RenderOgl
     mtd blitRenderTargetToWindow(target: const *RenderTarget, width, height: s32)->bool fail
     {
         let context = oglContext(.curRC)
-        if not context.hWnd or context.ownsWindow or
-           not target.colorBuffer.isValid() or width <= 0 or height <= 0 or
-           width > target.colorBuffer.width or height > target.colorBuffer.height do
+        if not context.hWnd or
+           context.ownsWindow or
+           not target.colorBuffer.isValid() or
+           width <= 0 or
+           height <= 0 or
+           width > target.colorBuffer.width or
+           height > target.colorBuffer.height do
             return false
 
         try .native.resizeWindowBackBuffer(context, width, height)
@@ -2289,8 +2293,7 @@ impl RenderOgl
                          .BindTextureFont, .SetFontEffect, .DrawTriangles:
                         try .executeCommand(dc, cmd1, cast(u64, i))
 
-                    default:
-                        break
+                    default: break
                     }
                 }
 

@@ -511,8 +511,8 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     host.setup(360, 220)
     defer host.shutdown()
 
-    let menu = MenuCtrl.createPopup(&host.root)
-    let row  = menu.addItem("Open", Menu_Open)
+    let menu   = MenuCtrl.createPopup(&host.root)
+    let row    = menu.addItem("Open", Menu_Open)
     let choice = IconButton.create(menu, {}, {0, 0, 48, 24}, flags: .Radio)
     choice.setText("3 s")
     menu.addWidget(choice)
@@ -527,7 +527,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     Swag.require(menu.mouseCapture() == null, "hovering a row must leave pointer capture free")
 
     let choicePoint = choice.surfaceRect().center()
-    var move = MouseEvent{kind: .Move, surfacePos: choicePoint}
+    var move        = MouseEvent{kind: .Move, surfacePos: choicePoint}
     menu.sendEvent(&move)
     Swag.require(menu.mouseCapture() == null, "hovering a button must leave pointer capture free")
     host.clickWnd(choice)

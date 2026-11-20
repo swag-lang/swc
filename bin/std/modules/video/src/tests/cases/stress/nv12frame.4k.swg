@@ -7,8 +7,8 @@ using Swag, Core, Pixel
 #[Swag.TestTag("stress")]
 #test
 {
-    const Width      = 3840
-    const Height     = 2160
+    const Width  = 3840
+    const Height = 2160
     let image = Image.create(Width, Height, .BGRA8)
     Memory.set(image.pixels.storage(), 127, image.pixels.count)
     var frame: Nv12Frame

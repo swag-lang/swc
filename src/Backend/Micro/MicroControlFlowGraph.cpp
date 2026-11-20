@@ -106,8 +106,14 @@ void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target
         hasLoop_ = true;
 }
 
-void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperandStorage& operands, const bool hasLabelReferences)
+void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperandStorage& operands)
 {
+    struct ControlFlowSite
+    {
+        const MicroInstr* instruction;
+        uint32_t          index;
+    };
+
     ++buildId_;
 
     const uint32_t instructionCount = storage.count();
@@ -125,8 +131,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     supportsDeadCodeLiveness_                = true;
     hasLoop_                                 = false;
     instructionRefs_.reserve(instructionCount);
-    bool hasControlFlowInstruction = false;
-    bool previousFallsThrough      = false;
+    SmallVector<ControlFlowSite, 16> controlFlowSites;
 
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
@@ -134,19 +139,23 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         successors_[instructionIndex].clear();
         predecessors_[instructionIndex].clear();
         instructionRefs_.push_back(it.current);
-        maxSlot_                  = std::max(maxSlot_, it.current.get());
-        const MicroInstr&    inst = *it;
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        hasControlFlowInstruction |= inst.op == MicroInstrOpcode::Label || inst.op == MicroInstrOpcode::LoadLabelAddress ||
-                                     info.flags.has(MicroInstrFlagsE::JumpInstruction);
-        if (!hasLabelReferences && !hasControlFlowInstruction && instructionIndex && previousFallsThrough)
+        maxSlot_ = std::max(maxSlot_, it.current.get());
+
+        // Emit the linear prefix now. Even a later back-edge has a greater
+        // source index, so it belongs after these predecessors.
+        if (controlFlowSites.empty() && instructionIndex)
             addEdge(instructionIndex - 1, instructionIndex);
+
+        const MicroInstr&    inst         = *it;
+        const MicroInstrDef& info         = MicroInstr::info(inst.op);
+        const bool           isJump       = info.flags.has(MicroInstrFlagsE::JumpInstruction);
+        const bool           isTerminator = info.flags.has(MicroInstrFlagsE::TerminatorInstruction);
+        if (isJump || inst.op == MicroInstrOpcode::LoadLabelAddress || (isTerminator && instructionIndex + 1 < instructionCount))
+            controlFlowSites.push_back({&inst, instructionIndex});
         if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;
-        if (MicroInstrInfo::isTerminatorInstruction(inst) && inst.op != MicroInstrOpcode::Ret && inst.op != MicroInstrOpcode::Trap &&
-            !info.flags.has(MicroInstrFlagsE::JumpInstruction))
+        if (isTerminator && inst.op != MicroInstrOpcode::Ret && inst.op != MicroInstrOpcode::Trap && !isJump)
             supportsDeadCodeLiveness_ = false;
-        previousFallsThrough = !MicroInstrInfo::isTerminatorInstruction(inst);
 
         if (inst.op == MicroInstrOpcode::Label)
         {
@@ -168,39 +177,20 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         }
     }
 
-    if (!hasControlFlowInstruction)
-    {
-        if (hasLabelReferences)
-        {
-            bool fallsThrough = false;
-            for (uint32_t index = 0; index < instructionRefs_.size(); ++index)
-            {
-                if (index && fallsThrough)
-                    addEdge(index - 1, index);
-                const MicroInstr* inst = storage.ptr(instructionRefs_[index]);
-                SWC_ASSERT(inst != nullptr);
-                fallsThrough = !MicroInstrInfo::isTerminatorInstruction(*inst);
-            }
-        }
+    if (controlFlowSites.empty())
         return;
-    }
 
-    if (!hasLabelReferences)
+    // Resolve edges in source order, so incoming edges remain sorted. Between
+    // control-flow sites, every instruction falls through without rereading IR.
+    uint32_t nextLinearEdge = controlFlowSites.front().index;
+    for (const ControlFlowSite& site : controlFlowSites)
     {
-        // Discard provisional fallthrough edges before the full control-flow
-        // walk adds branch targets and conditional fallthroughs.
-        for (uint32_t index = 0; index < instructionRefs_.size(); ++index)
-        {
-            successors_[index].clear();
-            predecessors_[index].clear();
-        }
-    }
+        const uint32_t instructionIndex = site.index;
+        for (; nextLinearEdge < instructionIndex; ++nextLinearEdge)
+            addEdge(nextLinearEdge, nextLinearEdge + 1);
+        nextLinearEdge = instructionIndex + 1;
 
-    uint32_t instructionIndex = 0;
-    for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++instructionIndex)
-    {
-        const MicroInstr* inst = &*it;
-
+        const MicroInstr* inst = site.instruction;
         if (inst->op == MicroInstrOpcode::LoadLabelAddress && inst->numOperands >= 2)
         {
             const MicroInstrOperand* labelOps = inst->ops(operands);
@@ -213,7 +203,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         }
 
         auto&      successors     = successors_[instructionIndex];
-        const bool hasFallthrough = instructionIndex + 1 < instructionRefs_.size();
+        const bool hasFallthrough = instructionIndex + 1 < instructionCount;
         if (inst->op == MicroInstrOpcode::JumpCond || inst->op == MicroInstrOpcode::JumpCondImm)
         {
             const MicroInstrOperand* jumpOps = inst->ops(operands);
@@ -275,6 +265,10 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         if (hasFallthrough)
             addEdge(instructionIndex, instructionIndex + 1);
     }
+
+    const uint32_t endOfLinearEdges = instructionCount - 1;
+    for (; nextLinearEdge < endOfLinearEdges; ++nextLinearEdge)
+        addEdge(nextLinearEdge, nextLinearEdge + 1);
 }
 
 SWC_END_NAMESPACE();

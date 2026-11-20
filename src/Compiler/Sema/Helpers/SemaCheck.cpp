@@ -771,7 +771,7 @@ Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef bindingRef, AstNodeRef
     if (!testsValue && whereRef.isInvalid())
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_conditional_binding_requires_where, symbol->codeRef(), symbol->typeRef());
 
-    const AstNodeRef ownerRef = sema.curNodeRef();
+    const AstNodeRef ownerRef                                                            = sema.curNodeRef();
     SemaHelpers::ensureCodeGenLoweringPayload(sema, ownerRef).conditionBindingTestsValue = testsValue;
 
     // Variable initializers can carry constants for the path that misses the presence test.
@@ -806,8 +806,8 @@ void SemaCheck::pushConditionBindingPresence(Sema& sema, AstNodeRef bindingRef, 
         return;
 
     // Keep one proof through the guard and the body, so mutation in the guard can kill it.
-    SemaFrame          frame = sema.frame();
-    const std::array   path  = {symbol};
+    SemaFrame        frame = sema.frame();
+    const std::array path  = {symbol};
     frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
     sema.pushFramePopOnPostChild(std::move(frame), bodyRef);
 }

@@ -441,7 +441,7 @@ SWC_TEST_BEGIN(Compiler_DiagnosticExcerptShowsTheSpanOnALongLine)
     CompilerInstance compiler(ctx.global(), cmdLine);
     TaskContext      compilerCtx(compiler);
     const Utf8       source = Utf8("// ") + Utf8(240, 'x') + " \xC3\xA9\tfocus\n";
-    SourceFile&      file = Unittest::addTestSource(compilerCtx, "Compiler", "LongDiagnosticExcerpt", source);
+    SourceFile&      file   = Unittest::addTestSource(compilerCtx, "Compiler", "LongDiagnosticExcerpt", source);
     SWC_RESULT(file.loadContent(compilerCtx));
 
     SourceView& view = file.ast().srcView();

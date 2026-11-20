@@ -491,11 +491,11 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel
 {
     let flags = placement == .Centered ? SurfaceFlags.SmallCaption | .CloseButton :
-                                         SurfaceFlags.ToolWindow | .TopMost
+                SurfaceFlags.ToolWindow | .TopMost
     let surface = expect host.app.createSurface(0, 0, 300, 300, flags)
     if placement == .Centered do
         surface.setTitle(ProductName)
-    let panel   = ResidentPanel.create(surface.wnd, main, placement)
+    let panel = ResidentPanel.create(surface.wnd, main, placement)
     panel.floating = true
 
     // A short list is smaller than the default minimum size of a surface.

@@ -26,6 +26,7 @@ func pickCaptureShortcut(host: *Testing.HeadlessHost, root: *Wnd, key: Input.Key
         keys.setSelectedIndex(cast(u32, index))
         break
     }
+
     Swag.require(keys.selectedItem()!.name.text == name)
     Swag.require(host.clickModalButton(Dialog.BtnOk))
 }
@@ -64,13 +65,14 @@ func pickCaptureShortcut(host: *Testing.HeadlessHost, root: *Wnd, key: Input.Key
                 step = .Done
                 Swag.require(host.clickModalButton(Dialog.BtnCancel))
             }
+
         case .EditOccupied, .EditAvailable:
             let retry  = step == .EditAvailable
             let filter = assume cast(*EditBox, unwrap root.childById("gui.shortcuts.filter"))
             let list   = assume cast(*ListCtrl, unwrap root.childById("gui.shortcuts.list"))
             filter.setText(appStrings().act_CaptureArea)
             Swag.require(list.lineCount() == 1)
-            let row = unwrap list.selectedLine()
+            let row      = unwrap list.selectedLine()
             let expected = retry ? Input.formatKeyShortcut(.Control, .F9) : Input.formatKeyShortcut(.None, .PrintScreen)
             Swag.require(row.items[1]!.name.text == expected)
             Swag.require(row.items[2]!.name.text == Gui.strings().shortcuts_Global)
@@ -78,9 +80,11 @@ func pickCaptureShortcut(host: *Testing.HeadlessHost, root: *Wnd, key: Input.Key
             host.clickWnd(unwrap root.childById("gui.shortcuts.change"))
             Swag.require(step == (retry ? .CloseOptions : .RejectOccupied))
             Swag.require(host.clickModalButton(Dialog.BtnOk))
+
         case .PickOccupied:
             step = .RejectOccupied
             pickCaptureShortcut(host, root, .F9)
+
         case .RejectOccupied:
             if root is MessageDlg as failure
             {
@@ -90,11 +94,13 @@ func pickCaptureShortcut(host: *Testing.HeadlessHost, root: *Wnd, key: Input.Key
                 step = .EditAvailable
                 Swag.require(host.clickModalButton(Dialog.BtnOk))
             }
+
         case .PickAvailable:
             step = .CloseOptions
             pickCaptureShortcut(host, root, .F8)
 
-        case .CloseOptions, .Done: break
+        case .CloseOptions, .Done:
+            break
         }
     }
 

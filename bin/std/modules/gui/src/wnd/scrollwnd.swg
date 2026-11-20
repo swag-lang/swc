@@ -429,7 +429,10 @@ impl ScrollWnd
 
         // The event loop polls the pointer even while it is still. Recheck the hit in case
         // layout moved under it. Only movement or changed hover can restart the fade.
-        let changed = wasThumbV != .isHotV or wasThumbH != .isHotH or wasBarV != .isHotBarV or wasBarH != .isHotBarH
+        let changed = wasThumbV != .isHotV or
+                      wasThumbH != .isHotH or
+                      wasBarV != .isHotBarV or
+                      wasBarH != .isHotBarH
         if moved or (changed and (.isHotBarV or .isHotBarH)) do
             .revealScrollBars()
         if changed

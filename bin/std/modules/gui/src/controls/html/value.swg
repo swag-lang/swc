@@ -200,8 +200,7 @@ impl HtmlLength
         case .ViewportWidth:  return .value * context.viewportWidth
         case .ViewportHeight: return .value * context.viewportHeight
         case .Calc:           return pool.evaluateCalc(cast(u32, .value), context)
-        case .Auto, .Fraction, .MinContent, .MaxContent, .FitContent, .None:
-            return fallback
+        case .Auto, .Fraction, .MinContent, .MaxContent, .FitContent, .None: return fallback
         }
     }
 
@@ -213,8 +212,7 @@ impl HtmlLength
         case .Pixels, .ViewportWidth, .ViewportHeight: return true
         case .Percent: return hasBasis
         case .Calc:    return hasBasis or not pool.calcNeedsBasis(cast(u32, .value))
-        case .Auto, .Fraction, .MinContent, .MaxContent, .FitContent, .None:
-            return false
+        case .Auto, .Fraction, .MinContent, .MaxContent, .FitContent, .None: return false
         }
     }
 }

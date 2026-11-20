@@ -57,7 +57,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    var result = 0
+    var result     = 0
     var x: string? = null
     if x == null
     {
@@ -72,7 +72,7 @@ func semaTest006()
 
 func semaTest007()
 {
-    var result = 0
+    var result       = 0
     var x: [..] s32? = null
     if x == null
     {

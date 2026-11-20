@@ -325,7 +325,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_DiagnosticArgumentsRemainLiteralAndHelpFollowsNotes)
 {
-    CommandLine cmdLine;
+    CommandLine       cmdLine;
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_cmd_arg);
     diag.addArgument(Diagnostic::ARG_ARG, "--{command}; [help] pasted  text");
@@ -333,9 +333,9 @@ SWC_TEST_BEGIN(Compiler_DiagnosticArgumentsRemainLiteralAndHelpFollowsNotes)
     diag.addNote(DiagnosticId::cmd_note_did_you_mean);
     diag.last().addArgument(Diagnostic::ARG_VALUE, "--file");
 
-    const Utf8 output = DiagnosticBuilder(localCtx, diag).build();
-    const size_t note = output.find("\nnote:");
-    const size_t help = output.find("\nhelp:");
+    const Utf8   output = DiagnosticBuilder(localCtx, diag).build();
+    const size_t note   = output.find("\nnote:");
+    const size_t help   = output.find("\nhelp:");
     if (output.find("'--{command}; [help] pasted  text'") == Utf8::npos ||
         note == Utf8::npos || help == Utf8::npos || help < note ||
         output.find("\nhelp:", help + 1) != Utf8::npos)

@@ -69,8 +69,8 @@ internal func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamily
     {
     case .Regular, .Italic:  desired = 400
     case .Bold, .BoldItalic: desired = 700
-    case .Light:            desired = 300
-    case .SemiBold:         desired = 600
+    case .Light:             desired = 300
+    case .SemiBold:          desired = 600
     }
 
     let slant = italic == wantItalic ? 0'u32 : 1000000'u32

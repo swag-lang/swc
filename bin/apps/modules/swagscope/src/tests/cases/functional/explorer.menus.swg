@@ -12,6 +12,7 @@ func openMenuExplorer(host: *Testing.HeadlessHost, width = 1280'f32)->*ViewerWin
     window.onlineMovies = false
     window.onlineMusic  = false
     window.openExplorer(scopeTestDataDirectory())
+
     // Menu tests do not need thumbnails; names mode keeps media preview workers out of the host.
     let explorer = unwrap window.explorer
     explorer.setMode(.Names)
@@ -39,8 +40,8 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
 #test
 {
     var host: Testing.HeadlessHost
-    let window = openMenuExplorer(&host)
-    let explorer = unwrap window.explorer
+    let window     = openMenuExplorer(&host)
+    let explorer   = unwrap window.explorer
     let breadcrumb = explorer.address.breadcrumb
     Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.ChooseFolder).hidden)
 
@@ -52,7 +53,7 @@ func waitMenuExplorer(host: *Testing.HeadlessHost, window: *ViewerWindow)
             breadcrumb.addItem("Parent")
         breadcrumb.addItem("Current", hasArrow: false)
         explorer.address.refreshPath()
-        let rect = breadcrumb.surfaceRect()
+        let rect  = breadcrumb.surfaceRect()
         var point = Math.Point{rect.x + breadcrumb.themeMetrics().control_DialogHeight * 0.5, rect.vertCenter()}
         host.surface.surfaceToScreen(&point)
 
@@ -109,10 +110,10 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
 #test
 {
     var host: Testing.HeadlessHost
-    let window = openMenuExplorer(&host)
+    let window   = openMenuExplorer(&host)
     let explorer = unwrap window.explorer
-    let current = explorer.locationText()
-    let parent = expect Path.absolute(unwrap Path.directoryName(current))
+    let current  = explorer.locationText()
+    let parent   = expect Path.absolute(unwrap Path.directoryName(current))
     selectParentInFolderPicker(&host, window, current, parent)
     waitMenuExplorer(&host, window)
     Swag.require(Path.equals(explorer.listing.path, parent))
@@ -122,9 +123,9 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
 #test
 {
     let scratch = Testing.tempFilePath("scope-explorer-path-", "")
-    let root = Path.combine(scratch, "Parent")
-    let folder = Path.combine(root, "Folder")
-    let file = Path.combine(folder, "File.txt")
+    let root    = Path.combine(scratch, "Parent")
+    let folder  = Path.combine(root, "Folder")
+    let file    = Path.combine(folder, "File.txt")
     expect Directory.create(scratch)
     defer discard catch Directory.delete(scratch, recurse: true)
     expect Directory.create(root)
@@ -148,6 +149,7 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
             postedActions += 1
         return false
     }
+
     defer window.hookOnEvent = null
 
     let breadcrumb = explorer.address.breadcrumb
@@ -168,13 +170,14 @@ func selectParentInFolderPicker(host: *Testing.HeadlessHost, window: *ViewerWind
         explorer.setMode(mode)
         window.applyLayout()
         var point = mode == .Details ? explorer.list.listView.localToSurface(Math.Point{50, explorer.list.lineHeight() * 0.5}) :
-                                       explorer.grid.localToSurface(explorer.grid.tileRect(0).center())
+                    explorer.grid.localToSurface(explorer.grid.tileRect(0).center())
         host.surface.surfaceToScreen(&point)
         host.clickPopupMenuItemWhenShown(ViewerCommands.CopyPath)
         host.click(point, .Right)
         Swag.require(host.autoHandled and Path.equals(Clipboard.getString(), file))
         Swag.require(window.currentFile.isEmpty())
     }
+
     Swag.require(postedActions == 0)
 
     window.sendCommandEvent(ViewerCommands.CopyLocation)
@@ -276,7 +279,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     Swag.require(explorer.modeMenu.text() == appStrings().board_Grid)
 
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ThumbnailCrops[0]).checked)
-    let settings = explorer.previewSettings
+    let settings    = explorer.previewSettings
     var glyphs: Array's32
     let otherGroups = [cast(const [..] string, ViewerCommands.Modes),
                        cast(const [..] string, ViewerCommands.Boards),
@@ -290,6 +293,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
                 glyphs.add(state.icon.index)
         }
     }
+
     for command, index in ViewerCommands.ThumbnailCrops
     {
         chooseInQuietMenu(&host, window, explorer.modeMenu, command)
@@ -305,6 +309,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
             for entry in section!.entries where entry.id == command do
                 found = true
         }
+
         Swag.require(found)
         window.lens.close()
     }

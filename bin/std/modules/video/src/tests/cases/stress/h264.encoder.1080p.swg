@@ -152,7 +152,7 @@ private impl Nv12Frame
     var encoder  = expect H264.Encoder.create(1920, 1080, keyInterval: 4)
     var writer   = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
 
-    let key = expect encoder.encode(&base, 0, 1_500)
+    let key     = expect encoder.encode(&base, 0, 1_500)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
 
@@ -195,8 +195,8 @@ private impl Nv12Frame
     let brightest = expect encoderStressTiles(2)
     var encoder   = expect H264.Encoder.create(1920, 1080)
     var writer    = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 1_500)
-    let keySize = key.bytes.count
+    let key       = expect encoder.encode(&base, 0, 1_500)
+    let keySize   = key.bytes.count
     expect writer.addPacket(key)
 
     let faded = expect encoder.encode(&brighter, 1_500, 1_500)
@@ -232,7 +232,7 @@ private impl Nv12Frame
         let changed = expect encoderStressSparse(width, height, true)
         var encoder = expect H264.Encoder.create(width, height)
         var writer  = expect Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
-        let key = expect encoder.encode(&base, 0, 1_500)
+        let key     = expect encoder.encode(&base, 0, 1_500)
         let keySize = key.bytes.count
         expect writer.addPacket(key)
 
@@ -265,7 +265,7 @@ private impl Nv12Frame
     tinted.stressTint(1, -1)
     var encoder = expect H264.Encoder.create(1920, 1080)
     var writer  = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 1_500)
+    let key     = expect encoder.encode(&base, 0, 1_500)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
 
@@ -297,7 +297,7 @@ private impl Nv12Frame
     changed.stressSparseChroma(2)
     var encoder = expect H264.Encoder.create(1920, 1080)
     var writer  = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 1_500)
+    let key     = expect encoder.encode(&base, 0, 1_500)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
 
@@ -329,7 +329,7 @@ private impl Nv12Frame
     changed.stressSparseChroma(2)
     var encoder = expect H264.Encoder.create(3840, 2160)
     var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 1_500)
+    let key     = expect encoder.encode(&base, 0, 1_500)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
 
@@ -453,7 +453,7 @@ func qpStressQuality(reference: const *Nv12Frame, decoded: const *PlanarFrame)->
 
 func runQpStress(width, height: s32) fail
 {
-    let base = try encoderStressTiles(0, width, height)
+    let base    = try encoderStressTiles(0, width, height)
     var targets = [base, try encoderStressTiles(0, width, height), try encoderStressTiles(0, width, height)]
     targets[1].qpStressScroll(&base)
     targets[2].qpStressTexture()
@@ -480,8 +480,10 @@ func runQpStress(width, height: s32) fail
         var reader = try Reader.open(path)
         var decoded: PlanarFrame
         try reader.decodeFramePlanesInto(&decoded, 0)
-        if qp == 0 do
+        if qp == 0
+        {
             requireStressPicture(&base, &decoded)
+        }
         else
         {
             let quality = qpStressQuality(&base, &decoded)
@@ -601,16 +603,18 @@ func qpStressIdrScene(source: const *Nv12Frame, qp: u32)->u64 fail
     defer discard catch File.delete(path)
     var encoder = try H264.Encoder.create(source.width, source.height, 1, qp)
     var writer  = try Mp4.FragmentedWriter.create(path, source.width, source.height, 90_000, encoder.decoderConfig())
-    let packet = try encoder.encode(source, 0, 1_500)
-    let size   = packet.bytes.count
+    let packet  = try encoder.encode(source, 0, 1_500)
+    let size    = packet.bytes.count
     try writer.addPacket(packet)
     try writer.end()
 
     var reader = try Reader.open(path)
     var decoded: PlanarFrame
     try reader.decodeFramePlanesInto(&decoded, 0)
-    if qp == 0 do
+    if qp == 0
+    {
         requireStressPicture(source, &decoded)
+    }
     else
     {
         let quality = qpStressQuality(source, &decoded)

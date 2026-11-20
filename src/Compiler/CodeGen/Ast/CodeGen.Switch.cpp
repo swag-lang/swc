@@ -1393,8 +1393,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
-    const MicroLabelRef nextTest = caseState.hasNextCase ? caseState.nextTestLabel : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
-    const MicroLabelRef failLabel = caseState.bindingMiss.isValid() ? caseState.bindingMiss : nextTest;
+    const MicroLabelRef             nextTest  = caseState.hasNextCase ? caseState.nextTestLabel : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
+    const MicroLabelRef             failLabel = caseState.bindingMiss.isValid() ? caseState.bindingMiss : nextTest;
 
     // The walk hands over each child as resolved: a guard that sema substituted, such as an inlined
     // call, arrives as its substitute and not as `nodeWhereRef`.

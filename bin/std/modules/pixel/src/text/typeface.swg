@@ -252,8 +252,7 @@ public impl TypeFace
     // glyph drawn from a fractional pen position keeps its exact ink while its bitmap stays
     // aligned to whole pixels. The bitmap's left edge accounts for the offset.
     #[Swag.Propagate]
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false,
-                           penOffsetX = 0.0'f32)->const *Bitmap fail
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false, penOffsetX = 0.0'f32)->const *Bitmap fail
     {
         Sync.scopedLock(&.glyphMutex)
         return .renderGlyphByIndexLocked(glyphIndex, size, forceBold, forceItalic, penOffsetX)
@@ -277,14 +276,12 @@ public impl TypeFace
     //
     // `spread` is the distance range in pixels. The bitmap belongs to the typeface and is
     // overwritten by the next rasterization.
-    mtd renderGlyphMsdf(c: rune, size, spread: u32,
-                        forceBold = false, forceItalic = false)->const *Bitmap fail =>
+    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold = false, forceItalic = false)->const *Bitmap fail =>
         try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
 
     // Renders one glyph index as a multi-channel signed distance field, like [[Pixel.TypeFace.renderGlyphMsdf]].
     #[Swag.Propagate]
-    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32,
-                               forceBold = false, forceItalic = false)->const *Bitmap fail
+    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold = false, forceItalic = false)->const *Bitmap fail
     {
         Sync.scopedLock(&.glyphMutex)
         return .renderGlyphMsdfByIndexLocked(glyphIndex, size, spread, forceBold, forceItalic)

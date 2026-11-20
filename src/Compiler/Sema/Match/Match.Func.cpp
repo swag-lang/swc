@@ -1104,7 +1104,7 @@ namespace
         if (id == DiagnosticId::sema_err_too_few_arguments || id == DiagnosticId::sema_err_cannot_cast)
         {
             const SymbolVariable* param = namedFailedParameter(fn, fail, sema.ctx());
-            SourceCodeRange range;
+            SourceCodeRange       range;
             if (param && param->decl() && !fn.name(sema.ctx()).empty() && sema.compiler().tryTokenCodeRange(sema.ctx(), range, param->codeRef()))
             {
                 diag.addNote(DiagnosticId::sema_note_parameter_declared_here);
@@ -1274,8 +1274,8 @@ namespace
             }
         }
 
-        const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
-        SemaNodeView     argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const AstNodeRef  argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
+        SemaNodeView      argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         CastFlags         castFlags        = CastFlagsE::Zero;
         const ConstantRef castSourceCstRef = argNodeView.cstRef();
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))

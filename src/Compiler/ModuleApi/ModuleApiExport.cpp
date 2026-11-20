@@ -15,6 +15,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool moduleApiFileMatches(std::vector<char>& existingContent, const fs::path& path, const std::string_view content)
+    {
+        std::error_code ec;
+        const uintmax_t existingSize = fs::file_size(path, ec);
+        if (ec || existingSize != content.size())
+            return false;
+
+        FileSystem::IoErrorInfo readError;
+        return FileSystem::readBinaryFile(path, existingContent, readError) == Result::Continue &&
+               std::ranges::equal(existingContent, content);
+    }
+
+    Result writeModuleApiContents(TaskContext& ctx, const fs::path& path, const std::string_view content)
+    {
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(path, content.data(), content.size(), ioError) == Result::Continue)
+            return Result::Continue;
+
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, path, FileSystem::describeIoFailure(ioError));
+    }
+
     struct ModuleApiFileInfo
     {
         bool wholeFileExported  = false;
@@ -185,22 +206,11 @@ namespace ModuleApiExport
 
     Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content)
     {
-        std::error_code ec;
-        const uintmax_t existingSize = fs::file_size(dstPath, ec);
-        if (!ec && existingSize == content.size())
-        {
-            std::vector<char>       existingContent;
-            FileSystem::IoErrorInfo readError;
-            if (FileSystem::readBinaryFile(dstPath, existingContent, readError) == Result::Continue &&
-                std::ranges::equal(existingContent, content))
-                return Result::Continue;
-        }
-
-        FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) == Result::Continue)
+        std::vector<char> existingContent;
+        if (moduleApiFileMatches(existingContent, dstPath, content))
             return Result::Continue;
 
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, dstPath, FileSystem::describeIoFailure(ioError));
+        return writeModuleApiContents(ctx, dstPath, content);
     }
 }
 
@@ -239,27 +249,25 @@ namespace ModuleApi
         if (ec)
             return FileSystem::reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
 
+        std::vector<char> existingContent;
         for (const SourceSnapshot& file : files)
         {
             const std::string_view captured = file.content->view();
             const fs::path         path     = (destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal();
 
-            const auto size = fs::file_size(path, ec);
-            if (!ec && size == captured.size())
+            // Restored timestamps do not establish that a mirror holds the captured bytes.
+            if (moduleApiFileMatches(existingContent, path, captured))
             {
                 const auto writeTime = fs::last_write_time(path, ec);
                 if (!ec && writeTime == file.writeTime)
-                {
-                    // Restored timestamps do not establish that this is the captured generation.
-                    std::string             content;
-                    FileSystem::IoErrorInfo ioError;
-                    if (FileSystem::readTextFile(path, content, ioError) == Result::Continue && content == captured)
-                        continue;
-                }
+                    continue;
+            }
+            else
+            {
+                SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
+                SWC_RESULT(writeModuleApiContents(ctx, path, captured));
             }
 
-            SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
-            SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, captured));
             fs::last_write_time(path, file.writeTime, ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));

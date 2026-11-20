@@ -27,6 +27,7 @@ using Core, Gui, Pixel, Viewers
     Swag.require(not hex.analysisView.isVisible())
 
     var input = Testing.DesktopInput.create(&journey.app, journey.surface)
+
     // "Analyze the" identifies the toggle even after the checksum commands appear.
     let analysisQuery = [Input.Key.A, .N, .A, .L, .Y, .Z, .E, .Space, .T, .H, .E]
     input.shortcut(.Space, .Control)

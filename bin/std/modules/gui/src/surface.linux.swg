@@ -8,21 +8,21 @@ using Core, Pixel
 #[Swag.NoCopy]
 internal struct NativeSurface
 {
-    windowId:           u32
-    drawable:           Env.XcbDrawable
-    colormap:           u32
-    compose:            *void?
-    topMost:            bool
-    initializing:       bool
-    geometryPending:    bool
-    clientWidth:        u16
-    clientHeight:       u16
+    windowId:                 u32
+    drawable:                 Env.XcbDrawable
+    colormap:                 u32
+    compose:                  *void?
+    topMost:                  bool
+    initializing:             bool
+    geometryPending:          bool
+    clientWidth:              u16
+    clientHeight:             u16
     maximizationPendingUntil: u64
-    dropTarget:         LinuxDrag.Target
-    dropTargetActive:   bool
-    trayWindow:         u32
-    trayImage:          Image
-    trayManager:        u32
+    dropTarget:               LinuxDrag.Target
+    dropTargetActive:         bool
+    trayWindow:               u32
+    trayImage:                Image
+    trayManager:              u32
 }
 
 internal func postLinuxSurfaceCommand(surface: *Surface, kind: SysCommandEvent.Kind)
@@ -314,6 +314,7 @@ impl Surface
                 if value != state and value != secondState do
                     states.add(value)
             }
+
             if enabled do
                 states.add(state)
             if enabled and secondState != 0 do
@@ -884,8 +885,8 @@ impl Surface
 {
     internal mtd queueNativeGeometry(width, height: u16)
     {
-        .clientWidth      = width
-        .clientHeight     = height
+        .clientWidth     = width
+        .clientHeight    = height
         .geometryPending = true
     }
 

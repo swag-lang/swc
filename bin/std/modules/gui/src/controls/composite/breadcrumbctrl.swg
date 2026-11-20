@@ -19,7 +19,7 @@ struct BreadcrumbItem
 }
 
 // The mark parting two levels of a quiet path.
-private const QuietSeparator = "/"
+private const QuietSeparator       = "/"
 private const AncestorCommandGroup = "gui.breadcrumb.ancestor"
 
 // Displays a horizontal path whose levels can be activated or expanded into child menus.
@@ -29,10 +29,10 @@ struct BreadcrumbCtrl
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        iconSize:        f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
-        quiet:           bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
-        maxVisibleItems: u32          // Maximum trailing levels with [[Gui.BreadcrumbCtrl.fitToWidth]]; zero leaves the count unlimited.
-        fitToWidth:      bool         // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
+        iconSize:        f32        = 16        // Square size used for every level icon; zero uses each descriptor's own size.
+        quiet:           bool                   // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
+        maxVisibleItems: u32                    // Maximum trailing levels with [[Gui.BreadcrumbCtrl.fitToWidth]]; zero leaves the count unlimited.
+        fitToWidth:      bool                   // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
         overflowIcon:    ThemeIcons = .More     // Glyph for the menu that gathers hidden levels.
 
         // With fit-to-width layout, keeps the menu button visible and adds this command after
@@ -179,7 +179,7 @@ impl BreadcrumbCtrl
         .overflowRect = {}
         .firstVisible = 0
         let persistent = .overflowCommand != null
-        let limited = .maxVisibleItems != 0 and .items.count > .maxVisibleItems
+        let limited    = .maxVisibleItems != 0 and .items.count > .maxVisibleItems
         if not .fitToWidth or (not persistent and (x <= client.right() and not limited)) do
             return
 
@@ -289,6 +289,7 @@ private impl BreadcrumbCtrl
             let item = &.items[index]
             menu.addItem(item.name, Format.toString("%.%", AncestorCommandGroup, index), item.icon.isValid() ? item.icon : .ancestorIcon)
         }
+
         let command = .overflowCommand
         if command
         {
@@ -321,6 +322,7 @@ impl IWnd for BreadcrumbCtrl
             if it.hasArrow do
                 width += .arrowWidth()
         }
+
         if .fitToWidth and .overflowCommand do
             width += .themeMetrics().control_DialogHeight
 
@@ -437,6 +439,7 @@ impl IWnd for BreadcrumbCtrl
                 painter.fillRoundRect(.overflowRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
             let mark   = theme.icon(.overflowIcon, m.fileBrowser_GlyphSize)
             let center = .overflowRect.center()
+
             // The icon-only menu tab centers its mark on the same line as the breadcrumb text.
             let top = .overflowIcon == .More ? font.opticalTop(center.y, mark.sizeY) : center.y - mark.sizeY * 0.5
             mark.paint(painter, center.x - mark.sizeX * 0.5, top, colors.softText)

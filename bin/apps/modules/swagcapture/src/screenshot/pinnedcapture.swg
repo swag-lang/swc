@@ -59,7 +59,8 @@ impl IWnd for PinnedCapture
             .isDragging = false
             .releaseMouse()
 
-        default: break
+        default:
+            break
         }
     }
 

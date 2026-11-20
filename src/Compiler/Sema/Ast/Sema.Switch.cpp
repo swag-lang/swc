@@ -632,8 +632,7 @@ namespace
 
     bool containsZeroRange(Sema& sema, std::span<const AstNodeRef> expressions, const TypeInfo& storageType)
     {
-        const ConstantValue zero = storageType.isFloat() ? ConstantValue::makeFloat(sema.ctx(), ApFloat{}, storageType.payloadFloatBits()) :
-                                                           ConstantValue::makeFromIntLike(sema.ctx(), ApsInt{storageType.payloadIntLikeBits(), storageType.isIntUnsigned()}, storageType);
+        const ConstantValue zero = storageType.isFloat() ? ConstantValue::makeFloat(sema.ctx(), ApFloat{}, storageType.payloadFloatBits()) : ConstantValue::makeFromIntLike(sema.ctx(), ApsInt{storageType.payloadIntLikeBits(), storageType.isIntUnsigned()}, storageType);
         for (const AstNodeRef expressionRef : expressions)
         {
             const auto* range = sema.node(expressionRef).safeCast<AstRangeExpr>();

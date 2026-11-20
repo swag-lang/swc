@@ -106,8 +106,8 @@ impl FormText
             {
             case .Regular, .Light: result = app.theme.res.defaultTypeFaceR
             case .Bold, .SemiBold: result = app.theme.res.defaultTypeFaceB
-            case .Italic:         result = app.theme.res.defaultTypeFaceI
-            case .BoldItalic:     result = app.theme.res.defaultTypeFaceBI
+            case .Italic:          result = app.theme.res.defaultTypeFaceI
+            case .BoldItalic:      result = app.theme.res.defaultTypeFaceBI
             }
         }
 

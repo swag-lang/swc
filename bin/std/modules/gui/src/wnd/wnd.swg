@@ -1656,8 +1656,7 @@ impl Wnd
     }
 
     // Updates selected outer margins; `Swag.F32.Inf` leaves an edge unchanged.
-    mtd setMargin(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf,
-                  right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
+    mtd setMargin(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf, right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
     {
         with me.margin
         {
@@ -1682,8 +1681,7 @@ impl Wnd
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
     // Updates selected inner paddings; `Swag.F32.Inf` leaves an edge unchanged.
-    mtd setPadding(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf,
-                   right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
+    mtd setPadding(left: f32 = Swag.F32.Inf, top: f32 = Swag.F32.Inf, right: f32 = Swag.F32.Inf, bottom: f32 = Swag.F32.Inf)
     {
         with me.padding
         {
@@ -2492,7 +2490,7 @@ impl Wnd
         var overrides: const [..] ShortcutOverride = []
         if let surface = .surface
         {
-            let app   = surface.app
+            let app = surface.app
             overrides = app.shortcutOverrides.toSlice()
             for &binding in overrides where not binding.source and binding.key == key and binding.modifiers == modifiers
             {
@@ -2516,10 +2514,13 @@ impl Wnd
         var node: *Wnd? = me
         while node
         {
-            for chord in node.keyShortcuts where chord.key == key and chord.modifiers == modifiers and not shortcutOverride(overrides, chord.id) do
+            for chord in node.keyShortcuts where chord.key == key and
+                                                 chord.modifiers == modifiers and
+                                                 not shortcutOverride(overrides, chord.id) do
                 return chord.id
             node = node.ownerOrParent()
         }
+
         return null
     }
 
@@ -2539,6 +2540,7 @@ impl Wnd
                 return result
             }
         }
+
         for c in .keyShortcuts
         {
             if c.id == wndId

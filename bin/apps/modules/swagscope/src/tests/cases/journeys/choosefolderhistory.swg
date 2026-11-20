@@ -25,7 +25,7 @@ using Core, Gui, Pixel
 
     var watch: Time.Stopwatch
     watch.start()
-    var stage:         u32
+    var stage: u32
     app.sigFrame += func|app = &app, &stage, &watch, &chosen|(_)
     {
         Swag.require(watch.elapsedMilliseconds() < 15_000, "folder-history journey exceeded its deadline")

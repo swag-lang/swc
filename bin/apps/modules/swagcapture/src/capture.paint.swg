@@ -81,8 +81,11 @@ impl Capture
 
         switch fi.kind
         {
-        case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
-        case .Capture: return fi.texture.isValid() and fi.textureKind == fi.kind
+        case .Image:
+            return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
+
+        case .Capture:
+            return fi.texture.isValid() and fi.textureKind == fi.kind
 
         case .Blur, .Pixelate, .Zoom:
             return fi.texture.isValid() and

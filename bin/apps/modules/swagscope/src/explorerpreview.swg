@@ -332,6 +332,7 @@ impl ExplorerPreview
                 stampMovieCache(&.image)
 
             ThumbnailFraming.labelImage(&.image)
+
             // A file replaced during rendering must not publish an image under its old identity.
             let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy) orelse {}
             if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do

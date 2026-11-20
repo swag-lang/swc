@@ -41,7 +41,7 @@ func bindingGuard(evaluations: *s32, passed: bool)->bool
 #test
 {
     var initializations = 0
-    var guards          = 0
+    var guards = 0
     if let text = bindingText(&initializations, true) where bindingGuard(&guards, true) do
         Swag.require(text.count == 0)
     else do
@@ -82,7 +82,7 @@ func bindingGuard(evaluations: *s32, passed: bool)->bool
 
 alias MaybeBoundCount = *s32?
 
-func bindingNumber(value: *s32)->MaybeBoundCount => value
+func bindingNumber(value: *s32)->MaybeBoundCount    => value
 func bindingEmptySlice(storage: [*] s32)->[..] s32? => Swag.makeSlice(storage, 0)
 
 #test

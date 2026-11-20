@@ -745,7 +745,7 @@ namespace Command
     void reportTestFilterNoMatch(TaskContext& ctx)
     {
         const CommandLine& cmdLine = ctx.cmdLine();
-        SmallVector<Utf8> filters;
+        SmallVector<Utf8>  filters;
         if (!cmdLine.testFileFilter.empty())
             filters.emplace_back("--test-file " + Utf8Helper::join(cmdLine.testFileFilter, ", "));
         if (!cmdLine.testTagFilter.empty())

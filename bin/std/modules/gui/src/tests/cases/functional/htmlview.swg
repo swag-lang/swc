@@ -984,7 +984,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     func renderBox(host: *Testing.HeadlessHost, style: string)->Image
     {
         let source = Format.toString("<style>body { margin: 0; background: #ffffff } div { width: 100px; height: 60px; % }</style><div></div>", style)
-        let view = HtmlView.createText(&host.root, source.toString())
+        let view   = HtmlView.createText(&host.root, source.toString())
         defer view.destroyNow()
         view.resize(200, 120)
         view.applyLayout()

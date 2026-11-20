@@ -82,8 +82,8 @@ private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 // applications still have the embedded theme face on minimal installations.
 private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "meiryo.ttc", "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf"]
 
-private var g_DefaultThemeImages: ThemeImages
-private var g_EmbeddedFontFaces: HashTable'(string, *TypeFace)
+private var g_DefaultThemeImages:    ThemeImages
+private var g_EmbeddedFontFaces:     HashTable'(string, *TypeFace)
 private var g_EmbeddedFontFacesLock: Swag.Mutex
 
 // Registers the embedded theme art and fonts as the fallback providers of `bundle`.

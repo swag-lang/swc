@@ -13,10 +13,10 @@ using Core, Gui, Pixel
     let app     = journey.app
     let surface = journey.surface
     main.showHub()
-    let original = main.residentPanel
-    let hub = unwrap original
+    let original   = main.residentPanel
+    let hub        = unwrap original
     let hubSurface = unwrap hub.surface
-    let oldBounds = hubSurface.position
+    let oldBounds  = hubSurface.position
     hubSurface.setPosition({oldBounds.x + 12, oldBounds.y + 8, oldBounds.width, oldBounds.height})
     let moved = hubSurface.position
     defer main.residentPanel?.close()
@@ -62,7 +62,7 @@ using Core, Gui, Pixel
     app.runFrame()
 
     Swag.require(canceled, "the area selector did not receive Escape")
-    let current = main.residentPanel
+    let current  = main.residentPanel
     let restored = unwrap current
     Swag.require(main.workspace == .Hub and surface.isHidden and not surface.hasTrayIcon())
     Swag.require(restored.surface!.position == moved)

@@ -233,15 +233,15 @@ internal struct Decoder
         lastDcVal:   [MaxComponents] s32
 
         coefficients: [MaxComponents] CoeffBuf
-        huffNum:    [MaxHuffTables] Array'u8
-        huffVal:    [MaxHuffTables] Array'u8
-        quant:      [MaxQuantTables] Array's16
-        scanLine0:  Array'u8
-        scanLine1:  Array'u8
-        quantBuf:   Array'u8
-        sampleBuf:  Array'u8
-        decOptions: DecodeOptions
-        metadata:   Array'ImageMetadata
+        huffNum:      [MaxHuffTables] Array'u8
+        huffVal:      [MaxHuffTables] Array'u8
+        quant:        [MaxQuantTables] Array's16
+        scanLine0:    Array'u8
+        scanLine1:    Array'u8
+        quantBuf:     Array'u8
+        sampleBuf:    Array'u8
+        decOptions:   DecodeOptions
+        metadata:     Array'ImageMetadata
     }
 }
 
@@ -267,6 +267,7 @@ impl Decoder
     mtd start() fail
     {
         try .initFrame()
+
         // A geometry probe needs the frame and first scan headers. Pixels and metadata can
         // depend on later scans, so requests for either still read the progressive stream.
         if .progressiveFlag and (.decOptions.decodePixels or .decOptions.decodeMetadata) do

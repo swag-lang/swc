@@ -477,12 +477,12 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicStopsLifecycleHooks)
 )";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        const std::vector<Utf8> args = {"-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
-        std::string             output;
-        uint32_t                exitCode = UINT32_MAX;
+        const std::vector<Utf8>     args = {"-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
+        std::string                 output;
+        uint32_t                    exitCode = UINT32_MAX;
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15'000};
-        const auto result       = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
-        const auto expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
+        const auto                  result       = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+        const auto                  expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
         if (result != Os::ProcessRunResult::Ok || exitCode != expectedExit ||
             output.contains("script hook panic") != (phase != 0) ||
             output.contains("script main completed") != (phase == 0 || phase == 4) ||
@@ -509,11 +509,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExpectedJitHookPanicStillAbandonsLifecycle)
 )";
     SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-    const std::vector<Utf8> args = {"test", "--file", Utf8(sourcePath), "--no-output", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
-    std::string             output;
-    uint32_t                exitCode = UINT32_MAX;
+    const std::vector<Utf8>     args = {"test", "--file", Utf8(sourcePath), "--no-output", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string                 output;
+    uint32_t                    exitCode = UINT32_MAX;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15'000};
-    const auto result = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
         !output.contains("jit test completed") || output.contains("jit cleanup completed"))
     {
@@ -859,7 +859,7 @@ func read(count: s32)
             const bool     native     = mode == "native";
             const fs::path workingDir = directory.path() / fault.name / mode;
             const fs::path sourcePath = workingDir / (script ? "bounds.swgs" : "bounds.swg");
-            std::string source(fault.source);
+            std::string    source(fault.source);
             source += script ? "#main\n" : "#test\n";
             source += "{\n";
             if (script)
@@ -916,17 +916,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ScriptPanicIdentifiesTheExecutionPhase)
     const RecoveryTestDirectory directory;
     for (const bool compileTime : {false, true})
     {
-        const fs::path sourcePath = directory.path() / "panic.swgs";
-        const std::string_view hook = compileTime ? "#run" : "#main";
+        const fs::path         sourcePath = directory.path() / "panic.swgs";
+        const std::string_view hook       = compileTime ? "#run" : "#main";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, std::format("{} {{ Swag.panic(\"phase probe\", #curlocation) }}\n", hook)));
-        const std::vector<Utf8>   args = {"--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
+        const std::vector<Utf8>     args = {"--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), Utf8(sourcePath)};
         std::string                 output;
         uint32_t                    exitCode = 0;
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
+        const auto                  result   = Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options);
         const std::string_view      expected = compileTime
-                                                  ? "error[sema_err_compiler_panic]: compiler panic: phase probe"
-                                                  : "error[safety_err_runtime_panic]: runtime panic: phase probe";
+                                                   ? "error[sema_err_compiler_panic]: compiler panic: phase probe"
+                                                   : "error[safety_err_runtime_panic]: runtime panic: phase probe";
         if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
             !output.contains("panic.swgs:1:") || !output.contains(expected) || output.contains("exit(-666)"))
         {

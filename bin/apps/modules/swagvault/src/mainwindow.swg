@@ -675,7 +675,7 @@ impl MainWindow
         {
         case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
         case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintPrivacy)
-        default:                                break
+        default: break
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())

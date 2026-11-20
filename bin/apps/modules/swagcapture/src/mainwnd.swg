@@ -278,33 +278,33 @@ struct MainWnd
     timeline: *TimelineBar?
 
     // The workspace survives temporary capture overlays. Only the tray command enters Resident.
-    workspace:        CaptureWorkspace = .Editor
-    residentPanel:    *ResidentPanel?
-    residentNotice:   *TrayNotice?
-    clipboardPreview: Image
-    hubBounds:        Math.Rectangle
-    hubOtherCaptures: bool
-    metadataTimer:          *Gui.Timer?
-    copyTimer:              *Gui.Timer?
-    copyJob:                *CaptureLoadJob?
-    copyRequestedFile:      String
-    duplicateTimer:         *Gui.Timer?
-    duplicateJob:           *CaptureDuplicateJob?
-    duplicateSource:        String
-    exportTimer:            *Gui.Timer?
-    exportJob:              *CaptureLoadJob?
+    workspace:           CaptureWorkspace = .Editor
+    residentPanel:       *ResidentPanel?
+    residentNotice:      *TrayNotice?
+    clipboardPreview:    Image
+    hubBounds:           Math.Rectangle
+    hubOtherCaptures:    bool
+    metadataTimer:       *Gui.Timer?
+    copyTimer:           *Gui.Timer?
+    copyJob:             *CaptureLoadJob?
+    copyRequestedFile:   String
+    duplicateTimer:      *Gui.Timer?
+    duplicateJob:        *CaptureDuplicateJob?
+    duplicateSource:     String
+    exportTimer:         *Gui.Timer?
+    exportJob:           *CaptureLoadJob?
     exportSource, exportDestination: String
-    exportLinked:           bool
-    imageWriteJob:          *CaptureImageWriteJob?
-    videoCopyJobs:          Array'(*CaptureVideoCopyJob)
-    videoRecoveryJob:       *CaptureVideoRecoveryJob?
-    videoRecoveryFolder:    String
-    videoRecoveryCount:     u64
+    exportLinked:        bool
+    imageWriteJob:       *CaptureImageWriteJob?
+    videoCopyJobs:       Array'(*CaptureVideoCopyJob)
+    videoRecoveryJob:    *CaptureVideoRecoveryJob?
+    videoRecoveryFolder: String
+    videoRecoveryCount:  u64
 
-    icons:    IconSet
+    icons:         IconSet
     monitorGlyphs: ArrayPtr'CaptureMonitorGlyph
-    appIcon:  ImageList
-    monitors: Array'Env.Monitor
+    appIcon:       ImageList
+    monitors:      Array'Env.Monitor
 
     // State
     editMode:      EditMode   = .Shape
@@ -585,7 +585,8 @@ impl IWnd for MainWnd
         case .Hide:
             .saveAppState()
 
-        case .Disable: break
+        case .Disable:
+            break
         }
     }
 
@@ -633,6 +634,7 @@ impl IWnd for MainWnd
                     me.captureOptions.pictureDestination = legacy.legacyInPlaceEdit ? .InPlace :
                                                            legacy.legacySendToEditor ? .Editor : .Clipboard
                 }
+
                 try .serialize("MainWnd.pictureDestination", &me.captureOptions.pictureDestination)
                 try .serialize("MainWnd.hubBounds", &me.hubBounds)
                 try .serialize("MainWnd.lastCapture", &me.lastCapture)
@@ -906,6 +908,7 @@ impl MainWnd
             MessageDlg.error(.workspaceSurface(), appStrings().msg_TrayUnavailable)
             return
         }
+
         .residentPanel?.close()
         .workspace = .Resident
         surface.hide()
@@ -920,7 +923,7 @@ impl MainWnd
         let notice = TrayNotice.open(unwrap .surface, title, message)
         if not notice do
             return
-        .residentNotice = notice
+        .residentNotice     = notice
         notice.sigDismissed += func|main = me|(dismissed)
         {
             if main.residentNotice == dismissed do
@@ -960,11 +963,13 @@ impl MainWnd
             .residentPanel.surface?.bringToFront()
             return
         }
+
         if not ResidentPanel.open(me, .Centered)
         {
             .showWindow()
             return
         }
+
         let surface = unwrap .surface
         if .workspace == .Resident do
             surface.removeTrayIcon()
@@ -1341,7 +1346,8 @@ impl MainWnd
         case .PixSel:
             return formToEditMode(.mdlPixSel)
 
-        default: return .editMode
+        default:
+            return .editMode
         }
     }
 

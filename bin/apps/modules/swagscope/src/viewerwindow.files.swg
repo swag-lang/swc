@@ -86,11 +86,11 @@ impl ViewerWindow
         .updatingReadingAppearance = true
         defer .updatingReadingAppearance = false
 
-        let active = not .isExploring()
-        let markdown = active ? (catch cast(*Markdown.View?, .currentView) orelse null) : null
+        let active         = not .isExploring()
+        let markdown       = active ? (catch cast(*Markdown.View?, .currentView) orelse null) : null
         let customMarkdown = markdown and Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
-        let background = active ? .authoredReadingBackground() : Color{}
-        var documentTheme = AppearanceTheme.System
+        let background     = active ? .authoredReadingBackground() : Color{}
+        var documentTheme  = AppearanceTheme.System
         if customMarkdown do
             documentTheme = appearanceForGround(markdown!.themeColors().view_Bk)
         elif background.a == 255 do
@@ -123,15 +123,15 @@ impl ViewerWindow
     {
         switch .currentView
         {
-        case Viewers.Html.Panel as page:  return page.view.authoredCanvasBackground()
-        case Viewers.Epub.Panel as book:  return book.view?.authoredCanvasBackground() orelse Color{}
-        case Viewers.Docx.Panel as word:  return word.view?.authoredCanvasBackground() orelse Color{}
-        case Viewers.Odt.Panel as word:   return word.view?.authoredCanvasBackground() orelse Color{}
-        case Viewers.Rtf.Panel as rich:   return rich.view?.authoredCanvasBackground() orelse Color{}
-        case Viewers.Pptx.Panel as deck:  return deck.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Html.Panel as page: return page.view.authoredCanvasBackground()
+        case Viewers.Epub.Panel as book: return book.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Docx.Panel as word: return word.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Odt.Panel as word:  return word.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Rtf.Panel as rich:  return rich.view?.authoredCanvasBackground() orelse Color{}
+        case Viewers.Pptx.Panel as deck: return deck.view?.authoredCanvasBackground() orelse Color{}
         case Viewers.PdfDocument.Panel:  return Color.fromArgb(Argb.White)
         case Viewers.Xlsx.Panel as workbook where workbook.grid: return Color.fromArgb(Argb.White)
-        default:                         return {}
+        default: return {}
         }
     }
 
@@ -217,7 +217,9 @@ impl ViewerWindow
         if not .isExploring() do
             return .currentFile
         let explorer = unwrap .explorer
-        if explorer.listing.isArchive or explorer.load.started or explorer.selected >= explorer.entries.count do
+        if explorer.listing.isArchive or
+           explorer.load.started or
+           explorer.selected >= explorer.entries.count do
             return ""
         let item = &explorer.entries[explorer.selected]
         return item.directory ? "" : item.path.toString()

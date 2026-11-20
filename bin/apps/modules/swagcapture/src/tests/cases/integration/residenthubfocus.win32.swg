@@ -32,7 +32,7 @@ using Core, Gui, Pixel, Win32
     Swag.require(peerProcessId == peer.processId, "the external window belongs to another process")
 
     journey.main.showHub()
-    let panel = unwrap journey.main.residentPanel
+    let panel      = unwrap journey.main.residentPanel
     let hubSurface = unwrap panel.surface
     watch.restart()
     while watch.elapsedMilliseconds() < 120 do

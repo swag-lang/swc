@@ -201,7 +201,8 @@ impl IWnd for CaptureRectWnd
                 .invalidate()
             }
 
-        default: break
+        default:
+            break
         }
     }
 

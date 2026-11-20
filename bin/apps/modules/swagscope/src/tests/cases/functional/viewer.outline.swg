@@ -119,7 +119,9 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
                  Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(1)).toString())
     host.focus(outline.list.listView)
     host.keyPress(.O, Input.KeyModifiers.Control | .Shift)
-    Swag.require(not caption.isChecked and not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(1))
+    Swag.require(not caption.isChecked and
+                 not outline.toggle.isChecked and
+                 not window.mainSplitter.isPaneVisible(1))
     host.click(caption.surfaceRect().center())
     outline.toggle.setChecked(false)
     outline.toggle.sigCheckedChanged.call(outline.toggle)

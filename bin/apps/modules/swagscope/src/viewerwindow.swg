@@ -154,23 +154,23 @@ struct ViewerWindow
 
     // Guards the one nested dispatch [[ViewerWindow.forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
-    forwardingViewerKey: bool
-    playPauseKeyDown:    bool
-    recent:              Array'String
-    recentOpened:        Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
-    folderHistory:       Array'ViewerFolderHistory
-    resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
-    exploredFolders:     Array'String     // Directories explored lately, most recent first.
-    folderViews:         Array'ExplorerFolderState
-    systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
-    fileViewerChoices:   Array'ViewerFileChoice
-    musicChoices:        Array'MusicChoice
-    onlineMovies:        bool = true
-    onlineMusic:         bool = true
-    rightPanelWidth:     f32
-    fileDlgState:        FileDlgState
-    themeIndex:          u32 = cast(u32, AppearanceTheme.Document)
-    language:            String
+    forwardingViewerKey:       bool
+    playPauseKeyDown:          bool
+    recent:                    Array'String
+    recentOpened:              Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
+    folderHistory:             Array'ViewerFolderHistory
+    resumePoints:              Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
+    exploredFolders:           Array'String     // Directories explored lately, most recent first.
+    folderViews:               Array'ExplorerFolderState
+    systemPlaces:              Array'String     // The system's own folders a first launch offers to explore.
+    fileViewerChoices:         Array'ViewerFileChoice
+    musicChoices:              Array'MusicChoice
+    onlineMovies:              bool = true
+    onlineMusic:               bool = true
+    rightPanelWidth:           f32
+    fileDlgState:              FileDlgState
+    themeIndex:                u32  = cast(u32, AppearanceTheme.Document)
+    language:                  String
     updatingReadingAppearance: bool
 
     // A monitor-sized presentation is transient: what the window was before entering it is what
@@ -614,7 +614,8 @@ impl IWnd for ViewerWindow
             .dropHighlight.refreshTheme()
             .layoutFloatingParts()
 
-        case .ChildFocusChanged, .PressedElsewhere, .KeyboardLayoutChanged, .ShortcutsChanged: break
+        case .ChildFocusChanged, .PressedElsewhere, .KeyboardLayoutChanged, .ShortcutsChanged:
+            break
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -1170,7 +1171,7 @@ impl ViewerWindow
 
         with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
         {
-            .toolTip    = appStrings().lens_ViewAs
+            .toolTip = appStrings().lens_ViewAs
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()

@@ -36,8 +36,8 @@ var CastLimitsStorage: CastLimits
 #test
 {
     var storage: [8] u8
-    let base = storage.buffer
-    let address = cast(u64, base)
+    let base     = storage.buffer
+    let address  = cast(u64, base)
     let restored = cast([*] u8, address)
     Swag.require(restored == base)
     Swag.require(cast(*void, 16'u8) == cast(*void, 16'u64))

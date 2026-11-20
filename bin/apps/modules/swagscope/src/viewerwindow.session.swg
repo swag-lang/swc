@@ -58,7 +58,9 @@ impl ViewerWindow
             return
 
         // Start the JPEG classification while the outgoing view is still on screen.
-        if .currentView and not .choiceLoad.started and not .awaitingRetirement and
+        if .currentView and
+           not .choiceLoad.started and
+           not .awaitingRetirement and
            Viewers.Picture.isJpegExtension(Path.lowercaseExtension(.pendingFile)) do
             .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
         else do

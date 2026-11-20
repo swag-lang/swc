@@ -11,7 +11,7 @@ impl Voice
         case .Pcm16: bytesPerSample = 2
         case .Pcm24: bytesPerSample = 3
         case .Pcm32, .Float32: bytesPerSample = 4
-        default: break
+        default:     break
         }
 
         return bytesPerSample * .file!.channelCount

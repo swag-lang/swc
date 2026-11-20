@@ -31,7 +31,9 @@ impl CaptureMonitorGlyph
         for digit, index in text.toSlice()
         {
             numerals += Format.toString("<path transform='translate(% 4.75) scale(% 1)' d='%' />",
-                                        left + step * cast(f32, index), scale, Digits[digit - '0'u8])
+                                        left + step * cast(f32, index),
+                                        scale,
+                                        Digits[digit - '0'u8])
         }
 
         const Screen = "<path d='M8 11H2.75Q1.5 11 1.5 9.75v-5.5Q1.5 3 2.75 3H8M5 11v2.5m-2.25 0h4.5'/>"
@@ -50,6 +52,7 @@ impl CaptureMonitorGlyph
                 svg += Record
             svg += "</g>"
         }
+
         svg += "</svg>"
 
         expect .atlas.setup(svg.toString())

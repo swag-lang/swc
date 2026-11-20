@@ -33,7 +33,7 @@ private func has4KDesktop()->bool fail
         Swag.require(expect session.captureAt(frame * 16_667))
     expect session.end()
     Swag.require(session.frameCount() == 60 and session.repeatedFrameCount() == 0)
-    var reader   = expect Reader.open(path)
+    var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 60 and reader.audioTrackCount() == 0)
     var decoded: PlanarFrame
     expect reader.decodeFramePlanesInto(&decoded, 59)
@@ -216,14 +216,12 @@ private func has4KDesktop()->bool fail
             checkedDynamicX11(connection, check, put(connection, 2, x11.rootWindow(), gc, cast(u16, Tile), cast(u16, Tile), destinationX, destinationY, 0, x11.rootDepth(), cast(u32, tile.count), tile.storage()))
         }
 
-
         Swag.require(expect session.captureAt(frame * 16_667))
         while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
         {
             expect session.addAudioFrames(Swag.makeSlice(&samples[0], samples.count))
             audioBlocks += 1
         }
-
     }
 
     expect session.end()

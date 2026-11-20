@@ -169,7 +169,7 @@ impl StandardFont
         switch me
         {
         case .Courier, .CourierBold, .CourierOblique, .CourierBoldOblique: return cast(f32, CourierWidth) / 1000.0
-        default:                                                           break
+        default: break
         }
 
         let table = standardWidths(me)
@@ -211,7 +211,7 @@ private func standardWidths(font: StandardFont)->const [..] u16
     case .TimesBold:       return TimesBoldWidths
     case .TimesItalic:     return TimesItalicWidths
     case .TimesBoldItalic: return TimesBoldItalicWidths
-    default:                                    break
+    default:               break
     }
 
     return HelveticaWidths

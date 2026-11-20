@@ -541,7 +541,8 @@ impl Ghost
             if distanceBetween(currentPos, target) <= 8 do
                 target = {0, -2}
 
-        case .RED: break
+        case .RED:
+            break
         }
 
         .dir = .targetTile(target)
@@ -847,10 +848,10 @@ impl Ghost
         {
             switch .ai
             {
-            case .SCATTER:    .aiScatter()
-            case .CHASE:      .aiChase(redGhost)
-            case .FRIGHTENED: .aiFrightened()
-            case .DEAD:       .aiDead()
+            case .SCATTER:       .aiScatter()
+            case .CHASE:         .aiChase(redGhost)
+            case .FRIGHTENED:    .aiFrightened()
+            case .DEAD:          .aiDead()
             case .LEAVE, .SPAWN: break
             }
         }
@@ -883,7 +884,8 @@ impl Ghost
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
                 .x = Math.round(.x)
 
-        case .NONE: break
+        case .NONE:
+            break
         }
     }
 
@@ -1517,7 +1519,8 @@ func display()
         drawPlayScreen()
         drawGameOver()
 
-    case .NONE: break
+    case .NONE:
+        break
     }
 }
 
@@ -1875,7 +1878,7 @@ func resetMap()
             {
             case .F, .e: setTile(x, y, .o)
             case .E:     setTile(x, y, .O)
-            default: break
+            default:     break
             }
         }
     }
@@ -2067,7 +2070,8 @@ func gameLoop()
             }
         }
 
-    case .NONE, .PAUSE, .GAMEOVER: break
+    case .NONE, .PAUSE, .GAMEOVER:
+        break
     }
 
     // Increment game ticks once the frame is drawn, but only if not paused

@@ -74,8 +74,10 @@ The binding's lifetime ends as control leaves the conditional.
     else do
         Swag.require(false)
 
-    if var available = 3 where available >= 10 do
+    if var available = 3 where available >= 10
+    {
         Swag.require(false)
+    }
     else
     {
         available += 1
@@ -114,8 +116,10 @@ An empty string or slice is present. A pointer to a zero-valued object is presen
     else do
         Swag.require(false)
 
-    if var text = readAbsent() where text == null do
+    if var text = readAbsent() where text == null
+    {
         Swag.require(false)
+    }
     else
     {
         Swag.require(text == null)

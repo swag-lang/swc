@@ -145,6 +145,7 @@ func testPopulate(capture: *Capture)
         if not f.capture.cacheNeedsRefine do
             break
     }
+
     Swag.require(not f.capture.cacheNeedsRefine)
 
     f.capture.invalidateAllFormCaches()

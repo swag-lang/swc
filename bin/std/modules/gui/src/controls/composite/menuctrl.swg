@@ -406,15 +406,15 @@ public impl IWnd for MenuCtrl
 
             if widgetTarget
             {
+                let menuHadCapture = .mouseCapture() == me
                 let originalTarget = evt.target
                 evt.target = widgetTarget
                 widgetTarget.processEvent(evt)
                 evt.target = originalTarget
 
-                // Icon buttons release their own capture after activation. Keep the modal
-                // menu in charge, while leaving a child popup's capture alone.
-                if widgetTarget is IconButton and
-                   not .bar and
+                // Restore a popup's capture after an icon button handles the event. An
+                // embedded menu leaves the pointer with the button for the usual click.
+                if menuHadCapture and widgetTarget is IconButton and
                    not .endModal and
                    (.mouseCapture() == null or .mouseCapture() == widgetTarget) do
                     .captureMouse()
@@ -821,18 +821,23 @@ impl MenuCtrl
 
     mtd hideSubVisible()
     {
+        let capture = .mouseCapture()
+        var submenuHadCapture = false
         while .subVisible
         {
+            if capture == .subVisible or .subVisible.isAncestorOf(capture) do
+                submenuHadCapture = true
             .subVisible.ignoreNextRelease = false
             .subVisible.hide()
             .subVisible = .subVisible.subVisible
         }
 
         .selectedIdx = Swag.U32.Max
-        if not .bar do
-            .captureMouse()
-        else do
+        // A hover timer can call this with no open submenu, including in an embedded panel.
+        if .bar do
             .releaseMouse()
+        elif submenuHadCapture and not .mouseCapture() do
+            .captureMouse()
     }
 
     mtd removeTimer()

@@ -18,7 +18,7 @@ using Core, Gui, Win32
     let handle = surface.win32Handle()
     Swag.require(handle != null)
 
-    var point = surface.wnd.captionRoomRect().center()
+    var point = surface.wnd.localToSurface(surface.wnd.captionRoomRect().center())
     surface.surfaceToScreen(&point)
     let x = cast(u32, cast(s32, point.x)) & 0xFFFF
     let y = cast(u32, cast(s32, point.y)) & 0xFFFF

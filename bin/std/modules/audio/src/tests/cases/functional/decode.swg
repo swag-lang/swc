@@ -114,6 +114,29 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.require(not voice.stream.isOpen())
 }
 
+// Streamed PCM readers reject a source that was truncated after indexing it.
+#test
+{
+    let path  = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-truncated-lazy-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    let bytes = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
+    expect File.writeAllBytes(path, bytes.toSlice())
+
+    var file = expect SoundFile.load(path.toString(), preloadData: false)
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&file)
+    defer voice.destroy()
+
+    expect File.writeAllBytes(path, bytes.toSlice()[0 until file.dataOffset + 1])
+
+    var rejected: Swag.Error
+    discard catch file.readPayload(0, file.dataSize) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+    discard catch voice.readBuffer() as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
 // PCM packet ranges accept an exact end boundary and reject overflow or a one-byte overrun.
 #test
 {

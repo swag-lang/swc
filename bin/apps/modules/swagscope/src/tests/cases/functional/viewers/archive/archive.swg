@@ -131,11 +131,11 @@ func writeZipFixture()->String
 {
     for fileName in ["viewer.archive.zip", "viewer.zip"]
     {
-        let path = scopeTestDataPath(fileName)
+        let path    = scopeTestDataPath(fileName)
         let archive = expect Archive.Zip.load(path)
         Swag.require(archive.entries.count == 2)
         var foundReadme = false
-        var foundJson = false
+        var foundJson   = false
         for &entry in archive.entries
         {
             let payload = expect Archive.Zip.loadEntry(path, entry)
@@ -154,6 +154,7 @@ func writeZipFixture()->String
                 Swag.require(false, entry.path)
             }
         }
+
         Swag.require(foundReadme and foundJson, fileName)
     }
 }
@@ -162,7 +163,7 @@ func writeZipFixture()->String
 #test
 {
     let archiveFile = scopeTestDataPath("viewer.zip64.zip")
-    let archive = expect Archive.Zip.load(archiveFile)
+    let archive     = expect Archive.Zip.load(archiveFile)
     Swag.require(archive.entries.count == 1)
     let entry = &archive.entries[0]
     Swag.require(entry.path == "reports/zip64-summary.txt")
@@ -177,7 +178,7 @@ func writeZipFixture()->String
 #test
 {
     let archiveFile = scopeTestDataPath("viewer.zip-descriptor.zip")
-    let archive = expect Archive.Zip.load(archiveFile)
+    let archive     = expect Archive.Zip.load(archiveFile)
     Swag.require(archive.entries.count == 1)
     let entry = &archive.entries[0]
     Swag.require(entry.path == "logs/streamed-observations.txt" and entry.flags & 8 != 0)
@@ -191,11 +192,11 @@ func writeZipFixture()->String
 #test
 {
     let archiveFile = scopeTestDataPath("viewer.zip-unicode-duplicates.zip")
-    let archive = expect Archive.Zip.load(archiveFile)
+    let archive     = expect Archive.Zip.load(archiveFile)
     Swag.require(archive.entries.count == 3)
     Swag.require(archive.tryFindEntry("field notes/café-日本語.txt") != null)
 
-    var firstCopy = false
+    var firstCopy  = false
     var secondCopy = false
     var duplicates = 0'u64
     for &entry in archive.entries where entry.path == "reports/repeated.txt"
@@ -210,6 +211,7 @@ func writeZipFixture()->String
         elif text == "second copy\n" do
             secondCopy = true
     }
+
     Swag.require(duplicates == 2 and firstCopy and secondCopy)
 }
 
@@ -217,7 +219,7 @@ func writeZipFixture()->String
 #test
 {
     let archiveFile = scopeTestDataPath("viewer.zipcrypto-encrypted.zip")
-    let archive = expect Archive.Zip.load(archiveFile)
+    let archive     = expect Archive.Zip.load(archiveFile)
     Swag.require(archive.entries.count == 1 and archive.entries[0].flags & 1 != 0)
     let output = Gui.Testing.tempFilePath("scope-zip-encrypted-", ".txt")
     defer discard catch File.delete(output)
@@ -239,8 +241,8 @@ func writeZipFixture()->String
 #test
 {
     let archiveFile = scopeTestDataPath("viewer.zip-preview-limit.zip")
-    let archive = expect Archive.Zip.load(archiveFile)
-    let entry = archive.tryFindEntry("data/preview-limit.txt")
+    let archive     = expect Archive.Zip.load(archiveFile)
+    let entry       = archive.tryFindEntry("data/preview-limit.txt")
     Swag.require(entry != null and entry.uncompressedSize == 256 * 1024 * 1024 + 1)
     let output = Gui.Testing.tempFilePath("scope-zip-preview-limit-", ".txt")
     defer discard catch File.delete(output)
@@ -268,6 +270,7 @@ func writeZipFixture()->String
         let decoded = expect File.readAllBytes(output)
         Swag.require(Utf8.contains(cast(string, decoded.toSlice()), "north-marsh,2026-05-18T08:30:00Z"))
     }
+
     Swag.require(found)
 }
 
@@ -314,7 +317,7 @@ func writeZipFixture()->String
 {
     const Path = "field-reports/observations/2026/seasonal/north-marsh/watershed-measurements-early-summer-early-summer-early-summer-early-summer-early-summer-summary.txt"
     let archiveFile = scopeTestDataPath("viewer.pax-field-kit.tar")
-    let archive = expect Archive.Zip.load(archiveFile)
+    let archive     = expect Archive.Zip.load(archiveFile)
     Swag.require(archive.entries.count == 1, Format.toString("PAX entries: %", archive.entries.count))
     Swag.require(archive.entries[0].path == Path, Format.toString("PAX path: %", archive.entries[0].path))
     let output = Gui.Testing.tempFilePath("scope-pax-entry-", ".txt")

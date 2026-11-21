@@ -23,6 +23,8 @@
             {
                 captured[] = true
                 Testing.assertContentFits(dialog)
+                host.keyPress(.Tab)
+                host.keyPress(.Tab, .Shift)
                 let image = host.renderSurface(surface)
                 Pixel.Testing.assertImageGolden(&image, "winfsp.choice.encre")
                 dialog.closeWithResult(Dialog.BtnCancel)

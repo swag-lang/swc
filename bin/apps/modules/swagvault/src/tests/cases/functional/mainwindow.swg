@@ -125,7 +125,7 @@ func useReferenceVaultStrings()
     var access: VaultAccess
     access.setInputs("", window.unlockKeyFiles.toSlice())
     let credential = expect access.derive()
-    var volume = expect Volume.open(vaultPath, credential.toSlice())
+    var volume     = expect Volume.open(vaultPath, credential.toSlice())
     volume.close()
 }
 

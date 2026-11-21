@@ -40,8 +40,8 @@ impl MainWindow
     {
         switch #complete .statusMessage
         {
-        case .ReadingKeyFile, .Randomizing, .StopRequested, .StartingDriver, .InstallingDriver,
-             .Unmounting, .Mounted, .MountedReadOnly, .MountedProtected,
+        case .ReadingKeyFile, .Randomizing, .StopRequested, .StartingDriver,
+             .InstallingDriver, .Unmounting, .Mounted, .MountedReadOnly, .MountedProtected,
              .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
             return .Active
 

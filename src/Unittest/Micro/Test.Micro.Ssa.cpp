@@ -579,14 +579,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
 {
-    constexpr MicroReg   value     = MicroReg::virtualIntReg(1);
-    constexpr MicroReg   terminal  = MicroReg::virtualIntReg(2);
-    constexpr std::array singletons{MicroReg::virtualIntReg(3), MicroReg::virtualIntReg(4)};
+    constexpr MicroReg                           value    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg                           terminal = MicroReg::virtualIntReg(2);
+    constexpr std::array                         singletons{MicroReg::virtualIntReg(3), MicroReg::virtualIntReg(4)};
     std::array<MicroInstrRef, singletons.size()> singletonDefs;
-    MicroBuilder       builder(ctx);
-    const auto         right     = builder.createLabel();
-    const auto         innerJoin = builder.createLabel();
-    const auto         outerJoin = builder.createLabel();
+    MicroBuilder                                 builder(ctx);
+    const auto                                   right     = builder.createLabel();
+    const auto                                   innerJoin = builder.createLabel();
+    const auto                                   outerJoin = builder.createLabel();
     builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
     const auto initial = builder.instructions().lastInstructionRef();
     builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, outerJoin);
@@ -627,10 +627,10 @@ SWC_TEST_BEGIN(MicroSsa_PhiPropagationThroughNestedJoins)
         return Result::Error;
     for (size_t i = 0; i < singletons.size(); ++i)
     {
-        const MicroReg reg        = singletons[i];
-        const auto     innerReach = ssa.reachingDef(reg, inner);
-        const auto     outerReach = ssa.reachingDef(reg, outer);
-        const auto*    innerPhi    = ssa.phiInfoForValue(innerReach.valueId);
+        const MicroReg reg          = singletons[i];
+        const auto     innerReach   = ssa.reachingDef(reg, inner);
+        const auto     outerReach   = ssa.reachingDef(reg, outer);
+        const auto*    innerPhi     = ssa.phiInfoForValue(innerReach.valueId);
         const auto*    singletonPhi = ssa.phiInfoForValue(outerReach.valueId);
         uint32_t       definition;
         if (!innerPhi || !singletonPhi || !ssa.defValue(reg, singletonDefs[i], definition))

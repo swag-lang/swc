@@ -3,9 +3,9 @@
 // Selects the Internet Protocol address families returned by a DNS lookup.
 enum AddressFamilyFilter
 {
-    Any // Return IPv4 and IPv6 results in resolver order.
-    IPv4 // Return only IPv4 results.
-    IPv6 // Return only IPv6 results.
+    Any      // Return IPv4 and IPv6 results in resolver order.
+    IPv4     // Return only IPv4 results.
+    IPv6     // Return only IPv6 results.
 }
 
 // Controls which address families a DNS lookup returns.

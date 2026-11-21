@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, TrueType, Viewers
 
-internal func fontFixturePath()->String => scopeTestDataPath("viewer.arabic.ttf")
+internal func fontFixturePath()->String     => scopeTestDataPath("viewer.arabic.ttf")
 internal func openTypeFixturePath()->String => scopeTestDataPath("font-fixture-cjk.otf")
 
 func containsCharacter(characters: const [..] rune, expected: rune)->bool
@@ -17,7 +17,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 #test
 {
     let previousStore = String.from(Typeface.g_FaceSelectionStoreOverride)
-    let storePath = Gui.Testing.tempFilePath("scope-font-face-state-", ".json")
+    let storePath     = Gui.Testing.tempFilePath("scope-font-face-state-", ".json")
     Typeface.g_FaceSelectionStoreOverride = storePath
     defer
     {
@@ -48,7 +48,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 #test
 {
     let previousStore = String.from(Typeface.g_FaceSelectionStoreOverride)
-    let storePath = Gui.Testing.tempFilePath("scope-font-partial-face-state-", ".json")
+    let storePath     = Gui.Testing.tempFilePath("scope-font-partial-face-state-", ".json")
     Typeface.g_FaceSelectionStoreOverride = storePath
     defer
     {
@@ -56,10 +56,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         Typeface.g_FaceSelectionStoreOverride = previousStore
     }
 
-    let path = scopeTestDataPath("viewer.arabic.partial.ttc")
+    let path   = scopeTestDataPath("viewer.arabic.partial.ttc")
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, path, false)
-    let view = assume cast(*Typeface.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Typeface.Panel, window.instances[window.activeChoiceIndex].view)
     completeViewerBackgroundLoad(&host, &view.load)
 
     Swag.require(view.faceCount == 2 and view.faceNames.count == 2 and view.faceIndices.count == 2)
@@ -74,16 +74,17 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 #test
 {
     let previousStore = String.from(Typeface.g_FaceSelectionStoreOverride)
-    let storePath = Gui.Testing.tempFilePath("scope-font-face-persist-", ".json")
-    let copyPath = Gui.Testing.tempFilePath("scope-font-face-copy-", ".ttc")
+    let storePath     = Gui.Testing.tempFilePath("scope-font-face-persist-", ".json")
+    let copyPath      = Gui.Testing.tempFilePath("scope-font-face-copy-", ".ttc")
     defer
     {
         discard catch File.delete(storePath)
         discard catch File.delete(copyPath)
         Typeface.g_FaceSelectionStoreOverride = previousStore
     }
+
     Typeface.g_FaceSelectionStoreOverride = storePath
-    let sourcePath = scopeTestDataPath("viewer.arabic.ttc")
+    let sourcePath  = scopeTestDataPath("viewer.arabic.ttc")
     let sourceBytes = expect File.readAllBytes(sourcePath)
     expect File.writeAllBytes(copyPath, sourceBytes.toSlice())
 
@@ -91,13 +92,14 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     scope
     {
         var host: Testing.HeadlessHost
-        let first = framedViewerWindow(&host, sourcePath, false)
+        let first     = framedViewerWindow(&host, sourcePath, false)
         let firstView = assume cast(*Typeface.Panel, first.instances[first.activeChoiceIndex].view)
         completeViewerBackgroundLoad(&host, &firstView.load)
         expect firstView.selectFace(1)
         Swag.require(firstView.faceIndex == 1 and firstView.document.typeFace.isBold())
         saved = expect File.readAllText(storePath)
     }
+
     Swag.require(not Utf8.contains(saved, "viewer.arabic.ttc"))
 
     scope
@@ -112,7 +114,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     scope
     {
         var host: Testing.HeadlessHost
-        let reopened = framedViewerWindow(&host, sourcePath, false)
+        let reopened     = framedViewerWindow(&host, sourcePath, false)
         let reopenedView = assume cast(*Typeface.Panel, reopened.instances[reopened.activeChoiceIndex].view)
         completeViewerBackgroundLoad(&host, &reopenedView.load)
         Swag.require(reopenedView.faceIndex == 1 and reopenedView.document.typeFace.isBold())
@@ -134,7 +136,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 // An openly licensed CFF-flavoured OpenType font is identified and rendered by the same viewer.
 #test
 {
-    let path = openTypeFixturePath()
+    let path    = openTypeFixturePath()
     let choices = createViewerPluginRegistry().choices(path)
     Swag.require(not choices.isEmpty() and choices[0].key == "font")
 
@@ -148,8 +150,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 // A damaged CFF table reports a loading error while Binary and Hex remain available.
 #test
 {
-    let path = scopeTestDataPath("font-fixture-damaged.otf")
-    let choices = createViewerPluginRegistry().choices(path)
+    let path        = scopeTestDataPath("font-fixture-damaged.otf")
+    let choices     = createViewerPluginRegistry().choices(path)
     var foundFont   = false
     var foundBinary = false
     var foundHex    = false
@@ -159,6 +161,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         foundBinary = foundBinary or choice.key == "binary"
         foundHex    = foundHex or choice.key == "hex"
     }
+
     Swag.require(foundFont and foundBinary and foundHex)
 
     var host: Testing.HeadlessHost
@@ -281,11 +284,14 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         otherBlockPage = pageStart
         break
     }
+
     Swag.require(otherBlockPage != 0)
     view.jumpToBlock(otherBlockPage)
     Swag.require(view.history.canGoBack())
     view.goBack()
-    Swag.require(view.document.shown == 'ع' and view.document.pageStart <= 0x639 and view.document.pageEnd >= 0x639)
+    Swag.require(view.document.shown == 'ع' and
+                 view.document.pageStart <= 0x639 and
+                 view.document.pageEnd >= 0x639)
 
     let information = window.infoSheet.text()
     Swag.require(Utf8.contains(information, "Unicode\nU+0639 · ع"), information)
@@ -298,7 +304,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.finishAnimations()
 
     // A glyph-ID search resolves through the generated font's cmap and marks that character.
-    let face = unwrap view.document.face
+    let face       = unwrap view.document.face
     let glyphIndex = face.glyphIndex('ع')
     Swag.require(glyphIndex < view.document.glyphCharacters.count and view.document.glyphCharacters[glyphIndex] == 'ع')
     let glyphName = unwrap face.glyphName(glyphIndex)
@@ -314,6 +320,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphName) do
             namedGlyph = entry
     }
+
     Swag.require(namedGlyph != null)
     let named = namedGlyph
     Swag.require(named.title == Format.toString(Typeface.texts().ui_ShowGlyphName, glyphName, glyphIndex) and not named.disabled)
@@ -331,6 +338,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphQuery.toString()) do
             glyphRow = entry
     }
+
     Swag.require(glyphRow != null)
     let found = glyphRow
     Swag.require(found.title == Format.toString(Typeface.texts().ui_ShowGlyph, glyphQuery) and not found.disabled)
@@ -348,6 +356,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), "#0") do
             missingCharacter = entry
     }
+
     Swag.require(missingCharacter != null)
     Swag.require(missingCharacter.disabled and missingCharacter.detail == Typeface.texts().ui_GlyphNoCharacter)
     window.lens.close()
@@ -362,6 +371,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), absentQuery.toString()) do
             absentGlyph = entry
     }
+
     Swag.require(absentGlyph != null)
     Swag.require(absentGlyph.disabled and absentGlyph.detail == Typeface.texts().ui_GlyphIdAbsent)
     window.lens.close()

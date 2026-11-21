@@ -27,6 +27,7 @@ using Core
         secondary.view().hookOnEvent = null
         Memory.delete(commands)
     }
+
     secondary.view().registerKeyShortcut(.Control, .K, "test.focus.secondary")
     secondary.view().hookOnEvent = func|commands|(_, event)
     {
@@ -35,6 +36,7 @@ using Core
             commands[] += 1
             return true
         }
+
         return false
     }
 

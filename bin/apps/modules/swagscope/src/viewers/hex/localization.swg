@@ -26,10 +26,10 @@ struct Texts
     ui_ZoomMenu:               string = "Zoom…"                                                                                               // Tooltip of the zoom value menu.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.
     ui_GoTo:                   string = "Go to Offset"                                                                                        // Dialog title and menu entry of the jump command.
-    ui_Back:                   string = "Back"                                                                                              // Lens command returning to the previous explicit offset.
-    ui_Forward:                string = "Forward"                                                                                           // Lens command advancing to the next explicit offset.
-    ui_SetBookmark:            string = "Bookmark Current Offset"                                                                            // Lens action storing this document session's current byte position.
-    ui_GoToBookmark:           string = "Go to Bookmarked Offset (%)"                                                                        // Lens action returning to the stored byte position.
+    ui_Back:                   string = "Back"                                                                                                // Lens command returning to the previous explicit offset.
+    ui_Forward:                string = "Forward"                                                                                             // Lens command advancing to the next explicit offset.
+    ui_SetBookmark:            string = "Bookmark Current Offset"                                                                             // Lens action storing this document session's current byte position.
+    ui_GoToBookmark:           string = "Go to Bookmarked Offset (%)"                                                                         // Lens action returning to the stored byte position.
     ui_GoToMessage:            string = "Hexadecimal or 0d decimal offset, percentage, caret, filesize, or signed caret-relative offset."     // Question of the jump dialog.
     ui_SelectAll:              string = "Select All"                                                                                          // Menu entry selecting the whole file.
     ui_RowWidth:               string = "Bytes per Row"                                                                                       // Option choosing how many bytes one row shows.
@@ -71,11 +71,11 @@ struct Texts
     ui_AnalysisText:           string = "Text"                                                                                                // String-table preview column.
     err_AnalysisShortRead:     string = "The file ends before the analysis range"                                                             // Failure when a file changes while it is being analyzed.
 
-    ui_CopyBytes:  string = "Copy Bytes"        // Menu entry copying the selection as hexadecimal byte pairs.
-    ui_CopyText:   string = "Copy Text"         // Menu entry copying the selection as printable text.
-    ui_CopyDump:   string = "Copy Dump"         // Menu entry copying the selection as an offset/hex/text dump.
-    ui_CopyFormats: string = "Other Copy Formats" // Tooltip of the compact menu for alternate selection spellings.
-    ui_CopyOffset: string = "Copy Offset %"     // Lens command copying the offset of the caret in hexadecimal.
+    ui_CopyBytes:   string = "Copy Bytes"             // Menu entry copying the selection as hexadecimal byte pairs.
+    ui_CopyText:    string = "Copy Text"              // Menu entry copying the selection as printable text.
+    ui_CopyDump:    string = "Copy Dump"              // Menu entry copying the selection as an offset/hex/text dump.
+    ui_CopyFormats: string = "Other Copy Formats"     // Tooltip of the compact menu for alternate selection spellings.
+    ui_CopyOffset:  string = "Copy Offset %"          // Lens command copying the offset of the caret in hexadecimal.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

@@ -472,11 +472,11 @@ struct Panel
     loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
     loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
 
-    landmarks:      Array'Landmark  // Read-only sidecar cues and markers made in this panel.
-    landmarkWarning: bool           // A sidecar cue was malformed or outside this recording.
-    sessionMarkerCount: u32          // Number used to name temporary markers in this session.
-    backHistory:    Array'f32        // Bounded session-only seek destinations before the current one.
-    forwardHistory: Array'f32       // Bounded session-only seek destinations after the current one.
+    landmarks:          Array'Landmark     // Read-only sidecar cues and markers made in this panel.
+    landmarkWarning:    bool               // A sidecar cue was malformed or outside this recording.
+    sessionMarkerCount: u32                // Number used to name temporary markers in this session.
+    backHistory:        Array'f32          // Bounded session-only seek destinations before the current one.
+    forwardHistory:     Array'f32          // Bounded session-only seek destinations after the current one.
 
     // What the transport last showed, so a tick that would not change it pushes nothing.
     clockSecond:   s64 = -1     // Whole second the clock was written at.
@@ -519,13 +519,13 @@ impl Panel
             return
 
         .openFinished = true
-        var opened    = try .openTask.take()
-        .sound        = #move opened.sound
-        .tags         = #move opened.tags
-        .coverImage   = #move opened.coverImage
-        .landmarks    = #move opened.landmarks
+        var opened = try .openTask.take()
+        .sound           = #move opened.sound
+        .tags            = #move opened.tags
+        .coverImage      = #move opened.coverImage
+        .landmarks       = #move opened.landmarks
         .landmarkWarning = opened.landmarkWarning
-        .duration     = .sound.durationInSeconds()
+        .duration        = .sound.durationInSeconds()
         .validateSidecarLandmarks()
         if .coverImage.isValid() and not .thumbnail
         {
@@ -533,7 +533,7 @@ impl Panel
             .coverImage = {}
         }
 
-        .opened   = true
+        .opened = true
         .waveform.duration = .duration
         .arrangeWave()     // The tags read beside the sound may add a line of credits.
         if .duration > 0 do
@@ -922,9 +922,11 @@ impl Panel
                 .landmarkWarning = true
                 continue
             }
+
             accepted.add(mark)
             previous = mark.seconds
         }
+
         .landmarks = #move accepted
     }
 
@@ -932,7 +934,8 @@ impl Panel
     {
         let seconds = Math.clamp(.playbackPosition(), 0, .duration)
         for &mark in .landmarks where mark.source == .Session and Math.abs(mark.seconds - seconds) < 0.25
-            do return
+            do
+            return
         .sessionMarkerCount += 1
         .landmarks.add(Landmark{seconds, Format.toString(texts().word_Marker, .sessionMarkerCount), .Session})
     }
@@ -955,22 +958,24 @@ impl Panel
                 target = index
             }
         }
+
         if target != Swag.U64.Max do
             .seekLandmark(target)
     }
 
     mtd seekNextLandmark()
     {
-        var target = Swag.U64.Max
+        var target   = Swag.U64.Max
         var earliest = Swag.F32.Max
         for mark, index in .landmarks where mark.seconds > .playbackPosition() + 0.05
         {
             if mark.seconds < earliest
             {
                 earliest = mark.seconds
-                target = index
+                target   = index
             }
         }
+
         if target != Swag.U64.Max do
             .seekLandmark(target)
     }
@@ -984,9 +989,9 @@ impl Panel
         let initial  = Viewer.timeText(origin)
         with var options: EditDlgOptions
         {
-            .title             = texts().cmd_GoToTime
-            .message           = texts().ui_TimeHelp
-            .text              = initial
+            .title   = texts().cmd_GoToTime
+            .message = texts().ui_TimeHelp
+            .text    = initial
             .confirmButtonText = texts().ui_Go
         }
 
@@ -1026,9 +1031,9 @@ impl Panel
     // Gives the lens the transport and the sound of the recording.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        let texts  = appStrings()
+        let texts   = appStrings()
         let strings = Sound.texts()
-        let ready = .playButton.isEnabled()
+        let ready   = .playButton.isEnabled()
 
         // `:` and an instant, or a displacement in seconds, go there.
         if entries.results.prefix == .Line
@@ -1056,10 +1061,11 @@ impl Panel
             let title = Format.toString("% · % · %", mark.label, Viewer.timeText(mark.seconds), landmarkSourceText(mark.source))
             entries.add(title, .GoTo, func|view = me, index|() { view.seekLandmark(index) })
         }
+
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), defaultKey: {modifiers: .None, key: .M}, bindId: "scope.sound.mute")
 
         // The rate is stepped like a film's, and the row reads the rate in force.
-        let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
+        let faster = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
         if faster do
             faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
         let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0], bindId: "scope.sound.slower")
@@ -1363,6 +1369,7 @@ impl IWnd for Panel
             .navigateBack()
             return
         }
+
         if evt.kind == .Pressed and evt.modifiers == .Alt and evt.key == .Right
         {
             .navigateForward()
@@ -1542,9 +1549,9 @@ impl Panel
             var opened: SoundOpenResult
             opened.tags = SoundTags.read(view.openFileName, withPicture: true)
             let cueSidecar = readCueSidecar(view.openFileName)
-            opened.landmarks = #move cueSidecar.markers
+            opened.landmarks       = #move cueSidecar.markers
             opened.landmarkWarning = cueSidecar.invalid
-            opened.coverImage = embeddedSleeve(&opened.tags)
+            opened.coverImage      = embeddedSleeve(&opened.tags)
             if not opened.coverImage.isValid() do
                 opened.coverImage = localSleeve(view.openFileName)
             opened.sound = try SoundFile.load(view.openFileName, preloadData: false)

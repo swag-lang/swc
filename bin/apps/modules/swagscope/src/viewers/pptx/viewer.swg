@@ -3,7 +3,7 @@
 
 using Core, Gui
 
-private const ThumbnailCount = 5'u64
+private const ThumbnailCount     = 5'u64
 private const ThumbnailRailWidth = 156's32
 
 // Offers a presentation's slides before the generic ZIP package structure.
@@ -30,25 +30,25 @@ struct Panel
 {
     using wnd: Wnd
 
-    presentation: Presentation
-    load:         Viewer.BackgroundLoad'Presentation
-    services:     Viewer.HostServices
-    view:         *HtmlView?
-    slide:        u64 = Swag.U64.Max
-    textMode:     bool
-    notesMode:    bool
-    thumbnails:   Array'(*HtmlView)
-    thumbnailTiles: Array'(*Wnd)
+    presentation:     Presentation
+    load:             Viewer.BackgroundLoad'Presentation
+    services:         Viewer.HostServices
+    view:             *HtmlView?
+    slide:            u64 = Swag.U64.Max
+    textMode:         bool
+    notesMode:        bool
+    thumbnails:       Array'(*HtmlView)
+    thumbnailTiles:   Array'(*Wnd)
     thumbnailButtons: Array'(*PushButton)
-    thumbnailStart: u64
+    thumbnailStart:   u64
 
     late
     {
-        status:         *Label
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        slideLabel:     *Label
-        outline:        *DocumentOutline
+        status:           *Label
+        previousButton:   *IconButton
+        nextButton:       *IconButton
+        slideLabel:       *Label
+        outline:          *DocumentOutline
         thumbnailHeading: *Label
     }
 }
@@ -142,6 +142,7 @@ private impl Panel
             .outline.list.selectLine(cast(u32, position))
             break
         }
+
         .refreshThumbnails()
     }
 
@@ -292,21 +293,25 @@ private impl Panel
             .backgroundStyle = .View
             .preferredSize.x = ThumbnailRailWidth
         }
+
         with .thumbnailHeading = Label.create(rail, texts().ui_Thumbnails, {0, 0, ThumbnailRailWidth, 28})
         {
             .dockStyle = .Top
             .setTextAlignment(.Center, .OpticalCenter)
         }
+
         with let scroll = Wnd.create'ScrollWnd(rail, "", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
             .setFrameFlags(remove: .Borders)
         }
+
         with let content = scroll.createView'Wnd()
         {
             .preferredSize.y = cast(s32, ThumbnailCount) * 112
         }
+
         scroll.setScrollSize(ThumbnailRailWidth - 4, cast(f32, ThumbnailCount) * 112)
         for slot in 0 until ThumbnailCount
         {
@@ -316,9 +321,10 @@ private impl Panel
                 .backgroundStyle = .View
                 .margin          = {4, 3, 4, 2}
             }
+
             with let button = PushButton.create(tile, "", {0, 0, ThumbnailRailWidth - 16, 28})
             {
-                .dockStyle = .Bottom
+                .dockStyle  = .Bottom
                 .sigPressed += func|view = me, slot|(_)
                 {
                     let index = view.thumbnailStart + slot
@@ -326,6 +332,7 @@ private impl Panel
                         view.showSlide(index)
                 }
             }
+
             .thumbnailTiles.add(tile)
             .thumbnailButtons.add(button)
         }
@@ -352,6 +359,7 @@ private impl Panel
                     .thumbnails[offset].hide()
                     .thumbnails[offset].destroy()
                 }
+
                 continue
             }
 
@@ -363,16 +371,18 @@ private impl Panel
                 .thumbnails[offset].hide()
                 .thumbnails[offset].destroy()
             }
+
             var style = HtmlStyle.theme()
             style.followTheme = false
             with let preview = HtmlView.createText(.thumbnailTiles[offset],
-                                                  .presentation.slides[index].canvasHtml(.presentation.width, .presentation.height),
-                                                  style)
+                                                   .presentation.slides[index].canvasHtml(.presentation.width, .presentation.height),
+                                                   style)
             {
-                .dockStyle = .Top
+                .dockStyle       = .Top
                 .backgroundStyle = .View
                 .preferredSize.y = 80
             }
+
             if offset < .thumbnails.count do
                 .thumbnails[offset] = preview
             else do

@@ -29,7 +29,10 @@ using Core
     expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, secondary.windowId, 0))
     expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, primary.windowId, 0))
     app.runFrame()
-    Swag.require(app.nativeFocusSurface == primary and first.hasVisibleFocus() and not second.hasFocus() and losses == 0)
+    Swag.require(app.nativeFocusSurface == primary and
+                 first.hasVisibleFocus() and
+                 not second.hasFocus() and
+                 losses == 0)
     input.shortcut(.A, .None)
     Swag.require(first.text() == "a" and second.text() == "")
 }

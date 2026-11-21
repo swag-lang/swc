@@ -59,10 +59,10 @@ struct Texts
     err_TarType:            string = "TAR entry type % is not supported"
     err_TarPayloadOutside:  string = "TAR entry payload lies outside the file"
     err_TarEnd:             string = "TAR archive has no valid end marker"
-    err_GzipHeader:          string = "GZIP header is invalid or truncated"
-    err_GzipTooLarge:        string = "GZIP stream is too large to open safely"
-    err_GzipChecksum:        string = "GZIP checksum does not match its payload"
-    err_GzipSize:            string = "GZIP payload size does not match its trailer"
+    err_GzipHeader:         string = "GZIP header is invalid or truncated"
+    err_GzipTooLarge:       string = "GZIP stream is too large to open safely"
+    err_GzipChecksum:       string = "GZIP checksum does not match its payload"
+    err_GzipSize:           string = "GZIP payload size does not match its trailer"
     err_TempWrite:          string = "temporary preview file was not written completely"
 }
 

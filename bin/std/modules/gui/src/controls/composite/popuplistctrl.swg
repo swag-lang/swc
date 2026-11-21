@@ -81,7 +81,7 @@ public impl PopupListCtrl
         var y = 0'f32
         for itemIt, i in .items
         {
-            let item = unwrap itemIt
+            let item   = unwrap itemIt
             let height = item.isSeparator ? .separatorHeight : .itemHeight
             if y + height > top and y < bottom
             {
@@ -89,10 +89,12 @@ public impl PopupListCtrl
                     result.first = cast(u32, i)
                 result.end = cast(u32, i + 1)
             }
+
             y += height
             if y >= bottom do
                 break
         }
+
         return result
     }
 
@@ -102,7 +104,7 @@ public impl PopupListCtrl
         if index >= .items.count do
             return
         .items[index]!.icon = icon
-        .maxIconSize = 0
+        .maxIconSize        = 0
         for itemIt in .items
         {
             let item = unwrap itemIt
@@ -112,6 +114,7 @@ public impl PopupListCtrl
                 .maxIconSize = Math.max(.maxIconSize, cast(s32, iconWidth))
             }
         }
+
         .scrollWnd.view.invalidate()
     }
 }

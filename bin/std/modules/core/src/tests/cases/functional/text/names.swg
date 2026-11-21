@@ -57,7 +57,7 @@ using Swag
     let greekMatcher = expect Text.NameMatcher.create("Σ", {comparisonType: .UnicodeNoCase})
     Swag.require(greekMatcher.isMatch("σ"))
 
-    let overlapping = expect Text.NameMatcher.create("ana")
+    let overlapping  = expect Text.NameMatcher.create("ana")
     let overlapSpans = overlapping.findAll("banana")
     Swag.require(overlapSpans.count == 1 and overlapSpans[0].start == 1)
 }

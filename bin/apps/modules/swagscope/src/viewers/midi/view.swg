@@ -157,8 +157,8 @@ private func keyPitchMask(key: const *KeySignature)->u16
         return 0
 
     const Tonics: [15] u8 = [11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1]
-    const Steps: [7] u8 = [0, 2, 4, 5, 7, 9, 11]
-    let tonic = Tonics[cast(u32, key.sharps + 7)]
+    const Steps:  [7] u8  = [0, 2, 4, 5, 7, 9, 11]
+    let tonic  = Tonics[cast(u32, key.sharps + 7)]
     var result = 0'u16
     for step in Steps do
         result |= 1'u16 << ((tonic + step) % 12)
@@ -199,6 +199,7 @@ impl RollView
             else do
                 last = middle
         }
+
         if not first do
             return 0
         return keyPitchMask(&.document.keySignatures[first - 1])
@@ -605,7 +606,7 @@ impl RollView
                            Math.min(lastTick, .document.keySignatures[signatureAt].tick) : lastTick
             if nextTick <= tick
             {
-                mask = keyPitchMask(&.document.keySignatures[signatureAt])
+                mask        = keyPitchMask(&.document.keySignatures[signatureAt])
                 signatureAt += 1
                 continue
             }
@@ -616,7 +617,7 @@ impl RollView
             tick = nextTick
             if signatureAt < .document.keySignatures.count and .document.keySignatures[signatureAt].tick == tick
             {
-                mask = keyPitchMask(&.document.keySignatures[signatureAt])
+                mask        = keyPitchMask(&.document.keySignatures[signatureAt])
                 signatureAt += 1
             }
         }
@@ -747,6 +748,7 @@ impl RollView
                 let base = isBlackKey(key) ? colors.edit_Bk : colors.view_Bk
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, Color.lerp(base, colors.highlight, 0.35))
             }
+
             painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.line, 1)
             let labelTop = y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0)
             if percussion

@@ -40,7 +40,7 @@ impl Document
     // Applies one final-section page box in CSS pixels; Word stores dimensions as twentieths of a point.
     mtd const pageCss()->String
     {
-        var result: #returntype
+        var result:  #returntype
         let numbers: Globalization.NumberFormatInfo
         if .pageWidth > 0 do
             result += Format.toString("max-width:%px;", numbers.format(cast(f64, .pageWidth) / 15, 2))
@@ -58,6 +58,7 @@ impl Document
             result += numbers.format(cast(f64, .marginLeft) / 15, 2)
             result += "px;"
         }
+
         if .pageWidth > 0 or .pageHeight > 0 or .marginMask do
             result += "box-sizing:border-box;"
         if .pageWidth > 0 do
@@ -125,7 +126,7 @@ impl Document
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         var html: String = "<html>"
-        var bodyStyle = reader.document.pageCss()
+        var bodyStyle    = reader.document.pageCss()
         if reader.document.usePaperColors
         {
             html += "<head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}</style></head>"
@@ -134,6 +135,7 @@ impl Document
             let luma       = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
             bodyStyle += Format.toString("background-color:#%;color:#%;", background, luma < 128000 ? "FFFFFF" : "000000")
         }
+
         if bodyStyle.isEmpty()
         {
             html += "<body>"

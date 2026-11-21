@@ -5,13 +5,13 @@ using Swag, Core
 
 const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
-var PopupHeadlessChangedCount:  u32
-var PopupListContentPaintCount: u32
-var PopupListContentPaintFlags: PaintItemFlags
-var PopupVisibilityOpenCount: u32
-var PopupVisibilityCloseCount: u32
-var PopupVisibilityOpenRange: PopupListVisibleRange
-var PopupVisibilityCloseSawDetached: bool
+var PopupHeadlessChangedCount:        u32
+var PopupListContentPaintCount:       u32
+var PopupListContentPaintFlags:       PaintItemFlags
+var PopupVisibilityOpenCount:         u32
+var PopupVisibilityCloseCount:        u32
+var PopupVisibilityOpenRange:         PopupListVisibleRange
+var PopupVisibilityCloseSawDetached:  bool
 var PopupVisibilityCloseSawLivePopup: bool
 
 func popupHeadlessChanged(_: *ComboBox, _: u32)
@@ -32,8 +32,10 @@ func popupVisibilityChanged(_: *Wnd, popup: *PopupListCtrl, opened: bool)
         PopupVisibilityOpenCount += 1
         PopupVisibilityOpenRange = popup.visibleItemRange()
     }
-    else do
+    else
+    {
         PopupVisibilityCloseCount += 1
+    }
 }
 
 func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
@@ -57,9 +59,9 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
     host.setup(320, 240)
 
     let popup = PopupListCtrl.create(&host.root)
-    popup.itemHeight = 30
+    popup.itemHeight      = 30
     popup.separatorHeight = 8
-    popup.maximumHeight = 30
+    popup.maximumHeight   = 30
     popup.addItem("A")
     popup.addSeparator()
     popup.addItem("B")
@@ -68,7 +70,7 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
     var atlasImage = Image.create(8, 8, .RGBA8)
     atlasImage.fill(Argb.Lime)
     var atlas = ImageList.create(host.app.renderer.addImage(&atlasImage), 8, 8, 1)
-    let icon = Icon.from(&atlas, 0, 16, 16)
+    let icon  = Icon.from(&atlas, 0, 16, 16)
     popup.setItemIcon(0, icon)
     Swag.require(popup.items[0]!.icon == icon)
     popup.scrollWnd.setScrollPos(0, 33)
@@ -80,13 +82,13 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
     host.pump()
     atlas.release(host.app.renderer)
 
-    PopupVisibilityOpenCount = 0
+    PopupVisibilityOpenCount  = 0
     PopupVisibilityCloseCount = 0
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
-    combo.popupItemHeight = 36
-    combo.popupIconSize = 32
+    combo.popupItemHeight    = 36
+    combo.popupIconSize      = 32
     combo.maximumPopupHeight = 72
-    combo.sigPopupChanged += &popupVisibilityChanged
+    combo.sigPopupChanged    += &popupVisibilityChanged
     for index in 8 do
         combo.addItem(Format.toString("Entry %", index))
 
@@ -105,8 +107,8 @@ func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    PopupVisibilityCloseCount       = 0
-    PopupVisibilityCloseSawDetached = false
+    PopupVisibilityCloseCount        = 0
+    PopupVisibilityCloseSawDetached  = false
     PopupVisibilityCloseSawLivePopup = false
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})

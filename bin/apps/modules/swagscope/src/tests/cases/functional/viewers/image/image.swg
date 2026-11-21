@@ -78,7 +78,7 @@ func checkImageOrientation(stored: const *Image, extension: string, orientation:
 
     expect stored.save(fileName)
 
-    let image = expect Picture.loadViewerImage(fileName)
+    let image      = expect Picture.loadViewerImage(fileName)
     let swapsSides = orientation >= 5
     Swag.require(image.width == (swapsSides ? 20 : 40) and image.height == (swapsSides ? 40 : 20))
     let thumbnail = expect Picture.loadThumbnail(fileName, 16)
@@ -90,7 +90,8 @@ func checkImageOrientation(stored: const *Image, extension: string, orientation:
     let view   = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(view.facts.width == Format.toString("%", image.width) and
-                 view.facts.height == Format.toString("%", image.height) and view.facts.frames == 1)
+                 view.facts.height == Format.toString("%", image.height) and
+                 view.facts.frames == 1)
     var recordedOrientation: String
     for &row in view.information.rows where row.name == "Orientation" do
         recordedOrientation = row.value
@@ -133,11 +134,11 @@ func orientedExifFixture(orientation: u32)->Image
     // Exercise every EXIF transform through a real encoded PNG decode and thumbnail path.
     for orientation in 1 to 8
     {
-        var stored = orientedExifFixture(orientation)
+        var stored   = orientedExifFixture(orientation)
         let fileName = Gui.Testing.tempFilePath("scope-image-orientation-all-", ".png")
         defer discard catch File.delete(fileName)
         expect stored.save(fileName)
-        let image = expect Picture.loadViewerImage(fileName)
+        let image      = expect Picture.loadViewerImage(fileName)
         let swapsSides = orientation >= 5
         Swag.require(image.width == (swapsSides ? 20 : 40) and image.height == (swapsSides ? 40 : 20))
         Swag.require(Exif.orientationOf(image.metadata.toSlice()) == 1)

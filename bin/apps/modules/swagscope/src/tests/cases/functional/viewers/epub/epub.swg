@@ -17,8 +17,8 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
-    let view   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view    = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     let session = &window.instances[window.activeChoiceIndex]
     Swag.require(session.collectMatches != null and session.revealMatch != null and session.searchBounds != null)
     var matches: Array'Viewer.SearchMatch

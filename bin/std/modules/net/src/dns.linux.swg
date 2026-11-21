@@ -3,12 +3,11 @@
 
 using Linux
 
-internal func resolveNative(host: string, service: const [*]u8?, port: u16,
-                            options: ResolveOptions)->Array'SocketEndpoint fail
+internal func resolveNative(host: string, service: const [*]u8?, port: u16, options: ResolveOptions)->Array'SocketEndpoint fail
 {
     let family = options.family == .IPv4 ? AF_INET : options.family == .IPv6 ? AF_INET6 : AF_UNSPEC
     var hints: addrinfo
-    hints.ai_family = family
+    hints.ai_family   = family
     hints.ai_socktype = SOCK_STREAM
     hints.ai_protocol = IPPROTO_TCP
     var result: *addrinfo?
@@ -19,7 +18,7 @@ internal func resolveNative(host: string, service: const [*]u8?, port: u16,
     defer freeaddrinfo(first)
 
     var endpoints: Array'SocketEndpoint
-    var current: *addrinfo? = result
+    var current:   *addrinfo? = result
     while current
     {
         let item = current
@@ -30,8 +29,10 @@ internal func resolveNative(host: string, service: const [*]u8?, port: u16,
                 endpoint.port = port
             endpoints.add(endpoint)
         }
+
         current = item.ai_next
     }
+
     if endpoints.isEmpty() do
         fail NetworkError{"host name resolution returned no IP addresses", code: -5}
     return endpoints

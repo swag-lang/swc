@@ -7,8 +7,10 @@ private var g_ZoomPercent: u32 = 100
 
 // Whether source code marks its spaces and tabulations. The choice follows the reader from file to file.
 private var g_Blanks: bool
+
 // Whether source code wraps long lines. The choice follows the reader from file to file.
 private var g_Wrapping: bool
+
 // Whether source code shows logical line numbers. The choice follows the reader from file to file.
 private var g_LineNumbers: bool = true
 
@@ -45,10 +47,12 @@ internal func languageOverridePath(fileName: string)->String
 internal func languageOverrideIdentity(fileName: string)->String
 {
     let absolute = catch Path.absolute(fileName) { return "" }
-    let info = catch File.info(absolute) { return "" }
+    let info     = catch File.info(absolute) { return "" }
     let material = Format.toString("scope-code-language-v1\n%\n%\n%\n%",
-                                   absolute, info.size,
-                                   Hash.hash64(info.creationTime), Hash.hash64(info.lastWriteTime))
+                                   absolute,
+                                   info.size,
+                                   Hash.hash64(info.creationTime),
+                                   Hash.hash64(info.lastWriteTime))
     let digest = Hash.Sha256.compute(cast(const [..] u8, material.toString()))
     var result: String
     for word in digest do
@@ -60,6 +64,7 @@ private func languageOverrideName(language: SourceLanguage, swag: bool)->string
 {
     if swag do
         return "Swag"
+
     // The user-facing name of Plain Text is translated, so keep a stable storage token instead.
     return language == .PlainText ? "PlainText" : displayName(language)
 }
@@ -68,7 +73,7 @@ private func languageOverrideName(language: SourceLanguage, swag: bool)->string
 // unsupported records are ignored and detection remains the fallback.
 private func readLanguageOverride(fileName: string)->String
 {
-    let path = languageOverridePath(fileName)
+    let path     = languageOverridePath(fileName)
     let identity = languageOverrideIdentity(fileName)
     if not path.count or not identity.count or not File.exists(path) do
         return ""
@@ -90,15 +95,18 @@ private func readLanguageOverride(fileName: string)->String
 // reader's ability to view the source.
 private func writeLanguageOverride(fileName: string, language: SourceLanguage, swag: bool)
 {
-    let path = languageOverridePath(fileName)
+    let path     = languageOverridePath(fileName)
     let identity = languageOverrideIdentity(fileName)
     if not path.count or not identity.count do
         return
     catch Directory.create(languageOverrideDirectory(), recurse: true) { return; }
     let temp = Format.toString("%.%.tmp", path, Guid128.random())
     discard catch File.writeAllText(temp,
-                                    Format.toString("%\n%\n%\n", LanguageOverrideHeader,
-                                                   identity, languageOverrideName(language, swag))) { return; }
+                                    Format.toString("%\n%\n%\n", LanguageOverrideHeader, identity, languageOverrideName(language, swag)))
+    {
+        return
+    }
+
     catch File.move(path, temp)
     {
         discard catch File.delete(temp)
@@ -524,6 +532,7 @@ impl Panel
                 .services.showDetails(me, Format.toString(texts().ui_DelimiterUnavailable, .languageName))
                 return false
             }
+
             let at = .editor.runeAt(cp)
             if at.style != first.style do
                 continue
@@ -743,6 +752,7 @@ impl Panel
                 .editor.setLexer(&.swagLexer)
                 return
             }
+
             if savedName == "PlainText"
             {
                 .languageName = displayName(.PlainText)
@@ -750,6 +760,7 @@ impl Panel
                 .editor.setLexer(&.codeLexer)
                 return
             }
+
             for language in SourceLanguage where displayName(language) == savedName
             {
                 .languageName = displayName(language)
@@ -762,14 +773,14 @@ impl Panel
         let extension = Path.lowercaseExtension(.fileName)
         if extension == ".swg" or extension == ".swgs"
         {
-            .languageName = "Swag"
+            .languageName     = "Swag"
             .languageEvidence = Format.toString(texts().ui_ExtensionEvidence, extension)
             .editor.setLexer(&.swagLexer)
         }
         else
         {
             let language = detectLanguage(.fileName)
-            .languageName = displayName(language)
+            .languageName     = displayName(language)
             .languageEvidence = detectionEvidence(.fileName)
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)
@@ -782,13 +793,13 @@ impl Panel
     {
         if swag
         {
-            .languageName = "Swag"
+            .languageName     = "Swag"
             .languageEvidence = "manual selection"
             .editor.setLexer(&.swagLexer)
         }
         else
         {
-            .languageName = displayName(language)
+            .languageName     = displayName(language)
             .languageEvidence = "manual selection"
             .codeLexer.configure(language)
             .editor.setLexer(&.codeLexer)

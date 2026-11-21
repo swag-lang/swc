@@ -82,7 +82,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(240, 64)
 
-    let bar    = Wnd.create'Wnd(&host.root, {0, 0, 240, 64})
+    let bar = Wnd.create'Wnd(&host.root, {0, 0, 240, 64})
     bar.arrowNavigation = true
     let ok     = PushButton.create(bar, "Ok", {20, 16, 90, 32}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {130, 16, 90, 32})

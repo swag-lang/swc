@@ -68,11 +68,11 @@ struct ThumbnailBatch
     images: Array'Image
 }
 
-private const ThumbnailSide = 112'u32
-private const ThumbnailCount = 5'u64
+private const ThumbnailSide       = 112'u32
+private const ThumbnailCount      = 5'u64
 private const ThumbnailSlotHeight = 146.0'f32
-private const PageExportDpi = 300'u32
-private const MaxExportPages = 50'u64
+private const PageExportDpi       = 300'u32
+private const MaxExportPages      = 50'u64
 
 struct PageRange
 {
@@ -89,21 +89,26 @@ func parsePageRange(source: string, pageCount: u64, result: *PageRange)->bool
     if dash == Swag.U64.Max or not dash or dash + 1 >= text.count do
         return false
     let firstText = Latin1.trim(text[0 until dash])
-    let lastText = Latin1.trim(text[dash + 1 to])
+    let lastText  = Latin1.trim(text[dash + 1 to])
     var firstResult: #decltype(expect StrConv.parseU64(firstText))
     var lastResult:  #decltype(expect StrConv.parseU64(lastText))
-    var firstError: Swag.Error
-    var lastError: Swag.Error
+    var firstError:  Swag.Error
+    var lastError:   Swag.Error
     catch { firstResult = try StrConv.parseU64(firstText) } as firstError
     catch { lastResult = try StrConv.parseU64(lastText) } as lastError
-    if firstError.value() != null or lastError.value() != null or
-       firstResult.eat != firstText.count or lastResult.eat != lastText.count or
-       firstResult.ovf or lastResult.ovf or not firstResult.value or
-       lastResult.value < firstResult.value or lastResult.value > pageCount or
+    if firstError.value() != null or
+       lastError.value() != null or
+       firstResult.eat != firstText.count or
+       lastResult.eat != lastText.count or
+       firstResult.ovf or
+       lastResult.ovf or
+       not firstResult.value or
+       lastResult.value < firstResult.value or
+       lastResult.value > pageCount or
        lastResult.value - firstResult.value + 1 > MaxExportPages do
         return false
     result.first = firstResult.value - 1
-    result.last = lastResult.value - 1
+    result.last  = lastResult.value - 1
     return true
 }
 
@@ -116,7 +121,7 @@ func renderPageAtDpi(fileName: string, index: u64, dpi: u32)->Image fail
     var reader = try Pdf.Reader.open(fileName)
     if index >= reader.pageCount() do
         fail Errors.InvalidFormatError{texts().err_NoPage}
-    let page = try reader.loadPage(index)
+    let page  = try reader.loadPage(index)
     let scale = cast(f32, dpi) / 72
     return try page.render({scale: scale, maxDimension: 16_384, maxPixels: 64 * 1024 * 1024})
 }
@@ -125,7 +130,7 @@ private func writePageImage(image: const *Image, target: string, refuseExisting 
 {
     if refuseExisting and File.exists(target) do
         fail Errors.InvalidFormatError{texts().ui_ExportExists}
-    let folder = Path.directoryName(target) orelse "."
+    let folder    = Path.directoryName(target) orelse "."
     let temporary = Path.combine(folder, Format.toString(".swag-pdf-%.tmp.png", Guid128.random()))
     defer discard catch File.delete(temporary)
     let encoded = try image.encode(temporary)
@@ -164,10 +169,11 @@ func savePageRange(fileName, folder, stem: string, first, last: u64, dpi: u32)->
     {
         if Swag.isCancelled() do
             return ""
-        let page = try reader.loadPage(index)
+        let page  = try reader.loadPage(index)
         let image = try page.render({scale: cast(f32, dpi) / 72, maxDimension: 16_384, maxPixels: 64 * 1024 * 1024})
         try writePageImage(&image, pageRangeFileName(folder, stem, index), refuseExisting: true)
     }
+
     return Format.toString("%–% · % DPI", first + 1, last + 1, dpi)
 }
 
@@ -176,17 +182,19 @@ private func loadThumbnailBatch(fileName: string, first, pageCount: u64)->Thumbn
     var result: #returntype
     result.first = first
     var reader = try Pdf.Reader.open(fileName)
-    let end = Math.min(first + ThumbnailCount, pageCount, reader.pageCount())
+    let end    = Math.min(first + ThumbnailCount, pageCount, reader.pageCount())
     for index in first until end
     {
         var page = try reader.loadPage(index)
+
         // Leave two pixels of headroom because the rasterizer rounds point dimensions upward.
-        let side = cast(f32, ThumbnailSide - 2)
+        let side  = cast(f32, ThumbnailSide - 2)
         let scale = Math.min(side / Math.max(page.width, 1), side / Math.max(page.height, 1))
         result.images.add(try page.render({scale: scale,
                                            maxDimension: cast(s32, ThumbnailSide),
                                            maxPixels: cast(u64, ThumbnailSide) * ThumbnailSide}))
     }
+
     return result
 }
 
@@ -266,45 +274,45 @@ func detailsText(facts: const *DocumentFacts)->String
 // The PDF viewer: the page view, its page and zoom controls, and the document outline.
 struct Panel
 {
-    using wnd:     Wnd
-    details:       String
-    facts:         DocumentFacts
-    services:      Viewer.HostServices
-    load:          Viewer.BackgroundLoad'ViewerContent
-    failureReason: String
-    outline:       *DocumentOutline?
-    bookmarks:     Array'Pdf.OutlineEntry
-    pageLabels:    Array'String     // Labels the document gives its pages, one per page, or empty.
-    history:       Viewer.History'PdfReadingPosition
-    fileName:      String
-    thumbnailTask: Swag.Task'ThumbnailBatch
-    pageExportTask: Swag.Task'String
-    pageExporting: bool
-    pageExportPath: String
+    using wnd:        Wnd
+    details:          String
+    facts:            DocumentFacts
+    services:         Viewer.HostServices
+    load:             Viewer.BackgroundLoad'ViewerContent
+    failureReason:    String
+    outline:          *DocumentOutline?
+    bookmarks:        Array'Pdf.OutlineEntry
+    pageLabels:       Array'String     // Labels the document gives its pages, one per page, or empty.
+    history:          Viewer.History'PdfReadingPosition
+    fileName:         String
+    thumbnailTask:    Swag.Task'ThumbnailBatch
+    pageExportTask:   Swag.Task'String
+    pageExporting:    bool
+    pageExportPath:   String
     pageExportFolder: String
-    pageExportStem: String
-    pageExportFirst: u64
-    pageExportLast: u64
-    pageExportDpi: u32 = PageExportDpi
-    pageExportRange: bool
-    pageExportToast: *Toast?
-    thumbnails:    Array'(*ImageView)
+    pageExportStem:   String
+    pageExportFirst:  u64
+    pageExportLast:   u64
+    pageExportDpi:    u32 = PageExportDpi
+    pageExportRange:  bool
+    pageExportToast:  *Toast?
+    thumbnails:       Array'(*ImageView)
     thumbnailButtons: Array'(*PushButton)
-    thumbnailStart: u64
+    thumbnailStart:   u64
 
     late
     {
-        commands:       *Wnd
-        info:           *Wnd
-        pdfView:        *PdfView
-        thumbnailRail:  *Wnd
-        thumbnailScroll: *ScrollWnd
+        commands:         *Wnd
+        info:             *Wnd
+        pdfView:          *PdfView
+        thumbnailRail:    *Wnd
+        thumbnailScroll:  *ScrollWnd
         thumbnailContent: *Wnd
-        previousButton: *IconButton
-        nextButton:     *IconButton
+        previousButton:   *IconButton
+        nextButton:       *IconButton
         exportPageButton: *IconButton
-        pageLabel:      *IconButton
-        zoomLabel:      *IconButton
+        pageLabel:        *IconButton
+        zoomLabel:        *IconButton
         thumbnailHeading: *Label
     }
 }
@@ -315,10 +323,10 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip = appStrings().ui_PreviousPage
-            .nextButton.toolTip     = appStrings().ui_NextPage
-            .pageLabel.toolTip      = texts().ui_GoToPage
-            .zoomLabel.toolTip      = texts().ui_ZoomMenu
+            .previousButton.toolTip   = appStrings().ui_PreviousPage
+            .nextButton.toolTip       = appStrings().ui_NextPage
+            .pageLabel.toolTip        = texts().ui_GoToPage
+            .zoomLabel.toolTip        = texts().ui_ZoomMenu
             .exportPageButton.toolTip = texts().ui_ExportPageShort
             .thumbnailHeading.setText(texts().ui_Thumbnails)
             .refreshThumbnailSelection()
@@ -422,6 +430,7 @@ private impl Panel
                 return false
             discard catch .pageExportTask.take()
         }
+
         if .thumbnailTask.isPending()
         {
             .thumbnailTask.cancel()
@@ -429,6 +438,7 @@ private impl Panel
                 return false
             discard catch .thumbnailTask.take()
         }
+
         return .load.retire()
     }
 
@@ -750,7 +760,7 @@ private impl Panel
             return
 
         let pageIndex = .pdfView.pageIndex
-        let dpi = .chooseExportDpi()
+        let dpi       = .chooseExportDpi()
         if not dpi do
             return
         let stem = Path.fileNameWithoutExtension(.fileName) orelse .fileName.toString()
@@ -759,7 +769,7 @@ private impl Panel
         options.mode          = .CreateFile
         options.title         = texts().ui_ExportPage
         options.initialFolder = Path.directoryName(.fileName) orelse ""
-        options.initialName = suggestedName.toString()
+        options.initialName   = suggestedName.toString()
         options.filters.add({texts().ui_ExportPageType, ".png"})
         let dialog = FileDlg.create(surface, options)
         if dialog.doModal() == Dialog.BtnOk
@@ -776,9 +786,9 @@ private impl Panel
             return
         let defaultRange = Format.toString("1-%", .pdfView.pageCount())
         var options: EditDlgOptions
-        options.title = texts().ui_ExportRangeTitle
+        options.title   = texts().ui_ExportRangeTitle
         options.message = texts().ui_ExportRangePrompt
-        options.text = defaultRange.toString()
+        options.text    = defaultRange.toString()
         let dialog = EditDlg.createSingleLine(surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -788,18 +798,19 @@ private impl Panel
             .showExportNotice(texts().ui_InvalidExportRange, .Failure)
             return
         }
+
         let dpi = .chooseExportDpi()
         if not dpi do
             return
         var folderOptions: FileDlgOptions
-        folderOptions.mode = .SelectFolder
-        folderOptions.title = texts().ui_SelectExportFolder
+        folderOptions.mode          = .SelectFolder
+        folderOptions.title         = texts().ui_SelectExportFolder
         folderOptions.initialFolder = Path.directoryName(.fileName) orelse ""
         let folderDialog = FileDlg.create(surface, folderOptions)
         if folderDialog.doModal() != Dialog.BtnOk do
             return
         let folder = String.from(folderDialog.selectedPath())
-        let stem = Path.fileNameWithoutExtension(.fileName) orelse .fileName.toString()
+        let stem   = Path.fileNameWithoutExtension(.fileName) orelse .fileName.toString()
         .startPageRangeExport(range, folder.toString(), stem, dpi)
     }
 
@@ -815,6 +826,7 @@ private impl Panel
         case "scope.pdf.exportDpi300": return 300
         case "scope.pdf.exportDpi600": return 600
         }
+
         return 0
     }
 
@@ -843,25 +855,28 @@ private impl Panel
     {
         if .pageExporting or index >= .pdfView.pageCount() do
             return
-        .pageExporting = true
+        .pageExporting   = true
         .pageExportRange = false
-        .pageExportPath = String.from(target)
-        .pageExportDpi = dpi
+        .pageExportPath  = String.from(target)
+        .pageExportDpi   = dpi
         .exportPageButton.enable(false)
         .pageExportTask.submit(func|view = me, index|()->String fail => try savePagePng(view.fileName.toString(), view.pageExportPath.toString(), index, view.pageExportDpi), me.taskNotifier(&.pageExportTask))
     }
 
     internal mtd startPageRangeExport(range: PageRange, folder, stem: string, dpi: u32)
     {
-        if .pageExporting or range.first > range.last or range.last >= .pdfView.pageCount() or range.last - range.first + 1 > MaxExportPages do
+        if .pageExporting or
+           range.first > range.last or
+           range.last >= .pdfView.pageCount() or
+           range.last - range.first + 1 > MaxExportPages do
             return
-        .pageExporting = true
-        .pageExportRange = true
+        .pageExporting    = true
+        .pageExportRange  = true
         .pageExportFolder = String.from(folder)
-        .pageExportStem = String.from(stem)
-        .pageExportFirst = range.first
-        .pageExportLast = range.last
-        .pageExportDpi = dpi
+        .pageExportStem   = String.from(stem)
+        .pageExportFirst  = range.first
+        .pageExportLast   = range.last
+        .pageExportDpi    = dpi
         .exportPageButton.enable(false)
         .pageExportTask.submit(func|view = me|()->String fail => try savePageRange(view.fileName.toString(), view.pageExportFolder.toString(), view.pageExportStem.toString(), view.pageExportFirst, view.pageExportLast, view.pageExportDpi), me.taskNotifier(&.pageExportTask))
     }
@@ -871,7 +886,7 @@ private impl Panel
         if not .pageExporting or not .pageExportTask.isDone() do
             return
         .pageExporting = false
-        var saved: String
+        var saved:       String
         var exportError: Swag.Error
         catch { saved = try .pageExportTask.take() } as exportError
         let failure = exportError.value()
@@ -893,6 +908,7 @@ private impl Panel
             else do
                 .pageExportToast.show(texts().ui_ExportPageSaved, Path.fileName(saved) orelse saved.toString(), .Done)
         }
+
         .pageExportRange = false
         .refreshNavigation()
     }
@@ -1067,21 +1083,25 @@ private impl Panel
             .backgroundStyle = .View
             .preferredSize.x = 152
         }
+
         with .thumbnailHeading = Label.create(.thumbnailRail, texts().ui_Thumbnails, {0, 0, 148, 28})
         {
             .dockStyle = .Top
             .setTextAlignment(.Center, .OpticalCenter)
         }
+
         with .thumbnailScroll = Wnd.create'ScrollWnd(.thumbnailRail, "", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
             .setFrameFlags(remove: .Borders)
         }
+
         with .thumbnailContent = .thumbnailScroll.createView'Wnd()
         {
             .preferredSize.y = cast(s32, ThumbnailCount) * 146
         }
+
         .thumbnailScroll.setScrollSize(144, cast(f32, ThumbnailCount) * 146)
         for slot in 0 until ThumbnailCount
         {
@@ -1091,14 +1111,16 @@ private impl Panel
                 .backgroundStyle = .View
                 .margin          = {4, 4, 4, 2}
             }
+
             with let image = ImageView.create(tile, {0, 0, 112, 110})
             {
-                .dockStyle = .Top
+                .dockStyle       = .Top
                 .backgroundStyle = .View
             }
+
             with let button = PushButton.create(tile, "", {0, 0, 144, 36})
             {
-                .dockStyle = .Bottom
+                .dockStyle  = .Bottom
                 .sigPressed += func|view = me, slot|(_)
                 {
                     let page = view.thumbnailStart + slot
@@ -1106,6 +1128,7 @@ private impl Panel
                         view.pdfView.showPage(page)
                 }
             }
+
             .thumbnails.add(image)
             .thumbnailButtons.add(button)
         }
@@ -1124,7 +1147,7 @@ private impl Panel
         for imageView in .thumbnails do
             imageView.clear()
         .refreshThumbnailSelection()
-        let path = .fileName.toString()
+        let path  = .fileName.toString()
         let count = .facts.pageCount
         .thumbnailTask.submit(func|path, first, count|()->ThumbnailBatch fail => try loadThumbnailBatch(path, first, count), me.taskNotifier(&.thumbnailTask))
     }
@@ -1143,6 +1166,7 @@ private impl Panel
             .thumbnailButtons[offset].setText(index < .pdfView.pageCount() ? Format.toString("%", index + 1) : "")
             .thumbnailButtons[offset].enable(index < .pdfView.pageCount())
         }
+
         .refreshThumbnailSelection()
         if .pdfView.pageIndex < .thumbnailStart or .pdfView.pageIndex >= .thumbnailStart + .thumbnails.count do
             .startThumbnails(.pdfView.pageIndex)
@@ -1161,13 +1185,14 @@ private impl Panel
     // Keeps the active page's tile visible even when the five-slot rail itself needs scrolling.
     mtd scrollThumbnailSelectionIntoView()
     {
-        if .thumbnailButtons.isEmpty() or .pdfView.pageIndex < .thumbnailStart or
+        if .thumbnailButtons.isEmpty() or
+           .pdfView.pageIndex < .thumbnailStart or
            .pdfView.pageIndex >= .thumbnailStart + .thumbnailButtons.count do
             return
-        let slot = cast(f32, .pdfView.pageIndex - .thumbnailStart)
-        let top = slot * ThumbnailSlotHeight
-        let bottom = top + ThumbnailSlotHeight
-        let visible = .thumbnailScroll.scrollPosition().y
+        let slot     = cast(f32, .pdfView.pageIndex - .thumbnailStart)
+        let top      = slot * ThumbnailSlotHeight
+        let bottom   = top + ThumbnailSlotHeight
+        let visible  = .thumbnailScroll.scrollPosition().y
         let viewport = .thumbnailScroll.clientRect().height
         if top < visible do
             .thumbnailScroll.setScrollPos(0, top)
@@ -1212,7 +1237,7 @@ func createViewer(host: Viewer.Host)
 {
     let services = host.services()
     let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
-    let metrics = host.contentParent().themeMetrics()
+    let metrics  = host.contentParent().themeMetrics()
     let commands = host.createCommandGroup(Viewer.pageControlWidth(metrics) + themeActionButtonSize(metrics) + 8)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)

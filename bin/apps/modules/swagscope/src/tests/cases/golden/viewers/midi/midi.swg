@@ -56,7 +56,7 @@ using Core, Pixel, Gui, Viewers
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.ensemble.mid"), true)
-    let view = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
     view.roll.setMode(.Pitches)
     view.setScaleHighlight(true)
     Swag.require(view.roll.scaleHighlightMaskAt(0) != 0)

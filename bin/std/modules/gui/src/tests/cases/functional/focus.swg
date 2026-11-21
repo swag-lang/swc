@@ -195,7 +195,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
             focus.canChangeFocus = false
         return false
     }
-    field.sigFocusLost += func|field|(_) { field.setFocus() }
+
+    field.sigFocusLost += func|field|(_)
+    {
+        field.setFocus()
+    }
 
     field.setFocus()
     Swag.require(host.root.detachChild(panel))
@@ -605,9 +609,9 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
     let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
     bar.arrowNavigation = true
-    let yes   = PushButton.create(bar, "Yes", {0, 0, 80, 24})
-    let no    = PushButton.create(bar, "No", {90, 0, 80, 24})
-    let more  = PushButton.create(bar, "More", {180, 0, 80, 24})
+    let yes  = PushButton.create(bar, "Yes", {0, 0, 80, 24})
+    let no   = PushButton.create(bar, "No", {90, 0, 80, 24})
+    let more = PushButton.create(bar, "More", {180, 0, 80, 24})
 
     yes.setFocus()
     host.keyPress(.Right)
@@ -678,8 +682,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(320, 240)
 
-    let field  = EditBox.create(&host.root, "", {10, 10, 200, 24})
-    let bar    = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
+    let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
     bar.arrowNavigation = true
     let ok     = PushButton.create(bar, "Ok", {0, 0, 80, 24}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {90, 0, 80, 24})

@@ -10,7 +10,7 @@ struct ZipEntry
     compressedSize:   u64
     uncompressedSize: u64
     localOffset:      u64
-    dataOffset:       u64      // Direct payload position for TAR entries.
+    dataOffset:       u64     // Direct payload position for TAR entries.
     crc32:            u32
     method:           u16
     flags:            u16
@@ -191,6 +191,7 @@ impl Zip
             if isTarHeader(first.bytes()) do
                 return try loadTar(&file, fileSize)
         }
+
         if fileSize < 22 do
             fail Errors.InvalidFormatError{texts().err_TooShort}
 
@@ -274,6 +275,7 @@ impl Zip
 
             return #move decoded.bytes
         }
+
         if entry.isTar
         {
             if entry.uncompressedSize > PreviewLimit do
@@ -287,6 +289,7 @@ impl Zip
             result.add(region.bytes())
             return result
         }
+
         if entry.flags & FlagEncrypted do
             fail Errors.UnsupportedFormatError{texts().err_Encrypted}
         if entry.uncompressedSize > PreviewLimit do
@@ -361,10 +364,10 @@ impl Zip
 // The fixed values of the ZIP format, and the readers the loader is built from.
 private impl Zip
 {
-    const TarBlockSize = 512'u64
+    const TarBlockSize      = 512'u64
     const TarExtensionLimit = 1024 * 1024'u64
-    const GzipHeaderLimit = 1024 * 1024'u64
-    const GzipInputLimit = PreviewLimit
+    const GzipHeaderLimit   = 1024 * 1024'u64
+    const GzipInputLimit    = PreviewLimit
 
     struct GzipDocument
     {
@@ -379,6 +382,7 @@ private impl Zip
         hasPath: bool
         hasSize: bool
     }
+
     // Signatures of the records the reader walks.
     const LocalSignature        = 0x04034B50'u32
     const DirectorySignature    = 0x02014B50'u32
@@ -405,8 +409,11 @@ private impl Zip
     {
         if bytes.count < TarBlockSize do
             return false
-        return bytes[257] == 'u' and bytes[258] == 's' and bytes[259] == 't' and
-               bytes[260] == 'a' and bytes[261] == 'r'
+        return bytes[257] == 'u' and
+               bytes[258] == 's' and
+               bytes[259] == 't' and
+               bytes[260] == 'a' and
+               bytes[261] == 'r'
     }
 
     // Reads an octal TAR number, rejecting base-256 encodings and invalid digits.
@@ -425,6 +432,7 @@ private impl Zip
                 fail Errors.InvalidFormatError{texts().err_TarNumber}
             result = result * 8 + (byte - '0')
         }
+
         if not digits do
             return 0
         return result
@@ -449,6 +457,7 @@ private impl Zip
                 fail Errors.InvalidFormatError{texts().err_TarExtended}
             result = result * 10 + (byte - '0')
         }
+
         return result
     }
 
@@ -469,13 +478,17 @@ private impl Zip
                 length = length * 10 + (byte - '0')
                 digits += 1
             }
-            if not digits or at + digits >= bytes.count or length <= digits + 2 or length > bytes.count - at do
+
+            if not digits or
+               at + digits >= bytes.count or
+               length <= digits + 2 or
+               length > bytes.count - at do
                 fail Errors.InvalidFormatError{texts().err_TarExtended}
             let end = at + length
             if bytes[end - 1] != '\n' do
                 fail Errors.InvalidFormatError{texts().err_TarExtended}
 
-            let keyAt = at + digits + 1
+            let keyAt    = at + digits + 1
             var equalsAt = keyAt
             while equalsAt < end - 1 and bytes[equalsAt] != '=' do
                 equalsAt += 1
@@ -493,11 +506,13 @@ private impl Zip
             }
             elif key == "size"
             {
-                result.size = try tarDecimal(value)
+                result.size    = try tarDecimal(value)
                 result.hasSize = true
             }
+
             at = end
         }
+
         return result
     }
 
@@ -521,6 +536,7 @@ private impl Zip
                 fail Errors.InvalidFormatError{texts().err_GzipHeader}
             at += extraSize
         }
+
         if flags & 8
         {
             let nameAt = at
@@ -531,6 +547,7 @@ private impl Zip
             result.name = text(bytes[nameAt until at], false)
             at += 1
         }
+
         if flags & 16
         {
             while at < Math.min(trailerAt, GzipHeaderLimit) and bytes[at] do
@@ -539,6 +556,7 @@ private impl Zip
                 fail Errors.InvalidFormatError{texts().err_GzipHeader}
             at += 1
         }
+
         if flags & 2
         {
             if at > trailerAt or 2 > trailerAt - at do
@@ -547,6 +565,7 @@ private impl Zip
                 fail Errors.InvalidFormatError{texts().err_GzipHeader}
             at += 2
         }
+
         if at >= trailerAt or at > GzipHeaderLimit do
             fail Errors.InvalidFormatError{texts().err_GzipHeader}
 
@@ -575,7 +594,7 @@ private impl Zip
     {
         if fileSize > GzipInputLimit do
             fail Errors.UnsupportedFormatError{texts().err_GzipTooLarge}
-        let mapped = try file.map(0, fileSize)
+        let mapped  = try file.map(0, fileSize)
         let decoded = try decodeGzip(mapped.bytes())
         if decoded.bytes.count >= TarBlockSize and isTarHeader(decoded.bytes.toSlice())
         {
@@ -593,6 +612,7 @@ private impl Zip
             if Utf8.endsWith(path.toSlice(), ".gz") do
                 path = path.toString()[0 until path.count - 3]
         }
+
         path = cleanPath(path.toString())
         if path.isEmpty() do
             path = "content"
@@ -628,16 +648,16 @@ private impl Zip
     // Parses a bounded ustar archive from either a mapped file or a validated GZIP payload.
     func loadTarBytes(bytes: const [..] u8)->Zip fail
     {
-        let fileSize = bytes.count
-        var result: #returntype
+        let fileSize    = bytes.count
+        var result:     #returntype
         var at          = 0'u64
         var entryCount  = 0'u64
         var zeroHeaders = 0'u8
-        var globalPax: TarOverrides
+        var globalPax:  TarOverrides
         var pendingPax: TarOverrides
         while at <= fileSize and TarBlockSize <= fileSize - at
         {
-            let header = bytes[at until at + TarBlockSize]
+            let header  = bytes[at until at + TarBlockSize]
             var allZero = true
             for byte in header where byte do
                 allZero = false
@@ -649,12 +669,13 @@ private impl Zip
                     break
                 continue
             }
+
             zeroHeaders = 0
             if not try validTarChecksum(header) do
                 fail Errors.InvalidFormatError{texts().err_TarChecksum}
 
-            let name   = tarField(header[0 until 100])
-            let prefix = tarField(header[345 until 500])
+            let name         = tarField(header[0 until 100])
+            let prefix       = tarField(header[345 until 500])
             var path: String = name
             if prefix.count do
                 path = Format.toString("%/%", prefix, name)
@@ -665,7 +686,7 @@ private impl Zip
             let headerSize = try tarOctal(header[124 until 136])
             if headerSize > fileSize - at - TarBlockSize do
                 fail Errors.InvalidFormatError{texts().err_TarPayloadOutside}
-            let dataAt = at + TarBlockSize
+            let dataAt       = at + TarBlockSize
             let headerPadded = headerSize > Swag.U64.Max - (TarBlockSize - 1) ?
                                Swag.U64.Max : (headerSize + TarBlockSize - 1) & ~(TarBlockSize - 1)
             if headerPadded > fileSize - dataAt do
@@ -680,12 +701,13 @@ private impl Zip
                 {
                     if overrides.hasPath
                     {
-                        globalPax.path = #move overrides.path
+                        globalPax.path    = #move overrides.path
                         globalPax.hasPath = true
                     }
+
                     if overrides.hasSize
                     {
-                        globalPax.size = overrides.size
+                        globalPax.size    = overrides.size
                         globalPax.hasSize = true
                     }
                 }
@@ -693,15 +715,17 @@ private impl Zip
                 {
                     if overrides.hasPath
                     {
-                        pendingPax.path = #move overrides.path
+                        pendingPax.path    = #move overrides.path
                         pendingPax.hasPath = true
                     }
+
                     if overrides.hasSize
                     {
-                        pendingPax.size = overrides.size
+                        pendingPax.size    = overrides.size
                         pendingPax.hasSize = true
                     }
                 }
+
                 at = dataAt + headerPadded
                 continue
             }
@@ -727,13 +751,13 @@ private impl Zip
             if not path.isEmpty()
             {
                 var entry: ZipEntry
-                entry.path           = path
-                entry.localOffset    = at
-                entry.dataOffset     = dataAt
-                entry.compressedSize = kind == '5' ? 0 : size
+                entry.path             = path
+                entry.localOffset      = at
+                entry.dataOffset       = dataAt
+                entry.compressedSize   = kind == '5' ? 0 : size
                 entry.uncompressedSize = kind == '5' ? 0 : size
-                entry.isDirectory    = kind == '5' or Utf8.endsWith(path, "/")
-                entry.isTar          = true
+                entry.isDirectory      = kind == '5' or Utf8.endsWith(path, "/")
+                entry.isTar            = true
                 if not entry.isDirectory
                 {
                     if size > Swag.U64.Max - result.uncompressedSize or
@@ -742,6 +766,7 @@ private impl Zip
                     result.uncompressedSize += size
                     result.compressedSize   += size
                 }
+
                 result.entries.add(#move entry)
                 entryCount += 1
                 if entryCount > EntryLimit do

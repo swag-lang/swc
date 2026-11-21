@@ -111,14 +111,14 @@ struct Application
     }
 
     // Keyboard recipient and pointer routing state.
-    keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
-    pointerFocusEpoch:     u64       // Detects a pointer press during a focus callback.
-    focusRevision:         u64       // Changes whenever the keyboard recipient changes.
-    mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
-    mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
-    nativeMouseButtons:    bool      // The native adapter dispatches queued mouse-button transitions.
-    nativeKeyboardEvents:  bool      // The native adapter dispatches queued keyboard transitions.
-    nativeFocusSurface:    *Surface? // Surface confirmed by the native keyboard-focus backend.
+    keyboardFocusWnd:     *Wnd?         // Window currently holding the keyboard focus.
+    pointerFocusEpoch:    u64           // Detects a pointer press during a focus callback.
+    focusRevision:        u64           // Changes whenever the keyboard recipient changes.
+    mouseCaptureWnd:      *Wnd?         // Window currently holding the mouse capture.
+    mouseEnterWnd:        *Wnd?         // Window the mouse last entered.
+    nativeMouseButtons:   bool          // The native adapter dispatches queued mouse-button transitions.
+    nativeKeyboardEvents: bool          // The native adapter dispatches queued keyboard transitions.
+    nativeFocusSurface:   *Surface?     // Surface confirmed by the native keyboard-focus backend.
 
     // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
     // window it is over and the position it reached are followed apart from the pointer state.
@@ -442,10 +442,12 @@ private impl Application
         if source and not .acceptsNativeKeyboard(source) do
             return null
 
-        let modal = .modalSurfaces.isEmpty() ? null : .modalSurfaces.back()
+        let modal        = .modalSurfaces.isEmpty() ? null : .modalSurfaces.back()
         let scopeSurface = source orelse modal
-        var target = .keyboardFocusWnd
-        if target and target.surface and not target.surface.isDisabled and
+        var target       = .keyboardFocusWnd
+        if target and
+           target.surface and
+           not target.surface.isDisabled and
            (not scopeSurface or target.surface == scopeSurface) do
             return skipDisabled(target)
         if not seed do
@@ -460,7 +462,9 @@ private impl Application
 
     internal mtd acceptsNativeKeyboard(source: *Surface)->bool
     {
-        return source == .nativeFocusSurface and not source.isHidden and not source.isDisabled and
+        return source == .nativeFocusSurface and
+               not source.isHidden and
+               not source.isDisabled and
                (.modalSurfaces.isEmpty() or .modalSurfaces.back() == source)
     }
 

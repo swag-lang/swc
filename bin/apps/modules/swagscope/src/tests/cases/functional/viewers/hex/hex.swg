@@ -730,7 +730,7 @@ internal func writeSampleFile()->String
     Swag.require(view.grid.goToTypedOffset("4") and view.grid.caret == 4)
     Swag.require(view.revealOffset(8, 2) and view.grid.caret == 8)
     view.bookmarkOffset = 12
-    view.hasBookmark = true
+    view.hasBookmark    = true
 
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
@@ -786,6 +786,7 @@ internal func writeSampleFile()->String
         Swag.require(view.navigateHistory(-1))
         steps += 1
     }
+
     Swag.require(view.grid.caret == 37 and not view.navigateHistory(-1))
 }
 
@@ -831,24 +832,27 @@ internal func writeSampleFile()->String
     // Copy actions are unavailable without a range, while navigation and select-all remain usable.
     for title in [Hex.texts().ui_CopyBytes, Hex.texts().ui_CopyText, Hex.texts().ui_CopyDump]
     {
-        var found: bool
+        var found:    bool
         var disabled: bool
         for &entry in results.sections[0]!.entries where entry.title == title
         {
-            found = true
+            found    = true
             disabled = entry.disabled
         }
+
         Swag.require(found and disabled, title)
     }
+
     for title in [Hex.texts().ui_GoTo, Hex.texts().ui_SelectAll]
     {
-        var found: bool
+        var found:    bool
         var disabled: bool
         for &entry in results.sections[0]!.entries where entry.title == title
         {
-            found = true
+            found    = true
             disabled = entry.disabled
         }
+
         Swag.require(found and not disabled, title)
     }
 

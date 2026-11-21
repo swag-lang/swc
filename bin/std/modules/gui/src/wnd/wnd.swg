@@ -337,8 +337,8 @@ struct Wnd
         layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
 
         focusPolicy:     FocusPolicy = None     // Pointer and traversal focus policy.
-        tabIndex:        s32 = -1               // Sibling Tab rank. Nonnegative ranks precede automatic reading order.
-        arrowNavigation: bool                   // Lets bare arrow keys move focus between this window's children.
+        tabIndex:        s32         = -1       // Sibling Tab rank. Nonnegative ranks precede automatic reading order.
+        arrowNavigation: bool     // Lets bare arrow keys move focus between this window's children.
 
         // Corner of the shape this window paints, which the keyboard-focus ring follows so the two
         // never cross. A widget that draws a themed tile publishes it from that tile while painting —
@@ -804,8 +804,8 @@ impl Wnd
 
         if who
         {
-            .parent      = who
-            .tabSequence = who.nextTabSequence
+            .parent             = who
+            .tabSequence        = who.nextTabSequence
             who.nextTabSequence += 1
             .assignSurface(who.surface)
 
@@ -2276,7 +2276,10 @@ impl Wnd
         var wnd: *Wnd? = me
         while wnd
         {
-            if wnd.isPendingDestroy or wnd.releasingFocus or not wnd.isLocallyVisible() or not wnd.isLocallyEnabled() do
+            if wnd.isPendingDestroy or
+               wnd.releasingFocus or
+               not wnd.isLocallyVisible() or
+               not wnd.isLocallyEnabled() do
                 return false
             wnd = wnd.parent
         }
@@ -2300,9 +2303,9 @@ impl Wnd
             return target.tryFocus(reason, allowNone)
         }
 
-        let app         = srfn.app
-        let last        = app.keyboardFocusWnd
-        let lastSurface = last?.surface
+        let app          = srfn.app
+        let last         = app.keyboardFocusWnd
+        let lastSurface  = last?.surface
         let pointerEpoch = app.pointerFocusEpoch
 
         if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn
@@ -2319,6 +2322,7 @@ impl Wnd
                 app.setFocusVisible(reason == .Navigation)
                 srfn.noteFocus(me, reason, allowNone)
             }
+
             return .Accepted
         }
 
@@ -2349,8 +2353,8 @@ impl Wnd
         var visible: bool
         switch reason
         {
-        case .Navigation:   visible = pointerEpoch == app.pointerFocusEpoch
-        case .Programmatic: visible = lastSurface == srfn and app.focusVisible
+        case .Navigation:        visible = pointerEpoch == app.pointerFocusEpoch
+        case .Programmatic:      visible = lastSurface == srfn and app.focusVisible
         case .Pointer, .Restore: break
         }
 
@@ -2467,9 +2471,9 @@ impl Wnd
 
     internal mtd traverseFocus(forward, inGroup: bool, reason: FocusReason)->bool
     {
-        let order = FocusOrder.around(me)
+        let order  = FocusOrder.around(me)
         let origin = order.indexOf(me)
-        var from = me
+        var from   = me
         for order.stops.count
         {
             let next = inGroup ? order.nextInGroup(from, forward) : order.next(from, forward)
@@ -2531,7 +2535,10 @@ impl Wnd
         defer me.releasingFocus = false
 
         let surface = focus.surface
-        if surface and surface.focusWnd == focus and surface.savedFocusReason == .Pointer and not surface.app.focusVisible
+        if surface and
+           surface.focusWnd == focus and
+           surface.savedFocusReason == .Pointer and
+           not surface.app.focusVisible
         {
             surface.clearFocus()
             return

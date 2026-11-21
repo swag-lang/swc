@@ -150,7 +150,10 @@ private impl FocusOrder
         if wnd.isFocusStop()
         {
             let target = wnd.focusTarget()
-            if target.surface == wnd.surface and target.focusPolicy != .None and target.isVisible() and target.isEnabled() do
+            if target.surface == wnd.surface and
+               target.focusPolicy != .None and
+               target.isVisible() and
+               target.isEnabled() do
                 .stops.add(wnd)
         }
 
@@ -164,8 +167,10 @@ private impl FocusOrder
                 if let member = FocusOrder.groupRepresentative(radio) do
                     .addTree(member)
             }
-            else do
+            else
+            {
                 .addTree(child)
+            }
         }
     }
 
@@ -203,8 +208,10 @@ private impl FocusOrder
                 if not FocusOrder.groupRepresentative(radio) do
                     continue
             }
-            elif not FocusOrder.isReachable(child) do
+            elif not FocusOrder.isReachable(child)
+            {
                 continue
+            }
 
             if child.tabIndex >= 0 do
                 explicit.add(child)

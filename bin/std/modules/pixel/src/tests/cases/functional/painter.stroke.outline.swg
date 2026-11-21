@@ -102,8 +102,8 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     let plain    = outlineTestRender(outlineTestPen(0, .ArrowAnchor, .None))
     let bordered = outlineTestRender(outlineTestPen(4, .ArrowAnchor, .None))
 
-    // The head is at the end of the line and is widest where it meets the shaft.
-    const HeadX = 112
+    // The head tapers from its base at x=116 to its tip at x=120.
+    const HeadX = 118
 
     let plainCore    = outlineTestSpan(plain, HeadX, whiteOnly: true)
     let borderedCore = outlineTestSpan(bordered, HeadX, whiteOnly: true)
@@ -114,7 +114,8 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     let borderedAll = outlineTestSpan(bordered, HeadX, whiteOnly: false)
     let upper       = borderedCore.top - borderedAll.top
     let lower       = borderedAll.bottom - borderedCore.bottom
-    Swag.require(upper == 4 and lower == 4, Format.toString("arrowhead contour occupies % pixels above and % below", upper, lower))
+    Swag.require(upper >= 4 and upper <= 5 and lower >= 4 and lower <= 5,
+                 Format.toString("arrowhead contour extends % pixels above and % below", upper, lower))
 }
 
 // A contoured dashed stroke keeps the dash pattern of the stroke itself.

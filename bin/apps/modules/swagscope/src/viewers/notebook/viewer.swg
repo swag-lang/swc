@@ -3,7 +3,7 @@
 
 using Core, Gui
 
-private const FileLimit = 16 * 1024 * 1024'u64
+private const FileLimit     = 16 * 1024 * 1024'u64
 private const CellTextLimit = 64 * 1024'u64
 
 // The supported, inert subset of a Jupyter notebook. Unknown JSON properties, including widget
@@ -17,14 +17,14 @@ struct MimeData
 struct StoredOutput
 {
     #[Serialization.Key("output_type")]
-    outputType:  String
-    text:        Array'String
-    traceback:   Array'String
+    outputType: String
+    text:       Array'String
+    traceback:  Array'String
     #[Serialization.Key("ename")]
-    errorName:   String
+    errorName: String
     #[Serialization.Key("evalue")]
-    errorValue:  String
-    data:        MimeData
+    errorValue: String
+    data:       MimeData
 }
 
 struct Cell
@@ -33,21 +33,21 @@ struct Cell
     cellType: String
     #[Serialization.Key("execution_count")]
     executionCount: String
-    source:   Array'String
-    outputs:  Array'StoredOutput
+    source:         Array'String
+    outputs:        Array'StoredOutput
 }
 
 struct KernelMetadata
 {
     #[Serialization.Key("display_name")]
     displayName: String
-    name: String
-    language: String
+    name:        String
+    language:    String
 }
 
 struct LanguageMetadata
 {
-    name: String
+    name:    String
     version: String
 }
 
@@ -75,10 +75,12 @@ private func quotedEnd(source: string, start: u64)->u64
             at += 2
             continue
         }
+
         if source[at] == '"' do
             return at
         at += 1
     }
+
     return Swag.U64.Max
 }
 
@@ -110,7 +112,11 @@ private func normalizeSources(source: string)->String
         }
 
         var colon = end + 1
-        while colon < source.count and (source[colon] == ' ' or source[colon] == '\t' or source[colon] == '\r' or source[colon] == '\n') do
+        while colon < source.count and
+              (source[colon] == ' ' or
+               source[colon] == '\t' or
+               source[colon] == '\r' or
+               source[colon] == '\n') do
             colon += 1
         if colon >= source.count or source[colon] != ':'
         {
@@ -119,21 +125,29 @@ private func normalizeSources(source: string)->String
         }
 
         var value = colon + 1
-        while value < source.count and (source[value] == ' ' or source[value] == '\t' or source[value] == '\r' or source[value] == '\n') do
+        while value < source.count and
+              (source[value] == ' ' or
+               source[value] == '\t' or
+               source[value] == '\r' or
+               source[value] == '\n') do
             value += 1
         if value >= source.count
         {
             at = end + 1
             continue
         }
+
         if field == "\"execution_count\""
         {
             var valueEnd = value
             if source[value] == 'n' and source[value until Math.min(value + 4, source.count)] == "null"
-                do valueEnd += 4
+            {
+                valueEnd += 4
+            }
             else
             {
-                if source[value] == '-' do valueEnd += 1
+                if source[value] == '-' do
+                    valueEnd += 1
                 let digitsStart = valueEnd
                 while valueEnd < source.count and Latin1.isDigit(source[valueEnd]) do
                     valueEnd += 1
@@ -144,12 +158,12 @@ private func normalizeSources(source: string)->String
                 }
             }
 
-            result += source[copiedUntil until value]
-            result += "\""
-            result += source[value until valueEnd]
-            result += "\""
+            result      += source[copiedUntil until value]
+            result      += "\""
+            result      += source[value until valueEnd]
+            result      += "\""
             copiedUntil = valueEnd
-            at = copiedUntil
+            at          = copiedUntil
             continue
         }
 
@@ -162,12 +176,12 @@ private func normalizeSources(source: string)->String
         let valueEnd = quotedEnd(source, value)
         if valueEnd == Swag.U64.Max do
             break
-        result += source[copiedUntil until value]
-        result += "["
-        result += source[value until valueEnd + 1]
-        result += "]"
+        result      += source[copiedUntil until value]
+        result      += "["
+        result      += source[value until valueEnd + 1]
+        result      += "]"
         copiedUntil = valueEnd + 1
-        at = copiedUntil
+        at          = copiedUntil
     }
 
     result += source[copiedUntil until source.count]
@@ -214,11 +228,13 @@ private func codeFence(source: string)->String
     {
         if c == '`'
         {
-            run += 1
+            run     += 1
             longest = Math.max(longest, run)
         }
-        else do
+        else
+        {
             run = 0
+        }
     }
 
     let fenceLength = Math.max(3, longest + 1)
@@ -254,9 +270,10 @@ private func markdownSafe(source: string)->String
         case '[': result += "\\["
         case ']': result += "\\]"
         case '!': result += "\\!"
-        default: result += c
+        default:  result += c
         }
     }
+
     return result
 }
 
@@ -279,8 +296,8 @@ func renderMarkdown(document: const *Document)->String
         metadata += Format.toString("Language version: %\n", boundedText(document.metadata.languageInfo.version.toString()))
     if metadata.count do
         result += "**Notebook metadata**\n\n"
-        result += fenced(metadata.toString())
-        result += "\n\n"
+    result += fenced(metadata.toString())
+    result += "\n\n"
 
     for cell, index in document.cells
     {
@@ -297,9 +314,9 @@ func renderMarkdown(document: const *Document)->String
         if cell.cellType == "code"
         {
             let source = boundedText(joinLines(cell.source).toString())
-            let count = cell.executionCount.isEmpty() or cell.executionCount == "null"
-                ? String.from("In [ ]")
-                : Format.toString("In [%]", cell.executionCount)
+            let count  = cell.executionCount.isEmpty() or cell.executionCount == "null"
+                         ? String.from("In [ ]")
+                         : Format.toString("In [%]", cell.executionCount)
             result += Format.toString("## Code cell % · %\n\n%\n\n", number, count, fenced(source.toString()))
             for output in cell.outputs
             {
@@ -314,6 +331,7 @@ func renderMarkdown(document: const *Document)->String
                     result += fenced(plain.toString())
                     result += "\n\n"
                 }
+
                 if trace.count or output.errorName.count or output.errorValue.count
                 {
                     var errorText: String = output.errorValue
@@ -322,15 +340,20 @@ func renderMarkdown(document: const *Document)->String
                     let error = boundedText(errorText.toString())
                     result += Format.toString("**Error · %**\n\n%\n\n", output.errorName, fenced(error.toString()))
                 }
+
                 if output.outputType == "display_data" or output.outputType == "execute_result"
                 {
                     result += "**Rich output omitted** · HTML, SVG, images, widgets and other MIME data remain available in the notebook source; they are not rendered, executed or fetched.\n\n"
                 }
-                elif not plain.count and not trace.count and not output.errorName.count and not output.errorValue.count
+                elif not plain.count and
+                     not trace.count and
+                     not output.errorName.count and
+                     not output.errorValue.count
                 {
                     result += "**Rich output omitted** · HTML, SVG, images, widgets and other MIME data remain available in the notebook source; they are not rendered, executed or fetched.\n\n"
                 }
             }
+
             continue
         }
 
@@ -338,6 +361,7 @@ func renderMarkdown(document: const *Document)->String
         let source = boundedText(joinLines(cell.source).toString())
         result += Format.toString("## % cell % · source\n\n%\n\n", cell.cellType, number, fenced(source.toString()))
     }
+
     return result
 }
 
@@ -363,27 +387,31 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.field-notes.ipynb"
         .addSelectors(".ipynb")
     }
+
     return result
 }
 
 func createViewer(host: Viewer.Host)
 {
     let fileName = host.fileName()
-    let info = catch File.info(fileName)
+    let info     = catch File.info(fileName)
     {
         host.reject("Could not read notebook file information")
         return
     }
+
     if info.size > FileLimit
     {
         host.reject("Notebook is too large to open")
         return
     }
+
     let source = catch File.readAllText(fileName)
     {
         host.reject("Could not read notebook source")
         return
     }
+
     let document = catch parseNotebook(source.toString())
     {
         host.reject("Notebook JSON is invalid or uses an unsupported source shape")
@@ -391,20 +419,17 @@ func createViewer(host: Viewer.Host)
     }
 
     let rendered = renderMarkdown(&document)
-    let view = Markdown.View.createText(host.contentParent(), rendered.toString(), Markdown.Style.theme())
+    let view     = Markdown.View.createText(host.contentParent(), rendered.toString(), Markdown.Style.theme())
     host.attachView(view)
 
     // The heading parser and Markdown view see the same in-memory text, so every outline target
     // is a source offset that revealHeading can navigate to without reopening the notebook file.
-    let outline = DocumentOutline.create(host)
+    let outline  = DocumentOutline.create(host)
     let headings = Markdown.parseHeadings(rendered.toString())
     outline.publish(headings.toSlice())
-    outline.follow = func|panel = outline, document = view|()
-    {
-        panel.markReading(document.readingOffset(), atEnd: document.readingProgress() >= 1)
-    }
+    outline.follow      = func|panel = outline, document = view|() { panel.markReading(document.readingOffset(), atEnd: document.readingProgress() >= 1) }
     outline.sigSelected += func|document = view|(_, offset) { discard document.revealHeading(offset) }
-    view.sigScrolled += func|panel = outline|(_) { panel.followOpenReading() }
+    view.sigScrolled    += func|panel = outline|(_) { panel.followOpenReading() }
 
     host.setDetails("Notebook · code is not executed; active MIME outputs are omitted")
 }

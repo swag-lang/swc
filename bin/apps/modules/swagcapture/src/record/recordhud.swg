@@ -2,17 +2,17 @@ using Core, Pixel
 
 // The recording controls stand beside the frame, outside the recorded area. Their readouts,
 // progress and choices use GUI widgets so one theme and event model owns the whole bar.
-const RecordHudHeight     = 40.0     // Logical height of the pill.
-const RecordHudBorderWidth = 2.0     // Weight of the outline against the live screen.
-const RecordHudLeft       = 7.0      // Air before the recording mark.
-const RecordHudRight      = 6.0      // Air after the last command.
-const RecordHudMark       = 26.0     // Side of the recording mark's cell.
-const RecordHudTextMargin = 8.0      // Air on each side of the time.
-const RecordHudRuleHeight = 20.0     // Height of the rule before the commands.
-const RecordHudButton     = 28.0     // Side of one command.
-const RecordHudButtonGap  = 4.0      // Air between two commands.
-const RecordHudGap        = 8.0      // Air between the frame and the pill.
-const AllScreensChoiceId  = "record.screen.all"
+const RecordHudHeight      = 40.0     // Logical height of the pill.
+const RecordHudBorderWidth = 2.0      // Weight of the outline against the live screen.
+const RecordHudLeft        = 7.0      // Air before the recording mark.
+const RecordHudRight       = 6.0      // Air after the last command.
+const RecordHudMark        = 26.0     // Side of the recording mark's cell.
+const RecordHudTextMargin  = 8.0      // Air on each side of the time.
+const RecordHudRuleHeight  = 20.0     // Height of the rule before the commands.
+const RecordHudButton      = 28.0     // Side of one command.
+const RecordHudButtonGap   = 4.0      // Air between two commands.
+const RecordHudGap         = 8.0      // Air between the frame and the pill.
+const AllScreensChoiceId   = "record.screen.all"
 
 struct RecordHud
 {

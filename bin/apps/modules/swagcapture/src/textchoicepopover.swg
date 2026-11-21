@@ -25,14 +25,14 @@ struct TextChoicePopover
 {
     using wnd: Wnd
 
-    late main:   *MainWnd
-    late button: *IconButton
-    late list:   *ListCtrl
-    filter:      *EditBox?
-    kind:        TextChoiceKind
+    late main:    *MainWnd
+    late button:  *IconButton
+    late list:    *ListCtrl
+    filter:       *EditBox?
+    kind:         TextChoiceKind
     selectedForm: u64
-    values:      Array'u32     // Each visible row's font index, or its numeric size.
-    refreshing:  bool
+    values:       Array'u32     // Each visible row's font index, or its numeric size.
+    refreshing:   bool
 }
 
 impl TextChoicePopover
@@ -142,6 +142,7 @@ impl TextChoicePopover
             .list.computeLayout()
             return
         }
+
         var chosen = Swag.U32.Max
 
         if .kind == .Face
@@ -149,7 +150,7 @@ impl TextChoicePopover
             var filterText = ""
             if .filter do
                 filterText = .filter.text()
-            let matcher = assume Text.NameMatcher.create(filterText, {comparisonType: .UnicodeNoCase})
+            let matcher   = assume Text.NameMatcher.create(filterText, {comparisonType: .UnicodeNoCase})
             let hasFilter = filterText.count > 0
 
             let defaultFace = .theme().res.defaultTypeFaceR.familyName()

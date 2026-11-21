@@ -182,6 +182,7 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
                     result.frozenColumns = columns
                 }
+
                 if let split = token.attribute("ySplit")
                 {
                     let rows = catch StrConv.toU32(split) { fail Errors.InvalidFormatError{texts().err_Invalid} }

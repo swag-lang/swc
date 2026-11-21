@@ -296,12 +296,12 @@ const HeadHeight = 72.0
 // quantities, their range and their sum.
 struct ColumnProfile
 {
-    empty:      u64
+    empty:        u64
     inconsistent: u64
-    quantities: u64
-    minimum:    f64
-    maximum:    f64
-    sum:        f64
+    quantities:   u64
+    minimum:      f64
+    maximum:      f64
+    sum:          f64
 }
 
 // The most columns the information sheet profiles; a wider table names how many it leaves out.
@@ -480,8 +480,11 @@ private func compareSortKeys(a, b: SortKey, descending: bool)->s32
         if not order do
             order = descending ? Text.compareNames(b.text, a.text) : Text.compareNames(a.text, b.text)
     }
-    else do
+    else
+    {
         order = descending ? Text.compareNames(b.text, a.text) : Text.compareNames(a.text, b.text)
+    }
+
     return order != 0 ? order : a.row <=> b.row
 }
 
@@ -531,6 +534,7 @@ func isDateCell(text: string)->bool
     case 2: daysInMonth = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) ? 29 : 28
     case 4, 6, 9, 11: daysInMonth = 30
     }
+
     return month >= 1 and month <= 12 and day >= 1 and day <= daysInMonth
 }
 
@@ -671,7 +675,7 @@ private impl Panel
 
             // Year-first dates can contain only digits and dashes, so recognize a complete date
             // column before treating its punctuation as a numeric sign.
-            var kind = ColumnKind.Text
+            var kind     = ColumnKind.Text
             var hasDates = false
             var dates    = true
             for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count and row.cells[index].length
@@ -681,8 +685,10 @@ private impl Panel
                     dates = false
             }
 
-            if hasDates and dates do
+            if hasDates and dates
+            {
                 kind = .Date
+            }
             elif numeric and not textual
             {
                 kind = .Integer
@@ -854,29 +860,29 @@ private impl Panel
         // The keyboard stays on the row it was on, wherever the order moves it.
         let focused = .list.focusIndex < .document.rows.count ? .documentRow(.list.focusIndex) : Swag.U64.Max
 
-        let numeric = column < .numeric.count and .numeric[column]
+        let numeric      = column < .numeric.count and .numeric[column]
         let isDateColumn = column < .kinds.count and .kinds[column] == .Date
         var keys:  Array'SortKey
         var empty: Array'u32
-        let descending = .descending
+        let descending   = .descending
         for row, index in .document.rows
         {
             let text = column < row.cells.count ? row.cells[column].toString() : ""
             var key  = SortKey{row: cast(u32, index), numeric: numeric, text: text}
             if isDateColumn and text.count
             {
-                key.numeric = true
+                key.numeric  = true
                 key.quantity = cast(f64, dateKey(text))
             }
+
             if text.count == 0 or
                (isDateColumn and key.quantity == cast(f64, Swag.U32.Max)) or
                (numeric and not quantityOf(text, &key.quantity)) do
                 empty.add(key.row)
-            else
-            {
+            else do
                 keys.add(key)
-            }
         }
+
         keys.sort(func|descending|(a, b)->s32
         {
             return compareSortKeys(a, b, descending)
@@ -1231,9 +1237,10 @@ impl Panel
                 {
                     let kind = .kinds[column]
                     var value: f64
-                    if (kind == .Integer and (not quantityOf(text, &value) or
-                                              Utf8.contains(text, ".") or
-                                              (Utf8.contains(text, ",") and not isThousands(text)))) or
+                    if (kind == .Integer and
+                        (not quantityOf(text, &value) or
+                         Utf8.contains(text, ".") or
+                         (Utf8.contains(text, ",") and not isThousands(text)))) or
                        (kind == .Decimal and not quantityOf(text, &value)) or
                        (kind == .Date and not isDateCell(text))
                         do

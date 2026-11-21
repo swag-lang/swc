@@ -44,12 +44,11 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">38</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">37</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Ogl_extParamType_glDebugMessageCallback_callback">Ogl.extParamType_glDebugMessageCallback_callback</a></li>
 <li><a href="#Ogl_extParamType_glDebugMessageCallbackARB_callback">Ogl.extParamType_glDebugMessageCallbackARB_callback</a></li>
-<li><a href="#Ogl_getExtensionAddress">Ogl.getExtensionAddress</a></li>
 <li><a href="#Ogl_GLbitfield">Ogl.GLbitfield</a></li>
 <li><a href="#Ogl_GLboolean">Ogl.GLboolean</a></li>
 <li><a href="#Ogl_GLbyte">Ogl.GLbyte</a></li>
@@ -4813,7 +4812,6 @@
 <tbody>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallback_callback">Ogl.extParamType_glDebugMessageCallback_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallbackARB_callback">Ogl.extParamType_glDebugMessageCallbackARB_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_getExtensionAddress">Ogl.getExtensionAddress</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLbitfield">Ogl.GLbitfield</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLboolean">Ogl.GLboolean</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLbyte">Ogl.GLbyte</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
@@ -9638,7 +9636,6 @@
 <tbody>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallback_callback">Ogl.extParamType_glDebugMessageCallback_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_extParamType_glDebugMessageCallbackARB_callback">Ogl.extParamType_glDebugMessageCallbackARB_callback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
-<tr><td class="code-type"><a href="#Ogl_getExtensionAddress">Ogl.getExtensionAddress</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLbitfield">Ogl.GLbitfield</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLboolean">Ogl.GLboolean</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#Ogl_GLbyte">Ogl.GLbyte</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
@@ -14472,10 +14469,6 @@
 <span class="SKwd">alias</span> extParamType_glDebugMessageCallbackARB_callback = <span class="SKwd">func</span>(<span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">s32</span>, <span class="SKwd">const</span> *<span class="STpe">u8</span>?, <span class="SKwd">const</span> *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_getExtensionAddress" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.getExtensionAddress</span> <a class="api-item-permalink" href="#Ogl_getExtensionAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L8">src</a></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> getExtensionAddress = <a href="#Ogl_wglGetProcAddress">wglGetProcAddress</a></span></div>
-</section>
-<section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Ogl_GLbitfield" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.GLbitfield</span> <a class="api-item-permalink" href="#Ogl_GLbitfield" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.1.1.swg#L14">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">GLbitfield</span> = <span class="STpe">u32</span></span></div>
 </section>
@@ -14602,22 +14595,22 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">HGLRC</span> = <span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglCreateContextAttribsProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglCreateContextAttribsProc</span> <a class="api-item-permalink" href="#Ogl_WglCreateContextAttribsProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L30">src</a></div>
+<div class="api-item api-item-alias"><span id="Ogl_WglCreateContextAttribsProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglCreateContextAttribsProc</span> <a class="api-item-permalink" href="#Ogl_WglCreateContextAttribsProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L44">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">WglCreateContextAttribsProc</span> = <span class="SKwd">func</span>(<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>, <span class="SKwd">const</span> *<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglGetExtensionsStringProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglGetExtensionsStringProc</span> <a class="api-item-permalink" href="#Ogl_WglGetExtensionsStringProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L28">src</a></div>
+<div class="api-item api-item-alias"><span id="Ogl_WglGetExtensionsStringProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglGetExtensionsStringProc</span> <a class="api-item-permalink" href="#Ogl_WglGetExtensionsStringProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L42">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">WglGetExtensionsStringProc</span>  = <span class="SKwd">func</span>(<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="SKwd">const</span> *<span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Ogl_WglSwapIntervalProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglSwapIntervalProc</span> <a class="api-item-permalink" href="#Ogl_WglSwapIntervalProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L10">src</a></div>
+<div class="api-item api-item-alias"><span id="Ogl_WglSwapIntervalProc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Ogl.WglSwapIntervalProc</span> <a class="api-item-permalink" href="#Ogl_WglSwapIntervalProc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L9">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">WglSwapIntervalProc</span> = <span class="SKwd">func</span>(<span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_BOOL">BOOL</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Ogl_Platform_Win32_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.Context</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L126">src</a></div>
+<div class="api-item api-item-struct"><span id="Ogl_Platform_Win32_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.Context</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L140">src</a></div>
 <p>Owns a Windows OpenGL context and the window device context paired with it.</p>
 <p>Create this value with <a href="#Ogl_Platform_Win32_createContext">Ogl.Platform.Win32.createContext</a>. It releases any remaining native resources when it leaves scope; call <a href="#Ogl_Platform_Win32_Context_destroy">Ogl.Platform.Win32.Context.destroy</a> to release them earlier.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
@@ -26839,51 +26832,51 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">GL_ZOOM_Y</span>                        = <span class="SNum">0x0D17</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_FLAGS_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_FLAGS_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_FLAGS_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L33">src</a></div>
+<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_FLAGS_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_FLAGS_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_FLAGS_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L47">src</a></div>
 <p><span class="code-inline">WGL_ARB_create_context</span> and <span class="code-inline">WGL_ARB_create_context_robustness</span> attribute names and values.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_FLAGS_ARB</span>             = <span class="SNum">0x2094</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L35">src</a></div>
+<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L49">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB</span> = <span class="SNum">0x8256</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L34">src</a></div>
+<div class="api-item api-item-const"><span id="Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L48">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB</span> = <span class="SNum">0x00000004</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L36">src</a></div>
+<div class="api-item api-item-const"><span id="Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB</span> <a class="api-item-permalink" href="#Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L50">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">WGL_LOSE_CONTEXT_ON_RESET_ARB</span>     = <span class="SNum">0x8252</span></span></div>
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_clearCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.clearCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_clearCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L184">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_clearCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.clearCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_clearCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L198">src</a></div>
 <p>Clears the current OpenGL context from the calling thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearCurrent</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.destroy</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L199">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.destroy</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L213">src</a></div>
 <p>Releases the rendering context and its acquired device context.</p>
 <p>Repeated calls are harmless. Destroying a context that is not current does not disturb another context currently bound to the thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.isValid</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.isValid</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L189">src</a></div>
 <p>Returns whether this value owns a native rendering context.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_makeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.makeCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_makeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_makeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.makeCurrent</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_makeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L192">src</a></div>
 <p>Makes this context current on the calling thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeCurrent</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.opDrop</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L169">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.opDrop</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L183">src</a></div>
 <p>Releases any remaining native resources when this value leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.swapBuffers</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L190">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_Context_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.swapBuffers</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_Context_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L204">src</a></div>
 <p>Presents the back buffer for this context's window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>()</span></div>
 </section>
@@ -33420,60 +33413,60 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">glWindowRectanglesEXT</span>(mode: <span class="STpe">u32</span>, count: <span class="STpe">s32</span>, box: <span class="SKwd">const</span> *<span class="STpe">s32</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglCreateContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContext</span> <a class="api-item-permalink" href="#Ogl_wglCreateContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L87">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglCreateContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContext</span> <a class="api-item-permalink" href="#Ogl_wglCreateContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L101">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglCreateContext</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglCreateContextAttribsARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContextAttribsARB</span> <a class="api-item-permalink" href="#Ogl_wglCreateContextAttribsARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L58">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglCreateContextAttribsARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglCreateContextAttribsARB</span> <a class="api-item-permalink" href="#Ogl_wglCreateContextAttribsARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L72">src</a></div>
 <p>Creates a context for <span class="code-inline">hDc</span> described by the zero-terminated attribute list <span class="code-inline">attribs</span>.</p>
 <p><span class="code-inline">WGL_ARB_create_context</span> is resolved against the context current on the calling thread, so a context must be current first. Returns <span class="code-inline">null</span> when the driver does not publish the extension or refuses the attributes; <span class="code-inline">GetLastError</span> then tells why. <span class="code-inline">shareContext</span> may be <span class="code-inline">null</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglCreateContextAttribsARB</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, shareContext: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>, attribs: <span class="SKwd">const</span> [..] <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglDeleteContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglDeleteContext</span> <a class="api-item-permalink" href="#Ogl_wglDeleteContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L95">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglDeleteContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglDeleteContext</span> <a class="api-item-permalink" href="#Ogl_wglDeleteContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L109">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglDeleteContext</span>(hRc: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentContext</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentContext</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L115">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetCurrentContext</span>()-&gt;<span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentDC" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentDC</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentDC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglGetCurrentDC" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetCurrentDC</span> <a class="api-item-permalink" href="#Ogl_wglGetCurrentDC" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L116">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetCurrentDC</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetExtensionsStringARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetExtensionsStringARB</span> <a class="api-item-permalink" href="#Ogl_wglGetExtensionsStringARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglGetExtensionsStringARB" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetExtensionsStringARB</span> <a class="api-item-permalink" href="#Ogl_wglGetExtensionsStringARB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L56">src</a></div>
 <p>Returns the WGL extension names published for <span class="code-inline">hDc</span>, separated by spaces.</p>
 <p><span class="code-inline">WGL_ARB_extensions_string</span> is resolved against the context current on the calling thread, so this answers <span class="code-inline">null</span> before there is one and on a driver that does not publish the extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetExtensionsStringARB</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)-&gt;<span class="STpe">string</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglGetProcAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetProcAddress</span> <a class="api-item-permalink" href="#Ogl_wglGetProcAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L69">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglGetProcAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglGetProcAddress</span> <a class="api-item-permalink" href="#Ogl_wglGetProcAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L83">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglGetProcAddress</span>(arg1: <span class="SCst"><a href="std.win32.html#Win32_LPCSTR">LPCSTR</a></span>)-&gt;<span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglMakeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglMakeCurrent</span> <a class="api-item-permalink" href="#Ogl_wglMakeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L104">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglMakeCurrent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglMakeCurrent</span> <a class="api-item-permalink" href="#Ogl_wglMakeCurrent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L118">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglMakeCurrent</span>(hDc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, hRc: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglShareLists" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglShareLists</span> <a class="api-item-permalink" href="#Ogl_wglShareLists" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L110">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglShareLists" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglShareLists</span> <a class="api-item-permalink" href="#Ogl_wglShareLists" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L124">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglShareLists</span>(hRc0, hRc1: <span class="SCst"><a href="#Ogl_HGLRC">HGLRC</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_wglSwapIntervalEXT" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglSwapIntervalEXT</span> <a class="api-item-permalink" href="#Ogl_wglSwapIntervalEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L19">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_wglSwapIntervalEXT" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ogl.wglSwapIntervalEXT</span> <a class="api-item-permalink" href="#Ogl_wglSwapIntervalEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L33">src</a></div>
 <p>Sets how many display refreshes a <span class="code-inline">SwapBuffers</span> waits for, and reports whether it was accepted.</p>
 <p><span class="code-inline">WGL_EXT_swap_control</span> is resolved against the context current on the calling thread, so this answers <span class="code-inline">false</span> before there is one and on a driver that does not publish the extension. One paces every present on the display, zero paces none of them. An application that never states an interval inherits whatever the driver and its control panel decided, which is why the two machines showing the same program never presented at the same cadence.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wglSwapIntervalEXT</span>(interval: <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.createContext</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L141">src</a></div>
+<div class="api-item api-item-func"><span id="Ogl_Platform_Win32_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Win32.createContext</span> <a class="api-item-permalink" href="#Ogl_Platform_Win32_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl/src/ogl.win32.swg#L155">src</a></div>
 <p>Creates an OpenGL context for <span class="code-inline">window</span>.</p>
 <p><span class="code-inline">colorBits</span> selects the requested color-buffer depth. When <span class="code-inline">makeCurrent</span> is true, the new context becomes current on the calling thread before the function returns. Failure releases every partially acquired native handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createContext</span>(window: *<span class="SCst"><a href="std.core.html#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="std.core.html#Core_Env_Window">Window</a></span>, colorBits: <span class="STpe">u8</span> = <span class="SNum">32</span>, makeCurrent = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Ogl_Platform_Win32_Context">Context</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1178</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1179</div>
 </footer>
 </section>
 </main>
@@ -36774,7 +36767,6 @@
 "c|Ogl.WGL_LOSE_CONTEXT_ON_RESET_ARB|Ogl_WGL_LOSE_CONTEXT_ON_RESET_ARB|",
 "a|Ogl.extParamType_glDebugMessageCallback_callback|Ogl_extParamType_glDebugMessageCallback_callback|",
 "a|Ogl.extParamType_glDebugMessageCallbackARB_callback|Ogl_extParamType_glDebugMessageCallbackARB_callback|",
-"a|Ogl.getExtensionAddress|Ogl_getExtensionAddress|",
 "a|Ogl.GLbitfield|Ogl_GLbitfield|",
 "a|Ogl.GLboolean|Ogl_GLboolean|",
 "a|Ogl.GLbyte|Ogl_GLbyte|",

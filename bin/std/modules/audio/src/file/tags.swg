@@ -27,7 +27,7 @@ struct SoundTags
         // the extension of their format (`.jpg`, `.png`, `.gif`, `.bmp` or `.webp`). Read only
         // when asked for; empty when the file embeds none in a format named here.
         picture: Array'u8
-        pictureExtension: String  // File extension of the embedded picture, including its leading dot.
+        pictureExtension: String     // File extension of the embedded picture, including its leading dot.
     }
 
     pictureKind: u8     // Picture type the tag gives `picture`; 3 is the front cover.

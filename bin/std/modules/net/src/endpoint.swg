@@ -3,8 +3,8 @@
 // Identifies which Internet Protocol address family an address uses.
 enum AddressFamily
 {
-    IPv4 // A 32-bit Internet Protocol version 4 address.
-    IPv6 // A 128-bit Internet Protocol version 6 address.
+    IPv4     // A 32-bit Internet Protocol version 4 address.
+    IPv6     // A 128-bit Internet Protocol version 6 address.
 }
 
 // Represents an IPv4 or IPv6 address as network-order octets.
@@ -12,9 +12,9 @@ struct IpAddress
 {
     public
     {
-        family: AddressFamily     // Address format used by the first 4 or 16 octets.
-        bytes:  [16] u8           // Address bytes in network order; unused IPv4 bytes are zero.
-        scopeId: u32              // IPv6 interface scope for link-local addresses; zero otherwise.
+        family:  AddressFamily     // Address format used by the first 4 or 16 octets.
+        bytes:   [16] u8           // Address bytes in network order; unused IPv4 bytes are zero.
+        scopeId: u32               // IPv6 interface scope for link-local addresses; zero otherwise.
     }
 }
 

@@ -89,24 +89,28 @@ impl Grid
     mtd totalHeight()->f64 => .rowOffsets.isEmpty() ? 0 : .rowOffsets.back()
     mtd totalWidth()->f32  => .columnOffsets.isEmpty() ? 0 : .columnOffsets.back()
     mtd maxOrigin()->f64   => Math.max(Math.max(.totalHeight() + HeaderHeight - .clientRect().height, 0), .frozenOffset())
+
     mtd frozenOffset()->f64
     {
         if not .sheet or .rowOffsets.count <= .sheet.frozenRows do
             return 0
         return .rowOffsets[.sheet.frozenRows]
     }
+
     mtd frozenWidth()->f32
     {
         if not .sheet or .columnOffsets.count <= .sheet.frozenColumns do
             return 0
         return .columnOffsets[.sheet.frozenColumns]
     }
+
     mtd frozenColumn(index: u32)->bool
     {
         if not .sheet do
             return false
         return index < .sheet.frozenColumns
     }
+
     mtd maxOriginX()->f32 => Math.max(.totalWidth() + HeaderWidth - .clientRect().width, .frozenWidth())
 
     mtd syncScroll()
@@ -273,12 +277,12 @@ impl Grid
     {
         if point.x < HeaderWidth or point.y < HeaderHeight or .rowOffsets.isEmpty() do
             return {Address{}, false}
-        let localX = point.x - HeaderWidth
+        let localX  = point.x - HeaderWidth
         let frozenX = .frozenWidth()
-        let x = localX < frozenX ? localX : localX + .originX - frozenX
-        let localY = cast(f64, point.y - HeaderHeight)
-        let frozen = .frozenOffset()
-        let y = localY < frozen ? localY : localY + .originY - frozen
+        let x       = localX < frozenX ? localX : localX + .originX - frozenX
+        let localY  = cast(f64, point.y - HeaderHeight)
+        let frozen  = .frozenOffset()
+        let y       = localY < frozen ? localY : localY + .originY - frozen
         if x >= .totalWidth() or y >= .totalHeight() do
             return {Address{}, false}
         var column = 0'u32
@@ -696,7 +700,7 @@ impl IWnd for Grid
                                                                cell.column <= lastColumn
                     {
                         let cellRect = .cellRect({row, cell.column}, {row, cell.column})
-                        let look = .styles.look(cell.style)
+                        let look     = .styles.look(cell.style)
                         if look.fill do
                             painter.fillRect(cellRect, Color.fromArgb(look.fill))
                         look.paintBorders(painter, cellRect)
@@ -713,6 +717,7 @@ impl IWnd for Grid
                 let range = .mergedRange(.selected)
                 painter.drawRect(.cellRect(range.first, range.last), colors.arc, 2)
             }
+
             painter.popClippingRect()
         }
 
@@ -731,7 +736,7 @@ impl IWnd for Grid
                     for &cell in sheet.rows[index].cells where cell.column < sheet.frozenColumns and cell.merge == Swag.U32.Max
                     {
                         let cellRect = .cellRect({row, cell.column}, {row, cell.column})
-                        let look = .styles.look(cell.style)
+                        let look     = .styles.look(cell.style)
                         if look.fill do
                             painter.fillRect(cellRect, Color.fromArgb(look.fill))
                         look.paintBorders(painter, cellRect)
@@ -759,6 +764,7 @@ impl IWnd for Grid
                 let range = .mergedRange(.selected)
                 painter.drawRect(.cellRect(range.first, range.last), colors.arc, 2)
             }
+
             painter.popClippingRect()
         }
 
@@ -788,8 +794,10 @@ impl IWnd for Grid
                     painter.fillRect(rect.x, 0, rect.width, HeaderHeight, colors.selection)
                 painter.drawStringCenter(rect.x + rect.width / 2, HeaderHeight / 2, columnName(frozenColumn), headerFont, colors.softText)
             }
+
             painter.popClippingRect()
         }
+
         painter.pushClippingRect({0, HeaderHeight, HeaderWidth, Math.max(client.height - HeaderHeight, 0)})
         row = firstRow
         while row <= lastRow
@@ -820,10 +828,11 @@ impl IWnd for Grid
                 let rect = .cellRect({frozenRow, 0}, {frozenRow, 0})
                 if .hasSelection and frozenRow == .selected.row do
                     painter.fillRect(0, rect.y, HeaderWidth, rect.height, colors.selection)
-                let text = Format.toString("%", frozenRow + 1)
+                let text  = Format.toString("%", frozenRow + 1)
                 let width = Painter.measureStringSnapped(text, headerFont, deviceScale: .deviceScale())
                 painter.drawString(HeaderWidth - width - 8, headerFont.opticalLineTop(rect.y + rect.height / 2), text, headerFont, colors.softText)
             }
+
             painter.popClippingRect()
         }
     }

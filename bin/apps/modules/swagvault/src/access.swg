@@ -1,7 +1,7 @@
 using Core
 
-private const KeyFileChunkSize = 1024'u64 * 1024
-private const KeyFileBatchSize = 8 * KeyFileChunkSize
+private const KeyFileChunkSize  = 1024'u64 * 1024
+private const KeyFileBatchSize  = 8 * KeyFileChunkSize
 private const KeyFileDigestSize = Core.Hash.Blake2bMaxDigestSize
 
 // Bytes handed to the volume layer after a password and its key files have been combined.

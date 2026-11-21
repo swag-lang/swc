@@ -82,8 +82,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(book.archive.entries[book.pages[1]].path == "chapter/10.jpg")
     let pngBytes = expect Archive.Zip.loadEntry(scopeTestDataPath("viewer.nested.cbz"), &book.archive.entries[book.pages[0]])
     let jpgBytes = expect Archive.Zip.loadEntry(scopeTestDataPath("viewer.nested.cbz"), &book.archive.entries[book.pages[1]])
-    let pngPage = expect Image.decode("chapter/2.png", pngBytes.toSlice())
-    let jpgPage = expect Image.decode("chapter/10.jpg", jpgBytes.toSlice())
+    let pngPage  = expect Image.decode("chapter/2.png", pngBytes.toSlice())
+    let jpgPage  = expect Image.decode("chapter/10.jpg", jpgBytes.toSlice())
     Swag.require(pngPage.width == 96 and pngPage.height == 128)
     Swag.require(jpgPage.width == 96 and jpgPage.height == 128)
 }

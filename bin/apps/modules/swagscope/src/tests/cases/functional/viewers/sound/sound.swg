@@ -443,6 +443,7 @@ func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, 
         highest = Math.max(highest, sample.peak)
         lowest  = Math.min(lowest, sample.peak)
     }
+
     // The panel mixes both channels to mono before drawing: the intentionally phase-opposed
     // transient is quieter there, while the burst envelope still stands well above silence.
     Swag.require(highest > 0.25 and lowest < 0.02)
@@ -905,6 +906,7 @@ func soundInformation(bytes: const [..] u8)->String
         Swag.require(entry.detail == Input.formatKeyShortcut(.Control, .G) and not entry.disabled)
         hasGoToTime = true
     }
+
     Swag.require(hasGoToTime)
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
@@ -931,8 +933,8 @@ func soundInformation(bytes: const [..] u8)->String
 
     var samples: Array's16
     samples.resize(8_000 * 4)
-    let fileName = Gui.Testing.tempFilePath("scope-sound-cues-", ".wav")
-    let cuePath  = writeSoundCue(fileName)
+    let fileName  = Gui.Testing.tempFilePath("scope-sound-cues-", ".wav")
+    let cuePath   = writeSoundCue(fileName)
     let parsedCue = Sound.readCueSidecar(fileName)
     Swag.require(parsedCue.markers.count == 2 and parsedCue.invalid)
     defer discard catch File.delete(cuePath)

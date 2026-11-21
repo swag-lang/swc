@@ -504,13 +504,13 @@ private impl Reader
             fail Errors.InvalidFormatError{texts().err_Invalid}
         .document.readingWidth = .styles.page.pageWidthCssPixels()
         .document.simplified   = .document.simplified or .styles.page.limited
-        let background         = .styles.pageColor.isEmpty() ? String.from("FFFFFF") : .styles.pageColor
-        let insets             = .styles.page.cssInsets()
+        let background   = .styles.pageColor.isEmpty() ? String.from("FFFFFF") : .styles.pageColor
+        let insets       = .styles.page.cssInsets()
         var html: String = "<html><head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}table{border-collapse:collapse}td{vertical-align:top}</style></head><body style=\"padding:"
         html += insets.toString()
         html += ";box-sizing:border-box;"
-        let rgb          = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
-        let luma         = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
+        let rgb  = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
+        let luma = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
         html += Format.toString("background-color:#%;color:#%\">", background, luma < 128000 ? "FFFFFF" : "202024")
         html += .document.html
         html += "</body></html>"

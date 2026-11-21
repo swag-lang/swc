@@ -594,7 +594,7 @@ private impl ComboBox
     mtd showPopup()
     {
         let popup = PopupListCtrl.create(cast(*Wnd, me))
-        .popup = popup
+        .popup              = popup
         popup.minimumWidth  = .minimumPopupWidth
         popup.maximumHeight = .maximumPopupHeight
         popup.itemHeight    = .popupItemHeight

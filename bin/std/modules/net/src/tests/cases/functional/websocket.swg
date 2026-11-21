@@ -10,25 +10,31 @@ struct WebSocketServerFixture
 
 func serveWebSocket(thread: const *Threading.Thread)
 {
-    let fixture = cast(*WebSocketServerFixture, unwrap thread.userParam)
+    let fixture    = cast(*WebSocketServerFixture, unwrap thread.userParam)
     var connection = expect fixture.listener.accept()
-    let request = expect connection.readRequest()
-    var socket = expect connection.upgradeWebSocket(request)
+    let request    = expect connection.readRequest()
+    var socket     = expect connection.upgradeWebSocket(request)
 
     let first = expect socket.receiveFrame()
     Swag.require(first.opcode == .Text and not first.final and cast(string, first.payload.toSlice()) == "hel")
     let second = expect socket.receiveFrame()
-    Swag.require(second.opcode == .Continuation and second.final and cast(string, second.payload.toSlice()) == "lo")
+    Swag.require(second.opcode == .Continuation and
+                 second.final and
+                 cast(string, second.payload.toSlice()) == "lo")
     let utf8First = expect socket.receiveFrame()
     Swag.require(utf8First.opcode == .Text and not utf8First.final and utf8First.payload[0] == 0xC3)
     let utf8Last = expect socket.receiveFrame()
     Swag.require(utf8Last.opcode == .Continuation and utf8Last.final and utf8Last.payload[0] == 0xA9)
     let extended = expect socket.receiveFrame()
-    Swag.require(extended.opcode == .Binary and extended.payload.count == 126 and
-                 extended.payload[0] == 0x5A and extended.payload[125] == 0x5A)
+    Swag.require(extended.opcode == .Binary and
+                 extended.payload.count == 126 and
+                 extended.payload[0] == 0x5A and
+                 extended.payload[125] == 0x5A)
     let extended64 = expect socket.receiveFrame()
-    Swag.require(extended64.opcode == .Binary and extended64.payload.count == 65536 and
-                 extended64.payload[0] == 0xA5 and extended64.payload[65535] == 0xA5)
+    Swag.require(extended64.opcode == .Binary and
+                 extended64.payload.count == 65536 and
+                 extended64.payload[0] == 0xA5 and
+                 extended64.payload[65535] == 0xA5)
 
     expect socket.sendFrame(.Binary, cast(const [..] u8, "OK"))
     expect socket.sendFrame(.Ping, cast(const [..] u8, "?"))
@@ -59,9 +65,9 @@ func serveWebSocket(thread: const *Threading.Thread)
 // The client and server complete an upgrade and exchange masked, fragmented, and control frames.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var server   = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect server.localAddress()
-    var fixture = WebSocketServerFixture{listener: &server}
+    var fixture  = WebSocketServerFixture{listener: &server}
     var thread: Threading.Thread
     expect thread.init(&serveWebSocket, &fixture)
     expect thread.start()
@@ -71,14 +77,14 @@ func serveWebSocket(thread: const *Threading.Thread)
     let invalidUtf8: [1] u8 = [0xFF]
     discard catch client.sendFrame(.Text, invalidUtf8) as invalidText
     Swag.require(invalidText.value() is Errors.InvalidFormatError)
-    var invalidClose: Swag.Error
+    var invalidClose:      Swag.Error
     let reservedCloseCode: [2] u8 = [3, 237]
     discard catch client.sendFrame(.Close, reservedCloseCode) as invalidClose
     Swag.require(invalidClose.value() is Errors.BadParameterError)
     expect client.sendFrame(.Text, cast(const [..] u8, "hel"), false)
     expect client.sendFrame(.Continuation, cast(const [..] u8, "lo"))
     let utf8First: [1] u8 = [0xC3]
-    let utf8Last: [1] u8 = [0xA9]
+    let utf8Last:  [1] u8 = [0xA9]
     expect client.sendFrame(.Text, utf8First, false)
     expect client.sendFrame(.Continuation, utf8Last)
     var extended: Array'u8

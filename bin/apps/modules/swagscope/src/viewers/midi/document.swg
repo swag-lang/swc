@@ -480,7 +480,9 @@ func loadDocument(fileName: string)->Document fail
         .division       = readU16(bytes, 12)
     }
 
-    if result.format > 2 or not result.declaredTracks or not validDivision(result.division) or
+    if result.format > 2 or
+       not result.declaredTracks or
+       not validDivision(result.division) or
        (result.format == 0 and result.declaredTracks != 1) do
         fail InvalidFormatError{Errors.mkString(texts().err_Header)}
 

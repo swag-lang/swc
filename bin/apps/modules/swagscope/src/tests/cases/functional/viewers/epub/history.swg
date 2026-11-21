@@ -7,11 +7,11 @@ using Core, Gui, Viewers
 #test
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
-    let panel  = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let panel   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     let session = &window.instances[window.activeChoiceIndex]
     Swag.require(panel.view != null and panel.view.findText("Paragraph 15."))
-    let beforeChapter = panel.chapter
+    let beforeChapter  = panel.chapter
     let beforeProgress = panel.view.readingProgress()
 
     var matches: Array'Viewer.SearchMatch
@@ -29,7 +29,7 @@ using Core, Gui, Viewers
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
-    let panel = assume cast(*Epub.Panel, window.currentView)
+    let panel  = assume cast(*Epub.Panel, window.currentView)
     Swag.require(panel.view != null and panel.view.findText("Paragraph 15."))
     let expectedProgress = panel.view.readingProgress()
 

@@ -5,7 +5,7 @@ using Core, Gui, Viewers
 
 #test
 {
-    let source = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
+    let source   = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
     let document = expect Notebook.parseNotebook(source)
     Swag.require(document.nbformat == 4 and document.cells.count == 3)
     Swag.require(document.cells[0].cellType == "markdown" and
@@ -20,7 +20,7 @@ using Core, Gui, Viewers
 
 #test
 {
-    let source = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
+    let source   = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
     let document = expect Notebook.parseNotebook(source)
     let rendered = Notebook.renderMarkdown(&document).toString()
     Swag.require(Utf8.contains(rendered, "## Markdown cell 1") and
@@ -30,7 +30,8 @@ using Core, Gui, Viewers
                  Utf8.contains(rendered, "ValueError"))
     Swag.require(Utf8.contains(rendered, "Rich output omitted") and
                  Utf8.contains(rendered, "not rendered, executed or fetched"))
-    Swag.require(not Utf8.contains(rendered, "<img") and not Utf8.contains(rendered, "![map]") and
+    Swag.require(not Utf8.contains(rendered, "<img") and
+                 not Utf8.contains(rendered, "![map]") and
                  not Utf8.contains(rendered, "[external]"))
 }
 
@@ -72,9 +73,9 @@ using Core, Gui, Viewers
 // Standard display_data text/plain remains readable while sibling HTML/SVG MIME payloads stay inert.
 #test
 {
-    let source = expect File.readAllText(scopeTestDataPath("viewer.field-display.ipynb"))
+    let source   = expect File.readAllText(scopeTestDataPath("viewer.field-display.ipynb"))
     let document = expect Notebook.parseNotebook(source)
-    let output = document.cells[1].outputs[0]
+    let output   = document.cells[1].outputs[0]
     Swag.require(output.data.textPlain.count == 3 and
                  Notebook.joinLines(output.data.textPlain).toString() == "station  readings  median_ph\nnorth    3         6.9\nsouth    2         7.1\n")
 
@@ -82,7 +83,8 @@ using Core, Gui, Viewers
     Swag.require(Utf8.contains(rendered, "north    3         6.9") and
                  Utf8.contains(rendered, "Rich output omitted") and
                  Utf8.contains(rendered, "not rendered, executed or fetched"))
-    Swag.require(not Utf8.contains(rendered, "<table>") and not Utf8.contains(rendered, "<svg>") and
+    Swag.require(not Utf8.contains(rendered, "<table>") and
+                 not Utf8.contains(rendered, "<svg>") and
                  not Utf8.contains(rendered, "active content"))
 }
 
@@ -100,7 +102,7 @@ using Core, Gui, Viewers
     var host: Testing.HeadlessHost
     host.setup(960, 640)
     let fileName = scopeTestDataPath("viewer.field-notes.ipynb")
-    let result = openTestViewer(Notebook.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let result   = openTestViewer(Notebook.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.require(result.view != null and result.view is Markdown.View)
     Swag.require(Utf8.contains(result.details, "code is not executed"))
 }
@@ -110,17 +112,17 @@ using Core, Gui, Viewers
 #test
 {
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.field-notes.ipynb"), false)
-    let view = assume cast(*Markdown.View, window.currentView)
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.field-notes.ipynb"), false)
+    let view    = assume cast(*Markdown.View, window.currentView)
     let outline = assume cast(*DocumentOutline, window.currentSidePanelHost!.children[0].children[0])
     Swag.require(outline.rows.count >= 5 and outline.rowTitles[2].toString() == "Wetland survey")
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
 
-    outline.list.selectLine(3) // The code cell heading is an outline destination too.
+    outline.list.selectLine(3)     // The code cell heading is an outline destination too.
     let codeCell = outline.headings[3].sourceOffset
     Swag.require(view.readingOffset() == codeCell)
-    outline.list.selectLine(2) // An authored Markdown heading remains navigable after sanitization.
+    outline.list.selectLine(2)     // An authored Markdown heading remains navigable after sanitization.
     Swag.require(view.readingOffset() == outline.headings[2].sourceOffset)
 }
 

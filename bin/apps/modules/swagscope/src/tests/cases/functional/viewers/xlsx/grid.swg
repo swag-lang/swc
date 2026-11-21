@@ -60,12 +60,15 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(workbook.sheets[0].frozenRows == 2 and workbook.sheets[0].frozenColumns == 1)
 
     var host: HeadlessHost
-    let window = framedViewerWindow(&host, path, false)
-    let panel = assume cast(*Xlsx.Panel, window.currentView)
-    let grid = unwrap panel.grid
+    let window  = framedViewerWindow(&host, path, false)
+    let panel   = assume cast(*Xlsx.Panel, window.currentView)
+    let grid    = unwrap panel.grid
     let frozenY = grid.cellRect({0, 0}, {0, 0}).y
     let frozenX = grid.cellRect({0, 0}, {0, 0}).x
-    Swag.require(grid.originY == grid.rowOffsets[2] and grid.originX == grid.columnOffsets[1] and frozenY == 28 and frozenX == 64)
+    Swag.require(grid.originY == grid.rowOffsets[2] and
+                 grid.originX == grid.columnOffsets[1] and
+                 frozenY == 28 and
+                 frozenX == 64)
     grid.originX = grid.columnOffsets[2]
     grid.syncScroll()
     Swag.require(grid.originX > grid.frozenWidth() and

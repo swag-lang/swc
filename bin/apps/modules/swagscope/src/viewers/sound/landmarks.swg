@@ -46,11 +46,11 @@ func readCueSidecar(fileName: string)->{markers: Array'Landmark, invalid: bool}
         return result
     }
 
-    let text = catch File.readAllText(cuePath) { return result }
+    let text          = catch File.readAllText(cuePath) { return result }
     var sourceMatches = true
     var isAudio       = false
     var trackLabel: String
-    let mediaName = Path.fileName(fileName) orelse fileName
+    let mediaName     = Path.fileName(fileName) orelse fileName
 
     for line in Tokenize.splitLines(text)
     {
@@ -60,7 +60,7 @@ func readCueSidecar(fileName: string)->{markers: Array'Landmark, invalid: bool}
             let cueName = cueFirstValue(value[5 to])
             let cueBase = Path.fileName(cueName) orelse cueName
             sourceMatches = Latin1.compare(cueBase, mediaName, ignoreCase: true) == 0
-            isAudio = false
+            isAudio       = false
         }
         elif Utf8.startsWith(value, "TRACK ", .Latin1NoCase)
         {
@@ -75,7 +75,7 @@ func readCueSidecar(fileName: string)->{markers: Array'Landmark, invalid: bool}
         }
         elif Utf8.startsWith(value, "INDEX 01 ", .Latin1NoCase) and isAudio and sourceMatches
         {
-            let parts = Tokenize.split(value, ' 'u8)
+            let parts   = Tokenize.split(value, ' 'u8)
             var cueTime = parseCueTime("")
             if parts.count == 3 do
                 cueTime = parseCueTime(parts[2])

@@ -902,7 +902,7 @@ impl Properties
     {
         if .stringFilter == filter do
             return
-        .stringFilter = filter
+        .stringFilter        = filter
         .stringFilterMatcher = assume Text.NameMatcher.create(filter)
         .updateStates()
     }

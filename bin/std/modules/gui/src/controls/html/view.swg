@@ -193,9 +193,10 @@ struct HtmlView
 
     internal
     {
-        readerMode: bool
+        readerMode:           bool
         styleSheetReaderMode: bool
-        readerStylesReady: bool
+        readerStylesReady:    bool
+
         late
         {
             scroll: *ScrollWnd

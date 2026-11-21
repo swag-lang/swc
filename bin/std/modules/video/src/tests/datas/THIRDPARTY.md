@@ -182,6 +182,14 @@ deliberate gap after the second picture to test frame lookup against variable-ra
 - Bytes: 7077; SHA-256: `5f2f5c3184dec09590f6fe1566a9de2aefce374f9f04330403327fc1271690be`.
 - License: same as this repository.
 
+`matroska-vfr-seek.mkv` is a 2400-picture H.264 testsrc sequence with a two-second timestamp gap
+after picture 49. It keeps regular 40 ms timestamps afterward, so the first two clusters yield a
+different average rate from the rest of the file and exercise rank preservation during random seek.
+
+- FFmpeg 7.1.5: `-f lavfi -i testsrc=size=64x48:rate=25:duration=96 -vf "setpts='N+if(gte(N,50),50,0)'" -fps_mode vfr -c:v libx264 -x264-params keyint=25:min-keyint=25:scenecut=0:bframes=0 -an`.
+- Bytes: 257 540; SHA-256: `892da7bdb0a691cddc3efeee244fcd6a178d601157f00dbe58e761b06d101ac5`.
+- License: same as this repository.
+
 `ffmpeg-h264-subtitle.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and muxes the repository's
 `subtitle-sample.srt` as a default French SubRip track through FFmpeg 7.1. It exercises Matroska
 subtitle discovery, metadata, packet timestamps, durations, and cue decoding without introducing

@@ -1991,6 +1991,7 @@ struct Decoder
         syncScanAt:                  u64      // How far the search for one has read.
         keyWindow:                   bool     // The window holds a key picture read alone, which the next frame seek replaces.
         pictureOnly:                 bool     // The reader exposes no sound or subtitle track, so none is indexed.
+        variableVideoTiming:         bool     // Indexed picture ranks cannot be estimated from one frame rate.
     }
 }
 
@@ -2184,6 +2185,19 @@ private impl Decoder
             discard catch buildSoundWindow(fileIndex, cast(u64, target))
         }
 
+        if .variableVideoTiming
+        {
+            // Cues give timestamps and byte offsets, not display ranks. For VFR streams the
+            // average rate cannot map the requested rank to a cue, so count from the first cluster.
+            try layout.resetMediaAt(layout.segment.data)
+            if not (try layout.indexWindow(bytes, index, &fileIndex.cancel)) do
+                fail BadParameterError{"video reader operation was cancelled"}
+            let video = &layout.tracks[layout.selectedVideo]
+            try .replaceAvailableFrames(video)
+            .windowBaseRank = 0
+            return
+        }
+
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64, target)) : null
         if cue do
             try layout.resetMediaAt(cue.clusterOffset)
@@ -2302,6 +2316,19 @@ private impl Decoder
 
         let observed = Math.max(span / (.streamSampleCount - 1), 1)
         let declared = .info.frameRate.isValid() ? cast(u64, Math.round(1_000_000_000.0 * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()))) : 0
+        let reference = declared ? declared : observed
+        for rank in 1 until .streamSampleCount
+        {
+            let previous = cast(f64, .video.presentationTimeAtRank(rank - 1))
+            let current  = cast(f64, .video.presentationTimeAtRank(rank))
+            let duration = current - previous
+            if duration <= 0 or Math.abs(duration - cast(f64, reference)) > cast(f64, reference) * 0.5
+            {
+                .variableVideoTiming = true
+                break
+            }
+        }
+
         if declared and observed * 2 < declared * 3 and declared * 2 < observed * 3 do
             return
 

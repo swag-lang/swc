@@ -266,6 +266,22 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Format-3 FDSelect range starts must increase strictly.
+    var orderedRanges = buildTwoGlyphCffWithFdSelectPrefix()
+    orderedRanges.add([0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02])
+    let parsed = expect parseCffFont(orderedRanges.toSlice())
+    Swag.require(parsed.fdSelect.count == 2)
+
+    var duplicateRangeStart = buildTwoGlyphCffWithFdSelectPrefix()
+    duplicateRangeStart.add([0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(duplicateRangeStart.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Encoding format 1 ranges cannot assign more GIDs than CharStrings contains.
     const OverlongRange: [35] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

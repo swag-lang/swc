@@ -655,6 +655,8 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
         let first = cast(u32, try readU16(font.block, pos))
         let fd    = try readU8(font.block, pos + 2)
         let next  = cast(u32, try readU16(font.block, pos + 3))
+        if next <= first do
+            try fault(0x08)
         if firstRange and first != 0 do
             try fault(0x08)
         if fd >= font.fdLocalSubrs.count do

@@ -344,7 +344,7 @@ func touch()
             if (!caller)
                 return Result::Error;
             SmallVector<SymbolFunction*> dependencies;
-            caller->appendLifecycleDependencies(dependencies);
+            caller->appendLoweringDependencies(dependencies);
             for (const std::string_view name : {"opDrop", "opPostCopy", "opPostMove"})
             {
                 bool found = false;

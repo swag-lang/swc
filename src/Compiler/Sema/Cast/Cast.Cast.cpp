@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -1973,6 +1974,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         {
             if (effectiveFlags.has(CastFlagsE::ForceConstEval))
                 return Result::Continue;
+
+            // The interface table needs the selected methods. Record them before the caller
+            // completes sema so optional JIT metadata cannot pull in a cast with unfinished methods.
+            SymbolFunction* owner = sema.currentFunction();
+            if (const SymbolImpl* impl = castRequest.selectedInterfaceImpl; owner && impl)
+            {
+                for (const SymbolFunction* method : impl->symInterface()->functions())
+                {
+                    if (const SymbolFunction* target = impl->resolveInterfaceMethodTarget(sema.ctx(), *method))
+                        owner->addLoweringDependency(target, false);
+                }
+            }
 
             AstNodeRef runtimeCastNodeRef = view.nodeRef();
 

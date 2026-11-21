@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SymbolImpl;
 
 enum class CastKind
 {
@@ -55,8 +56,9 @@ struct CastRequest
     ConstantRef srcConstRef = ConstantRef::invalid();
     ConstantRef outConstRef = ConstantRef::invalid();
 
-    SymbolFunction* selectedStructOpCast = nullptr;
-    CastFailure     failure{};
+    SymbolFunction*   selectedStructOpCast  = nullptr;
+    const SymbolImpl* selectedInterfaceImpl = nullptr;
+    CastFailure       failure{};
 
     // '#[Swag.Signal]': the static type of the object whose signal receives this callback.
     TypeRef signalOwnerTypeRef = TypeRef::invalid();

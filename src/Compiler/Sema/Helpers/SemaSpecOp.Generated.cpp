@@ -194,7 +194,7 @@ namespace
                     continue;
 
                 if (sema.isCurrentFunction())
-                    sema.currentFunction()->addLifecycleDependency(method, observesEffects);
+                    sema.currentFunction()->addLoweringDependency(method, observesEffects);
                 return Result::Continue;
             }
         }
@@ -227,7 +227,7 @@ namespace
         }
 
         if (direct && sema.isCurrentFunction())
-            sema.currentFunction()->addLifecycleDependency(direct, observesEffects);
+            sema.currentFunction()->addLoweringDependency(direct, observesEffects);
 
         for (const SymbolVariable* field : owner.fields())
         {

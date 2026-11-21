@@ -1248,23 +1248,26 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
 bool SymbolFunction::hasCallDependencies() const
 {
     const std::shared_lock lock(callDependenciesMutex_);
-    return !callDependencies_.empty() || (lifecycleDependencies_ && !lifecycleDependencies_->empty());
+    return !callDependencies_.empty() || loweringDependencies_;
 }
 
-void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const bool observesEffects)
+void SymbolFunction::addLoweringDependency(const SymbolFunction* sym, const bool observesLifecycleEffects)
 {
     if (!sym || sym == this)
         return;
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::unique_lock lock(callDependenciesMutex_);
-    if (!lifecycleDependencies_)
-        lifecycleDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+    if (!loweringDependencies_)
+    {
+        loweringDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+        flags_.add(SymbolFlagsE::LoweringDependencies);
+    }
 
-    if (std::ranges::find(*lifecycleDependencies_, mutableSym) == lifecycleDependencies_->end())
-        lifecycleDependencies_->push_back(mutableSym);
+    if (std::ranges::find(*loweringDependencies_, mutableSym) == loweringDependencies_->end())
+        loweringDependencies_->push_back(mutableSym);
 
-    if (observesEffects)
+    if (observesLifecycleEffects)
     {
         if (!lifecycleEffectDependencies_)
             lifecycleEffectDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
@@ -1274,13 +1277,13 @@ void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const boo
     }
 }
 
-void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const
+void SymbolFunction::appendLoweringDependencies(SmallVector<SymbolFunction*>& out) const
 {
-    const std::shared_lock lock(callDependenciesMutex_);
-    if (!lifecycleDependencies_)
+    if (!hasFlag(SymbolFlagsE::LoweringDependencies))
         return;
 
-    out.append(lifecycleDependencies_->data(), lifecycleDependencies_->size());
+    const std::shared_lock lock(callDependenciesMutex_);
+    out.append(loweringDependencies_->data(), loweringDependencies_->size());
 }
 
 void SymbolFunction::appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const

@@ -29,7 +29,8 @@ preserves the platform resolver's address order and resolves named services. DNS
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.
 An HTTP server handles one request per connection and closes each response; closing the server
-stops its listener while accepted connections remain independent.
+stops its listener while accepted connections remain independent. `Http.post` streams a
+length-bounded request body from a caller-provided reader.
 
 ## Request an HTTPS resource
 

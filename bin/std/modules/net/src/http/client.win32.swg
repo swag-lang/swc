@@ -27,6 +27,44 @@ private func queryLocation(request: HINTERNET)->String fail
 
 func getNative(host: string, port: u16, path: string, secure = true, options: GetOptions = {})->Response fail
 {
+    return try requestNative(host, port, path, secure, options, false)
+}
+
+func postNative(host: string, port: u16, path: string, secure: bool, options: PostOptions)->Response fail
+{
+    return try requestNative(host, port, path, secure, options, true)
+}
+
+private func writeRequestBody(request: HINTERNET, options: PostOptions) fail
+{
+    var remaining = options.requestBodyLength
+    var chunk: [8192] u8
+    while remaining > 0
+    {
+        let requested = Math.min(remaining, chunk.count)
+        let reader = unwrap options.bodyReader
+        let read = reader(options.requestContext, chunk[until requested])
+        if read == 0 or read > requested do
+            fail NetworkError{"HTTP request body reader did not provide its declared length", code: 0}
+
+        var offset = 0'u64
+        while offset < read
+        {
+            var written: u32
+            let count = cast(u32, read - offset)
+            if not WinHttpWriteData(request, &chunk[offset], count, &written) do
+                fail NetworkError{code: cast(s32, GetLastError())}
+            if written == 0 do
+                fail NetworkError{"HTTP transport stopped accepting request bytes", code: 0}
+            offset += written
+        }
+        remaining -= read
+    }
+}
+
+private func requestNative(host: string, port: u16, path: string, secure: bool,
+                           options: GetOptions, post: bool)->Response fail
+{
     var headers: String
     for header in options.headers
     {
@@ -40,6 +78,7 @@ func getNative(host: string, port: u16, path: string, secure = true, options: Ge
     let server        = Utf16.toZeroTerminated(host)
     let objectName    = Utf16.toZeroTerminated(path)
     let nativeHeaders = Utf16.toZeroTerminated(headers)
+    let verb          = Utf16.toZeroTerminated(post ? "POST" : "GET")
     let session       = WinHttpOpen(agent.buffer, WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, null, null, 0)
     if not session do
         fail NetworkError{code: cast(s32, GetLastError())}
@@ -52,7 +91,7 @@ func getNative(host: string, port: u16, path: string, secure = true, options: Ge
     if not connection do
         fail NetworkError{code: cast(s32, GetLastError())}
     defer discard WinHttpCloseHandle(connection)
-    let request = WinHttpOpenRequest(connection, null, objectName.buffer, null, null, null, secure ? WINHTTP_FLAG_SECURE : 0)
+    let request = WinHttpOpenRequest(connection, verb.buffer, objectName.buffer, null, null, null, secure ? WINHTTP_FLAG_SECURE : 0)
     if not request do
         fail NetworkError{code: cast(s32, GetLastError())}
     defer discard WinHttpCloseHandle(request)
@@ -66,8 +105,12 @@ func getNative(host: string, port: u16, path: string, secure = true, options: Ge
     var redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER
     if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32)) do
         fail NetworkError{code: cast(s32, GetLastError())}
-    if not WinHttpSendRequest(request, nativeHeaders.buffer, Swag.U32.Max, null, 0, 0, 0) or
-       not WinHttpReceiveResponse(request, null) do
+    let bodyLength = post ? cast(u32, options.requestBodyLength) : 0'u32
+    if not WinHttpSendRequest(request, nativeHeaders.buffer, Swag.U32.Max, null, 0, bodyLength, 0) do
+        fail NetworkError{code: cast(s32, GetLastError())}
+    if post and options.requestBodyLength > 0 do
+        try writeRequestBody(request, options)
+    if not WinHttpReceiveResponse(request, null) do
         fail NetworkError{code: cast(s32, GetLastError())}
 
     var result: Response

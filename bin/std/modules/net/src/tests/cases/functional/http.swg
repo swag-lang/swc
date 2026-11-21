@@ -24,12 +24,56 @@ struct HttpBodyFixture
     proceed: bool
 }
 
+struct HttpRequestBodyFixture
+{
+    body:   String
+    offset: u64
+    calls:  u32
+}
+
+struct HttpPostServerFixture
+{
+    server:       *Http.Server
+    body:         String
+    bodyRejected: bool
+}
+
 func receiveHttpBody(context: *void?, bytes: const [..] u8)->bool
 {
     let fixture = cast(*HttpBodyFixture, unwrap context)
     fixture.body.append(cast(string, bytes))
     fixture.calls += 1
     return fixture.proceed
+}
+
+func supplyHttpRequestBody(context: *void?, buffer: [..] u8)->u64
+{
+    let fixture = cast(*HttpRequestBodyFixture, unwrap context)
+    let source = cast(const [..] u8, fixture.body.toString())
+    let count = Math.min(Math.min(buffer.count, 512), source.count - fixture.offset)
+    Memory.copy(buffer.buffer, source.buffer + fixture.offset, count)
+    fixture.offset += count
+    fixture.calls += 1
+    return count
+}
+
+func serveHttpPost(thread: const *Threading.Thread)
+{
+    let fixture = cast(*HttpPostServerFixture, unwrap thread.userParam)
+    var connection = expect fixture.server.accept()
+    let request = expect connection.readRequest()
+    Swag.require(request.method == "POST")
+    fixture.body = String.from(cast(string, request.body.toSlice()))
+    expect connection.respond(200, cast(const [..] u8, "received"))
+}
+
+func rejectShortHttpPost(thread: const *Threading.Thread)
+{
+    let fixture = cast(*HttpPostServerFixture, unwrap thread.userParam)
+    var connection = expect fixture.server.accept()
+    var error: Swag.Error
+    discard catch connection.readRequest() as error
+    fixture.bodyRejected = error.value() is Errors.InvalidFormatError
 }
 
 func serveHttp(thread: const *Threading.Thread)
@@ -54,6 +98,20 @@ func serveHttp(thread: const *Threading.Thread)
             return
         written += count
     }
+}
+
+// Request validation rejects missing body readers and caller-supplied transfer framing.
+#test
+{
+    var missingReader: Swag.Error
+    discard catch Http.post("localhost", 80, "/", false, {requestBodyLength: 1}) as missingReader
+    Swag.require(missingReader.value() is Errors.BadParameterError)
+
+    var framedHeader: Swag.Error
+    var options: Http.PostOptions
+    options.headers.add({name: "Content-Length", value: "1"})
+    discard catch Http.post("localhost", 80, "/", false, options) as framedHeader
+    Swag.require(framedHeader.value() is Errors.BadParameterError)
 }
 
 // A peer that accepts a connection but never sends a response reaches the receive timeout.
@@ -90,6 +148,50 @@ func serveHttp(thread: const *Threading.Thread)
         else do
             Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
     }
+}
+
+// POST request bytes are read incrementally and carry an exact content length.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture = HttpPostServerFixture{server: &server}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttpPost, &fixture)
+    expect thread.start()
+
+    var requestBytes: String
+    for 20000 do
+        requestBytes.append(cast(u8, 'x'))
+    var requestBody = HttpRequestBodyFixture{body: #move requestBytes}
+    let endpoint = expect server.localAddress()
+    let response = expect Http.post("127.0.0.1", endpoint.port, "/upload", false,
+        {requestBodyLength: requestBody.body.count,
+         bodyReader: &supplyHttpRequestBody,
+         requestContext: &requestBody})
+    thread.wait()
+    Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "received")
+    Swag.require(fixture.body.toString() == requestBody.body.toString())
+    Swag.require(requestBody.offset == requestBody.body.count)
+    Swag.require(requestBody.calls > 1)
+}
+
+// A request body reader that ends early fails instead of sending a shorter body silently.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture = HttpPostServerFixture{server: &server}
+    var thread: Threading.Thread
+    expect thread.init(&rejectShortHttpPost, &fixture)
+    expect thread.start()
+
+    var requestBody: HttpRequestBodyFixture
+    let endpoint = expect server.localAddress()
+    var error: Swag.Error
+    discard catch Http.post("127.0.0.1", endpoint.port, "/upload", false,
+        {requestBodyLength: 1, bodyReader: &supplyHttpRequestBody, requestContext: &requestBody}) as error
+    thread.wait()
+    Swag.require(error.value() is NetworkError)
+    Swag.require(fixture.bodyRejected)
 }
 
 #test

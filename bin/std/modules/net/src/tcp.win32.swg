@@ -46,7 +46,7 @@ impl TcpStream
         let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
-        let length = endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6)
+        let length = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
         if Win32.connect(handle, cast(const *SOCKADDR, cast(const *void, &address)), length) == SOCKET_ERROR
         {
             let code = WSAGetLastError()

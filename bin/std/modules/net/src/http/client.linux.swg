@@ -101,12 +101,44 @@ private struct CurlResponse
     bodyBytes:            u64
     bodyHandler:          BodyHandler?
     bodyContext:          *void?
+    bodyReader:           BodyReader?
+    requestContext:       *void?
     headerBytes:          u64
     overflow:             bool
     cancelled:            bool
     hasLocation:          bool
     locationContinuation: bool
     inHeaders:            bool
+    requestBodyRemaining: u64
+    bodyReadFailed:       bool
+}
+
+#[Swag.CallingConvention(.C)]
+private func sendBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
+{
+    let state = cast(*CurlResponse, unwrap user)
+    if size != 0 and count > Swag.U64.Max / size
+    {
+        state.bodyReadFailed = true
+        return Curl.CURL_READFUNC_ABORT
+    }
+
+    let capacity = size * count
+    if state.requestBodyRemaining == 0 do
+        return 0
+    let requested = Math.min(capacity, state.requestBodyRemaining)
+    if requested == 0 do
+        return Curl.CURL_READFUNC_ABORT
+    let reader = unwrap state.bodyReader
+    let received = reader(state.requestContext, bytes[until requested])
+    if received == 0 or received > requested
+    {
+        state.bodyReadFailed = true
+        return Curl.CURL_READFUNC_ABORT
+    }
+
+    state.requestBodyRemaining -= received
+    return received
 }
 
 #[Swag.CallingConvention(.C)]
@@ -208,6 +240,17 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
 
 internal func getNative(host: string, port: u16, path: string, secure: bool, options: GetOptions)->Response fail
 {
+    return try requestNative(host, port, path, secure, options, false)
+}
+
+internal func postNative(host: string, port: u16, path: string, secure: bool, options: PostOptions)->Response fail
+{
+    return try requestNative(host, port, path, secure, options, true)
+}
+
+private func requestNative(host: string, port: u16, path: string, secure: bool,
+                           options: GetOptions, post: bool)->Response fail
+{
     let api = try ensureCurl()
     let url = api.createUrl()
     if not url do
@@ -217,7 +260,10 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     defer api.freeHeaders(headers)
     var received = CurlResponse{maxBodyBytes: options.maxBodyBytes,
                                 bodyHandler: options.bodyHandler,
-                                bodyContext: options.bodyContext}
+                                bodyContext: options.bodyContext,
+                                bodyReader: options.bodyReader,
+                                requestContext: options.requestContext,
+                                requestBodyRemaining: options.requestBodyLength}
     let request  = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
@@ -296,11 +342,24 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     try checkCurl(api.setOption(request, Curl.CURLOPT_WRITEFUNCTION, &receiveBody))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADERDATA, &received))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADERFUNCTION, &receiveHeader))
+    if post
+    {
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POST, 1's64))
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POSTFIELDSIZE_LARGE,
+                                    cast(s64, options.requestBodyLength)))
+        if options.bodyReader
+        {
+            try checkCurl(api.setOption(request, Curl.CURLOPT_READDATA, &received))
+            try checkCurl(api.setOption(request, Curl.CURLOPT_READFUNCTION, &sendBody))
+        }
+    }
     let code = api.perform(request)
     if received.overflow do
         fail Errors.OverflowError{}
     if received.cancelled do
         fail NetworkError{"HTTP response body handler stopped the transfer", code: Curl.CURLE_ABORTED_BY_CALLBACK}
+    if received.bodyReadFailed do
+        fail NetworkError{"HTTP request body reader did not provide its declared length", code: Curl.CURLE_READ_ERROR}
     try checkCurl(code)
     var status: s64
     try checkCurl(api.getInfo(request, Curl.CURLINFO_RESPONSE_CODE, &status))

@@ -13,6 +13,7 @@ const AF_UNSPEC          = 0
 const SOCK_STREAM        = 1
 const SOCK_DGRAM         = 2
 const SD_SEND             = 1
+const SOL_SOCKET          = 0xFFFF
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
 const IPPROTO_IP         = 0
@@ -152,4 +153,5 @@ struct ADDRINFOA
     func freeaddrinfo(result: *ADDRINFOA)
     func htons(value: u16)->u16
     func ntohs(value: u16)->u16
+    func htonl(value: u32)->u32
 }

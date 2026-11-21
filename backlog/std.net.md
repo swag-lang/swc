@@ -54,12 +54,12 @@ whole layout.
 
 ### std.net.006 — HTTP client needs streaming and portable transports
 
-- Evidence: `Net.Http.get` now streams response chunks on Linux and Windows and bounds the
-  buffered body when no handler is supplied. Request-body streaming, active cancellation, strict
-  deadlines, and a bounded redirect policy remain open. HTTPS still uses system certificate
-  validation through each platform backend.
-- Next: add streamed request bodies, then define redirect, cancellation, and deadline behavior
-  across both backends.
+- Evidence: `Net.Http.get` streams response chunks and `Net.Http.post` reads request chunks on
+  Linux and Windows. Both bound the buffered response body when no handler is supplied and use
+  platform certificate validation. Active cancellation, a bounded redirect policy, and identical
+  end-to-end deadline semantics remain open.
+- Next: define bounded redirect behavior, then align active cancellation and whole-transfer
+  deadlines across both backends.
 - Done when: local-server tests cover streamed requests and responses, bounded redirects,
   cancellation, deadlines, and rejection of oversized or malformed headers.
 - Related: std.net.005, platform.portability.088

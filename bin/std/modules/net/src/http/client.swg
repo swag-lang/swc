@@ -33,6 +33,28 @@ using Core
 // ```
 func get(host: string, port: u16, path: string, secure = true, options: GetOptions = {})->Response fail
 {
+    try validateHttpRequest(host, port, path, options, false)
+    return try getNative(host, port, path, secure, options)
+}
+
+// Issues a bounded POST with a request body produced incrementally by `bodyReader`.
+//
+// `requestBodyLength` is exact; the reader must provide that many bytes. The callback receives
+// writable chunks and its state is borrowed for the duration of the call. A missing reader is
+// valid only for an empty body. Response handling, certificate validation, timeouts, and
+// cancellation follow [[Net.Http.get]].
+func post(host: string, port: u16, path: string, secure = true, options: PostOptions = {})->Response fail
+{
+    try validateHttpRequest(host, port, path, options, true)
+    if options.requestBodyLength > Swag.U32.Max or
+       options.requestBodyLength != 0 and not options.bodyReader do
+        fail Errors.BadParameterError{}
+    return try postNative(host, port, path, secure, options)
+}
+
+private func validateHttpRequest(host: string, port: u16, path: string, options: GetOptions,
+                                 hasRequestBody: bool) fail
+{
     if host.count == 0 or
        port == 0 or
        path.count == 0 or
@@ -61,9 +83,13 @@ func get(host: string, port: u16, path: string, secure = true, options: GetOptio
 
         for c in header.value where c < ' ' or c == 0x7F do
             fail Errors.BadParameterError{}
+        let isContentLength = header.name.count == 14 and
+                              Utf8.indexOf(header.name, "content-length", 0, .Latin1NoCase) == 0
+        let isTransferEncoding = header.name.count == 17 and
+                                 Utf8.indexOf(header.name, "transfer-encoding", 0, .Latin1NoCase) == 0
+        if hasRequestBody and (isContentLength or isTransferEncoding) do
+            fail Errors.BadParameterError{}
     }
-
-    return try getNative(host, port, path, secure, options)
 }
 
 // The caller supplies the request target, so it must already use valid ASCII URI syntax with

@@ -24,6 +24,7 @@ const ERROR_WINHTTP_HEADER_NOT_FOUND          = 12150'u32
     func WinHttpSetTimeouts(handle: HINTERNET, resolveTimeout, connectTimeout, sendTimeout, receiveTimeout: s32)->BOOL
     func WinHttpSetOption(handle: HINTERNET, option: DWORD, buffer: LPVOID, length: DWORD)->BOOL
     func WinHttpSendRequest(request: HINTERNET, headers: LPCWSTR, headersLength: DWORD, optional: LPVOID, optionalLength, totalLength: DWORD, context: DWORD_PTR)->BOOL
+    func WinHttpWriteData(request: HINTERNET, buffer: LPVOID, bytesToWrite: DWORD, bytesWritten: LPDWORD)->BOOL
     func WinHttpReceiveResponse(request: HINTERNET, reserved: LPVOID)->BOOL
     func WinHttpQueryHeaders(request: HINTERNET, infoLevel: DWORD, name: LPCWSTR, buffer: LPVOID, bufferLength, index: LPDWORD)->BOOL
     func WinHttpReadData(request: HINTERNET, buffer: LPVOID, bytesToRead: DWORD, bytesRead: LPDWORD)->BOOL

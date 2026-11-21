@@ -159,6 +159,25 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Format-1 CFF encoding ranges must stay within byte codes.
+    var completeEncoding = buildCffExpertEncoding()
+    completeEncoding[17] = 0xAE
+    completeEncoding.add([0x01, 0x01, 0xFE, 0x01])
+    let parsed  = expect parseCffFont(completeEncoding.toSlice())
+    let code255 = parsed.codeToGid.tryFind(255)
+    Swag.require(code255 != null and code255.value == 2)
+
+    var overlongEncoding = buildCffExpertEncoding()
+    overlongEncoding[17] = 0xAE
+    overlongEncoding.add([0x01, 0x01, 0xFF, 0x01])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(overlongEncoding.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // A format-0 charset must contain one SID for every glyph after .notdef.
     const TruncatedCharset: [32] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

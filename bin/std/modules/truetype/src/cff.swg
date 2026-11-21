@@ -593,6 +593,8 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
         {
             let first = cast(u32, try readU8(font.block, pos))
             let left  = cast(u32, try readU8(font.block, pos + 1))
+            if first + left > Swag.U8.Max do
+                try fault(0x08)
             pos += 2
             for k in left + 1
             {

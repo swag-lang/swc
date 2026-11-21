@@ -10,6 +10,11 @@ struct HttpServerFixture
     response:      string
 }
 
+struct HttpRedirectFixture
+{
+    late listener: *TcpListener
+}
+
 struct HttpTimeoutFixture
 {
     late listener:        *TcpListener
@@ -98,6 +103,52 @@ func serveHttp(thread: const *Threading.Thread)
             return
         written += count
     }
+}
+
+func serveHttpRedirect(thread: const *Threading.Thread)
+{
+    let fixture = cast(*HttpRedirectFixture, unwrap thread.userParam)
+    for index in 2
+    {
+        var stream = expect fixture.listener.accept()
+        var request: String
+        var buffer:  [1024] u8
+        while Utf8.indexOf(request.toString(), "\r\n\r\n") == Swag.U64.Max
+        {
+            let count = expect stream.read(buffer)
+            if count == 0 do
+                return
+            request += cast(string, buffer[0 until count])
+        }
+
+        let response = index == 0 ?
+                       "HTTP/1.1 302 Found\r\nLocation: /redirected\r\nContent-Length: 0\r\nConnection: keep-alive\r\n\r\n" :
+                       "HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\nredirected"
+        let bytes   = cast(const [..] u8, response)
+        var written = 0'u64
+        while written < bytes.count
+        {
+            let count = expect stream.write(bytes[written to])
+            if count == 0 do
+                return
+            written += count
+        }
+    }
+}
+
+// Bounded redirect following works through the platform HTTP transport.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture  = HttpRedirectFixture{listener: &listener}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttpRedirect, &fixture)
+    expect thread.start()
+
+    let endpoint = expect listener.localEndpoint()
+    let response = expect Http.get("127.0.0.1", endpoint.port, "/", false, {maxRedirects: 1})
+    thread.wait()
+    Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "redirected")
 }
 
 // Request validation rejects missing body readers and caller-supplied transfer framing.

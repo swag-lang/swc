@@ -502,7 +502,25 @@ impl WebSocket
         let endpoints = try Dns.resolve(host, port)
         if endpoints.isEmpty() do
             fail NetworkError{"host name resolution returned no addresses", code: -5}
-        var stream = try TcpStream.connect(endpoints[0])
+        var stream: TcpStream
+        var connected = false
+        var lastCode = 0's32
+        for endpoint in endpoints
+        {
+            var candidate: TcpStream
+            var error: Swag.Error
+            candidate = catch TcpStream.connect(endpoint) as error
+            {
+                if error.value() is NetworkError as networkError do
+                    lastCode = networkError.code
+                continue
+            }
+            stream = #move candidate
+            connected = true
+            break
+        }
+        if not connected do
+            fail NetworkError{"could not connect to any resolved WebSocket address", code: lastCode}
         var result = WebSocket{stream: #move stream, side: .Client, options: options, open: true}
         var nonce: [16] u8
         try Crypto.randomBytes(nonce)

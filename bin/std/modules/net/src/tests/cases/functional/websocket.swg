@@ -66,7 +66,7 @@ func serveWebSocket(thread: const *Threading.Thread)
     expect thread.init(&serveWebSocket, &fixture)
     expect thread.start()
 
-    var client = expect WebSocket.connect("127.0.0.1", endpoint.port, "/socket")
+    var client = expect WebSocket.connect("localhost", endpoint.port, "/socket")
     var invalidText: Swag.Error
     let invalidUtf8: [1] u8 = [0xFF]
     discard catch client.sendFrame(.Text, invalidUtf8) as invalidText

@@ -15,12 +15,9 @@ The read-only reader for Jupyter notebooks and their stored outputs.
   capped at 16 MiB. Cell source accepts scalar text and arrays of lines; only selected kernel and
   language metadata are shown. Attachments, tables, arbitrary cell metadata inspection, and scoped
   source/output search remain absent.
-- Progress: heading navigation is implemented for authored Markdown headings and synthetic cell
-  headings. The viewer preserves inert code, execution counts, kernel/language metadata, plain-text
-  output, and error text. Attachments, selected cell metadata, scoped search, and safe table/image
-  rendering remain open.
-- Next: add bounded source/output search with occurrence reveal, then expose selected cell metadata
-  and add safe table/image rendering behind a deny-by-default MIME policy.
+- Next: add bounded source/output search with occurrence reveal; expose selected cell metadata and
+  an attachment list; then add safe table/image rendering behind a deny-by-default MIME policy.
+  Collapse and bound large source and output blocks.
 - Done when: cell order, type, execution count, metadata, attachments, errors, and every stored
   output remain inspectable; outline and search address inputs and outputs separately; unsupported or
   suppressed rich output is named and available as source; large output is collapsed and bounded.

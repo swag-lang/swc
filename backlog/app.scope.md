@@ -20,7 +20,7 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.epub.md](app.scope.epub.md) — EPUB viewer
 - [app.scope.html.md](app.scope.html.md) — HTML viewer
 - [app.scope.markdown.md](app.scope.markdown.md) — Markdown viewer
-- [app.scope.notebook.md](app.scope.notebook.md) — planned Jupyter notebook viewer
+- [app.scope.notebook.md](app.scope.notebook.md) — Jupyter notebook viewer
 - [app.scope.odp.md](app.scope.odp.md) — ODP viewer
 - [app.scope.ods.md](app.scope.ods.md) — ODS viewer
 - [app.scope.odt.md](app.scope.odt.md) — ODT viewer

@@ -21,19 +21,11 @@ EPUB book navigation, layout, and reading position.
   [File Viewer Plus 7](https://fileviewerplus.com/open/epub) opens EPUB in a document editor and
   exports it to other formats. Chapter-only search scope and exact chapter position are the
   next gaps to close in Scope's chapter-based reading workflow.
-- Done: the shared search field supports both complete-book and current-chapter scopes, keeps
-  search options from the common contract, and routes results to their chapter and source offset.
-  Scope instructions are localized, and the `book:`/`livre:` alias returns to book-wide search.
-  A generated two-chapter EPUB test covers both scopes and verifies jumping to a cross-chapter hit.
-  Chapters larger than 32 MiB or chapters that cannot be read are skipped and called out by the
-  shared result count.
-- Next: add bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
-- Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
-  representative EPUB 2/3 corpus without delaying first content for the whole package.
-- Progress: within-chapter search jumps now record the passage left behind, so Back restores that
-  passage. A session-local bookmark stores the current chapter and logical position; returning to
-  it adds the place left behind to Back/Forward history. Persistent position restore and lazy
-  extraction of visible-chapter resources remain open.
+- Next: add landmarks, footnote navigation, and bookmark creation/removal; load chapter resources
+  on demand so later package members do not delay the first chapter.
+- Done when: TOC, landmarks, previous/next, internal links, footnotes, bookmarks, Back/Forward history, and
+  book-wide and chapter-scoped search work across a representative EPUB 2/3 corpus, with the first
+  chapter available without extracting the whole package.
 - Related: app.scope.archive.001
 
 ### app.scope.epub.002 — EPUB needs paged layout and persistent logical reading positions

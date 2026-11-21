@@ -1645,6 +1645,27 @@ impl RenderOgl
     {
         if not texture.isValid() do
             return false
+
+        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
+        {
+            let planes = .chromaPlanes.tryFind(texture.handle)
+            if not planes do
+                return false
+
+            let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
+            let divisor      = 1's32 << shift
+            let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
+            let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
+            let lumaSize     = cast(u64, texture.width) * cast(u64, texture.height)
+            let chromaSize   = cast(u64, chromaWidth) * cast(u64, chromaHeight)
+            let source       = cast(const [*] u8, pixels)
+            if not .uploadPlane(cast(GLuint, texture.handle), source, cast(u64, texture.width), texture.width, texture.height) or
+               not .uploadPlane(planes.value.chromaB, source + lumaSize, cast(u64, chromaWidth), chromaWidth, chromaHeight) or
+               not .uploadPlane(planes.value.chromaR, source + lumaSize + chromaSize, cast(u64, chromaWidth), chromaWidth, chromaHeight) do
+                return false
+            return true
+        }
+
         let fmt       = pixelFormatToNative(texture.pixelFormat)
         let textureID = cast(GLuint, texture.handle)
         var previousTexture, previousBuffer, previousAlignment, previousRowLength, previousSkipRows, previousSkipPixels: GLint

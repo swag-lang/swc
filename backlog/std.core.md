@@ -81,7 +81,7 @@ new module rather than growth inside `core`.
 - Done when: client and server TLS operate over the socket contract with certificate
   validation, handshake and shutdown failures, and stream ownership stated, with local-peer
   tests for accepted and rejected credentials.
-- Related: std.core.001, std.core.010, std.core.015, std.core.016
+- Related: std.core.001, std.core.010, std.core.015
 
 ### std.core.006 — HTTP client needs streaming and portable transports
 
@@ -121,15 +121,15 @@ new module rather than growth inside `core`.
   dispatch is not available; the software path is slower than a hardware backend. `core/src/crypto`
   also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA-3, SHAKE,
   HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512, HKDF-SHA-256, HKDF-SHA-512, PBKDF2, BLAKE2b,
-  BLAKE2s, BLAKE3, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and several
-  non-cryptographic hashes.
+  BLAKE2s, BLAKE3, X25519, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and
+  several non-cryptographic hashes.
 - Next: add an AES-round backend that can safely select AES-NI after runtime feature detection,
   retain the constant-operation-path software fallback, and measure both paths. Add separately
   numbered modes only when their contracts are chosen.
 - Done when: AES-128, AES-192, and AES-256 block operations match published vectors in
   hardware and fallback paths, the fallback has a documented constant-time contract, and cipher
   modes retain separate backlog IDs.
-- Related: std.core.005, std.core.015, std.core.016, std.core.017
+- Related: std.core.005, std.core.015, std.core.017
 
 ### std.core.015 — No Ed25519 signatures
 
@@ -138,15 +138,7 @@ new module rather than growth inside `core`.
 - Done when: key generation, signing, and verification match published vectors, while
   malformed encodings, wrong messages, and invalid keys are rejected with an explicit failure
   contract.
-- Related: std.core.005, std.core.016
-
-### std.core.016 — No X25519 key agreement
-
-- Next: add X25519 key generation and shared-secret derivation with low-order input handling
-  stated and tested.
-- Done when: key generation and shared-secret derivation match published vectors for both
-  peers, and low-order or invalid inputs follow the documented rejection policy.
-- Related: std.core.005, std.core.015
+- Related: std.core.005
 
 ### std.core.017 — No RSA interoperability
 

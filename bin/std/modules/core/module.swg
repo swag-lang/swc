@@ -59,6 +59,25 @@ defer Crypto.secureClear(key)
 try Crypto.hkdfSha256(salt, inputKeyMaterial, info, key)
 ```
 
+## Agree on a shared key
+
+Use [[Core.Crypto.x25519PublicKey]] to publish an X25519 public key and
+[[Core.Crypto.x25519SharedSecret]] to derive the same secret on both peers. Fill private keys
+with [[Core.Crypto.randomBytes]] and clear them after use. Shared-secret derivation rejects
+low-order peer keys.
+
+```swag
+using Core
+
+var privateKey: [Crypto.X25519KeySize] u8
+var sharedKey:  [Crypto.X25519KeySize] u8
+defer Crypto.secureClear(privateKey)
+defer Crypto.secureClear(sharedKey)
+
+try Crypto.randomBytes(privateKey)
+try Crypto.x25519SharedSecret(privateKey, peerPublicKey, sharedKey)
+```
+
 ## Hash files and derive context-bound keys
 
 [[Core.Hash.Blake3]] provides unkeyed hashing, keyed hashing, context-derived keys,

@@ -181,6 +181,28 @@ struct XmlPairSequencePayload
     }
 }
 
+// Document roots may be arbitrary XML Names, but tags cannot contain invalid names or whitespace.
+#test
+{
+    const InvalidRoots = [
+        "<1><value>x</value></1>",
+        "< p ><value>x</value></ p >"]
+
+    for input in InvalidRoots
+    {
+        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var errOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errOutcome
+        Swag.require(errOutcome.value() is SyntaxError)
+    }
+
+    let validUnicodeRoot: String = "<é_2><value>x</value></é_2>"
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlTextPayload(validUnicodeRoot.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value == "x")
+}
+
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.
 #test
 {

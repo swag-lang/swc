@@ -19,6 +19,56 @@ public struct Xml
     }
 }
 
+// XML 1.0 NameStartChar (Fifth Edition).
+private func isXmlNameStartChar(c: rune)->bool
+{
+    return c == ':' or
+           c == '_' or
+           ('A' <= c and c <= 'Z') or
+           ('a' <= c and c <= 'z') or
+           (0xC0 <= c and c <= 0xD6) or
+           (0xD8 <= c and c <= 0xF6) or
+           (0xF8 <= c and c <= 0x2FF) or
+           (0x370 <= c and c <= 0x37D) or
+           (0x37F <= c and c <= 0x1FFF) or
+           (0x200C <= c and c <= 0x200D) or
+           (0x2070 <= c and c <= 0x218F) or
+           (0x2C00 <= c and c <= 0x2FEF) or
+           (0x3001 <= c and c <= 0xD7FF) or
+           (0xF900 <= c and c <= 0xFDCF) or
+           (0xFDF0 <= c and c <= 0xFFFD) or
+           (0x10000 <= c and c <= 0xEFFFF)
+}
+
+// XML 1.0 NameChar (Fifth Edition).
+private func isXmlNameChar(c: rune)->bool
+{
+    return isXmlNameStartChar(c) or
+           c == '-' or
+           c == '.' or
+           ('0' <= c and c <= '9') or
+           c == 0xB7 or
+           (0x300 <= c and c <= 0x36F) or
+           (0x203F <= c and c <= 0x2040)
+}
+
+private func isXmlName(value: string)->bool
+{
+    if value.count == 0 do
+        return false
+
+    var offset = 0'u64
+    while offset < value.count
+    {
+        let {c, eat} = Utf8.decodeRune(value[offset to])
+        if not eat or (offset == 0 ? not isXmlNameStartChar(c) : not isXmlNameChar(c)) do
+            return false
+        offset += eat
+    }
+
+    return true
+}
+
 public impl Xml
 {
     // Returns zero because XML has no stream-level schema version.
@@ -42,8 +92,16 @@ public impl Xml
         if c != '>' do
             fail .getError("malformed tag, missing closing [[>]]")
 
-        let end = .stream.position() - 1
-        return Latin1.trim(cast(string, .stream.readBuffer![start until end]))
+        let end    = .stream.position() - 1
+        let rawTag = cast(string, .stream.readBuffer![start until end])
+        let tag    = Latin1.trim(rawTag)
+        if rawTag != tag do
+            fail .getError("XML tag cannot contain surrounding whitespace")
+
+        let name = Utf8.startsWith(tag, "/") ? tag[1 to] : tag
+        if not isXmlName(name) do
+            fail .getError("XML tag name needs to match the XML 1.0 Name production")
+        return tag
     }
 
     internal mtd readStartTag()->string fail

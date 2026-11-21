@@ -113,6 +113,9 @@ struct IPV6_MREQ
     }
 }
 
+#assert(#sizeof(IP_MREQ) == 8)
+#assert(#sizeof(IPV6_MREQ) == 20)
+
 struct ADDRINFOA
 {
     public

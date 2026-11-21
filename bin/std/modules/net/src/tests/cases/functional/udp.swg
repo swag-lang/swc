@@ -47,6 +47,18 @@ using Core
 
 #test
 {
+    #static if #os == Swag.TargetOs.Linux
+    {
+        let anyAddress = IpAddress.ipv6([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        let group = IpAddress.ipv6([0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0x14])
+        var socket = expect DatagramSocket.bind({address: anyAddress, port: 0})
+        expect socket.joinMulticast(group, {interfaceIndex: 1})
+        expect socket.leaveMulticast(group, {interfaceIndex: 1})
+    }
+}
+
+#test
+{
     var receiver = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect receiver.localAddress()
     var sender = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})

@@ -843,7 +843,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   retries interrupted transfers/accept, and completes interrupted connects through poll and SO_ERROR.
   TCP exposes a portable send-side shutdown operation. UDP broadcast and IPv4/IPv6 multicast
   membership use platform socket options behind `DatagramSocket`.
-  Linux focused tests cover loopback, EOF, UDP delivery, IPv6, resolver behavior, and HTTP streaming.
+  Linux focused tests cover loopback, EOF, UDP delivery, broadcast and IPv4/IPv6 multicast options,
+  IPv6 TCP, resolver behavior, and HTTP streaming.
   Windows bindings and implementations exist, but equivalent runtime coverage has not been run.
   Linux HTTPS still uses a lazily loaded libcurl backend with system trust, bounded bodies and
   headers, explicit redirects, and whole-transfer deadlines. HTTP servers now parse bounded

@@ -13,10 +13,10 @@ whole layout.
 
 - Evidence: `DatagramSocket` enables IPv4 broadcast and joins or leaves IPv4/IPv6 multicast groups
   on Linux and Windows. IPv4 membership selects a local interface address; IPv6 membership selects
-  an interface index. Runtime tests cover broadcast configuration and IPv4 join/leave on Linux;
+  an interface index. Runtime tests cover broadcast configuration and IPv4/IPv6 join/leave on Linux;
   Windows runtime coverage remains part of platform.portability.088.
-- Next: run the multicast and broadcast tests on Windows and add an IPv6 multicast loopback test
-  where a portable interface-selection contract is available.
+- Next: run the multicast and broadcast tests on Windows, including IPv6 membership on a local
+  interface selected by its Windows interface index.
 - Done when: broadcast and IPv4/IPv6 membership behavior pass runtime tests on both supported hosts,
   including interface selection and invalid group handling.
 - Related: std.net.003, std.net.004

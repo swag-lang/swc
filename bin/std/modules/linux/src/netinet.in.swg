@@ -50,6 +50,9 @@ struct ipv6_mreq
     }
 }
 
+#assert(#sizeof(ip_mreq) == 8)
+#assert(#sizeof(ipv6_mreq) == 20)
+
 struct sockaddr_in6
 {
     public

@@ -282,6 +282,64 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     Swag.require(image.pixelColor(3, 3).r >= 250)
 }
 
+// A tiled planar texture must repeat at the luma-plane boundary like a packed texture.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+
+    var storage: Array'u8
+    let source = flatPlanarPicture(&storage, 2, 2, 16, 128, 128)
+    storage.storage()[1] = 235
+    storage.storage()[3] = 235
+    var texture = renderer.addImage(&source)
+    defer renderer.removeTexture(&texture)
+
+    var target = renderer.createRenderTarget(4, 2)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.setBlendingMode(.Copy)
+    painter.setInterpolationMode(.Pixel)
+    painter.fillRect({0, 0, 4, 2}, Brush.createTiled(texture))
+    painter.unbindRenderTarget()
+    painter.end()
+    expect renderer.draw(&painter)
+
+    let image = renderer.readRenderTarget(&target, 0, 0, 4, 2)
+    for y in 2's32
+    {
+        Swag.require(image.pixelColor(0, y).r <= 1)
+        Swag.require(image.pixelColor(1, y).r >= 250)
+        Swag.require(image.pixelColor(2, y).r <= 1)
+        Swag.require(image.pixelColor(3, y).r >= 250)
+    }
+
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.setBlendingMode(.Copy)
+    painter.setInterpolationMode(.Linear)
+    painter.fillRect({0, 0, 4, 2}, Brush.createTiled(texture))
+    painter.unbindRenderTarget()
+    painter.end()
+    expect renderer.draw(&painter)
+
+    let linearImage = renderer.readRenderTarget(&target, 0, 0, 4, 2)
+    for y in 2's32
+    {
+        Swag.require(linearImage.pixelColor(0, y).r <= 1)
+        Swag.require(linearImage.pixelColor(1, y).r >= 250)
+        Swag.require(linearImage.pixelColor(2, y).r <= 1)
+        Swag.require(linearImage.pixelColor(3, y).r >= 250)
+    }
+}
+
 // Planar updates reject dimensions and chroma layouts incompatible with immutable texture
 // storage, without changing its pixels; a compatible frame still replaces the image.
 #test

@@ -354,7 +354,7 @@ func parseCffDict(data: const [..] u8)->CffDict fail
             pos += 1
             if b0 == 12
             {
-                op  = 0x0C00 | cast(u16, peekU8(data, pos))
+                op  = 0x0C00 | cast(u16, (try readU8(data, pos)))
                 pos += 1
             }
 
@@ -391,13 +391,13 @@ func parseCffDict(data: const [..] u8)->CffDict fail
         }
         elif b0 >= 247 and b0 <= 250
         {
-            let b1 = peekU8(data, pos + 1)
+            let b1 = try readU8(data, pos + 1)
             pending.add(cast(f64, ((cast(s32, b0) - 247) * 256 + cast(s32, b1) + 108)))
             pos += 2
         }
         elif b0 >= 251 and b0 <= 254
         {
-            let b1 = peekU8(data, pos + 1)
+            let b1 = try readU8(data, pos + 1)
             pending.add(cast(f64, (-(cast(s32, b0) - 251) * 256 - cast(s32, b1) - 108)))
             pos += 2
         }

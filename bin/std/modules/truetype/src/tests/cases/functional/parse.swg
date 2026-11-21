@@ -300,6 +300,32 @@ func buildCffExpertEncoding()->Array'u8
 
 #test
 {
+    // Escaped CFF DICT operators require a second byte.
+    const TruncatedEscape: [1] u8 = [0x0C]
+    var rejected: Swag.Error
+    discard catch parseCffDict(TruncatedEscape) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // Compact positive and negative integers require their continuation byte.
+    const TruncatedPositive: [1] u8 = [0xF7]
+    var rejected: Swag.Error
+    discard catch parseCffDict(TruncatedPositive) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    const TruncatedNegative: [1] u8 = [0xFB]
+    var rejected: Swag.Error
+    discard catch parseCffDict(TruncatedNegative) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     var err7Outcome: Swag.Error
     catch checkFaceLoad(BrokenFontBytes) as err7Outcome
     let err7 = err7Outcome.value()

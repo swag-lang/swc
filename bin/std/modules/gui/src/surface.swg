@@ -1104,12 +1104,11 @@ impl Surface
 
     // Presses one of the two standard buttons of the surface, when there is one to press.
     //
-    // The button is pressed the way Enter presses a focused one, so a widget that answers keys
-    // at all can stand for the default or the cancel action, and a button that is down or gone
-    // simply does not answer.
+    // The button receives Enter the way a focused widget does. A hidden or disabled button, or
+    // one detached from this surface, does not answer.
     private mtd pressStandardButton(button: *Wnd?)->bool
     {
-        if not button do
+        if not button or button.surface != me do
             return false
         if not button.isVisible() or not button.isEnabled() do
             return false

@@ -183,6 +183,31 @@ using Core, Pixel
     Swag.require(between.hasVisibleFocus())
 }
 
+// A detached standard button is no longer a key recipient, even while the surface retains its borrowed pointer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let field  = EditBox.create(&host.root, "", {20, 20, 120, 24})
+    let button = PushButton.create(&host.root, "Detached", {20, 60, 100, 24})
+    var presses: u32
+    button.sigPressed += func|presses = &presses|(_)
+    {
+        presses[] += 1
+    }
+
+    host.surface.defaultButton = button
+    host.surface.cancelButton  = button
+    button.setParent(null)
+    field.setFocus()
+    Swag.require(button.surface == null and field.hasFocus())
+
+    host.keyPress(.Return)
+    host.keyPress(.Escape)
+    Swag.require(presses == 0)
+}
+
 // Updating action availability preserves the current input mode, including after focus transfer.
 #test
 {

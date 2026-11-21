@@ -1121,19 +1121,20 @@ of their own. Keep already clear code unchanged; do not manufacture churn to dem
 
 SCOPE: RUNTIME AND STANDARD MODULES USED BY APPS
 
-The in-scope code is `bin/runtime/` and the transitive dependency closure of the `bin/std/modules/`
-modules imported by shipped applications in `bin/apps/`. Determine that closure from application
-module descriptors and imports, then follow imports among standard modules. Record the resulting
-module list in campaign state so the scope is reproducible. Include each in-scope module's
-project-owned implementation, module descriptor, public API and module-owned tests and test helpers.
-The application sources are read-only evidence for discovering dependencies and checking real
-caller contracts; do not review or change application implementation.
+The in-scope code is `bin/runtime/`, its tests and helpers under `bin/unittests/native/runtime/`,
+and the transitive dependency closure of the `bin/std/modules/` modules imported by shipped
+applications in `bin/apps/`. Determine that closure from application module descriptors and
+imports, then follow imports among standard modules. Record the resulting module list in campaign
+state so the scope is reproducible. Include each in-scope module's project-owned implementation,
+module descriptor, public API and module-owned tests and test helpers. The application sources are
+read-only evidence for discovering dependencies and checking real caller contracts; do not review
+or change application implementation.
 
-Applications, examples, standalone scripts and tools, language-reference pages, compiler suites,
-and standard modules outside the application dependency closure are out of scope. Do not add them
-to active coverage. Discover source and test directories within each included module from the
-actual tree; do not assume a fixed layout. Preserve each test's purpose, including intentionally
-awkward or invalid fixture code.
+Applications, examples, standalone scripts and tools, language-reference pages, compiler suites
+other than the runtime-owned tests above, and standard modules outside the application dependency
+closure are out of scope. Do not add them to active coverage. Discover source and test directories
+within each included module from the actual tree; do not assume a fixed layout. Preserve each test's
+purpose, including intentionally awkward or invalid fixture code.
 
 Keep a coverage table outside every checkout with one row per source file, its area and API
 families, separate semantic and visual review status, findings, retained changes, validation,
@@ -1301,10 +1302,11 @@ and implementation are resolved.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - Every project-owned Swag source and public API family in `bin/runtime/` and the recorded
-    app-used standard-module dependency closure has received semantic and visual review, with
-    explicit per-file coverage and justified exclusions for generated or upstream material and
-    intentional fixtures. No in-scope directory is silently omitted.
+  - Every project-owned Swag source and public API family in `bin/runtime/`, its runtime-owned
+    tests and helpers, and the recorded app-used standard-module dependency closure has received
+    semantic and visual review, with explicit per-file coverage and justified exclusions for
+    generated or upstream material and intentional fixtures. No in-scope directory is silently
+    omitted.
   - Every actionable improvement found in scope is implemented and validated; every remaining
     design or external blocker is identified precisely and prevents a claim of full completion.
   - In-scope APIs, implementations, module-owned tests and documentation agree, with no stale

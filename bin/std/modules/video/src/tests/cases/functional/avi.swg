@@ -258,6 +258,30 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
 }
 
+// A valid but incomplete `idx1` must not hide frames still present in the movie list.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
+    let raw   = bytes.toSlice()
+    var index = 0'u64
+    while index + 8 <= raw.count and not aviHasId(raw, index, "idx1") do
+        index += 1
+    Swag.require(index + 8 <= raw.count and aviReadU32(raw, index + 4) >= 6 * 16)
+
+    bytes.resize(index + 8 + 16)
+    bytes[index + 4] = 16
+    bytes[index + 5] = 0
+    bytes[index + 6] = 0
+    bytes[index + 7] = 0
+    let riffSize = cast(u32, bytes.count - 8)
+    for byteIndex in 4 do
+        bytes[4 + byteIndex] = cast(u8, (riffSize >> cast(u32, (byteIndex * 8))) & 0xFF)
+
+    var reader = expect Reader.openMemory("partial-index.avi", bytes.toSlice())
+    Swag.require(reader.frameCount() == 6)
+    videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test

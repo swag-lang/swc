@@ -41,6 +41,32 @@ func(T) managedCloseSymbol(library: *void, name: string)->T
     return cast(T, address)
 }
 
+// A window manager can handle a map request after the client's show call returns.
+func waitForViewable(window: *Env.Window)
+{
+    let library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
+    Swag.require(library != null)
+    defer discard Linux.dlclose(unwrap library)
+    let getAttributes = managedCloseSymbol'Linux.xcb_get_window_attributes_fn(library, "xcb_get_window_attributes")
+    let getReply      = managedCloseSymbol'Linux.xcb_get_window_attributes_reply_fn(library, "xcb_get_window_attributes_reply")
+    let drawable      = expect window.xcbDrawable()
+    let connection    = unwrap drawable.connection
+
+    var watch: Time.Stopwatch
+    watch.start()
+    while true
+    {
+        let attributes = getReply(connection, getAttributes(connection, drawable.window), null)
+        Swag.require(attributes != null)
+        defer Linux.free(attributes)
+        if attributes.map_state == Linux.XCB_MAP_STATE_VIEWABLE do
+            return
+
+        Swag.require(watch.elapsedMilliseconds() < 2000)
+        Threading.Thread.sleep(1'ms)
+    }
+}
+
 // Send the window-manager protocol through the public drawable view, without consuming
 // Core's event queue or taking ownership of its connection or window.
 func sendManagedClose(window: *Env.Window)
@@ -74,7 +100,7 @@ func sendManagedClose(window: *Env.Window)
     Swag.require(error == null)
 }
 
-// Requires an isolated X11 display with software OpenGL; no desktop focus is stolen.
+// Exercises a close request and focus transfer on an X11 display with OpenGL.
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
@@ -90,6 +116,8 @@ func sendManagedClose(window: *Env.Window)
     survivor.callbacks.onFocus           = &recordManagedFocus
     expect firstWindow.show()
     expect survivor.show()
+    waitForViewable(&firstWindow)
+    waitForViewable(&survivor)
     expect firstWindow.requestFocus()
     let initialPump = Env.processWindowMessages()
     Swag.require(initialPump)
@@ -141,9 +169,18 @@ func sendManagedClose(window: *Env.Window)
 
         expect survivor.setClientSize(48, 40)
         expect survivor.requestFocus()
-        let resizedPump = Env.processWindowMessages()
-        Swag.require(resizedPump and g_ManagedClose.focused)
-        Swag.require(g_ManagedClose.width == 48 and g_ManagedClose.height == 40)
+        var watch: Time.Stopwatch
+        watch.start()
+        while true
+        {
+            Swag.require(Env.processWindowMessages())
+            if g_ManagedClose.focused and g_ManagedClose.width == 48 and g_ManagedClose.height == 40 do
+                break
+
+            Swag.require(watch.elapsedMilliseconds() < 2000)
+            Threading.Thread.sleep(1'ms)
+        }
+
         second.width  = g_ManagedClose.width
         second.height = g_ManagedClose.height
         renderer.begin(second)

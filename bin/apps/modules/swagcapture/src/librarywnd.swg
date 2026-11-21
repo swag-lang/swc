@@ -1394,8 +1394,8 @@ impl LibraryWnd
                 count(&result.tags, &tags, tag[], "")
         }
 
-        result.applications.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
-        result.tags.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
+        result.applications.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
+        result.tags.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
         return result
     }
 

@@ -248,7 +248,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         if let name = result.face.glyphName(cast(u32, glyphIndex)) do
             result.glyphNames.add(GlyphName{String.from(name), cast(u32, glyphIndex)})
     }
-    result.glyphNames.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
+    result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
     while start < 0x110000
     {
         let page = characterPage(result.face, start)
@@ -662,13 +662,13 @@ private impl Panel
             while first < last
             {
                 let middle = first + (last - first) / 2
-                if Utf8.compare(.document.glyphNames[middle].name.toSlice(), query, .Latin1NoCase) < 0
+                if Text.compareNames(.document.glyphNames[middle].name.toString(), query) < 0
                     do first = middle + 1
                 else do last = middle
             }
 
             if first < .document.glyphNames.count and
-                Utf8.compare(.document.glyphNames[first].name.toSlice(), query, .Latin1NoCase) == 0
+                Text.compareNames(.document.glyphNames[first].name.toString(), query) == 0
             {
                 let name = .document.glyphNames[first].name.toString()
                 let glyphIndex = .document.glyphNames[first].id

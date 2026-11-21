@@ -1479,7 +1479,7 @@ impl Explorer
                               path: directory.fullName, directory: true})
         }
 
-        children.sort(func(a, b)->s32 { return Latin1.compareNatural(a.name, b.name) })
+        children.sort(func(a, b)->s32 { return Text.compareNames(a.name, b.name) })
         .menuPaths.clear()
         .menuPaths.reserve(children.count)
         for &child in children where child.directory
@@ -1716,21 +1716,13 @@ impl Explorer
         .shown.clear()
         .list.clear()
         let query   = .filter.text()
-        var options = Viewer.SearchOptions{matchCase: .window.searchMatchCaseOption,
+        let options = Viewer.SearchOptions{matchCase: .window.searchMatchCaseOption,
                                            wholeWord: .window.searchWholeWordOption,
                                            regularExpression: .window.searchRegexOption}
-        var expression: Parser.RegExp
-        var validPattern = true
-        if query.count and options.regularExpression
-        {
-            catch expression.compile(query, ignoreCase: not options.matchCase)
-            {
-                validPattern = false
-            }
-
-            if validPattern do
-                options.expression = &expression
-        }
+        let validPattern = Viewer.patternIsValid(query, options)
+        var matcher: Text.NameMatcher
+        if query.count and validPattern do
+            matcher = assume Viewer.createNameMatcher(query, options)
 
         var matches: Array'Viewer.SearchMatch
         for &entry, index in .entries
@@ -1742,7 +1734,7 @@ impl Explorer
                 if not validPattern do
                     continue
                 matches.clear()
-                Viewer.collectTextMatches(entry.name, query, options, 0, 0, 0, &matches)
+                Viewer.collectTextMatches(entry.name, &matcher, 0, 0, 0, &matches)
                 if matches.isEmpty() do
                     continue
             }

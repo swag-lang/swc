@@ -1828,7 +1828,7 @@ impl ListCtrl
             let it1   = b.itemAt(column)
             let sort0 = it0.sortKey.isEmpty() ? &it0.name.text : &it0.sortKey
             let sort1 = it1.sortKey.isEmpty() ? &it1.name.text : &it1.sortKey
-            var res   = Latin1.compareNatural(sort0[], sort1[])
+            var res   = Text.compareNames(sort0[], sort1[])
             if descending do
                 res *= -1
             return res

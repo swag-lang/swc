@@ -76,16 +76,16 @@ impl ExplorerListingLoad
             var order: s32
             switch operation.sortColumn
             {
-            case 1: order = Latin1.compareNatural(Path.extension(a.name) orelse "",
-                                                  Path.extension(b.name) orelse "")
+            case 1: order = Text.compareNames(Path.extension(a.name) orelse "",
+                                              Path.extension(b.name) orelse "")
 
             case 2:  order = a.size == b.size ? 0 : (a.size < b.size ? -1 : 1)
             case 3:  order = Latin1.compareNatural(a.modified, b.modified)
-            default: order = Latin1.compareNatural(a.name, b.name)
+            default: order = Text.compareNames(a.name, b.name)
             }
 
             if order == 0 do
-                order = Latin1.compareNatural(a.name, b.name)
+                order = Text.compareNames(a.name, b.name)
             return operation.descending ? -order : order
         })
     }

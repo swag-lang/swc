@@ -845,8 +845,9 @@ impl Panel
 
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
+        var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for index in .track!.cueCount() do
-            Viewer.collectTextMatches(.track.cueContent(index), text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(.track.cueContent(index), &matcher, index, 0, 0, result)
     }
 
     mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool

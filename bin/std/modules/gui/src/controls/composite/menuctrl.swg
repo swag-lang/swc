@@ -1474,10 +1474,11 @@ public impl MenuCtrl
         if not count do
             return
         let current = .selectedIdx < count ? cast(u64, .selectedIdx) : count - 1
+        let matcher = expect Text.NameMatcher.create(letter, {mode: .StartsWith, comparisonType: .UnicodeNoCase})
         for offset in count
         {
             let index = (current + offset + 1) % count
-            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.text, letter, .UnicodeNoCase)
+            if .canSelectKeyboard(index) and matcher.isMatch(.items[index]!.name.text)
             {
                 .setKeyboardSelection(index)
                 return

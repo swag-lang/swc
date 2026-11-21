@@ -478,10 +478,10 @@ private func compareSortKeys(a, b: SortKey, descending: bool)->s32
     {
         order = descending ? (b.quantity <=> a.quantity) : (a.quantity <=> b.quantity)
         if not order do
-            order = descending ? Latin1.compareNatural(b.text, a.text) : Latin1.compareNatural(a.text, b.text)
+            order = descending ? Text.compareNames(b.text, a.text) : Text.compareNames(a.text, b.text)
     }
     else do
-        order = descending ? Latin1.compareNatural(b.text, a.text) : Latin1.compareNatural(a.text, b.text)
+        order = descending ? Text.compareNames(b.text, a.text) : Text.compareNames(a.text, b.text)
     return order != 0 ? order : a.row <=> b.row
 }
 
@@ -1046,10 +1046,11 @@ impl Panel
 {
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
+        var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for row, rowIndex in .document.rows
         {
             for cell, column in row.cells do
-                Viewer.collectTextMatches(cell.toString(), text, options, rowIndex, column, 0, result)
+                Viewer.collectTextMatches(cell.toString(), &matcher, rowIndex, column, 0, result)
         }
     }
 

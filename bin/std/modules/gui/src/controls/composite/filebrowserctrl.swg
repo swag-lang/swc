@@ -333,7 +333,7 @@ private impl FileBrowserCtrl
             return
         }
 
-        entries.sort(func(a, b) => Latin1.compareNatural(a.fullName, b.fullName))
+        entries.sort(func(a, b) => Text.compareNames(a.fullName, b.fullName))
         for &entry in entries where entry.isDirectory()
         {
             let name     = Path.fileName(entry.fullName) orelse entry.fullName.toString()
@@ -834,7 +834,7 @@ private impl FileBrowserCtrl
                 if not fi1.isDirectory() and fi2.isDirectory() do
                     return 1
 
-                let byName = Utf8.compare(fi1.fullName.toSlice(), fi2.fullName.toSlice(), .Latin1NoCase)
+                let byName = Text.compareNames(fi1.fullName.toString(), fi2.fullName.toString())
                 switch col
                 {
                 case 0:
@@ -1195,7 +1195,8 @@ impl FileBrowserCtrl
 
         var typed = String.from(.typedIsPath() ? "" : .pathField.text())
         typed.trim()
-        let now = Time.DateTime.now()
+        let nameMatcher = assume Text.NameMatcher.create(typed.toString())
+        let now         = Time.DateTime.now()
 
         for &fi in .currentEntries
         {
@@ -1218,7 +1219,7 @@ impl FileBrowserCtrl
 
             if not show do
                 continue
-            if typed.count and Utf8.indexOf(fname, typed.toString(), comparisonType: .Latin1NoCase) == Swag.U64.Max do
+            if typed.count and not nameMatcher.isMatch(fname) do
                 continue
 
             // Content. The date and the size are read at a glance and never acted on, so they
@@ -1235,7 +1236,8 @@ impl FileBrowserCtrl
             if typed.count
             {
                 let nameItem = unwrap line.items[0]
-                nameItem.matchStart = cast(u32, Utf8.indexOf(fname, typed.toString(), comparisonType: .Latin1NoCase))
+                let matches  = nameMatcher.findAll(fname)
+                nameItem.matchStart = cast(u32, matches[0].start)
                 nameItem.matchCount = cast(u32, typed.count)
             }
 

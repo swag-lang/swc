@@ -316,9 +316,9 @@ impl DocumentOutline
     private mtd rebuildRows()
     {
         .clear()
-        let filter = .filter.toString()
-        for heading in .headings where .filter.isEmpty() or
-                                       heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
+        let filter  = .filter.toString()
+        let matcher = assume Text.NameMatcher.create(filter)
+        for heading in .headings where .filter.isEmpty() or matcher.isMatch(heading.title.toString()) do
             .add(heading.title, heading.level, heading.sourceOffset)
 
         // The rows are new: the heading being read is found among them again.

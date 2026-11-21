@@ -3,7 +3,8 @@
 
 using Win32
 
-internal func resolveNative(host: string, port: u16, options: ResolveOptions)->Array'SocketEndpoint fail
+internal func resolveNative(host: string, service: const [*]u8?, port: u16,
+                            options: ResolveOptions)->Array'SocketEndpoint fail
 {
     try startup()
     defer discard WSACleanup()
@@ -13,7 +14,7 @@ internal func resolveNative(host: string, port: u16, options: ResolveOptions)->A
     hints.ai_socktype = SOCK_STREAM
     hints.ai_protocol = IPPROTO_TCP
     var result: *ADDRINFOA?
-    let code = getaddrinfo(host.buffer, null, &hints, &result)
+    let code = getaddrinfo(host.buffer, service, &hints, &result)
     if code != 0 do
         fail NetworkError{"host name resolution failed", code: code}
     let first = unwrap result
@@ -26,8 +27,10 @@ internal func resolveNative(host: string, port: u16, options: ResolveOptions)->A
         let item = current
         if item.ai_addr and (item.ai_family == AF_INET or item.ai_family == AF_INET6)
         {
-            let endpoint = try portableSocketEndpoint(item.ai_addr)
-            endpoints.add({address: endpoint.address, port: port})
+            var endpoint = try portableSocketEndpoint(item.ai_addr)
+            if service == null do
+                endpoint.port = port
+            endpoints.add(endpoint)
         }
         current = item.ai_next
     }

@@ -35,12 +35,13 @@ whole layout.
 ### std.net.003 — DNS cancellation and resolution policy
 
 - Evidence: `Dns.resolve` uses the platform resolver on Linux and Windows, preserves resolver
-  ordering, supports address-family filters, and returns portable endpoints. It accepts a numeric
-  port only, and the synchronous API has no cancellation contract yet.
-- Next: define named-service and cancellation behavior, or explicitly constrain and document the
-  synchronous API if the platform resolver cannot be interrupted safely.
-- Done when: local and invalid-name tests cover the documented ordering, family filtering,
-  service names, failure, and cancellation behavior.
+  ordering, supports address-family filters, resolves numeric ports and named services, and
+  returns portable endpoints. Resolution is synchronous and cannot be cancelled; callers that
+  need responsiveness must run it on a worker.
+- Next: add an asynchronous resolver only with a cancellable platform contract; retain the
+  synchronous API as the simple blocking option.
+- Done when: tests cover resolver ordering, family filtering, named services, and failure, while
+  the synchronous API documents that platform lookup blocks and cannot be cancelled.
 - Related: std.net.001
 
 ### std.net.004 — No non-blocking socket readiness API

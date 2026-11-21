@@ -24,12 +24,14 @@ whole layout.
 
 ### std.net.002 — Decide UDP broadcast and multicast support
 
-- Evidence: `net` now sends and receives bounded UDP datagrams over portable IPv4 and IPv6
-  endpoints on Linux and Windows. Broadcast and multicast are not part of the current API.
-- Next: decide whether UDP broadcast and multicast belong in the portable datagram contract and
-  document the platform behavior before adding either operation.
-- Done when: the API either exposes tested broadcast and multicast operations on both hosts or
-  explicitly documents why those operations are excluded.
+- Evidence: `DatagramSocket` enables IPv4 broadcast and joins or leaves IPv4/IPv6 multicast groups
+  on Linux and Windows. IPv4 membership selects a local interface address; IPv6 membership selects
+  an interface index. Runtime tests cover broadcast configuration and IPv4 join/leave on Linux;
+  Windows runtime coverage remains part of platform.portability.088.
+- Next: run the multicast and broadcast tests on Windows and add an IPv6 multicast loopback test
+  where a portable interface-selection contract is available.
+- Done when: broadcast and IPv4/IPv6 membership behavior pass runtime tests on both supported hosts,
+  including interface selection and invalid group handling.
 - Related: std.net.001, std.net.003, std.net.004
 
 ### std.net.003 — DNS cancellation and resolution policy

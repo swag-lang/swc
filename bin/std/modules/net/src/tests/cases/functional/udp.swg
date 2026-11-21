@@ -29,6 +29,22 @@ using Core
     Swag.require(not sender.isOpen())
 }
 
+// Broadcast permission and IPv4 multicast membership are controlled on the owned socket.
+#test
+{
+    var socket = expect DatagramSocket.bind({address: [0, 0, 0, 0], port: 0})
+    expect socket.setBroadcast(true)
+    expect socket.setBroadcast(false)
+
+    let group = IpAddress.ipv4([239, 1, 2, 3])
+    expect socket.joinMulticast(group)
+    expect socket.leaveMulticast(group)
+
+    var error: Swag.Error
+    discard catch socket.joinMulticast(IpAddress.ipv4([192, 0, 2, 1])) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}
+
 #test
 {
     var receiver = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})

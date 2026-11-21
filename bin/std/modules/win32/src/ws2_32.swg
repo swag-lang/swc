@@ -15,6 +15,13 @@ const SOCK_DGRAM         = 2
 const SD_SEND             = 1
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
+const IPPROTO_IP         = 0
+const IPPROTO_IPV6       = 41
+const SO_BROADCAST       = 0x20
+const IP_ADD_MEMBERSHIP  = 12
+const IP_DROP_MEMBERSHIP = 13
+const IPV6_JOIN_GROUP    = 12
+const IPV6_LEAVE_GROUP   = 13
 const AI_PASSIVE         = 1
 const AI_NUMERICHOST     = 4
 const AI_NUMERICSERV     = 8
@@ -86,6 +93,24 @@ struct SOCKADDR_IN6
     }
 }
 
+struct IP_MREQ
+{
+    public
+    {
+        imr_multiaddr: IN_ADDR
+        imr_interface: IN_ADDR
+    }
+}
+
+struct IPV6_MREQ
+{
+    public
+    {
+        ipv6mr_multiaddr: IN6_ADDR
+        ipv6mr_interface: u32
+    }
+}
+
 struct ADDRINFOA
 {
     public
@@ -117,6 +142,7 @@ struct ADDRINFOA
     func listen(handle: SOCKET, backlog: s32)->s32
     func accept(handle: SOCKET, address: *SOCKADDR?, length: *s32?)->SOCKET
     func getsockname(handle: SOCKET, address: *SOCKADDR, length: *s32)->s32
+    func setsockopt(handle: SOCKET, level, option: s32, value: const *u8, length: s32)->s32
     func recv(handle: SOCKET, buffer: [*] u8, length, flags: s32)->s32
     func send(handle: SOCKET, buffer: const [*] u8, length, flags: s32)->s32
     func shutdown(handle: SOCKET, how: s32)->s32

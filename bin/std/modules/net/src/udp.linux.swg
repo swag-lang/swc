@@ -13,6 +13,28 @@ private func newDatagramSocket(family: s32)->s32 fail
 
 impl DatagramSocket
 {
+    // Enables or disables sending IPv4 broadcast datagrams on this socket.
+    mtd setBroadcast(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_BROADCAST,
+                            cast(const *void, &value), #sizeof(s32)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Joins an IPv4 or IPv6 multicast group on the selected local interface.
+    mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail
+    {
+        try setMulticastMembership(.handle, group, options, true)
+    }
+
+    // Leaves a multicast group previously joined with the same address and interface.
+    mtd leaveMulticast(group: IpAddress, options: MulticastOptions = {}) fail
+    {
+        try setMulticastMembership(.handle, group, options, false)
+    }
+
     // Binds an IPv4 or IPv6 endpoint and returns an owned socket.
     //
     // A port of zero selects an available port, which [[Net.DatagramSocket.localAddress]] returns.
@@ -89,4 +111,39 @@ impl DatagramSocket
                 fail NetworkError{code: code}
         }
     }
+}
+
+private func setMulticastMembership(handle: u64, group: IpAddress, options: MulticastOptions, join: bool) fail
+{
+    if group.isIPv4()
+    {
+        if group.bytes[0] < 224 or group.bytes[0] > 239 or not options.interfaceAddress.isIPv4() do
+            fail Errors.BadParameterError{}
+        let groupAddress = Linux.in_addr{s_addr: Linux.htonl((cast(u32, group.bytes[0]) << 24) |
+            (cast(u32, group.bytes[1]) << 16) | (cast(u32, group.bytes[2]) << 8) | group.bytes[3])}
+        let interfaceAddress = Linux.in_addr{s_addr: Linux.htonl((cast(u32, options.interfaceAddress.bytes[0]) << 24) |
+            (cast(u32, options.interfaceAddress.bytes[1]) << 16) |
+            (cast(u32, options.interfaceAddress.bytes[2]) << 8) | options.interfaceAddress.bytes[3])}
+        let request = Linux.ip_mreq{imr_multiaddr: groupAddress, imr_interface: interfaceAddress}
+        let option = join ? Linux.IP_ADD_MEMBERSHIP : Linux.IP_DROP_MEMBERSHIP
+        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IP, option,
+                            cast(const *void, &request), #sizeof(Linux.ip_mreq)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+        return
+    }
+
+    if group.isIPv6() and group.bytes[0] == 0xFF
+    {
+        var address: Linux.in6_addr
+        for i in 16 do
+            address.s6_addr[i] = group.bytes[i]
+        let request = Linux.ipv6_mreq{ipv6mr_multiaddr: address, ipv6mr_interface: options.interfaceIndex}
+        let option = join ? Linux.IPV6_JOIN_GROUP : Linux.IPV6_LEAVE_GROUP
+        if Linux.setsockopt(cast(s32, handle), Linux.IPPROTO_IPV6, option,
+                            cast(const *void, &request), #sizeof(Linux.ipv6_mreq)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+        return
+    }
+
+    fail Errors.BadParameterError{}
 }

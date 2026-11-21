@@ -23,6 +23,7 @@ const MSG_NOSIGNAL = 0x4000's32
 const MSG_TRUNC    = 0x20's32
 const SOL_SOCKET   = 1's32
 const SO_ERROR     = 4's32
+const SO_BROADCAST = 6's32
 const SHUT_WR      = 1's32
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
@@ -34,6 +35,7 @@ const SHUT_WR      = 1's32
     func accept4(fd: s32, address: *sockaddr?, length: *u32?, flags: s32)->s32
     func getsockname(fd: s32, address: *sockaddr, length: *u32)->s32
     func getsockopt(fd: s32, level: s32, option: s32, value: *void, length: *u32)->s32
+    func setsockopt(fd: s32, level: s32, option: s32, value: const *void, length: u32)->s32
     func recv(fd: s32, buffer: *void, size: u64, flags: s32)->s64
     func send(fd: s32, buffer: const *void, size: u64, flags: s32)->s64
     func recvfrom(fd: s32, buffer: *void, size: u64, flags: s32, address: *sockaddr?, length: *u32?)->s64

@@ -23,8 +23,8 @@ using Net
 ```
 
 Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
-and Windows. TCP streams support half-closing their send side, and operations can fail or transfer
-fewer bytes than requested. DNS resolution
+and Windows. TCP streams support half-closing their send side. UDP supports broadcast and
+IPv4/IPv6 multicast membership. Operations can fail or transfer fewer bytes than requested. DNS resolution
 preserves the platform resolver's address order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.

@@ -18,6 +18,27 @@ private func newDatagramSocket(family: s32)->SOCKET fail
 
 impl DatagramSocket
 {
+    // Enables or disables sending IPv4 broadcast datagrams on this socket.
+    mtd setBroadcast(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if setsockopt(.handle, SOL_SOCKET, SO_BROADCAST, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
+    // Joins an IPv4 or IPv6 multicast group on the selected local interface.
+    mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail
+    {
+        try setMulticastMembership(.handle, group, options, true)
+    }
+
+    // Leaves a multicast group previously joined with the same address and interface.
+    mtd leaveMulticast(group: IpAddress, options: MulticastOptions = {}) fail
+    {
+        try setMulticastMembership(.handle, group, options, false)
+    }
+
     // Binds an IPv4 or IPv6 endpoint and returns an owned socket.
     //
     // A port of zero selects an available port, which [[Net.DatagramSocket.localAddress]] returns.
@@ -94,4 +115,37 @@ impl DatagramSocket
         return {endpoint: try portableSocketEndpoint(cast(const *SOCKADDR, cast(const *void, &address))),
                 count: cast(u64, result), truncated: false}
     }
+}
+
+private func setMulticastMembership(handle: SOCKET, group: IpAddress, options: MulticastOptions, join: bool) fail
+{
+    if group.isIPv4()
+    {
+        if group.bytes[0] < 224 or group.bytes[0] > 239 or not options.interfaceAddress.isIPv4() do
+            fail Errors.BadParameterError{}
+        var request: IP_MREQ
+        request.imr_multiaddr.S_un.S_addr = htonl((cast(u32, group.bytes[0]) << 24) |
+            (cast(u32, group.bytes[1]) << 16) | (cast(u32, group.bytes[2]) << 8) | group.bytes[3])
+        request.imr_interface.S_un.S_addr = htonl((cast(u32, options.interfaceAddress.bytes[0]) << 24) |
+            (cast(u32, options.interfaceAddress.bytes[1]) << 16) |
+            (cast(u32, options.interfaceAddress.bytes[2]) << 8) | options.interfaceAddress.bytes[3])
+        let option = join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP
+        if setsockopt(handle, IPPROTO_IP, option, cast(const *u8, &request), #sizeof(IP_MREQ)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+        return
+    }
+
+    if group.isIPv6() and group.bytes[0] == 0xFF
+    {
+        var request: IPV6_MREQ
+        for i in 16 do
+            request.ipv6mr_multiaddr.Byte[i] = group.bytes[i]
+        request.ipv6mr_interface = options.interfaceIndex
+        let option = join ? IPV6_JOIN_GROUP : IPV6_LEAVE_GROUP
+        if setsockopt(handle, IPPROTO_IPV6, option, cast(const *u8, &request), #sizeof(IPV6_MREQ)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+        return
+    }
+
+    fail Errors.BadParameterError{}
 }

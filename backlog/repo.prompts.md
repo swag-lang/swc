@@ -1124,9 +1124,11 @@ The in-scope code is `bin/runtime/`, its tests and helpers under `bin/unittests/
 and the transitive dependency closure of the `bin/std/modules/` modules imported by shipped
 applications in `bin/apps/`. Determine that closure from application module descriptors and
 sources, then follow declared and conditional imports among standard modules. Record the resulting
-module list in campaign state so the scope is reproducible. Include each in-scope module's
-project-owned implementation, module descriptor, public API and module-owned tests and test
-helpers. Use application sources only to discover dependencies and check real caller contracts;
+module list in campaign state so the scope is reproducible. The current shipped-app closure is
+`core`, `pixel`, `gui`, `audio`, `video`, `truetype`, `net`, `screen`, `ogl`, `win32`, and `linux`;
+recompute it if application or module imports change. Include each in-scope module's project-owned
+implementation, module descriptor, public API and module-owned tests and test helpers. Use
+application sources only to discover dependencies and check real caller contracts;
 do not review or change application implementation.
 
 Applications, examples, standalone scripts and tools, language-reference pages, compiler suites

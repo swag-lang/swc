@@ -77,9 +77,19 @@ whole layout.
 
 ### std.net.009 — HTTP URLs reject IPv6 literals
 
-- Evidence: `Url.parseHttp` rejects bracketed IPv6 authorities, and the native HTTP clients do not
-  format IPv6 hosts for their platform transports.
-- Next: parse bracketed IPv6 literals and verify local HTTP requests over `::1` on both hosts.
+- Evidence: `Url.parseHttp` parses compressed, full, and IPv4-mapped bracketed IPv6 authorities;
+  Linux local HTTP tests reach an IPv6 loopback listener. Windows runtime coverage remains open.
+- Next: run the local IPv6 HTTP request test on Windows.
 - Done when: compressed and full IPv6 authorities parse with optional ports, malformed literals
   fail, and local HTTP requests reach an IPv6 loopback listener on Linux and Windows.
 - Related: std.net.002, platform.portability.088
+
+### std.net.010 — TCP streams lack complete read and write helpers
+
+- Evidence: `TcpStream.read` and `write` may transfer fewer bytes than requested; HTTP and
+  WebSocket protocols each implement private loops to read or write a complete buffer.
+- Next: expose portable `readExact` and `writeAll` methods with explicit EOF and zero-progress
+  failure behavior.
+- Done when: tests cover complete transfers, empty buffers, and EOF before the requested length
+  on both supported hosts.
+- Related: platform.portability.088

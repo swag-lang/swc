@@ -47,6 +47,30 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.require(host.app.mouseCaptureWnd == null)
 }
 
+// A window leaving its surface cannot keep application input state or native capture behind.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    let child = Wnd.create'Wnd(&host.root, {20, 20, 100, 40})
+
+    child.captureMouse()
+    Swag.require(host.app.mouseCaptureWnd == child)
+    child.hide()
+    Swag.require(host.app.mouseCaptureWnd == null)
+
+    child.show()
+    child.captureMouse()
+    child.disable()
+    Swag.require(host.app.mouseCaptureWnd == null)
+
+    child.enable()
+    child.captureMouse()
+    Swag.require(host.root.detachChild(child))
+    Swag.require(host.app.mouseCaptureWnd == null and child.surface == null)
+    child.setParent(&host.root)
+}
+
 // A standard window rounds its corners, unless it has no shadow or is maximized.
 #test
 {

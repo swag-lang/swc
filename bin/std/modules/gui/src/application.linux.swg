@@ -132,12 +132,15 @@ impl Application
 
     internal mtd releaseMouse()
     {
-        if .mouseCaptureWnd and .renderer.needsNativeWindow()
+        if .renderer.needsNativeWindow()
         {
             let context    = expect LinuxDesktop.ensure()
             let connection = unwrap context.connection
-            expect LinuxDesktop.check(context, context.xcb_ungrab_pointer_checked(connection, 0))
-            context.pointerCapture = null
+            if .mouseCaptureWnd or context.pointerCapture
+            {
+                expect LinuxDesktop.check(context, context.xcb_ungrab_pointer_checked(connection, 0))
+                context.pointerCapture = null
+            }
         }
 
         .mouseCaptureWnd = null

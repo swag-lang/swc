@@ -4,7 +4,7 @@
 using Core, Pixel
 
 // Exercises a real ARGB XCB drawable and EGL swap, including independent native queries.
-#[Swag.TestTag("integration.desktop")]
+#[Swag.TestTag("integration.desktop.capture")]
 #test
 {
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
@@ -247,4 +247,34 @@ struct NativeInputProbe
     Swag.require(view.mouseCapture() == view)
     view.releaseMouse()
     Swag.require(view.mouseCapture() == null)
+}
+
+// Hiding or disabling the captured subtree releases the X11 pointer grab.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab-lifecycle")
+    let target  = Wnd.create'Wnd(surface.wnd.view, {12, 12, 100, 50})
+    surface.show()
+    for 3 do
+        app.runFrame()
+
+    let context = expect LinuxDesktop.ensure()
+    target.captureMouse()
+    Swag.require(target.mouseCapture() == target and context.pointerCapture == surface)
+    target.releaseMouse()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
+
+    target.captureMouse()
+    Swag.require(context.pointerCapture == surface)
+    target.hide()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
+
+    target.show()
+    target.captureMouse()
+    Swag.require(context.pointerCapture == surface)
+    target.disable()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
 }

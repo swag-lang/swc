@@ -680,14 +680,7 @@ private impl Application
     {
         .animator.cancelTarget(wnd)
         .toolTip.forget(wnd)
-
-        if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
-            .mouseEnterWnd = null
-        if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
-            .mouseCaptureWnd = null
-        .forgetKeyboardFocus(wnd)
-        if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
-            .dragEnterWnd = null
+        .clearWndInputState(wnd)
 
         .unregisterWndTimers(wnd)
 
@@ -1262,7 +1255,7 @@ impl Application
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
         if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
-            .mouseCaptureWnd = null
+            .releaseMouse()
         .forgetKeyboardFocus(wnd)
         if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
             .dragEnterWnd = null

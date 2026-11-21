@@ -1758,7 +1758,7 @@ impl Wnd
             idx = Slice.findLinear(.children.toSlice(), child)
             if idx == Swag.U64.Max do
                 return true
-            child.surface?.app.forgetKeyboardFocus(child)
+            child.surface?.app.clearWndInputState(child)
         }
 
         .children.removeAtOrdered(idx)

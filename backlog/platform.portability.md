@@ -331,10 +331,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: `tools/linux-tests.py all` covers compiler suites, workspace fixtures, standard
   modules, examples, applications and reference through shared Windows/Linux command builders.
-  Remaining recorded GUI leads include strict Mesa contour differences at confirmation focus,
-  floating-sheet edges and property-menu separators, plus platform-dependent fixture paths and
-  unavailable application capabilities. Reproduce them on the synchronized checkout before
-  changing geometry, coverage or expectations.
+  Remaining recorded GUI leads include strict Mesa contour differences at floating-sheet edges
+  and property-menu separators, plus platform-dependent fixture paths and unavailable application
+  capabilities. Reproduce them on the synchronized checkout before changing geometry, coverage or
+  expectations.
   Under Xvfb, Scope cases have intermittently stopped after `event=start`, with the main thread
   waiting and no completion; isolated reruns passed. Panicking cases could leave the same wait.
   A full uninterrupted campaign must distinguish this lifetime failure from a rendering mismatch.
@@ -605,7 +605,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `cast(*void)`.
 - Done when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
-- Related: compiler.ai.020
+- Related: compiler.safety.033
 
 ### platform.portability.078 — Complete Linux FUSE and session integration
 
@@ -682,7 +682,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   exact command; existing double-click behavior remains intact; and moving the checkout and
   rerunning setup refreshes stale interpreter paths, and removal instructions undo installed
   associations.
-- Related: compiler.core.016
+- Related: compiler.build.016
 
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
@@ -837,29 +837,24 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.088 — Network transports need portable host backends
 
-- Owner: the `net` module from std.core.001.
-- Evidence: Windows and Linux leaves implement blocking IPv4 TCP behind the same stream and
-  listener owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send, retries interrupted
-  transfers/accept, and completes interrupted connects through poll and SO_ERROR. Failed acquisition
-  closes its socket. The two ordinary TCP tests and four tagged Linux integration cases pass in
-  JIT/native, covering loopback, EOF, close/drop, descriptor inheritance flags, error preservation,
-  SIGPIPE suppression and repeated failed bind/connect without leaked sockets.
-  A separately linked Net consumer passes in JIT/native, including short reads and drop/EOF.
-  Generated Net API docs have 25 documented declarations and 18 documented members, with no
-  unresolved links. The existing Windows socket cleanup is preserved by inspection; Windows
-  execution has not been rerun for this change.
-  Linux HTTP/HTTPS now uses a lazily loaded libcurl backend with strict target and proxy TLS,
-  bounded bodies/headers, preserved request-target bytes, explicit redirects and whole-transfer
-  deadlines. Six ordinary HTTP tests, seven direct HTTP/TLS cases, three proxy scenarios and a
-  separate importing consumer pass in JIT/native execution. The generated Net API has 26 documented
-  declarations and 18 documented members, with no unresolved links. IPv6, datagram transport,
-  resolver APIs and cancellation remain absent from the common transport surface.
-- Next: extend the address and ownership contracts for IPv6, UDP and host/service resolution. Add cancellation and interrupted-connect integration coverage;
-  keep native handles and error translation inside host leaves, and add readiness only after
-  the common concurrency contract is decided.
-- Done when: both host backends pass the same loopback, partial-transfer, cancellation,
-  resolution-failure, and handle-lifetime tests without exposing native types to callers.
-- Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.
+- Owner: the `net` module.
+- Evidence: Windows and Linux leaves implement blocking IPv4/IPv6 TCP, UDP, and DNS behind
+  portable address and socket owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send,
+  retries interrupted transfers/accept, and completes interrupted connects through poll and SO_ERROR.
+  TCP exposes a portable send-side shutdown operation. UDP broadcast and IPv4/IPv6 multicast
+  membership use platform socket options behind `DatagramSocket`.
+  Linux focused tests cover loopback, EOF, UDP delivery, broadcast and IPv4/IPv6 multicast options,
+  IPv6 TCP, resolver behavior, and HTTP streaming.
+  Windows bindings and implementations exist, but equivalent runtime coverage has not been run.
+  Linux HTTPS still uses a lazily loaded libcurl backend with system trust, bounded bodies and
+  headers, explicit redirects, and whole-transfer deadlines. HTTP servers now parse bounded
+  requests and stream responses. TLS streams, readiness, and cancellation remain separate contracts.
+- Next: run equivalent Windows integration coverage for IPv6, UDP, resolver failures, and socket
+  lifetime; keep native handles and error translation inside host leaves, and add readiness only
+  after the common concurrency contract is decided.
+- Done when: both host backends pass equivalent loopback, partial-transfer, resolution-failure,
+  and handle-lifetime tests without exposing native types to callers.
+- Related: std.net.002, std.net.003, std.net.004, language.parallelism.001.
 
 ### platform.portability.081 — Foreign vector ABIs are unavailable
 
@@ -870,7 +865,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: supported Windows x64 and one non-Windows target's vector parameters and returns
   interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
   documented per target.
-- Related: cpu.simd.002.
+- Related: compiler.codegen.019.
 
 ### platform.portability.072 — Swag Scope has no portable preview-provider boundary
 
@@ -1125,3 +1120,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063,
   std.screen.003
 
+### platform.portability.103 — Optional SIMD beyond the baseline has no shared dispatch contract
+
+- Evidence: the supported compiler/runtime baseline is x86-64-v3 and startup rejects older
+  hosts; there is no lower-ISA build mode. Standard modules still have no common contract for
+  optional features beyond that baseline.
+- Next: add authoritative optional-feature queries and function multiversioning so a module can
+  select a baseline or richer implementation without duplicating dispatch. A lower-ISA product
+  target would require a separate explicit baseline decision.
+- Done when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
+  builds, and one runtime or codec kernel selects a measured optional-feature variant while retaining its
+  baseline implementation.
+- Related: compiler.codegen.019, compiler.codegen.020.

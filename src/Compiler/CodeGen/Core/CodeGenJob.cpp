@@ -145,10 +145,10 @@ JobResult CodeGenJob::execImpl()
 #endif
     SWC_ASSERT(!symbolFunc_->hasUnmaterializedGenericBody());
 
-    // Lifecycle intrinsics select operators after conditional impls have settled. A
-    // rejected candidate means there is no hook; it is not a failed ordinary call.
+    // Lowering needs interface method bodies and the lifecycle hooks selected by sema.
+    // An excluded lifecycle candidate represents an absent hook.
     SmallVector<SymbolFunction*> dependencies;
-    symbolFunc_->appendLifecycleDependencies(dependencies);
+    symbolFunc_->appendLoweringDependencies(dependencies);
     for (const SymbolFunction* dependency : dependencies)
     {
         if (dependency->isExcludedByCondition())

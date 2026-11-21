@@ -232,7 +232,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let x         = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX)
             let key       = Input.Keyboard.virtualKeyToKey(x)
             let modifiers = surface.app.keyboard.pressedModifiers() | Input.KeyModifiers.Alt
-            surface.app.sendRuneEvent(key, cast(rune, wParam), modifiers)
+            surface.app.sendRuneEvent(key, cast(rune, wParam), modifiers, surface)
             return 0
 
         case WM_KEYDOWN, WM_KEYUP:
@@ -259,7 +259,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let x        = MapVirtualKeyW(scanCode, MAPVK_VSC_TO_VK_EX)
             let y        = Input.Keyboard.virtualKeyToKey(x)
 
-            surface.app.sendRuneEvent(y, cast(rune, wParam))
+            surface.app.sendRuneEvent(y, cast(rune, wParam), surface.app.keyboard.pressedModifiers(), surface)
             return 0
 
         case WM_MOUSEWHEEL:
@@ -275,13 +275,14 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_KILLFOCUS:
-            if not surface.app.nativeFocusTransition do
-                surface.loseKeyboardFocus()
+            if surface.app.nativeFocusSurface == surface do
+                surface.app.updateNativeFocus(null)
             return 0
 
         case WM_SETFOCUS:
-            if not surface.app.nativeFocusTransition do
-                discard surface.restoreFocus()
+            // Start polling from the keys already held at activation.
+            surface.app.keyboard.update()
+            surface.app.updateNativeFocus(surface)
             return 0
 
         case WM_SETTINGCHANGE:
@@ -520,9 +521,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
 private impl Surface
 {
-    internal mtd setFocus()
+    internal mtd requestNativeFocus()
     {
-        SetFocus(.hWnd)
+        if not .isHidden and not .isDisabled do
+            SetFocus(.hWnd)
     }
 
     // Creates the hidden native window of a surface.
@@ -1260,11 +1262,8 @@ impl Surface
         ShowWindow(.hWnd, SW_SHOW)
         .applyNativeDwmStyle()
 
-        let curFocus = .wnd.view.focusedWindow()
-        if not curFocus or not .wnd.isAncestorOf(curFocus) do
-            discard .restoreFocus()
         SetActiveWindow(.hWnd)
-        SetFocus(.hWnd)
+        .requestNativeFocus()
 
         .wnd.view.sendStateEvent(.Show)
     }

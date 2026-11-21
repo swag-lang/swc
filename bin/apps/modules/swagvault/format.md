@@ -45,13 +45,16 @@ output. The first 32 bytes of the key-slot area are the container-wide salt. Eve
 uses that salt, so opening a password derives one key and tries the four slots. A hidden-volume
 locator has its own random 32-byte salt and derives its key independently.
 The empty password is valid and derives a slot key in the same way. With no key files, password
-bytes are the KDF input. With ordered key files, the input is an unkeyed BLAKE2b digest with a
-64-byte output over the ASCII domain `swag vault access key files v1`, password length as
-little-endian `u64`, password bytes, key-file count as little-endian `u64`, and each key file's
-length as little-endian `u64` followed
-by its complete contents. Paths are not included. This credential derivation is used for outer
-password slots and hidden-volume locators. Version 1 has no KDF profile selector; changing these
-costs requires a format-version change.
+bytes are the KDF input. With ordered key files, the input is a 64-byte unkeyed BLAKE2b digest
+over the ASCII domain `swag vault access key files v2`, the password length, the password bytes,
+the key-file count, and each key file's length followed by its chunk digests in file order.
+Lengths and counts are little-endian `u64` values.
+
+Split each file into consecutive 1 MiB chunks, with a shorter final chunk if needed. Each chunk
+contributes a 64-byte unkeyed BLAKE2b digest of its raw bytes. An empty file contributes its
+zero length and no chunk digests. Moving a key file preserves its contribution. Outer password
+slots and hidden-volume locators use this credential derivation. The Argon2id parameters are
+fixed by the container format version.
 
 The 64-byte master key is generated randomly. It is not derived from a password. A password-derived
 32-byte slot key wraps the master key with ChaCha20-Poly1305. The master key is expanded into two

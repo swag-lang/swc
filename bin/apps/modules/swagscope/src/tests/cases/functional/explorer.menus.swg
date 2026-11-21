@@ -221,7 +221,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
         files.add(explorer.entries[index].name)
     Swag.require(files.count > 2)
     for index in 1 until files.count do
-        Swag.require(Latin1.compareNatural(files[index - 1], files[index]) >= 0)
+        Swag.require(Text.compareNames(files[index - 1], files[index]) >= 0)
 
     chooseInQuietMenu(&host, window, explorer.sortMenu, ViewerCommands.SortSize)
     Swag.require(explorer.sortColumn == 2 and explorer.descending)
@@ -269,14 +269,14 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
     var host: Testing.HeadlessHost
     let window   = openMenuExplorer(&host)
     let explorer = unwrap window.explorer
-    chooseInQuietMenu(&host, window, explorer.modeMenu, ViewerCommands.Modes[1])
+    window.sendCommandEvent(ViewerCommands.Modes[1])
     Swag.require(explorer.mode == .Details)
-    Swag.require(explorer.modeMenu.text() == appStrings().explore_Details)
-    chooseInQuietMenu(&host, window, explorer.modeMenu, ViewerCommands.Modes[3])
+    Swag.require(explorer.modeMenu.text().count == 0)
+    window.sendCommandEvent(ViewerCommands.Modes[3])
     Swag.require(explorer.mode == .Medium)
-    chooseInQuietMenu(&host, window, explorer.modeMenu, ViewerCommands.Boards[1])
+    window.sendCommandEvent(ViewerCommands.Boards[1])
     Swag.require(explorer.forced and explorer.forcedBoard == .Grid and explorer.grid.board == .Grid)
-    Swag.require(explorer.modeMenu.text() == appStrings().board_Grid)
+    Swag.require(explorer.modeMenu.text().count == 0)
 
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ThumbnailCrops[0]).checked)
     let settings    = explorer.previewSettings
@@ -296,7 +296,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
 
     for command, index in ViewerCommands.ThumbnailCrops
     {
-        chooseInQuietMenu(&host, window, explorer.modeMenu, command)
+        window.sendCommandEvent(command)
         let state = window.sendComputeCommandStateEvent(command)
         Swag.require(state.checked and not state.hidden and state.name == thumbnailCropNames()[index])
         Swag.require(state.icon.isValid() and not glyphs.contains(state.icon.index))

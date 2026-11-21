@@ -4,14 +4,15 @@ This backlog covers `std/core`, measured against the standard libraries it compe
 the Go standard library, the .NET base class library, Rust's `std` plus its de-facto crates, the
 Python standard library, and Zig's `std`.
 
-Compiler work belongs in [compiler.core.md](compiler.core.md) and language work in
+Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/core` together. [README.md](README.md) has the whole layout.
 
 
 Read [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md) before
-acting on any entry that proposes a boundary change. Several entries below deliberately argue for a
-new module rather than growth inside `core`.
+acting on an entry that proposes a boundary change. This file keeps the evidence and intended
+outcomes owned by `core` together.
 
 ## Entries
 
@@ -32,160 +33,28 @@ new module rather than growth inside `core`.
   still round-trips.
 - Related: std.core.021, std.core.022
 
-### std.core.001 — Blocking TCP needs portable address coverage
-
-- Evidence: `net` provides blocking TCP connections and listeners over IPv4 on Windows. IPv6,
-  portable address handling and other host backends remain absent; name resolution belongs to
-  std.core.003. Platform leaves are owned by platform.portability.088.
-- Next: extend the address and transport contract to IPv6 and the next host backend, retaining
-  loopback and failure coverage without putting networking in the module every program links.
-- Done when: a separate net module opens, listens for, accepts, reads, writes, and closes
-  blocking TCP connections by portable address, with loopback tests for EOF, partial transfer,
-  and connection failure.
-- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008,
-  std.core.002, platform.portability.088
-
-### std.core.004 — No non-blocking socket readiness API
-
-- Next: add non-blocking sockets and readiness notification after the concurrency decision in
-  language.parallelism.001. Keep the readiness mechanism separate from the blocking socket
-  foundation.
-- Done when: non-blocking sockets expose a documented readiness and cancellation contract that
-  serves multiple connections without busy waiting, with tests for readable, writable, closed,
-  and failed peers.
-- Related: std.core.001, language.parallelism.001, std.core.028
-
-### std.core.013 — No BLAKE2s implementation
-
-- Evidence: `Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed
-  hashing, with variable digest lengths and tests in `src/tests/cases/functional/crypto/blake2b.swg`. There
-  is no BLAKE2s.
-- Next: add BLAKE2s with the same operation family and published vectors; BLAKE3 remains
-  independent.
-- Done when: BLAKE2s supports incremental and one-shot keyed and unkeyed hashing with variable
-  digest lengths, and published vectors match across chunk boundaries and invalid parameters.
-- Related: std.core.014
-
-### std.core.002 — No UDP sockets
-
-- Next: add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
-  independently of TCP connection semantics.
-- Done when: UDP sockets send and receive complete datagrams with portable endpoints, report
-  size and truncation behavior explicitly, and pass loopback and error tests; broadcast and
-  multicast support are decided and documented.
-- Related: std.core.001, std.core.003, std.core.004
-
-### std.core.003 — No DNS resolver
-
-- Next: add host/service resolution to the `net` module over the platform resolver, with
-  explicit address ordering, cancellation, and failure semantics.
-- Done when: the net module resolves host and service names to portable addresses with
-  documented ordering, cancellation, and failure behavior, tested against local and invalid
-  names.
-- Related: std.core.001
-
-### std.core.005 — No TLS transport
-
-- Next: provide client and server TLS over the socket contract. Decide explicitly whether each
-  platform binds its native provider or the project owns a portable implementation.
-- Done when: client and server TLS operate over the socket contract with certificate
-  validation, handshake and shutdown failures, and stream ownership stated, with local-peer
-  tests for accepted and rejected credentials.
-- Related: std.core.001, std.core.010, std.core.015, std.core.016
-
-### std.core.006 — HTTP client needs streaming and portable transports
-
-- Evidence: `Net.Http.get` provides bounded synchronous HTTP/HTTPS GET on Windows through
-  WinHTTP, with system certificate validation, phase timeout settings, explicit redirect responses and
-  local-server tests. URL component encoding and a restricted HTTP URL parser are available.
-  The host can enforce timeouts coarsely; streaming, active cancellation, strict deadlines and
-  other host backends remain open.
-- Next: add streaming request and response bodies, bounded redirect policy and cancellation,
-  with a portable contract over std.core.001 and std.core.005 or an explicit backend decision.
-- Done when: an HTTP/1.1 client streams requests and responses, follows bounded redirect
-  policy, cancels active transfers, and rejects oversized or malformed headers in local-server
-  tests.
-- Related: std.core.001, std.core.005
-
-### std.core.007 — No HTTP server
-
-- Next: implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits
-  independently of the client API.
-- Done when: an HTTP/1.1 server parses bounded requests and streams responses over multiple
-  connection lifetimes, with tests for malformed framing, cancellation, and graceful shutdown.
-- Related: std.core.001, std.core.004, std.core.005, std.core.006
-
-### std.core.008 — No WebSocket protocol
-
-- Next: add WebSocket handshake and frame processing above HTTP without making it part of the
-  HTTP client's completion criteria.
-- Done when: a WebSocket peer completes the HTTP upgrade and exchanges masked and fragmented
-  frames, control frames, and close handshakes within declared size limits, with client and
-  server tests.
-- Related: std.core.006, std.core.007
-
 ### std.core.010 — No AES implementation
 
-- Evidence: `core/src/crypto` has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256,
-  PBKDF2, BLAKE2b, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and several
-  non-cryptographic hashes, but no block cipher.
-- Next: add AES with hardware acceleration where available and constant-time fallback
-  behavior, then add separately numbered modes only when their contracts are chosen.
+- Evidence: `Crypto.Aes` now implements AES-128/192/256 blocks with a constant-operation-path
+  software substitution and FIPS 197 tests. `Math.Simd` has no AES-round intrinsic, so AES-NI
+  dispatch is not available; the software path is slower than a hardware backend. AES-GCM now
+  parallelizes independent CTR batches for large records. `core/src/crypto`
+  also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512,
+  SHA-512/224, SHA-512/256, SHA-3, SHAKE,
+  HMAC-SHA-224/256/384/512, HMAC-SHA-3, KMAC128/256 and KMACXOF,
+  AES-CMAC,
+  HKDF-SHA-224, HKDF-SHA-256, HKDF-SHA-384, HKDF-SHA-512, PBKDF2-HMAC-SHA-224/256/384/512, BLAKE2b,
+  BLAKE2s, BLAKE3, X25519, P-256 ECDH and ECDSA-SHA-256, Ed25519, AES-GCM, Argon2id, ChaCha20,
+  Poly1305, ChaCha20-Poly1305, XChaCha20-Poly1305, AES-CTR, AES-CCM, AES-XTS, AES-SIV,
+  AES-KW/KWP, scrypt,
+  RSA-OAEP-SHA-256, RSA-PSS-SHA-256, and several non-cryptographic hashes.
+- Next: add an AES-round backend that can safely select AES-NI after runtime feature detection,
+  retain the constant-operation-path software fallback, and measure both paths. Add separately
+  numbered modes only when their contracts are chosen.
 - Done when: AES-128, AES-192, and AES-256 block operations match published vectors in
   hardware and fallback paths, the fallback has a documented constant-time contract, and cipher
   modes retain separate backlog IDs.
-- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015,
-  std.core.016, std.core.017
-
-### std.core.011 — No SHA-512 family
-
-- Next: implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity
-  with the existing SHA-256 API.
-- Done when: SHA-384 and SHA-512 digests and their HMAC variants match published vectors for
-  one-shot and chunked input, including empty input and boundary block lengths.
-- Related: std.core.010
-
-### std.core.012 — No SHA-3 family
-
-- Next: implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct
-  sponge-based API.
-- Done when: the supported SHA-3 digest sizes and SHAKE output lengths match published vectors
-  across one-shot and incremental input, including empty and multi-block messages.
-- Related: std.core.010
-
-### std.core.014 — No BLAKE3 implementation
-
-- Next: add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one
-  algorithm contract.
-- Done when: BLAKE3 unkeyed, keyed, and key-derivation modes match published vectors across
-  chunk and tree boundaries, and parallel and serial processing return identical outputs.
-- Related: std.core.013
-
-### std.core.015 — No Ed25519 signatures
-
-- Next: add key generation, signing, verification, strict input validation, and published
-  vectors for Ed25519.
-- Done when: key generation, signing, and verification match published vectors, while
-  malformed encodings, wrong messages, and invalid keys are rejected with an explicit failure
-  contract.
-- Related: std.core.005, std.core.016
-
-### std.core.016 — No X25519 key agreement
-
-- Next: add X25519 key generation and shared-secret derivation with low-order input handling
-  stated and tested.
-- Done when: key generation and shared-secret derivation match published vectors for both
-  peers, and low-order or invalid inputs follow the documented rejection policy.
-- Related: std.core.005, std.core.015
-
-### std.core.017 — No RSA interoperability
-
-- Next: provide only the RSA operations and padding schemes justified by external
-  interoperability, with unsafe legacy modes excluded from the default surface.
-- Done when: a named interoperability case fixes the required RSA operations and safe padding
-  schemes; accepted cases pass external vectors and unsafe legacy forms are rejected, or the
-  entry is retired with a recorded decision that no use case justifies it.
-- Related: std.core.005
+- Related: std.net.005
 
 ### std.core.021 — No gzip container support
 
@@ -272,7 +141,7 @@ new module rather than growth inside `core`.
   `AtomicValue` rather than a wrapper call on its address.
 - Done when: one atomic family remains, its name is not a workaround, and no consumer reaches
   atomic storage through an ordinary pointer.
-- Related: language.parallelism.001, compiler.ai.029
+- Related: language.parallelism.001, language.parallelism.015
 
 ### std.core.025 — A dependency graph of tasks is written by hand
 
@@ -301,7 +170,7 @@ new module rather than growth inside `core`.
 - Done when: a fake backend and one real backend demonstrate exactly one terminal completion
   and retain buffers, request records, and callbacks until the backend is finished with them;
   owning I/O consumers use the common runtime without private task or cancellation machinery.
-- Related: language.parallelism.002, std.core.025, std.core.004
+- Related: language.parallelism.002, std.core.025, std.net.004
 
 ### std.core.030 — Compiling a regular expression makes many separate allocations
 
@@ -338,7 +207,7 @@ new module rather than growth inside `core`.
   loops of the regex benchmark tasks, and migrate only if layout and loops do not regress.
 - Done when: the regex types state their forms as tagged unions without a benchmark regression,
   or the measurement rejects the change and this entry is removed.
-- Related: compiler.ai.016.
+- Related: language.design.055.
 
 ### std.core.037 — Format.toString ignores arguments its format does not use
 
@@ -407,6 +276,156 @@ new module rather than growth inside `core`.
 - Done when: callers express both roles and the collision policy. Tests on Linux and Windows
   cover refusing to replace an existing or concurrently created destination, preserving the
   old destination on a failed replacement copy, same-file calls, and cross-filesystem moves.
-- Related: language.design.044, compiler.ai.039.
+- Related: language.design.044, compiler.query.003.
 
 ---
+
+### std.core.042 — Packed numeric lane conversion is incomplete
+
+- Next: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
+  the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
+  distinct from bit reinterpretation and saturating pack.
+- Cost of the gap: the JPEG encoder converts colour with packed 16.16 arithmetic but its forward
+  transform reads floats, and with no `s32` to `f32` lane conversion the samples have to land in a
+  `s16` staging array that the transform then converts one lane at a time.
+- Done when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
+  runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
+  them.
+- Related: std.pixel.042, std.pixel.image.054, std.pixel.043.
+
+### std.core.043 — Vector tails require scalar cleanup
+
+- Next: add masked load/store and partial load/store operations with an explicit valid-lane mask,
+  defined non-faulting behavior, and efficient baseline lowering when native masks are unavailable.
+  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
+  loads. A masked or partial API must make those preconditions explicit.
+- Done when: arbitrary byte counts can be processed without reading or writing outside the
+  slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
+- Related: compiler.codegen.020, std.core.048, std.video.019, std.pixel.040.
+
+### std.core.044 — Gather supports one shape; scatter, compress and expand are absent
+
+- Evidence: `Swag.vecGather` / `Math.Simd.gather` support only `s32` lanes with `u32x4`
+  indices, lowered to AVX2 `vpgatherdd`. Scatter, compress and expand have no surface. The
+  earlier gather timings were taken while the SIMD wrappers were still cross-module calls,
+  so they do not establish the operation's cost. They are not evidence behind the
+  gather-driven rejections in std.pixel.image.054 and std.video.018 either.
+- Next: time the inlined `vpgatherdd` against scalar lane loads on a hot-LUT
+  microbenchmark and in one consumer, then specify bounds and aliasing semantics for
+  indexed loads/stores and mask compaction/expansion, with a cost model allowed to pick
+  scalar lane operations.
+- Done when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
+  compress/expand are encoded, and the fallback never performs an invalid masked access.
+- Related: compiler.codegen.020, std.pixel.image.053, std.pixel.image.056, std.gui.pdf.044.
+
+### std.core.045 — Packed memory access has no alignment or cache policy
+
+- Next: add aligned load/store assertions or hints, broadcast loads, and non-temporal stores.
+  `Swag.prefetch` already hints a read into every cache level (`prefetcht0`), never faults and is
+  a no-op where a target has no such instruction; a locality or write-intent variant belongs here
+  once a consumer measures a need for it.
+- Done when: alignment violations are diagnosed or guarded as declared, large copy/fill and
+  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
+  remains the default portable operation.
+- Related: platform.portability.103, std.pixel.040, std.pixel.043.
+
+### std.core.046 — AES round and key instructions have no typed surface
+
+- Evidence: `Swag.vecCarrylessMul` and the four `Math.Simd.clmul...` wrappers already expose
+  carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
+  test. AES round/key instructions have no equivalent typed API.
+- Next: expose AES round/key operations with explicit availability and known-answer tests.
+- Done when: feature gating prevents illegal instructions, known-answer tests cover operands
+  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
+- Related: platform.portability.103.
+
+### std.core.047 — Vector rounding and transcendental families remain incomplete
+
+- Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and
+  lerp already have public wrappers in `math/simd.swg`.
+- Next: add vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
+  trigonometric family with documented accuracy tiers instead of treating absent machine
+  instructions as a permanent reason to keep callers scalar.
+- Done when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
+  tested, and benchmarks justify the chosen polynomial/table implementations.
+- Related: std.pixel.042, std.truetype.022, std.gui.pdf.044.
+
+### std.core.048 — UTF-8 validation still lacks a profitable packed fast path
+
+- Next: improve `isValid` beyond its current 8-byte scalar ASCII scan; a direct U8x16 bitmask
+  path measured 20.76 to 20.42 GiB/s and was rejected.
+- Done when: malformed boundaries and arbitrary tails match the scalar implementation and an
+  ASCII-heavy benchmark improves rather than only replacing the load width.
+- Related: std.core.043, compiler.optimization.138.
+
+### std.core.049 — Vector4 and Pixel.Color do not use their native packed shape
+
+- Next: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
+  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
+  do not wrap the current scalar operators directly, which measured 321 to 637 ms in a Release
+  array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
+- Done when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
+  and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
+- Related: std.core.042, std.core.047, std.pixel.043.
+
+### std.core.050 — NumericArray cannot specialize legal packed geometries
+
+- Next: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
+  element/count/operator combination has supported packed semantics.
+- Done when: specialization is compile-time selected, unsupported shapes remain scalar, and
+  generated-code tests prove no hidden conversion or temporary array.
+- Related: compiler.codegen.019, std.core.042.
+
+### std.core.051 — The Argon2 permutation remains scalar
+
+- Evidence: Argon2id compression is scalar; independent lanes already use `parallel for`.
+  Earlier packed attempts lost. These ran while the SIMD wrappers were still cross-module
+  calls:
+  - `U64x2` block XOR was 3.2% slower.
+  - Paired BlaMka with a `u32 x u32 -> u64` low-half product (`pmuludq`) was 72% or more
+    slower, because lane regrouping and state materialization erased the arithmetic gain.
+- Next: retry only with a lowering that keeps the eight-word state in registers across both
+  G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
+  wider layout that amortizes the regrouping. Measure with the fixed-worker
+  [lane-scaling benchmark](../bench/workloads/argon2/README.md).
+- Done when: published vectors pass for all supported parameters and profile benchmarks
+  isolate the packed kernel gain from independent-lane parallelism.
+
+### std.core.052 — Blake2b compression remains scalar
+
+- Evidence: pairing two G functions while packing and extracting scalar state at every
+  half-round was 5.19x slower over 64 MiB. That measurement predates current inlining and
+  the current allocator.
+- Next: prototype paired G functions with persistent vector state and cheap 64-bit lane
+  permutation (native rotates or shift/or), or independent messages per lane, and measure
+  against the scalar kernel.
+- Done when: incremental, keyed, and boundary-length vectors match and compression
+  throughput improves without changing digest output.
+
+### std.core.053 — Poly1305 remains scalar
+
+- Next: implement a packed limb strategy or several-message kernel, selected only where it beats
+  the current scalar carry chain.
+- Done when: differential vectors cover every block-tail length, carry/reduction boundaries are
+  exact, and authenticated-encryption throughput improves end to end.
+
+### std.core.054 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+
+- Next: add batch APIs or internal batching that process independent message blocks across lanes,
+  instead of attempting to vectorize one recurrence-dependent stream.
+- Done when: one- through lane-width batches preserve streaming/finalization semantics, fall
+  back for a single stream, and improve aggregate hashing throughput.
+
+### std.core.055 — Use one contract for a normal lookup miss
+
+- Evidence: [`HashTable.find`](../bin/std/modules/core/src/collections/hashtable.swg#L811)
+  asserts on a missing key, while [`Regexp.find`](../bin/std/modules/core/src/text/regexp/regexp.swg#L231)
+  returns a flag and span and changes capture state. UTF-8 index searches can return
+  `Swag.U64.Max`. A caller guessing from the names can mishandle absence or mutate state.
+- Next: normalize the Core collection, regex and text search families. Make normal absence
+  explicit in the result, name required-presence operations separately, and expose when a
+  search updates capture state. Choose a representation that cannot expose an unchecked
+  span or index for a miss. Test empty input and an empty successful match separately.
+- Done when: the same operation vocabulary predicts the miss, ownership and mutation
+  contract across the audited families, and a miss cannot be consumed as a valid result.
+- Related: language.design.053, language.design.055.

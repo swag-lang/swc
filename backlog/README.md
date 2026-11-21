@@ -62,13 +62,17 @@ file. Do not add status, dates, or progress summaries to the index.
 | [app.scope.xml.md](app.scope.xml.md) | Swag Scope XML viewer |
 | [app.vault.md](app.vault.md) | Swag Vault |
 | [clones.md](clones.md) | Independent application clones |
-| [compiler.ai.md](compiler.ai.md) | Swag AI-first migration |
+| [compiler.build.md](compiler.build.md) | Workspace compilation, caching, parallelism and compiler build performance |
+| [compiler.codegen.md](compiler.codegen.md) | Lowering, ABI, Micro backend and emitted-code generation |
 | [compiler.command.doc.md](compiler.command.doc.md) | Compiler `doc` command |
 | [compiler.command.format.md](compiler.command.format.md) | Compiler `format` command |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace builds |
-| [compiler.optimization.md](compiler.optimization.md) | Backend optimization and generated-code performance |
+| [compiler.command.help.md](compiler.command.help.md) | Help and examples commands |
+| [compiler.command.md](compiler.command.md) | Shared compiler command contracts |
+| [compiler.command.test.md](compiler.command.test.md) | Test selection and failure reporting |
+| [compiler.frontend.md](compiler.frontend.md) | Lexer, parser, semantic analysis and diagnostics |
+| [compiler.optimization.md](compiler.optimization.md) | Transformations and performance of generated Swag programs |
+| [compiler.query.md](compiler.query.md) | Semantic queries and verified source edits |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
-| [cpu.simd.md](cpu.simd.md) | SIMD compiler and consumer work |
 | [design/design.silence.md](design/design.silence.md) | Silence charter migration: themes, controls, dialogs and applications under `bin/` |
 | [language.design.md](language.design.md) | Swag language and syntax |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism |
@@ -82,6 +86,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [std.gui.markdown.md](std.gui.markdown.md) | Markdown engine in `std/gui` |
 | [std.gui.md](std.gui.md) | `std/gui` |
 | [std.gui.pdf.md](std.gui.pdf.md) | PDF engine and view in `std/gui` |
+| [std.net.md](std.net.md) | `std/net` |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs and SVG decoding in `std/pixel` |
 | [std.pixel.md](std.pixel.md) | `std/pixel` |
 | [std.screen.md](std.screen.md) | `std/screen` live acquisition |

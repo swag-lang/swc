@@ -6,15 +6,17 @@ using Swag
 alias HINTERNET     = const *void?
 alias INTERNET_PORT = u16
 
-const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY       = 0
-const WINHTTP_FLAG_SECURE                     = 0x00800000'u32
-const WINHTTP_OPTION_REDIRECT_POLICY          = 88'u32
-const WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT = 7'u32
-const WINHTTP_OPTION_REDIRECT_POLICY_NEVER    = 0'u32
-const WINHTTP_QUERY_STATUS_CODE               = 19'u32
-const WINHTTP_QUERY_LOCATION                  = 33'u32
-const WINHTTP_QUERY_FLAG_NUMBER               = 0x20000000'u32
-const ERROR_WINHTTP_HEADER_NOT_FOUND          = 12150'u32
+const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY           = 0
+const WINHTTP_FLAG_SECURE                         = 0x00800000'u32
+const WINHTTP_OPTION_REDIRECT_POLICY              = 88'u32
+const WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS = 4'u32
+const WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT     = 7'u32
+const WINHTTP_OPTION_REDIRECT_POLICY_NEVER        = 0'u32
+const WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP = 1'u32
+const WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS       = 2'u32
+const WINHTTP_QUERY_STATUS_CODE                   = 19'u32
+const WINHTTP_QUERY_RAW_HEADERS_CRLF              = 22'u32
+const WINHTTP_QUERY_FLAG_NUMBER                   = 0x20000000'u32
 
 #[Foreign("winhttp", callconv: Swag.CallConv.C)]
 {
@@ -24,6 +26,7 @@ const ERROR_WINHTTP_HEADER_NOT_FOUND          = 12150'u32
     func WinHttpSetTimeouts(handle: HINTERNET, resolveTimeout, connectTimeout, sendTimeout, receiveTimeout: s32)->BOOL
     func WinHttpSetOption(handle: HINTERNET, option: DWORD, buffer: LPVOID, length: DWORD)->BOOL
     func WinHttpSendRequest(request: HINTERNET, headers: LPCWSTR, headersLength: DWORD, optional: LPVOID, optionalLength, totalLength: DWORD, context: DWORD_PTR)->BOOL
+    func WinHttpWriteData(request: HINTERNET, buffer: LPVOID, bytesToWrite: DWORD, bytesWritten: LPDWORD)->BOOL
     func WinHttpReceiveResponse(request: HINTERNET, reserved: LPVOID)->BOOL
     func WinHttpQueryHeaders(request: HINTERNET, infoLevel: DWORD, name: LPCWSTR, buffer: LPVOID, bufferLength, index: LPDWORD)->BOOL
     func WinHttpReadData(request: HINTERNET, buffer: LPVOID, bytesToRead: DWORD, bytesRead: LPDWORD)->BOOL

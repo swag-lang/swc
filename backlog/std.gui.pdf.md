@@ -3,8 +3,9 @@
 This backlog covers the PDF family inside `std/gui`: the `Pdf` engine namespace under
 `gui/src/controls/pdf` and the `PdfView` widget beside it.
 
-PDF-specific evidence, investigations, and intended outcomes stay together here. Compiler and
-language work belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
+PDF-specific evidence, investigations, and intended outcomes stay together here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
+[language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
 
@@ -450,6 +451,19 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   case transitions and the `kind` tests into `is` and `switch`; run the PDF tests and the Swag
   Scope PDF viewer tests.
 - Done when: an item holds only its own kind's storage, and the PDF module and viewer tests pass.
-- Related: compiler.ai.016.
+- Related: language.design.055.
 
 ---
+
+### std.gui.pdf.044 — PDF packed samples and mask composition remain scalar
+
+- Evidence: default 8-bit gray/CMYK conversion, standard soft masks, single-component color
+  keys, RGB/alpha composition and one-bit mask expansion already have packed paths in
+  `decode.image.swg`. Different-size masks use exact quotient-and-remainder coordinates.
+  Non-default decode arrays, other sample widths and remaining composition paths still need
+  separate profiling and vectorization.
+- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
+  mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
+- Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
+  arrays, and indexed spaces, with separate conversion benchmarks.
+- Related: std.core.042, std.core.044, std.core.047.

@@ -30,6 +30,20 @@ var app: Application
 Coordinates and sizes are logical pixels. Windows are owned by their application;
 use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
 
+## Keyboard navigation
+
+Tab and Shift+Tab walk the active surface. The navigation ring starts with a
+keyboard navigation gesture and goes away on a pointer press. A call to
+[[Gui.Wnd.setFocus]] places the receiver for keys and can carry an existing ring
+within the active surface. Activation or closing a dialog can restore the receiver
+alone; the next navigation gesture shows its ring.
+
+Siblings follow reading order by default. To keep a particular order through
+layout changes, assign ascending [[Gui.Wnd.tabIndex]] values within their parent.
+A composite contributes one stop and sends input to its [[Gui.Wnd.focusDelegate]].
+Set [[Gui.Wnd.arrowNavigation]] on an action group when its bare arrow keys should
+stay within the group.
+
 ## User keyboard shortcuts
 
 Commands registered with [[Gui.Lens.View.addCommands]] appear in Keyboard Shortcuts,

@@ -170,7 +170,7 @@ impl Book
             fail Errors.InvalidFormatError{texts().err_NoPages}
 
         let archive = &result.archive
-        result.pages.sort(func|archive|(a, b)->s32 => Latin1.compareNatural(archive.entries[a].path, archive.entries[b].path))
+        result.pages.sort(func|archive|(a, b)->s32 => Text.compareNames(archive.entries[a].path, archive.entries[b].path))
         return result
     }
 

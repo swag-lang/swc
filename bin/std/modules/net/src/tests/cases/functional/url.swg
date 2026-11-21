@@ -23,6 +23,14 @@ using Core
     Swag.require(not query.secure and query.port == 80 and not query.hasPort and query.path == "/?x=1")
     let empty = expect Url.parseHttp("https://example.com")
     Swag.require(empty.port == 443 and empty.path == "/")
+    let ipv6 = expect Url.parseHttp("https://[2001:DB8::1]:8443/path")
+    Swag.require(ipv6.secure and ipv6.host == "2001:db8::1" and ipv6.port == 8443 and ipv6.hasPort)
+    let ipv6Default = expect Url.parseHttp("http://[::1]/")
+    Swag.require(not ipv6Default.secure and ipv6Default.host == "::1" and ipv6Default.port == 80)
+    let ipv6Full = expect Url.parseHttp("http://[2001:0db8:0000:0000:0000:0000:0000:0001]/")
+    Swag.require(ipv6Full.host == "2001:0db8:0000:0000:0000:0000:0000:0001")
+    let ipv4Mapped = expect Url.parseHttp("http://[::FFFF:192.0.2.1]/")
+    Swag.require(ipv4Mapped.host == "::ffff:192.0.2.1")
 }
 
 #test
@@ -51,7 +59,10 @@ using Core
 #test
 {
     for invalid in ["/relative", "ftp://example.com/", "https://user@example.com/",
-                    "https://[::1]/", "http://example.com:0/", "http://example.com:65536/",
+                    "https://[:::1]/", "http://[1:2:3:4:5:6:7:8:9]/", "http://[2001::db8::1]/",
+                    "http://[gg::1]/", "http://[::1", "http://[::1]junk/", "http://[::1]:/",
+                    "http://[::ffff:192.0.2.999]/", "http://[::ffff:192.0.2]/",
+                    "http://[::1]:0/", "http://example.com:0/", "http://example.com:65536/",
                     "http://example.com:/", "http://example.com/a b", "http://example.com/%zz"]
     {
         var error: Swag.Error

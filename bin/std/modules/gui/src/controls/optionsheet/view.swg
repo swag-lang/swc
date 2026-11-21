@@ -192,7 +192,9 @@ impl IWnd for View
         if evt.kind != .Pressed do
             return
 
-        let shift = evt.modifiers.has(.Shift)
+        let shift = evt.modifiers == .Shift
+        if evt.modifiers != .None and not shift do
+            return
         let row   = .focusedRow()
         switch evt.key
         {
@@ -214,7 +216,8 @@ impl IWnd for View
 
         evt.accepted  = true
         .pointerOnRow = false
-        .app().setFocusVisible(true)
+        if .hasFocus() and (evt.key == .Tab or evt.key == .Up or evt.key == .Down or evt.key == .Home or evt.key == .End) do
+            .app().setFocusVisible(true)
         .invalidate()
     }
 

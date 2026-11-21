@@ -1,10 +1,15 @@
-# Compiler Backlog
+# Compiler Build Backlog
 
-This backlog covers the compiler front end, back end, and workspace build engine. Documentation, formatting, and language-design work have their own domain files. Only unfinished work belongs here; completed investigations and implementations remain discoverable through Git history.
+This file owns compilation of workspaces: dependency scheduling, incremental reuse, caches,
+parallelism, memory budgets, artifact publication, linking orchestration, and the cost of compiling
+swc. Language analysis belongs in [compiler.frontend.md](compiler.frontend.md), generated-code
+emission in [compiler.codegen.md](compiler.codegen.md), and transformations of compiled programs in
+[compiler.optimization.md](compiler.optimization.md).
 
-Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
+Entries stay in one flat list. Keep only measurements that affect the next action; refresh them
+before relying on them.
 
-### compiler.core.114 — Resolve a DevMode host exception while compiling Swag Vault
+### compiler.build.114 — Resolve a DevMode host exception while compiling Swag Vault
 
 - Evidence: `tools/apps.bat dm test swagvault --test-tag golden` with three workers raised
   `0xC0000005` after rebuilding the Pixel dependency. The read address was
@@ -16,61 +21,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a reduced workspace regression protects the corrected lifetime and the application
   compiles repeatedly with parallel workers and retained dependencies.
 
-### compiler.core.107 — Reject invalid closure captures without a host exception
-
-- Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
-- Reductions: a by-reference capture of a `let string` and an unqualified `.main` capture
-  initializer have standalone expected-diagnostic fixtures. Both report their intended error
-  under Linux DevMode and both Windows compilers; neither reproduces the original combination.
-- Next: recover the original journey. A standalone closure with both a by-reference `let`
-  struct capture and an unqualified `.main` initializer reports the `.main` diagnostic and
-  does not reproduce the exception. Retain the matching compiler artifacts on recurrence.
-- Done when: the original mixed-capture failure is explained and a regression protects its
-  source diagnostics under both compiler executables.
-
-### compiler.core.108 — Preserve generic parameters across an incremental app build
+### compiler.build.108 — Preserve generic parameters across an incremental app build
 
 - Evidence: an incremental Release build of Swag Capture diagnosed `unknown name 'arr'` at `core`'s `Array.opSet(arr: const [..] T)` for `T = FileInfo`, although the parameter is declared in the adjacent signature. A forced dependency rebuild compiled the same source, and the following warm build was up to date.
 - Next: reproduce from a retained dependency artifact after changing a GUI or application test source, then compare the imported generic body and specialization state with a forced rebuild.
 - Done when: incremental and rebuilt application compilations both resolve the `opSet` parameter, with a regression that preserves the failing dependency-reuse boundary.
 
-### compiler.core.085 — Build shared libraries to identical bytes
-
-- Evidence: executables, static libraries and the benchmark tasks rebuild identically with six
-  workers; `core.dll`, `pixel.dll` and `gui.dll` still differ. Two sources remain. The set of
-  generic instances varies: one build of `core.dll` emits one more `Core.Math.max` instance than
-  the next, and a shared library emits every instance its analysis created. And `.rdata` holds a
-  duplicated 16-byte string constant in some builds only: `Core.Env.showInFileExplorer` reaches
-  three such constants in one build and two in the next. The machine-code cache keys ignore
-  both string copies and global placement; the varying instance set alone still adds one or two
-  records per six-worker `core` build.
-- The generated GUI API also varies: `Lens.View.create(owner: *Wnd)->*View` exports a
-  `BorrowSummary` return mask of zero in one frozen-input control and one in other captures,
-  including captures without the allocator experiment. This is semantic metadata, not an image
-  timestamp; retain it in reproducibility comparisons. See the
-  [memory experiment](../bench/results/memory/20261030-devmode/no-large-pages-experiment.json).
-- Linux DevMode control with three workers and frozen `std` sources: the native location sort
-  assigned the same key to distinct generic struct and constant-function instances. Including
-  both sets of arguments removed those collisions; only cloned local `isLowerUtf8` and
-  `isUpperUtf8` functions retained equal keys in `core`. A second source of variation was the
-  completion order of interface implementations in reflection: `Core.Hash.IHash32` and
-  `Core.StrConv.IConvert` swapped table slots and relocations between builds. Sorting the
-  reflection copy by full interface name removed that swap. A third source was the order of
-  static candidates for `Swag.makeInterface`: two generated checks in `StrConv.convertStruct`
-  exchanged their typeinfo pointers and CRCs. Candidates now sort by full type name before
-  code generation. Five subsequent `core.so` builds matched, but an earlier three-build control
-  with this candidate sort still produced two hashes. `truetype.so` and all generated API files
-  matched in a full two-build control; `ogl.so`, `pixel.so` and `gui.so` still differed.
-- Next: trace when `Lens.View.create` acquires its return-borrow mask and whether export observes
-  completed callee effects. Log which call sites create `Core.Math.max` instances in two builds and find the
-  speculative instantiation; then trace the `showInFileExplorer` string constants back to
-  `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
-  lets one value materialize twice. Compare the remaining Linux `ogl`, `pixel` and `gui`
-  section deltas before assuming they share the Windows causes.
-- Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
-  shared libraries apart from the image timestamp.
-
-### compiler.core.082 — Hot-path node containers that need more than a container swap
+### compiler.build.082 — Hot-path node containers that need more than a container swap
 
 - Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:
   sanitizer sparse facts, mem2reg `slots`, and SLP `locations`. Web-renaming's repeated-load
@@ -85,40 +42,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no
   lower-work representation preserves its traversal contract.
 
-### compiler.core.081 — An imported generic method once lost its own parameter
-
-- Evidence: a forced standard-library rebuild once stopped with `unknown symbol 'arr'` inside
-  `Array.opSet(arr: const [..] T) where Reflection.canCopy(T)` of the generated core API
-  (`array.swg`), while checking `Array` with `T = u8` for a dependent rebuilt against a
-  just-republished core API. The parameter is declared on the line above, and an unchanged
-  rerun passed. Isolated replays, `--randomize` seeds and multi-process rounds never
-  reproduced it, so the race looks internal to sema of a generic method instantiated from an
-  imported API that several modules share.
-- Next: the DevMode compiler stops at the wait itself when a body waits on one of its own
-  parameters (`Sema::waitIdentifier`), naming the function. When it fires, keep the failing
-  process's full log and rerun that exact command under `--randomize --seed` sweeps.
-- Done when: the ordering is proved safe by construction or the race is reproduced and fixed
-  with a regression case in the `workspace` suite.
-- Related: compiler.core.047
-
-### compiler.core.047 — Imported generic bodies intermittently duplicate a binding
-
-- Evidence: a six-worker DevMode script smoke (`tools/scripts.bat dm smoke`) once stopped
-  while checking `asciiart.swgs`. The generated core API's `hashtable.swg` reported local
-  `mask` as already defined, and the previous-definition note pointed at the same
-  declaration, in specialization `HashTable(string, ConcatBufferPosition)`. Isolated and
-  complete reruns passed, and the cause is unestablished.
-- Next: the DevMode compiler stops when a conflict names two symbols of one declaration node
-  (`SemaError::raiseSymbolConflict`), naming the function. When it fires, replay the cached
-  script import alongside module builds from that report. Capture generic-instance
-  ownership, parameter-scope restoration and semantic restarts around the binding, and
-  compare with the parent compiler before attributing the failure to parsing, publication
-  or scheduling.
-- Done when: a bounded reproducer identifies the duplicate visitation or publication, the
-  root cause is fixed, and the script passes repeated parallel imports with six workers.
-- Related: compiler.core.081
-
-### compiler.core.030 — Skip repeated runtime IR generation
+### compiler.build.030 — Skip repeated runtime IR generation
 
 - Evidence: automatic `MachineCodeCache` archives preserve runtime/API machine code,
   unwind data and relocations across executables, with consumer-owned reference fixups.
@@ -129,8 +53,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.
-- Related: compiler.core.003, compiler.core.004, compiler.ai.046.
-### compiler.core.072 — Link preparation resolves and places the native image on one thread
+- Related: compiler.build.003, compiler.build.004, compiler.build.121.
+
+### compiler.build.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
   jobs, and `buildNativeImage` builds each object description's sections in an indexed
@@ -145,27 +70,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: `link prepare` no longer shows as serial time in the scheduler report, with the
   linker and PDB C++ tests, the native suite, and a linked consumer green under both
   executables.
-- Related: compiler.core.069
+- Related: compiler.build.069
 
-### compiler.core.075 — Aligned node references collapse semantic metadata partitions
-
-- Evidence: `NodePayload` selects its shard with `nodeRef.get() % NODE_PAYLOAD_SHARD_NUM`
-  (16 shards). The reference is an AST byte offset aligned
-  to at least eight bytes, so only two shards receive payload storage or side-table entries.
-  Side-table readers answer an absent entry from a per-node bit instead of their shard count
-  (folded source symbols excepted). Payload storage writes (`storeMutex`, taken by every stored
-  symbol, symbol list and substitute) and every side-table write still contend on those two
-  shards.
-- Failed attempt: hashing every selector kept generated code identical, but it raised peak
-  committed memory (median +17% on `core`, +3% on `gui`) by spreading small payloads over more
-  16 KiB pages, with no clear compile-time win.
-- Next: separate payload-page allocation from the shard choice, or reduce initial storage
-  without reducing the supported contiguous symbol-list size. Compare
-  one-worker and parallel rebuilds on both modules under stable load.
-- Done when: the partitioning improvement has concurrent read/write coverage and a measured
-  compilation-time benefit with its memory cost explicitly bounded.
-
-### compiler.core.073 — Overlap dependent semantic analysis with the producer link
+### compiler.build.073 — Overlap dependent semantic analysis with the producer link
 
 - Evidence: the workspace pipeline now consumes the published API and parses a dependent while
   the producer links. It joins on the driving thread before semantic analysis, because compile-time
@@ -179,48 +86,27 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a dependent's semantic analysis overlaps its dependency's link in a `gui`
   rebuild, with compile-time native calls, no-op reuse, link failures, the workspace suite and
   focused `std` tests green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
+- Related: compiler.build.069, compiler.build.007
 
-### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`
-
-- Evidence: in 16-worker DevMode `gui` rebuilds, the longest code-generation job is one WebP
-  function, `Pixel.Webp.decodeLossy` or `Pixel.Webp.vp8Reconstruct` depending on the run, 3–8 s in
-  one slice. The `pixel` module's first code-generation round lasts exactly that long: the round is
-  bounded by one job, not by when it starts. Per-pass timing on `decodeLossy` (DevMode, six
-  workers) spreads about 4 s over the whole pipeline — register allocation 0.8–0.9 s in one run,
-  branch-simplify 0.7 s, instcombine 0.5 s, const-fold 0.5 s, copy-elim 0.4 s, most pre-RA passes
-  running eight or nine times — so no single pass misbehaves; the function is simply enormous.
-  `vp8ReconstructMacroblock` runs two 4×4 loops that call `vp8Predict4` and `vp8InverseDct4`;
-  single-call auto-inlining (`K_AUTO_INLINE_LAST_CALL_COST`, 4 096 tokens per callee, no cap on
-  the caller's growth) folds the whole chain into its caller, and unrolling then repeats it sixteen
-  times. Code generation now enqueues functions largest first, estimated from their own size plus
-  what semantic analysis inlined into them, which removes late starts but not this length.
-- Next: bound the growth a caller may receive from last-call auto-inlining and from unrolling
-  loops whose bodies contain inlined calls, then compare WebP decoding speed and `pixel` build time
-  before and after with the benchmark harness.
-- Done when: no single function's code generation in `bin/std` takes more than a tenth of its
-  module's wall time at 16 workers, without a measurable loss in WebP decoding speed.
-- Related: compiler.core.069
-
-### compiler.core.069 — Measure where a module build loses its workers beyond six cores
+### compiler.build.069 — Measure where a module build loses its workers beyond six cores
 
 - Evidence: `--dev-sched-stats` (DevMode) splits worker time into running jobs, serial phases,
   scheduler lock waits and starvation, and charges serial and starved time to driver phases.
   The earlier quiet 16-worker standard-library measurement found worker time lost to:
   - starvation in semantic analysis (7.4%)
-  - code-generation starvation and serial time (7.0% and 2.2%, compiler.core.071)
+  - code-generation starvation and serial time (7.0% and 2.2%, compiler.codegen.002)
   - native-backend work around code generation (3.3% serial and 2.4% starved)
-  - deferred-link waits (3.2%, compiler.core.073)
+  - deferred-link waits (3.2%, compiler.build.073)
   - module API export (1.3% serial)
-  - the scheduler lock (0.5–0.9%, compiler.core.068)
+  - the scheduler lock (0.5–0.9%, compiler.build.068)
 - Next: find what the backend does serially around code generation
   (`NativeBackendBuilder::prepare` and `rebuildFunctionInfos`) and what the semantic tail
   waits on, which is its longest job at 1.5–4 s. Each becomes its own entry once named.
 - Done when: each share above has an owning entry.
-- Related: compiler.core.071, compiler.core.072, compiler.core.073, compiler.core.065,
-  compiler.core.068, compiler.core.007
+- Related: compiler.codegen.002, compiler.build.072, compiler.build.073, compiler.build.065,
+  compiler.build.068, compiler.build.007
 
-### compiler.core.068 — The job scheduler serializes every transition on one mutex
+### compiler.build.068 — The job scheduler serializes every transition on one mutex
 
 - Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
   waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
@@ -230,16 +116,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT siblings, so
   critical-path jobs can run on the slowest cores.
 - Measured: `--dev-sched-stats` on a 16-worker DevMode `gui` rebuild charges 0.5–0.9% of worker
-  time to waiting for this lock (compiler.core.069). It is not the ceiling today; revisit when
+  time to waiting for this lock (compiler.build.069). It is not the ceiling today; revisit when
   starvation and serial phases shrink.
 - Next: prototype per-worker deques with stealing behind the same `JobManager` interface, keeping
   the waiter map and client counters under their own lock, and spawn workers outside it.
 - Done when: a std module build at 16 workers spends no measurable time waiting on the
   scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
   executables green.
-- Related: compiler.core.069
+- Related: compiler.build.069
 
-### compiler.core.065 — Remaining barrier rounds still drain the whole module
+### compiler.build.065 — Remaining barrier rounds still drain the whole module
 
 - Evidence: `SemaWaitIdentifier` and `SemaWaitImplRegistrations` now park on the name and are
   woken by symbol-map insertion and by the last impl registration; `SemaWaitTypeCompleted` parks
@@ -254,29 +140,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   normally resumed by the job that paused it; when that job does not come back to it, its other
   callers stay parked on `SemaCompleted` until `hasPausedLazyBodyWait` wakes them in a barrier
   round so one can adopt the run. How often that fallback fires is unknown.
-- Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
+- Next: count rounds and re-parked sleepers per wait kind (compiler.build.069) on a std module, then
   give the dominant remaining kind a recheckable publication (a per-name generation counter for
   identifier waits closes the park race) so it no longer needs the barrier.
 - Done when: a std module build needs no barrier round to resolve forward identifier and
   type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
   green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
+- Related: compiler.build.069, compiler.build.007
 
-### compiler.core.063 — Reduce the PDF spill-slot regression to a standalone language test
-
-- Evidence: `sinkFrameStoreIntoBranchTarget` once compared raw stack displacements across
-  outgoing-call stack adjustments and erased a live spill store in `Pdf.parseContent`.
-  Comparing entry-relative addresses fixed it, and the C++ Micro test
-  `PostRAPeephole_SpillStoreSinkingTracksStackDepth` fails without that fix. No source under
-  `bin/unittests` does: Core-only and two-loop reductions change register allocation and no
-  longer place the two loops' spills at the conflicting adjusted displacements.
-- Next: reduce the interacting loops and their register pressure while checking the pre-fix
-  post-allocation instruction stream, then keep a native suite case that fails without the
-  fix.
-- Done when: `bin/unittests/native` reproduces this stack-depth aliasing independently of
-  GUI, alongside the existing C++ regression and PDF consumer tests.
-
-### compiler.core.061 — Type-info graph publication uses one serialization domain
+### compiler.build.061 — Type-info graph publication uses one serialization domain
 
 - Evidence: `ConstantManager::makeTypeInfo` deliberately sends all reflected types to constant
   shard zero, so shared dependencies have one canonical runtime identity. `TypeGen::makeTypeInfo`
@@ -294,9 +166,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: independent components can progress on different workers, mutually recursive
   graphs publish no partial data, and identity, interface, and reflection tests pass under
   repeated parallel cold compilation.
-- Related: compiler.core.007.
+- Related: compiler.build.007.
 
-### compiler.core.007 — Workspace front ends and code generation run serially
+### compiler.build.007 — Workspace front ends and code generation run serially
 
 - Evidence: `CompilerInstance::runWorkspace` calls `runWorkspaceModule` synchronously for
   each module in `buildOrder`, and only one `WorkspaceModuleLink` can be in flight, so
@@ -307,15 +179,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: give each in-flight module its own log and metric scope, and drive module stages from
   a coordinator that never blocks a compiler worker on its own pool. Preserve each
   compiler's lifetime through artifact publication and linking, then admit independent ready
-  modules within the compiler.core.005 memory budget.
+  modules within the compiler.build.005 memory budget.
 - Done when: independent sibling modules overlap front-end and code-generation work, and
   consumers wait only for the interface or link artifact they need. Compiler and linker
   work share a bounded concurrency policy. Logs, manifests, diagnostics and artifacts stay
   deterministic. Workspace tests cover a diamond graph, concurrent failures, cancellation
   and repeated deterministic builds.
-- Related: compiler.core.004, compiler.core.005.
+- Related: compiler.build.004, compiler.build.005.
 
-### compiler.core.005 — Set and enforce a compiler memory budget
+### compiler.build.005 — Set and enforce a compiler memory budget
 
 - Evidence: the compiler still has no enforced workload memory budget. Frozen-source,
   six-worker application observations reach 1,443.543 MiB for the latest DevMode checkpoint;
@@ -333,47 +205,32 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   file filters reduce test execution while retaining whole-module compilation.
 - Done when: the campaign publishes host-normalized memory limits, every selected workload stays
   within them, and a regression report names the responsible subsystem.
-- Related: compiler.core.004, compiler.core.007.
+- Related: compiler.build.004, compiler.build.007.
 
-### compiler.core.003 — Code-generation invalidation is module-wide
+### compiler.build.003 — Code-generation invalidation is module-wide
 
 - Evidence: the per-function code cache (`functionCacheFingerprint` in
   `NativeBackendBuilder.cpp`) admits only non-debug functions with at least 64
   micro-instructions and no code relocation. Ordinary functions outside that policy still
   regenerate; this per-function incremental cache has no JIT path. The separate automatic
   `MachineCodeCache` reuses supported non-debug module, runtime and imported-API machine code
-  in native and JIT builds, including relocations (compiler.core.030). Lookup still follows
+  in native and JIT builds, including relocations (compiler.build.030). Lookup still follows
   fresh IR generation.
   `NativeObjFileWriter` already writes one function per archive member, and the integrated
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.
 - Next: extend reuse to debug information, and move lookup ahead of IR generation using the
-  compiler.ai.045 and compiler.ai.044 fingerprints rather than a second dependency graph. Measure an
+  compiler.build.120 and compiler.build.119 fingerprints rather than a second dependency graph. Measure an
   adaptive size threshold so that hashing and archiving a small function never costs more
   than its micro passes.
 - Done when: a body-only edit regenerates only the changed function and the functions whose
   code depends on it, for native and JIT builds, including debug and unwind metadata. Clean
   and warm builds produce byte-identical cache entries and reject compiler, target,
-  configuration, ABI, API and optimization changes. The compiler.core.004 edit-build
+  configuration, ABI, API and optimization changes. The compiler.build.004 edit-build
   workloads show a material win with no measurable clean-build regression.
-- Related: compiler.ai.045, compiler.ai.044, compiler.core.004, compiler.core.030.
+- Related: compiler.build.120, compiler.build.119, compiler.build.004, compiler.build.030.
 
-### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
-
-- Evidence: a Release native run once diagnosed twelve null dereferences at `total += seed`
-  in `bin/unittests/native/inline/binding_visit_growth.swg`, a diagnostic emitted before the
-  micro optimization loops. It failed once with the original session output and work roots,
-  then passed with fresh roots and with the same source outside the checkout. Cache or
-  work-directory state is therefore not yet separated from scheduling. Repeated filtered
-  Release runs with six workers have not reproduced it. Artifact:
-  [generated-code session](../bench/disassembly/generated-code/20260916/README.md).
-- Next: when it reappears, preserve the failing pre-sanity capture lowering and its output
-  and work roots. Then separate cache reuse from shared code-generation state when the
-  macro's closure is cloned.
-- Done when: a stable reproducer identifies the cause, the correction passes that reproducer
-  repeatedly, and the full native suite remains green.
-
-### compiler.core.041 — Reduce parallel dependency registration to a workspace-suite witness
+### compiler.build.041 — Reduce parallel dependency registration to a workspace-suite witness
 
 - Evidence: a workspace build once crashed inside `std::set::insert` reached from
   `semaCompilerInclude`. Registration and snapshots now share a mutex, and
@@ -389,7 +246,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   The case verifies dependency retention and later invalidation without an intermittent
   timeout as its oracle.
 
-### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
+### compiler.build.004 — The benchmark campaign has no regression threshold on the edit-build loop
 
 - Evidence: since benchmark protocol 3, every campaign measures `core_rebuild`, `core_noop`,
   `core_touch`, `doc_std` and `format_tree` beside the frozen reference compiler and reports
@@ -398,9 +255,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: add Release variants of the three `core` workloads to `make_compiler_workloads`.
 - Done when: the edit-build loop is measured in Release and DevMode against the reference, and
   every result names its mode.
-- Related: compiler.ai.044, compiler.core.005, compiler.core.007, repo.tooling.007.
+- Related: compiler.build.119, compiler.build.005, compiler.build.007, repo.tooling.007.
 
-### compiler.core.016 — Tool scripts recompile on every invocation
+### compiler.build.016 — Tool scripts recompile on every invocation
 
 - Evidence: every `.swgs` invocation lexes, parses, analyzes and generates code for the
   script and its `#load` closure before launching it. Only imported dependency builds are
@@ -414,9 +271,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   diagnostics, forwarded arguments, environment, output and exit code. Tests cover
   transitive loads, imports, configuration changes, corrupt entries and concurrent
   population.
-- Related: compiler.ai.045, compiler.ai.044, compiler.ai.046, platform.portability.080.
+- Related: compiler.build.120, compiler.build.119, compiler.build.121, platform.portability.080.
 
-### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
+### compiler.build.027 — A run-time loaded shared library cannot share the host's runtime
 
 - Evidence: an executable links its whole import closure in, which gives the process one copy of
   each module and one runtime state. A shared library it loads at run time through
@@ -440,7 +297,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ---
 
-### compiler.core.083 — Define an embeddable compiler driver boundary
+### compiler.build.083 — Define an embeddable compiler driver boundary
 
 - Evidence: `src/main.cpp` owns process setup and cleanup: allocator configuration, the Windows
   host exception hook, stdio flushing, and the PID-scoped sandbox. CLI parsing and command
@@ -455,7 +312,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.096 — Make allocator heap inspection safe for abandoned pages
+### compiler.build.096 — Make allocator heap inspection safe for abandoned pages
 
 - Evidence: with mimalloc 3.6.0 and `MI_DEBUG=3`, a diagnostic traversal through
   `mi_subproc_visit_heaps` and `mi_heap_visit_blocks(..., false, ...)` aborts in
@@ -469,7 +326,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: visiting live and abandoned pages with pending cross-thread frees preserves
   exact block counts and passes the allocator's internal assertions without weakening them.
 
-### compiler.core.097 — Reduce the largest retained compiler allocations
+### compiler.build.097 — Reduce the largest retained compiler allocations
 
 - Evidence: the synchronized large-allocation census attributes 157.679 MiB to register
   allocation, 78.343 MiB to other Micro analyses, 94.676 MiB to AST/parser storage and
@@ -501,11 +358,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   compilation speed, and a reproducible census explains the remaining peak without summing
   independent maxima. Low-volume finalizer/header/tail savings must not distract from the
   dominant objects and allocator slack.
-- Related: compiler.core.005 (budgets and compiler retention while a child application runs),
-  compiler.core.085 (nondeterministic publication), compiler.core.096 (safe allocator inspection),
-  compiler.core.098 (performance acceptance).
+- Related: compiler.build.005 (budgets and compiler retention while a child application runs),
+  compiler.codegen.003 (nondeterministic publication), compiler.build.096 (safe allocator inspection),
+  compiler.build.098 (performance acceptance).
 
-### compiler.core.098 — Close compilation-speed acceptance for memory reductions
+### compiler.build.098 — Close compilation-speed acceptance for memory reductions
 
 - Evidence: the memory campaign has successful focused correctness, application and generated-code
   checks, but host contention changed substantially during its comparisons despite quiet start
@@ -520,9 +377,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   compact acyclic matrices (including wide dense rows), physical effect masks, fixed virtual
   operand lists and mapped cache publication. Check warm/incremental cache behavior as well as
   full builds, and separate resident memory from private backing. Keep the independent
-  no-large-pages allocator candidate in compiler.core.097 separate from accepted defaults.
-- Preserve unresolved failures and variation: compiler.core.085 owns generic instance/string
-  differences and the varying `Lens.View.create` borrow mask; compiler.core.096 owns the heap
+  no-large-pages allocator candidate in compiler.build.097 separate from accepted defaults.
+- Preserve unresolved failures and variation: compiler.codegen.003 owns generic instance/string
+  differences and the varying `Lens.View.create` borrow mask; compiler.build.096 owns the heap
   visitor assertion. Improve generic specialization identity in Micro listings before treating
   reordered duplicate printed names as exact call-target equivalence. Do not normalize arbitrary
   integer constants to hide differences. Exercise manually enabled `SWC_DEBUG_MODE` when its
@@ -531,7 +388,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   changes respect compilation-speed priority. A slowdown is acceptable only with a genuinely
   substantial memory saving explicitly evaluated against it. Keep validation outcomes in the
   report and remove completed acceptance work from this entry.
-- Related: compiler.core.004, compiler.core.005, compiler.core.097.
+- Related: compiler.build.004, compiler.build.005, compiler.build.097.
 
 ## Deliberately out of scope
 
@@ -539,7 +396,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
 - **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
 
-### compiler.core.104 — Bound JIT state lifetime after an abandoned hook
+### compiler.build.104 — Bound JIT state lifetime after an abandoned hook
 
 - Evidence: `runJitTests` skips later hooks after an abandoned frame. Its scope still
   restores the global data snapshot, while work owned by the failed module may remain live.
@@ -548,7 +405,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the fixture proves that work from an abandoned hook cannot observe restored
   globals or released code. Recoverable failures still release resources in drop-hook order.
 
-### compiler.core.106 — Resolve nested functions in runtime startup code
+### compiler.build.106 — Resolve nested functions in runtime startup code
 
 - Evidence: a noncapturing `func loadArguments()->bool` declared and called inside
   `__hostSetupProcessArguments` in `bin/runtime/os.win32.swg` passes semantic checking,
@@ -564,15 +421,84 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
 
-### compiler.core.118 — A null-valued string enum case aborts code generation
+### compiler.build.119 — Front-end invalidation is module-wide
 
-- Evidence: with `enum State: string? { Absent = null, Ready = "ready" }`, a runtime
-  `switch state` with `case .Absent` and an explicit `default` aborts in
-  `CodeGen::emitConstant`, which asserts `isStruct()` on the case constant.
-  The failure predates implicit enum exhaustiveness.
-- Next: reduce enum constant lowering for a nullable string to one source fixture. Trace
-  the null representation from the enum constant to case comparison and preserve its
-  storage type through lowering.
-- Done when: matching a null-valued enum case reaches code generation without an
-  assertion, and JIT and native tests exercise the declared case, a present value,
-  and the explicit fallback with the documented string comparison rules.
+- Evidence: front-end state is not persisted, so the compiler.build.004 `core_touch` workload
+  rebuilds every file of the module. The AST is not an immutable parse cache. Semantic
+  analysis replaces expressions and appends generated nodes to the per-file AST, and
+  `SourceFile::setContent` rejects a change once an AST owns the source view. Invalidation needs the dependencies each file observed.
+  Append-only symbol maps also keep retired declaration ASTs alive.
+- Next: separate an immutable per-file parse result from semantic substitutions. Then persist
+  lexical, parsed and semantic state per file, keyed by source content, relevant
+  configuration and fingerprints of the imported public symbols the file observed.
+- Done when: a private-body edit reanalyzes only the changed file and its semantic
+  dependents. A public-signature change invalidates every consumer that observed it.
+  Adding, removing or renaming a file, or changing configuration or compiler version,
+  invalidates the correct state. `core_touch` lands far below `core_rebuild`, and
+  equivalent-result tests cover clean and incremental workspace builds.
+- Related: compiler.build.120, compiler.build.004, compiler.build.003, compiler.build.016.
+
+### compiler.build.120 — Replace generated dependency source with a reusable module interface
+
+- Evidence: `CompilerInstance::appendImportedApiSnapshot` creates an `ImportedApi` source
+  file for every published API source. `Command::sema` sends those files through
+  `parseSourceFiles`, declaration sema, and full sema in each consumer. Dependency source
+  snapshots and native artifact reuse do not preserve the resolved interface for a consumer
+  that needs recompilation. `canDelayImportedFunctionBody` already defers eligible free
+  function bodies, but excludes methods, interface implementations and other
+  context-sensitive cases. Restoring methods' declaration contexts is insufficient by itself:
+  delayed `ConcatBuffer.addBytes` and `reserveInPlace` can remain unresolved when native/JIT
+  preparation waits on their semantic completion through allocation-failure reporting.
+  Repeated closure application remains a local lead: a per-consumer capture set improves
+  a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
+  overall in Release despite neutral setup timing.
+  Parse-image prototypes still required original source loading and a fresh semantic pass;
+  their read and reconstruction costs did not establish a whole-command gain.
+  `MachineCodeCache` preserves supported compiled bodies, while imported declaration and
+  type resolution remain fresh.
+- Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
+  work separately from consumer sources on a small consumer, a large module graph, and a
+  diamond dependency, including consumers of the core, pixel and gui API closures. Compare
+  cold and warm imports with both compiler executables. Use
+  that baseline to prototype a versioned binary interface for resolved non-generic
+  declarations; retain the source import path for unsupported declarations while expanding
+  coverage. Before widening lazy imported methods, close body materialization across cyclic
+  method/free-function calls, then verify both compile-time execution and native presolve.
+  Account for whole-command effects before adopting per-capture closure deduplication.
+- Interface contract: preserve namespace and overload membership, exported and supporting
+  symbols, canonical type identity, layouts, constants and default arguments, attributes
+  including safety/borrow contracts, interface implementations, ABI/link identities, and
+  source provenance. Index declarations for selective materialization without hiding
+  overloads or implementations from lookup. Keep generic templates and required
+  inline/macro/mixin bodies in separately indexed sections; instantiate or expand them in
+  the consumer context when required. Resolved ordinary bodies can later use the typed-body
+  representation from compiler.optimization.107. Importing metadata must not replay module
+  setup or compile-time side effects; requested compile-time calls retain their execution
+  behavior. Keep readable `.swg` export for inspection and compatibility.
+- Ownership: compiler instances own their identifier, type and constant managers, and symbols
+  point into mutable ASTs. Serialize stable interface-local identities and remap them into
+  the consumer; do not persist raw pointers or share live semantic state across consumers.
+  Reuse immutable interface bytes within a workspace invocation, with consumer-owned
+  materialization and generic-instance state.
+- Cache/publication: validate format and compiler identity, target/ABI, relevant configuration,
+  exported content including required bodies, and transitive interface fingerprints. Publish
+  the interface with the matching API/native artifact generation under the existing
+  publication protocol. Reject partial, corrupt or incompatible entries; use a complete
+  matching source API or rebuild rather than mixing generations.
+- Done when: supported workspace imports skip API lexing, parsing and declaration sema;
+  complete coverage removes the generated-source import path from ordinary builds. Warm
+  imports show lower wall time and peak memory on the measured consumers. Fresh and reused
+  paths preserve diagnostics, source locations, overload resolution, generic/inline/macro
+  behavior, compile-time execution and native behavior. Workspace regressions cover diamond
+  dependencies, configuration and transitive API/body changes, stale/corrupt entries and
+  concurrent publication under both compiler executables with real parallelism.
+- Related: compiler.build.119, compiler.build.121, compiler.query.001, compiler.build.030, compiler.optimization.107.
+
+### compiler.build.121 — Reuse analyzed prelude state
+
+- Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
+  a module or script. Machine-code archives amortize backend emission, but original runtime
+  source loading, lexing, parsing and semantic analysis still repeat for each instance.
+- Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
+- Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
+- Related: compiler.build.120, compiler.build.004, compiler.build.016.

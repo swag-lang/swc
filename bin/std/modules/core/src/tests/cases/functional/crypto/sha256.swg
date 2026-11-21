@@ -45,6 +45,39 @@ func fillSha256Pattern(buffer: [..] u8)
     }
 }
 
+func sha224HexDigit(value: u8)->u8
+{
+    if value >= '0' and value <= '9' do
+        return value - '0'
+    return (value - 'a') + 10
+}
+
+func sha224HexBytes(text: string)->Array'u8
+{
+    var result: #returntype
+    result.reserve(text.count / 2)
+    var index = 0'u64
+    while index + 1 < text.count
+    {
+        result.add(cast(u8, ((sha224HexDigit(text[index]) << 4) | sha224HexDigit(text[index + 1]))))
+        index += 2
+    }
+
+    return result
+}
+
+func sha224DigestBytes(digest: Hash.Sha224.Digest)->[28] u8
+{
+    var result: #returntype
+    for index in digest.count
+    {
+        for byte in 4 do
+            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
+    }
+
+    return result
+}
+
 #test
 {
     assertSha256("", 0xE3B0C442'u32, 0x98FC1C14'u32, 0x9AFBF4C8'u32, 0x996FB924'u32, 0x27AE41E4'u32, 0x649B934C'u32, 0xA495991B'u32, 0x7852B855'u32)
@@ -77,4 +110,24 @@ func fillSha256Pattern(buffer: [..] u8)
     var digest: Hash.Sha256.Digest
     digest = split.finalize()
     assertSha256Digest(digest, 0x0AEDD485'u32, 0x6F8EBA09'u32, 0x63627336'u32, 0xAD5144A9'u32, 0xA7DBE124'u32, 0x98E6066F'u32, 0x0165FC97'u32, 0xD8DDEE4C'u32)
+}
+
+#test
+{
+    let emptyDigest = sha224DigestBytes(Hash.Sha224.compute(""))
+    let abcDigest   = sha224DigestBytes(Hash.Sha224.compute("abc"))
+    Swag.require(Crypto.constantTimeEqual(emptyDigest, sha224HexBytes("d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f").toSlice()))
+    Swag.require(Crypto.constantTimeEqual(abcDigest, sha224HexBytes("23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7").toSlice()))
+
+    var input: [128] u8
+    for index in input.count do
+        input[index] = cast(u8, index * 37 + 11)
+    let expected = Hash.Sha224.compute(input)
+    for split in [0'u64, 1, 55, 56, 63, 64, 65, 127, 128]
+    {
+        var incremental: Hash.Sha224
+        incremental.update(input[until split])
+        incremental.update(input[split to])
+        Swag.require(Crypto.constantTimeEqual(sha224DigestBytes(incremental.finalize()), sha224DigestBytes(expected)))
+    }
 }

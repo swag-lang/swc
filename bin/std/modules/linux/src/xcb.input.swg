@@ -139,8 +139,32 @@ alias xcb_leave_notify_event_t = xcb_enter_notify_event_t
 // Shares the native focus in packet layout.
 alias xcb_focus_out_event_t = xcb_focus_in_event_t
 
-// Sets native input focus; the target must be viewable unless it is None or PointerRoot.
+// Cookie for a request to read the native input focus.
+alias xcb_get_input_focus_cookie_t = xcb_void_cookie_t
+
+// Reply carrying the current native input focus.
+struct xcb_get_input_focus_reply_t
+{
+    public
+    {
+        response_type: u8
+        revert_to:     u8
+        sequence:      u16
+        length:        u32
+        focus:         u32
+    }
+}
+
+// Sends a request to read native input focus.
+#[Swag.CallingConvention(.C)]
+alias xcb_get_input_focus_fn = func(*void)->xcb_get_input_focus_cookie_t
+
+// Returns the input-focus reply, which the caller releases with libc free.
+#[Swag.CallingConvention(.C)]
+alias xcb_get_input_focus_reply_fn = func(*void, xcb_get_input_focus_cookie_t, *(*xcb_generic_error_t?)?)->*xcb_get_input_focus_reply_t?
+
+// Sets native input focus on a viewable window, None or PointerRoot.
 //
-// The returned cookie is checked with xcb_request_check; this call owns no connection.
+// Check the returned cookie with xcb_request_check.
 #[Swag.CallingConvention(.C)]
 alias xcb_set_input_focus_checked_fn = func(*void, u8, u32, u32)->xcb_void_cookie_t

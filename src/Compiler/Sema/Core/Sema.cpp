@@ -1297,7 +1297,7 @@ Result Sema::waitName(IdentifierRef idRef, const SourceCodeRef& codeRef, NameSco
 #if SWC_DEV_MODE
     // Parameters must already be visible throughout the body. Catch ordering
     // failures here with the function named, before an unknown-symbol error
-    // hides the cause (imported generic instance regression: compiler.core.081).
+    // hides the cause (imported generic instance regression: compiler.frontend.004).
     const SymbolFunction* function = scope == NameScope::Unscoped ? frame().currentFunction() : nullptr;
     if (function)
     {

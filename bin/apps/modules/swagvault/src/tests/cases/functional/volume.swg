@@ -894,12 +894,12 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(path)
 
     var progress: VolumeProgress
-    Swag.require(progress.ratio() == 0)
+    Swag.require(progress.counts().ratio() == 0)
     Swag.require(not progress.isCanceled())
 
     var volume = expect Volume.create(path, testPassword(), MinimumSize, &progress)
     volume.close()
-    Swag.require(progress.ratio() == 1)
+    Swag.require(progress.counts().ratio() == 1)
 }
 
 #test

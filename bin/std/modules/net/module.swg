@@ -1,5 +1,5 @@
 /*
-Net provides blocking IPv4 TCP connections, bounded HTTP GET requests and URL helpers.
+Net provides blocking TCP and UDP, DNS resolution, bounded HTTP requests and servers, and URL helpers.
 
 ## Connect over TCP
 
@@ -22,8 +22,19 @@ using Net
 }
 ```
 
-Streams own their connections and close them on drop. Operations can fail and may transfer fewer
-bytes than requested. TCP, HTTP and HTTPS are available on Windows and Linux.
+Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
+and Windows. TCP streams support no-delay mode, keepalive probes, read timeouts, and half-closing
+their send side. TCP streams support read and write timeouts. UDP supports broadcast and IPv4/IPv6
+multicast membership. TCP and UDP blocking reads have configurable timeouts. Operations can fail or
+transfer fewer bytes than requested. DNS resolution
+preserves the platform resolver's address order and resolves named services. DNS lookup is
+synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
+available on Windows and Linux.
+An HTTP server handles one request per connection by default. It can allow a bounded number of
+requests when an idle read timeout is configured; closing the server stops its listener while
+accepted connections remain independent. A blocked `accept` is not guaranteed to wake on close, so
+coordinate shutdown with accept callers. `Http.post` streams a length-bounded request body from a
+caller-provided reader.
 
 ## Request an HTTPS resource
 
@@ -44,8 +55,33 @@ HTTPS verifies certificates and host names against the platform trust roots. Lin
 `libcurl.so.4` on the first HTTP request and needs thread-safe initialization and asynchronous DNS
 support; TCP-only programs do not load it. Standard proxy settings remain effective, including
 `NO_PROXY`. `SSL_CERT_FILE` and `SSL_CERT_DIR` override Linux CA roots for the server and HTTPS proxy.
-Requests have bounded response bodies and return redirects without following them, so the caller
-can decide which destinations are acceptable. [[Net.Http.get]] documents timeout and header limits.
+Responses expose the final status, body, and ordered headers (including duplicate names). Requests
+have bounded response bodies and return redirects without following them, so the caller
+can decide which destinations are acceptable by default. GET can optionally follow at most ten
+redirects; HTTPS requests cannot downgrade to HTTP, and redirect following rejects
+origin-sensitive request headers. POST never follows redirects. [[Net.Http.get]] documents timeout
+and header limits.
+
+## Exchange WebSocket frames
+
+```swag
+#import("net")
+using Core, Net
+
+#main
+{
+    var peer = try WebSocket.connect("example.com", 80, "/events")
+    try peer.sendFrame(.Text, cast(const [..] u8, "hello"))
+    let frame = try peer.receiveFrame()
+    if frame.opcode == .Text do
+        Console.println(cast(string, frame.payload.toSlice()))
+}
+```
+
+The client and server validate RFC 6455 upgrades and frame masking. Frames remain visible to the
+caller, including fragments and control frames; `closeGracefully` performs the close handshake.
+`WebSocket.connect` currently uses an unencrypted `ws://` transport. HTTPS requests verify TLS
+certificates, but the module does not yet expose a reusable TLS stream.
 */
 #import("core")
 #static if #os == Swag.TargetOs.Linux

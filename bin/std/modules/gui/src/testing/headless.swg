@@ -1277,7 +1277,7 @@ impl HeadlessHost
     // Places the keyboard focus on `wnd` directly, without the focus events and checks of [[Gui.Wnd.setFocus]].
     mtd focus(wnd: *Wnd)
     {
-        .app.keyboardFocusWnd = wnd
+        .app.updateKeyboardFocus(wnd, .app.focusVisible)
     }
 
     // Sends one complete simulated key press to the focused window.
@@ -1285,10 +1285,7 @@ impl HeadlessHost
     {
         // The run loop seeds the focus on the first key when nothing holds it, so a test that
         // types into a fresh tree behaves like a user typing into a fresh window.
-        if not .app.keyboardFocusWnd do
-            .app.seedKeyboardFocus()
-
-        let target = .app.keyboardFocusWnd
+        let target = .app.keyboardTarget(seed: true)
         if not target do
             return
 
@@ -1309,7 +1306,7 @@ impl HeadlessHost
         .setKeyState(key, false)
         .app.updateAccessKeyVisibility(key, false)
         evt.kind = .Released
-        target.sendEvent(&evt)
+        .app.keyboardTarget()?.sendEvent(&evt)
         .setModifierKeys(modifiers, false)
         .pump()
     }

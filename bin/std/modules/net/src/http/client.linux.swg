@@ -98,11 +98,47 @@ private struct CurlResponse
 {
     response:             Response
     maxBodyBytes:         u64
+    bodyBytes:            u64
+    bodyHandler:          BodyHandler?
+    bodyContext:          *void?
+    bodyReader:           BodyReader?
+    requestContext:       *void?
+    headerParser:         ResponseHeaderParser
     headerBytes:          u64
     overflow:             bool
-    hasLocation:          bool
-    locationContinuation: bool
+    cancelled:            bool
+    invalidHeaders:       bool
     inHeaders:            bool
+    requestBodyRemaining: u64
+    bodyReadFailed:       bool
+}
+
+#[Swag.CallingConvention(.C)]
+private func sendBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
+{
+    let state = cast(*CurlResponse, unwrap user)
+    if size != 0 and count > Swag.U64.Max / size
+    {
+        state.bodyReadFailed = true
+        return Curl.CURL_READFUNC_ABORT
+    }
+
+    let capacity = size * count
+    if state.requestBodyRemaining == 0 do
+        return 0
+    let requested = Math.min(capacity, state.requestBodyRemaining)
+    if requested == 0 do
+        return Curl.CURL_READFUNC_ABORT
+    let reader   = unwrap state.bodyReader
+    let received = reader(state.requestContext, bytes[until requested])
+    if received == 0 or received > requested
+    {
+        state.bodyReadFailed = true
+        return Curl.CURL_READFUNC_ABORT
+    }
+
+    state.requestBodyRemaining -= received
+    return received
 }
 
 #[Swag.CallingConvention(.C)]
@@ -116,13 +152,26 @@ private func receiveBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
     }
 
     let length = size * count
-    if length > state.maxBodyBytes - Math.min(state.maxBodyBytes, state.response.body.count)
+    if length > state.maxBodyBytes - Math.min(state.maxBodyBytes, state.bodyBytes)
     {
         state.overflow = true
         return 0
     }
 
-    state.response.body.add(bytes[until length])
+    state.bodyBytes += length
+    if state.bodyHandler
+    {
+        if not state.bodyHandler(state.bodyContext, bytes[until length])
+        {
+            state.cancelled = true
+            return 0
+        }
+    }
+    else
+    {
+        state.response.body.add(bytes[until length])
+    }
+
     return length
 }
 
@@ -147,45 +196,26 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
     let line = cast(string, bytes[until length])
     if Utf8.startsWith(line, "HTTP/")
     {
-        // Informational responses must not leak their Location into the final response.
+        // Redirect and informational headers must not leak into the final response.
+        state.response.headers.clear()
         state.response.location.clear()
-        state.hasLocation = false
-        state.locationContinuation = false
-        state.inHeaders   = true
+        state.headerParser.lastHeaderIndex = Swag.U64.Max
+        state.headerParser.locationSeen    = false
+        state.inHeaders = true
     }
     elif line == "\r\n" or line == "\n"
     {
         state.inHeaders = false
-        state.locationContinuation = false
     }
     elif state.inHeaders and length > 0
     {
-        let continuation = line[0] == ' ' or line[0] == '\t'
-        if not continuation do
-            state.locationContinuation = not state.hasLocation and Utf8.startsWith(line, "Location:", .Latin1NoCase)
-        if state.locationContinuation
+        if not appendResponseHeader(&state.response, &state.headerParser, line)
         {
-            var start = continuation ? 0'u64 : 9'u64
-            var end   = length
-            while start < end and (line[start] == ' ' or line[start] == '\t') do
-                start += 1
-            while end > start and
-                  (line[end - 1] == '\r' or
-                   line[end - 1] == '\n' or
-                   line[end - 1] == ' ' or
-                   line[end - 1] == '\t') do
-                end -= 1
-            let separator = continuation and not state.response.location.isEmpty() ? 1'u64 : 0'u64
-            if separator + end - start > 4096 - state.response.location.count
-            {
+            if state.headerParser.overflow do
                 state.overflow = true
-                return 0
-            }
-
-            if separator do
-                state.response.location += " "
-            state.response.location += line[start until end]
-            state.hasLocation       = true
+            else do
+                state.invalidHeaders = true
+            return 0
         }
     }
 
@@ -194,6 +224,16 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
 
 internal func getNative(host: string, port: u16, path: string, secure: bool, options: GetOptions)->Response fail
 {
+    return try requestNative(host, port, path, secure, options, false)
+}
+
+internal func postNative(host: string, port: u16, path: string, secure: bool, options: PostOptions)->Response fail
+{
+    return try requestNative(host, port, path, secure, options, true)
+}
+
+private func requestNative(host: string, port: u16, path: string, secure: bool, options: GetOptions, post: bool)->Response fail
+{
     let api = try ensureCurl()
     let url = api.createUrl()
     if not url do
@@ -201,15 +241,23 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     defer api.freeUrl(unwrap url)
     var headers: *Curl.curl_slist?
     defer api.freeHeaders(headers)
-    var received = CurlResponse{maxBodyBytes: options.maxBodyBytes}
-    let request  = api.easyInit()
+    var received = CurlResponse{maxBodyBytes: options.maxBodyBytes,
+                                bodyHandler: options.bodyHandler,
+                                bodyContext: options.bodyContext,
+                                bodyReader: options.bodyReader,
+                                requestContext: options.requestContext,
+                                requestBodyRemaining: options.requestBodyLength}
+    received.headerParser.lastHeaderIndex = Swag.U64.Max
+    let request = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
     defer api.easyCleanup(unwrap request)
 
     // Set the authority as separate URL components: host text cannot inject a port,
     // user information or another destination through URL delimiters.
-    let server  = String.from(host)
+    var server = String.from(host)
+    if Utf8.indexOf(host, ':') != Swag.U64.Max do
+        server = Format.toString("[%]", host)
     let service = Format.toString("%", port)
     let scheme  = secure ? "https" : "http"
     if api.setUrlPart(url, Curl.CURLUPART_SCHEME, scheme.buffer, 0) != Curl.CURLUE_OK or
@@ -233,7 +281,11 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     try checkCurl(api.setOption(request, Curl.CURLOPT_USERAGENT, agent.storage()))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP_VERSION, Curl.CURL_HTTP_VERSION_1_1))
     try checkCurl(api.setOption(request, Curl.CURLOPT_PROTOCOLS, Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, 0's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, options.maxRedirects > 0 ? 1's64 : 0's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_MAXREDIRS, cast(s64, options.maxRedirects)))
+    let redirectProtocols = secure ? Curl.CURLPROTO_HTTPS :
+                            Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS
+    try checkCurl(api.setOption(request, Curl.CURLOPT_REDIR_PROTOCOLS, redirectProtocols))
     try checkCurl(api.setOption(request, Curl.CURLOPT_NETRC, 0's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP09_ALLOWED, 0's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_NOSIGNAL, 1's64))
@@ -280,9 +332,26 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     try checkCurl(api.setOption(request, Curl.CURLOPT_WRITEFUNCTION, &receiveBody))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADERDATA, &received))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADERFUNCTION, &receiveHeader))
+    if post
+    {
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POST, 1's64))
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POSTFIELDSIZE_LARGE, cast(s64, options.requestBodyLength)))
+        if options.bodyReader
+        {
+            try checkCurl(api.setOption(request, Curl.CURLOPT_READDATA, &received))
+            try checkCurl(api.setOption(request, Curl.CURLOPT_READFUNCTION, &sendBody))
+        }
+    }
+
     let code = api.perform(request)
     if received.overflow do
         fail Errors.OverflowError{}
+    if received.invalidHeaders do
+        fail NetworkError{"malformed or oversized HTTP response header", code: 0}
+    if received.cancelled do
+        fail NetworkError{"HTTP response body handler stopped the transfer", code: Curl.CURLE_ABORTED_BY_CALLBACK}
+    if received.bodyReadFailed do
+        fail NetworkError{"HTTP request body reader did not provide its declared length", code: Curl.CURLE_READ_ERROR}
     try checkCurl(code)
     var status: s64
     try checkCurl(api.getInfo(request, Curl.CURLINFO_RESPONSE_CODE, &status))

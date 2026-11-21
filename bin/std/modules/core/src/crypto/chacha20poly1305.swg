@@ -26,7 +26,7 @@ private func updatePadded(mac: *Poly1305, data: const [..] u8)
 //
 // The trailing lengths are what stop an attacker from moving bytes between the
 // two parts while keeping the tag valid.
-private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
+func chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
 {
     // The one-time Poly1305 key is the first half of key-stream block zero, so
     // every nonce gets a key it never shares with the payload it protects.
@@ -81,7 +81,7 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     // at block one.
     try chacha20Xor(key, nonce, plaintext, ciphertext, 1)
 
-    var computed = try authenticate(key, nonce, associatedData, ciphertext)
+    var computed = try chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext)
     Swag.memcpy(tag.buffer, &computed[0], ChaCha20Poly1305TagSize)
     secureClear(computed)
 }
@@ -99,7 +99,7 @@ public func chacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: co
     if tag.count != ChaCha20Poly1305TagSize or ciphertext.count != plaintext.count do
         return false
 
-    var computed = try authenticate(key, nonce, associatedData, ciphertext)
+    var computed = try chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext)
     defer secureClear(computed)
     if not constantTimeEqual(computed, tag) do
         return false

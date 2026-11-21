@@ -374,17 +374,18 @@ impl Panel
     // see.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
+        var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for row, rowIndex in .doc.report.rows where .filterIncluded.isEmpty() or .filterIncluded[rowIndex]
         {
-            Viewer.collectTextMatches(row.label, text, options, rowIndex, cast(u64, Column.Field), 0, result)
-            Viewer.collectTextMatches(row.value, text, options, rowIndex, cast(u64, Column.Value), 0, result)
+            Viewer.collectTextMatches(row.label, &matcher, rowIndex, cast(u64, Column.Field), 0, result)
+            Viewer.collectTextMatches(row.value, &matcher, rowIndex, cast(u64, Column.Value), 0, result)
             if row.offset != Swag.U64.Max
             {
                 let offset = hexText(row.offset, 8)
-                Viewer.collectTextMatches(offset, text, options, rowIndex, cast(u64, Column.Offset), 0, result)
+                Viewer.collectTextMatches(offset, &matcher, rowIndex, cast(u64, Column.Offset), 0, result)
             }
 
-            Viewer.collectTextMatches(row.detail, text, options, rowIndex, cast(u64, Column.Detail), 0, result)
+            Viewer.collectTextMatches(row.detail, &matcher, rowIndex, cast(u64, Column.Detail), 0, result)
         }
     }
 
@@ -439,18 +440,17 @@ impl Panel
 
     // Reports whether report row `rowIndex` matches the filter query in its label, value, detail or
     // hexadecimal offset.
-    private mtd rowMatchesFilter(rowIndex: u64, options: Viewer.SearchOptions)->bool
+    private mtd rowMatchesFilter(rowIndex: u64, matcher: *Text.NameMatcher)->bool
     {
-        let query = .filterQuery.toString()
-        let row   = &.doc.report.rows[rowIndex]
+        let row = &.doc.report.rows[rowIndex]
         var matches: Array'Viewer.SearchMatch
-        Viewer.collectTextMatches(row.label, query, options, 0, 0, 0, &matches)
-        Viewer.collectTextMatches(row.value, query, options, 0, 0, 0, &matches)
-        Viewer.collectTextMatches(row.detail, query, options, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.label, matcher, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.value, matcher, 0, 0, 0, &matches)
+        Viewer.collectTextMatches(row.detail, matcher, 0, 0, 0, &matches)
         if row.offset != Swag.U64.Max
         {
             let offset = hexText(row.offset, 8)
-            Viewer.collectTextMatches(offset, query, options, 0, 0, 0, &matches)
+            Viewer.collectTextMatches(offset, matcher, 0, 0, 0, &matches)
         }
 
         return not matches.isEmpty()
@@ -466,20 +466,13 @@ impl Panel
         if .filterQuery.isEmpty() do
             return
 
-        .filterIncluded.resize(.doc.report.rows.count)
-        var options = .filterOptions
-        var expression: Parser.RegExp
-        if options.regularExpression
-        {
-            var expressionErrorOutcome: Swag.Error
-            catch expression.compile(.filterQuery, ignoreCase: not options.matchCase) as expressionErrorOutcome
-            let expressionError = expressionErrorOutcome.value()
-            if expressionError == null do
-                options.expression = &expression
-        }
+        if not Viewer.patternIsValid(.filterQuery, .filterOptions) do
+            return
 
+        var matcher = assume Viewer.createNameMatcher(.filterQuery, .filterOptions)
+        .filterIncluded.resize(.doc.report.rows.count)
         for index in .doc.report.rows.count do
-            .filterIncluded[index] = .rowMatchesFilter(index, options)
+            .filterIncluded[index] = .rowMatchesFilter(index, &matcher)
 
         // Rows are stored in preorder, so walking backward from a direct match finds each parent
         // at the first preceding shallower level. Mark that chain without leaking a match into an

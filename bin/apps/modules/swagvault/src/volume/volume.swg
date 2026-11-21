@@ -47,19 +47,33 @@ const FileAttributeDirectory = 0x00000010'u32
 const FileAttributeArchive   = 0x00000020'u32
 const FileAttributeNormal    = 0x00000080'u32
 
-// Progress and cancellation of a long volume operation, shared between the thread that runs it
-// and the thread that watches it.
-//
-// The operation publishes what it has written and gives up at its next boundary once the watcher
-// asks it to. Every field is read and written atomically, so neither side needs a lock, and a
-// watcher that reads a value one step behind simply reports the previous instant.
+enum VolumeProgressPhase
+{
+    Volume
+    KeyFile
+}
+
+struct VolumeProgressSnapshot
+{
+    phase: VolumeProgressPhase
+    done:  u64
+    total: u64
+}
+
+impl VolumeProgressSnapshot
+{
+    mtd const ratio()->f32 => .total ? cast(f32, .done) / cast(f32, .total) : 0
+}
+
+// Progress and cancellation shared by a volume operation and its watcher.
+// A snapshot keeps the phase and its byte counts together when the work changes.
 struct VolumeProgress
 {
     private
     {
-        done:     u64     // Bytes the operation has written so far.
-        total:    u64     // Bytes it has to write, or zero before it starts.
-        canceled: u8      // Non-zero once the watcher asked the operation to stop.
+        lock:     Swag.Mutex
+        snapshot: VolumeProgressSnapshot
+        canceled: u8
     }
 }
 
@@ -68,26 +82,27 @@ impl VolumeProgress
     // Arms the tracker for an operation with `total` bytes to write, clearing any earlier
     // cancellation so a stopped operation cannot stop the next one. This belongs to the
     // watcher: it is what says a new operation is about to start.
-    mtd begin(total: u64)
+    mtd begin(total: u64, phase = VolumeProgressPhase.Volume)
     {
-        .setTotal(total)
+        .setTotal(total, phase)
         Atomic.exchange(&.canceled, 0'u8)
     }
 
-    // Records how much the running operation has to write. The cancellation is deliberately
+    // Starts measuring a phase of the running operation. The cancellation is deliberately
     // left alone: the watcher arms the tracker, and an operation that cleared the flag on its
     // way in would drop every cancellation asked for between those two moments — which is
     // exactly the window in which the user hits Cancel while the job is still queued.
-    mtd setTotal(total: u64)
+    mtd setTotal(total: u64, phase = VolumeProgressPhase.Volume)
     {
-        Atomic.exchange(&.done, 0)
-        Atomic.exchange(&.total, total)
+        Sync.scopedLock(&.lock)
+        .snapshot = VolumeProgressSnapshot{phase, 0, total}
     }
 
-    // Publishes how many bytes the operation has written.
+    // Publishes how many bytes the current phase has processed.
     mtd publish(done: u64)
     {
-        Atomic.exchange(&.done, done)
+        Sync.scopedLock(&.lock)
+        .snapshot.done = done
     }
 
     // Asks the operation to stop at its next boundary.
@@ -99,16 +114,11 @@ impl VolumeProgress
     // Returns whether the watcher asked the operation to stop.
     mtd isCanceled()->bool => Atomic.get(&.canceled) != 0
 
-    // Returns the bytes the operation has written and the bytes it has to write, as they read now.
-    mtd counts()->{ done: u64, total: u64 } => {Atomic.get(&.done), Atomic.get(&.total)}
-
-    // Returns the share of the operation that is done, from zero to one. Zero before it starts.
-    mtd ratio()->f32
+    // Returns the current phase with its corresponding byte counts.
+    mtd counts()->VolumeProgressSnapshot
     {
-        let total = Atomic.get(&.total)
-        if not total do
-            return 0
-        return cast(f32, Atomic.get(&.done)) / cast(f32, total)
+        Sync.scopedLock(&.lock)
+        return .snapshot
     }
 }
 

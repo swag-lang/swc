@@ -28,9 +28,6 @@ remains in [std.truetype.md](std.truetype.md).
   glyph-name lookup now resolves a mapped glyph through the worker-built inverse cmap. A bounded
   back/forward history covers character, glyph-ID, glyph-name, block and range-menu jumps. Block
   and script names are not yet query destinations.
-- Progress: character, glyph-ID, exact glyph-name and block-menu jumps return through the map's
-  bounded history; post/CFF names are indexed once during font loading. Unicode script queries and
-  queryable Unicode block names remain open.
 - Next: make Unicode block and script queries select the first mapped cell in that range. Use
   generated Unicode property data rather than maintaining a hand-written script table.
 - Done when: glyph-name, Unicode-block and script queries reveal a cell, and map jumps have

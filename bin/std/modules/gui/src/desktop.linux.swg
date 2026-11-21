@@ -63,6 +63,8 @@ internal struct Context
     late xcb_get_keyboard_mapping_keysyms:        Linux.xcb_get_keyboard_mapping_keysyms_fn
     late xcb_get_keyboard_mapping_keysyms_length: Linux.xcb_get_keyboard_mapping_keysyms_length_fn
     late xcb_send_event_checked:                  Linux.xcb_send_event_checked_fn
+    late xcb_get_input_focus:                     Linux.xcb_get_input_focus_fn
+    late xcb_get_input_focus_reply:               Linux.xcb_get_input_focus_reply_fn
     late xcb_set_input_focus_checked:             Linux.xcb_set_input_focus_checked_fn
     late xcb_get_file_descriptor:                 Linux.xcb_get_file_descriptor_fn
     late xcb_translate_coordinates:               Linux.xcb_translate_coordinates_fn
@@ -211,6 +213,8 @@ internal func ensure()->*Context fail
     result.xcb_get_keyboard_mapping_keysyms        = try symbol'Linux.xcb_get_keyboard_mapping_keysyms_fn(library, "xcb_get_keyboard_mapping_keysyms")
     result.xcb_get_keyboard_mapping_keysyms_length = try symbol'Linux.xcb_get_keyboard_mapping_keysyms_length_fn(library, "xcb_get_keyboard_mapping_keysyms_length")
     result.xcb_send_event_checked                  = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+    result.xcb_get_input_focus                     = try symbol'Linux.xcb_get_input_focus_fn(library, "xcb_get_input_focus")
+    result.xcb_get_input_focus_reply               = try symbol'Linux.xcb_get_input_focus_reply_fn(library, "xcb_get_input_focus_reply")
     result.xcb_set_input_focus_checked             = try symbol'Linux.xcb_set_input_focus_checked_fn(library, "xcb_set_input_focus_checked")
     result.xcb_get_file_descriptor                 = try symbol'Linux.xcb_get_file_descriptor_fn(library, "xcb_get_file_descriptor")
     result.xcb_translate_coordinates               = try symbol'Linux.xcb_translate_coordinates_fn(library, "xcb_translate_coordinates")
@@ -318,6 +322,28 @@ internal func surface(window: u32)->*Surface?
         for item in context.surfaces where item.windowId == window or item.trayWindow == window do
             return item
     return null
+}
+
+// X11 focus notifications are queued. Read the current owner so an old notification cannot
+// publish focus for a window the server has already left.
+internal func syncInputFocus(context: *Context, app: *Application)
+{
+    let connection = unwrap context.connection
+    let reply      = context.xcb_get_input_focus_reply(connection, context.xcb_get_input_focus(connection), null)
+    if not reply do
+        return
+    let window = reply.focus
+    Linux.free(reply)
+
+    var focused = surface(window)
+    if focused and (focused.app != app or focused.windowId != window) do
+        focused = null
+    if app.nativeFocusSurface != focused
+    {
+        Memory.clear(&app.nativeKeyDown, #sizeof(app.nativeKeyDown))
+        app.updateNativeFocus(focused)
+    }
+    app.setActivated(app.nativeFocusSurface != null)
 }
 
 internal func initializeKeyboard(context: *Context) fail

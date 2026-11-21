@@ -5,7 +5,8 @@ texture-sampling, vector-output, and geometry contracts of `std/pixel`. Image de
 metadata, multi-image input, and SVG decoding live in [std.pixel.image.md](std.pixel.image.md).
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/pixel` stay together in
-these two scopes. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+these two scopes. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). Font parsing and shaping belongs in
 [std.truetype.md](std.truetype.md). Platform renderer selection belongs in
 [platform.portability.md](platform.portability.md). [README.md](README.md) has the whole layout.
@@ -57,7 +58,8 @@ ships; history lives in Git, not here.
 ### std.pixel.035 — Diagnose intermittent incomplete OpenGL frames in offscreen tests
 
 - Evidence: a Swag Scope Markdown golden sometimes has zero alpha across its outline and torn RGB text. Reading the same render target again still returns zero alpha; the CPU renderer draws the panel correctly. In the reproduced run, `RenderOgl.recoverLostDevice` returned false with `deviceResets == 0`, unlike the earlier reset described in std.gui.057. A following full repaint can produce the expected image.
-- Next: on the first bad frame, record the painter command tail, bound draw framebuffer, color mask, and uploaded vertex data before presentation. Use those values to distinguish incomplete recording, wrong OpenGL state, and corrupted submission; fix the failing boundary rather than accepting or retrying the golden.
+- Evidence: the Windows Release hairline parity test once returned the aliased image for its antialiased GPU scene. All 19,712 RGBA pixels match an independent aliased CPU render. A fresh antialiased CPU render matches the original CPU capture byte for byte. A later Release pass also returned 255 instead of 152 for the first byte of the 8× SVG white mask. Windows logged a display engine timeout during the investigation. The relationship between the rendering failures and the timeout is unconfirmed.
+- Next: in a focused hairline run, use different clears for the aliased and antialiased scenes to identify stale pixels. On the first bad frame, check whether readback overwrote its destination, then inspect the recorded overlap commands, uploaded vertices, bound draw framebuffer, and color mask. Use the same boundary diagnostics for the Scope capture. Fix the failing boundary and keep comparing the first render.
 - Done when: a focused reproducer identifies the faulty boundary, its correction keeps the outline opaque and its text intact, and the existing Swag Scope and Pixel golden suites pass.
 - Related: std.gui.057
 
@@ -451,3 +453,44 @@ ships; history lives in Git, not here.
   renderer comparison covers the thin rule in Scope.
 
 ---
+
+### std.pixel.040 — Half-size and gradient paths still have unoptimized scalar work
+
+- Evidence: RGB/BGR and RGBA/BGRA half-size paths use packed parallel row loops; other formats
+  still compute each pixel through `readPixelValue` and `writePixelValue`. The two-color legacy
+  gradient computes one row and copies it, while the four-corner and logical-pixel paths still
+  process pixels individually. Fill already copies rows.
+- Next: compare packed byte-color half-size rows and the remaining gradient work against
+  their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
+- Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
+  match existing behavior and each retained kernel beats callback dispatch.
+- Related: std.core.042, std.core.043, compiler.codegen.022.
+
+### std.pixel.041 — Convolution, resize, smart-crop, and Haar kernels remain scalar
+
+- Next: vectorize interior convolution, horizontal/vertical resampling, integral-image box output,
+  Sobel/normalization maps, and contiguous Haar passes while keeping borders and unfavorable gathers
+  scalar.
+- Done when: golden images remain within the declared numeric tolerance and representative
+  large-image workloads show per-stage gains.
+- Related: std.core.044, compiler.codegen.022.
+
+### std.pixel.042 — LUT and transcendental image filters have no packed path
+
+- Next: use gathered tables or vector math to accelerate gamma, contrast, fade, colorize, HSL, and
+  noise kernels without weakening their output contract merely to fit today's instruction set.
+- Done when: each filter declares exact or bounded-error parity, uses the profitable gather/math
+  path under feature dispatch, and retains a scalar fallback.
+- Related: std.core.042, std.core.044, std.core.047.
+
+### std.pixel.043 — CPU span packing stops before translucent blending and complex shading
+
+- Evidence: `rendercpu.swg` already clears packed spans, evaluates four edge samples, and writes
+  full covered constant-color BGRA groups with channel masks. Its translucent alpha path keeps
+  scalar float rounding, and gradient, MSDF and general texture shading retain per-pixel work.
+- Next: extend profitable horizontal spans to those remaining cases, specializing by program,
+  blending and format rather than adding branches to one universal loop.
+- Done when: clip and layer boundaries remain exact, byte/golden parity or a deliberately
+  specified numeric tolerance protects rounding, and stage and application benchmarks justify
+  each retained path. Gather-dependent sampling needs its own measured decision.
+- Related: std.core.042, std.core.044, std.core.047, std.core.049.

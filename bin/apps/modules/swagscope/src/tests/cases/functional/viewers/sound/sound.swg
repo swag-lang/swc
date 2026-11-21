@@ -621,6 +621,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
     waitForSoundOpen(&host, view)
     Swag.require(view.playButton.isEnabled() and view.duration > 3)
+    Swag.require(view.playModeButton.isEnabled() and view.playModeButton.parent == view.commands)
 
     window.lens.open(":0:02")
     host.finishAnimations()

@@ -175,7 +175,8 @@ impl Dialog
         {
             .spacing   = metrics.dialog_BtnPadding
             .mode      = .HorizontalEnd
-            .dockStyle = .Bottom
+            .dockStyle       = .Bottom
+            .arrowNavigation = true
 
             // A focused button paints its ring outside its own rectangle. The dialog surface
             // still clips at its edge, and its inset leaves room for the ring; the action row
@@ -328,15 +329,12 @@ impl Dialog
     // The box opens ready for the keyboard: the focus goes where [[Gui.Dialog.keyboardEntry]] says,
     // unless the caller already placed it, so a dialog can be answered and dismissed without the
     // pointer.
-    //
-    // The ring showing where the keys will go is turned on with the box rather than by the first
-    // Tab. A modal is a question, and the reader has to be told what pressing Enter now decides.
+    // Tab enters keyboard navigation and shows its focus ring.
     mtd doModal()->WndId
     {
         let surface = unwrap .surface
         .placeLeadingControl()
         surface.wnd.setInitialFocus(.keyboardEntry())
-        surface.app.setFocusVisible(true)
         surface.bringToFront()
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do

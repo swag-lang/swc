@@ -30,6 +30,7 @@ struct TextChoicePopover
     late list:   *ListCtrl
     filter:      *EditBox?
     kind:        TextChoiceKind
+    selectedForm: u64
     values:      Array'u32     // Each visible row's font index, or its numeric size.
     refreshing:  bool
 }
@@ -46,7 +47,7 @@ impl TextChoicePopover
 
     // Opens the same list surface for both properties. The font version reserves its first row
     // for a real edit box, so typing filters without changing the text being edited on the canvas.
-    func open(main: *MainWnd, button: *IconButton, kind: TextChoiceKind)->*TextChoicePopover
+    func open(main: *MainWnd, button: *IconButton, kind: TextChoiceKind, selectedForm: u64)->*TextChoicePopover
     {
         if kind == .Face and g_MiniBarFonts.isEmpty() do
             g_MiniBarFonts = FontFamily.enumerateSystemFonts()
@@ -65,6 +66,7 @@ impl TextChoicePopover
             .main            = main
             .button          = button
             .kind            = kind
+            .selectedForm    = selectedForm
         }
 
         let content = frame.paddedClientRect()
@@ -126,20 +128,32 @@ impl TextChoicePopover
         .list.clear()
         .values.clear()
 
-        let style = .main.selectedTextStyle()
-        if not style.found do
+        if not .restoreSelection()
+        {
+            .fitHeight()
+            .list.computeLayout()
             return
+        }
+
+        let style = .selectedTextStyle()
+        if not style.found
+        {
+            .fitHeight()
+            .list.computeLayout()
+            return
+        }
         var chosen = Swag.U32.Max
 
         if .kind == .Face
         {
-            var query: String
+            var filterText = ""
             if .filter do
-                query = String.from(.filter.text()).toLower(.Unicode)
+                filterText = .filter.text()
+            let matcher = assume Text.NameMatcher.create(filterText, {comparisonType: .UnicodeNoCase})
+            let hasFilter = filterText.count > 0
 
-            let defaultFace  = .theme().res.defaultTypeFaceR.familyName()
-            let defaultLower = String.from(defaultFace).toLower(.Unicode)
-            if query.isEmpty() or Utf8.contains(defaultLower.toString(), query.toString())
+            let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+            if not hasFilter or matcher.isMatch(defaultFace)
             {
                 chosen = style.face.count == 0 or style.face == defaultFace ? 0 : Swag.U32.Max
                 .list.createLine(defaultFace)
@@ -148,9 +162,8 @@ impl TextChoicePopover
 
             for &font, index in g_MiniBarFonts where font.name != defaultFace
             {
-                let name  = font.name.toString()
-                let lower = String.from(name).toLower(.Unicode)
-                if not query.isEmpty() and not Utf8.contains(lower.toString(), query.toString()) do
+                let name = font.name.toString()
+                if hasFilter and not matcher.isMatch(name) do
                     continue
                 if style.face == name do
                     chosen = cast(u32, .values.count)
@@ -173,6 +186,29 @@ impl TextChoicePopover
         .list.computeLayout()
         if chosen < .list.lineCount() do
             .list.selectLine(chosen)
+    }
+
+    // Filtering moves focus away from the selected form. Keep the popup's opening selection as
+    // the target for both the list and the edit the reader eventually chooses.
+    private mtd restoreSelection()->bool
+    {
+        let capture = .main.getCapture()
+        if not capture or .selectedForm >= capture.forms.count do
+            return false
+        capture.selection.clear()
+        capture.selection.add(.selectedForm)
+        return true
+    }
+
+    private mtd selectedTextStyle()->{found: bool, type: typeinfo, face: string, size: f32, style: FontFamilyStyle, align: FormTextAlign, alignVert: FormTextAlign}
+    {
+        switch .main.getCapture()?.getSelectedBaseForm()
+        {
+        case FormText as text:       return {true, FormText, text.fontName.toString(), text.fontSize, text.fontStyle, text.alignHorz, text.alignVert}
+        case FormCallout as callout: return {true, FormCallout, callout.fontName.toString(), callout.fontSize, callout.fontStyle, callout.alignHorz, callout.alignVert}
+        }
+
+        return {false, FormText, "", 0, .Regular, .Center, .Center}
     }
 
     // Keep a filtered list close to its rows. When the popup opened above the button, its bottom
@@ -203,9 +239,9 @@ impl TextChoicePopover
 
     mtd choose(index: u32)
     {
-        if index >= .values.count do
+        if index >= .values.count or not .restoreSelection() do
             return
-        let style = .main.selectedTextStyle()
+        let style = .selectedTextStyle()
         if not style.found do
             return
 

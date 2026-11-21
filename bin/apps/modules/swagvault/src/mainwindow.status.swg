@@ -40,7 +40,7 @@ impl MainWindow
     {
         switch #complete .statusMessage
         {
-        case .Randomizing, .StopRequested, .StartingDriver, .InstallingDriver,
+        case .ReadingKeyFile, .Randomizing, .StopRequested, .StartingDriver, .InstallingDriver,
              .Unmounting, .Mounted, .MountedReadOnly, .MountedProtected,
              .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
             return .Active
@@ -65,6 +65,9 @@ impl MainWindow
         {
         case .Ready:
             return texts.msg_Ready
+
+        case .ReadingKeyFile:
+            return texts.ui_ReadingKeyFile
 
         case .Randomizing:
             return Format.toString(texts.msg_Randomizing, .statusProgress)

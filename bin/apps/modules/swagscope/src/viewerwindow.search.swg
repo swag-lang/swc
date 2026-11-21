@@ -172,21 +172,7 @@ impl ViewerWindow
         let instance = &.instances[.activeChoiceIndex]
         if .searchFilterMode and instance.filterSearch and instance.view
         {
-            var options = .searchOptions()
-            var expression: Parser.RegExp
-            if options.regularExpression
-            {
-                catch expression.compile(.searchQuery, ignoreCase: not options.matchCase)
-                {
-                    .searchComplete = true
-                    .refreshSearchReadout()
-                    return
-                }
-
-                options.expression = &expression
-            }
-
-            instance.filterSearch(.searchQuery, options)
+            instance.filterSearch(.searchQuery, .searchOptions())
             .searchComplete = true
             .refreshSearchReadout()
             return

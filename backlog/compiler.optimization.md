@@ -1,23 +1,10 @@
 # Optimization Backlog
 
-Intermodule and backend optimization, register allocation, final image layout, and the performance
-of the code `swc` generates.
-Frontend and lowering defects are [compiler.core.md](compiler.core.md).
-
-Entries form one flat list. [README.md](README.md) defines
-the shared backlog conventions. Instruction counts, runtime winners, and timing results describe
-the cited revision or the entry's last measurement; they must be remeasured before guiding a new
-optimization. A campaign called the latest below was the latest at that measurement, not a moving
-claim about the current checkout.
-
-Several entries address register residency, loop-entry shape, spill traffic, aliasing and
-inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
-builds now use interval splitting, so those measurements identify workloads to recheck rather than
-current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
-the executable Micro instruction stream has no explicit phi instruction. Since build 438, a call
-that the straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
-allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
-block, and the hot path keeps the register.
+This file owns transformations of Swag programs: local and intermodule analysis, specialization,
+inlining, loop optimization, profile feedback, and final program layout. It does not track the
+speed or memory use of compiling swc; that belongs in [compiler.build.md](compiler.build.md).
+Lowering, ABI, register allocation, and instruction selection belong in
+[compiler.codegen.md](compiler.codegen.md).
 
 The intermodule program below applies to **every Swag module whose matching implementation is
 available locally**: application modules, sibling workspaces, vendored dependencies, package
@@ -34,9 +21,9 @@ the boundary requires it. A local file with the same module name is not proof th
 the binary selected by the build. Other-language sources require a supported frontend or compatible
 optimization representation; merely finding their text does not make them Swag bodies.
 
-The intended pipeline is resolved typed bodies and summaries, global symbol/call resolution,
-bounded interprocedural transformations, ABI lowering, the existing Micro pipeline, then final
-layout and relocation. Reuse semantic analysis and local passes. Keep compile-time execution as
+The intended optimization pipeline is resolved typed bodies and summaries, global symbol/call resolution,
+then bounded interprocedural transformations. ABI lowering, the Micro pipeline, and instruction emission
+belong to [compiler.codegen.md](compiler.codegen.md). Reuse semantic analysis and local passes. Keep compile-time execution as
 a separate consumer of the resolved program; importing a body must not re-execute module setup
 or compile-time side effects.
 
@@ -84,6 +71,8 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 `Inline`, and `NoInline` contracts explicit. This plan invents no command-line spellings or
 new language syntax.
 
+SIMD work is owned by the compiler, platform, or consuming module according to the change. Consumer kernels keep a scalar fallback, prove boundary and tail parity, and compare Release performance.
+
 
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
@@ -98,49 +87,7 @@ new language syntax.
   loads/stores to wordfreq's hot scan; keep that sentinel and inspect actual call-site conversions.
 - Done when: repeated wrappers with nullable value-pointer parameters auto-inline with their
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
-- Related: compiler.optimization.094, compiler.optimization.117.
-
-### compiler.optimization.011 — Keep hot SIMD values out of the frame
-
-- Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
-- Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
-- Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
-
-### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
-
-- Current boundary: post-allocation promotion caches private 64-bit spills across eligible loops,
-  including call and shared-exit cases when entry seeding, clobber handling, and write-back are
-  proven. Mixed-width and source-object slots remain outside the rule.
-- Evidence: retained codec rewrites show fewer hot-loop frame operations without extra pushes;
-  detailed per-function diffs and correctness results are in the linked generated-code reports in
-  Git history. No runtime speedup has been established.
-- Next: inspect hot source-object slots and mixed-width spills. Any extension must prove reuse on
-  each call-delimited path and account for aliases, exits, and write-back.
-- Done when: current codec dumps identify and resolve the remaining promotion boundary with
-  aliasing, exit-path, and reference-frame coverage; do not repeat the completed private 64-bit
-  multi-access rewrite.
-- Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
-
-### compiler.optimization.035 — Improve spill choices after register and memory promotion
-
-- Evidence: after removing the permanent integer legalization reserve,
-  `Slice.parsePlaneResidualCabac` gained one memory operation and
-  `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
-  The full register pool remains available; the
-  [retained comparison](../bench/disassembly/generated-code/20261006-legalize-reserve/README.md)
-  owns the exact baseline.
-- Additional case: promoting whole-copied locals with scalar lane reads removes
-  frame traffic in ChaCha, nbody and H.264. In CSV data generation, a copied region
-  string's pointer/length become GP values live across several multiplications.
-  The printed bodies gain 18 instructions / 11 memory operations, 14 explicit
-  RSP accesses and 64 frame bytes. The suffix from the first timing call remains
-  444 instructions / 151 memory operations, and the checksum remains 24828641.
-  [Allocation diff](../bench/disassembly/generated-code/20261006-vector-lanes/csvagg-allocation.diff).
-- Next: inspect splitting and rematerialization around the implicit multiply
-  claims in CSV setup, and compare the two H.264 functions' interval choices.
-  Preserve the extra register and legal packed promotion while correcting these
-  local allocation costs. No elapsed-time regression is inferred.
-- Done when: these local increases are removed or explained by a necessary tradeoff.
+- Related: compiler.codegen.008, compiler.optimization.117.
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 
@@ -157,7 +104,7 @@ new language syntax.
   together add four instructions and five memory operands; preserve the repair.
 - Done when: shared facts cover those consumers, forwarding crosses a proven
   disjoint store in a real codec loop, and remaining local allocation costs are resolved.
-- Related: compiler.optimization.015.
+- Related: compiler.codegen.006.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 
@@ -177,7 +124,7 @@ new language syntax.
   only with a joint allocation plan that preserves the now spill-free compression loop.
 - Done when: wider grouping reduces per-round work without reintroducing hot frame
   traffic, and the retained two-round form's outer spill cost is resolved.
-- Related: compiler.optimization.005, compiler.optimization.015, compiler.optimization.016.
+- Related: compiler.optimization.005, compiler.codegen.006, compiler.codegen.009.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
@@ -224,7 +171,7 @@ new language syntax.
   later instruction invalidates its assumptions.
 - Done when: remaining rebuilds are reduced without changing generated code and a repeatable
   compiler-time gain is distinguishable from the measurement floor.
-- Related: compiler.core.004, compiler.core.030, compiler.optimization.005.
+- Related: compiler.build.004, compiler.build.030, compiler.optimization.005.
 
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
@@ -240,19 +187,6 @@ new language syntax.
   Keep the late stage so array promotion/vectorization retain their input shape.
 - Done when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
-
-### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
-
-- Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match
-  clean-state results and performance after the boundary fix
-  ([evidence](../bench/disassembly/generated-code/20261006-avx-vex/README.md)). Two things are
-  not established: which AVX state reached the unmodified benchmark when its timing
-  changed, and the compiler cost of the boundary handling.
-- Next: at a measurement milestone, check the compiler cost of the boundary handling and
-  establish which AVX state reaches the unmodified benchmark. Do not repeat the completed
-  encoding work.
-- Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
-- Related: compiler.optimization.121, cpu.simd.001.
 
 ### compiler.optimization.121 — Optimize final code and data layout with retained structure
 
@@ -282,7 +216,7 @@ new language syntax.
   stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
   startup, and build costs are evaluated separately.
 - Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
-  compiler.core.085.
+  compiler.codegen.003.
 
 ### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
 
@@ -314,7 +248,7 @@ new language syntax.
 - Next: prove consistent fixed-target propagation through imports/caches/specialized callees,
   then prototype two measured kernel variants behind one baseline-safe dispatcher. Select kernels
   by cost/profile evidence instead of cloning whole dependencies.
-- Boundary: reuse the optional-feature query and dispatch contract owned by cpu.simd.001; this
+- Boundary: reuse the optional-feature query and dispatch contract owned by platform.portability.103; this
   entry owns variant generation and reuse across source-module boundaries.
 - Scope: account for OS-enabled vector state as well as CPU features; isolate unsupported
   instructions behind the guard; hoist dispatch outside hot loops when stable. Preserve canonical
@@ -326,7 +260,7 @@ new language syntax.
   baseline runs on the declared minimum target, dispatch is correctly gated/amortized, and build
   cost plus artifact growth justify the chosen variants.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120,
-  cpu.simd.001.
+  platform.portability.103.
 
 ### compiler.optimization.106 — Resolve local implementations and optimization boundaries
 
@@ -388,7 +322,7 @@ new language syntax.
 - Done when: recursive, diamond, and large sparse graphs converge deterministically with bounded
   imported memory; newly direct/dead edges trigger targeted reanalysis; unrelated partitions stay
   reusable; instrumentation accounts for time and memory by phase.
-- Related: compiler.optimization.107, compiler.optimization.109, compiler.core.073.
+- Related: compiler.optimization.107, compiler.optimization.109, compiler.build.073.
 
 ### compiler.optimization.109 — Cache bodies and the assumptions used by callers
 
@@ -408,7 +342,7 @@ new language syntax.
 - Done when: private edits invalidate affected callers/variants, unrelated edits retain hits,
   target/configuration/summary/profile changes cannot reuse stale code, and interrupted concurrent
   builds cannot publish partial artifacts. Measure cold, warm, and edit/rebuild costs separately.
-- Related: compiler.optimization.106, compiler.optimization.108, compiler.core.030.
+- Related: compiler.optimization.106, compiler.optimization.108, compiler.build.030.
 
 ### compiler.optimization.110 — Infer interprocedural memory and value summaries
 
@@ -449,7 +383,7 @@ new language syntax.
   inline automatically, forbidden/oversized cases remain calls, and runtime, size, compile-time,
   and memory results justify the default policy. Import visibility never changes source validity.
 - Related: compiler.optimization.107, compiler.optimization.108, compiler.optimization.110,
-  compiler.core.071, compiler.optimization.022.
+  compiler.codegen.002, compiler.optimization.022.
 
 ### compiler.optimization.112 — Specialize ordinary calls on constants and known callbacks
 
@@ -675,127 +609,6 @@ new language syntax.
 - Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
   compiler.optimization.119.
 
-### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
-
-- Evidence: MSVC avoids saving and restoring four XMM registers on `raytrace`'s no-hit path by
-  saving them only after the early guard. Swag's native and JIT unwind interfaces currently publish
-  one range per function/allocation, so delayed saves cannot yet describe every path correctly.
-  The save slots must remain in the entry frame and each return path needs the matching unwind state.
-- Next: represent chained unwind ranges in `MachineCode`, emit them from the final instruction
-  stream, and publish all ranges in native `.pdata` and the JIT function table. Then delay only saves
-  for registers first defined below the guard. Cover both arms, nested calls, and exceptional unwind
-  in native and JIT output; compare hit and no-hit paths with MSVC.
-- Done when: the short path skips unused saves and restores without adding spill traffic to the hit
-  path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
-
-### compiler.optimization.016 — General value-web normalization still extends live ranges too far
-
-- Intent: give independent def-use webs separate virtual registers so LICM, value numbering
-  and memory forwarding can distinguish computations that lowering gave the same name.
-  Live phi joins and destructive updates must retain a common name. Dead phi cycles must not
-  glue otherwise independent values together.
-- Existing boundary: the unroller already renames independent temporaries in straight-line
-  copies, but leaves carried values and bodies with internal labels unchanged. A flattened
-  nested loop can therefore still contain independent values sharing a register.
-- Evidence: a union-find reconstruction over SSA values, with live phi and read-modify-write
-  unions, worsens unrelated floating code under interval splitting (raytrace `intersect`
-  and `trace` gain instructions, memory operands and frame references) and was discarded.
-  Splitting only a reused register whose stored old value is later read leaves raytrace
-  unchanged and enables nbody's cross-group velocity forwarding;
-  it is not a general policy for arithmetic temporaries.
-- Next: attribute the extra floating interference and improve residency before expanding
-  eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
-  consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
-- Done when: independent webs expose the intended hoisting and forwarding without
-  worsening the affected hot paths through additional transfers or spill traffic.
-- Related: compiler.optimization.015.
-
-### compiler.optimization.102 — Retain one floating zero across unrolled arms
-
-- Evidence: MSVC's unrolled four-sphere raytrace `intersect` clears XMM5 once and compares
-  each discriminant against it; Swag's clears XMM9 before each of the four comparisons,
-  three extra executed instructions. The full unroller renames private temporaries only in
-  bodies without internal labels, so `intersect`'s copies reuse one virtual zero register,
-  overwritten before the next clear. These attempts all kept the four clears: naming the
-  zero in source, sharing dominating `ClearReg` definitions in value numbering, and renaming
-  single-definition private values in branched unrolled bodies (which also added four
-  instructions).
-- Next: inspect a control-flow-aware way to split a private zero definition across cloned
-  arms. A candidate should retain a single zero only where that saves executed clears
-  without adding copies, spills, or saved registers. Compare an unrelated unrolled floating
-  loop and a case with intervening calls before changing general value numbering or
-  allocation.
-- Done when: the repeated clears disappear with no new spill traffic in `intersect`, an
-  unrelated case improves under the same rule, and native/JIT behavior remains correct.
-
-### compiler.optimization.083 — Retain the probe mask without increasing spills
-
-- Evidence: a post-allocation rule (`PostRALoopHoist`) moves a folded bitwise memory operand
-  into an idle, already saved register when the base is stable, the loop has no memory
-  writes and only `ReadOnly` direct calls. In wordfreq's first inlined probe `r15` now
-  carries the mask across `memcmp`, matching LDC's two memory operands on the collision
-  step. The final-token probe still reads `[m+mask]` because its entry read uses a
-  different base expression. Csvagg's eight region keys never collide modulo 64, so
-  retaining its mask would only add an entry instruction.
-- Rejected: hoisting every invariant field load across a read-only call, and inlining
-  `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
-  frame reloads and jumps.
-- Regression lead: [protocol 3 csvagg samples](../bench/results/windows/20261021-173259.json) put
-  native Release at a 22.694 ms median against Odin's 20.861 ms. Earlier protocol 2 reports
-  selected minima, so their displayed advantage is not a paired regression measurement.
-  The preserved October 12 and October 19 timed row loops have 194 instructions and 60
-  memory operands, including indexed extensions; the current loop has 191 and 57. The
-  byte-scan loops retain their instruction and memory counts. This narrows the lead to
-  executed dependencies, callees, emitted layout or measurement rather than a larger row loop.
-- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean
-  paired campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot
-  update with Odin's executed path, focusing on dependencies, register and frame traffic;
-  inspect emitted layout against the preserved compiler before attributing the reported
-  slowdown to an optimization pass. Use the twelve-task static comparison for each candidate.
-- Done when: a focused rule retains the mask without increasing spill traffic and improves
-  paired wordfreq runs, or measurements show that retaining it is not profitable; csvagg's
-  reported gap is attributed to an executed-path difference or a measurement effect.
-
-### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
-
-- Evidence: C++/MSVC's raytrace `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
-- A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
-- The native linker already understands `IMAGE_REL_AMD64_ADDR32NB` as an image-relative `Rva32` relocation, but code emission has no base-relative indexed relocation form, and the internal linker does not expose `__ImageBase` as a code symbol. The JIT's 2 GiB proximity arena can host code and constant shards together; its exhaustion fallback needs an explicit range or copy strategy for any base-relative displacement. In `trace`, the transient pointer register is clobbered by the intervening `intersect` call, so reusing that register alone yields at most two four-array groups. One base across both groups requires an allocation and callee-save decision.
-- Folding a scalar indexed load into each floating operation is not an independent instruction saving here. Swag's load plus AVX three-register `fsub`/`fmul` is two encoded instructions; MSVC's copy plus memory-form SSE operation is also two in the corresponding `SCX`/`SCY`/`SCZ` and colour paths. The existing post-RA fold requires the destination to hold the left operand because the memory-form SSE instruction overwrites it. Adding a copy to force that fold would leave the instruction count unchanged and add a copy dependency.
-- Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
-- Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
-
-### compiler.optimization.093 — Keep unsigned 64-bit float conversion branchless in hot loops
-
-- Evidence: Swag lowers `u64` to `f64` branchlessly with a packed low/high-32-bit conversion
-  and two vector constants (`CodeGen.Cast.cpp`). MSVC uses a signed conversion on the
-  common lower half and a shift/or/double fallback for values with the high bit set. Both
-  execute five instructions on csvagg's common path. MSVC's formula, tried in Swag, stayed
-  exact but added eight static jumps to csvagg's timed row loop and a conditional plus an
-  unconditional jump to every conversion. It was reverted.
-- Next: find a range proof that a conversion input stays below `2^63`, or a branchless
-  lowering that uses fewer operations and less XMM pressure than the current packed
-  conversion. Compare both sides of the range and an unrelated cast before revisiting the
-  lowering.
-- Done when: a general rule improves the complete hot conversion path without extra
-  branches or spills, and preserves full-range nearest-even results in native and JIT
-  output; otherwise retain the current branchless algorithm.
-
-### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
-
-- Evidence: the Swag convention passes up to six integer and six floating arguments in
-  independent banks, the floats in transient XMM0-XMM5 (`CallConv.cpp`). A no-inline
-  microbenchmark measured on an earlier bank layout found alternating six-`u64`/six-`f64`
-  calls slower than under the former positional convention, while six-integer and
-  six-float calls got faster. Register count alone did not explain the floating-body cost.
-  Assigning floating arguments by signature position restored mixed-call speed but gave
-  up independent floating lanes. The move to transient XMM0-XMM5 has not been timed on
-  those signatures.
-- Next: compare the mixed-call signatures and the seven tasks in a paired campaign with
-  the current float bank; isolate any signature or task that regresses.
-- Done when: repeated paired runs put the mixed calls at parity or better and the
-  six-integer and six-float gains remain.
-
 ### compiler.optimization.085 — Measure short-key comparison cost against the current winner
 
 - Evidence: `Swag.memcmp`'s fallback compares 8/4/2/1-byte chunks, with no byte loop for
@@ -830,7 +643,7 @@ new language syntax.
 - Done when: representative paired campaigns identify repeatable Pareto improvements, the chosen
   defaults preserve the relevant code/semantic boundaries, and any O3 policy increases useful work
   without changing arithmetic, FP or allocation-feasibility contracts.
-- Related: compiler.optimization.029, compiler.optimization.032, compiler.optimization.035.
+- Related: compiler.optimization.029, compiler.optimization.032, compiler.codegen.007.
 
 ### compiler.optimization.134 — Share the cleanup of a function's failure exits
 
@@ -846,236 +659,16 @@ new language syntax.
   `native` lifecycle tests.
 - Related: compiler.optimization.117.
 
-### compiler.optimization.135 — Drop the default clear of a value built in the return slot
+### compiler.optimization.138 — Loop vectorization cannot form reductions or masked tails
 
-- Evidence: a struct literal or a defaulted local built in the caller's storage first clears it,
-  then stores every field: `return P{a: x, b: 2, c: 3, d: 4, e: 5}` emits two 16-byte zero stores
-  that the field stores overwrite. On a stack slot the dead stores disappear; through the hidden
-  return pointer they stay, because the optimizer removes dead stores only on frame storage.
-- Next: remove a store fully overwritten before any load, call, or escape of the same base address,
-  whatever that base is, or skip the clear when the literal names every field and the type has no
-  padding.
-- Validation: include the native Scope video consumer after complete dependency rebuilds. A
-  full-coverage literal prototype passed the language suites but did not establish a reliable
-  asynchronous-consumer comparison; isolate that behavior before enabling clear removal.
-- Done when: the literal above and a local of the return type filled field by field write each
-  byte of the slot once.
-
-### compiler.optimization.136 — Reduce reflection metadata and absolute-pointer relocations in native images
-
-- Evidence: the existing Windows x64 Release Swag Capture image contains 132,370 distinct
-  `IMAGE_REL_BASED_DIR64` sites, versus 9,619 in the experimental Rust Capture image. Decoding
-  Swag's runtime descriptors attributes 110,541 sites (83.509%) to reflection metadata. The
-  dominant cost is the number of retained absolute pointers, not the PE relocation encoding.
-- Retention boundary: `NativeRDataCollector` already follows allocations from emitted code and
-  globals, and archive extraction follows referenced symbols. A live type descriptor still
-  retains its complete reflection closure, even when runtime code only needs type identity or
-  dynamic dispatch. Separate those uses from field/method enumeration, attributes, generics,
-  and lifecycle reflection; merely exporting a type must not imply retaining every category.
-- Deduplication barrier: complete archive graph comparison still separates the repeated `u64`
-  descriptors in the `core`, `pixel`, `gui`, and `truetype` static archives. Their dynamic
-  identities reach `Swag.TypeInfoNative`, `Swag.TypeInfoStruct`,
-  `Swag.TypeInfo`, `Swag.TypeValue`, and other runtime descriptors whose `opInit` callbacks
-  have module-local `__swc_fn_<scope>_<ordinal>_<hash>` symbols. The comparison of two `u64`
-  closures reaches 391 allocation pairs; distinct generated initialization callbacks and
-  zero-filled `.rbss` constant symbols prevent canonicalization. Equal names and bytes of the
-  outer type records therefore do not establish equivalent relocation graphs.
-- Next: track reflection demand from retained code through constants and imported functions.
-  Preserve demand summaries across archive/cache boundaries, distinguish identity-only uses
-  from reflective reads, and keep unknown pointer escapes conservative. Discard undemanded
-  metadata edges before extracting their allocation and callback closures, using bounded work
-  proportional to reached code/data rather than repeated whole-program scans. Attribute the
-  remaining retained roots before considering graph interning or a runtime ABI change.
-- Done when: only demanded reflection metadata survives across module and executable boundaries,
-  with a substantial reduction in metadata bytes and base relocations, preserving type identity,
-  reflection, serialization, dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT
-  behavior. Check compiler CPU time and memory as well as image size; a smaller relocation table
-  alone is not a measured startup improvement.
-- Related: compiler.optimization.119 (whole-image reachability), compiler.optimization.092
-  (indexed constant addressing, a different source of relocations), std.gui.060 (measured
-  startup dominated by GUI atlas preparation in a separately identified Release artifact).
-
-**Artifact identity and comparison boundary**
-
-The measurements below describe pre-existing binaries, inspected without executing or rebuilding
-them. They do not establish which current compiler commit produced the Swag image. Preserve the
-hashes when reproducing the baseline; do not silently substitute a later build.
-
-| Artifact | Identification |
-| --- | --- |
-| Swag Capture Release | `bin/apps/.output/swagcapture/executable/release/x86_64/swagcapture.exe` |
-| Swag SHA-256 | `5c359bc33b62674820d7194c9226f1ff0ee7547ec13a36002f379fc00886734c` |
-| Rust Capture Release | `package/swagcapture-rust.exe` in the external `capture-rust-20261030` build output |
-| Rust SHA-256 | `d63a6058e5737b112b4331a0b29d43a51eca5eec60cc19db7e1cda953621eda2` |
-
-The Rust prototype source is maintained under [`bench/clones/capture-rust`](../bench/clones/capture-rust/README.md),
-initially based on checkout `dec813751c`; its current state and open parity work are tracked in
-[`backlog/clones.md`](clones.md). The Release artifact identified above is a pre-existing build;
-do not assume it corresponds to the current source tree. Its profile uses optimization level 3,
-16 codegen units, no cross-crate LTO, panic abort, stripped symbols, and a static CRT.
-Its UI/renderer uses egui/eframe rather than Swag GUI; substantial application behavior is still
-missing. These are whole-executable measurements, including linked libraries and resources, not
-application-only code sizes or an equivalent-feature language comparison. Both inspected import
-tables contain only Windows system imports, with no delayed imports or appended file overlay.
-
-**On-disk section sizes, in bytes**
-
-| Section or grouping | Swag Release | Rust Release |
-| --- | ---: | ---: |
-| `.text` | 4,709,376 | 5,285,888 |
-| `.rdata` | 6,218,240 | 6,382,080 |
-| `.data` | 105,984 | 7,680 |
-| `.xdata` | 23,552 | no separate section |
-| `.pdata` | 164,352 | 82,944 |
-| `.swagdbg` | 277,504 | absent |
-| `.idata` | 9,216 | no separate section |
-| `.rsrc` | 22,528 | 21,504 |
-| `.reloc` | 274,432 | 20,992 |
-| `.fptable` | absent | 512 |
-| Headers | 1,024 | 1,024 |
-| Total | 11,806,208 | 11,802,624 |
-
-Swag's `.rbss` and `.bss` have zero raw bytes. A missing separate section does not mean the
-corresponding information is absent: linkers may place it inside another section. In particular,
-`.rdata` is not exclusively strings or assets. Rust is only 3,584 bytes smaller (0.030357%), while
-its `.text` is 576,512 bytes larger and its `.rdata` is 163,840 bytes larger. Other sections and
-headers total 878,592 bytes in Swag versus 134,656 in Rust, offsetting those differences.
-
-Swag's `.swagdbg` is a compressed runtime symbol table for stack traces, not an embedded PDB.
-The PE debug-directory size is zero in this Swag artifact; the Rust directory is 84 bytes.
-Treat optional runtime symbolization and metadata retention as separate decisions.
-
-**Base-relocation census**
-
-| Property | Swag Release | Rust Release |
-| --- | ---: | ---: |
-| Relocation directory payload bytes | 274,244 | 20,748 |
-| 4 KiB page blocks | 1,055 | 170 |
-| Active `DIR64` entries (type 10) | 132,370 | 9,619 |
-| Padding entries (type 0) | 532 | 75 |
-| Distinct active sites | 132,370 | 9,619 |
-| Sites inside `.rdata` | 127,626 | 9,385 |
-| Sites inside `.data` | 4,191 | 234 |
-| Sites inside `.text` | 553 | 0 |
-
-Both files use the same compact PE representation: an eight-byte header per page block and a
-two-byte type/offset entry per site. Swag's payload reconciles exactly as
-`132370 * 2 + 532 * 2 + 1055 * 8 = 274244`; Rust's as
-`9619 * 2 + 75 * 2 + 170 * 8 = 20748`. Raw section sizes also include file alignment padding.
-There are no repeated active sites and no other active relocation types. The 13.76-fold active
-entry count is not explained by duplicate relocation records, larger individual records, or
-padding. Repeated metadata records at different addresses are a different question.
-
-| Pointer location -> pointed-to section | Swag sites | Rust sites |
-| --- | ---: | ---: |
-| `.rdata` -> `.rdata` | 116,255 | 6,323 |
-| `.rdata` -> `.text` | 9,219 | 2,999 |
-| `.rdata` -> `.rbss` | 2,152 | 0 |
-| `.rdata` -> `.data` | 0 | 63 |
-| `.data` -> `.data` | 4,191 | 95 |
-| `.data` -> `.rdata` | 0 | 108 |
-| `.data` -> `.text` | 0 | 31 |
-| `.text` -> `.text` | 553 | 0 |
-
-All 553 Swag code sites have the immediate-address prefix of an x64 `mov reg, imm64` and point
-into `.text`. They account for only 0.418% of its entries. Replacing these address materializations
-cannot explain or remove the dominant metadata cost. The `.swagdbg` entries use image-relative
-addresses and are not the source of the large base-relocation table.
-
-**Decoded reflection ownership**
-
-The binary contains 4,702 recognizable runtime type records with 2,332 distinct full names:
-1,864 structs, 1,628 pointers, 460 enums, 340 functions, 175 arrays, 77 native types,
-75 interfaces, 55 slices, 23 aliases, and 5 typed variadics. The census follows the actual layouts
-in `src/Backend/RuntimeTypeInfo.h` and allocation cases in
-`src/Compiler/Sema/Type/TypeGen.Payload.cpp`. Interfaces occupy the base `TypeInfo` record only;
-interpreting them as full `TypeInfoStruct` records would incorrectly walk adjacent allocations.
-
-| Metadata owner | Distinct relocation sites attributed |
-| --- | ---: |
-| Type descriptors | 33,097 |
-| Fields, methods, parameters, enum values, and other `TypeValue` arrays | 47,065 |
-| Attributes | 7,147 |
-| Attribute parameters | 13,545 |
-| Dynamic identities | 9,402 |
-| Dynamic slots | 285 |
-| Total attributed | 110,541 |
-| Not attributed by this traversal | 21,829 |
-
-Count each site once even when metadata is shared. The final traversal found no invalid array
-descriptors. Full names alone are not a safe interning key: qualifiers, module identity, generic
-arguments, lifecycle functions, attributes, and dynamic behavior must be checked. As a concrete
-lead, `u64` appears at RVAs 4714544, 6274632, 6352440, 6395632, and 6517080; all five have size 8,
-flags 266, CRC 1716744063, and a self-referencing `unqualified` pointer. This establishes repeated
-descriptors with matching inspected properties, not permission to merge every same-named type.
-
-**Reproduction and source ownership**
-
-Read the PE32+ section headers and base-relocation data directory (directory index 5). For each
-page block, separate the entry's high four type bits from its low twelve page-offset bits;
-ignore type zero padding. Map each active site RVA through the section headers, read its 64-bit
-pointer, subtract the optional header's image base, and classify the destination section. Check
-unique sites and reconcile payload bytes independently of `SizeOfRawData`.
-
-Identify candidate type records through their valid full-name/name pointer-length pairs, kind,
-flags, and mapped storage. Follow the appropriate descriptor layout, `TypeValue` arrays,
-attributes and parameters, dynamic identities and dynamic slots; intersect their pointer fields
-with the independently decoded relocation-site set. Validate counts and mapped ranges before
-walking arrays. Retain unclassified sites rather than guessing their owners.
-
-`PEWriter::applyRelocations` writes an absolute image-base-plus-target address for `Abs64` and
-adds its site to `baseRelocSites_`. `Rva32` and `Rel32` do not need base relocations.
-`PEWriter::buildBaseRelocations` already groups the sites by page in the standard encoding.
-`TypeGen.Payload.cpp` constructs the pointer-rich reflection graph, including type links,
-name strings, field/method arrays, attributes and lifecycle callbacks.
-`NativeRDataCollector` already interns equal reachable strings in its collection scope; that
-does not establish canonicalization of equivalent type graphs across linked module artifacts.
-
-**Implementation questions and proof boundary**
-
-First identify the actual reflective use behind each retaining root. Runtime type casts use
-identity, pointer/alias targets, interfaces, and `usingFields`; this does not by itself demand
-ordinary field enumeration, attributes, method signatures, or generic-origin descriptions.
-Track those demands through retained code and module boundaries under compiler.optimization.119,
-including indirect reflection and initializer effects. A metadata pointer escaping to unknown
-code needs conservative retention. Do not infer non-use from the direct call graph alone.
-
-After removing undemanded edges, determine whether independent module generation, archive import,
-or a required semantic distinction explains the remaining duplicate records. Compare complete
-recursive graphs before interning; preserve address-observable identity and cross-module behavior.
-
-Relative offsets or indices could remove relocations for eligible internal metadata tables and
-potentially shrink pointer storage. This is a runtime representation/ABI proposal, not a local
-PE-writer substitution: current consumers dereference ordinary pointers. Specify native/JIT and
-shared-library boundaries, cross-image references, null encoding, offset range, cache identity,
-and any materialization/accessor cost before prototyping it. Keep ASLR enabled; stripping the
-relocation table while leaving absolute pointers would produce an invalid rebasing contract.
-
-Validate the chosen change first with focused type-identity, recursive/generic metadata,
-reflection, dynamic-interface, lifecycle and serialization cases spanning multiple modules;
-then inspect a real Release Capture artifact and exercise loading at a different image base.
-Measure final image bytes, metadata bytes, active relocations, touched pages and startup/runtime
-cost separately. The current census establishes no launch-time or memory-residency regression.
-
-**Comparison confounders to preserve when interpreting results**
-
-The Rust image contains two byte-identical copies of a 1,208,322-byte dependency-license blob
-inside `.rdata`, at file offsets 5,348,336 and 6,571,368 (2,416,644 bytes total). Swag embeds ten
-theme font variants; Rust embeds five of those and four egui fallback fonts. Exact matching of
-the inspected font/SVG files accounts for 2,660,723 bytes in Swag and 2,958,742 in Rust; these are
-identified assets, not a complete classification of `.rdata`. Resource differences and incomplete
-feature parity prevent attributing total executable size to language/code-generation efficiency.
-The license duplication belongs to the experimental port; it is not a Swag compiler defect.
-
-### compiler.optimization.137 — Measure the runtime-symbol opt-out on Windows images
-
-- Evidence: `--no-runtime-symbols` omits the `.swagdbg` runtime stack table independently of native
-  debugger information. ELF executable and shared-library checks cover clean and incremental
-  switches, file sizes, panic output and static-library frames. A Release PE size comparison remains
-  unmeasured; a Linux cross-target attempt stopped at unresolved `TlsSetValue` without Windows API
-  link inputs.
-- Next: build the same Release executable and shared library with and without the flag on a Windows
-  link host, compare file and `.swagdbg` sizes, then check default stack frames and static-library
-  consumers after incremental switches in both directions.
-- Done when: the opt-out is measured on a Release PE as well as ELF, while the default retains runtime
-  frames and static-library consumers keep composing them.
+- Evidence: the registered vectorizer is basic-block SLP (`Pass.SlpVectorize`).
+  `Pass.LoopUnroll` recognizes only a straight-line, fixed-bound indexed 32-bit XOR
+  reduction (groups of four, or two packed loads with independent accumulators for bounds
+  of at least 128 divisible by eight). There is no general loop-reduction vectorizer and no
+  runtime-versioned alias/tail pipeline.
+- Next: add loop vectorization that recognizes associative reductions, versions
+  alias/alignment checks, and generates masked or peeled tails using the explicit SIMD
+  operation set.
+- Done when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under
+  the supported target policy with scalar-equivalent results and profitable cost decisions.
+- Related: std.core.043, std.core.048.

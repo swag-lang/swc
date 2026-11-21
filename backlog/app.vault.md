@@ -6,8 +6,9 @@ depends on.
 
 Evidence, investigations, and intended outcomes owned by the application stay together here.
 Operating-system work belongs in [platform.portability.md](platform.portability.md), and crypto throughput belongs
-in [compiler.optimization.md](compiler.optimization.md); compiler and language work belongs in
-[compiler.core.md](compiler.core.md) and [language.design.md](language.design.md). [README.md](README.md) has the whole
+in [std.core.md](std.core.md); compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md); language changes belong in
+[language.design.md](language.design.md). [README.md](README.md) has the whole
 layout.
 
 

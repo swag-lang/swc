@@ -3,24 +3,15 @@
 
 using Core
 
-private func nativeAddress(endpoint: Endpoint)->Linux.sockaddr_in
+private func newSocket(family: s32)->s32 fail
 {
-    let bytes = endpoint.address
-    let bits  = (cast(u32, bytes[0]) << 24) | (cast(u32, bytes[1]) << 16) |
-                (cast(u32, bytes[2]) << 8) | cast(u32, bytes[3])
-    return {sin_family: cast(u16, Linux.AF_INET), sin_port: Linux.htons(endpoint.port),
-            sin_addr: {s_addr: Linux.htonl(bits)}}
-}
-
-private func newSocket()->s32 fail
-{
-    let handle = Linux.socket(Linux.AF_INET, Linux.SOCK_STREAM | Linux.SOCK_CLOEXEC, Linux.IPPROTO_TCP)
+    let handle = Linux.socket(family, Linux.SOCK_STREAM | Linux.SOCK_CLOEXEC, Linux.IPPROTO_TCP)
     if handle < 0 do
         fail NetworkError{code: Linux.errno()}
     return handle
 }
 
-internal func closeTcpSocket(handle: u64)
+internal func closeNetSocket(handle: u64)
 {
     // Linux retires the descriptor even when close reports EINTR; retrying could close a new owner.
     discard Linux.close(cast(s32, handle))
@@ -48,23 +39,87 @@ private func finishInterruptedConnect(handle: s32) fail
 
 impl TcpStream
 {
-    // Connects to an IPv4 endpoint, returning an owned blocking stream.
-    func connect(endpoint: Endpoint)->TcpStream fail
+    // Enables or disables Nagle's algorithm for this connection.
+    mtd setNoDelay(enabled: bool) fail
     {
-        let handle = try newSocket()
-        defer #fail closeTcpSocket(cast(u64, handle))
-        let address = nativeAddress(endpoint)
-        if Linux.connect(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), #sizeof(Linux.sockaddr_in)) < 0
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if Linux.setsockopt(cast(s32, .handle), Linux.IPPROTO_TCP, Linux.TCP_NODELAY, cast(const *void, &value), #sizeof(s32)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Enables or disables operating-system TCP keepalive probes for this connection.
+    mtd setKeepAlive(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_KEEPALIVE, cast(const *void, &value), #sizeof(s32)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
+                                    tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
+    mtd setWriteTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
+                                    tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_SNDTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
+    func connect(endpoint: SocketEndpoint)->TcpStream fail
+    {
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+            fail Errors.BadParameterError{}
+        let family = endpoint.address.family == .IPv4 ? Linux.AF_INET : Linux.AF_INET6
+        let handle = try newSocket(family)
+        defer #fail closeNetSocket(cast(u64, handle))
+        let address = nativeSocketAddress(endpoint)
+        var result: s32
+        if endpoint.address.family == .IPv4
+        {
+            result = Linux.connect(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), #sizeof(Linux.sockaddr_in))
+        }
+        else
+        {
+            result = Linux.connect(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), #sizeof(Linux.sockaddr_in6))
+        }
+
+        if result < 0
         {
             let code = Linux.errno()
             if code != Linux.EINTR do
                 fail NetworkError{code: code}
 
-            // A blocking connect keeps progressing after EINTR. Reissuing it loses that state.
             try finishInterruptedConnect(handle)
         }
 
         return {handle: cast(u64, handle), open: true}
+    }
+
+    // Connects to an IPv4 endpoint, returning an owned blocking stream.
+    func connect(endpoint: Endpoint)->TcpStream fail
+    {
+        return try .connect(endpoint.toSocketEndpoint())
+    }
+
+    // Stops sending bytes while keeping the receive side open.
+    mtd shutdownWrite() fail
+    {
+        Swag.assert(.open)
+        if Linux.shutdown(cast(s32, .handle), Linux.SHUT_WR) < 0 do
+            fail NetworkError{code: Linux.errno()}
     }
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
@@ -117,21 +172,31 @@ impl TcpListener
     // Binds an IPv4 endpoint and starts listening for connections.
     //
     // Port zero selects an available port, which [[Net.TcpListener.localEndpoint]] returns.
-    func listen(endpoint: Endpoint, backlog = 16)->TcpListener fail
+    func listen(endpoint: SocketEndpoint, backlog = 16)->TcpListener fail
     {
         if backlog <= 0 do
             fail Errors.BadParameterError{}
-        let handle  = try newSocket()
-        let address = nativeAddress(endpoint)
-        if Linux.bind(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), #sizeof(Linux.sockaddr_in)) < 0 or
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+            fail Errors.BadParameterError{}
+        let family  = endpoint.address.family == .IPv4 ? Linux.AF_INET : Linux.AF_INET6
+        let handle  = try newSocket(family)
+        let address = nativeSocketAddress(endpoint)
+        let length  = cast(u32, endpoint.address.family == .IPv4 ? #sizeof(Linux.sockaddr_in) : #sizeof(Linux.sockaddr_in6))
+        if Linux.bind(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), length) < 0 or
            Linux.listen(handle, backlog) < 0
         {
             let code = Linux.errno()
-            closeTcpSocket(cast(u64, handle))
+            closeNetSocket(cast(u64, handle))
             fail NetworkError{code: code}
         }
 
         return {handle: cast(u64, handle), open: true}
+    }
+
+    // Binds an IPv4 endpoint and starts listening for connections.
+    func listen(endpoint: Endpoint, backlog = 16)->TcpListener fail
+    {
+        return try .listen(endpoint.toSocketEndpoint(), backlog)
     }
 
     // Returns the bound local address and port.
@@ -141,13 +206,25 @@ impl TcpListener
     {
         if not .open do
             fail Errors.BadParameterError{"TCP listener is closed"}
-        var address: Linux.sockaddr_in
-        var size = cast(u32, #sizeof(Linux.sockaddr_in))
+        let endpoint = try .localAddress()
+        if endpoint.address.family != .IPv4 do
+            fail Errors.BadParameterError{}
+        var octets: [4] u8
+        for i in octets.count do
+            octets[i] = endpoint.address.bytes[i]
+        return {address: octets, port: endpoint.port}
+    }
+
+    // Returns the bound local IPv4 or IPv6 address and port.
+    mtd localAddress()->SocketEndpoint fail
+    {
+        if not .open do
+            fail Errors.BadParameterError{"TCP listener is closed"}
+        var address: NativeSocketAddress
+        var size = cast(u32, #sizeof(NativeSocketAddress))
         if Linux.getsockname(cast(s32, .handle), cast(*Linux.sockaddr, cast(*void, &address)), &size) < 0 do
             fail NetworkError{code: Linux.errno()}
-        let bits = Linux.ntohl(address.sin_addr.s_addr)
-        return {address: [cast(u8, bits >> 24), cast(u8, (bits >> 16) & 0xFF),
-                          cast(u8, (bits >> 8) & 0xFF), cast(u8, bits & 0xFF)], port: Linux.ntohs(address.sin_port)}
+        return try portableSocketEndpoint(cast(const *Linux.sockaddr, cast(const *void, &address)))
     }
 
     // Blocks until a peer connects and returns an independently owned stream.

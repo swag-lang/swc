@@ -13,30 +13,17 @@ impl MainWindow
         .statusDetail.clear()
         .operation.timer = .addTimer(50'ms)
 
-        // Arming the tracker before the task starts is what clears the cancellation a previous
-        // operation left behind.
-        .operation.progress.begin(0)
+        let hasKeyFiles = .operation.access.keyFiles.count != 0 or
+                          (.operation.createHidden and .operation.hiddenAccess.keyFiles.count != 0)
+        let phase = hasKeyFiles ? VolumeProgressPhase.KeyFile : VolumeProgressPhase.Volume
+        .operation.progress.begin(0, phase)
 
         if kind == .Create or kind == .Resize
         {
             let texts = appStrings()
-            var what, help: string
-            switch
-            {
-            case kind == .Create:
-                what = texts.ui_Randomizing
-                help = texts.ui_RandomizeHelp
-
-            case .operation.camouflageOnly:
-                what = texts.ui_Camouflaging
-                help = texts.ui_KeepCapacityHelp
-
-            default:
-                what = texts.ui_Resizing
-                help = texts.ui_NewCapacityHelp
-            }
-
-            .progressPage.begin(.operation.path, what, help, kind == .Create ? texts.ui_StopCreating : texts.ui_StopResizing)
+            let stage = .progressStage(phase)
+            .setStatus(stage.status)
+            .progressPage.begin(.operation.path, stage.what, stage.help, kind == .Create ? texts.ui_StopCreating : texts.ui_StopResizing)
             .progressClock.restart()
             .showOperation()
             .showPage(.Progress)
@@ -94,7 +81,6 @@ impl MainWindow
         .createPassword.clear()
         .confirmPassword.clear()
         .statusProgress = 0
-        .setStatus(.Randomizing)
         .beginOperation(.Create)
     }
 
@@ -169,7 +155,6 @@ impl MainWindow
         .operation.resultKeyFiles = fields.keyFiles.paths
         .mountPassword.clear()
         .statusProgress = 0
-        .setStatus(.Randomizing)
         .beginOperation(.Create)
     }
 
@@ -208,6 +193,7 @@ impl MainWindow
         .operation.progress.cancel()
         .progressPage.stop.enable(false)
         .setStatus(.StopRequested)
+        .reportProgress()
     }
 
     // Checks the unfolded vault, then mounts its container in the background.
@@ -424,7 +410,6 @@ impl MainWindow
         .operation.access.setInputs(.mountPassword.bytes(), .unlockKeyFiles.toSlice())
         .mountPassword.clear()
         .statusProgress = 0
-        .setStatus(camouflageOnly ? .Camouflaging : .Resizing)
         .beginOperation(.Resize)
     }
 
@@ -449,14 +434,19 @@ impl MainWindow
             return
         }
 
-        defer .operation.hiddenAccess.clear()
+        defer
+        {
+            .operation.access.clear()
+            .operation.replacement.clear()
+            .operation.hiddenAccess.clear()
+        }
+
+        let progress = &.operation.progress
         var hiddenCredential: VaultCredential
         if .operation.createHidden or .operation.protectHidden
         {
-            hiddenCredential = catch .operation.hiddenAccess.derive()
+            hiddenCredential = catch .operation.hiddenAccess.derive(progress) as .operation.error
             {
-                .operation.error.capture(Swag.err)
-                .operation.access.clear()
                 return
             }
         }
@@ -464,15 +454,13 @@ impl MainWindow
         var current: VaultCredential
         if .operation.kind != .None and .operation.kind != .Unmount
         {
-            current = catch .operation.access.derive()
+            current = catch .operation.access.derive(progress) as .operation.error
             {
-                .operation.error.capture(Swag.err)
-                .operation.access.clear()
-                .operation.replacement.clear()
                 return
             }
         }
 
+        progress.setTotal(0)
         switch #complete .operation.kind
         {
         case .None, .CheckEmptyAccess, .InstallDriver:
@@ -485,7 +473,7 @@ impl MainWindow
                                                        current.toSlice(),
                                                        hiddenCredential.toSlice(),
                                                        .operation.size,
-                                                       &.operation.progress,
+                                                       progress,
                                                        .operation.outerReserve) as .operation.error
                 {
                     break
@@ -498,7 +486,7 @@ impl MainWindow
                 var volume = catch Volume.create(.operation.path,
                                                  current.toSlice(),
                                                  .operation.size,
-                                                 &.operation.progress) as .operation.error
+                                                 progress) as .operation.error
                 {
                     break
                 }
@@ -532,50 +520,60 @@ impl MainWindow
             var volume = catch Volume.open(.operation.path, current.toSlice()) as .operation.error { break }
             if .operation.camouflageOnly
             {
-                discard catch volume.reapplyCamouflage(&.operation.progress) as .operation.error
+                discard catch volume.reapplyCamouflage(progress) as .operation.error
             }
             else
             {
-                discard catch volume.resize(.operation.size, &.operation.progress) as .operation.error
+                discard catch volume.resize(.operation.size, progress) as .operation.error
             }
 
             volume.close()
 
         case .ChangeAccess:
-            var replacement = catch .operation.replacement.derive() as .operation.error { break }
+            var replacement = catch .operation.replacement.derive(progress) as .operation.error { break }
             var volume      = catch Volume.open(.operation.path, current.toSlice()) as .operation.error { break }
             discard catch volume.changePassword(current.toSlice(), replacement.toSlice()) as .operation.error
             volume.close()
         }
+    }
 
-        .operation.access.clear()
-        .operation.replacement.clear()
-        .operation.hiddenAccess.clear()
+    // Describes the work that is currently producing the byte count.
+    mtd progressStage(phase: VolumeProgressPhase)->{ what: string, help: string, status: StatusMessage }
+    {
+        let texts = appStrings()
+        if phase == .KeyFile do
+            return {texts.ui_ReadingKeyFile, texts.ui_ReadKeyFileHelp, .ReadingKeyFile}
+        if .operation.kind == .Create do
+            return {texts.ui_Randomizing, texts.ui_RandomizeHelp, .Randomizing}
+        if .operation.camouflageOnly do
+            return {texts.ui_Camouflaging, texts.ui_KeepCapacityHelp, .Camouflaging}
+        return {texts.ui_Resizing, texts.ui_NewCapacityHelp, .Resizing}
     }
 
     // Says how far the running creation or resize is, on its page and in the status it keeps.
-    //
-    // Only the two operations that write bytes know how far along they are; the others wait on
-    // the driver or on a key derivation, and the spinner already says everything that can
-    // honestly be said about them.
     mtd reportProgress()
     {
         if .operation.kind != .Create and .operation.kind != .Resize do
             return
-        if .operation.progress.isCanceled() do
+        if .operation.progress.isCanceled()
+        {
+            .progressPage.setStage(appStrings().msg_StopRequested, "")
             return
+        }
 
-        let ratio = .operation.progress.ratio()
         let bytes = .operation.progress.counts()
-        .statusProgress = cast(s32, ratio * 100)
-        .progressPage.setProgress(ratio, bytes.done, bytes.total, .timeLeft(ratio))
+        let stage = .progressStage(bytes.phase)
+        if stage.status != .statusMessage do
+            .progressClock.restart()
+        .progressPage.setStage(stage.what, stage.help)
 
-        if .operation.kind == .Create do
-            .setStatus(.Randomizing)
-        elif .operation.camouflageOnly do
-            .setStatus(.Camouflaging)
-        else do
-            .setStatus(.Resizing)
+        let ratio = bytes.ratio()
+        var left: String
+        if bytes.phase == .Volume do
+            left = .timeLeft(ratio)
+        .statusProgress = cast(s32, ratio * 100)
+        .progressPage.setProgress(ratio, bytes.done, bytes.total, left)
+        .setStatus(stage.status)
     }
 
     // Says how long the running operation still needs, from how long the part done took; empty

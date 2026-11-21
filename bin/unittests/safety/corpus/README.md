@@ -80,8 +80,8 @@ rebuild or broader consumer campaign is needed for a corpus-only change.
 | 672 | Use after move | Proven, plus runtime poison for what it misses |
 | 415, 416 | Double free, use after free | **Proven** through the storage a program actually keeps a pointer in — a parameter, an element of a local table, a field of a local, a field of an OBJECT, a copy into another local — across casts, wrappers and an ordinary call, at the return that would hand a released pointer to the caller, and through ownership: a type declaring `opDrop` states no copy. A release on one path only, and storage a callee could re-establish, are must-analysis misses by design |
 | 843 | Direct cast between unrelated structs | **Rejected** at the cast; related pointers remain accepted |
-| 843 | Reinterpretation through `*void`, inactive union member | **Not judged** — compiler.ai.020 |
-| 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.ai.020 |
+| 843 | Reinterpretation through `*void`, inactive union member | **Not judged** — compiler.safety.033 |
+| 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.safety.033 |
 | 704 | Integer to enum | **Rejected** for runtime ordinary-enum casts; `EnumFlags` combinations remain supported — compiler.safety.010 |
 | 478 | Non-exhaustive switch | **Rejected** for runtime switches over closed enums and tagged unions with a closed tag |
 | 401 | Memory leak | No static proof; runtime allocator leak report available — compiler.safety.017 |
@@ -91,7 +91,7 @@ rebuild or broader consumer campaign is needed for a corpus-only change.
 
 Concurrency is deliberately absent from this corpus. The runtime already ships tasks, groups,
 synchronization, and `parallel for`, but does not prove race freedom.
-[compiler.ai.029](../../../../backlog/compiler.ai.md#compilerai029--captures-do-not-prove-task-lifetime-or-race-freedom) owns checked captures and
+[language.parallelism.015](../../../../backlog/language.parallelism.md#languageparallelism015--captures-do-not-prove-task-lifetime-or-race-freedom) owns checked captures and
 cross-task access; a data-race corpus must distinguish those future proofs from the behavior of
 the synchronization primitives that exist today.
 

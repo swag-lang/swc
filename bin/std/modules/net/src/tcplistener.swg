@@ -10,12 +10,12 @@ struct TcpListener
 
 impl TcpListener
 {
-    // Closes the listener; repeated calls do nothing.
+    // Closes the listener; repeated calls do nothing. A blocked `accept` is not guaranteed to wake.
     mtd close()
     {
         if .open
         {
-            closeTcpSocket(.handle)
+            closeNetSocket(.handle)
             .open = false
         }
     }

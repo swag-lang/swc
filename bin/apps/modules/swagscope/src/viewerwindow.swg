@@ -786,7 +786,7 @@ impl ViewerWindow
             alternateViewer = not choices.isEmpty() and choices[0].key != "archive"
         }
 
-        .viewerCaptionButton.setChecked(alternateViewer)
+        .viewerCaptionButton.setIconColor(alternateViewer ? .themeColors().signature : Color{})
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
@@ -865,13 +865,13 @@ impl ViewerWindow
         .viewerBarTimer = .addTimer(ViewerBarLinger)
     }
 
-    // Lets the viewer's commands go once the pointer rests away from them, unless the keyboard
-    // is in them.
+    // Lets the viewer's commands go when the pointer, keyboard and modal controls have left.
     mtd concealViewerBar()
     {
         let focused = .focusedWindow()
         let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or
                       (focused and .viewerBar.isOwnerOf(focused)) or
+                      .app().isInModalLoop() or
                       .lens.isOpen()
         if held and .viewerBarShown
         {
@@ -1156,6 +1156,7 @@ impl ViewerWindow
         result.createAppearanceChrome()
         with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
         {
+            .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.FullScreen) }
         }
@@ -1172,7 +1173,7 @@ impl ViewerWindow
         with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
         {
             .toolTip = appStrings().lens_ViewAs
-            .setCheckIndicator(.Frame)
+            .setIconColor(Color{})
             .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()
         }
@@ -1194,6 +1195,7 @@ impl ViewerWindow
         result.lensLauncher.captionButton.hide()
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline, ViewerCommands.Outline)
         {
+            .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()

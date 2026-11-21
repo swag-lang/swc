@@ -113,7 +113,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         let current  = &listing.entries[index]
         Swag.require(previous.directory or not current.directory)
         if previous.directory == current.directory do
-            Swag.require(Latin1.compareNatural(previous.name, current.name) <= 0)
+            Swag.require(Text.compareNames(previous.name, current.name) <= 0)
     }
 
     load.start(dataDirectory, "", 2, false, &host.surfaceWnd)

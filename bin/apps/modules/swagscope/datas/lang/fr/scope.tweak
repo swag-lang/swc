@@ -69,6 +69,9 @@ explore_Name Nom
 explore_Type Type
 explore_Size Taille
 explore_Modified Modifié
+explore_DateMonths janv.;févr.;mars;avr.;mai;juin;juil.;août;sept.;oct.;nov.;déc.
+explore_DateSameYear % · %
+explore_DateOtherYear % %
 explore_SelectFile Sélectionnez un fichier pour afficher ses informations.
 explore_FileProperties Fichier
 explore_MediaDetails Informations sur le média
@@ -229,6 +232,9 @@ explore_File Fichier
 explore_FilterByType Filtrer par type
 explore_View Choisir la vue
 explore_Organization Organiser les vignettes
+explore_ShowViewerIcon Afficher l’icône du lecteur
+explore_ShowTileCaption Afficher les légendes des vignettes
+explore_ThumbnailDisplay Affichage des vignettes
 explore_FilterAll Tous les éléments
 explore_FilterVideos Vidéos
 explore_FilterImages Images

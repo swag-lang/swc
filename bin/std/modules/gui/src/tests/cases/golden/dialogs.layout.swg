@@ -90,8 +90,8 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     Pixel.Testing.assertImageGolden(&image, "dialogs.about.ink")
 }
 
-// The confirmation helper's default answer takes keyboard focus when the modal opens. Keep that
-// combined state in the dialog goldens at a scaled display size, where the ring has been clipped.
+// A keyboard navigation gesture outlines the default answer at a scaled display size, where
+// the ring has been clipped.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -108,9 +108,10 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found.", mark: .Warning})
     dlg.addButton(strings().dlg_Yes, Dialog.BtnYes)
     let no = dlg.addButton(strings().dlg_No, Dialog.BtnNo, true)
-    host.app.setFocusVisible(true)
-    no.setFocus()
     dlg.adaptSizeToMessage()
+    no.setFocus()
+    host.keyPress(.Tab)
+    host.keyPress(.Tab, .Shift)
 
     Swag.require(no.hasVisibleFocus())
     let image = renderDialog(&host, &dlg.dialog)

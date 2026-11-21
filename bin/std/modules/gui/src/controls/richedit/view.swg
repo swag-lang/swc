@@ -39,11 +39,6 @@ impl IWnd for RichEditView
                 .releaseMouse()
         }
 
-        if .focusedWindow() == me
-        {
-            .surface!.app.keyboardFocusWnd = null
-        }
-
         .ed = null
     }
 

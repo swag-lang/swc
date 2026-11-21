@@ -250,7 +250,7 @@ using Core, Gui, Pixel
     window.explorerActive = true
     explorer.entries.add({name: "Loading.txt", attempted: true})
     explorer.fill()
-    let generic = host.render(window)
+    discard host.render(window)
     explorer.entries[0].path      = "queued.mkv"
     explorer.entries[0].attempted = false
     for worker in explorer.previews
@@ -291,7 +291,7 @@ using Core, Gui, Pixel
 
     Swag.require(changed > 0)
 
-    // The worker mark is the only difference: the file glyph remains beneath it.
+    // Between these frames, only the worker mark changes; the new file glyph stays fixed below it.
     for y in cast(s32, tile.height)
     {
         for x in cast(s32, tile.width)
@@ -299,7 +299,7 @@ using Core, Gui, Pixel
             let px = cast(s32, origin.x) + x
             let py = cast(s32, origin.y) + y
             if not rect.contains(Math.Point{cast(f32, px), cast(f32, py)}) do
-                Swag.require(generic.pixelColor(px, py) == first.pixelColor(px, py))
+                Swag.require(first.pixelColor(px, py) == second.pixelColor(px, py))
         }
     }
 

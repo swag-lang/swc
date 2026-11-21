@@ -1338,6 +1338,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             if (constObject && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
+            castRequest.selectedInterfaceImpl = impl;
             if (castRequest.isConstantFolding())
                 castRequest.setConstantFoldingResult(ConstantRef::invalid());
 

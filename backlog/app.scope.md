@@ -20,7 +20,7 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.epub.md](app.scope.epub.md) — EPUB viewer
 - [app.scope.html.md](app.scope.html.md) — HTML viewer
 - [app.scope.markdown.md](app.scope.markdown.md) — Markdown viewer
-- [app.scope.notebook.md](app.scope.notebook.md) — planned Jupyter notebook viewer
+- [app.scope.notebook.md](app.scope.notebook.md) — Jupyter notebook viewer
 - [app.scope.odp.md](app.scope.odp.md) — ODP viewer
 - [app.scope.ods.md](app.scope.ods.md) — ODS viewer
 - [app.scope.odt.md](app.scope.odt.md) — ODT viewer
@@ -143,7 +143,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   retaining source attribution, privacy, cancellation and bounded requests.
 - Done when: users can review candidate matches in the application and correct one without
   looking up an ID elsewhere; series identification remains distinct from film matching.
-- Related: app.scope.004, std.core.001, std.core.003, std.core.005, std.core.006
+- Related: app.scope.004, std.net.003, std.net.005, std.net.006
 
 ### app.scope.006 — Music matching needs correction and broader tag coverage
 
@@ -159,27 +159,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   coordinate rate limiting across processes sharing the same host when practical.
 - Done when: users can choose a release in the application, supported tagged formats have
   equivalent lookup behavior, and rate-limited or ambiguous responses remain safe and usable.
-- Related: app.scope.005, app.scope.audio.008, std.core.006
-
-### app.scope.007 — The viewer bar can leave while an options sheet opened from it is up
-
-- Evidence: `viewerwindow.swg:2598` (the image viewer's play button after a round trip
-  through the hex viewer) failed once in two full Scope runs and twice in the first two of
-  fifteen runs of that file alone; the other thirteen passed. The test calls `revealViewerBar`,
-  then opens two options sheets from the play button. Their modal loops call
-  `Application.runFrame`, whose `sendTimerEvents` fires timers by wall clock, so when the sheets
-  take longer than `ViewerBarLinger` (2.5 s, a loaded machine) `concealViewerBar` runs while a
-  sheet is up: the focus is in the sheet's surface, which `viewerBar.isOwnerOf` does not reach,
-  and the bar is hidden. The commit ad810f0b50 only kept the linger out of
-  `completeQueuedViewerFile`'s `fireTimers`. The same thing happens to a reader who lingers in
-  the sheet: it loses the button it is attached to.
-- Next: count a running modal loop (`app().inModalLoop != 0`) as holding the bar in
-  `concealViewerBar`, add a test that fires `viewerBarTimer` with `inModalLoop` raised and checks
-  the bar stays (and leaves on the next linger once the loop is over), then prove it with ten
-  consecutive runs of `viewerwindow.swg` (`--run-timeout 300`) and two full Scope runs.
-- Done when: the bar never leaves while a sheet or menu opened from it is up, and the play button
-  test passes ten runs in a row under load.
-- Related: std.gui.058
+- Related: app.scope.005, app.scope.audio.008, std.net.006
 
 ### app.scope.008 — Online services and viewer settings have no global options page
 
@@ -195,19 +175,3 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Done when: every online service and every viewer setting can be changed from the global page
   without opening a file, and a key entered there is used by its service.
 - Related: app.scope.005, app.scope.006
-
-### app.scope.013 — Some Swag Scope goldens still record the machine they ran on
-
-- Evidence: with installed fonts out of every test run, these goldens still differ from one
-  machine to the next. `viewer.information.sound.papier` and `viewer.find.narrow.paper` print the
-  absolute path of the checkout. `explorer.details.paper` and its French twin, like
-  `dialogs.folder.selection.fr.encre` and `dialogs.folder.dates.encre.hidpi` in `gui`, show a
-  `C:/Perso/...` fixture path whose first segment reads `C:/` on Windows and `C:` on Linux.
-  `about` records a box 14 pixels taller on Linux, `viewer.information.fullscreen.papier` comes
-  out in the dark palette there, and `viewer.html.centered.encre` reads a file size one byte
-  apart. They are the only seven Swag Scope goldens that do not compare exactly on Linux.
-- Next: show a path relative to the test's own root in the two information goldens, feed the
-  path bar a host-neutral fixture path, then find what sizes the About box and which palette the
-  full-screen information case follows.
-- Done when: each of these goldens is the same picture from any checkout on Windows and Linux.
-- Related: platform.portability.001

@@ -150,6 +150,8 @@ impl IWnd for Label
             if next != Swag.U64.Max
             {
                 .activeLink = next
+                if .hasFocus() do
+                    .app().setFocusVisible(true)
                 .invalidate()
                 evt.accepted = true
             }

@@ -331,10 +331,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: `tools/linux-tests.py all` covers compiler suites, workspace fixtures, standard
   modules, examples, applications and reference through shared Windows/Linux command builders.
-  Remaining recorded GUI leads include strict Mesa contour differences at confirmation focus,
-  floating-sheet edges and property-menu separators, plus platform-dependent fixture paths and
-  unavailable application capabilities. Reproduce them on the synchronized checkout before
-  changing geometry, coverage or expectations.
+  Remaining recorded GUI leads include strict Mesa contour differences at floating-sheet edges
+  and property-menu separators, plus platform-dependent fixture paths and unavailable application
+  capabilities. Reproduce them on the synchronized checkout before changing geometry, coverage or
+  expectations.
   Under Xvfb, Scope cases have intermittently stopped after `event=start`, with the main thread
   waiting and no completion; isolated reruns passed. Panicking cases could leave the same wait.
   A full uninterrupted campaign must distinguish this lifetime failure from a rendering mismatch.

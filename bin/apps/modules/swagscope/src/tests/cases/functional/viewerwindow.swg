@@ -878,7 +878,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let view = assume cast(*PdfDocument.Panel, window.currentView)
     Swag.require(not view.load.isPending() and view.pdfView.pageCount() == 2)
 
-    window.searchBox.setFocus()
+    window.showSearch()
     window.searchBox.setText("second")
     completeViewerSearch(&host, window)
     Swag.require(window.searchComplete and window.searchMatches.count == 1 and window.searchIndex == 0)
@@ -907,7 +907,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
-    window.searchBox.setFocus()
+    window.showSearch()
     window.searchBox.setText("cat")
     completeViewerSearch(&host, window)
 
@@ -1009,7 +1009,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
         markdownIndex = cast(u32, choiceIndex)
     Swag.require(markdownIndex != Swag.U32.Max)
     window.selectViewer(markdownIndex)
-    window.searchBox.setFocus()
+    window.showSearch()
     window.searchBox.setText(Query)
     completeViewerSearch(&host, window)
     Swag.require(window.searchMatches.count == 3 and window.searchMatch == offsets[0])
@@ -2042,6 +2042,58 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     completeQueuedViewerFile(&host, window)
     Swag.require(window.stillView == null and window.slideTimer == null)
     Swag.require(reportViewerFinished(window.currentView) == .Replay and window.pendingFile.isEmpty())
+}
+
+// The bar's timer waits for an anchored sheet or popup menu, then hides the bar after closing.
+#[Swag.TestTag("focus.viewerbar")]
+#test
+{
+    let folder = createPictureFolder("scope_modal_bar", ["picture.svg"])
+    defer discard catch Directory.delete(folder, recurse: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(Path.combine(folder, "picture.svg"))
+    completeQueuedViewerFile(&host, window)
+    let picture = assume cast(*Picture.Panel, window.currentView)
+    let opener  = picture.playModeButton
+    window.setFullScreen(true)
+    window.pointerPosition = {0, 0}
+
+    var checked: u32
+    host.app.sigFrame += func|host = &host, window, opener, checked = &checked|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        let menu  = host.capturedPopupMenu()
+        if not sheet and not menu do
+            return
+        checked[] += 1
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(window.viewerBarShown and opener.isVisible())
+        if sheet do
+            sheet.close()
+        else do
+            Swag.require(host.clickPopupMenuItem("test.viewer.popup"))
+    }
+
+    for 5
+    {
+        window.revealViewerBar()
+        opener.showOptions()
+        Swag.require(window.viewerBarShown)
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(not window.viewerBarShown and not opener.isVisible())
+
+        window.revealViewerBar()
+        let menu = MenuCtrl.createPopup(opener)
+        menu.addItem("Item", "test.viewer.popup")
+        discard menu.doModal(opener, autoDestroy: true)
+        Swag.require(window.viewerBarShown)
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(not window.viewerBarShown and not opener.isVisible())
+    }
+    Swag.require(checked == 10)
 }
 
 // The image viewer builds its playback control in its own command group and shares the host policy.

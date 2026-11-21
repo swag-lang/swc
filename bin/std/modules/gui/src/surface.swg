@@ -126,7 +126,6 @@ struct Surface
     skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
 
     focusWnd:          *Wnd?     // Last window that held the keyboard on this surface.
-    savedFocusVisible: bool         // Whether its keyboard focus was shown.
     savedFocusReason:  FocusReason  // How the recipient was chosen before reactivation.
     focusAllowsNone:   bool      // Whether focus was set as a fallback keyboard receiver.
 
@@ -230,9 +229,10 @@ impl Surface
            not target.isVisible() do
             return false
 
-        target.setFocus()
+        if not target.requestFocus(.Navigation) do
+            return false
         if focusOnly do
-            return target.hasFocus()
+            return true
         var evt = KeyEvent{kind: .Pressed, key: .Return}
         target.sendEvent(&evt)
         return evt.accepted
@@ -1156,9 +1156,8 @@ impl Surface
     // Remembers the accepted focus for the next activation of this surface.
     internal mtd noteFocus(wnd: *Wnd, reason: FocusReason, allowNone: bool)
     {
-        .focusWnd          = wnd
-        .savedFocusVisible = .app.focusVisible
-        .focusAllowsNone   = allowNone
+        .focusWnd        = wnd
+        .focusAllowsNone = allowNone
         if reason != .Restore do
             .savedFocusReason = reason
     }
@@ -1179,7 +1178,7 @@ impl Surface
             return
 
         .app.updateKeyboardFocus(null, false)
-        focused.invalidate()
+        focused.invalidateFocusDecoration()
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Lost}
         focused.sendEvent(&evt)
@@ -1217,7 +1216,7 @@ impl Surface
     internal mtd restoreFocus()->bool
     {
         let focused = .focusWnd
-        if not focused do
+        if not focused or focused.surface != me do
             return false
         return focused.requestFocus(.Restore, .focusAllowsNone)
     }
@@ -1243,13 +1242,13 @@ impl Surface
         case .Tab:
             if modifiers != .None and modifiers != .Shift do
                 return false
-            return from.focusNext(modifiers == .None)
+            return from.traverseFocus(modifiers == .None, inGroup: false, reason: .Navigation)
 
         case .Left, .Up, .Right, .Down:
             if modifiers != .None do
                 return false
             let forward = key == .Right or key == .Down
-            return from.focusNextInGroup(forward)
+            return from.traverseFocus(forward, inGroup: true, reason: .Navigation)
 
         case .Return:
             if modifiers != .None do

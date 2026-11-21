@@ -16,7 +16,7 @@ enum FrameWndFlags
 {
     None = 0        // Draws no optional decoration.
     Borders         // Draws the themed outer border.
-    FocusBorder     // Uses the focused border while a descendant owns focus.
+    FocusBorder     // Uses the focused border while a descendant shows keyboard focus.
     SmallShadow     // Draws the compact themed shadow outside the frame.
 }
 
@@ -271,6 +271,10 @@ impl FrameWnd
         .sendResizeEvent()
     }
 
-    // Reports whether the frame asks for a focused border and a descendant holds the focus.
-    private mtd showsFocusBorder()->bool => .frameFlags.has(.FocusBorder) and .isAncestorOf(.focusedWindow())
+    // The frame shows the keyboard indicator of the descendant that receives keys.
+    private mtd showsFocusBorder()->bool
+    {
+        let focus = .focusedWindow()
+        return .frameFlags.has(.FocusBorder) and focus and focus.hasVisibleFocus() and .isAncestorOf(focus)
+    }
 }

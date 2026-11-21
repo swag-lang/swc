@@ -12,9 +12,9 @@ using Swag, Core, Pixel
     host.theme.colors.apply(ThemeColors.encrePalette())
 
     let picker = ColorPicker.create(&host.root, {24, 24, 160, 140})
-    host.app.setFocusVisible(true)
-    picker.setFocus()
     host.root.applyLayout()
+    host.keyPress(.Tab)
+    Swag.require(picker.hasVisibleFocus())
     host.settleAnimations()
 
     var image = host.render()

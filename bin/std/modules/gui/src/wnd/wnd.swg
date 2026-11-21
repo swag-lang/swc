@@ -77,6 +77,13 @@ internal enum FocusReason
     Restore
 }
 
+private enum FocusTransfer
+{
+    Accepted
+    RejectedTarget
+    Cancelled
+}
+
 // Selects how a layout container may size a window along one axis.
 enum SizePolicy
 {
@@ -329,7 +336,9 @@ struct Wnd
         anchorStyle: AnchorStyle = None     // Legacy response to parent-size deltas.
         layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
 
-        focusPolicy: FocusPolicy = None     // Pointer and traversal focus policy.
+        focusPolicy:     FocusPolicy = None     // Pointer and traversal focus policy.
+        tabIndex:        s32 = -1               // Sibling Tab rank. Nonnegative ranks precede automatic reading order.
+        arrowNavigation: bool                   // Lets bare arrow keys move focus between this window's children.
 
         // Corner of the shape this window paints, which the keyboard-focus ring follows so the two
         // never cross. A widget that draws a themed tile publishes it from that tile while painting —
@@ -358,6 +367,8 @@ struct Wnd
         backdrop: BackdropEffect = {opacity: 0}
     }
 
+    tabSequence:      u64      // Attachment order among siblings, independent of paint order.
+    nextTabSequence:  u64      // Attachment order to assign to the next child.
     releasingFocus:   bool     // Excludes this subtree while it hands the keyboard off.
     isAllocated:      bool     // Whether destruction must release this allocation.
     paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
@@ -793,7 +804,9 @@ impl Wnd
 
         if who
         {
-            .parent = who
+            .parent      = who
+            .tabSequence = who.nextTabSequence
+            who.nextTabSequence += 1
             .assignSurface(who.surface)
 
             // Add the window at the back, or before the first topmost window
@@ -1228,6 +1241,19 @@ impl Wnd
     mtd invalidate()
     {
         .surface?.invalidateRect(.paintExtent(.surfaceRect()))
+    }
+
+    // A containing editor frame can draw the indicator beyond the recipient's own paint extent.
+    internal mtd invalidateFocusDecoration()
+    {
+        .invalidate()
+        var ancestor = .parent
+        while ancestor
+        {
+            if ancestor is FrameWnd as frame where frame.frameFlags.has(.FocusBorder) do
+                frame.invalidate()
+            ancestor = ancestor.parent
+        }
     }
 
     // Invalidates one local rectangle after converting it to surface coordinates.
@@ -2229,7 +2255,8 @@ impl Wnd
     // the part of it that reads the keys. A disabled window or surface cannot take focus.
     // Scrolling ancestors reveal the accepted control before it receives the focus event. Hidden
     // and detached windows ignore this request, as do windows with [[Gui.FocusPolicy.None]].
-    // A keyboard-activated control shows its focus ring when it accepts the request.
+    // The request keeps an existing keyboard indicator on the same surface. An inactive
+    // native surface remembers the recipient for its next activation.
     mtd setFocus()
     {
         discard .requestFocus(.Programmatic)
@@ -2257,42 +2284,42 @@ impl Wnd
         return true
     }
 
-    internal mtd requestFocus(reason: FocusReason, allowNone = false)->bool
+    internal mtd requestFocus(reason: FocusReason, allowNone = false)->bool => .tryFocus(reason, allowNone) == .Accepted
+
+    private mtd tryFocus(reason: FocusReason, allowNone: bool)->FocusTransfer
     {
         let srfn = .surface
         if not srfn or not .canReceiveFocus(srfn, allowNone) do
-            return false
+            return .RejectedTarget
 
         let target = .focusTarget()
         if target != me
         {
             if target.surface != srfn do
-                return false
-            return target.requestFocus(reason, allowNone)
+                return .RejectedTarget
+            return target.tryFocus(reason, allowNone)
         }
 
         let app         = srfn.app
         let last        = app.keyboardFocusWnd
         let lastSurface = last?.surface
-        var visible: bool
-        switch reason
+        let pointerEpoch = app.pointerFocusEpoch
+
+        if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn
         {
-        case .Navigation:
-            visible = true
-        case .Restore:
-            visible = srfn.savedFocusVisible
-        case .Programmatic:
-            visible = .wndFlags.has(.ActivatesOnKey) or (lastSurface == srfn and app.focusVisible)
-        case .Pointer:
-            break
+            if reason == .Programmatic or reason == .Pointer do
+                srfn.noteFocus(me, reason, allowNone)
+            return .Cancelled
         }
 
         if last == me
         {
-            app.setFocusVisible(visible)
-            if reason == .Pointer or reason == .Navigation do
+            if reason == .Pointer or reason == .Navigation
+            {
+                app.setFocusVisible(reason == .Navigation)
                 srfn.noteFocus(me, reason, allowNone)
-            return true
+            }
+            return .Accepted
         }
 
         // A callback can choose a different recipient or mutate the tree during either query.
@@ -2302,40 +2329,41 @@ impl Wnd
             var evt = FocusEvent{kind: FocusEvent.Kind.CanLose, other: me}
             last.sendEvent(&evt)
             if app.focusRevision != revision do
-                return app.keyboardFocusWnd == me
-            if not evt.canChangeFocus or not .canReceiveFocus(srfn, allowNone) do
-                return false
+                return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
+            if not evt.canChangeFocus do
+                return .Cancelled
+            if not .canReceiveFocus(srfn, allowNone) do
+                return .RejectedTarget
         }
 
         var query = FocusEvent{kind: FocusEvent.Kind.CanGain, other: last}
         .sendEvent(&query)
         if app.focusRevision != revision do
-            return app.keyboardFocusWnd == me
+            return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
         if not query.canChangeFocus or not .canReceiveFocus(srfn, allowNone) do
-            return false
+            return .RejectedTarget
+        if app.renderer.needsNativeWindow() and app.nativeFocusSurface != srfn do
+            return .Cancelled
+
+        // A query can run another input loop. Compute the indicator from the latest gesture.
+        var visible: bool
+        switch reason
+        {
+        case .Navigation:   visible = pointerEpoch == app.pointerFocusEpoch
+        case .Programmatic: visible = lastSurface == srfn and app.focusVisible
+        case .Pointer, .Restore: break
+        }
 
         // Publish the new owner before Lost callbacks run. A callback can destroy the old
         // focused subtree; its releaseFocus must then see that the keyboard has already left it,
         // instead of recursively starting a second transition through a tree being dismantled.
-        if lastSurface != srfn
-        {
-            let wasTransition = app.nativeFocusTransition
-            app.nativeFocusTransition = true
-            srfn.setFocus()
-            app.nativeFocusTransition = wasTransition
-            if app.focusRevision != revision do
-                return app.keyboardFocusWnd == me
-            if not .canReceiveFocus(srfn, allowNone) do
-                return false
-        }
-
         app.updateKeyboardFocus(me, visible)
         srfn.noteFocus(me, reason, allowNone)
         let committed = app.focusRevision
 
         if last and last.surface
         {
-            last.invalidate()
+            last.invalidateFocusDecoration()
             var evt = FocusEvent{kind: FocusEvent.Kind.Lost, other: me}
             last.sendEvent(&evt)
             if last.surface do
@@ -2345,15 +2373,15 @@ impl Wnd
         // The Lost callback is allowed to destroy the incoming control or deliberately move the
         // focus elsewhere. In either case that nested operation owns the resulting state.
         if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone) do
-            return app.keyboardFocusWnd == me
+            return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
 
         .revealFocus()
         if app.focusRevision != committed or not .canReceiveFocus(srfn, allowNone) do
-            return app.keyboardFocusWnd == me
+            return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         .sendEvent(&evt)
-        .invalidate()
+        .invalidateFocusDecoration()
 
         // The dominant action of a surface is drawn on whichever action the keyboard would run,
         // so the button that carries it when the keyboard is elsewhere repaints on every move.
@@ -2364,7 +2392,7 @@ impl Wnd
 
         if app.focusRevision == committed and .surface == srfn do
             .ownerNotifyEvent(.ChildFocusChanged)
-        return app.keyboardFocusWnd == me
+        return app.keyboardFocusWnd == me ? .Accepted : .Cancelled
     }
 
     // Returns the window holding the application's keyboard focus, or `null`.
@@ -2393,9 +2421,8 @@ impl Wnd
 
     // Reports whether this window must show the keyboard focus.
     //
-    // Keyboard navigation shows the ring, and pointer focus hides it. An explicit focus request
-    // also shows it for a keyboard-activated control. Returning to a surface restores the ring
-    // with the control it belonged to. See [[Gui.Application.focusVisible]].
+    // Keyboard navigation shows the ring. A pointer press hides it and clears any remembered
+    // indicator from before the press. See [[Gui.Application.focusVisible]].
     mtd hasVisibleFocus()->bool
     {
         let surface = .surface
@@ -2429,23 +2456,34 @@ impl Wnd
 
     // Moves the keyboard focus to the next traversal stop, and reports whether it accepted focus.
     //
-    // The order is the reading order of the tree this window belongs to, and it wraps around,
-    // so the focus never leaves the surface it started on.
-    mtd focusNext(forward = true)->bool
-    {
-        let order = FocusOrder.around(me)
-        let next  = order.next(me, forward)
-        return next and next.requestFocus(.Navigation)
-    }
+    // The traversal wraps within this surface. This programmatic move can carry a ring
+    // that is already visible.
+    mtd focusNext(forward = true)->bool => .traverseFocus(forward, inGroup: false, reason: .Programmatic)
 
     // Moves the keyboard focus inside its own group, and reports whether it accepted focus.
     //
-    // This is what the arrow keys walk; see [[Gui.FocusOrder.nextInGroup]] for what a group is.
-    mtd focusNextInGroup(forward = true)->bool
+    // The parent supplies the group through [[Gui.Wnd.arrowNavigation]].
+    mtd focusNextInGroup(forward = true)->bool => .traverseFocus(forward, inGroup: true, reason: .Programmatic)
+
+    internal mtd traverseFocus(forward, inGroup: bool, reason: FocusReason)->bool
     {
         let order = FocusOrder.around(me)
-        let next  = order.nextInGroup(me, forward)
-        return next and next.requestFocus(.Navigation)
+        let origin = order.indexOf(me)
+        var from = me
+        for order.stops.count
+        {
+            let next = inGroup ? order.nextInGroup(from, forward) : order.next(from, forward)
+            if not next or (from != me and order.indexOf(next) == origin) do
+                return false
+            switch #complete next.tryFocus(reason, false)
+            {
+            case .Accepted:       return true
+            case .Cancelled:      return false
+            case .RejectedTarget: from = next
+            }
+        }
+
+        return false
     }
 
     // Gives the keyboard focus to the first traversal stop of this window's tree.

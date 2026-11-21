@@ -222,7 +222,7 @@ impl Surface
         return .windowId != 0 ? &.drawable : null
     }
 
-    internal mtd setFocus()
+    internal mtd requestNativeFocus()
     {
         if .windowId == 0 or .isHidden or .isDisabled do
             return
@@ -242,6 +242,7 @@ impl Surface
         Linux.free(attributes)
         if mapped do
             expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, .windowId, 0))
+        LinuxDesktop.syncInputFocus(context, .app)
     }
 
     // The window manager applies opacity after EGL swaps.
@@ -632,11 +633,7 @@ impl Surface
         .applyNativeSizeHints(context)
         expect LinuxDesktop.check(context, context.xcb_map_window_checked(connection, .windowId))
 
-        let curFocus = .wnd.view.focusedWindow()
-        if not curFocus or not .wnd.isAncestorOf(curFocus) do
-            discard .restoreFocus()
-        .bringToFront()
-        .setFocus()
+        .requestNativeFocus()
 
         .wnd.view.sendStateEvent(.Show)
     }

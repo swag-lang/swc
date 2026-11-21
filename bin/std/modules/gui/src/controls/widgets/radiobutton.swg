@@ -185,6 +185,9 @@ impl IWnd for RadioButton
             return
         }
 
+        if evt.modifiers != .None do
+            return
+
         // A group of options is one stop of the keyboard traversal, so Tab is what leaves it and
         // the arrows are what choose inside it. Selecting is what moving means here: an option
         // the keyboard passes over without taking is not a state a radio group can be in.
@@ -270,25 +273,25 @@ impl RadioButton
             return false
 
         var group: Array'(*RadioButton)
-        var current = 0's64
         for child in .parent.children
         {
-            if child is RadioButton as other where other.groupId == .groupId and other.isLocallyVisible() and other.isLocallyEnabled()
-            {
-                if child == cast(*Wnd, me) do
-                    current = cast(s64, group.count)
+            if child is RadioButton as other where other.groupId == .groupId and other.isFocusStop() and other.isLocallyVisible() and other.isLocallyEnabled() do
                 group.add(other)
-            }
         }
 
         let count = cast(s64, group.count)
-        if count < 2 do
+        if count < 2 or not .isFocusStop() do
             return false
 
+        group.sort(func(a, b: *RadioButton)->s32 => a.tabSequence <=> b.tabSequence)
+        let current = Slice.findLinear(group.toSlice(), me)
+        if current == Swag.U64.Max do
+            return false
         let step = forward ? 1's64 : count - 1
-        let next = group[cast(u64, ((current + step) % count))]
+        let next = group[cast(u64, ((cast(s64, current) + step) % count))]
+        if not next.requestFocus(.Navigation) do
+            return false
         next.selectFromUser()
-        next.setFocus()
         return true
     }
 

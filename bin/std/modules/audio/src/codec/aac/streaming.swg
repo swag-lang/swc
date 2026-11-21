@@ -29,6 +29,7 @@ struct StreamEncoder
         lastStart:      u64
         lastValid:      u32
         drained:        bool
+        finalizing:     bool
         ended:          bool
     }
 }
@@ -77,11 +78,12 @@ impl StreamEncoder
     //
     // Returns input frames consumed, which can be less than the supplied count. A nonempty
     // `packet` contains one access unit. Keep calling with the unconsumed suffix until all
-    // input is accepted. Invalid input leaves the stream and the caller's packet unchanged.
+    // input is accepted. No input is accepted after [[Audio.Aac.StreamEncoder.finish]] begins.
+    // Invalid input leaves the stream and the caller's packet unchanged.
     mtd push(samples: const [..] s16, packet: *Array'u8)->u64 fail
     {
-        if .ended do
-            fail BadParameterError{"cannot append to a finished AAC stream"}
+        if .finalizing do
+            fail BadParameterError{"cannot append to an AAC stream after finish has begun"}
         if samples.count % .channels do
             fail BadParameterError{"AAC stream input must contain complete frames"}
         let frames = Math.min(samples.count / .channels, 1_024'u64 - .pendingFrames)
@@ -107,6 +109,7 @@ impl StreamEncoder
         packet.clear()
         if .ended do
             return false
+        .finalizing = true
         if .pendingFrames
         {
             let valid = .pendingFrames

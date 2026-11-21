@@ -740,7 +740,7 @@ private impl FileBrowserCtrl
                         evt.accepted = true
                     }
 
-                case .Return, .Enter where evt.key == .Enter or fileBrowser.options.mode != .CreateFile:
+                case .Return, .Enter:
                     let folderOnly = fileBrowser.options.mode == .SelectFolder
                     let line       = folderOnly ? list.selectedLine() : (list.focusedLine() orelse list.selectedLine())
                     if not line

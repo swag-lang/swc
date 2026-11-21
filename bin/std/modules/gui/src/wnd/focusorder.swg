@@ -161,8 +161,12 @@ private impl FocusOrder
         if not FocusOrder.isReachable(wnd) do
             return
 
-        if wnd.isFocusStop() do
-            .stops.add(wnd)
+        if wnd.isFocusStop()
+        {
+            let target = wnd.focusTarget()
+            if target.surface == wnd.surface and target.focusPolicy != .None and target.isVisible() and target.isEnabled() do
+                .stops.add(wnd)
+        }
 
         if wnd.focusPolicy == .Inner do
             return
@@ -205,7 +209,7 @@ private impl FocusOrder
         var result: #returntype
 
         var candidates: Array'FocusCandidate
-        for child, index in wnd.children do
+        for child, index in wnd.children where FocusOrder.isReachable(child) do
             candidates.add(FocusCandidate{child, index})
 
         // Top to bottom first, so the rows come out in the order they are stacked. This also
@@ -279,7 +283,7 @@ private impl FocusOrder
             let other = catch cast(*RadioButton?, sibling) orelse null
             if other == null do
                 continue
-            if other.groupId != radio.groupId do
+            if other.groupId != radio.groupId or not other.isFocusStop() or not FocusOrder.isReachable(sibling) do
                 continue
             if other.isChecked() do
                 return sibling == wnd ? null : sibling

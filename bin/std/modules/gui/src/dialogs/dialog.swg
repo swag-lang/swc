@@ -336,7 +336,8 @@ impl Dialog
         let surface = unwrap .surface
         .placeLeadingControl()
         surface.wnd.setInitialFocus(.keyboardEntry())
-        surface.app.setFocusVisible(true)
+        if surface.app.keyboardFocusWnd?.surface == surface do
+            surface.app.setFocusVisible(true)
         surface.bringToFront()
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do

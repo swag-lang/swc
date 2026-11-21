@@ -110,8 +110,9 @@ struct Application
         }
     }
 
-    // Focus tracking, moved by the windows themselves as events are dispatched.
+    // Keyboard recipient and pointer routing state.
     keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
+    focusRevision:         u64       // Changes whenever the keyboard recipient changes.
     mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
     mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
     nativeMouseButtons:    bool      // The native adapter dispatches queued mouse-button transitions.
@@ -455,7 +456,8 @@ private impl Application
     // traversal, but a click clears the prior keyboard owner rather than marking the button.
     internal mtd focusPointerTarget(target: *Wnd)
     {
-        .setFocusVisible(false)
+        if .keyboardFocusWnd?.surface == target.surface do
+            .setFocusVisible(false)
         if target.wndFlags.has(.NoPointerFocus) do
             return
         if target.wndFlags.has(.ActivatesOnKey)
@@ -465,7 +467,7 @@ private impl Application
         }
 
         if target.focusPolicy != .None do
-            target.setFocus()
+            discard target.requestFocus(.Pointer)
     }
 
     internal mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)
@@ -662,8 +664,7 @@ private impl Application
             .mouseEnterWnd = null
         if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
             .mouseCaptureWnd = null
-        if wnd == .keyboardFocusWnd or wnd.isOwnerOf(.keyboardFocusWnd) do
-            .keyboardFocusWnd = null
+        .forgetKeyboardFocus(wnd)
         if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
             .dragEnterWnd = null
 
@@ -1123,15 +1124,33 @@ impl Application
             .theme.freeDefault()
     }
 
+    // Publishes the accepted recipient and presentation before sending focus events.
+    internal mtd updateKeyboardFocus(wnd: *Wnd?, visible: bool)
+    {
+        if .keyboardFocusWnd != wnd do
+            .focusRevision += 1
+        .keyboardFocusWnd = wnd
+        .focusVisible     = visible
+    }
+
+    internal mtd forgetKeyboardFocus(wnd: *Wnd)
+    {
+        wnd.surface?.forgetFocus(wnd)
+        if wnd == .keyboardFocusWnd or wnd.isAncestorOf(.keyboardFocusWnd) do
+            .updateKeyboardFocus(null, false)
+    }
+
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
     //
-    // Keyboard traversal turns it on, and a pointer press clears it before target focus is
-    // assigned. A keyboard-activated control turns it back on when it takes that focus.
+    // Use this when a gesture changes the presentation of the current recipient without moving
+    // focus. The next native activation restores the updated presentation with the recipient.
     internal mtd setFocusVisible(visible: bool)
     {
         if .focusVisible == visible do
             return
         .focusVisible = visible
+        if let surface = .keyboardFocusWnd?.surface do
+            surface.savedFocusVisible = visible
         .keyboardFocusWnd?.invalidate()
     }
 
@@ -1196,8 +1215,7 @@ impl Application
             .mouseEnterWnd = null
         if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
             .mouseCaptureWnd = null
-        if wnd == .keyboardFocusWnd or wnd.isOwnerOf(.keyboardFocusWnd) do
-            .keyboardFocusWnd = null
+        .forgetKeyboardFocus(wnd)
         if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
             .dragEnterWnd = null
     }

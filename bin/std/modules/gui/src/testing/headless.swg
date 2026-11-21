@@ -1277,7 +1277,7 @@ impl HeadlessHost
     // Places the keyboard focus on `wnd` directly, without the focus events and checks of [[Gui.Wnd.setFocus]].
     mtd focus(wnd: *Wnd)
     {
-        .app.keyboardFocusWnd = wnd
+        .app.updateKeyboardFocus(wnd, .app.focusVisible)
     }
 
     // Sends one complete simulated key press to the focused window.

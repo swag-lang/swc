@@ -1021,6 +1021,75 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     }
 }
 
+// Pointer playback and automatic file replacement leave transport actions out of keyboard focus.
+#[Swag.TestTag("focus.playback")]
+#test
+{
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-focus-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    discard expect videoPreviewFileAt(Path.combine(folder, "clip1.mp4"))
+    discard expect videoPreviewFileAt(Path.combine(folder, "clip2.mp4"))
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(folder)
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Details)
+    completeExplorer(&host, explorer)
+    Swag.require(explorer.shown.count == 2 and explorer.entries[explorer.shown[0]].name == "clip1.mp4")
+
+    let cell   = explorer.list.cellTextRect(0, 0)
+    var target = explorer.list.listView.localToSurface(cell.center())
+    host.surface.surfaceToScreen(&target)
+    host.click(target)
+    Swag.require(explorer.list.hasFocus() and not explorer.list.hasVisibleFocus())
+    host.doubleClick(target)
+    completeViewerWindowClassification(&host, window)
+    let first = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(first)
+    Swag.require(window.currentView == first and first.playing)
+    Swag.require(window.focusedWindow() == null, Format.toString("focus after opening from Explorer: %", window.focusedWindow()?.id orelse "unnamed"))
+    window.setPlayMode(.Folder)
+
+    host.clickWnd(first.playButton)
+    Swag.require(not first.playing and not first.playButton.hasVisibleFocus())
+    host.clickWnd(first.playButton)
+    Swag.require(first.playing and not first.playButton.hasFocus())
+
+    // The picture can hold keyboard focus from a pointer press outside the transport.
+    var picture = first.imageView.surfaceRect().center()
+    host.surface.surfaceToScreen(&picture)
+    host.sendMouseEvent(first.imageView, .Pressed, picture, .Left, .None)
+    host.sendMouseEvent(first.imageView, .Released, picture, .Left, .None)
+    Swag.require(first.imageView.hasFocus() and not first.imageView.hasVisibleFocus())
+    playVideoThrough(first)
+    completeViewerWindowClassification(&host, window)
+    let second = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(second)
+    Swag.require(window.currentView == second and second.playing and Path.fileName(window.currentFile) == "clip2.mp4")
+    Swag.require(window.focusedWindow() == null, Format.toString("focus after automatic playback advance: %", window.focusedWindow()?.id orelse "unnamed"))
+
+    // Tab can still reach the transport explicitly.
+    let order = FocusOrder.around(second.playButton)
+    for order.stops.count
+    {
+        if second.playButton.hasFocus() do
+            break
+        host.keyPress(.Tab)
+    }
+    Swag.require(second.playButton.hasVisibleFocus())
+
+    // A keyboard choice belonged to the previous transport and does not carry to its replacement.
+    playVideoThrough(second)
+    completeViewerWindowClassification(&host, window)
+    let wrapped = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(wrapped)
+    Swag.require(window.currentView == wrapped and wrapped.playing and Path.fileName(window.currentFile) == "clip1.mp4")
+    Swag.require(window.focusedWindow() == null)
+}
+
 // Full-screen chrome is presentation-only: resizing and revealing either bar preserves the
 // active voice and the transport state.
 #test

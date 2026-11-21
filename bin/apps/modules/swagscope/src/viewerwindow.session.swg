@@ -374,6 +374,19 @@ impl ViewerWindow
         .layoutFileInfo()
     }
 
+    // A new document starts with no selected action when the previous one owned the keyboard.
+    private mtd clearFocusIn(roots: const [..] (*Wnd?))
+    {
+        let focus = .focusedWindow()
+        if not focus do
+            return
+        for root in roots where root and (root == focus or root.isOwnerOf(focus))
+        {
+            .surface?.clearFocus()
+            return
+        }
+    }
+
     // Releases the retired presentation once its replacement is ready to cover it.
     private mtd discardOutgoingViewer()
     {
@@ -399,6 +412,7 @@ impl ViewerWindow
             .currentActions = null
         if oldInfo and .currentInfo == oldInfo do
             .currentInfo = null
+        .clearFocusIn([oldView, oldActions, oldInfo, oldCommands, oldSidePanelHost, oldSidePanelButton])
         if oldSidePanelHost and .currentSidePanelHost == oldSidePanelHost do
             .setCurrentSidePanel(null, null)
         oldActions?.destroy()
@@ -424,6 +438,7 @@ impl ViewerWindow
             .discardOutgoingViewer()
         if .explorerTransition
         {
+            .clearFocusIn([.explorer])
             .explorer?.setShown(false)
             .explorerTransition = false
             .refreshExplorerCaption()

@@ -125,17 +125,10 @@ struct Surface
     paintedWnds: u32     // Windows the last pass painted.
     skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
 
-    // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
-    // the control the reader left rather than at the top of its traversal.
-    //
-    // The application holds one focus at a time but shows several surfaces, so this is what tells
-    // them apart. Three things are recorded together: the tree that was being walked, the window
-    // the keyboard goes back to when it is still in that tree, and the rank that answers when it
-    // is gone — a row removed, a field hidden. The window is only ever compared against the stops
-    // that exist now, never followed, so a stale one cannot be read.
-    focusRoot:  *Wnd?        // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
-    focusWnd:   *Wnd?        // Last window that held the keyboard on this surface.
-    focusIndex: s64 = -1     // Its rank in that tree's ring, for when it is gone.
+    focusWnd:          *Wnd?     // Last window that held the keyboard on this surface.
+    savedFocusVisible: bool         // Whether its keyboard focus was shown.
+    savedFocusReason:  FocusReason  // How the recipient was chosen before reactivation.
+    focusAllowsNone:   bool      // Whether focus was set as a fallback keyboard receiver.
 
     public
     {
@@ -1160,17 +1153,20 @@ impl Surface
             .painter.fillRect(rect, Argb.Black)
     }
 
-    // Records the window the keyboard just landed on, as the surface's own focus.
-    //
-    // See `Surface.focusWnd`. Called by [[Gui.Wnd.setFocus]], which is the one way the
-    // focus moves, so a surface knows where its keyboard stands whether or not it is the one
-    // the application is currently sending keys to.
-    internal mtd noteFocus(wnd: *Wnd)
+    // Remembers the accepted focus for the next activation of this surface.
+    internal mtd noteFocus(wnd: *Wnd, reason: FocusReason, allowNone: bool)
     {
-        let root = wnd.rootWnd()
-        .focusRoot  = root
-        .focusWnd   = wnd
-        .focusIndex = FocusOrder.collect(root).indexOf(wnd)
+        .focusWnd          = wnd
+        .savedFocusVisible = .app.focusVisible
+        .focusAllowsNone   = allowNone
+        if reason != .Restore do
+            .savedFocusReason = reason
+    }
+
+    internal mtd forgetFocus(wnd: *Wnd)
+    {
+        if .focusWnd == wnd or wnd.isAncestorOf(.focusWnd) do
+            .focusWnd = null
     }
 
     // Removes the logical keyboard focus when the native surface loses it, while retaining the
@@ -1182,12 +1178,13 @@ impl Surface
         if not focused or focused.surface != me do
             return
 
-        .app.keyboardFocusWnd = null
+        .app.updateKeyboardFocus(null, false)
         focused.invalidate()
-        focused.ownerNotifyEvent(.ChildFocusChanged)
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Lost}
         focused.sendEvent(&evt)
+        if focused.surface do
+            focused.ownerNotifyEvent(.ChildFocusChanged)
 
         // A Lost callback may deliberately put the keyboard somewhere else. That transition
         // owns the resulting focus and the surfaces it already invalidated.
@@ -1212,54 +1209,17 @@ impl Surface
         // new saved point; clearing it here would make the next native activation forget it.
         if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
             return
-        .focusRoot  = null
-        .focusWnd   = null
-        .focusIndex = -1
+        .focusWnd = null
     }
 
-    // Gives the keyboard back to where it stood on this surface, and reports whether it landed.
-    //
-    // The control it left is preferred when it still belongs to the reachable tree, even when it
-    // accepts pointer focus without taking a place in Tab traversal. The tree comparison never
-    // follows the saved pointer, so a control destroyed meanwhile is simply not found. What
-    // answers then is the rank it had, clamped to a ring that may have shrunk.
+    // Restores a remembered recipient that is still reachable on this surface. A missing
+    // recipient leaves the surface ready for its next explicit keyboard or pointer action.
     internal mtd restoreFocus()->bool
     {
-        let root    = .focusRoot orelse .wnd
-        let order   = FocusOrder.collect(root)
         let focused = .focusWnd
-        if focused and
-           FocusOrder.contains(root, focused) and
-           focused.focusPolicy != .None
-        {
-            focused.setFocus()
-            return true
-        }
-
-        if .focusIndex < 0
-        {
-            if focused and FocusOrder.contains(root, focused)
-            {
-                focused.setSurfaceFallbackFocus()
-                return true
-            }
-
+        if not focused do
             return false
-        }
-
-        if order.stops.isEmpty()
-        {
-            root.setSurfaceFallbackFocus()
-            return .app.keyboardFocusWnd == root.focusTarget()
-        }
-
-        var target = .focusIndex
-        if target < 0 do
-            target = 0
-        if target >= cast(s64, order.stops.count) do
-            target = cast(s64, order.stops.count) - 1
-        order.stops[cast(u64, target)].setFocus()
-        return true
+        return focused.requestFocus(.Restore, .focusAllowsNone)
     }
 
     // Applies the surface-wide keyboard navigation to a key nobody claimed, and reports whether
@@ -1281,15 +1241,14 @@ impl Surface
         switch key
         {
         case .Tab:
-            let backward = modifiers.has(.Shift)
-            .app.setFocusVisible(true)
-            return from.focusNext(not backward)
+            if modifiers != .None and modifiers != .Shift do
+                return false
+            return from.focusNext(modifiers == .None)
 
         case .Left, .Up, .Right, .Down:
             if modifiers != .None do
                 return false
             let forward = key == .Right or key == .Down
-            .app.setFocusVisible(true)
             return from.focusNextInGroup(forward)
 
         case .Return:

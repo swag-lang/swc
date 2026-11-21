@@ -117,6 +117,174 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(card.submit.hasFocus())
 }
 
+// Modified Tab belongs to a shortcut or a control, and leaves both focus states alone.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
+    host.clickWnd(field)
+    Swag.require(field.hasFocus() and not field.hasVisibleFocus())
+
+    host.keyPress(.Tab, .Control)
+    Swag.require(field.hasFocus() and not field.hasVisibleFocus())
+    host.keyPress(.Tab, .Alt)
+    Swag.require(field.hasFocus() and not field.hasVisibleFocus())
+    host.keyPress(.Tab)
+    Swag.require(next.hasVisibleFocus())
+}
+
+// Explicit requests cannot move the keyboard into a hidden subtree or a detached window.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
+    let panel = Wnd.create'Wnd(&host.root, {10, 50, 150, 50})
+    let next  = PushButton.create(panel, "Next", {0, 0, 80, 24})
+    field.setFocus()
+
+    panel.hide()
+    next.setFocus()
+    Swag.require(field.hasFocus() and not next.hasFocus())
+
+    panel.show()
+    Swag.require(panel.detachChild(next))
+    next.setFocus()
+    Swag.require(field.hasFocus() and not next.hasFocus())
+    next.setParent(panel)
+}
+
+// Removing a pointer-focused widget does not choose a keyboard action. Tab can start afresh.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let panel = Wnd.create'Wnd(&host.root, {10, 10, 140, 24})
+    let field = EditBox.create(panel, "", {0, 0, 100, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
+    host.clickWnd(field)
+    Swag.require(field.hasFocus() and not field.hasVisibleFocus())
+
+    // Some controls request focus again from their pointer handler.
+    field.setFocus()
+    panel.hide()
+    Swag.require(not next.hasFocus() and not host.surface.restoreFocus())
+    host.keyPress(.Tab)
+    Swag.require(next.hasVisibleFocus())
+}
+
+// Removing a focused subtree skips a stop that rejects focus, and rejects reentry into the
+// subtree while focus callbacks are running.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let panel = Wnd.create'Wnd(&host.root, {10, 10, 140, 24})
+    let field = EditBox.create(panel, "", {0, 0, 100, 24})
+    let veto  = PushButton.create(&host.root, "Veto", {10, 50, 80, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 90, 80, 24})
+    veto.hookOnEvent = func(_, evt)
+    {
+        if evt is FocusEvent as focus where focus.kind == .CanGain do
+            focus.canChangeFocus = false
+        return false
+    }
+    field.sigFocusLost += func|field|(_) { field.setFocus() }
+
+    field.setFocus()
+    Swag.require(host.root.detachChild(panel))
+    Swag.require(next.hasFocus() and not field.hasFocus())
+    panel.setParent(&host.root)
+    Swag.require(next.hasFocus())
+}
+
+// An incoming control may disappear during CanGain. Its old keyboard owner must survive.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
+    next.hookOnEvent = func|next|(_, evt)
+    {
+        if evt is FocusEvent as focus where focus.kind == .CanGain do
+            next.hide()
+        return false
+    }
+
+    field.setFocus()
+    host.keyPress(.Tab)
+    Swag.require(field.hasFocus() and not field.hasVisibleFocus())
+    Swag.require(not next.hasFocus())
+}
+
+// A focus query may redirect the transition. The outer request must leave that choice intact.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
+    let final = EditBox.create(&host.root, "", {10, 90, 100, 24})
+    next.hookOnEvent = func|final|(_, evt)
+    {
+        if evt is FocusEvent as focus where focus.kind == .CanGain do
+            final.setFocus()
+        return false
+    }
+
+    field.setFocus()
+    host.keyPress(.Tab)
+    Swag.require(final.hasFocus() and not final.hasVisibleFocus())
+    Swag.require(not next.hasFocus())
+}
+
+// Activation only restores the remembered widget. A changed layout does not choose a replacement.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let field = EditBox.create(&host.root, "", {10, 10, 100, 24})
+    let next  = PushButton.create(&host.root, "Next", {10, 50, 80, 24})
+    field.setFocus()
+    host.surface.loseKeyboardFocus()
+    field.hide()
+
+    Swag.require(not host.surface.restoreFocus())
+    Swag.require(not next.hasFocus())
+    host.keyPress(.Tab)
+    Swag.require(next.hasVisibleFocus())
+}
+
+// A hidden or disabled representative cannot make an entire radio group disappear from Tab.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+
+    let first  = RadioButton.create(&host.root, "First", {10, 10, 100, 24})
+    let second = RadioButton.create(&host.root, "Second", {10, 40, 100, 24})
+    let third  = RadioButton.create(&host.root, "Third", {10, 70, 100, 24})
+    first.groupId  = "choice"
+    second.groupId = "choice"
+    third.groupId  = "choice"
+    first.setChecked(true)
+    first.disable()
+    second.hide()
+
+    host.keyPress(.Tab)
+    Swag.require(third.hasVisibleFocus() and not third.isChecked())
+}
+
 // A pointer action leaves the surface without a keyboard selection; Tab starts the traversal.
 #test
 {
@@ -633,7 +801,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(320, 240)
 
     let caller = EditBox.create(&host.root, "caller", {20, 20, 180, 26})
-    caller.setFocus()
+    host.clickWnd(caller)
+    Swag.require(caller.hasFocus() and not caller.hasVisibleFocus())
     let dlg    = Dialog.create(&host.surface, 260, 150, title: "Confirm")
     let cancel = dlg.addButton("Cancel", Dialog.BtnCancel, true)
 
@@ -652,7 +821,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let modalResult = dlg.doModal()
     Swag.require(modalResult == Dialog.BtnCancel)
-    Swag.require(checked and caller.hasFocus())
+    Swag.require(checked and caller.hasFocus() and not caller.hasVisibleFocus())
 }
 
 // A box with something to fill in opens on that instead, and its default still answers Enter.

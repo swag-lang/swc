@@ -36,22 +36,13 @@ using Core
 
 // This puzzle input makes the first-hit lengths sufficient; combine them with an LCM.
 
-// An inline anonymous struct cannot carry a per-field attribute, so the node shape is
-// named: 'name' is filled once the whole map has been read.
-struct Node
-{
-    late name: string
-    left:      u64
-    right:     u64
-}
-
 func day8B()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions:    string = ""
-    var nodes:           Array'Node
+    var nodes:           Array'{isEnd: bool, left, right: u64}
     var nodeIndexByName: HashTable'(string, u64)
 
     var startNodeIndices: Array'u64
@@ -81,7 +72,7 @@ func day8B()
         let right          = l[12 to 14]
         let leftNodeIndex  = nodeIndexByName.find(left).value
         let rightNodeIndex = nodeIndexByName.find(right).value
-        nodes[i - 2] = Node{name, leftNodeIndex, rightNodeIndex}
+        nodes[i - 2] = {isEnd: name[2] == 'Z', left: leftNodeIndex, right: rightNodeIndex}
     }
 
     var currentNodeIndices = startNodeIndices
@@ -104,7 +95,7 @@ func day8B()
             else do
                 currentNodeIndices[startIndex] = nodes[currentNodeIndex].right
             stepsToFirstEnd[startIndex] += 1
-            if nodes[currentNodeIndices[startIndex]].name[2] == 'Z' do
+            if nodes[currentNodeIndices[startIndex]].isEnd do
                 break
         }
     }

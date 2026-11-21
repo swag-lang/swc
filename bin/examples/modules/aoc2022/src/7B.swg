@@ -21,43 +21,7 @@ using Core
 func day7B()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
-    let lines    = expect File.readAllLines(dataPath)
-
-    var folder:  String
-    var folders: HashTable'(String, s32)
-
-    for i in lines.count
-    {
-        let l = &lines[i]
-        if l[0] == '$' do
-            l.remove(0, 1)
-
-        let cmd = Tokenize.split(l[], ' 'u8)
-        switch cmd[0]
-        {
-        case "cd":
-            if cmd[1] == "/" do
-                folder = ""
-            elif cmd[1] == ".." do
-                folder = Path.directoryName(folder)
-            else do
-                folder = Path.combine(folder, cmd[1])
-
-        case "ls", "dir":
-            break
-
-        default:
-            let size = expect StrConv.toS32(cmd[0])
-            var tmp  = folder
-            for
-            {
-                folders.findOrAdd(tmp).value += size
-                if not tmp.length do
-                    break
-                tmp = Path.directoryName(tmp)
-            }
-        }
-    }
+    let folders  = readDirectorySizes(dataPath)
 
     var total     = folders.find("").value
     let needSpace = 30_000_000 - (70_000_000 - total)

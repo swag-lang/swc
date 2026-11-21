@@ -40,7 +40,19 @@ private const P256MontgomeryR2: [8] u32 = [
     0x00000003, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFB,
     0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFD, 0x00000004]
 
-private func p256MontgomeryMultiply(left, right: [8] u32)->[8] u32
+private const P256OrderMontgomeryOne: [8] u32 = [
+    0x039CDAAF, 0x0C46353D, 0x58E8617B, 0x43190552,
+    0x00000000, 0x00000000, 0xFFFFFFFF, 0x00000000]
+
+private const P256OrderMontgomeryR2: [8] u32 = [
+    0xBE79EEA2, 0x83244C95, 0x49BD6FA6, 0x4699799C,
+    0x2B6BEC59, 0x2845B239, 0xF3D95620, 0x66E12D94]
+
+private const P256OrderInverseExponent: [8] u32 = [
+    0xFC63254F, 0xF3B9CAC2, 0xA7179E84, 0xBCE6FAAD,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]
+
+private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u32)->[8] u32
 {
     var temporary: [9] u32
     for index in 8
@@ -55,11 +67,11 @@ private func p256MontgomeryMultiply(left, right: [8] u32)->[8] u32
 
         let productTop = cast(u64, temporary[8]) + carry
         temporary[8] = cast(u32, productTop)
-        let reduction = temporary[0]
+        let reduction = temporary[0] * n0Inverse
         carry = 0
         for word in 8
         {
-            let product = cast(u64, reduction) * P256Modulus[word] + temporary[word] + carry
+            let product = cast(u64, reduction) * modulus[word] + temporary[word] + carry
             if word do
                 temporary[word - 1] = cast(u32, product)
             carry = product >> 32
@@ -74,7 +86,7 @@ private func p256MontgomeryMultiply(left, right: [8] u32)->[8] u32
     var borrow = 0'u64
     for index in 8
     {
-        let subtrahend = cast(u64, P256Modulus[index]) + borrow
+        let subtrahend = cast(u64, modulus[index]) + borrow
         let word       = cast(u64, temporary[index]) - subtrahend
         difference[index] = cast(u32, word)
         borrow = word >> 63
@@ -85,20 +97,22 @@ private func p256MontgomeryMultiply(left, right: [8] u32)->[8] u32
     var result: #returntype
     for index in 8 do
         result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
+    Crypto.secureClear(temporary)
+    Crypto.secureClear(difference)
     return result
 }
 
 private func p256ToMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, P256MontgomeryR2)
+    result.limbs = p256MontgomeryMultiply(value.limbs, P256MontgomeryR2, P256Modulus, 1)
     return result
 }
 
 private func p256FromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0])
+    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Modulus, 1)
     return result
 }
 
@@ -162,7 +176,7 @@ private func p256FieldSubtract(left, right: P256Field)->P256Field
 private func p256FieldMultiply(left, right: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs)
+    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Modulus, 1)
     return result
 }
 
@@ -213,6 +227,231 @@ private func p256FieldPower(value: P256Field, exponent: [8] u32)->P256Field
     return result
 }
 
+private func p256OrderAdd(left, right: P256Field)->P256Field
+{
+    var sum: [8] u32
+    var carry = 0'u64
+    for index in 8
+    {
+        let word = cast(u64, left.limbs[index]) + right.limbs[index] + carry
+        sum[index] = cast(u32, word)
+        carry      = word >> 32
+    }
+
+    var difference: [8] u32
+    var borrow = 0'u64
+    for index in 8
+    {
+        let subtrahend = cast(u64, P256Order[index]) + borrow
+        let word       = cast(u64, sum[index]) - subtrahend
+        difference[index] = cast(u32, word)
+        borrow = word >> 63
+    }
+
+    let mask = 0'u32 - cast(u32, (carry != 0) or (borrow == 0))
+    var result: #returntype
+    for index in 8 do
+        result.limbs[index] = (difference[index] & mask) | (sum[index] & ~mask)
+    return result
+}
+
+private func p256OrderSubtract(left, right: P256Field)->P256Field
+{
+    var difference: [8] u32
+    var borrow = 0'u64
+    for index in 8
+    {
+        let subtrahend = cast(u64, right.limbs[index]) + borrow
+        let word       = cast(u64, left.limbs[index]) - subtrahend
+        difference[index] = cast(u32, word)
+        borrow = word >> 63
+    }
+
+    var corrected: [8] u32
+    var carry = 0'u64
+    for index in 8
+    {
+        let word = cast(u64, difference[index]) + P256Order[index] + carry
+        corrected[index] = cast(u32, word)
+        carry = word >> 32
+    }
+
+    let mask = 0'u32 - cast(u32, borrow)
+    var result: #returntype
+    for index in 8 do
+        result.limbs[index] = (corrected[index] & mask) | (difference[index] & ~mask)
+    return result
+}
+
+private func p256OrderMultiply(left, right: P256Field)->P256Field
+{
+    var result: #returntype
+    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Order, 0xEE00BC4F)
+    return result
+}
+
+private func p256OrderToMontgomery(value: P256Field)->P256Field
+{
+    var result: #returntype
+    result.limbs = p256MontgomeryMultiply(value.limbs, P256OrderMontgomeryR2, P256Order, 0xEE00BC4F)
+    return result
+}
+
+private func p256OrderFromMontgomery(value: P256Field)->P256Field
+{
+    var result: #returntype
+    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Order, 0xEE00BC4F)
+    return result
+}
+
+private func p256OrderPower(value: P256Field, exponent: [8] u32)->P256Field
+{
+    var result: P256Field
+    result.limbs = P256OrderMontgomeryOne
+    for step in 256
+    {
+        let bit = 255 - step
+        result = p256OrderMultiply(result, result)
+        if (exponent[bit / 32] >> (bit % 32)) & 1 do
+            result = p256OrderMultiply(result, value)
+    }
+
+    return result
+}
+
+private func p256OrderReduce(value: P256Field)->P256Field
+{
+    var difference: [8] u32
+    var borrow = 0'u64
+    for index in 8
+    {
+        let subtrahend = cast(u64, P256Order[index]) + borrow
+        let word       = cast(u64, value.limbs[index]) - subtrahend
+        difference[index] = cast(u32, word)
+        borrow = word >> 63
+    }
+
+    let mask = 0'u32 - cast(u32, borrow == 0)
+    var result: #returntype
+    for index in 8 do
+        result.limbs[index] = (difference[index] & mask) | (value.limbs[index] & ~mask)
+    return result
+}
+
+private func p256OrderEncode(value: P256Field, destination: [..] u8)
+{
+    for index in 8
+    {
+        let offset = destination.count - (cast(u64, index + 1) * 4)
+        destination[offset]     = Math.byteAt(value.limbs[index], 3)
+        destination[offset + 1] = Math.byteAt(value.limbs[index], 2)
+        destination[offset + 2] = Math.byteAt(value.limbs[index], 1)
+        destination[offset + 3] = Math.byteAt(value.limbs[index], 0)
+    }
+}
+
+private func p256ScalarIsValid(value: P256Field)->bool
+{
+    var borrow  = 0'u64
+    var nonZero = 0'u32
+    for word in value.limbs do
+        nonZero |= word
+    for index in 8
+    {
+        let subtrahend = cast(u64, P256Order[index]) + borrow
+        let word       = cast(u64, value.limbs[index]) - subtrahend
+        borrow = word >> 63
+    }
+
+    return borrow != 0 and nonZero != 0
+}
+
+private func p256DigestBytes(digest: Hash.Sha256.Digest)->[32] u8
+{
+    var result: #returntype
+    for index in digest.count
+    {
+        for byte in 4 do
+            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
+    }
+
+    return result
+}
+
+private func p256Rfc6979Nonce(privateScalar: P256Field, digest: [32] u8)->[32] u8 fail
+{
+    var key:   [32] u8
+    var value: [32] u8
+    Memory.set(&value[0], 1'u8, value.count)
+    var scalarBytes: [32] u8
+    p256OrderEncode(privateScalar, scalarBytes)
+
+    var input: Array'u8
+    input.add(value)
+    input.add(0'u8)
+    input.add(scalarBytes)
+    input.add(digest)
+    key = HmacSha256.compute(key, input.toSlice())
+    Crypto.secureClear(input.toSlice())
+
+    input.resize(0)
+    input.add(value)
+    value = HmacSha256.compute(key, input.toSlice())
+    Crypto.secureClear(input.toSlice())
+
+    input.resize(0)
+    input.add(value)
+    input.add(1'u8)
+    input.add(scalarBytes)
+    input.add(digest)
+    key = HmacSha256.compute(key, input.toSlice())
+    Crypto.secureClear(input.toSlice())
+
+    input.resize(0)
+    input.add(value)
+    value = HmacSha256.compute(key, input.toSlice())
+    Crypto.secureClear(input.toSlice())
+
+    while true
+    {
+        input.resize(0)
+        input.add(value)
+        value = HmacSha256.compute(key, input.toSlice())
+        Crypto.secureClear(input.toSlice())
+        var candidate: P256Field
+        for index in 8
+        {
+            let offset = 28 - (index * 4)
+            candidate.limbs[index] = (cast(u32, value[offset]) << 24) |
+                                     (cast(u32, value[offset + 1]) << 16) |
+                                     (cast(u32, value[offset + 2]) << 8) |
+                                     cast(u32, value[offset + 3])
+        }
+
+        if p256ScalarIsValid(candidate)
+        {
+            let result = value
+            Crypto.secureClear(Swag.makeSlice(&key, 1))
+            Crypto.secureClear(Swag.makeSlice(&value, 1))
+            Crypto.secureClear(Swag.makeSlice(&scalarBytes, 1))
+            Crypto.secureClear(Swag.makeSlice(&candidate, 1))
+            return result
+        }
+
+        Crypto.secureClear(Swag.makeSlice(&candidate, 1))
+
+        input.resize(0)
+        input.add(value)
+        input.add(0'u8)
+        key = HmacSha256.compute(key, input.toSlice())
+        Crypto.secureClear(input.toSlice())
+        input.resize(0)
+        input.add(value)
+        value = HmacSha256.compute(key, input.toSlice())
+        Crypto.secureClear(input.toSlice())
+    }
+}
+
 private func p256FieldDecode(bytes: const [..] u8)->P256Field fail
 {
     if bytes.count != P256ScalarSize do
@@ -249,6 +488,21 @@ private func p256FieldDecode(bytes: const [..] u8)->P256Field fail
     return p256ToMontgomery(result)
 }
 
+private func p256ReadInteger(bytes: const [..] u8)->P256Field
+{
+    var result: #returntype
+    for index in 8
+    {
+        let offset = bytes.count - (cast(u64, index + 1) * 4)
+        result.limbs[index] = (cast(u32, bytes[offset]) << 24) |
+                              (cast(u32, bytes[offset + 1]) << 16) |
+                              (cast(u32, bytes[offset + 2]) << 8) |
+                              cast(u32, bytes[offset + 3])
+    }
+
+    return result
+}
+
 private func p256ScalarDecode(bytes: const [..] u8)->P256Field fail
 {
     if bytes.count != P256ScalarSize do
@@ -263,25 +517,18 @@ private func p256ScalarDecode(bytes: const [..] u8)->P256Field fail
                               cast(u32, bytes[offset + 3])
     }
 
-    var lessThanOrder = false
-    var index         = 8'u32
-    while index
+    var borrow = 0'u64
+    for index in 8
     {
-        index -= 1
-        if result.limbs[index] < P256Order[index]
-        {
-            lessThanOrder = true
-            break
-        }
-
-        if result.limbs[index] > P256Order[index] do
-            break
+        let subtrahend = cast(u64, P256Order[index]) + borrow
+        let word       = cast(u64, result.limbs[index]) - subtrahend
+        borrow = word >> 63
     }
 
     var nonZero = 0'u32
     for word in result.limbs do
         nonZero |= word
-    if not lessThanOrder or not nonZero do
+    if borrow == 0 or not nonZero do
         fail Errors.BadParameterError{"P-256 private scalar must be between 1 and the curve order minus one"}
     return result
 }
@@ -393,11 +640,13 @@ private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P25
         let bitIndex = 255 - step
         let bit      = (scalar[].limbs[bitIndex / 32] >> (bitIndex % 32)) & 1
         p256ConditionalSwap(&low, &high, bit)
-        let sum     = p256PointAdd(low, high)
-        let doubled = p256PointDouble(low)
+        var sum     = p256PointAdd(low, high)
+        var doubled = p256PointDouble(low)
         low  = doubled
         high = sum
         p256ConditionalSwap(&low, &high, bit)
+        Crypto.secureClear(Swag.makeSlice(&sum, 1))
+        Crypto.secureClear(Swag.makeSlice(&doubled, 1))
     }
 
     var result = low
@@ -492,4 +741,165 @@ func p256Ecdh(privateKey, peerPublicKey: const [..] u8, sharedSecret: [..] u8) f
     if p256FieldEqual(shared.z, P256Field{}) do
         fail Errors.BadParameterError{"P-256 ECDH produced the point at infinity"}
     p256FieldEncode(p256AffineX(shared), sharedSecret)
+}
+
+// Signs `message` with deterministic ECDSA using SHA-256 and a P-256 private scalar.
+//
+// `signature` must hold 64 bytes and receives the fixed-width, big-endian `r || s` encoding.
+// The private scalar must be in the range 1 through the curve order minus one.
+func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
+{
+    if signature.count != 64 do
+        fail Errors.BadParameterError{"P-256 ECDSA signature output must be 64 bytes"}
+    var privateScalar = try p256ScalarDecode(privateKey)
+    defer Crypto.secureClear(Swag.makeSlice(&privateScalar, 1))
+    var messageDigest = p256DigestBytes(Hash.Sha256.compute(message))
+    defer Crypto.secureClear(Swag.makeSlice(&messageDigest, 1))
+    var nonceBytes = try p256Rfc6979Nonce(privateScalar, messageDigest)
+    defer Crypto.secureClear(Swag.makeSlice(&nonceBytes, 1))
+    var nonce = try p256ScalarDecode(nonceBytes)
+    defer Crypto.secureClear(Swag.makeSlice(&nonce, 1))
+
+    var noncePoint = p256ScalarMultiply(&nonce, p256Generator())
+    defer Crypto.secureClear(Swag.makeSlice(&noncePoint, 1))
+    var r = p256OrderReduce(p256FromMontgomery(p256AffineX(noncePoint)))
+    if not p256ScalarIsValid(r) do
+        fail Errors.BadParameterError{"P-256 ECDSA generated an invalid nonce"}
+
+    let zRaw = P256Field{limbs: [
+        (cast(u32, messageDigest[28]) << 24) | (cast(u32, messageDigest[29]) << 16) |
+        (cast(u32, messageDigest[30]) << 8) | cast(u32, messageDigest[31]),
+        (cast(u32, messageDigest[24]) << 24) | (cast(u32, messageDigest[25]) << 16) |
+        (cast(u32, messageDigest[26]) << 8) | cast(u32, messageDigest[27]),
+        (cast(u32, messageDigest[20]) << 24) | (cast(u32, messageDigest[21]) << 16) |
+        (cast(u32, messageDigest[22]) << 8) | cast(u32, messageDigest[23]),
+        (cast(u32, messageDigest[16]) << 24) | (cast(u32, messageDigest[17]) << 16) |
+        (cast(u32, messageDigest[18]) << 8) | cast(u32, messageDigest[19]),
+        (cast(u32, messageDigest[12]) << 24) | (cast(u32, messageDigest[13]) << 16) |
+        (cast(u32, messageDigest[14]) << 8) | cast(u32, messageDigest[15]),
+        (cast(u32, messageDigest[8]) << 24) | (cast(u32, messageDigest[9]) << 16) |
+        (cast(u32, messageDigest[10]) << 8) | cast(u32, messageDigest[11]),
+        (cast(u32, messageDigest[4]) << 24) | (cast(u32, messageDigest[5]) << 16) |
+        (cast(u32, messageDigest[6]) << 8) | cast(u32, messageDigest[7]),
+        (cast(u32, messageDigest[0]) << 24) | (cast(u32, messageDigest[1]) << 16) |
+        (cast(u32, messageDigest[2]) << 8) | cast(u32, messageDigest[3])]}
+    var z = p256OrderReduce(zRaw)
+    defer Crypto.secureClear(Swag.makeSlice(&z, 1))
+
+    var nonceMontgomery = p256OrderToMontgomery(nonce)
+    defer Crypto.secureClear(Swag.makeSlice(&nonceMontgomery, 1))
+    var rMontgomery = p256OrderToMontgomery(r)
+    defer Crypto.secureClear(Swag.makeSlice(&rMontgomery, 1))
+    var privateMontgomery = p256OrderToMontgomery(privateScalar)
+    defer Crypto.secureClear(Swag.makeSlice(&privateMontgomery, 1))
+    var zMontgomery = p256OrderToMontgomery(z)
+    defer Crypto.secureClear(Swag.makeSlice(&zMontgomery, 1))
+
+    var inverseNonce = p256OrderPower(nonceMontgomery, P256OrderInverseExponent)
+    defer Crypto.secureClear(Swag.makeSlice(&inverseNonce, 1))
+    var rd = p256OrderMultiply(rMontgomery, privateMontgomery)
+    defer Crypto.secureClear(Swag.makeSlice(&rd, 1))
+    var sum = p256OrderAdd(zMontgomery, rd)
+    defer Crypto.secureClear(Swag.makeSlice(&sum, 1))
+    var sMontgomery = p256OrderMultiply(inverseNonce, sum)
+    defer Crypto.secureClear(Swag.makeSlice(&sMontgomery, 1))
+    var s = p256OrderFromMontgomery(sMontgomery)
+    defer Crypto.secureClear(Swag.makeSlice(&s, 1))
+    if not p256ScalarIsValid(s) do
+        fail Errors.BadParameterError{"P-256 ECDSA generated an invalid signature"}
+
+    p256OrderEncode(r, signature[until 32])
+    p256OrderEncode(s, signature[32 to])
+    Crypto.secureClear(Swag.makeSlice(&r, 1))
+}
+
+// Verifies a fixed-width P-256 ECDSA signature over `message` using SHA-256.
+//
+// The public key must use SEC1 0x04 || X || Y encoding. Invalid public keys fail with
+// [[Core.Errors.BadParameterError]]; a malformed or incorrect signature returns false.
+func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
+{
+    if publicKey.count != P256PublicKeySize or publicKey[0] != 4 or signature.count != 64 do
+        fail Errors.BadParameterError{"P-256 ECDSA needs a 65-byte uncompressed key and a 64-byte signature"}
+
+    var publicPoint: P256Point
+    publicPoint.x       = try p256FieldDecode(publicKey[1 until 33])
+    publicPoint.y       = try p256FieldDecode(publicKey[33 until 65])
+    publicPoint.z.limbs = P256MontgomeryOne
+    if not p256ValidatePublicPoint(publicPoint) do
+        fail Errors.BadParameterError{"P-256 ECDSA public key is not on the curve"}
+    defer Crypto.secureClear(Swag.makeSlice(&publicPoint, 1))
+
+    var rBytes: [32] u8
+    var sBytes: [32] u8
+    Swag.memcpy(&rBytes[0], signature.buffer, 32)
+    Swag.memcpy(&sBytes[0], signature.buffer + 32, 32)
+    var r = p256ReadInteger(rBytes)
+    var s = p256ReadInteger(sBytes)
+    Crypto.secureClear(Swag.makeSlice(&rBytes, 1))
+    Crypto.secureClear(Swag.makeSlice(&sBytes, 1))
+    if not p256ScalarIsValid(r) or not p256ScalarIsValid(s)
+    {
+        Crypto.secureClear(Swag.makeSlice(&r, 1))
+        Crypto.secureClear(Swag.makeSlice(&s, 1))
+        return false
+    }
+
+    var messageDigest = p256DigestBytes(Hash.Sha256.compute(message))
+    defer Crypto.secureClear(Swag.makeSlice(&messageDigest, 1))
+    let zRaw = P256Field{limbs: [
+        (cast(u32, messageDigest[28]) << 24) | (cast(u32, messageDigest[29]) << 16) |
+        (cast(u32, messageDigest[30]) << 8) | cast(u32, messageDigest[31]),
+        (cast(u32, messageDigest[24]) << 24) | (cast(u32, messageDigest[25]) << 16) |
+        (cast(u32, messageDigest[26]) << 8) | cast(u32, messageDigest[27]),
+        (cast(u32, messageDigest[20]) << 24) | (cast(u32, messageDigest[21]) << 16) |
+        (cast(u32, messageDigest[22]) << 8) | cast(u32, messageDigest[23]),
+        (cast(u32, messageDigest[16]) << 24) | (cast(u32, messageDigest[17]) << 16) |
+        (cast(u32, messageDigest[18]) << 8) | cast(u32, messageDigest[19]),
+        (cast(u32, messageDigest[12]) << 24) | (cast(u32, messageDigest[13]) << 16) |
+        (cast(u32, messageDigest[14]) << 8) | cast(u32, messageDigest[15]),
+        (cast(u32, messageDigest[8]) << 24) | (cast(u32, messageDigest[9]) << 16) |
+        (cast(u32, messageDigest[10]) << 8) | cast(u32, messageDigest[11]),
+        (cast(u32, messageDigest[4]) << 24) | (cast(u32, messageDigest[5]) << 16) |
+        (cast(u32, messageDigest[6]) << 8) | cast(u32, messageDigest[7]),
+        (cast(u32, messageDigest[0]) << 24) | (cast(u32, messageDigest[1]) << 16) |
+        (cast(u32, messageDigest[2]) << 8) | cast(u32, messageDigest[3])]}
+    var z = p256OrderReduce(zRaw)
+    defer Crypto.secureClear(Swag.makeSlice(&z, 1))
+    var rMontgomery = p256OrderToMontgomery(r)
+    defer Crypto.secureClear(Swag.makeSlice(&rMontgomery, 1))
+    var sMontgomery = p256OrderToMontgomery(s)
+    defer Crypto.secureClear(Swag.makeSlice(&sMontgomery, 1))
+    var inverseS = p256OrderPower(sMontgomery, P256OrderInverseExponent)
+    defer Crypto.secureClear(Swag.makeSlice(&inverseS, 1))
+    var zMontgomery = p256OrderToMontgomery(z)
+    defer Crypto.secureClear(Swag.makeSlice(&zMontgomery, 1))
+    var u1Montgomery = p256OrderMultiply(zMontgomery, inverseS)
+    defer Crypto.secureClear(Swag.makeSlice(&u1Montgomery, 1))
+    var u2Montgomery = p256OrderMultiply(rMontgomery, inverseS)
+    defer Crypto.secureClear(Swag.makeSlice(&u2Montgomery, 1))
+    var u1 = p256OrderFromMontgomery(u1Montgomery)
+    defer Crypto.secureClear(Swag.makeSlice(&u1, 1))
+    var u2 = p256OrderFromMontgomery(u2Montgomery)
+    defer Crypto.secureClear(Swag.makeSlice(&u2, 1))
+
+    var first = p256ScalarMultiply(&u1, p256Generator())
+    defer Crypto.secureClear(Swag.makeSlice(&first, 1))
+    var second = p256ScalarMultiply(&u2, publicPoint)
+    defer Crypto.secureClear(Swag.makeSlice(&second, 1))
+    var sum = p256PointAdd(first, second)
+    defer Crypto.secureClear(Swag.makeSlice(&sum, 1))
+    if p256FieldEqual(sum.z, P256Field{})
+    {
+        Crypto.secureClear(Swag.makeSlice(&r, 1))
+        Crypto.secureClear(Swag.makeSlice(&s, 1))
+        return false
+    }
+
+    var x = p256OrderReduce(p256FromMontgomery(p256AffineX(sum)))
+    defer Crypto.secureClear(Swag.makeSlice(&x, 1))
+    Crypto.secureClear(Swag.makeSlice(&s, 1))
+    let valid = p256FieldEqual(x, r)
+    Crypto.secureClear(Swag.makeSlice(&r, 1))
+    return valid
 }

@@ -73,6 +73,32 @@ func p256HexBytes(text: string)->Array'u8
 
 #test
 {
+    let privateKey        = p256HexBytes("c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721")
+    let expectedPublic    = p256HexBytes("0460fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb67903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299")
+    let expectedSignature = p256HexBytes("efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8")
+    var publicKey: [Crypto.P256PublicKeySize] u8
+    var signature: [64] u8
+    expect Crypto.p256PublicKey(privateKey.toSlice(), publicKey)
+    Swag.require(Crypto.constantTimeEqual(publicKey, expectedPublic.toSlice()))
+
+    expect Crypto.p256EcdsaSign(privateKey.toSlice(), "sample", signature)
+    Swag.require(Crypto.constantTimeEqual(signature, expectedSignature.toSlice()))
+    var repeatedSignature: [64] u8
+    expect Crypto.p256EcdsaSign(privateKey.toSlice(), "sample", repeatedSignature)
+    Swag.require(Crypto.constantTimeEqual(signature, repeatedSignature))
+    let verified     = expect Crypto.p256EcdsaVerify(publicKey, "sample", signature)
+    let wrongMessage = expect Crypto.p256EcdsaVerify(publicKey, "Sample", signature)
+    Swag.require(verified and not wrongMessage)
+    signature[63] ^= 1
+    let tampered = expect Crypto.p256EcdsaVerify(publicKey, "sample", signature)
+    Swag.require(not tampered)
+    var invalidSignature: [64] u8
+    let invalid = expect Crypto.p256EcdsaVerify(publicKey, "sample", invalidSignature)
+    Swag.require(not invalid)
+}
+
+#test
+{
     let scalarBytes = p256HexBytes("519b423d715f8b5d549cf123456789abcdef0123456789abcdef0123456789ab")
     let expected    = p256HexBytes("04a06cc8dd2d8b26db5fc4229bc1bb0f4042e393a0c7e7fb7a12d7aed0131d9c06b37d3e9614891f7d1fa727e8a4c1c26e00e035103a18131b00797c6e7acd57e6")
     var publicKey: [Crypto.P256PublicKeySize] u8
@@ -86,6 +112,10 @@ func p256HexBytes(text: string)->Array'u8
     var output:     [Crypto.P256PublicKeySize] u8
     var error:      Swag.Error
     discard catch Crypto.p256PublicKey(zeroScalar, output) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+
+    let scalarOrder = p256HexBytes("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+    discard catch Crypto.p256PublicKey(scalarOrder.toSlice(), output) as error
     Swag.require(error.value() is Errors.BadParameterError)
 
     var generator: [Crypto.P256PublicKeySize] u8

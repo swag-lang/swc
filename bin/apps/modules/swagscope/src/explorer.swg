@@ -9,6 +9,17 @@ const ExplorerModeValues:          [5] ExplorerMode          = [.Names, .Details
 const ExplorerKindFilterValues:    [8] ExplorerKindFilter    = [.All, .Videos, .Images, .Audio, .Documents, .Subtitles, .Archives, .Folders]
 const ExplorerArtworkSourceValues: [2] ExplorerArtworkSource = [.Online, .Local]
 
+func explorerBoardName(text: const *AppStrings, index: u64)->string
+{
+    switch index
+    {
+    case 1: return text.board_Grid
+    case 2: return text.board_Posters
+    case 3: return text.board_Covers
+    default: return text.board_Automatic
+    }
+}
+
 // The shape the tiles of a folder take, read from what most of it holds.
 enum ExplorerBoard
 {
@@ -157,6 +168,8 @@ struct Explorer
     kindFilter:      ExplorerKindFilter
     artworkSource:   ExplorerArtworkSource = .Online
     thumbnailCrop:   Image.SmartCropMode   = .Attention
+    showViewerIcon:  bool                  = true
+    showTileCaption: bool                  = true
     menuPaths:       Array'String
     previewSettings: String
     previewEpoch:    u64
@@ -525,7 +538,7 @@ impl Explorer
         .tools.spacing = 8
         .sortMenu.setQuietText(.sortName())
         .kindMenu.setQuietText(.filterKindName())
-        .modeMenu.setQuietText(.viewName())
+        .modeMenu.setQuietText("")
         var width = Math.ceil(.tools.itf.measureContent({}).x)
         if width > space * 0.55
         {
@@ -571,45 +584,85 @@ impl Explorer
         .address.show(.isVisible())
     }
 
-    // Shows the listing presentation, for thumbnails their organization, and for media where their
-    // illustrations come from, in one menu. Each group is one exclusive choice whose current answer
-    // carries the dot of a radio choice, as in the sort and kind menus beside it.
+    // Shows the listing presentation and its thumbnail options in one compact sheet.
     mtd showModeMenu()
     {
-        let text  = appStrings()
-        let menu  = MenuCtrl.createPopup(me, owner: me)
-        let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        for id, index in ViewerCommands.Modes do
-            discard menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
+        let sheet = OptionSheet.View.create(.modeMenu, func|view = me|(page) { view.describeViewOptions(page) }, owner: me)
+        sheet.doModal(.modeMenu, autoDestroy: true)
+    }
+
+    mtd describeViewOptions(page: *OptionSheet.Page)
+    {
+        let text = appStrings()
+        let modeNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
+        page.addLink(text.explore_View, modeNames[cast(u64, .mode)], func|view = me, text|(choices)
+        {
+            let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
+            for mode, index in ExplorerMode do
+                choices.addChoice(names[index], cast(u64, view.mode) == index,
+                                  func|view, mode|() { view.setMode(mode) })
+        }, icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
 
         if .isThumbnailView()
         {
-            menu.addSeparator()
-            menu.addLabel(text.explore_Organization)
-            let boardNames = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers]
-            for id, index in ViewerCommands.Boards
+            page.addLink(text.explore_Organization, .viewName(), func|view = me, text|(choices)
             {
-                let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-                discard menu.addRadioItem(boardNames[index], id, checked: checked)
-            }
+                for _, index in ViewerCommands.Boards
+                {
+                    let checked = index == 0 ? not view.forced : (view.forced and cast(u64, view.forcedBoard) == index - 1)
+                    choices.addChoice(explorerBoardName(text, index), checked,
+                                      func|view, index|()
+                                      {
+                                          if index == 0 do view.forceBoard(false)
+                                          else do view.forceBoard(true, ExplorerBoardValues[index - 1])
+                                      })
+                }
+            }, icon: .theme().icon(.ExploreFolder, themeRowIconSize(.themeMetrics())))
 
-            menu.addSeparator()
-            menu.addLabel(text.explore_ThumbnailFraming)
-            let cropNames = thumbnailCropNames()
-            for id, index in ViewerCommands.ThumbnailCrops do
-                discard menu.addRadioItem(cropNames[index], id, checked: .thumbnailCrop == ThumbnailCropModes[index])
+            page.addLink(text.explore_ThumbnailFraming, thumbnailCropNames()[cast(u64, .thumbnailCrop)], func|view = me|(choices)
+            {
+                for mode, index in ThumbnailCropModes do
+                    choices.addChoice(thumbnailCropNames()[index], mode == view.thumbnailCrop,
+                                      func|view, mode|() { view.setThumbnailCrop(mode) })
+            }, icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
         }
 
         if .showsMedia()
         {
-            menu.addSeparator()
-            menu.addLabel(text.explore_ArtworkSection)
             let artworkNames = [text.artwork_Online, text.artwork_Local]
-            for id, index in ViewerCommands.Artwork do
-                discard menu.addRadioItem(artworkNames[index], id, checked: cast(u64, .artworkSource) == index)
+            page.addLink(text.explore_ArtworkSection, artworkNames[cast(u64, .artworkSource)], func|view = me, artworkNames|(choices)
+            {
+                for source, index in ExplorerArtworkSource do
+                    choices.addChoice(artworkNames[index], cast(u64, view.artworkSource) == index,
+                                      func|view, source|() { view.setArtworkSource(source) })
+            }, icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
         }
 
-        discard menu.doModal(.modeMenu, autoDestroy: true)
+        if .isThumbnailView() and .listingBoard() != .Album
+        {
+            page.addLink(text.explore_ThumbnailDisplay, "", func|view = me|(options) { view.describeThumbnailDisplayOptions(options) },
+                         icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
+        }
+    }
+
+    private mtd describeThumbnailDisplayOptions(page: *OptionSheet.Page)
+    {
+        let text = appStrings()
+        page.addToggle(text.explore_ShowViewerIcon, .showViewerIcon,
+                       func|view = me|(_) { view.showViewerIcon = not view.showViewerIcon; view.grid.invalidate() },
+                       icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
+        page.addToggle(text.explore_ShowTileCaption, .showTileCaption,
+                       func|view = me|(_) { view.setTileCaption(not view.showTileCaption) },
+                       icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
+    }
+
+    mtd setTileCaption(show: bool)
+    {
+        if .showTileCaption == show do
+            return
+        .showTileCaption = show
+        .grid.toolTip = ""
+        .grid.refreshLayout()
     }
 
     // Reports whether the thumbnails show films or music, whose illustrations may come from
@@ -729,13 +782,8 @@ impl Explorer
         let size = themeRowIconSize(.themeMetrics())
         .sortMenu.setIcon(.theme().icon(.Sort, size))
         .kindMenu.setIcon(.theme().icon(.Filter, size))
-        .modeMenu.setIcon(.theme().icon(.viewIcon(), size))
-        let viewNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        let modeIndex = cast(u64, .mode)
-        if .isThumbnailView() do
-            .modeMenu.toolTip = Format.toString("% · % · %", text.explore_View, viewNames[modeIndex], .forced ? .viewName() : text.board_Automatic)
-        else do
-            .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[modeIndex])
+        .modeMenu.setIcon(.theme().icon(.Settings, size))
+        .modeMenu.toolTip = text.explore_View
         .sortMenu.toolTip = Format.toString("% · %", sortCommandName(.sortColumn), .descending ? text.cmd_SortDescending : text.cmd_SortAscending)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         .window.refreshExplorerCaption()
@@ -2671,7 +2719,7 @@ impl ExplorerGrid
         .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
         let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
         .tile = Math.Point{width, Math.round(width * cast(f32, aspect))}
-        .cell = Math.Point{width + Gap, .tile.y + FileTile.captionHeight(me) + Gap}
+        .cell = Math.Point{width + Gap, .tile.y + (.explorer.showTileCaption ? FileTile.captionHeight(me) : 0) + Gap}
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
@@ -2748,7 +2796,8 @@ impl ExplorerGrid
     private mtd tilePaintRect(tile: Math.Rectangle)->Math.Rectangle
     {
         var rect = tile
-        rect.height += FileTile.captionHeight(me)
+        if .explorer.showTileCaption do
+            rect.height += FileTile.captionHeight(me)
         let metrics = .themeMetrics()
 
         // Keep the selection stroke and its antialiased fringe inside the repaint.
@@ -2789,7 +2838,7 @@ impl ExplorerGrid
         options.fit         = .Contain
         options.hovered     = .hovered == row
         options.selected    = .explorer.selected == index
-        options.showCaption = true
+        options.showCaption = .explorer.showTileCaption
         for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
             options.nameTick = scroll.tick
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
@@ -2824,7 +2873,7 @@ impl ExplorerGrid
         if not entry.directory
         {
             var pluginIndex: u64
-            if .explorer.window.index.namePlugin(entry.path, &pluginIndex)
+            if .explorer.showViewerIcon and .explorer.window.index.namePlugin(entry.path, &pluginIndex)
             {
                 let metrics  = .themeMetrics()
                 let colors   = .themeColors()
@@ -3451,6 +3500,10 @@ impl IWnd for ExplorerGrid
         if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
         {
             let row = evt.kind == .Leave ? Swag.U64.Max : .rowAt(.surfaceToLocal(evt.surfacePos))
+            if not .explorer.showTileCaption and not .rows and .board != .Album and row < .explorer.shown.count do
+                .toolTip = .tileToolTip(row)
+            else do
+                .toolTip = ""
             if .hovered != row
             {
                 let previous = .hovered
@@ -3487,6 +3540,24 @@ impl IWnd for ExplorerGrid
         .setFocus()
         if evt.kind == .DoubleClick and row < .explorer.shown.count do
             .explorer.activate(.explorer.selected)
+    }
+
+    private mtd tileToolTip(row: u64)->String
+    {
+        let text  = appStrings()
+        let entry = &.explorer.entries[.explorer.shown[row]]
+        var result = safeMediaText(.tileName(entry))
+        result += Format.toString("\n%: %", text.explore_Type, entry.directory ? text.ui_Folder : (Path.extension(entry.name) orelse text.explore_File))
+        if not entry.directory do
+            result += Format.toString("\n%: %", text.explore_Size, StrConv.toDisplaySize(entry.size))
+        if entry.when.year do
+            result += Format.toString("\n%: %", text.explore_Modified, explorerFileTime(entry.when, Time.DateTime.now(), .explorer.window.language))
+        if entry.duration do
+            result += Format.toString("\n%", formatDuration(entry.duration))
+        var pluginIndex: u64
+        if not entry.directory and .explorer.window.index.namePlugin(entry.path, &pluginIndex) do
+            result += Format.toString("\n%", .explorer.window.index.plugins[pluginIndex].displayName())
+        return result
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)

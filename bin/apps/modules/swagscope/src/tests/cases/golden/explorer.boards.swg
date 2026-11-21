@@ -431,3 +431,73 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.artwork.paper")
 }
+
+// The view options name the selected thumbnail size, and their choices keep that size checked.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false, width: 960, height: 600)
+    let explorer = unwrap window.explorer
+    explorer.entries.add({name: "notes.txt", path: "notes.txt", attempted: true})
+    showBoard(&host, window, "Documents", "Projects")
+    explorer.setMode(.Small)
+    host.settleAnimations(window)
+
+    var rendered: u32
+    host.app.sigFrame += func|host = &host, rendered = &rendered|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if not sheet or rendered[] == 3 do
+            return
+        host.finishAnimations()
+
+        if rendered[] == 0
+        {
+            Swag.require(sheet.page.rows[0].label.text == appStrings().explore_View)
+            Swag.require(sheet.page.rows[0].value == appStrings().explore_Small)
+            var image = host.render(&host.surfaceWnd)
+            Pixel.Testing.assertImageGolden(&image, "explorer.view.options.encre")
+            Swag.require(sheet.activateRow(appStrings().explore_View))
+            host.finishAnimations()
+        }
+        else
+        {
+            if rendered[] == 1
+            {
+                var checked = false
+                for &row in sheet.page.rows where row.label.text == appStrings().explore_Small
+                {
+                    Swag.require(row.checked)
+                    checked = true
+                }
+
+                Swag.require(checked)
+                host.theme.setLight()
+                host.notify(.ThemeChanged)
+                host.finishAnimations()
+                var modes = host.render(&host.surfaceWnd)
+                Pixel.Testing.assertImageGolden(&modes, "explorer.view.options.mode.paper")
+                sheet.back()
+                host.finishAnimations()
+                Swag.require(sheet.activateRow(appStrings().explore_ThumbnailDisplay))
+                host.finishAnimations()
+            }
+            else
+            {
+                Swag.require(sheet.page.rows.count == 2)
+                Swag.require(sheet.page.rows[0].kind == .Toggle and sheet.page.rows[0].checked)
+                Swag.require(sheet.page.rows[1].kind == .Toggle and sheet.page.rows[1].checked)
+                var options = host.render(&host.surfaceWnd)
+                Pixel.Testing.assertImageGolden(&options, "explorer.view.options.display.paper")
+                sheet.close()
+            }
+        }
+
+        rendered[] += 1
+    }
+
+    explorer.showModeMenu()
+    host.app.sigFrame.clear()
+    Swag.require(rendered == 3)
+}

@@ -232,6 +232,9 @@ explore_File Fichier
 explore_FilterByType Filtrer par type
 explore_View Choisir la vue
 explore_Organization Organiser les vignettes
+explore_ShowViewerIcon Afficher l’icône du lecteur
+explore_ShowTileCaption Afficher les légendes des vignettes
+explore_ThumbnailDisplay Affichage des vignettes
 explore_FilterAll Tous les éléments
 explore_FilterVideos Vidéos
 explore_FilterImages Images

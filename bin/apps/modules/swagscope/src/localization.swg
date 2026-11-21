@@ -36,6 +36,9 @@ struct AppStrings
     explore_FilterByType:      string = "Filter by type"              // Tooltip of the file-kind menu in the explorer.
     explore_View:              string = "Choose view"                 // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"          // Tooltip of the thumbnail arrangement choice.
+    explore_ShowViewerIcon:    string = "Show viewer icon on thumbnails"
+    explore_ShowTileCaption:   string = "Show thumbnail captions"
+    explore_ThumbnailDisplay: string = "Thumbnail display"
     explore_ArtworkSection:    string = "Artwork"                     // View-menu label of the media illustration source choice.
     explore_FilterAll:         string = "All items"                   // Explorer file-kind filter.
     explore_FilterVideos:      string = "Videos"                      // Explorer file-kind filter.

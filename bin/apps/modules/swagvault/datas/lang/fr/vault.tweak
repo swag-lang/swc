@@ -99,6 +99,8 @@ ui_Browse              Parcourir
 ui_CreateVault         Créer le coffre chiffré
 
 # The page that follows a long operation.
+ui_ReadingKeyFile      Lecture du fichier clé
+ui_ReadKeyFileHelp     Le coffre utilise chaque octet du fichier clé pour préparer l’accès.
 ui_Randomizing         Randomisation du conteneur
 ui_Resizing            Redimensionnement du conteneur
 ui_Camouflaging        Renouvellement du camouflage

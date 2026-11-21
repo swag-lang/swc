@@ -64,6 +64,71 @@ func useReferenceVaultStrings()
     expect g_App.setLanguage(ReferenceLanguage)
 }
 
+// Key-file-only creation can be stopped during reading and retried with the same key.
+#test
+{
+    let keyPath = Testing.tempFilePath("vault-key-", ".bin")
+    defer discard catch File.delete(keyPath)
+    let vaultPath = Testing.tempFilePath("vault-create-", ".bin")
+    defer discard catch File.delete(vaultPath)
+
+    const KeyFileSize = 128'u64 * 1024 * 1024
+    scope
+    {
+        var file = expect File.open(keyPath, .CreateNew, .ReadWrite, .Read)
+        expect file.resize(KeyFileSize)
+    }
+
+    useReferenceVaultStrings()
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    window.showPage(.Create, animate: false)
+    const MiB = 1024'u64 * 1024
+    window.createPath.setText(vaultPath)
+    window.createSize.setText(Format.toString("%", (MinimumSize + MiB - 1) / MiB))
+    window.createKeyFiles.add(keyPath)
+    window.submitCreate()
+
+    Swag.require(window.page == .Progress)
+    Swag.require(window.progressPage.what.text() == appStrings().ui_ReadingKeyFile)
+    var deadline: Time.Stopwatch
+    deadline.restart()
+    var bytes = window.operation.progress.counts()
+    while not bytes.done and not window.operation.task.isDone() and deadline.elapsedMilliseconds() < 5000
+    {
+        Threading.Thread.sleep(1'ms)
+        bytes = window.operation.progress.counts()
+    }
+
+    Swag.require(bytes.phase == .KeyFile and bytes.total == KeyFileSize)
+    Swag.require(bytes.done > 0 and bytes.done < bytes.total)
+    window.reportProgress()
+    Swag.require(window.progressPage.reading.text().count != 0)
+
+    window.stopLongOperation()
+    Swag.require(window.progressPage.what.text() == appStrings().msg_StopRequested)
+    Swag.require(not window.progressPage.stop.isEnabled())
+    window.finishOperation()
+
+    bytes = window.operation.progress.counts()
+    Swag.require(bytes.phase == .KeyFile and bytes.done < bytes.total)
+    Swag.require(window.operation.kind == .None and window.statusMessage == .CreateCanceled)
+    Swag.require(window.page == .Create and not File.exists(vaultPath))
+
+    window.submitCreate()
+    Swag.require(not window.operation.progress.isCanceled())
+    window.finishOperation()
+    Swag.require(window.operation.kind == .None and window.statusMessage == .Created)
+    Swag.require(window.page == .List and File.exists(vaultPath))
+
+    var access: VaultAccess
+    access.setInputs("", window.unlockKeyFiles.toSlice())
+    let credential = expect access.derive()
+    var volume = expect Volume.open(vaultPath, credential.toSlice())
+    volume.close()
+}
+
 // Builds the real main window, at its smallest size, inside the frame of the shipped surface.
 internal func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32, width = cast(f32, MainWindow.MinWidth), height = cast(f32, MainWindow.MinHeight))->*MainWindow
 {
@@ -285,6 +350,11 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
             window.progressPage.begin("C:\\vaults\\one", appStrings().ui_Randomizing, appStrings().ui_RandomizeHelp, appStrings().ui_StopCreating)
             window.showPage(.Progress, animate: false)
+            Testing.assertContentFits(window)
+            assertColumnFits(window, window.progressPage, window.progressPage.column)
+
+            window.progressPage.setStage(appStrings().ui_ReadingKeyFile, appStrings().ui_ReadKeyFileHelp)
+            window.progressPage.setProgress(0.25, 4 * 1024 * 1024 * 1024'u64, 16 * 1024 * 1024 * 1024'u64, "")
             Testing.assertContentFits(window)
             assertColumnFits(window, window.progressPage, window.progressPage.column)
 

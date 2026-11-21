@@ -126,10 +126,12 @@ struct AppStrings
     ui_CreateVault:      string = "Create Encrypted Vault"
 
     // The page that follows a long operation.
+    ui_ReadingKeyFile:   string = "Reading the key file"
+    ui_ReadKeyFileHelp:  string = "The vault uses every byte of the key file to prepare access."
     ui_Randomizing:   string = "Randomizing the container"
     ui_Resizing:      string = "Resizing the container"
     ui_Camouflaging:  string = "Refreshing the camouflage"
-    ui_ProgressOf:    string = "% of %"     // Bytes written so far, then bytes to write.
+    ui_ProgressOf:    string = "% of %"     // Bytes processed so far, then total bytes.
     ui_SecondsLeft:   string = "% s left"
     ui_MinutesLeft:   string = "% min left"
     ui_RandomizeHelp: string = "Every byte is filled with noise before the vault is ready: from outside, nothing tells data from empty space."

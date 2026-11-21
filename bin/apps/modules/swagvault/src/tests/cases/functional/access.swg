@@ -60,6 +60,38 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     Swag.require(not Slice.equals(firstCredential.toSlice(), otherCredential.toSlice()))
 }
 
+// The stored credential binds chunk order, the final partial chunk, and empty key files.
+#test
+{
+    let keyPath = accessTestPath("chunks")
+    defer discard catch File.delete(keyPath)
+    let emptyPath = accessTestPath("empty")
+    defer discard catch File.delete(emptyPath)
+
+    var bytes: Array'u8
+    bytes.resize(8 * 1024 * 1024 + 3)
+    bytes[0] = 42
+    bytes[1024 * 1024] = 17
+    bytes[bytes.count - 1] = 99
+    discard expect File.writeAllBytes(keyPath, bytes.toSlice())
+    discard expect File.writeAllBytes(emptyPath, "")
+
+    var files: Array'String
+    files.add(keyPath)
+    files.add(emptyPath)
+    var access: VaultAccess
+    access.setInputs("", files.toSlice())
+    let credential = expect access.derive()
+
+    // BLAKE2b vector computed independently from the credential format.
+    const Expected: [64] u8 = [
+        0x81, 0x97, 0x3f, 0xe4, 0x96, 0x50, 0x33, 0x0a, 0x30, 0x75, 0xf4, 0x4c, 0xe0, 0x1e, 0x80, 0x2f,
+        0x07, 0xf9, 0x6e, 0xee, 0x09, 0x02, 0xbd, 0x73, 0xb7, 0xa0, 0x39, 0x30, 0x33, 0xe8, 0x09, 0x61,
+        0x1f, 0x72, 0xb8, 0x07, 0xac, 0xb1, 0x7d, 0x05, 0x1e, 0x38, 0xe5, 0x67, 0xae, 0xbf, 0xef, 0x73,
+        0x37, 0x14, 0xda, 0x6e, 0xf4, 0x4e, 0xed, 0xa9, 0x65, 0x99, 0xa7, 0x78, 0xc7, 0x82, 0xd6, 0x17]
+    Swag.require(Slice.equals(credential.toSlice(), Expected))
+}
+
 // Adding, replacing, and removing key files all keep exactly one verified access slot.
 #test
 {

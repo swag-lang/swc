@@ -36,6 +36,7 @@ enum StatusTone
 enum StatusMessage
 {
     Ready                    // Nothing has run yet, or the last operation finished cleanly.
+    ReadingKeyFile           // A key file is being read before the container can be opened or written.
     Randomizing              // The container is being filled with random bytes; `statusProgress` says how far.
     StopRequested            // The user asked the running operation to stop.
     HiddenCreateCanceled     // Hidden creation stopped; replacing an older hidden volume can damage it.

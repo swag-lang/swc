@@ -163,7 +163,17 @@ impl ProgressPage
         .arrange()
     }
 
-    // Shows how far the operation is: the share done, the bytes written of the bytes to write, and
+    // Updates the current phase and lays out its help when the wording changes.
+    mtd setStage(what, help: string)
+    {
+        if .what.text() == what and .help.text() == help do
+            return
+        .what.setText(what)
+        .help.setText(help)
+        .arrange()
+    }
+
+    // Shows how far the phase is: the share done, the bytes processed out of the total, and
     // how long is left when that can be said.
     mtd setProgress(ratio: f32, done, total: u64, left: string)
     {

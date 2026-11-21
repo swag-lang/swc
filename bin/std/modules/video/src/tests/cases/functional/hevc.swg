@@ -157,6 +157,28 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     Swag.require(decoder.video.hevc.skippedNonReference > 0)
 }
 
+// A failed sample read releases the lane it reserved, so a later seek can still decode.
+#test
+{
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var decoder:  Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+    decoder.video.hevc.laneCount = 1
+
+    let offset = decoder.video.hevc.frames[0].offset
+    decoder.video.hevc.frames[0].offset = source.size()
+    var rejected: Swag.Error
+    var frame:    Image
+    discard catch idecoder.decodeFrame(&source, &frame) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+
+    decoder.video.hevc.frames[0].offset = offset
+    decoder.video.hevc.seekTo(47)
+    expect idecoder.decodeFrame(&source, &frame)
+    Swag.require(frame.width == 96 and frame.height == 64)
+}
+
 // A player that falls behind may advance by several display ranks. That is a forward decode, not
 // a random seek back through the group of pictures; references and already queued frames survive.
 #test

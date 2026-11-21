@@ -516,6 +516,7 @@ impl HevcStream
         let lane = .reserveLane()
         if lane == HevcNoLane do
             return false
+        defer #fail .laneStates[lane] = .Free
 
         let decoder = &.decoders[lane]
         if .lastSetupLane != HevcNoLane and lane != .lastSetupLane do

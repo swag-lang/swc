@@ -605,7 +605,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `cast(*void)`.
 - Done when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
-- Related: compiler.ai.020
+- Related: compiler.safety.033
 
 ### platform.portability.078 — Complete Linux FUSE and session integration
 
@@ -682,7 +682,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   exact command; existing double-click behavior remains intact; and moving the checkout and
   rerunning setup refreshes stale interpreter paths, and removal instructions undo installed
   associations.
-- Related: compiler.core.016
+- Related: compiler.build.016
 
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
@@ -870,7 +870,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: supported Windows x64 and one non-Windows target's vector parameters and returns
   interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
   documented per target.
-- Related: cpu.simd.002.
+- Related: compiler.codegen.019.
 
 ### platform.portability.072 — Swag Scope has no portable preview-provider boundary
 
@@ -1125,3 +1125,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063,
   std.screen.003
 
+### platform.portability.103 — Optional SIMD beyond the baseline has no shared dispatch contract
+
+- Evidence: the supported compiler/runtime baseline is x86-64-v3 and startup rejects older
+  hosts; there is no lower-ISA build mode. Standard modules still have no common contract for
+  optional features beyond that baseline.
+- Next: add authoritative optional-feature queries and function multiversioning so a module can
+  select a baseline or richer implementation without duplicating dispatch. A lower-ISA product
+  target would require a separate explicit baseline decision.
+- Done when: dispatch is cached, testable with a forced feature ceiling, works in JIT and native
+  builds, and one runtime or codec kernel selects a measured optional-feature variant while retaining its
+  baseline implementation.
+- Related: compiler.codegen.019, compiler.codegen.020.

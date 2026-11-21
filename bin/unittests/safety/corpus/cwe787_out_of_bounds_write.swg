@@ -84,7 +84,7 @@ func fillRangeWithChangedIndex()
     #run fillRangeWithChangedIndex()
 }
 
-// GAP compiler.ai.020 - 'Swag.memcpy' takes a byte count that has no relation to either
+// GAP compiler.safety.033 - 'Swag.memcpy' takes a byte count that has no relation to either
 // operand, so writing more bytes than the destination holds is not judged. Left commented
 // because it really does overwrite the frame.
 //

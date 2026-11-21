@@ -31,7 +31,7 @@ func heapReadThroughSlice(index: u64)->u8
     #run heapReadThroughSlice(opaqueU64(8))
 }
 
-// GAP compiler.ai.020 - a bare '[*] T' has no extent, so indexing one past the end of
+// GAP compiler.safety.033 - a bare '[*] T' has no extent, so indexing one past the end of
 // the block it addresses is not judged by anything: no static proof, no runtime guard.
 // This is the shape the unsafe-surface entry has to cover. Left commented because it
 // really does read out of bounds.

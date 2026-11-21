@@ -5,7 +5,8 @@ texture-sampling, vector-output, and geometry contracts of `std/pixel`. Image de
 metadata, multi-image input, and SVG decoding live in [std.pixel.image.md](std.pixel.image.md).
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/pixel` stay together in
-these two scopes. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+these two scopes. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). Font parsing and shaping belongs in
 [std.truetype.md](std.truetype.md). Platform renderer selection belongs in
 [platform.portability.md](platform.portability.md). [README.md](README.md) has the whole layout.
@@ -452,3 +453,44 @@ ships; history lives in Git, not here.
   renderer comparison covers the thin rule in Scope.
 
 ---
+
+### std.pixel.040 — Half-size and gradient paths still have unoptimized scalar work
+
+- Evidence: RGB/BGR and RGBA/BGRA half-size paths use packed parallel row loops; other formats
+  still compute each pixel through `readPixelValue` and `writePixelValue`. The two-color legacy
+  gradient computes one row and copies it, while the four-corner and logical-pixel paths still
+  process pixels individually. Fill already copies rows.
+- Next: compare packed byte-color half-size rows and the remaining gradient work against
+  their scalar paths, and a packed source-over kernel against its row-wise scalar implementation.
+- Done when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
+  match existing behavior and each retained kernel beats callback dispatch.
+- Related: std.core.042, std.core.043, compiler.codegen.022.
+
+### std.pixel.041 — Convolution, resize, smart-crop, and Haar kernels remain scalar
+
+- Next: vectorize interior convolution, horizontal/vertical resampling, integral-image box output,
+  Sobel/normalization maps, and contiguous Haar passes while keeping borders and unfavorable gathers
+  scalar.
+- Done when: golden images remain within the declared numeric tolerance and representative
+  large-image workloads show per-stage gains.
+- Related: std.core.044, compiler.codegen.022.
+
+### std.pixel.042 — LUT and transcendental image filters have no packed path
+
+- Next: use gathered tables or vector math to accelerate gamma, contrast, fade, colorize, HSL, and
+  noise kernels without weakening their output contract merely to fit today's instruction set.
+- Done when: each filter declares exact or bounded-error parity, uses the profitable gather/math
+  path under feature dispatch, and retains a scalar fallback.
+- Related: std.core.042, std.core.044, std.core.047.
+
+### std.pixel.043 — CPU span packing stops before translucent blending and complex shading
+
+- Evidence: `rendercpu.swg` already clears packed spans, evaluates four edge samples, and writes
+  full covered constant-color BGRA groups with channel masks. Its translucent alpha path keeps
+  scalar float rounding, and gradient, MSDF and general texture shading retain per-pixel work.
+- Next: extend profitable horizontal spans to those remaining cases, specializing by program,
+  blending and format rather than adding branches to one universal loop.
+- Done when: clip and layer boundaries remain exact, byte/golden parity or a deliberately
+  specified numeric tolerance protects rounding, and stage and application benchmarks justify
+  each retained path. Gather-dependent sampling needs its own measured decision.
+- Related: std.core.042, std.core.044, std.core.047, std.core.049.

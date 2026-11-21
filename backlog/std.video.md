@@ -42,10 +42,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   whole-process cycles include unrelated workers. Multi-slice scheduling belongs to std.video.013.
 - Constraints: preserve truncated-input checks and clear residual blocks that intra
   reconstruction can read without entropy parsing. The strong vertical chroma vector path
-  belongs to cpu.simd.023.
+  belongs to std.video.018.
 - Done when: serial decode costs at most four-thirds of the selected single-threaded FFmpeg
   reference on the same fixture and machine, with unchanged decoded planes.
-- Related: std.video.013, compiler.optimization.011, cpu.simd.023.
+- Related: std.video.013, compiler.codegen.005, std.video.018.
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
@@ -54,7 +54,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   not a current ratio. `filterLumaEdge` uses packed four-line luma filtering in both
   orientations, transposing vertical segments, while chroma packs two-line segments in both
   orientations. Main/Main10 conformance and container fixtures remain the correctness boundary; range-extension coverage belongs to
-  std.video.009, and wider SIMD capability to cpu.simd.002.
+  std.video.009, and wider SIMD capability to compiler.codegen.019.
 - Next: rebaseline a redistributable Main10 clip with one decode lane against identical FFmpeg
   input, profile the remaining stages, and pick one lead: threshold/context derivation and
   frame traffic, the vertical luma transpose, band-local edge processing, or the separate
@@ -64,7 +64,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   one process on the same blocks, not by disabling stages.
 - Done when: serial decode costs at most four-thirds of FFmpeg on the same Main10 fixture and
   machine, with exact conformance and reference planes.
-- Related: std.video.001, std.video.009, compiler.optimization.011, cpu.simd.002
+- Related: std.video.001, std.video.009, compiler.codegen.005, compiler.codegen.019
 
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 
@@ -504,3 +504,38 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037
+
+### std.video.018 — H.264 strong chroma deblocking remains scalar vertically
+
+- Evidence: weak luma/chroma in both orientations, strong luma in both orientations and
+  strong horizontal chroma are packed in `h264/deblock.swg`. `filterChromaStrongVertical`
+  still filters two-line scalar segments through `filterChroma`. A transposed-tile
+  vertical strong-chroma kernel, built the way `filterLumaVertical` is, was slower than
+  the scalar segments on the Release microkernel. A later direct two-row SIMD prototype
+  avoided the tile but added unconditional stack traffic and saved-register work on weak
+  and zero-strength segments; isolating the helper still spilled values across its call.
+- Next: find a vertical strong-chroma layout cheaper than the rejected transpose, and
+  confirm the retained packed deblocking kernels in a complete 1080p decode profile.
+- Done when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
+  retained or ruled out with an end-to-end profile, and the 1080p profile confirms the
+  other gains.
+- Related: compiler.codegen.022, std.video.001.
+
+### std.video.019 — Irregular H.264 directional intra prediction still needs a measured packed strategy
+
+- Evidence: `intra.swg` already packs the 16x16 simple stores and plane predictor, selected
+  8x8 directional rows, and several chroma stores. Irregular 4x4/8x8 predictors and chroma-plane
+  arithmetic retain scalar paths; earlier gather/table and narrow-store prototypes were neutral
+  or slower and must be remeasured against the current inlined wrappers.
+- Next: profile the remaining directional modes, reduce representative edge layouts, and retain
+  packing only when it improves their share of complete decoding.
+- Done when: conformance streams remain byte-exact and the remaining directional modes each
+  have a measured decision, with a retained packed kernel improving the staged reconstruction
+  profile.
+- Related: std.core.043, std.video.001.
+
+### std.video.020 — Keep H.264 pixel kernels in the narrowest profitable lane shape
+
+- Evidence: H.264 kernels widen byte samples to 16-bit lanes even where the operation has a byte-lane form in the SIMD API and backend. This halves the samples processed per vector; the luma six-tap filter already fuses loads with widening, so rewriting it may trade instructions for register pressure.
+- Next: profile the current decode lane, optimize the largest remaining pixel kernel, and compare emitted instructions and lane samples on the same fixture. Revisit the luma six-tap byte path only if it reduces `interpolateLuma` cost without adding spills.
+- Done when: prediction, residual, reconstruction, and deblocking stay byte-exact and fit the measured pixel budget on the maintained fixture; delete the entry if profiling shows no viable improvement.

@@ -22,7 +22,7 @@ CRT statically and was inspected with only Windows system DLL imports. The
 executable includes Rust dependencies, fonts, translations, icons and resources;
 it is therefore a whole-application size comparison, not an application-code-only
 measurement. PE size and relocation evidence remains in
-[`compiler.optimization.136`](compiler.optimization.md).
+[`compiler.codegen.017`](compiler.optimization.md).
 
 The Rust icon atlas embeds the original SVG and rasterizes it once at 4x into a
 768 × 480 GPU texture on first paint. This is not a pre-rasterized bitmap bundled

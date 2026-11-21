@@ -45,8 +45,8 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
 - Done when: those four foundational entries are closed and the language reference states one contract for
   ownership, suspension, cancellation, failure and memory access that the compiler enforces.
-- Related: std.core.025, language.parallelism.011, std.core.028, compiler.ai.020,
-  compiler.safety.007, compiler.ai.021, platform.portability.035.
+- Related: std.core.025, language.parallelism.011, std.core.028, compiler.safety.033,
+  compiler.safety.007, compiler.safety.034, platform.portability.035.
 
 #### Progress and memory-model boundaries that already apply
 
@@ -168,7 +168,7 @@ of simplicity when every useful helper needs an unchecked contract.
 - Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
   exhaustive interleavings of a small structure. A language that claims checked memory access
   without a dynamic detector claims it only as far as its static analysis reaches.
-- Related: compiler.ai.029, compiler.safety.007, compiler.ai.021
+- Related: language.parallelism.015, compiler.safety.007, compiler.safety.034
 
 ### language.parallelism.009 — Cancellation has no deadline and wakes no wait
 
@@ -228,7 +228,7 @@ of simplicity when every useful helper needs an unchecked contract.
   spawn throughput stops falling between one worker and every worker.
 - Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime
   all give each worker its own deque and steal from the others.
-- Related: language.parallelism.001, language.parallelism.003, compiler.ai.029
+- Related: language.parallelism.001, language.parallelism.003, language.parallelism.015
 
 ### language.parallelism.012 — Extend pressure admission to nested work and dedicated decoders
 
@@ -269,3 +269,82 @@ of simplicity when every useful helper needs an unchecked contract.
   under a shutdown that races its last callback, and the UI executor keeps servicing completion
   and destruction while it drains.
 - Related: platform.portability.035.
+
+### language.parallelism.013 — A parallel loop cannot combine per-partition results
+
+- Evidence: every partition of a `parallel for` receives the same captures. A loop that computes
+  one value -- a sum, a maximum, a count, a first match, an accumulated bounding box -- cannot
+  say that each partition needs its own accumulator and that the accumulators combine at the
+  join. Consumers write one of two workarounds: an atomic on the shared destination, which
+  serializes the loop's hot line and, with `AtomicValue.store` lowered to a locked exchange,
+  pays a full barrier per iteration; or an array indexed by a partition number the language does
+  not expose, which forces the body to know the partitioning it is explicitly told not to depend
+  on.
+- Evidence: the general escape, one accumulator per thread, is also expensive. Every access to a
+  `tls` global calls the runtime's `__tlsVarPtr`
+  (`CodeGenMemoryHelpers::emitGlobalVariableAddress`), which reads the global's slot identifier
+  with an atomic compare-exchange before the host thread-storage lookup; the direct slot load of
+  `2f353d606` serves only the runtime context. The per-thread block is released at thread exit
+  without running `opDrop`, so it can only hold a plain value.
+- Next: design the combining form as part of the statement, stating the identity, the
+  per-partition storage and the combining operation together, and combining at the join rather
+  than in the body. Settle whether the operation must be associative and commutative or only
+  associative -- floating-point addition is not associative -- and say what result the program is entitled
+  to when it is not. Decide whether the form is a clause of `parallel for` or a value the
+  statement produces.
+- Done when: a parallel sum, a parallel maximum and a parallel bounding box are written
+  without an atomic on the hot line and without indexing a partition, and a single-worker run of
+  the same source produces the same value the loop promises.
+- Elsewhere: OpenMP has `reduction(+:x)` and user-declared reducers; Rayon, .NET PLINQ and Java
+  streams reduce through the iterator; Chapel writes `+ reduce`. All of them treat reduction as
+  the second data-parallel primitive after the map, not as a library afterthought.
+- Related: language.parallelism.001, language.parallelism.014, std.core.025
+
+### language.parallelism.014 — Partitions cannot prove disjointness
+
+- Evidence: `try/catch/expect parallel for` now carries failures across the join, but there is
+  still no way to express an exclusive view of part of a container. Consumers index captured
+  buffers, including H.264 reconstruction, and the compiler proves nothing about those indices.
+- Next: add exclusive row, tile, chunk, stride, split and zip views with bounds and overlap
+  contracts, and a checked partition constructor for the cases static proof cannot reach. That
+  validation is semantic input checking, not a release-disabled guard. Read-only source halos
+  beside disjoint destination tiles must be expressible, because stencils and image transforms
+  need them. Preserve the fallible loop's join and partial-effect contract while adding views.
+- Done when: a partitioned image operation needs no manual indexing into a captured buffer,
+  overlapping mutable views are rejected, and success still means every index ran exactly once.
+- Related: language.parallelism.001, language.parallelism.013, language.parallelism.015.
+
+### language.parallelism.015 — Captures do not prove task lifetime or race freedom
+
+- Evidence: borrow analysis follows named and initialized captures, including addresses, field
+  references, slices, aggregates and deferred call-result summaries. It rejects the tested local
+  borrows returned in a closure or stored in a task from an outer lexical scope. Local destructor
+  ordering also matters: a task declared before its captured source joins after that source is
+  destroyed. Borrow merges retain the shortest local lifetime across captures, fields and flow
+  alternatives. The unexecuted regression cases are in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg`. This does not
+  establish race freedom: two partitions writing the same element and a captured pointer whose
+  pointee is mutated elsewhere still compile.
+- Linked-storage gap: the group no longer demonstrates it. `Swag.TaskGroup` holds its first
+  children itself, so `reserveChild` can return a pointer into the group, `spawn` feeds a
+  stores-into-group summary, and `groupBeforeCapture` in
+  `bin/unittests/sanity/borrow_escape_drop_order.swg` is rejected with its expected diagnostic.
+  The rule itself did not change: only block pointers carry owned payload, because treating every
+  `*T` as owned would confuse parent and callback back-references with ownership, so a child
+  reached solely through `blocks: *GroupBlock?` is still invisible to the ownership analysis.
+  Find or build another case before extending the rule to linked storage.
+- Both `Swag.Task.opDrop` and `Swag.TaskGroup.opDrop` join their work, including on early return
+  and failure. An owner can still release a borrowed field in its own destructor before the
+  implicit destruction of its task field; it must join before releasing that storage.
+- Next: follow owned linked storage through accessors, with both an owned child and a non-owned
+  parent pointer as regression cases. Then infer transferable (`Send`) and shared-readable
+  (`Sync`) properties from fields, allocation, copy, move and destruction effects, and require
+  them at captures. `NoCopy` does not imply `Send`, `const` does not imply deep immutability, and
+  an atomic reference count does not synchronize its pointee. Raw pointers, opaque owners, native
+  handles and foreign calls need a stated contract rather than automatic acceptance.
+- Done when: a rejected capture names the concrete alias, allocator, destructor or executor
+  constraint and points at a valid partition or ownership alternative; semantic tests reject
+  hidden aliases, escaped borrows and cross-module global writes without optional analysis.
+  Until then the capture list states intent rather than proving race freedom.
+- Related: compiler.safety.033, compiler.safety.007, compiler.safety.034,
+  language.parallelism.001.

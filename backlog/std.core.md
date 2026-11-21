@@ -4,7 +4,8 @@ This backlog covers `std/core`, measured against the standard libraries it compe
 the Go standard library, the .NET base class library, Rust's `std` plus its de-facto crates, the
 Python standard library, and Zig's `std`.
 
-Compiler work belongs in [compiler.core.md](compiler.core.md) and language work in
+Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/core` together. [README.md](README.md) has the whole layout.
 
@@ -241,7 +242,7 @@ new module rather than growth inside `core`.
   `AtomicValue` rather than a wrapper call on its address.
 - Done when: one atomic family remains, its name is not a workaround, and no consumer reaches
   atomic storage through an ordinary pointer.
-- Related: language.parallelism.001, compiler.ai.029
+- Related: language.parallelism.001, language.parallelism.015
 
 ### std.core.025 — A dependency graph of tasks is written by hand
 
@@ -307,7 +308,7 @@ new module rather than growth inside `core`.
   loops of the regex benchmark tasks, and migrate only if layout and loops do not regress.
 - Done when: the regex types state their forms as tagged unions without a benchmark regression,
   or the measurement rejects the change and this entry is removed.
-- Related: compiler.ai.016.
+- Related: language.design.055.
 
 ### std.core.037 — Format.toString ignores arguments its format does not use
 
@@ -376,6 +377,156 @@ new module rather than growth inside `core`.
 - Done when: callers express both roles and the collision policy. Tests on Linux and Windows
   cover refusing to replace an existing or concurrently created destination, preserving the
   old destination on a failed replacement copy, same-file calls, and cross-filesystem moves.
-- Related: language.design.044, compiler.ai.039.
+- Related: language.design.044, compiler.query.003.
 
 ---
+
+### std.core.042 — Packed numeric lane conversion is incomplete
+
+- Next: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
+  the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
+  distinct from bit reinterpretation and saturating pack.
+- Cost of the gap: the JPEG encoder converts colour with packed 16.16 arithmetic but its forward
+  transform reads floats, and with no `s32` to `f32` lane conversion the samples have to land in a
+  `s16` staging array that the transform then converts one lane at a time.
+- Done when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
+  runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
+  them.
+- Related: std.pixel.042, std.pixel.image.054, std.pixel.043.
+
+### std.core.043 — Vector tails require scalar cleanup
+
+- Next: add masked load/store and partial load/store operations with an explicit valid-lane mask,
+  defined non-faulting behavior, and efficient baseline lowering when native masks are unavailable.
+  `Core.Math.Simd` also ships `storeLow4` and `storeLow8` with no load counterpart, so 4x4 and 8x8 block kernels need padded storage for a full load or explicit scalar partial
+  loads. A masked or partial API must make those preconditions explicit.
+- Done when: arbitrary byte counts can be processed without reading or writing outside the
+  slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
+- Related: compiler.codegen.020, std.core.048, std.video.019, std.pixel.040.
+
+### std.core.044 — Gather supports one shape; scatter, compress and expand are absent
+
+- Evidence: `Swag.vecGather` / `Math.Simd.gather` support only `s32` lanes with `u32x4`
+  indices, lowered to AVX2 `vpgatherdd`. Scatter, compress and expand have no surface. The
+  earlier gather timings were taken while the SIMD wrappers were still cross-module calls,
+  so they do not establish the operation's cost. They are not evidence behind the
+  gather-driven rejections in std.pixel.image.054 and std.video.018 either.
+- Next: time the inlined `vpgatherdd` against scalar lane loads on a hot-LUT
+  microbenchmark and in one consumer, then specify bounds and aliasing semantics for
+  indexed loads/stores and mask compaction/expansion, with a cost model allowed to pick
+  scalar lane operations.
+- Done when: bounds and aliasing semantics are explicit, AVX2 gather and AVX-512 scatter/
+  compress/expand are encoded, and the fallback never performs an invalid masked access.
+- Related: compiler.codegen.020, std.pixel.image.053, std.pixel.image.056, std.gui.pdf.044.
+
+### std.core.045 — Packed memory access has no alignment or cache policy
+
+- Next: add aligned load/store assertions or hints, broadcast loads, and non-temporal stores.
+  `Swag.prefetch` already hints a read into every cache level (`prefetcht0`), never faults and is
+  a no-op where a target has no such instruction; a locality or write-intent variant belongs here
+  once a consumer measures a need for it.
+- Done when: alignment violations are diagnosed or guarded as declared, large copy/fill and
+  image-row benchmarks establish thresholds for streaming access, and ordinary unaligned access
+  remains the default portable operation.
+- Related: platform.portability.103, std.pixel.040, std.pixel.043.
+
+### std.core.046 — AES round and key instructions have no typed surface
+
+- Evidence: `Swag.vecCarrylessMul` and the four `Math.Simd.clmul...` wrappers already expose
+  carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
+  test. AES round/key instructions have no equivalent typed API.
+- Next: expose AES round/key operations with explicit availability and known-answer tests.
+- Done when: feature gating prevents illegal instructions, known-answer tests cover operands
+  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
+- Related: platform.portability.103.
+
+### std.core.047 — Vector rounding and transcendental families remain incomplete
+
+- Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and
+  lerp already have public wrappers in `math/simd.swg`.
+- Next: add vector `round`, reciprocal/reciprocal-square-root policy, exp, log, pow, and the
+  trigonometric family with documented accuracy tiers instead of treating absent machine
+  instructions as a permanent reason to keep callers scalar.
+- Done when: error bounds, exceptional values, determinism policy, and scalar/vector parity are
+  tested, and benchmarks justify the chosen polynomial/table implementations.
+- Related: std.pixel.042, std.truetype.022, std.gui.pdf.044.
+
+### std.core.048 — UTF-8 validation still lacks a profitable packed fast path
+
+- Next: improve `isValid` beyond its current 8-byte scalar ASCII scan; a direct U8x16 bitmask
+  path measured 20.76 to 20.42 GiB/s and was rejected.
+- Done when: malformed boundaries and arbitrary tails match the scalar implementation and an
+  ASCII-heavy benchmark improves rather than only replacing the load width.
+- Related: std.core.043, compiler.optimization.138.
+
+### std.core.049 — Vector4 and Pixel.Color do not use their native packed shape
+
+- Next: implement component arithmetic, min/max, abs, floor/ceil, lerp, clamp, dot/length support,
+  and reusable color arithmetic through `F32x4`/packed bytes without changing floating semantics;
+  do not wrap the current scalar operators directly, which measured 321 to 637 ms in a Release
+  array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
+- Done when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
+  and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
+- Related: std.core.042, std.core.047, std.pixel.043.
+
+### std.core.050 — NumericArray cannot specialize legal packed geometries
+
+- Next: specialize generic equality, arithmetic, fill, copy, and mul-add when the instantiated
+  element/count/operator combination has supported packed semantics.
+- Done when: specialization is compile-time selected, unsupported shapes remain scalar, and
+  generated-code tests prove no hidden conversion or temporary array.
+- Related: compiler.codegen.019, std.core.042.
+
+### std.core.051 — The Argon2 permutation remains scalar
+
+- Evidence: Argon2id compression is scalar; independent lanes already use `parallel for`.
+  Earlier packed attempts lost. These ran while the SIMD wrappers were still cross-module
+  calls:
+  - `U64x2` block XOR was 3.2% slower.
+  - Paired BlaMka with a `u32 x u32 -> u64` low-half product (`pmuludq`) was 72% or more
+    slower, because lane regrouping and state materialization erased the arithmetic gain.
+- Next: retry only with a lowering that keeps the eight-word state in registers across both
+  G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
+  wider layout that amortizes the regrouping. Measure with the fixed-worker
+  [lane-scaling benchmark](../bench/workloads/argon2/README.md).
+- Done when: published vectors pass for all supported parameters and profile benchmarks
+  isolate the packed kernel gain from independent-lane parallelism.
+
+### std.core.052 — Blake2b compression remains scalar
+
+- Evidence: pairing two G functions while packing and extracting scalar state at every
+  half-round was 5.19x slower over 64 MiB. That measurement predates current inlining and
+  the current allocator.
+- Next: prototype paired G functions with persistent vector state and cheap 64-bit lane
+  permutation (native rotates or shift/or), or independent messages per lane, and measure
+  against the scalar kernel.
+- Done when: incremental, keyed, and boundary-length vectors match and compression
+  throughput improves without changing digest output.
+
+### std.core.053 — Poly1305 remains scalar
+
+- Next: implement a packed limb strategy or several-message kernel, selected only where it beats
+  the current scalar carry chain.
+- Done when: differential vectors cover every block-tail length, carry/reduction boundaries are
+  exact, and authenticated-encryption throughput improves end to end.
+
+### std.core.054 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
+
+- Next: add batch APIs or internal batching that process independent message blocks across lanes,
+  instead of attempting to vectorize one recurrence-dependent stream.
+- Done when: one- through lane-width batches preserve streaming/finalization semantics, fall
+  back for a single stream, and improve aggregate hashing throughput.
+
+### std.core.055 — Use one contract for a normal lookup miss
+
+- Evidence: [`HashTable.find`](../bin/std/modules/core/src/collections/hashtable.swg#L811)
+  asserts on a missing key, while [`Regexp.find`](../bin/std/modules/core/src/text/regexp/regexp.swg#L231)
+  returns a flag and span and changes capture state. UTF-8 index searches can return
+  `Swag.U64.Max`. A caller guessing from the names can mishandle absence or mutate state.
+- Next: normalize the Core collection, regex and text search families. Make normal absence
+  explicit in the result, name required-presence operations separately, and expose when a
+  search updates capture state. Choose a representation that cannot expose an unchecked
+  span or index for a miss. Test empty input and an empty successful match separately.
+- Done when: the same operation vocabulary predicts the miss, ownership and mutation
+  contract across the audited families, and a miss cannot be consumed as a valid result.
+- Related: language.design.053, language.design.055.

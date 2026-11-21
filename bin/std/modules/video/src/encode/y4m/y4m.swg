@@ -37,6 +37,7 @@ struct Encoder
         info:    StreamInfo        // Geometry and rate the stream was opened with.
         payload: Array'u8          // Scratch storage of one encoded frame.
         options: EncodeOptions     // Chroma layout applied to every frame.
+        hasFrame: bool             // Whether at least one complete frame was written.
     }
 }
 
@@ -145,10 +146,12 @@ impl IEncoder for Encoder
         try sink.writeText(FrameMarker)
         try sink.writeText("\n")
         try sink.write(.payload.toSlice())
+        .hasFrame = true
     }
 
     mtd impl end(_: *ByteSink) fail
     {
-        // The format has no trailer: a stream is complete as soon as its last frame is written.
+        if not .hasFrame do
+            fail BadParameterError{"Y4M stream needs at least one frame"}
     }
 }

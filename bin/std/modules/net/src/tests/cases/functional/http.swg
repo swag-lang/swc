@@ -509,7 +509,7 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     var client  = expect TcpStream.connect(expect server.localAddress())
     let request = cast(const [..] u8,
-                       "POST /chunks HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n0123456789\r\n1\r\n!\r\n0\r\n\r\n")
+                       "POST /chunks HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n0123456789\r\n1\r\n!\r\n0\r\n\r\n")
     Swag.require(expect client.write(request) == request.count)
     var connection = expect server.accept()
     let parsed     = expect connection.readRequest()
@@ -540,7 +540,7 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     var client  = expect TcpStream.connect(expect server.localAddress())
     let request = cast(const [..] u8,
-                       "POST / HTTP/1.1\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n")
+                       "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n")
     Swag.require(expect client.write(request) == request.count)
     var connection = expect server.accept()
     var error: Swag.Error
@@ -552,10 +552,10 @@ func serveHttpRedirect(thread: const *Threading.Thread)
 #test
 {
     let requests = [
-        "POST / HTTP/1.1\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nx",
-        "POST / HTTP/1.1\r\nTransfer-Encoding: gzip\r\n\r\n",
-        "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nz\r\n",
-        "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\nContent-Length: 0\r\n\r\n"]
+        "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nx",
+        "POST / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: gzip\r\n\r\n",
+        "POST / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\nz\r\n",
+        "POST / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n0\r\nContent-Length: 0\r\n\r\n"]
     for requestText in requests
     {
         var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
@@ -567,6 +567,34 @@ func serveHttpRedirect(thread: const *Threading.Thread)
         discard catch connection.readRequest() as error
         Swag.require(error.value() is Errors.InvalidFormatError)
     }
+}
+
+// HTTP/1.1 requires one non-empty Host field; HTTP/1.0 remains valid without it.
+#test
+{
+    let invalidRequests = [
+        "GET / HTTP/1.1\r\n\r\n",
+        "GET / HTTP/1.1\r\nHost: first.example\r\nHost: second.example\r\n\r\n",
+        "GET / HTTP/1.1\r\nHost:\r\n\r\n"]
+    for requestText in invalidRequests
+    {
+        var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+        var client  = expect TcpStream.connect(expect server.localAddress())
+        let request = cast(const [..] u8, requestText)
+        Swag.require(expect client.write(request) == request.count)
+        var connection = expect server.accept()
+        var error: Swag.Error
+        discard catch connection.readRequest() as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client  = expect TcpStream.connect(expect server.localAddress())
+    let request = cast(const [..] u8, "GET / HTTP/1.0\r\n\r\n")
+    Swag.require(expect client.write(request) == request.count)
+    var connection = expect server.accept()
+    let parsed     = expect connection.readRequest()
+    Swag.require(parsed.version == "HTTP/1.0" and parsed.target == "/")
 }
 
 // Closing an HTTP server releases its listening endpoint without changing accepted streams.

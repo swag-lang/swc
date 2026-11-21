@@ -306,6 +306,8 @@ impl ServerConnection
         var hasContentLength    = false
         var contentLength       = 0'u64
         var isChunked           = false
+        var hostCount           = 0'u32
+        var emptyHost           = false
         var connectionClose     = false
         var connectionKeepAlive = false
         for
@@ -337,6 +339,11 @@ impl ServerConnection
                 hasContentLength = true
                 contentLength    = parsed
             }
+            elif httpHeaderNameEquals(name, "host")
+            {
+                hostCount += 1
+                emptyHost = value.count == 0
+            }
             elif httpHeaderNameEquals(name, "transfer-encoding")
             {
                 if isChunked or
@@ -354,6 +361,8 @@ impl ServerConnection
             request.headers.add({name: String.from(name), value: String.from(value)})
         }
 
+        if version == "HTTP/1.1" and (hostCount != 1 or emptyHost) do
+            fail Errors.InvalidFormatError{"HTTP/1.1 request needs exactly one non-empty Host field"}
         if isChunked and hasContentLength do
             fail Errors.InvalidFormatError{"HTTP request cannot combine Transfer-Encoding and Content-Length"}
         if isChunked

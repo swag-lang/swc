@@ -126,6 +126,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
     if depth >= MAX_RECURSE do
         try fault(0x15)
 
+    let compositePointStart = faceData.outlinePoints.count
     var offset  = 10'u64
     var hasMore = true
     while hasMore
@@ -221,10 +222,10 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and
                arg1 >= 0 and
                arg2 >= 0 and
-               cast(u32, arg1) < basePointCount and
+               cast(u32, arg1) < basePointCount - compositePointStart and
                cast(u32, arg2) < addedPointCount
             {
-                let anchorParent = faceData.outlinePoints[arg1]
+                let anchorParent = faceData.outlinePoints[compositePointStart + cast(u32, arg1)]
                 let anchorChild  = faceData.outlinePoints[basePointCount + arg2]
                 dx = anchorParent.x - anchorChild.x
                 dy = anchorParent.y - anchorChild.y

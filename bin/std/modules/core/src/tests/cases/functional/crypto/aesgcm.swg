@@ -24,6 +24,30 @@ func aesGcmHexBytes(text: string)->Array'u8
 
 #test
 {
+    // Carry-less GHASH agrees with the portable multiply across a chained sequence of blocks.
+    var hashKey:     [16] u8
+    var scalarState: [16] u8
+    for index in 16
+    {
+        hashKey[index]     = cast(u8, index * 29 + 3)
+        scalarState[index] = cast(u8, index * 13 + 7)
+    }
+
+    var clmulState = scalarState
+    for blockIndex in 32
+    {
+        var block: [16] u8
+        for index in 16 do
+            block[index] = cast(u8, blockIndex * 31 + index * 17 + 5)
+        Crypto.aesGcmGhashBlockScalar(&scalarState, hashKey, &block[0])
+        Crypto.aesGcmGhashBlockClmul(&clmulState, hashKey, &block[0])
+    }
+
+    Swag.require(Crypto.constantTimeEqual(scalarState, clmulState))
+}
+
+#test
+{
     // NIST SP 800-38D, Test Case 1: empty plaintext and associated data.
     var key:   [16] u8
     var nonce: [12] u8
@@ -135,4 +159,25 @@ func aesGcmHexBytes(text: string)->Array'u8
     var sizeError:  Swag.Error
     discard catch Crypto.aesGcmEncrypt(key, shortNonce, "", "", empty.toSlice(), tag) as sizeError
     Swag.require(sizeError.value() is Errors.BadParameterError)
+}
+
+#test
+{
+    // Large AES-GCM records use independent counter batches for parallel CTR processing.
+    Swag.setWorkerCount(4)
+    var key:       [16] u8
+    var nonce:     [Crypto.AesGcmNonceSize] u8
+    var plaintext: Array'u8
+    plaintext.resize(65 * 1024 + 19)
+    for index in plaintext.count do
+        plaintext[index] = cast(u8, index * 29 + 7)
+    var ciphertext: Array'u8
+    ciphertext.resize(plaintext.count)
+    var tag: [Crypto.AesGcmTagSize] u8
+    expect Crypto.aesGcmEncrypt(key, nonce, "parallel AAD", plaintext.toSlice(), ciphertext.toSlice(), tag)
+
+    var decrypted: Array'u8
+    decrypted.resize(plaintext.count)
+    expect Crypto.aesGcmDecrypt(key, nonce, "parallel AAD", ciphertext.toSlice(), tag, decrypted.toSlice())
+    Swag.require(Crypto.constantTimeEqual(decrypted.toSlice(), plaintext.toSlice()))
 }

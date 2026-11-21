@@ -10,6 +10,12 @@ public const Sha512DigestSize = 64
 // SHA-384 digest size in bytes.
 public const Sha384DigestSize = 48
 
+// SHA-512/224 digest size in bytes.
+public const Sha512_224DigestSize = 28
+
+// SHA-512/256 digest size in bytes.
+public const Sha512_256DigestSize = 32
+
 private const Sha512Constants: [80] u64 = [
     0x428A2F98D728AE22, 0x7137449123EF65CD, 0xB5C0FBCFEC4D3B2F, 0xE9B5DBA58189DBBC,
     0x3956C25BF348B538, 0x59F111F1B605D019, 0x923F82A4AF194F9B, 0xAB1C5ED5DA6D8118,
@@ -44,15 +50,27 @@ private struct Sha512Core
 
 impl Sha512Core
 {
-    mtd reset(digestSize: u64)
+    mtd reset(digestSize: u64, variant: u32)
     {
         Swag.init(me, 1)
         .digestSize = digestSize
-        if digestSize == Sha384DigestSize
+        if variant == 1
         {
             .state = [
                 0xCBBB9D5DC1059ED8, 0x629A292A367CD507, 0x9159015A3070DD17, 0x152FECD8F70E5939,
                 0x67332667FFC00B31, 0x8EB44A8768581511, 0xDB0C2E0D64F98FA7, 0x47B5481DBEFA4FA4]
+        }
+        elif variant == 2
+        {
+            .state = [
+                0x8C3D37C819544DA2, 0x73E1996689DCD4D6, 0x1DFAB7AE32FF9C82, 0x679DD514582F9FCF,
+                0x0F6D2B697BD44DA8, 0x77E36F7304C48942, 0x3F9D85A86A1D36C8, 0x1112E6AD91D692A1]
+        }
+        elif variant == 3
+        {
+            .state = [
+                0x22312194FC2BF72C, 0x9F555FA3C84C64C2, 0x2393B86B6F53B151, 0x963877195940EABD,
+                0x96283EE2A88EFFE3, 0xBE5E1E2553863992, 0x2B0199FC2C85B8AA, 0x0EB72DDC81C52CA2]
         }
         else
         {
@@ -190,7 +208,7 @@ public impl Sha512
     alias Digest = [8] u64
 
     // Resets the sequence to the standard SHA-512 initial state.
-    mtd reset() => .core.reset(Sha512DigestSize)
+    mtd reset() => .core.reset(Sha512DigestSize, 0)
 
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
@@ -233,7 +251,7 @@ public impl Sha384
     alias Digest = [6] u64
 
     // Resets the sequence to the standard SHA-384 initial state.
-    mtd reset() => .core.reset(Sha384DigestSize)
+    mtd reset() => .core.reset(Sha384DigestSize, 1)
 
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
@@ -262,6 +280,104 @@ public impl Sha384
     func compute(data: const [..] u8)->Digest
     {
         var hash: Sha384
+        hash.reset()
+        hash.update(data)
+        return hash.finalize()
+    }
+}
+
+// Computes a SHA-512/224 digest incrementally.
+public struct Sha512_224
+{
+    private core: Sha512Core
+}
+
+public impl Sha512_224
+{
+    // Stores SHA-512/224 output as seven 32-bit words in digest order.
+    alias Digest = [7] u32
+
+    // Resets the sequence to the SHA-512/224 initial state.
+    mtd reset() => .core.reset(Sha512_224DigestSize, 2)
+
+    // Includes `data` in the running digest.
+    mtd update(data: const [..] u8)
+    {
+        if not .core.digestSize do
+            .reset()
+        .core.update(data)
+    }
+
+    // Clears the current sequence state.
+    mtd clear() => .core.clear()
+
+    // Finalizes the current sequence and returns its 224-bit digest.
+    mtd finalize()->Digest
+    {
+        if not .core.digestSize do
+            .reset()
+        let fullDigest = .core.finalize()
+        var result: #returntype
+        for index in result.count
+        {
+            let shift = (index & 1) == 0 ? 32 : 0
+            result[index] = cast(u32, fullDigest[index / 2] >> shift)
+        }
+
+        return result
+    }
+
+    // Computes the SHA-512/224 digest of `data` in one operation.
+    func compute(data: const [..] u8)->Digest
+    {
+        var hash: Sha512_224
+        hash.reset()
+        hash.update(data)
+        return hash.finalize()
+    }
+}
+
+// Computes a SHA-512/256 digest incrementally.
+public struct Sha512_256
+{
+    private core: Sha512Core
+}
+
+public impl Sha512_256
+{
+    // Stores SHA-512/256 output as four 64-bit words in digest order.
+    alias Digest = [4] u64
+
+    // Resets the sequence to the SHA-512/256 initial state.
+    mtd reset() => .core.reset(Sha512_256DigestSize, 3)
+
+    // Includes `data` in the running digest.
+    mtd update(data: const [..] u8)
+    {
+        if not .core.digestSize do
+            .reset()
+        .core.update(data)
+    }
+
+    // Clears the current sequence state.
+    mtd clear() => .core.clear()
+
+    // Finalizes the current sequence and returns its 256-bit digest.
+    mtd finalize()->Digest
+    {
+        if not .core.digestSize do
+            .reset()
+        let fullDigest = .core.finalize()
+        var result: #returntype
+        for index in result.count do
+            result[index] = fullDigest[index]
+        return result
+    }
+
+    // Computes the SHA-512/256 digest of `data` in one operation.
+    func compute(data: const [..] u8)->Digest
+    {
+        var hash: Sha512_256
         hash.reset()
         hash.update(data)
         return hash.finalize()

@@ -46,6 +46,30 @@ func sha384DigestBytes(digest: Hash.Sha384.Digest)->[48] u8
     return result
 }
 
+func sha512_224DigestBytes(digest: Hash.Sha512_224.Digest)->[28] u8
+{
+    var result: #returntype
+    for index in digest.count
+    {
+        for byte in 4 do
+            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
+    }
+
+    return result
+}
+
+func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
+{
+    var result: #returntype
+    for index in digest.count
+    {
+        for byte in 8 do
+            result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+    }
+
+    return result
+}
+
 #test
 {
     let empty512 = sha512HexBytes("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e")
@@ -106,4 +130,34 @@ func sha384DigestBytes(digest: Hash.Sha384.Digest)->[48] u8
     let expected384 = sha512HexBytes("4ece084485813e9088d2c63a041bc5b44f9ef1012a2b588f3cd11f05033ac4c60c2ef6ab4030fe8296248df163f44952")
     Swag.require(Crypto.constantTimeEqual(Crypto.HmacSha512.compute(key, data), expected512.toSlice()))
     Swag.require(Crypto.constantTimeEqual(Crypto.HmacSha384.compute(key, data), expected384.toSlice()))
+}
+
+#test
+{
+    let empty512_224 = sha512HexBytes("6ed0dd02806fa89e25de060c19d3ac86cabb87d6a0ddd05c333b84f4")
+    let abc512_224   = sha512HexBytes("4634270f707b6a54daae7530460842e20e37ed265ceee9a43e8924aa")
+    let empty512_256 = sha512HexBytes("c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a")
+    let abc512_256   = sha512HexBytes("53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23")
+    Swag.require(Crypto.constantTimeEqual(sha512_224DigestBytes(Hash.Sha512_224.compute("")), empty512_224.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(sha512_224DigestBytes(Hash.Sha512_224.compute("abc")), abc512_224.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(sha512_256DigestBytes(Hash.Sha512_256.compute("")), empty512_256.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(sha512_256DigestBytes(Hash.Sha512_256.compute("abc")), abc512_256.toSlice()))
+
+    var input: [400] u8
+    for index in input.count do
+        input[index] = cast(u8, index * 29 + 7)
+    let expected224 = sha512_224DigestBytes(Hash.Sha512_224.compute(input))
+    let expected256 = sha512_256DigestBytes(Hash.Sha512_256.compute(input))
+    for split in [0'u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]
+    {
+        var sha512_224: Hash.Sha512_224
+        sha512_224.update(input[until split])
+        sha512_224.update(input[split to])
+        Swag.require(Crypto.constantTimeEqual(sha512_224DigestBytes(sha512_224.finalize()), expected224))
+
+        var sha512_256: Hash.Sha512_256
+        sha512_256.update(input[until split])
+        sha512_256.update(input[split to])
+        Swag.require(Crypto.constantTimeEqual(sha512_256DigestBytes(sha512_256.finalize()), expected256))
+    }
 }

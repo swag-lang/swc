@@ -39,7 +39,8 @@ outcomes owned by `core` together.
   software substitution and FIPS 197 tests. `Math.Simd` has no AES-round intrinsic, so AES-NI
   dispatch is not available; the software path is slower than a hardware backend. AES-GCM now
   parallelizes independent CTR batches for large records. `core/src/crypto`
-  also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA-3, SHAKE,
+  also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512,
+  SHA-512/224, SHA-512/256, SHA-3, SHAKE,
   HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512, HKDF-SHA-256, HKDF-SHA-512, PBKDF2, BLAKE2b,
   BLAKE2s, BLAKE3, X25519, Ed25519, AES-GCM, Argon2id, ChaCha20, Poly1305,
   ChaCha20-Poly1305, XChaCha20-Poly1305, RSA-OAEP-SHA-256, RSA-PSS-SHA-256, and several

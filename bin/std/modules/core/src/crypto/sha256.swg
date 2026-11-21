@@ -186,3 +186,60 @@ public impl Sha256
         return v.finalize()
     }
 }
+
+// Computes a SHA-224 digest incrementally.
+public struct Sha224
+{
+    private core:        Sha256
+    private initialized: bool
+}
+
+public impl Sha224
+{
+    // Stores a SHA-224 digest as seven 32-bit words in digest order.
+    alias Digest = [7] u32
+
+    // Resets the sequence to the SHA-224 initial state.
+    mtd reset()
+    {
+        .core.reset()
+        .core.state = [0xC1059ED8, 0x367CD507, 0x3070DD17, 0xF70E5939,
+                       0xFFC00B31, 0x68581511, 0x64F98FA7, 0xBEFA4FA4]
+        .initialized = true
+    }
+
+    // Includes `buffer` in the running digest.
+    mtd update(buffer: const [..] u8)
+    {
+        if not .initialized do
+            .reset()
+        .core.update(buffer)
+    }
+
+    // Clears the current sequence state.
+    mtd clear()
+    {
+        Swag.memset(me, 0, #sizeof(Sha224))
+    }
+
+    // Finalizes the current sequence and returns its 224-bit digest.
+    mtd finalize()->Digest
+    {
+        if not .initialized do
+            .reset()
+        let fullDigest = .core.finalize()
+        var result: #returntype
+        for index in result.count do
+            result[index] = fullDigest[index]
+        return result
+    }
+
+    // Computes the SHA-224 digest of `buffer` in one operation.
+    func compute(buffer: const [..] u8)->Digest
+    {
+        var hash: Sha224
+        hash.reset()
+        hash.update(buffer)
+        return hash.finalize()
+    }
+}

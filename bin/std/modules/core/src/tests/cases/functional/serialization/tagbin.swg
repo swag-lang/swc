@@ -570,6 +570,23 @@ func corruptTagBinShapeFlags(bytes: String, fieldName: string, flags: u8)->Array
     return result
 }
 
+func corruptTagBinHeaderFlags(bytes: String, flags: u32)->Array'u8
+{
+    var result: Array'u8
+    result.add(bytes.toSlice())
+    var reader = ByteStream.openRead(result.toSlice())
+    discard expect reader.readNative'u32()
+    discard expect reader.readNative'u32()
+    let schemaLength = expect reader.readVarint()
+    reader.advance(schemaLength)
+    let flagsSeek = reader.position()
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(flagsSeek)
+    writer.writeNative(flags)
+    return result
+}
+
 func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
 {
     var result: #returntype
@@ -1191,6 +1208,18 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 {
     let bytes   = encodeTagBin(makeTagBinPayload())
     let patched = corruptTagBinShapeFlags(bytes, "id", 2)
+
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SerializationError)
+}
+
+// Version 1 rejects header flags whose meaning it does not define.
+#test
+{
+    let bytes   = encodeTagBin(makeTagBinPayload())
+    let patched = corruptTagBinHeaderFlags(bytes, 2)
 
     var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var errorOutcome: Swag.Error

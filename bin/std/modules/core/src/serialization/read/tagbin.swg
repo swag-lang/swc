@@ -786,6 +786,8 @@ private impl TagBin
         }
 
         let flags = try .stream.readNative'Write.TagBinHeaderFlags()
+        if cast(u32, flags) > cast(u32, Write.TagBinHeaderFlags.StreamCompressed) do
+            fail SerializationError{"invalid TagBin header flags"}
         let shapeDirOffset = try .stream.readNative'u64()
 
         if flags.has(.StreamCompressed)

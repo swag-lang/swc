@@ -882,6 +882,36 @@ func fragmentedPacketSource()->ByteSource fail
     }
 }
 
+// A truncated extended-size final index does not hide complete media fragments before it.
+#test
+{
+    let path = videoTempPath("fragmented-partial-extended-index", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    let packet = expect fragmentedPacket(&source)
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice())
+    expect writer.addPacket(EncodedPacket{packet.toSlice(), 0, 0, 512, true})
+    expect writer.end()
+
+    let bytes = expect File.readAllBytes(path)
+    var partialHeader: [8] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a']
+    var partialIndex: Array'u8
+    partialIndex.add(bytes.toSlice())
+    partialIndex.add(Swag.makeSlice(&partialHeader[0], partialHeader.count))
+    var reader = expect Reader.openMemory("partial-extended-index.mp4", partialIndex.toSlice())
+    Swag.require(reader.frameCount() == 1)
+
+    var oversizedHeader: [16] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a',
+                                     0, 0, 0, 0, 0, 0, 1, 0]
+    var oversizedIndex: Array'u8
+    oversizedIndex.add(bytes.toSlice())
+    oversizedIndex.add(Swag.makeSlice(&oversizedHeader[0], oversizedHeader.count))
+    reader = expect Reader.openMemory("oversized-extended-index.mp4", oversizedIndex.toSlice())
+    Swag.require(reader.frameCount() == 1)
+}
+
 // The byte bound emits a complete fragment before the packet-count bound is reached.
 #test
 {

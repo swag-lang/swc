@@ -388,9 +388,27 @@ impl Layout
                 let declared = try source.readBigEndian'u32()
                 let kind     = try source.readBigEndian'u32()
                 try source.seek(start)
+                var incomplete = false
+                if declared == 1 and
+                   (kind == FragmentId or kind == MediaDataId or kind == FragmentRandomAccessId)
+                {
+                    incomplete = remaining < 16
+                    if not incomplete
+                    {
+                        try source.seek(start + BoxHeaderSize)
+                        incomplete = (try source.readBigEndian'u64()) > remaining
+                    }
+                    try source.seek(start)
+                }
+                elif declared >= BoxHeaderSize and declared > remaining and
+                     (kind == FragmentId or kind == MediaDataId or kind == FragmentRandomAccessId)
+                {
+                    incomplete = true
+                }
+
                 if (kind == FragmentId or kind == MediaDataId or kind == FragmentRandomAccessId) and
                    ((kind == FragmentId and not declared) or
-                    (declared >= BoxHeaderSize and declared > remaining))
+                    incomplete)
                 {
                     interrupted = true
                     break

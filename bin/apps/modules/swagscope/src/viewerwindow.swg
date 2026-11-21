@@ -1399,6 +1399,7 @@ impl ViewerWindow
         let metrics = .themeMetrics()
         .hintLine.margin.w = .readingLine.isLocallyVisible() ?
                              .readingLine.position.height + metrics.floating_Inset : 0
+        .hintLine.margin.z = exploring and .explorer ? .explorer.padding.z : 0
         .hintLine.clearHints()
 
         // The keys of an explored page are taught while what it shows leaves its foot free: an

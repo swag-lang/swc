@@ -1349,6 +1349,8 @@ impl ViewerWindow
             .information.stop()
         if .explorer do
             .explorer.fitToSheet(open)
+        if .isExploring() do
+            .teachHints(true)
         if .fullScreen
         {
             .updateDocumentInsets()

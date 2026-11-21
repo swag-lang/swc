@@ -142,6 +142,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.albumText.right() <= grid.clientRect().width)
     Swag.require(window.searchGroup.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
     Swag.require(window.searchGroup.surfaceRect().horzCenter() < window.documentArea().horzCenter())
+    Swag.require(window.hintLine.isLocallyVisible())
+    Swag.require(window.hintLine.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
     Swag.require(grid.playButton!.text() == appStrings().explore_Play)
     Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.AlbumPlay).hidden)
     host.settleAnimations(window)

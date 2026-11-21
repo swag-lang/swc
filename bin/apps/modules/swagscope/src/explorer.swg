@@ -137,6 +137,7 @@ struct Explorer
         modeMenu:   *IconButton
         filter:     *EditBox
         list:       *ListCtrl
+        archiveHeader: *Header
         scroll:     *ScrollWnd
         grid:       *ExplorerGrid
     }
@@ -228,6 +229,27 @@ impl Explorer
         // The tiles draw from the cell edge, so the sheet steps in by the air a cell keeps, and
         // its pictures line up with the title above them.
         let sheetMargin = PageMargin - ExplorerGrid.CellInset
+        with result.archiveHeader = Header.create(result)
+        {
+            .dockStyle = .Top
+            .form = .Transparent
+            .padding.x = ExplorerGrid.CellInset
+            .padding.z = ExplorerGrid.CellInset
+            .ruleInset = ExplorerGrid.CellInset
+            .itemPadding = ExplorerGrid.ArchiveCellInset
+            .updateFlags(remove: .Separators)
+            let text = appStrings()
+            .addColumn(text.explore_Name)
+            .addColumn(text.explore_Compression, align: .Right).isClickable = false
+            .addColumn(text.explore_Size, align: .Right)
+            .addColumn(text.explore_Modified, align: .Right)
+            .sigColumnClicked += func|result|(_, column)
+            {
+                result.sortBy(column, result.sortColumn == column and not result.descending)
+            }
+            .hide()
+        }
+
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle       = .Center
@@ -523,6 +545,8 @@ impl Explorer
         .header.padding.z = inset
         .list.margin.x    = inset - ExplorerGrid.CellInset
         .list.margin.z    = inset - ExplorerGrid.CellInset
+        .archiveHeader.margin.x = .list.margin.x
+        .archiveHeader.margin.z = .list.margin.z
         .scroll.margin.x  = .list.margin.x
         .scroll.margin.z  = .list.margin.z
         .title.hide()
@@ -1116,7 +1140,7 @@ impl Explorer
     // Gives the keyboard to the listing, in whichever form it is shown.
     mtd focusContent()
     {
-        if .mode == .Names or .mode == .Details do
+        if .list.isLocallyVisible() do
             .list.setFocus()
         else do
             .grid.setFocus()
@@ -1137,6 +1161,11 @@ impl Explorer
         .list.header.itemAt(2).name = text.explore_Size
         .list.header.itemAt(3).name = text.explore_Modified
         .list.header.itemAt(4).name = text.explore_Duration
+        .archiveHeader.itemAt(0).name = text.explore_Name
+        .archiveHeader.itemAt(1).name = text.explore_Compression
+        .archiveHeader.itemAt(2).name = text.explore_Size
+        .archiveHeader.itemAt(3).name = text.explore_Modified
+        .archiveHeader.invalidate()
         .refreshQuietMenus()
     }
 
@@ -1631,7 +1660,12 @@ impl Explorer
         .showMediaInfo()
         .updateBreadcrumb()
 
-        .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
+        let direction = .descending ? HeaderSortDirection.Descending : .Ascending
+        .list.header.setSortIndicator(.sortColumn, direction)
+        if .archiveHeader.itemAt(.sortColumn).isClickable do
+            .archiveHeader.setSortIndicator(.sortColumn, direction)
+        else do
+            .archiveHeader.clearSortIndicator()
         if entering and not .restoringView do
             .setMode(.Details)
         else do
@@ -1921,12 +1955,12 @@ impl Explorer
         .mode = mode
         .refreshQuietMenus()
 
-        // An archive reads as quiet rows — its glyph, its name, how well it packed, its size and
-        // its date — where a folder shows its columns.
+        // Archive details keep their compression readings in a dedicated column.
         .grid.rows = mode == .Details and .listing.isArchive
         let rows = (mode == .Names or mode == .Details) and not .grid.rows
         .list.show(rows)
         .list.header.show(mode == .Details)
+        .archiveHeader.show(.grid.rows)
         .scroll.show(not rows)
         .applyLayout()
         .fill()
@@ -2384,6 +2418,7 @@ impl IWnd for Explorer
                 .setStatus("")
                 .failure.setReason(error)
                 .list.hide()
+                .archiveHeader.hide()
                 .scroll.hide()
                 .failure.show()
                 return
@@ -2625,12 +2660,10 @@ impl ExplorerGrid
     const TrackPitch = 38.0
     const AlbumHead  = 156.0
 
-    // The rows of an archive: their pitch, the length of the bar of the compression ratio, and the
-    // columns of the size and the date from the end of the row.
-    const RowPitch   = 34.0
-    const RatioWidth = 64.0
-    const DateColumn = 136.0
-    const SizeColumn = 96.0
+    // Archive rows share their column bounds with the header above the viewport.
+    const RowPitch         = 34.0
+    const RatioWidth       = 64.0
+    const ArchiveCellInset = 12.0
 
     // Reuses standard animated marks for every visible tile waiting for a final preview.
     mtd ensureSpinners(count: u64)
@@ -2692,7 +2725,8 @@ impl ExplorerGrid
             .posters = false
             .refreshAlbumButtons()
             .columns = 1
-            .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 200), RowPitch}
+            .cell    = Math.Point{Math.max(.clientRect().width - 2 * CellInset, 0), RowPitch}
+            .fitArchiveColumns()
             .explorer.scroll.setScrollSize(0, cast(f32, .explorer.shown.count) * RowPitch + 2 * CellInset)
             .invalidate()
             return
@@ -2732,6 +2766,19 @@ impl ExplorerGrid
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 2 * CellInset)
         .invalidate()
         .startNameScroll()
+    }
+
+    mtd fitArchiveColumns()
+    {
+        let header = .explorer.archiveHeader
+        let room   = Math.max(.cell.x - 3 * .themeMetrics().header_Separator, 0)
+        let ratio  = Math.min(124.0, Math.floor(room * 0.23))
+        let size   = Math.min(96.0, Math.floor(room * 0.18))
+        let date   = Math.min(136.0, Math.floor(room * 0.24))
+        header.setItemWidth(0, room - ratio - size - date)
+        header.setItemWidth(1, ratio)
+        header.setItemWidth(2, size)
+        header.setItemWidth(3, date)
     }
 
     // Lays one album out: its cover at the left, then at its right its title over its tracks, one
@@ -3185,10 +3232,20 @@ impl ExplorerGrid
     mtd paintRows(painter: *Painter, first, end: u64)
     {
         let explorer = .explorer
+        let header   = explorer.archiveHeader
         let colors   = .themeColors()
         let metrics  = .themeMetrics()
         let body     = .theme().createDefaultFont(14)
         let mono     = .theme().createDefaultFontFs(11)
+        let nameRight = header.itemPositionAt(0) + header.itemWidthAt(0)
+        let ratioX    = header.itemPositionAt(1)
+        let ratioRoom = Math.max(header.itemWidthAt(1) - 2 * ArchiveCellInset, 0)
+        let ratioWidth = Math.min(RatioWidth, ratioRoom)
+        let ratioRight = ratioX + header.itemWidthAt(1) - ArchiveCellInset
+        let sizeX     = header.itemPositionAt(2)
+        let dateX     = header.itemPositionAt(3)
+        let sizeWidth = header.itemWidthAt(2)
+        let dateWidth = header.itemWidthAt(3)
         painter.setAntialiased(true)
         for row in first until end
         {
@@ -3203,18 +3260,20 @@ impl ExplorerGrid
 
             let glyph    = explorer.entryIcon(index, metrics.menuPopup_IconSize)
             let glyphInk = explorer.selected == index ? colors.arc : colors.softText
-            glyph.paint(painter, rect.x + 12, Math.round(centerY - glyph.sizeY * 0.5), glyphInk)
+            glyph.paint(painter, rect.x + ArchiveCellInset, Math.round(centerY - glyph.sizeY * 0.5), glyphInk)
 
-            let dateRight = rect.right() - 12
-            let sizeRight = dateRight - DateColumn
-            let barRight  = sizeRight - SizeColumn
-            painter.pushClippingRect(Math.Rectangle{rect.x + 36, rect.y, Math.max(barRight - RatioWidth - 16 - rect.x - 36, 0), rect.height})
-            painter.drawString(rect.x + 36, body.opticalLineTop(centerY), entry.name, body, colors.text)
+            let nameX = rect.x + 36
+            painter.pushClippingRect({nameX, rect.y, Math.max(nameRight - nameX - ArchiveCellInset, 0), rect.height})
+            painter.drawString(nameX, body.opticalLineTop(centerY), entry.name, body, colors.text)
             painter.popClippingRect()
 
             // The date as briefly as a list reads it: the time today, the day this year, the date before.
             let date = entry.when.year ? explorerFileTime(entry.when, Time.DateTime.now(), explorer.window.language) : String.from("")
-            painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
+            let lineY = mono.opticalLineTop(centerY)
+            let dateRight = dateX + dateWidth - ArchiveCellInset
+            painter.pushClippingRect({dateX, rect.y, dateWidth, rect.height})
+            painter.drawString(dateRight - Painter.measureString(date, mono).width, lineY, date, mono, colors.faintText)
+            painter.popClippingRect()
 
             var size: String
             if entry.directory
@@ -3225,7 +3284,7 @@ impl ExplorerGrid
             else
             {
                 size = StrConv.toDisplaySize(entry.size)
-                if explorer.listing.isArchive and entry.archiveIndex < explorer.listing.archive.entries.count
+                if ratioWidth >= 3 and entry.archiveIndex < explorer.listing.archive.entries.count
                 {
                     let member = &explorer.listing.archive.entries[entry.archiveIndex]
 
@@ -3234,8 +3293,8 @@ impl ExplorerGrid
                     if member.uncompressedSize
                     {
                         let saved = 1 - Math.clamp(cast(f32, member.compressedSize) / cast(f32, member.uncompressedSize), 0, 1)
-                        let track = Math.Rectangle{barRight - RatioWidth, Math.round(centerY - 1.5), RatioWidth, 3}
-                        let fill  = Math.round(RatioWidth * saved)
+                        let track = Math.Rectangle{ratioRight - ratioWidth, Math.round(centerY - 1.5), ratioWidth, 3}
+                        let fill  = Math.round(ratioWidth * saved)
                         painter.fillRoundRect(track, 1.5, 1.5, colors.raised)
                         if fill >= 1 do
                             painter.fillRoundRect(Math.Rectangle{track.x, track.y, Math.max(fill, 3), 3}, 1.5, 1.5, colors.arc)
@@ -3243,7 +3302,10 @@ impl ExplorerGrid
                 }
             }
 
-            painter.drawString(sizeRight - Painter.measureString(size, mono).width, mono.opticalLineTop(centerY), size, mono, colors.faintText)
+            let sizeRight = sizeX + sizeWidth - ArchiveCellInset
+            painter.pushClippingRect({sizeX, rect.y, sizeWidth, rect.height})
+            painter.drawString(sizeRight - Painter.measureString(size, mono).width, lineY, size, mono, colors.faintText)
+            painter.popClippingRect()
         }
     }
 

@@ -1108,11 +1108,10 @@ for the entire campaign, including presentation-only batches.
 GOAL
 
 Make the runtime and app-used standard modules the reference showcase for the Swag language, in
-both substance and form. A reader
-should be able to copy its code and learn the best current language idioms, clear design, safe
-resource handling, coherent APIs, and readable layout. This is an implementation campaign:
-clean up, improve, refactor, simplify, and finish the code, its public contracts, and the way it
-reads. An inventory of problems alone does not satisfy the goal.
+both substance and form. A reader should be able to copy its code and learn the best current
+language idioms, clear design, safe resource handling, coherent APIs, and readable layout. This is
+an implementation campaign: clean up, improve, refactor, simplify, and finish the code, its public
+contracts, and the way it reads. An inventory of problems alone does not satisfy the goal.
 
 Quality is judged by correctness, clarity, consistency, useful API completeness, visual reading
 effort, and the code a caller actually writes. Shorter code is valuable when it expresses the
@@ -1124,11 +1123,11 @@ SCOPE: RUNTIME AND STANDARD MODULES USED BY APPS
 The in-scope code is `bin/runtime/`, its tests and helpers under `bin/unittests/native/runtime/`,
 and the transitive dependency closure of the `bin/std/modules/` modules imported by shipped
 applications in `bin/apps/`. Determine that closure from application module descriptors and
-imports, then follow imports among standard modules. Record the resulting module list in campaign
-state so the scope is reproducible. Include each in-scope module's project-owned implementation,
-module descriptor, public API and module-owned tests and test helpers. The application sources are
-read-only evidence for discovering dependencies and checking real caller contracts; do not review
-or change application implementation.
+sources, then follow declared and conditional imports among standard modules. Record the resulting
+module list in campaign state so the scope is reproducible. Include each in-scope module's
+project-owned implementation, module descriptor, public API and module-owned tests and test
+helpers. Use application sources only to discover dependencies and check real caller contracts;
+do not review or change application implementation.
 
 Applications, examples, standalone scripts and tools, language-reference pages, compiler suites
 other than the runtime-owned tests above, and standard modules outside the application dependency
@@ -1271,9 +1270,9 @@ THE LOOP
      and visual reading obstacles. Review complete functions and related operations.
   2. State the intended improvement and the narrowest validation that observes it. Distinguish
      presentation-only changes, behavior-preserving refactors, bug fixes, and public contract changes.
-  3. Implement the complete improvement, including all affected consumers and documentation.
-     Search the repository for stale names, duplicated alternatives, and obsolete usage patterns.
-     Keep unrelated cleanup in separate, reviewable batches.
+  3. Implement the complete improvement, including in-scope consumers, module-owned tests, and
+     documentation. Search the repository for stale names, duplicated alternatives, and obsolete
+     usage patterns. Keep unrelated cleanup in separate, reviewable batches.
   4. Format selected files with the checkout-local compiler, inspect every resulting change, and
      confirm a second pass is stable. Review correctness, idiomatic language use, ownership, API
      consistency, teaching value, and reading effort. Re-read formatted functions beyond the diff.

@@ -837,10 +837,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.088 — Network transports need portable host backends
 
-- Owner: the `net` module from std.net.001.
+- Owner: the `net` module.
 - Evidence: Windows and Linux leaves implement blocking IPv4/IPv6 TCP, UDP, and DNS behind
   portable address and socket owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send,
   retries interrupted transfers/accept, and completes interrupted connects through poll and SO_ERROR.
+  TCP exposes a portable send-side shutdown operation. UDP broadcast and IPv4/IPv6 multicast
+  membership use platform socket options behind `DatagramSocket`.
   Linux focused tests cover loopback, EOF, UDP delivery, IPv6, resolver behavior, and HTTP streaming.
   Windows bindings and implementations exist, but equivalent runtime coverage has not been run.
   Linux HTTPS still uses a lazily loaded libcurl backend with system trust, bounded bodies and
@@ -851,7 +853,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   after the common concurrency contract is decided.
 - Done when: both host backends pass equivalent loopback, partial-transfer, resolution-failure,
   and handle-lifetime tests without exposing native types to callers.
-- Related: std.net.001, std.net.002, std.net.003, std.net.004, language.parallelism.001.
+- Related: std.net.002, std.net.003, std.net.004, language.parallelism.001.
 
 ### platform.portability.081 — Foreign vector ABIs are unavailable
 

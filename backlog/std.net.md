@@ -9,20 +9,7 @@ whole layout.
 
 ## Entries
 
-### std.net.001 — Blocking TCP needs portable address coverage
-
-- Evidence: `net` provides blocking IPv4 and IPv6 TCP connections and listeners on Linux and
-  Windows. Other host backends remain absent; name resolution belongs to std.net.003. Platform
-  leaves are owned by platform.portability.088.
-- Next: add the next host backend while retaining the portable endpoint contract and loopback
-  and failure coverage without putting networking in the module every program links.
-- Done when: the next host backend opens, listens for, accepts, reads, writes, and closes
-  blocking TCP connections by portable address, with loopback tests for EOF, partial transfer,
-  and connection failure.
-- Related: std.net.003, std.net.004, std.net.005, std.net.006, std.net.007, std.net.008,
-  std.net.002, platform.portability.088
-
-### std.net.002 — Decide UDP broadcast and multicast support
+### std.net.002 — Complete UDP broadcast and multicast host coverage
 
 - Evidence: `DatagramSocket` enables IPv4 broadcast and joins or leaves IPv4/IPv6 multicast groups
   on Linux and Windows. IPv4 membership selects a local interface address; IPv6 membership selects
@@ -32,7 +19,7 @@ whole layout.
   where a portable interface-selection contract is available.
 - Done when: broadcast and IPv4/IPv6 membership behavior pass runtime tests on both supported hosts,
   including interface selection and invalid group handling.
-- Related: std.net.001, std.net.003, std.net.004
+- Related: std.net.003, std.net.004
 
 ### std.net.003 — DNS cancellation and resolution policy
 
@@ -44,7 +31,7 @@ whole layout.
   synchronous API as the simple blocking option.
 - Done when: tests cover resolver ordering, family filtering, named services, and failure, while
   the synchronous API documents that platform lookup blocks and cannot be cancelled.
-- Related: std.net.001
+- Related: platform.portability.088
 
 ### std.net.004 — No non-blocking socket readiness API
 
@@ -54,7 +41,7 @@ whole layout.
 - Done when: non-blocking sockets expose a documented readiness and cancellation contract that
   serves multiple connections without busy waiting, with tests for readable, writable, closed,
   and failed peers.
-- Related: std.net.001, language.parallelism.001, std.core.028
+- Related: language.parallelism.001, std.core.028, platform.portability.088
 
 ### std.net.005 — No TLS transport
 
@@ -63,7 +50,7 @@ whole layout.
 - Done when: client and server TLS operate over the socket contract with certificate
   validation, handshake and shutdown failures, and stream ownership stated, with local-peer
   tests for accepted and rejected credentials.
-- Related: std.net.001, std.core.010, std.core.015, std.core.016
+- Related: std.core.010, std.core.015, std.core.016, platform.portability.088
 
 ### std.net.006 — HTTP client needs streaming and portable transports
 
@@ -75,7 +62,7 @@ whole layout.
   across both backends.
 - Done when: local-server tests cover streamed requests and responses, bounded redirects,
   cancellation, deadlines, and rejection of oversized or malformed headers.
-- Related: std.net.001, std.net.005
+- Related: std.net.005, platform.portability.088
 
 ### std.net.007 — HTTP server connection lifecycle and protocol coverage
 
@@ -86,7 +73,7 @@ whole layout.
   reads otherwise remain uninterruptible.
 - Done when: request framing, malformed framing, response streaming, one-request connection
   closure, and explicit listener closure have focused local-peer tests and documented behavior.
-- Related: std.net.001, std.net.004, std.net.005, std.net.006
+- Related: std.net.004, std.net.005, std.net.006, platform.portability.088
 
 ### std.net.008 — Secure WebSocket transport and interoperability
 

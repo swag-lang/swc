@@ -850,6 +850,8 @@ private impl TagBin
                 sf.key     = try .readWireString()
                 sf.crcType = try .stream.readNative'u32()
                 sf.flags   = try .stream.readNative'Write.TagBinShapeFlags()
+                if cast(u8, sf.flags) > cast(u8, Write.TagBinShapeFlags.Compressed) do
+                    fail SerializationError{"invalid shape field flags"}
                 shape.fields.add(sf)
                 fieldCount -= 1
             }

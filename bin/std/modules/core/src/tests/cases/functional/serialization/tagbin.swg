@@ -459,6 +459,7 @@ struct TagBinV1Field
     fatEntrySeek:   u64     // Absolute file position of the field's relative offset.
     fatStartOffset: u32     // Relative offset of the fat table from the payload start.
     shapeFlags:     u8      // Shape flags of the field.
+    shapeFlagsSeek: u64     // Absolute file position of the shape flags.
     shapeTypeSeek:  u64     // Absolute file position of the crcType word of its shape entry.
 }
 
@@ -504,10 +505,12 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
             key.length = keyLength
             let typeSeek = stream.position()
             discard expect stream.readNative'u32()
+            let flagsSeek = stream.position()
             let flags = expect stream.readNative'u8()
             if s == shapeId and key == fieldName
             {
                 result.shapeFlags    = flags
+                result.shapeFlagsSeek = flagsSeek
                 result.shapeTypeSeek = typeSeek
 
                 // The matching fat entry holds the payload offset of the field.
@@ -521,6 +524,18 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
     }
 
     Swag.require(false)
+    return result
+}
+
+func corruptTagBinShapeFlags(bytes: String, fieldName: string, flags: u8)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(field.shapeFlagsSeek)
+    writer.writeNative(flags)
     return result
 }
 
@@ -1138,6 +1153,18 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes   = encodeTagBin(payload)
     Swag.require(findTagBinV1Field(bytes.toSlice(), "id").shapeFlags == 0)
     Swag.require(findTagBinV1Field(bytes.toSlice(), "blob").shapeFlags == 1)
+}
+
+// Version 1 has no meaning for unknown shape flags, so malformed bits are rejected.
+#test
+{
+    let bytes   = encodeTagBin(makeTagBinPayload())
+    let patched = corruptTagBinShapeFlags(bytes, "id", 2)
+
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SerializationError)
 }
 
 // Earlier experimental markers are rejected instead of being guessed from their layout.

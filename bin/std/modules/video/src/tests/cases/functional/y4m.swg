@@ -3,6 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
+// An empty Y4M stream cannot be opened by the matching decoder, so ending one must fail.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    var bytes: ConcatBuffer
+    var writer = expect Writer.createMemory("empty.y4m", &bytes, 2, 2, rate)
+
+    var emptyOutcome: Swag.Error
+    discard catch writer.end() as emptyOutcome
+    Swag.require((emptyOutcome.value() is BadParameterError))
+}
+
 func y4mAspectBytes(aspect: string)->Array'u8
 {
     var result: #returntype

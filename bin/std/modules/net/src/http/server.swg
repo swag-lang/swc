@@ -299,6 +299,45 @@ impl ServerConnection
         let version = requestLine[secondSpace + 1 to]
         if target.count == 0 or target[0] != '/' or (version != "HTTP/1.0" and version != "HTTP/1.1") do
             fail Errors.InvalidFormatError{"unsupported HTTP request target or version"}
+
+        var targetIndex = 0'u64
+        var inQuery     = false
+        while targetIndex < target.count
+        {
+            let value = target[targetIndex]
+            if value == '?'
+            {
+                inQuery     = true
+                targetIndex += 1
+                continue
+            }
+
+            if value == '%'
+            {
+                if target.count - targetIndex < 3 do
+                    fail Errors.InvalidFormatError{"invalid escape in HTTP request target"}
+                if not Latin1.isHexDigit(target[targetIndex + 1]) or
+                   not Latin1.isHexDigit(target[targetIndex + 2]) do
+                    fail Errors.InvalidFormatError{"invalid escape in HTTP request target"}
+                targetIndex += 3
+                continue
+            }
+
+            let unreserved = (value >= 'a' and value <= 'z') or
+                             (value >= 'A' and value <= 'Z') or
+                             Latin1.isDigit(value) or
+                             Utf8.indexOf("-._~", cast(rune, value)) != Swag.U64.Max
+            let subDelimiter = Utf8.indexOf("!$&'()*+,;=", cast(rune, value)) != Swag.U64.Max
+            if not (unreserved or
+                    subDelimiter or
+                    value == ':' or
+                    value == '@' or
+                    value == '/' or
+                    (inQuery and value == '?')) do
+                fail Errors.InvalidFormatError{"invalid character in HTTP request target"}
+            targetIndex += 1
+        }
+
         request.method  = String.from(method)
         request.target  = String.from(target)
         request.version = String.from(version)

@@ -597,6 +597,35 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     Swag.require(parsed.version == "HTTP/1.0" and parsed.target == "/")
 }
 
+// Origin-form request targets reject whitespace, fragments, and incomplete percent escapes.
+#test
+{
+    let invalidRequests = [
+        "GET /path\tpart HTTP/1.1\r\nHost: localhost\r\n\r\n",
+        "GET /path#fragment HTTP/1.1\r\nHost: localhost\r\n\r\n",
+        "GET /path%2 HTTP/1.1\r\nHost: localhost\r\n\r\n"]
+    for requestText in invalidRequests
+    {
+        var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+        var client  = expect TcpStream.connect(expect server.localAddress())
+        let request = cast(const [..] u8, requestText)
+        Swag.require(expect client.write(request) == request.count)
+        var connection = expect server.accept()
+        var error: Swag.Error
+        discard catch connection.readRequest() as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client  = expect TcpStream.connect(expect server.localAddress())
+    let request = cast(const [..] u8,
+                       "GET /a/../encoded%2F?q=%2B HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    Swag.require(expect client.write(request) == request.count)
+    var connection = expect server.accept()
+    let parsed     = expect connection.readRequest()
+    Swag.require(parsed.target == "/a/../encoded%2F?q=%2B")
+}
+
 // Closing an HTTP server releases its listening endpoint without changing accepted streams.
 #test
 {

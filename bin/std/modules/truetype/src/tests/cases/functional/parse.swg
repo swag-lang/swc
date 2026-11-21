@@ -55,6 +55,27 @@ func buildCffWithFdSelectPrefix()->Array'u8
     return result
 }
 
+func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
+{
+    var result: Array'u8
+
+    // Header and Name INDEX end at 10.
+    result.add([0x01, 0x00, 0x04, 0x04, 0x00, 0x01, 0x01, 0x01, 0x02, 0x41])
+
+    // Top DICT INDEX ends at 30.
+    result.add([0x00, 0x01, 0x01, 0x01, 0x10, 0xF8, 0x1B, 0xF8, 0x1C, 0x8B, 0x0C, 0x1E, 0xC6, 0x0C, 0x24, 0xCB, 0x0C, 0x25, 0xBE, 0x11])
+
+    // Adobe and Identity String INDEX ends at 49.
+    result.add([0x00, 0x02, 0x01, 0x01, 0x06, 0x0E, 0x41, 0x64, 0x6F, 0x62, 0x65, 0x49, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x74, 0x79])
+
+    // Empty Global Subrs and two-glyph CharStrings end at 59.
+    result.add([0x00, 0x00, 0x00, 0x02, 0x01, 0x01, 0x02, 0x03, 0x0E, 0x0E])
+
+    // One empty FD DICT; FDArray ends at 64.
+    result.add([0x00, 0x01, 0x01, 0x01, 0x01])
+    return result
+}
+
 #test
 {
     let valueU16 = expect readU16(ReaderBytes, 0)
@@ -224,6 +245,22 @@ func buildCffWithFdSelectPrefix()->Array'u8
 
     var rejected: Swag.Error
     discard catch parseCffFont(outOfRangeSentinel.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // A format-3 FDSelect must start its first range at GID 0.
+    var completeCoverage = buildTwoGlyphCffWithFdSelectPrefix()
+    completeCoverage.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x02])
+    let parsed = expect parseCffFont(completeCoverage.toSlice())
+    Swag.require(parsed.fdSelect.count == 2)
+
+    var missingGlyphZero = buildTwoGlyphCffWithFdSelectPrefix()
+    missingGlyphZero.add([0x03, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(missingGlyphZero.toSlice()) as rejected
     Swag.require(rejected.value() != null)
 }
 

@@ -100,6 +100,36 @@ try Crypto.ed25519Sign(seed, "message", signature)
 Swag.assert(try Crypto.ed25519Verify(publicKey, "message", signature), "signature verification failed")
 ```
 
+## Encrypt authenticated data
+
+[[Core.Crypto.aesGcmEncrypt]] and [[Core.Crypto.aesGcmDecrypt]] provide AES-GCM with 12-byte
+nonces and complete 16-byte tags. Never reuse a nonce with the same key. Decryption leaves the
+destination untouched if authentication fails.
+
+```swag
+using Core
+
+var key: [16] u8
+var nonce: [Crypto.AesGcmNonceSize] u8
+var associatedData: [4] u8
+var plaintext: [16] u8
+var ciphertext: [16] u8
+var plaintextOutput: [16] u8
+var tag: [Crypto.AesGcmTagSize] u8
+defer Crypto.secureClear(key)
+defer Crypto.secureClear(nonce)
+defer Crypto.secureClear(plaintext)
+defer Crypto.secureClear(ciphertext)
+defer Crypto.secureClear(plaintextOutput)
+defer Crypto.secureClear(tag)
+
+try Crypto.randomBytes(key)
+try Crypto.randomBytes(nonce)
+try Crypto.randomBytes(plaintext)
+try Crypto.aesGcmEncrypt(key, nonce, associatedData, plaintext, ciphertext, tag)
+try Crypto.aesGcmDecrypt(key, nonce, associatedData, ciphertext, tag, plaintextOutput)
+```
+
 ## Hash files and derive context-bound keys
 
 [[Core.Hash.Blake3]] provides unkeyed hashing, keyed hashing, context-derived keys,

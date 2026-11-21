@@ -8,6 +8,34 @@ struct ExecutorFailure
     code: u32
 }
 
+var g_ClosingExecutorNode: Swag.WorkNode
+
+func awaitExecutorFlag(flag: *Swag.AtomicFlag)->bool
+{
+    for 1_000_000
+    {
+        if flag.isRaised() do
+            return true
+    }
+    return flag.isRaised()
+}
+
+func awaitExecutorStopping(executor: *Swag.Executor)->bool
+{
+    for 1000
+    {
+        executor.mutex.lock()
+        let stopping = executor.stopping
+        if not stopping do
+            discard executor.ready.waitFor(&executor.mutex, 1)
+        let stopped = executor.stopping
+        executor.mutex.unlock()
+        if stopped do
+            return true
+    }
+    return false
+}
+
 // Tasks run in the order they were submitted, and each hands its value over.
 #test
 {
@@ -95,4 +123,50 @@ struct ExecutorCloseProbe
     expect probe.task.take()
     Swag.require(probe.caught.isRaised() == (not Swag.jit()))
     probe.executor.close()
+}
+
+// A submission during close is rejected while a task holds the executor thread open.
+#test
+{
+    if Swag.jit() do
+        return
+
+    Swag.setWorkerCount(2)
+    var started, release, closeStarted: Swag.AtomicFlag
+    var blocker: Swag.Task
+    var executor: Swag.Executor
+    var closer: Swag.Task
+    executor.start()
+    defer
+    {
+        release.raise()
+        blocker.wait()
+        closer.wait()
+        executor.close()
+    }
+
+    blocker.submit(func|&started, &release|()
+    {
+        started.raise()
+        while not release.isRaised() {}
+    }, executor: &executor)
+    Swag.require(awaitExecutorFlag(&started))
+
+    closer.submit(func|&executor, &closeStarted|()
+    {
+        closeStarted.raise()
+        executor.close()
+    })
+    Swag.require(awaitExecutorFlag(&closeStarted))
+    Swag.require(awaitExecutorStopping(&executor))
+    Swag.require(blocker.isPending())
+
+    let accepted = executor.post(&g_ClosingExecutorNode)
+    Swag.require(not accepted)
+    Swag.require(executor.head == null and g_ClosingExecutorNode.state.load() == Swag.WorkStateIdle)
+
+    release.raise()
+    blocker.wait()
+    closer.wait()
+    Swag.require(not executor.isStarted())
 }

@@ -18,6 +18,37 @@ struct TagBinEmptyArray
     values: Array'TagBinEmptyFinal
 }
 
+struct TagBinRawArrayPayload
+{
+    values: Array'u32
+}
+
+struct TagBinArrayReallocProbe
+{
+    oldSize:     u64
+    newSize:     u64
+    rejectGrowth: bool
+    #[Swag.Align(16)]
+    storage: [64] u8
+}
+
+impl Swag.IAllocator for TagBinArrayReallocProbe
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        request.address = &.storage[0]
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest)
+    {
+        .oldSize = request.oldSize
+        .newSize = request.size
+        request.address = .rejectGrowth ? null : &.storage[0]
+    }
+
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 struct TagBinPair
 {
     x: s32
@@ -1398,6 +1429,37 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errsqOutcome
     let errsq = errsqOutcome.value()
     Swag.require(errsq != null)
+}
+
+// A failed raw array growth leaves the caller-owned array header and allocation intact.
+#test
+{
+    var source: TagBinRawArrayPayload
+    const SourceValues: [6] u32 = [10, 20, 30, 40, 50, 60]
+    source.values.add(SourceValues)
+
+    var bytes = encodeTagBin(source)
+    var probe: TagBinArrayReallocProbe
+    var target: TagBinRawArrayPayload
+    target.values.allocator = &probe
+    target.values.add([1'u32, 2, 3])
+    let oldCount    = target.values.count
+    let oldCapacity = target.values.capacity
+    probe.rejectGrowth = true
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let reader: Serialization.IDecoder = &decoder
+    let failed = Swag.catchPanic(func|reader, &bytes, &target|()
+    {
+        expect reader.start(bytes.toSlice())
+        expect reader.read(&target, #typeof(target))
+        expect reader.end()
+    })
+
+    Swag.require(failed.raised)
+    Swag.require(target.values.count == oldCount and target.values.capacity == oldCapacity)
+    Swag.require(target.values[0] == 1 and target.values[1] == 2 and target.values[2] == 3)
+    Swag.require(probe.oldSize == oldCapacity * #sizeof(u32))
 }
 
 // A string length beyond the remaining bytes is refused before reserving anything.

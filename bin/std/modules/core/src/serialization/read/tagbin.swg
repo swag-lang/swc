@@ -1227,14 +1227,13 @@ impl TagBin
                 if byteCount > .remainingPayload() do
                     fail SerializationError{"raw sequence runs past the end of its section"}
 
+                Reflection.reserveDynamicArray(data, valueType, countElem[])
                 let bufArr = cast(*Array'u8, unwrap data)
-                bufArr.count = countElem[]
-                bufArr.reserve(byteCount)
-                bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
                 if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
+                bufArr.count = countElem[]
                 return true
             }
         }

@@ -151,7 +151,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
 //
 // A PFB file interleaves ASCII and binary segments behind six-byte headers; the font
 // program itself is their concatenation.
-private func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
+func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
 {
     var result: #returntype
     if bytes.count < 6 or bytes[0] != 0x80
@@ -167,6 +167,8 @@ private func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
         let kind = data[pos + 1]
         if kind == 3 do
             break
+        if kind != 1 and kind != 2 do
+            try fault(0x03)
 
         var size = 0'u64
         for k in 4'u64 do

@@ -72,3 +72,12 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8, hexEncoded: bool = false
     let pfa = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix, true).toSlice())
     Swag.require(pfa.glyphNames.count == 2)
 }
+
+#test
+{
+    // PFB segment kinds are 1 (ASCII), 2 (binary), and 3 (end of file).
+    const UnknownSegment: [6] u8 = [0x80, 0x04, 0x00, 0x00, 0x00, 0x00]
+    var rejected: Swag.Error
+    discard catch unwrapPfb(UnknownSegment) as rejected
+    Swag.require(rejected.value() != null)
+}

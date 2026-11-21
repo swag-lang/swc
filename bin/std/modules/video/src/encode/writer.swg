@@ -127,6 +127,8 @@ impl Writer
     //
     // The extension selects the encoder. Frames are written as they are appended, so the file
     // grows by one frame at a time and the writer never holds more than one.
+    // Format-specific validation runs before an existing destination is replaced. A file I/O
+    // failure while writing the accepted header may still leave an incomplete destination.
     //
     // `options` is `null` for the defaults of the selected format, or points to that format's
     // options structure, exactly as the Pixel image encoders take theirs.
@@ -149,8 +151,16 @@ impl Writer
     {
         var result: #returntype
         try result.validate(fileName, width, height, frameRate)
-        result.sink = try ByteSink.createFile(fileName)
+
+        // Let the encoder validate its options and prepare its header before replacing a file.
+        var headerBuffer: ConcatBuffer
+        result.sink = ByteSink.createMemory(&headerBuffer)
         try result.start(fileName, options)
+
+        let header = headerBuffer.toArray()
+        try result.sink.close()
+        result.sink = try ByteSink.createFile(fileName)
+        try result.sink.write(header.toSlice())
         return result
     }
 

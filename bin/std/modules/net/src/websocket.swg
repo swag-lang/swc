@@ -117,6 +117,13 @@ private func webSocketHasToken(value: string, token: string)->bool
     return false
 }
 
+private func webSocketIsSwitchingProtocols(status: string)->bool
+{
+    return status.count >= 13 and
+           status[0 until 12] == "HTTP/1.1 101" and
+           status[12] == ' '
+}
+
 internal func webSocketValidateUpgrade(request: Http.ServerRequest)->String fail
 {
     if request.method != "GET" or request.version != "HTTP/1.1" do
@@ -570,7 +577,7 @@ impl WebSocket
         let request       = Format.toString("GET % HTTP/1.1\r\nHost: %\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %\r\nSec-WebSocket-Version: 13\r\n\r\n", path, authority, key)
         try result.writeAll(cast(const [..] u8, request))
         let status = try result.readLine(8192)
-        if status != "HTTP/1.1 101 Switching Protocols" do
+        if not webSocketIsSwitchingProtocols(status) do
             fail Errors.InvalidFormatError{"server rejected the WebSocket upgrade"}
         var upgrade         = false
         var connection      = false

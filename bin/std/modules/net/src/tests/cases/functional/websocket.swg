@@ -8,6 +8,38 @@ struct WebSocketServerFixture
     late listener: *Http.Server
 }
 
+struct WebSocketStatusFixture
+{
+    late listener: *TcpListener
+}
+
+func serveWebSocketCustomStatus(thread: const *Threading.Thread)
+{
+    let fixture = cast(*WebSocketStatusFixture, unwrap thread.userParam)
+    var stream  = expect fixture.listener.accept()
+    var request: String
+    var buffer:  [1024] u8
+    while Utf8.indexOf(request.toString(), "\r\n\r\n") == Swag.U64.Max
+    {
+        let count = expect stream.read(buffer)
+        if count == 0 do
+            return
+        request += cast(string, buffer[0 until count])
+    }
+
+    let requestText = request.toString()
+    let keyOffset   = Utf8.indexOf(requestText, "Sec-WebSocket-Key: ")
+    if keyOffset == Swag.U64.Max do
+        return
+    let keyStart = keyOffset + "Sec-WebSocket-Key: ".count
+    let keyEnd   = Utf8.indexOf(requestText, "\r\n", keyStart)
+    if keyEnd == Swag.U64.Max do
+        return
+    let accept   = expect webSocketAccept(requestText[keyStart until keyEnd])
+    let response = Format.toString("HTTP/1.1 101 Web Socket Ready\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
+    discard expect stream.writeAll(cast(const [..] u8, response))
+}
+
 func serveWebSocket(thread: const *Threading.Thread)
 {
     let fixture    = cast(*WebSocketServerFixture, unwrap thread.userParam)
@@ -60,6 +92,21 @@ func serveWebSocket(thread: const *Threading.Thread)
     var request: Http.ServerRequest
     discard catch webSocketValidateUpgrade(request) as error
     Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
+// The WebSocket client validates the 101 status code without requiring a fixed reason phrase.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture  = WebSocketStatusFixture{listener: &listener}
+    var thread: Threading.Thread
+    expect thread.init(&serveWebSocketCustomStatus, &fixture)
+    expect thread.start()
+
+    var client = expect WebSocket.connect("127.0.0.1", expect listener.localEndpoint().port, "/socket")
+    Swag.require(client.isOpen())
+    client.close()
+    thread.wait()
 }
 
 // The client and server complete an upgrade and exchange masked, fragmented, and control frames.

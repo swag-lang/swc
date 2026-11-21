@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core, Core.Errors, Pixel
+using Swag, Core, Core.Errors, Core.Serialization, Pixel
 
 // Both packed channel orders produce the same top-down BT.709 picture and shared chroma block.
 #test
@@ -42,7 +42,7 @@ using Swag, Core, Core.Errors, Pixel
     Swag.require(Memory.compare(frame.bytes.storage(), &WideExpected[0], WideExpected.count) == 0)
 }
 
-// Unsupported formats and odd dimensions leave a previously converted frame intact.
+// Unsupported formats, odd dimensions, and inconsistent storage leave a previous frame intact.
 #test
 {
     const Black: [12] u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -58,6 +58,17 @@ using Swag, Core, Core.Errors, Pixel
     let gray = Image.create(2, 2, .Gray8)
     discard catch frame.convertFrom(&gray) as rejected
     Swag.require(rejected.value() is UnsupportedFormatError)
+    var truncated = Image.create(2, 2, .RGB8, Swag.makeSlice(&Black[0], Black.count))
+    truncated.pixels.resize(1)
+    discard catch frame.convertFrom(&truncated) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+
+    const InvalidRgba: string = "{\"pixels\":[0,0,0,0],\"metadata\":[],\"byteCount\":4,\"width\":2,\"height\":2,\"rowStride\":2,\"pixelFormat\":3,\"alphaMode\":0,\"bitsPerPixel\":32,\"bytesPerPixel\":1}"
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let invalid = expect decoder.readAll'Image(cast(const [..] u8, InvalidRgba))
+    defer Memory.delete(invalid)
+    discard catch frame.convertFrom(invalid) as rejected
+    Swag.require(rejected.value() is BadParameterError)
     Swag.require(frame.width == 2 and frame.height == 2)
     Swag.require(Memory.compare(frame.bytes.storage(), &Expected[0], Expected.count) == 0)
 }

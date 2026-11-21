@@ -284,8 +284,13 @@ impl DateTime
             fail SyntaxError{}
         }
 
-        if buf.count >= 1 and
-           buf[0] == ' '
+        if buf.count >= 6 and
+           buf[0] == ' ' and
+           Latin1.isDigit(buf[1]) and
+           Latin1.isDigit(buf[2]) and
+           buf[3] == ':' and
+           Latin1.isDigit(buf[4]) and
+           Latin1.isDigit(buf[5])
         {
             try parseSep(&buf, ' ', &result.eat)
         }

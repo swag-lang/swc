@@ -9,7 +9,7 @@ using Core
     let endpoint = expect receiver.localAddress()
     Swag.require(endpoint.address.isIPv4() and endpoint.port != 0)
 
-    var sender = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
+    var sender  = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
     let payload = cast(const [..] u8, "one datagram")
     Swag.require(expect sender.sendTo(endpoint, payload) == payload.count)
 
@@ -50,8 +50,17 @@ using Core
     #static if #os == Swag.TargetOs.Linux
     {
         let anyAddress = IpAddress.ipv6([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        let group = IpAddress.ipv6([0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0x14])
-        var socket = expect DatagramSocket.bind({address: anyAddress, port: 0})
+        let group      = IpAddress.ipv6([0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0x14])
+        var socket     = expect DatagramSocket.bind({address: anyAddress, port: 0})
+        expect socket.joinMulticast(group, {interfaceIndex: 1})
+        expect socket.leaveMulticast(group, {interfaceIndex: 1})
+    }
+
+    #static if #os == Swag.TargetOs.Windows
+    {
+        let anyAddress = IpAddress.ipv6([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        let group      = IpAddress.ipv6([0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0x14])
+        var socket     = expect DatagramSocket.bind({address: anyAddress, port: 0})
         expect socket.joinMulticast(group, {interfaceIndex: 1})
         expect socket.leaveMulticast(group, {interfaceIndex: 1})
     }
@@ -61,7 +70,7 @@ using Core
 {
     var receiver = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect receiver.localAddress()
-    var sender = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
+    var sender   = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
     Swag.require(expect sender.sendTo(endpoint, cast(const [..] u8, "oversized")) == 9)
 
     var buffer: [4] u8

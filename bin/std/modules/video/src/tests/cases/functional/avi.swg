@@ -383,6 +383,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var slowBuffer: ConcatBuffer
     let slowRate   = expect FrameRate.create(1, 4_295)
     var slowWriter = expect Writer.createMemory("slow.avi", &slowBuffer, 2, 2, slowRate)
+    expect slowWriter.addFrame(videoGrayImage(2, 2, 80))
     expect slowWriter.end()
     let slowBytes   = slowBuffer.toArray()
     let slow        = slowBytes.toSlice()
@@ -392,11 +393,26 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var fastBuffer: ConcatBuffer
     let fastRate   = expect FrameRate.create(Swag.U32.Max, 1)
     var fastWriter = expect Writer.createMemory("fast.avi", &fastBuffer, 2, 2, fastRate)
+    expect fastWriter.addFrame(videoGrayImage(2, 2, 80))
     expect fastWriter.end()
     let fastBytes   = fastBuffer.toArray()
     let fast        = fastBytes.toSlice()
     Swag.require(aviReadU32(fast, 32) == 1)
     Swag.require(aviReadU32(fast, 128) == 1 and aviReadU32(fast, 132) == Swag.U32.Max)
+}
+
+// Finalizing an AVI without video frames is rejected before writing its empty index.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("empty.avi", &buffer, 2, 2, rate)
+    let opened = buffer.toArray()
+
+    var rejected: Swag.Error
+    discard catch writer.end() as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
 }
 
 // A stream written to a file reads back through the file-backed sink, which is the path where

@@ -148,6 +148,9 @@ impl IEncoder for Encoder
     #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
+        if .index.isEmpty() do
+            fail BadParameterError{"AVI stream needs at least one frame"}
+
         let frameEnd = sink.position()
         sink.writeNative(IndexId)
         sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))

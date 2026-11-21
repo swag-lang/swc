@@ -629,11 +629,11 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
     let glyphCount = font.charStrings.count()
     font.fdSelect.resize(glyphCount)
 
-    let format = peekU8(font.block, offset)
+    let format = try readU8(font.block, offset)
     if format == 0
     {
         for gid in glyphCount do
-            font.fdSelect[gid] = peekU8(font.block, offset + 1 + gid)
+            font.fdSelect[gid] = try readU8(font.block, offset + 1 + gid)
         return
     }
 

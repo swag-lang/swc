@@ -1213,11 +1213,11 @@ WHAT TO IMPROVE - SUBSTANCE
     as read-only contract evidence; preserve compatibility for them, or report a required migration
     as blocked because application implementation is outside this prompt's scope. Do not leave
     half-renamed families or compatibility wrappers with no concrete requirement.
-  - Teaching quality: examples and reference code must show the recommended way to solve their
-    problem. Keep them small and complete, with correct failure handling and resource cleanup.
-    Public documentation must explain contracts, edge cases, and ownership, and use examples that
-    compile against the final API. Replace stale or narrating comments with clear code or concise
-    explanations of the reason behind a non-obvious choice.
+  - Teaching quality: code samples in in-scope module documentation must show the recommended way
+    to solve their problem. Keep them small and complete, with correct failure handling and
+    resource cleanup. Public module documentation must explain contracts, edge cases, and
+    ownership, and use examples that compile against the final API. Replace stale or narrating
+    comments with clear code or concise explanations of the reason behind a non-obvious choice.
   - Efficiency: remove demonstrably unnecessary copying, allocation, repeated work, or poor data
     structure choices. Measure changes whose performance depends on workload; preserve deliberate
     fast paths unless evidence supports the replacement. Do not trade clarity for speculative speed.

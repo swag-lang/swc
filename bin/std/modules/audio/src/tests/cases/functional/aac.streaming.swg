@@ -143,3 +143,28 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     discard catch encoder.push([], &packet) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// Emitting the partial tail closes the input before AAC's final drain packet.
+#test
+{
+    var encoder = expect Aac.StreamEncoder.create(48_000, 1, .Voice)
+    const Input: [3] s16 = [100, 200, 300]
+    const Extra: [1] s16 = [400]
+    var packet: Array'u8
+    Swag.require(expect encoder.push(Swag.makeSlice(&Input[0], Input.count), &packet) == Input.count)
+    Swag.require(packet.isEmpty())
+    Swag.require(expect encoder.finish(&packet))
+    Swag.require(packet.count > 0 and encoder.lastPacketValidFrames() == Input.count)
+
+    packet.clear()
+    packet.add(0xA5'u8)
+    var rejected: Swag.Error
+    discard catch encoder.push(Swag.makeSlice(&Extra[0], Extra.count), &packet) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(packet.count == 1 and packet[0] == 0xA5)
+    Swag.require(encoder.inputFrameCount() == Input.count and encoder.packetCount() == 1)
+
+    Swag.require(expect encoder.finish(&packet))
+    Swag.require(encoder.lastPacketValidFrames() == 0 and encoder.packetCount() == 2)
+    Swag.require(not (expect encoder.finish(&packet)) and packet.isEmpty())
+}

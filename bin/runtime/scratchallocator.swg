@@ -237,6 +237,12 @@ impl IAllocator for ScratchAllocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
+        if request.alignment != 0 and (request.alignment & (request.alignment - 1)) != 0
+        {
+            request.address = null
+            return
+        }
+
         if request.size == 0
         {
             request.address = null
@@ -249,6 +255,12 @@ impl IAllocator for ScratchAllocator
 
     mtd impl realloc(request: *AllocatorRequest)
     {
+        if request.alignment != 0 and (request.alignment & (request.alignment - 1)) != 0
+        {
+            request.address = null
+            return
+        }
+
         if request.size == 0
         {
             var freeRequest = request[]

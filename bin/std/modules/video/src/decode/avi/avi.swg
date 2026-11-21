@@ -672,6 +672,9 @@ private impl Decoder
     // Reads the entries of the `idx1` chunk that belong to the video stream.
     mtd readIndexEntries(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32) fail
     {
+        if layout.indexSize % IndexEntrySize do
+            fail InvalidFormatError{"AVI index ends with a partial entry"}
+
         var base = Swag.U64.Max
         for entry in layout.indexSize / IndexEntrySize
         {
@@ -696,6 +699,9 @@ private impl Decoder
 
             .frames.add(FrameEntry{start, size, (flags & IndexKeyFrameFlag) != 0})
         }
+
+        if layout.stream.length and .frames.count != cast(u64, layout.stream.length) do
+            fail InvalidFormatError{"AVI index does not describe every video frame"}
     }
 
     // Walks the frame list, which is what a file without a usable index leaves.

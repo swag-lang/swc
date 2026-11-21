@@ -286,8 +286,7 @@ impl SoundFile
 
         var source = try ByteSource.openFile(.path.toString(), .ReadWrite)
         try source.seek(.dataOffset + offset)
-        let read = try source.read(result.toSlice())
-        result.resize(read)
+        try source.readExact(result.toSlice())
         return result
     }
 

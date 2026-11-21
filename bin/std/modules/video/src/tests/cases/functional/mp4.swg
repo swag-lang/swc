@@ -259,6 +259,48 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require((invalidOutcome.value() is BadParameterError))
 }
 
+// Invalid MP4 options and dimensions leave an existing destination untouched.
+#test
+{
+    let path = videoTempPath("mp4-invalid-writer", "mp4")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllText(path, "keep")
+
+    let rate = expect FrameRate.create(24, 1)
+    var rejected: Swag.Error
+    discard catch Writer.create(path.toString(), 65_536, 16, rate) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+    Swag.require((expect File.readAllText(path)) == "keep")
+
+    var options: Mp4.EncodeOptions
+    options.pixelAspectWidth = 1
+    discard catch Writer.create(path.toString(), 16, 16, rate, options) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require((expect File.readAllText(path)) == "keep")
+}
+
+// A failed MP4 finalization stays failed and cannot be reported as a successful retry.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("empty.mp4", &buffer, 16, 16, rate)
+    let opened = buffer.toArray()
+    var rejected: Swag.Error
+    discard catch writer.end() as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
+
+    let frame = videoGrayImage(16, 16, 96)
+    discard catch writer.addFrame(frame) as rejected
+    Swag.require(rejected.value() is BadParameterError and writer.frameCount() == 0)
+
+    var repeated: Swag.Error
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
+}
+
 // File-backed patching produces the same seekable stream as memory-backed patching.
 #test
 {

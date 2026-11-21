@@ -82,9 +82,9 @@ struct ParallelChunk
 //
 // Partition boundaries and the order partitions run in are not part of the contract, so a body
 // must not depend on either. Every partition observes the caller's cancellation state through
-// [[Swag.isCancelled]]; a request does not stop the range by itself. The body can execute on the caller or a worker, so everything it reaches must
-// either be owned by that partition or be safe to share; the caller's frame stays alive for the
-// whole call, which is what makes an `&` capture of a local valid here.
+// [[Swag.isCancelled]]; a request does not stop the range by itself. The body can execute on the
+// caller or a worker, so everything it reaches must be owned by that partition or safe to share.
+// The caller's frame stays alive for the whole call, which makes an `&` capture of a local valid.
 //
 // Cost observations can keep short work on the caller or reduce the number of partitions.
 // With fewer than two workers, and under compile-time execution, all work stays on the caller.
@@ -206,7 +206,12 @@ private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
 // Keep the partition storage out of serial calls, including empty and nested short loops.
 // Inlining would put the full worker array and its stack probes back in their entry frame.
 #[Swag.NoInline]
-private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(u64, u64), profile: *ParallelProfile?, measure: bool)
+private func dispatchParallelRange(
+    begin, end, chunks, grain: u64,
+    body: func||(u64, u64),
+    profile: *ParallelProfile?,
+    measure: bool
+)
 {
     // Several blocks per runner let an idle runner take remaining work from a costly region.
     // The cost hint still imposes a minimum useful block size. At most eight times as many

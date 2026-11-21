@@ -221,19 +221,21 @@ private func decodeEexecHex(data: const [..] u8)->Array'u8
 private func isHexPrivateSection(data: const [..] u8)->bool
 {
     var seen = 0'u32
-    for c in data
+    let trailer = findBytes(data, 0, "cleartomark")
+    let limit   = trailer < data.count ? trailer : data.count
+    let bytes   = data
+    for index in limit
     {
+        let c = bytes[index]
         if isPostScriptSpace(c) do
             continue
         let isHexDigit = (c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')
         if not isHexDigit do
             return false
         seen += 1
-        if seen == 4 do
-            return true
     }
 
-    return false
+    return seen >= 4
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.

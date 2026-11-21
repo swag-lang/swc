@@ -112,8 +112,8 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     let startPoint = faceData.outlinePoints.count
     for index in pointCount
     {
-        let px = scale26_6(xs[index], xPpem, faceData.unitsPerEm)
-        let py = scale26_6(ys[index], yPpem, faceData.unitsPerEm)
+        let px = try scale26_6(xs[index], xPpem, faceData.unitsPerEm)
+        let py = try scale26_6(ys[index], yPpem, faceData.unitsPerEm)
         addScaledPoint(faceData, px, py, (flags[index] & CURVE_TAG_ON) != 0)
     }
 
@@ -126,6 +126,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
     if depth >= MAX_RECURSE do
         try fault(0x15)
 
+    let compositePointStart = faceData.outlinePoints.count
     var offset  = 10'u64
     var hasMore = true
     while hasMore
@@ -204,8 +205,8 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             var dy = 0.0
             if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
             {
-                dx = scale26_6(arg1, xPpem, faceData.unitsPerEm)
-                dy = scale26_6(arg2, yPpem, faceData.unitsPerEm)
+                dx = try scale26_6(arg1, xPpem, faceData.unitsPerEm)
+                dy = try scale26_6(arg2, yPpem, faceData.unitsPerEm)
             }
 
             for index in addedPointCount
@@ -221,10 +222,10 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and
                arg1 >= 0 and
                arg2 >= 0 and
-               cast(u32, arg1) < basePointCount and
+               cast(u32, arg1) < basePointCount - compositePointStart and
                cast(u32, arg2) < addedPointCount
             {
-                let anchorParent = faceData.outlinePoints[arg1]
+                let anchorParent = faceData.outlinePoints[compositePointStart + cast(u32, arg1)]
                 let anchorChild  = faceData.outlinePoints[basePointCount + arg2]
                 dx = anchorParent.x - anchorChild.x
                 dy = anchorParent.y - anchorChild.y
@@ -306,12 +307,12 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
                          cast(s16, faceData.outlineContours.count))
 
     let metric = faceData.glyphMetrics[glyphIndex]
-    slot.setAdvance(scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))
+    slot.setAdvance(try scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))
     if faceData.hasVerticalMetrics
     {
         let vertical = faceData.verticalGlyphMetrics[glyphIndex]
-        slot.setVerticalMetrics(scale26_6(vertical.advanceHeight, yPpem, faceData.unitsPerEm),
-                                scale26_6(vertical.topSideBearing, yPpem, faceData.unitsPerEm))
+        slot.setVerticalMetrics(try scale26_6(vertical.advanceHeight, yPpem, faceData.unitsPerEm),
+                                try scale26_6(vertical.topSideBearing, yPpem, faceData.unitsPerEm))
     }
     else
     {

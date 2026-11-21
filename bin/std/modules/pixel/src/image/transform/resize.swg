@@ -3,8 +3,9 @@ using Core
 // Resolves one aspect-preserving dimension, keeping a positive request at least one pixel.
 private func resizeAspectDimension(sourceSize, sourceBase, targetBase: s32)->s32
 {
-    let scaled = cast(f32, targetBase) * (cast(f32, sourceSize) / cast(f32, sourceBase))
-    Swag.assert(Math.isFinite(scaled) and scaled < 2_147_483_648.0'f32,
+    // A product of two positive s32 dimensions fits in s64, preserving the exact floor.
+    let scaled = cast(s64, sourceSize) * cast(s64, targetBase) / cast(s64, sourceBase)
+    Swag.assert(scaled < 2_147_483_648,
                 "resized dimension is outside the supported range")
     return Math.max(cast(s32, scaled), 1)
 }
@@ -513,11 +514,15 @@ namespace ResizeTools
         scaleCol(dstImage, &tmp, mode)
     }
 
+    func nearestSourceCoordinate(destinationCoordinate, sourceSize, destinationSize: s32)->u32
+    {
+        // The product of two positive s32 dimensions fits in u64 and preserves the exact floor.
+        return cast(u32, cast(u64, destinationCoordinate) * cast(u64, sourceSize) / cast(u64, destinationSize))
+    }
+
     func doResizeRaw(dstImage: *Image, srcImage: const *Image)
     {
-        let xscale = srcImage.width / cast(f32, dstImage.width)
-        let yscale = srcImage.height / cast(f32, dstImage.height)
-        var f      = {xscale: xscale, yscale: yscale, srcImage: srcImage}
+        var f = {srcImage: srcImage}
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
@@ -525,9 +530,9 @@ namespace ResizeTools
             dstImage.visitPixels(&f)
             {
                 let params = cast(*#decltype(f), unwrap userData)
-                let fx     = cast(u32, (x * params.xscale))
-                let fy     = cast(u32, (y * params.yscale))
-                let pixSrc = params.srcImage.pixels.buffer + (fx * image.bytesPerPixel) + (fy * params.srcImage.width * image.bytesPerPixel)
+                let fx     = nearestSourceCoordinate(x, params.srcImage.width, image.width)
+                let fy     = nearestSourceCoordinate(y, params.srcImage.height, image.height)
+                let pixSrc = params.srcImage.pixels.buffer + cast(u64, fx) * image.bytesPerPixel + cast(u64, fy) * params.srcImage.rowStride
                 Image.copyPixelDirect'BPP(cast([*] u8, pix), cast([*] u8, unwrap pixSrc))
             }
         }
@@ -544,8 +549,8 @@ namespace ResizeTools
             dstImage.visitPixels(&f)
             {
                 let params = cast(*#decltype(f), unwrap userData)
-                let fx     = cast(u32, (x * params.xscale))
-                let fy     = cast(u32, (y * params.yscale))
+                let fx     = nearestSourceCoordinate(x, params.srcImage.width, image.width)
+                let fy     = nearestSourceCoordinate(y, params.srcImage.height, image.height)
                 let pixSrc = params.srcImage.pixels.storage() + cast(u64, fx) * image.bytesPerPixel + cast(u64, fy) * params.srcImage.rowStride
                 Memory.copy(pix, pixSrc, image.bytesPerPixel)
             }

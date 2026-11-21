@@ -3,6 +3,15 @@
 
 using Swag
 
+struct RejectBitArrayGrowthAllocator {}
+
+impl Swag.IAllocator for RejectBitArrayGrowthAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 {
     if values.count != expected.count do
@@ -148,6 +157,25 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     values.setAll(false)
     for index in values.count do
         Swag.require(not values[index])
+}
+
+// A failed growth preserves the old bit count and the bits it owned.
+#test
+{
+    var reject: RejectBitArrayGrowthAllocator
+    var values: BitArray
+    values.resize(1, true)
+    let oldAllocator = values.allocator
+    values.allocator = &reject
+
+    let failed = Swag.catchPanic(func|&values|() { values.resize(65) })
+    values.allocator = oldAllocator
+
+    Swag.require(failed.raised)
+    Swag.require(values.count == 1 and values[0])
+
+    values.resize(65)
+    Swag.require(values.count == 65 and not values[0])
 }
 
 #test

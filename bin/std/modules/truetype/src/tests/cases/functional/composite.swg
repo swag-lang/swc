@@ -4,8 +4,49 @@ using Swag, Core
 
 #test
 {
+    // Point numbers in a nested composite are relative to that composite's own
+    // points, even when its parent has already appended an unrelated component.
+    var firstGlyph: Array'u8
+    firstGlyph.add([
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x33, 0x0A])
+
+    var secondGlyph: Array'u8
+    secondGlyph.add([
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x33, 0x14])
+
+    var nestedComposite: Array'u8
+    nestedComposite.add([
+        0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x23, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00])
+
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(2)
+    faceData.unitsPerEm = 1000
+    faceData.outlinePoints.add(Vector{x: 6400, y: 0})
+    faceData.fontData.add(firstGlyph.toSlice())
+    faceData.fontData.add(secondGlyph.toSlice())
+    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
+    faceData.glyphLocations.add(0)
+    faceData.glyphLocations.add(cast(u32, firstGlyph.count))
+    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
+
+    expect appendCompositeGlyph(&faceData, nestedComposite.toSlice(), 1000, 1000, 0)
+    Swag.require(faceData.outlinePoints.count == 3)
+    Swag.require(faceData.outlinePoints[2].x == faceData.outlinePoints[1].x)
+}
+
+#test
+{
     // Point numbers in composite arguments are unsigned. A parent anchor of 128
-    // must still attach when its high bit is set in the two-byte representation.
+    // must still attach when its high bit is set in either representation.
+    var parentGlyph: Array'u8
+    parentGlyph.add([
+        0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x80, 0x00, 0x00, 0x39, 0x7F, 0x33, 0x64])
+
     var childGlyph: Array'u8
     childGlyph.add([
         0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -14,43 +55,36 @@ using Swag, Core
     var compositeGlyph: Array'u8
     compositeGlyph.add([
         0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x01, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00])
+        0x00, 0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00])
 
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(1)
+    faceData.face.setGlyphCount(2)
     faceData.unitsPerEm = 1000
-    for index in 129
-    {
-        let point = index == 128 ? Vector{x: 100, y: 200} : Vector{}
-        faceData.outlinePoints.add(point)
-    }
-
+    faceData.fontData.add(parentGlyph.toSlice())
     faceData.fontData.add(childGlyph.toSlice())
-    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, childGlyph.count)})
+    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
     faceData.glyphLocations.add(0)
-    faceData.glyphLocations.add(cast(u32, childGlyph.count))
+    faceData.glyphLocations.add(cast(u32, parentGlyph.count))
+    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
 
-    expect appendCompositeGlyph(&faceData, compositeGlyph.toSlice(), 1, 1, 0)
+    expect appendCompositeGlyph(&faceData, compositeGlyph.toSlice(), 1000, 1000, 0)
     Swag.require(faceData.outlinePoints.count == 130)
-    Swag.require(faceData.outlinePoints[129].x == 100)
-    Swag.require(faceData.outlinePoints[129].y == 200)
+    Swag.require(faceData.outlinePoints[129].x == 6400)
+    Swag.require(faceData.outlinePoints[129].y == 0)
 
     // The byte form carries the same unsigned point number in one byte.
     var byteComposite: Array'u8
     byteComposite.add([
         0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x80, 0x00])
+        0x00, 0x22, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x01, 0x80, 0x00])
     faceData.outlinePoints.clear()
-    for index in 129
-    {
-        let point = index == 128 ? Vector{x: 100, y: 200} : Vector{}
-        faceData.outlinePoints.add(point)
-    }
 
-    expect appendCompositeGlyph(&faceData, byteComposite.toSlice(), 1, 1, 0)
+    expect appendCompositeGlyph(&faceData, byteComposite.toSlice(), 1000, 1000, 0)
     Swag.require(faceData.outlinePoints.count == 130)
-    Swag.require(faceData.outlinePoints[129].x == 100)
-    Swag.require(faceData.outlinePoints[129].y == 200)
+    Swag.require(faceData.outlinePoints[129].x == 6400)
+    Swag.require(faceData.outlinePoints[129].y == 0)
 }
 
 #test

@@ -37,7 +37,9 @@ namespace Swag
         // Releases this owner's reference when it leaves scope.
         mtd opDrop()
         {
-            __releaseErrRecord(.record)
+            let record = .record
+            .record = null
+            __releaseErrRecord(record)
         }
 
         // Shares the retained payload with the copied owner.
@@ -52,24 +54,28 @@ namespace Swag
         // Pass the handler binding while its catch scope is alive on the current thread.
         // Copy an existing owner directly instead of capturing its [[Swag.Error.value]] view.
         // Its dynamic payload and copied message storage are retained independently of that
-        // scope. A null value resets this owner. The new copy is made before the old one drops.
+        // scope. A null value resets this owner. The new copy is published before the old one
+        // drops, so a capture from its cleanup takes effect afterward.
         mtd capture(error: any?)
         {
             var record: *ErrorRecord?
             if error do
                 record = __copyErrRecord(error)
-            .reset()
-            .record = record
+            let previous = .record
+            .record      = record
+            __releaseErrRecord(previous)
         }
 
-        // Releases this owner's reference and restores the empty state.
+        // Releases this owner's current reference and clears it before payload cleanup runs.
+        // An error captured by that cleanup remains owned by this value.
         //
         // Other owner copies and errors already raised from them remain valid.
         #[BorrowSummary(0, reallocates: 1)]
         mtd reset()
         {
-            Swag.drop(me, 1)
-            Swag.init(me, 1)
+            let record = .record
+            .record = null
+            __releaseErrRecord(record)
         }
 
         // Reports whether this owner has no retained error.

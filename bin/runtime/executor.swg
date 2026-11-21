@@ -9,12 +9,12 @@
 // executor to [[Swag.Task.submit]].
 //
 // Start it before submitting to it. Closing it, or leaving its scope, runs every task already
-// submitted, then stops its thread. The executor holds a submitted task until it runs, so declare
-// the tasks before the executor, as a group's borrowed storage is declared before the group. A
-// task that waits for another task of the same executor never finishes: one thread runs them in
-// order. A task running on the executor must not close it, because closing waits for that thread
-// to finish. Under compile-time execution there is no thread, and a task runs inside its
-// submission.
+// submitted, then stops its thread. Do not submit while it is closing: that submission panics.
+// When no thread is running, including under compile-time execution, a task runs inside its
+// submission. The executor holds a submitted task until it runs, so declare the tasks before the
+// executor, as a group's borrowed storage is declared before the group. A task that waits for
+// another task of the same executor never finishes: one thread runs them in order. A task running
+// on the executor must not close it, because closing waits for that thread to finish.
 //
 // ```swag
 // var renderer: Swag.Executor
@@ -83,7 +83,8 @@ impl Executor
 
     // Runs every submitted task, then stops and joins the thread.
     //
-    // Closing an executor that is not running does nothing.
+    // Closing an executor that is not running does nothing. Do not submit work while this call
+    // is in progress; that submission panics rather than being queued after the thread exits.
     mtd close()
     {
         if not .isStarted() do
@@ -97,24 +98,37 @@ impl Executor
         .ready.wakeAll()
 
         __hostThreadJoin(.handle)
+
+        .mutex.lock()
         .handle = null
+        .mutex.unlock()
     }
 
     // Queues `node` for the thread, or runs it here when the executor has no thread.
-    internal mtd post(node: *WorkNode)
+    //
+    // Returns false without accepting the node after closing has started.
+    internal mtd post(node: *WorkNode)->bool
     {
         node.next     = null
         node.previous = null
+
+        .mutex.lock()
+        if .stopping and .handle != null
+        {
+            .mutex.unlock()
+            return false
+        }
+
         if not .isStarted()
         {
+            .mutex.unlock()
             node.state.store(WorkStateRunning)
             runWork(schedulerInstance(), node, false)
-            return
+            return true
         }
 
         // A dedicated node is never claimed by a join: it is not in the pool's ready list.
         node.state.store(WorkStateDedicated)
-        .mutex.lock()
         if .tail do
             .tail.next = node
         else do
@@ -122,6 +136,7 @@ impl Executor
         .tail = node
         .mutex.unlock()
         .ready.wake()
+        return true
     }
 
     // Takes the oldest submitted node, or returns null once the executor closes with nothing left.

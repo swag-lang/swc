@@ -258,6 +258,30 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
 }
 
+// A valid but incomplete `idx1` must not hide frames still present in the movie list.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
+    let raw   = bytes.toSlice()
+    var index = 0'u64
+    while index + 8 <= raw.count and not aviHasId(raw, index, "idx1") do
+        index += 1
+    Swag.require(index + 8 <= raw.count and aviReadU32(raw, index + 4) >= 6 * 16)
+
+    bytes.resize(index + 8 + 16)
+    bytes[index + 4] = 16
+    bytes[index + 5] = 0
+    bytes[index + 6] = 0
+    bytes[index + 7] = 0
+    let riffSize = cast(u32, bytes.count - 8)
+    for byteIndex in 4 do
+        bytes[4 + byteIndex] = cast(u8, (riffSize >> cast(u32, (byteIndex * 8))) & 0xFF)
+
+    var reader = expect Reader.openMemory("partial-index.avi", bytes.toSlice())
+    Swag.require(reader.frameCount() == 6)
+    videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test
@@ -351,6 +375,44 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(aviHasId(raw, indexStart + 8, "00dc"))
     Swag.require(aviReadU32(raw, indexStart + 16) == 4)
     Swag.require(indexStart + 8 + 3 * 16 == bytes.count)
+}
+
+// The approximate `avih` frame period stays representable at the ends of the stream-rate range.
+#test
+{
+    var slowBuffer: ConcatBuffer
+    let slowRate   = expect FrameRate.create(1, 4_295)
+    var slowWriter = expect Writer.createMemory("slow.avi", &slowBuffer, 2, 2, slowRate)
+    expect slowWriter.addFrame(videoGrayImage(2, 2, 80))
+    expect slowWriter.end()
+    let slowBytes   = slowBuffer.toArray()
+    let slow        = slowBytes.toSlice()
+    Swag.require(aviReadU32(slow, 32) == Swag.U32.Max)
+    Swag.require(aviReadU32(slow, 128) == 4_295 and aviReadU32(slow, 132) == 1)
+
+    var fastBuffer: ConcatBuffer
+    let fastRate   = expect FrameRate.create(Swag.U32.Max, 1)
+    var fastWriter = expect Writer.createMemory("fast.avi", &fastBuffer, 2, 2, fastRate)
+    expect fastWriter.addFrame(videoGrayImage(2, 2, 80))
+    expect fastWriter.end()
+    let fastBytes   = fastBuffer.toArray()
+    let fast        = fastBytes.toSlice()
+    Swag.require(aviReadU32(fast, 32) == 1)
+    Swag.require(aviReadU32(fast, 128) == 1 and aviReadU32(fast, 132) == Swag.U32.Max)
+}
+
+// Finalizing an AVI without video frames is rejected before writing its empty index.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("empty.avi", &buffer, 2, 2, rate)
+    let opened = buffer.toArray()
+
+    var rejected: Swag.Error
+    discard catch writer.end() as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
 }
 
 // A stream written to a file reads back through the file-backed sink, which is the path where

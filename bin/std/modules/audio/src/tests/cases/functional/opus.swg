@@ -52,6 +52,49 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(rms <= tolerance)
 }
 
+// Opus maps the SILK 60 ms duration to 2880 samples; every frame mode fits one decoder buffer.
+#test
+{
+    const SilkTocs: [12] u8 = [0x00, 0x08, 0x10, 0x18,
+                               0x20, 0x28, 0x30, 0x38,
+                               0x40, 0x48, 0x50, 0x58]
+    const SilkFrames: [12] u64 = [480, 960, 1_920, 2_880,
+                                  480, 960, 1_920, 2_880,
+                                  480, 960, 1_920, 2_880]
+    for toc, index in SilkTocs
+    {
+        var packet: [1] u8 = [toc]
+        Swag.require(Opus.packetFrames(Swag.makeSlice(&packet[0], packet.count)) == SilkFrames[index])
+    }
+
+    const HybridTocs: [4] u8 = [0x60, 0x68, 0x70, 0x78]
+    const HybridFrames: [4] u64 = [480, 960, 480, 960]
+    for toc, index in HybridTocs
+    {
+        var packet: [1] u8 = [toc]
+        Swag.require(Opus.packetFrames(Swag.makeSlice(&packet[0], packet.count)) == HybridFrames[index])
+    }
+
+    const CeltTocs: [16] u8 = [0x80, 0x88, 0x90, 0x98,
+                                0xA0, 0xA8, 0xB0, 0xB8,
+                                0xC0, 0xC8, 0xD0, 0xD8,
+                                0xE0, 0xE8, 0xF0, 0xF8]
+    const CeltFrames: [16] u64 = [120, 240, 480, 960,
+                                  120, 240, 480, 960,
+                                  120, 240, 480, 960,
+                                  120, 240, 480, 960]
+    for toc, index in CeltTocs
+    {
+        var packet: [1] u8 = [toc]
+        Swag.require(Opus.packetFrames(Swag.makeSlice(&packet[0], packet.count)) == CeltFrames[index])
+    }
+
+    var maximumPacket: [2] u8 = [0x1B, 0x02]
+    Swag.require(Opus.packetFrames(Swag.makeSlice(&maximumPacket[0], maximumPacket.count)) == 5_760)
+    maximumPacket[1] = 0x03
+    Swag.require(not Opus.packetFrames(Swag.makeSlice(&maximumPacket[0], maximumPacket.count)))
+}
+
 // Stereo tones in 20 ms CELT frames: the transform layer, its allocation, spreading, and stereo
 // coding, at the fullband the music application selects.
 #test

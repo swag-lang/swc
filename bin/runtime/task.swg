@@ -281,8 +281,11 @@ private impl Task
     // Hands the prepared submission to `executor`, or to the pool.
     mtd dispatch(executor: *Executor?)
     {
-        if executor do
-            executor.post(&.node)
+        if executor
+        {
+            if not executor.post(&.node) do
+                Swag.panic("cannot submit work while the executor is closing", #curlocation)
+        }
         else do
             submitWork(&.node, .priority == .Background)
     }

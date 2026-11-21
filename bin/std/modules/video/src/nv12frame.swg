@@ -148,8 +148,9 @@ impl Nv12Frame
     // Converts a bottom-up packed image into top-down NV12 using the BT.709 studio range.
     //
     // Accepts RGB8, BGR8, RGBA8, and BGRA8; alpha is ignored. Width and height must be positive
-    // and even. Invalid inputs leave the previous picture intact. Conversion keeps and reuses the
-    // owned byte capacity when dimensions stay the same.
+    // and even, and the image must own a complete pixel buffer matching its geometry. Invalid
+    // inputs leave the previous picture intact. Conversion keeps and reuses the owned byte
+    // capacity when dimensions stay the same.
     mtd convertFrom(image: const *Image) fail
     {
         if image.width <= 0 or image.height <= 0 or image.width % 2 or image.height % 2 do
@@ -157,6 +158,17 @@ impl Nv12Frame
         let format = image.pixelFormat
         if format != .RGB8 and format != .BGR8 and format != .RGBA8 and format != .BGRA8 do
             fail UnsupportedFormatError{"NV12 conversion needs packed 8-bit RGB pixels"}
+        if not image.isValid() or
+           image.width <= 0 or
+           image.height <= 0 or
+           image.bytesPerPixel != format.bitsPerPixel() / 8 do
+            fail BadParameterError{"NV12 conversion needs a packed image with a complete pixel buffer"}
+        let rowBytes = cast(u64, image.width) * cast(u64, image.bytesPerPixel)
+        if rowBytes > Swag.S32.Max or
+           image.rowStride != cast(s32, rowBytes) or
+           image.byteCount != rowBytes * cast(u64, image.height) or
+           image.pixels.count != image.byteCount do
+            fail BadParameterError{"NV12 conversion needs a packed image with a complete pixel buffer"}
 
         let width    = cast(u64, image.width)
         let height   = cast(u64, image.height)

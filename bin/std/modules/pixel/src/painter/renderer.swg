@@ -130,8 +130,11 @@ interface IRenderer
     // Returns an invalid texture if the backend cannot allocate or upload every plane.
     mtd addImage(view: const *YuvPlanarView)->Texture
 
-    // Replaces all bytes of a texture owned by this renderer.
+    // Replaces all tightly packed bytes of a texture owned by this renderer.
     //
+    // Planar bytes are ordered as luma, chromaB, then chromaR, with top-down rows and no padding;
+    // 4:2:0 chroma planes use rounded-up half dimensions. This overload keeps the texture's YUV
+    // matrix and range; use the planar view overload to replace those as well.
     // Returns false when the backend cannot complete the upload. The caller must stop using
     // the texture because its contents may have changed before the failure was reported.
     mtd updateTexture(texture: Texture, pixels: const *u8)->bool

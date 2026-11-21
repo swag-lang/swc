@@ -96,6 +96,7 @@ private func readFrameIndex(source: *ByteSource,
     var byteOffset    = audioOffset
     var totalFrames   = 0'u64
     var hasFirstFrame = false
+    var skippedJunk   = false
 
     for
     {
@@ -109,11 +110,16 @@ private func readFrameIndex(source: *ByteSource,
         {     // Tags and padding sit between frames often enough that one bad byte is not the end
             // of the stream; a run of them is.
             byteOffset += 1
+            skippedJunk = true
             continue
         }
 
-        if header.frameBytes > fileBytes - byteOffset do
+        if header.frameBytes > fileBytes - byteOffset
+        {
+            if not skippedJunk do
+                fail InvalidFormatError{"MP3 frame is truncated"}
             break
+        }
 
         if not hasFirstFrame
         {
@@ -125,6 +131,7 @@ private func readFrameIndex(source: *ByteSource,
             {
                 // The tag frame decodes to silence and belongs to no sample.
                 byteOffset += header.frameBytes
+                skippedJunk = false
                 continue
             }
         }
@@ -142,6 +149,7 @@ private func readFrameIndex(source: *ByteSource,
             fail OverflowError{"MP3 stream sample count overflows"}
         totalFrames += frameCount
         byteOffset  += header.frameBytes
+        skippedJunk = false
     }
 
     if not hasFirstFrame do

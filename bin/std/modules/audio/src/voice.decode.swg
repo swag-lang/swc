@@ -329,14 +329,15 @@ impl Voice
         if not .stream.isOpen() do
             .stream = try ByteSource.openFile(file.path)
 
-        // Read from file. A payload the header declares past what the file holds ends where the
-        // file does.
+        // Read exactly the indexed payload range. A file shortened after it was loaded is
+        // malformed input, not a shorter sound.
         let fileOffset = file.dataOffset + .streamCurSeek
         if fileOffset >= .stream.size() do
-            return 0
+            fail InvalidFormatError{"sound payload is truncated"}
         try .stream.seek(fileOffset)
         wantedBytes = Math.min(wantedBytes, file.dataSize - .streamCurSeek)
-        return try .stream.read(Swag.makeSlice(cast([*] u8, destBuffer), wantedBytes))
+        try .stream.readExact(Swag.makeSlice(cast([*] u8, destBuffer), wantedBytes))
+        return wantedBytes
     }
 
     // Reads a logical byte range from PCM chunks that are scattered through a container.

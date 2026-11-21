@@ -580,48 +580,33 @@ public impl LinePath
 
     // Replaces the path with an open circular arc from `startAngle` to `endAngle`.
     //
-    // Angles run clockwise from the top of the circle, within one turn. The center and radius are
-    // rounded to whole pixels. The path is left unchanged when the two angles are equal.
+    // Angles run clockwise from the top of the circle. `endAngle` must be greater than
+    // `startAngle`, and the span cannot exceed one turn; the start direction is normalized so
+    // the span is preserved when it crosses zero. The center and radius are rounded to whole
+    // pixels. The path is left unchanged when the two angles are equal.
     mtd setArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle)
     {
         if isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
+        let angleSpan = endAngle.radians - startAngle.radians
+        Swag.assert(angleSpan > 0 and angleSpan <= Math.ConstF32.TwoPi)
 
         let cX = Math.round(centerX)
         let cY = Math.round(centerY)
         let r  = Math.round(radius)
 
+        var s        = startAngle.normalized().radians
+        let arcEnd   = s + angleSpan
         var startPos = Math.Vector2{0, -r}
-        startPos.rotateBy(startAngle)
+        startPos.rotateBy(Math.Angle.fromRadians(s))
         .start(cX + startPos.x, cY + startPos.y)
 
-        var s = startAngle.radians
-        var m = 0'f32
-        if s < Math.ConstF32.PiBy2
+        while s < arcEnd
         {
-            m = Math.min(endAngle.radians, Math.ConstF32.PiBy2)
+            let quadrantEnd = (Math.floor(s / Math.ConstF32.PiBy2) + 1) * Math.ConstF32.PiBy2
+            let m = Math.min(arcEnd, quadrantEnd)
             .arcTo(cX, cY, r, r, s, m)
             s = m
-        }
-
-        if s < Math.ConstF32.Pi
-        {
-            m = Math.min(endAngle.radians, Math.ConstF32.Pi)
-            .arcTo(cX, cY, r, r, s, m)
-            s = m
-        }
-
-        if s < Math.ConstF32.Pi + Math.ConstF32.PiBy2
-        {
-            m = Math.min(endAngle.radians, Math.ConstF32.Pi + Math.ConstF32.PiBy2)
-            .arcTo(cX, cY, r, r, s, m)
-            s = m
-        }
-
-        if s < Math.ConstF32.TwoPi
-        {
-            m = Math.min(endAngle.radians, Math.ConstF32.TwoPi)
-            .arcTo(cX, cY, r, r, s, m)
         }
     }
 

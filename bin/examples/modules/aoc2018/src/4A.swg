@@ -55,71 +55,30 @@ using Core, Core.Parser
 func day4A()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
-    let lines    = expect File.readAllLines(dataPath)
+    let stats    = readGuardSleepStats(dataPath)
 
-    Slice.sort(lines[to], func(x, y)->s32
+    var bestMinuteCount, bestMinute, bestGuard = 0'u64
+    var mostSleep = 0
+    for guard, totalSleep in stats.totalByGuard
     {
-        let val0 = expect Time.DateTime.parse(x[1 to 16])
-        let val1 = expect Time.DateTime.parse(y[1 to 16])
-        return val0.value <=> val1.value
-    })
+        if totalSleep > mostSleep
+        {
+            bestGuard = guard
+            mostSleep = totalSleep
+        }
+    }
 
-    var when    = expect RegExp.create("(\\d+)-(\\d+)-(\\d+) (\\d+):(\\d+)")
-    var start   = expect RegExp.create("Guard #(\\d+) begins shift")
-    var asleep  = expect RegExp.create("falls asleep")
-    var wakesup = expect RegExp.create("wakes up")
-
-    var curGuard, startSleep, curMin = 0
-    var count: [60] HashTable'(s32, s32)
-    var total: HashTable'(s32, s32)
-
-    for l in lines
+    for guardCounts, minute in stats.minutesByGuard
     {
-        discard when.grep(l[])
-        curMin = expect StrConv.toS32(when[5])
-
-        let s = start.grep(l[])
-        if s
+        for guard, minuteCount in guardCounts
         {
-            curGuard = expect StrConv.toS32(start[1])
-        }
-        elif asleep.grep(l[])
-        {
-            startSleep = curMin
-        }
-        elif wakesup.grep(l[])
-        {
-            while startSleep < curMin
+            if guard == bestGuard and minuteCount > bestMinuteCount
             {
-                count[startSleep].findOrAdd(curGuard).value += 1
-                total.findOrAdd(curGuard).value += 1
-                startSleep += 1
+                bestMinuteCount = minuteCount
+                bestMinute      = minute
             }
         }
     }
 
-    var minCount, min, guard = 0'u64
-    for k, v in total
-    {
-        if v > min
-        {
-            curGuard = k
-            min      = v
-        }
-    }
-
-    for v, i in count
-    {
-        for k1, v1 in v
-        {
-            if k1 == curGuard and v1 > minCount
-            {
-                minCount = v1
-                min      = i
-                guard    = k1
-            }
-        }
-    }
-
-    Swag.assert(guard * min == 106710)
+    Swag.assert(bestGuard * bestMinute == 106710)
 }

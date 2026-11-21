@@ -157,6 +157,10 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     assertDateTime(dateOnly.value, 2024, 2, 29, 0, 0, 0, 0)
     Swag.require(dateOnly.eat == 10)
 
+    let datePrefix = expect Time.DateTime.parse("2024-02-29 suffix")
+    assertDateTime(datePrefix.value, 2024, 2, 29, 0, 0, 0, 0)
+    Swag.require(datePrefix.eat == 10)
+
     let hourMinute = expect Time.DateTime.parse("2024-02-29 01:02")
     assertDateTime(hourMinute.value, 2024, 2, 29, 1, 2, 0, 0)
     Swag.require(hourMinute.eat == 16)

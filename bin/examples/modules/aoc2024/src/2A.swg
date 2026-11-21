@@ -15,27 +15,9 @@ func day2A()
     var total = 0
     for l in lines
     {
-        let first = Tokenize.split(l[], ' 'u8)
-
-        var prev = 0, ls = 0
-        var bad  = false
-        for v, index in first
-        {
-            let a = expect StrConv.toS32(v)
-            if index
-            {
-                let diff = a - prev
-                if Swag.abs(diff) < 1 or Swag.abs(diff) > 3 do
-                    bad = true
-                if ls and Math.sign(diff) != ls do
-                    bad = true
-                ls = Math.sign(diff)
-            }
-
-            prev = a
-        }
-
-        total += bad ? 0 : 1
+        let levels = Slice.map(Tokenize.split(l[], ' 'u8).toSlice(),
+                               func(value) => expect StrConv.toS32(value))
+        total += isReportSafe(levels.toSlice()) ? 1 : 0
     }
 
     Swag.assert(total == 549)

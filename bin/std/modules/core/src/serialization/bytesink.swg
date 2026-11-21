@@ -98,6 +98,8 @@ impl ByteSink
     // exceed U64.Max.
     mtd write(bytes: const [..] u8) fail
     {
+        try .requireOpen()
+
         let count = bytes.count
         if not count do
             return
@@ -180,6 +182,8 @@ impl ByteSink
     // appending resumes exactly where it stopped.
     mtd patch(offset: u64, bytes: const [..] u8) fail
     {
+        try .requireOpen()
+
         let count = bytes.count
         if not count do
             return
@@ -216,22 +220,47 @@ impl ByteSink
     // Hands every buffered byte to the file; a memory sink has nothing to flush.
     mtd flush() fail
     {
+        try .requireOpen()
+
         if not .pendingCount do
             return
         try .stream.writeAll(.pending.toSlice()[until .pendingCount])
         .pendingCount = 0
     }
 
-    // Flushes the stream and releases the file; repeated calls do nothing.
+    private mtd requireOpen() fail
+    {
+        if .isFile
+        {
+            if not .stream.isOpen() do
+                fail BadParameterError{"byte sink is closed"}
+        }
+        elif not .buffer
+        {
+            fail BadParameterError{"byte sink is closed"}
+        }
+    }
+
+    // Flushes the stream and closes the sink; repeated calls do nothing.
     //
     // This is the operation whose failure decides whether the stream is complete, so an
     // encoder calls it explicitly rather than leaving it to destruction: a sink that leaves
-    // scope unclosed drops whatever its window still holds.
+    // scope unclosed drops whatever its window still holds. Further writes, patches, and flushes
+    // fail with [[Core.Errors.BadParameterError]].
     mtd close() fail
     {
-        if not .isFile do
-            return
-        try .flush()
-        .stream.close()
+        if .isFile
+        {
+            if not .stream.isOpen() do
+                return
+            try .flush()
+            .stream.close()
+        }
+        else
+        {
+            if not .buffer do
+                return
+            .buffer = null
+        }
     }
 }

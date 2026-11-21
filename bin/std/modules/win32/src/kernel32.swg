@@ -1034,13 +1034,20 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
-    func DeleteTimerQueueTimer(timerQueue: HANDLE, timer: HANDLE, completionEvent: HANDLE)
+    // Waits for a timer deletion request to complete while its callback is running.
+    //
+    // `ERROR_IO_PENDING` means the callback has not finished, so the request is retried.
+    // Fails with [[Swag.SystemError]] for any other native failure, preserving its Win32 code.
+    func DeleteTimerQueueTimer(timerQueue: HANDLE, timer: HANDLE, completionEvent: HANDLE) fail
     {
         for
         {
-            let res = Win32Priv.DeleteTimerQueueTimer(timerQueue, timer, completionEvent)
-            if res or GetLastError() == ERROR_IO_PENDING do
+            if Win32Priv.DeleteTimerQueueTimer(timerQueue, timer, completionEvent) do
                 return
+            let errorCode = GetLastError()
+            if errorCode == ERROR_IO_PENDING do
+                continue
+            try failWinError(errorCode)
         }
     }
 

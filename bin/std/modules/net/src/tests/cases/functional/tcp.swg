@@ -1,6 +1,8 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
+using Core
+
 #test
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
@@ -56,6 +58,19 @@
     client.close()
     let end = expect server.read(bytes)
     Swag.require(end == 0 and not client.isOpen())
+
+    var closedReadError: Swag.Error
+    discard catch client.read(bytes) as closedReadError
+    Swag.require(closedReadError.value() is Errors.BadParameterError)
+
+    var closedWriteError: Swag.Error
+    discard catch client.write(payload) as closedWriteError
+    Swag.require(closedWriteError.value() is Errors.BadParameterError)
+
+    var unopened: TcpStream
+    var unopenedReadError: Swag.Error
+    discard catch unopened.read(bytes) as unopenedReadError
+    Swag.require(unopenedReadError.value() is Errors.BadParameterError)
 }
 
 // Half-closing the send side delivers EOF without preventing the peer's response.
@@ -127,6 +142,19 @@
     let endpoint = expect listener.localEndpoint()
     listener.close()
     listener.close()
+
+    var closedEndpointError: Swag.Error
+    discard catch listener.localEndpoint() as closedEndpointError
+    Swag.require(closedEndpointError.value() is Errors.BadParameterError)
+
+    var closedAcceptError: Swag.Error
+    discard catch listener.accept() as closedAcceptError
+    Swag.require(closedAcceptError.value() is Errors.BadParameterError)
+
+    var unopened: TcpListener
+    var unopenedEndpointError: Swag.Error
+    discard catch unopened.localEndpoint() as unopenedEndpointError
+    Swag.require(unopenedEndpointError.value() is Errors.BadParameterError)
 
     var outcome: Swag.Error
     discard catch TcpStream.connect(endpoint) as outcome

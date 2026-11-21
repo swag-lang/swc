@@ -118,6 +118,22 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
 
 #test
 {
+    let source   = Image.create(5, 3, .Gray8)
+    let byWidth  = source.resized(2, 0)
+    let byHeight = source.resized(0, 2)
+    assertImage(byWidth, 2, 1, .Gray8)
+    assertImage(byHeight, 3, 2, .Gray8)
+
+    let sourcePointer  = &source
+    let zeroDimensions = Swag.catchPanic(func|sourcePointer|()
+    {
+        discard sourcePointer[].resized(0, 0)
+    })
+    Swag.require(zeroDimensions.raised)
+}
+
+#test
+{
     const rawPixels = [
         10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8,
         90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8]

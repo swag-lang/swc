@@ -52,3 +52,13 @@ using Swag, Core
     })
     Swag.require(rejectedShort.raised and rejectedLong.raised)
 }
+
+// A still-allocated but truncated public pixel array is not a valid image.
+#test
+{
+    var image = Image.create(1, 1, .RGBA8)
+    image.pixels.resize(0)
+    Swag.require(not image.isValid())
+    image.pixels.resize(1)
+    Swag.require(not image.isValid())
+}

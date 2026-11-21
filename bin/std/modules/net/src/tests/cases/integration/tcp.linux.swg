@@ -148,3 +148,38 @@ using Core
     for index in before.count do
         Swag.require(before[index] == after[index])
 }
+
+#[Swag.TestTag("integration.network")]
+#test
+{
+    var listener      = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint      = expect listener.localEndpoint()
+    var closed        = expect TcpStream.connect(endpoint)
+    var closedPeer    = expect listener.accept()
+    let retiredHandle = cast(s32, closed.handle)
+    closed.close()
+
+    var replacement        = expect TcpStream.connect(endpoint)
+    let replacementHandle  = cast(s32, replacement.handle)
+    var duplicateInstalled = false
+    defer
+    {
+        if duplicateInstalled do
+            discard Linux.close(retiredHandle)
+    }
+
+    if replacementHandle != retiredHandle
+    {
+        Swag.require(Linux.dup2(replacementHandle, retiredHandle) == retiredHandle)
+        duplicateInstalled = true
+    }
+
+    var replacementPeer = expect listener.accept()
+    let reply = cast(const [..] u8, "x")
+    Swag.require(expect replacementPeer.write(reply) == reply.count)
+    var received: [1] u8
+    var error:    Swag.Error
+    discard catch closed.read(received) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    Swag.require(expect replacement.read(received) == 1 and received[0] == 'x')
+}

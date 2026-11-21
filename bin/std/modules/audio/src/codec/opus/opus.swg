@@ -24,10 +24,28 @@ private const BandwidthWide        = 3'u32
 private const BandwidthSuperWide   = 4'u32
 private const BandwidthFull        = 5'u32
 private const Frame20Ms            = 960'u32
-private const Frame10Ms            = 480'u32
 private const Frame5Ms             = 240'u32
 private const Frame2Ms5            = 120'u32
 private const SilenceFrame: [2] u8 = [0xFF, 0xFF]
+
+// Returns one Opus frame's 48 kHz sample count from its configuration.
+private func frameSampleCount(config: u32)->u32
+{
+    if config < 12
+    {
+        switch config & 3
+        {
+        case 0: return 480
+        case 1: return 960
+        case 2: return 1_920
+        default: return 2_880
+        }
+    }
+
+    if config < 16 do
+        return 480'u32 << (config & 1)
+    return 120'u32 << (config & 3)
+}
 
 // Returns the number of 48 kHz sample frames a packet plays, or zero for an invalid packet.
 //
@@ -41,13 +59,7 @@ internal func packetFrames(packet: const [..] u8)->u64
     let code   = toc & 3
 
     // Frame sizes in 48 kHz samples: 2.5, 5, 10, 20, 40, and 60 ms.
-    var frameSize: u64
-    if config < 12 do
-        frameSize = 480'u64 << (config & 3)
-    elif config < 16 do
-        frameSize = 480'u64 << (config & 1)
-    else do
-        frameSize = 120'u64 << (config & 3)
+    let frameSize = cast(u64, frameSampleCount(config))
 
     var frames = 1'u64
     if code == 1 or code == 2
@@ -87,19 +99,19 @@ private func frameInfo(toc: u8)->FrameInfo
         result.bandwidth = BandwidthMedium + ((value >> 5) & 3)
         if result.bandwidth == BandwidthMedium do
             result.bandwidth = BandwidthNarrow
-        result.frameSize = 120'u32 << (config & 3)
+        result.frameSize = frameSampleCount(config)
     }
     elif (value & 0x60) == 0x60
     {
         result.mode      = ModeHybrid
         result.bandwidth = value & 0x10 ? BandwidthFull : BandwidthSuperWide
-        result.frameSize = value & 0x08 ? Frame20Ms : Frame10Ms
+        result.frameSize = frameSampleCount(config)
     }
     else
     {
         result.mode      = ModeSilk
         result.bandwidth = BandwidthNarrow + ((value >> 5) & 3)
-        result.frameSize = 480'u32 << (config & 3)
+        result.frameSize = frameSampleCount(config)
     }
 
     result.streamChannels = value & 0x04 ? 2'u32 : 1

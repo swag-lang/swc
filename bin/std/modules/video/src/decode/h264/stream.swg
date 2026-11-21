@@ -513,6 +513,7 @@ impl AvcStream
         let lane = .reserveLane()
         if lane == AvcNoLane do
             return false
+        defer #fail .laneStates[lane] = .Free
 
         let decoder = &.decoders[lane]
         if .lastSetupLane != AvcNoLane and lane != .lastSetupLane do

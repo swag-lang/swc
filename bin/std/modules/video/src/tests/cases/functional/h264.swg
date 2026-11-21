@@ -37,6 +37,28 @@ using Core, Core.Errors, Pixel
     videoAssertReferenceFrame(frame, reference.toSlice(), 57, 96, 64)
 }
 
+// A failed sample read releases the lane it reserved, so a later seek can still decode.
+#test
+{
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-pyramid.mp4").toString())
+    var decoder:  Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+    decoder.video.avc.laneCount = 1
+
+    let offset = decoder.video.avc.frames[0].offset
+    decoder.video.avc.frames[0].offset = source.size()
+    var rejected: Swag.Error
+    var frame:    Image
+    discard catch idecoder.decodeFrame(&source, &frame) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    decoder.video.avc.frames[0].offset = offset
+    decoder.video.avc.seekTo(57)
+    expect idecoder.decodeFrame(&source, &frame)
+    Swag.require(frame.width == 96 and frame.height == 64)
+}
+
 // Constrained Baseline: CAVLC entropy coding, I and P slices, several references.
 #test
 {

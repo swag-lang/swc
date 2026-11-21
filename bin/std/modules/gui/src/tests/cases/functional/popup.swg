@@ -5,12 +5,14 @@ using Swag, Core
 
 const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
-var PopupHeadlessChangedCount:  u32
-var PopupListContentPaintCount: u32
-var PopupListContentPaintFlags: PaintItemFlags
-var PopupVisibilityOpenCount:   u32
-var PopupVisibilityCloseCount:  u32
-var PopupVisibilityOpenRange:   PopupListVisibleRange
+var PopupHeadlessChangedCount:        u32
+var PopupListContentPaintCount:       u32
+var PopupListContentPaintFlags:       PaintItemFlags
+var PopupVisibilityOpenCount:         u32
+var PopupVisibilityCloseCount:        u32
+var PopupVisibilityOpenRange:         PopupListVisibleRange
+var PopupVisibilityCloseSawDetached:  bool
+var PopupVisibilityCloseSawLivePopup: bool
 
 func popupHeadlessChanged(_: *ComboBox, _: u32)
 {
@@ -34,6 +36,19 @@ func popupVisibilityChanged(_: *Wnd, popup: *PopupListCtrl, opened: bool)
     {
         PopupVisibilityCloseCount += 1
     }
+}
+
+func popupVisibilityReenterClose(wnd: *Wnd, popup: *PopupListCtrl, opened: bool)
+{
+    if opened do
+        return
+
+    let combo = assume cast(*ComboBox, wnd)
+    PopupVisibilityCloseSawDetached  = combo.popup == null
+    PopupVisibilityCloseSawLivePopup = not popup.isPendingDestroy
+    combo.closePopup()
+    combo.addItem("Added during close")
+    PopupVisibilityCloseCount += 1
 }
 
 // The public visible range includes partially visible rows, counts separators, and the combo
@@ -83,6 +98,31 @@ func popupVisibilityChanged(_: *Wnd, popup: *PopupListCtrl, opened: bool)
     Swag.require(PopupVisibilityOpenRange.first == 0 and PopupVisibilityOpenRange.end > 0)
     combo.closePopup()
     Swag.require(PopupVisibilityCloseCount == 1 and combo.popup == null)
+    host.app.setMouseCaptureRaw(null)
+    host.pump()
+}
+
+// A close observer may close the combo again or mutate its items while the old popup is borrowed.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    PopupVisibilityCloseCount        = 0
+    PopupVisibilityCloseSawDetached  = false
+    PopupVisibilityCloseSawLivePopup = false
+
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
+    combo.addItem("Before close")
+    combo.sigPopupChanged += &popupVisibilityReenterClose
+    host.click({100, 33})
+    let closingPopup = combo.popup
+    Swag.require(closingPopup != null)
+
+    combo.closePopup()
+    Swag.require(PopupVisibilityCloseCount == 1)
+    Swag.require(PopupVisibilityCloseSawDetached and PopupVisibilityCloseSawLivePopup)
+    Swag.require(combo.popup == null and closingPopup.isPendingDestroy)
+    Swag.require(combo.items.count == 2 and combo.items[1]!.name.text == "Added during close")
     host.app.setMouseCaptureRaw(null)
     host.pump()
 }

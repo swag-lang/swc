@@ -143,9 +143,9 @@ func __isTestFileSelected(path: string)->bool
     return not hasFilter
 }
 
-// Positive tag filters form a union; !tag exclusions take precedence. Integration tags require
-// an explicit positive filter so an ordinary
-// test run never creates native windows or depends on hardware or an interactive desktop.
+// Positive tag filters form a union, and !tag exclusions take precedence. An explicit positive
+// filter is required for integration tags so ordinary test runs never create native windows or
+// depend on hardware or an interactive desktop.
 func __isTestTagSelected(tag: string)->bool
 {
     let prefix = "swag.test-tag="

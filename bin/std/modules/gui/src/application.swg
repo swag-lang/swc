@@ -984,6 +984,8 @@ private impl Application
         var refused: String
         while not .mustQuit and not .endModal
         {
+            if surface and not .surfaces.contains(surface) do
+                break
             .runFrame()
             if cb do
                 cb(me)
@@ -1026,11 +1028,15 @@ private impl Application
         // the surface that raised it. The last surface re-enabled is only a last resort: it is the
         // end of the application's list, which is not necessarily where the reader was.
         var restoreSurface: *Surface?
-        if not .modalSurfaces.isEmpty() do
-            restoreSurface = .modalSurfaces.back()
-        elif restoreTo and restoreTo != surface do
+        for candidate in .modalSurfaces.reversed() where .surfaces.contains(candidate)
+        {
+            restoreSurface = candidate
+            break
+        }
+
+        if not restoreSurface and restoreTo and restoreTo != surface and .surfaces.contains(restoreTo) do
             restoreSurface = restoreTo
-        elif not disabledSurfaces.isEmpty() do
+        if not restoreSurface and not disabledSurfaces.isEmpty() do
             restoreSurface = disabledSurfaces.back()
 
         if mustRestore and restoreSurface and .surfaces.contains(restoreSurface)
@@ -1041,7 +1047,8 @@ private impl Application
                 discard restoreSurface.restoreFocus()
         }
 
-        surface?.destroy()
+        if surface and .surfaces.contains(surface) do
+            surface.destroy()
 
         // The depth comes down by hand, not in a `defer`: a panic leaves the frame without
         // running it, and the refusal below must leave the application out of every loop.

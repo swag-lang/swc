@@ -323,17 +323,19 @@ impl OwnedOutcome
     Swag.require(total == 30)
 }
 
-// 'whenAll' raises the first failure and asks the other tasks to stop.
+// 'whenAll' raises a completed failure and asks the other tasks to stop, even with one worker.
 #test
 {
     var stopped: Swag.AtomicValue'u32
     var tasks:   [3] Swag.Task'u32
     tasks[0].submit(func()->u32 fail { fail OutcomeFailure{1} })
+    tasks[0].wait()
+    Swag.require(tasks[0].hasFailed())
     for index in 1 until 3
     {
         tasks[index].submit(func|&stopped|()->u32
         {
-            let attempts = Swag.jit() ? 1'u64 : 2_000_000_000'u64
+            let attempts = Swag.jit() ? 1'u64 : 100_000_000'u64
             for attempts
             {
                 if Swag.isCancelled()

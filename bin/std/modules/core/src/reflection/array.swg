@@ -38,6 +38,44 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
     return generics[0].pointedType
 }
 
+// Reserves storage for a runtime-typed [[Core.Array]], keeping its count and existing elements.
+// `newCapacity` is measured in elements of `elementType`.
+internal func reserveDynamicArray(arrayPointer: *void?, elementType: typeinfo?, newCapacity: u64)
+{
+    if not arrayPointer or not elementType do
+        Swag.panic("Reflection.reserveDynamicArray cannot reserve a null array or null type", #curlocation)
+
+    let arrayView = cast(*Array'u8, arrayPointer)
+    if newCapacity <= arrayView.capacity do
+        return
+
+    let elementBytes = elementType.sizeof
+    if not elementBytes
+    {
+        arrayView.capacity = newCapacity
+        return
+    }
+
+    if elementBytes != 0 and newCapacity > Swag.U64.Max / elementBytes do
+        Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+
+    let oldSize = arrayView.capacity * elementBytes
+    let doubledCapacity = arrayView.capacity <= Swag.U64.Max / 2 ? arrayView.capacity * 2 : newCapacity
+    let grownCapacity = Math.max(doubledCapacity, newCapacity)
+    if grownCapacity > Swag.U64.Max / elementBytes do
+        Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+
+    let allocator = arrayView.allocator orelse Swag.getContext().allocator
+    let buffer = Memory.realloc(arrayView.buffer,
+                                grownCapacity * elementBytes,
+                                oldSize,
+                                allocator,
+                                runtimeTypeAlignment(elementBytes))
+    arrayView.allocator = allocator
+    arrayView.buffer = cast([*] u8, buffer)
+    arrayView.capacity = grownCapacity
+}
+
 // Drops every element of the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`.
 //
 // The array keeps its capacity. Nothing happens when a pointer or `elementType` is null.

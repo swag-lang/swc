@@ -113,9 +113,9 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
 
     expect face.setPixelSize(32, 32)
     expect face.loadGlyph(0)
-    Swag.require(face.glyph.metrics.horizontalAdvance == scale26_6(600, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalAdvance == scale26_6(1000, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalTopSideBearing == scale26_6(100, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.horizontalAdvance == expect scale26_6(600, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(100, 32, face.unitsPerEm))
 }
 
 #test

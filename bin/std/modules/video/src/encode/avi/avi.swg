@@ -148,6 +148,9 @@ impl IEncoder for Encoder
     #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
+        if .index.isEmpty() do
+            fail BadParameterError{"AVI stream needs at least one frame"}
+
         let frameEnd = sink.position()
         sink.writeNative(IndexId)
         sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))
@@ -183,7 +186,10 @@ private impl Encoder
     mtd const createMainHeader()->MainHeader
     {
         var result: #returntype
-        result.microSecPerFrame = cast(u32, (1_000_000'u64 * cast(u64, .info.frameRate.denominator()) / cast(u64, .info.frameRate.numerator())))
+        // The main header's integer microseconds are advisory; the stream header keeps the exact ratio.
+        let framePeriod = 1_000_000'u64 * cast(u64, .info.frameRate.denominator()) /
+                          cast(u64, .info.frameRate.numerator())
+        result.microSecPerFrame = cast(u32, Math.min(Math.max(framePeriod, 1'u64), cast(u64, Swag.U32.Max)))
         result.flags   = MainHasIndex
         result.streams = 1
         result.width   = cast(u32, .info.width)

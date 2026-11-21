@@ -29,40 +29,18 @@ func day2B()
     var total = 0
     for l in lines
     {
-        let first0 = Tokenize.split(l[], ' 'u8)
-        var first  = first0
-
-        var tor = 0
-        for
+        let levels = Slice.map(Tokenize.split(l[], ' 'u8).toSlice(),
+                               func(value) => expect StrConv.toS32(value))
+        if isReportSafe(levels.toSlice())
         {
-            var prev = 0, ls = 0
-            var bad  = false
-            for v, index in first
-            {
-                let a = expect StrConv.toS32(v)
-                if index
-                {
-                    let diff = a - prev
-                    if Swag.abs(diff) < 1 or Swag.abs(diff) > 3 do
-                        bad = true
-                    if ls and Math.sign(diff) != ls do
-                        bad = true
-                    ls = Math.sign(diff)
-                }
+            total += 1
+            continue
+        }
 
-                prev = a
-            }
-
-            if bad
-            {
-                if tor == first0.count do
-                    break
-                first = first0
-                first.removeAtOrdered(tor)
-                tor += 1
+        for skipIndex in levels.count
+        {
+            if not isReportSafe(levels.toSlice(), skipIndex) do
                 continue
-            }
-
             total += 1
             break
         }

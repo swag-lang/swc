@@ -786,6 +786,8 @@ private impl TagBin
         }
 
         let flags = try .stream.readNative'Write.TagBinHeaderFlags()
+        if cast(u32, flags) > cast(u32, Write.TagBinHeaderFlags.StreamCompressed) do
+            fail SerializationError{"invalid TagBin header flags"}
         let shapeDirOffset = try .stream.readNative'u64()
 
         if flags.has(.StreamCompressed)
@@ -850,6 +852,8 @@ private impl TagBin
                 sf.key     = try .readWireString()
                 sf.crcType = try .stream.readNative'u32()
                 sf.flags   = try .stream.readNative'Write.TagBinShapeFlags()
+                if cast(u8, sf.flags) > cast(u8, Write.TagBinShapeFlags.Compressed) do
+                    fail SerializationError{"invalid shape field flags"}
                 shape.fields.add(sf)
                 fieldCount -= 1
             }
@@ -1225,14 +1229,13 @@ impl TagBin
                 if byteCount > .remainingPayload() do
                     fail SerializationError{"raw sequence runs past the end of its section"}
 
+                Reflection.reserveDynamicArray(data, valueType, countElem[])
                 let bufArr = cast(*Array'u8, unwrap data)
-                bufArr.count = countElem[]
-                bufArr.reserve(byteCount)
-                bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
                 if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
+                bufArr.count = countElem[]
                 return true
             }
         }

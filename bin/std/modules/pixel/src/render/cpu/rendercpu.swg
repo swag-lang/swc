@@ -991,28 +991,58 @@ private impl RenderCpu
     }
 
     // Reads the texel of a top-down byte plane nearest to the normalized coordinates.
-    func fetchPlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
+    func fetchPlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32, repeat: bool)->f32
     {
-        let x = Math.clamp(nearestTexel(u * width), 0, width - 1)
-        let y = Math.clamp(nearestTexel((1.0 - v) * height), 0, height - 1)
+        var x = nearestTexel(u * width)
+        var y = nearestTexel((1.0 - v) * height)
+        if repeat
+        {
+            x = modFloor(x, width)
+            y = modFloor(y, height)
+        }
+        else
+        {
+            x = Math.clamp(x, 0, width - 1)
+            y = Math.clamp(y, 0, height - 1)
+        }
+
         return cast(f32, plane.storage()[cast(u64, (y * width + x))])
     }
 
     // Samples a top-down byte plane at the normalized coordinates used by a GPU texture.
-    func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
+    func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32, repeat: bool)->f32
     {
-        let x      = Math.clamp(u * width - 0.5, 0.0, cast(f32, width - 1))
-        let y      = Math.clamp((1.0 - v) * height - 0.5, 0.0, cast(f32, height - 1))
-        let x0     = cast(s32, Math.floor(x))
-        let y0     = cast(s32, Math.floor(y))
-        let x1     = Math.min(x0 + 1, width - 1)
-        let y1     = Math.min(y0 + 1, height - 1)
+        var x = u * width - 0.5
+        var y = (1.0 - v) * height - 0.5
+        if not repeat
+        {
+            x = Math.clamp(x, 0.0, cast(f32, width - 1))
+            y = Math.clamp(y, 0.0, cast(f32, height - 1))
+        }
+
+        let x0 = cast(s32, Math.floor(x))
+        let y0 = cast(s32, Math.floor(y))
+        var x1 = x0 + 1
+        var y1 = y0 + 1
+        if repeat
+        {
+            x1 = modFloor(x1, width)
+            y1 = modFloor(y1, height)
+        }
+        else
+        {
+            x1 = Math.min(x1, width - 1)
+            y1 = Math.min(y1, height - 1)
+        }
+
+        let readX0 = repeat ? modFloor(x0, width) : x0
+        let readY0 = repeat ? modFloor(y0, height) : y0
         let tx     = x - x0
         let ty     = y - y0
         let pixels = plane.storage()
-        let c00    = cast(f32, pixels[cast(u64, (y0 * width + x0))])
-        let c10    = cast(f32, pixels[cast(u64, (y0 * width + x1))])
-        let c01    = cast(f32, pixels[cast(u64, (y1 * width + x0))])
+        let c00    = cast(f32, pixels[cast(u64, (readY0 * width + readX0))])
+        let c10    = cast(f32, pixels[cast(u64, (readY0 * width + x1))])
+        let c01    = cast(f32, pixels[cast(u64, (y1 * width + readX0))])
         let c11    = cast(f32, pixels[cast(u64, (y1 * width + x1))])
         let top    = c00 + (c10 - c00) * tx
         let bot    = c01 + (c11 - c01) * tx
@@ -1024,16 +1054,16 @@ private impl RenderCpu
     // Pixel mode reads the nearest luma sample and still filters the two chroma planes: the
     // sampling mode of a brush governs its own texture, which is the luma plane, while the chroma
     // planes are half-size companions that are always interpolated up to it.
-    func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32, mode: InterpolationMode)->Color
+    func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32, mode: InterpolationMode, repeat: bool)->Color
     {
         var y = 0.0'f32
         if mode == .Pixel do
-            y = RenderCpu.fetchPlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+            y = RenderCpu.fetchPlanarPlane(&texture.luma, texture.width, texture.height, u, v, repeat)
         else do
-            y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+            y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v, repeat)
 
-        let d       = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
-        let e       = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
+        let d       = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v, repeat) - 128.0
+        let e       = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v, repeat) - 128.0
         let factors = yuvConversionFactors(texture.matrix, texture.studioRange)
         let c       = Math.max(y - cast(f32, factors.lumaOffset), 0.0) * cast(f32, factors.lumaScale)
         let r       = (c + cast(f32, factors.redCr) * e + 128.0) / 256.0
@@ -1341,7 +1371,7 @@ private impl RenderCpu
                     let ty   = (paintPos.y - p.boundRect.y) / dstH
                     let u    = p.textureRect.x + tx * (p.textureRect.z - p.textureRect.x)
                     let v    = 1.0 - (p.textureRect.y + ty * (p.textureRect.w - p.textureRect.y))
-                    return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode)
+                    return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode, false)
                 }
 
                 return sampleSubRect(image, paintPos, &batch.subRect)
@@ -1365,7 +1395,7 @@ private impl RenderCpu
             }
 
             if batch.paintPlanar do
-                return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode)
+                return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode, repeat)
 
             if .program == CpuProgram_Blur do
                 return .sampleBlur(batch, image, u, v)
@@ -3463,6 +3493,33 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
+
+        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
+        {
+            let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
+            let divisor      = 1's32 << shift
+            let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
+            let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
+            let lumaSize     = cast(u64, texture.width) * cast(u64, texture.height)
+            let chromaSize   = cast(u64, chromaWidth) * cast(u64, chromaHeight)
+            let source       = cast(const [*] u8, pixels)
+            let planar       = &target.planar
+            let view         = YuvPlanarView{
+                luma: source,
+                chromaB: source + lumaSize,
+                chromaR: source + lumaSize + chromaSize,
+                lumaStride: cast(u64, texture.width),
+                chromaStride: cast(u64, chromaWidth),
+                width: texture.width,
+                height: texture.height,
+                chromaShift: shift,
+                matrix: planar.matrix,
+                studioRange: planar.studioRange}
+            view.convertToRgb(&target.image)
+            .copyPlanar(&view, &target.planar)
+            return true
+        }
+
         Memory.copy(target.image.pixels.storage(), pixels, target.image.byteCount)
         return true
     }

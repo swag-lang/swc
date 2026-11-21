@@ -12,38 +12,21 @@ using Core, Core.Parser
 func day4B()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
-    let lines    = expect File.readAllLines(dataPath)
-    Slice.sort(lines[to])
+    let stats    = readGuardSleepStats(dataPath)
 
-    var curGuard, startSleep, curMin = 0
-    var count: [60] HashTable'(s32, s32)
-
-    for l in lines
+    var bestMinuteCount, bestMinute, bestGuard = 0'u64
+    for guardCounts, minute in stats.minutesByGuard
     {
-        curMin = expect StrConv.parseS32(l[15 to]).value
-
-        if Utf8.contains(l[], "begins shift") do
-            curGuard = expect StrConv.parseS32(l[26 to]).value
-        elif Utf8.contains(l[], "falls asleep") do
-            startSleep = curMin
-        elif Utf8.contains(l[], "wakes up") do
-            for i in startSleep until curMin do
-                count[i].findOrAdd(curGuard).value += 1
-    }
-
-    var minCount, min, guard = 0'u64
-    for v, i in count
-    {
-        for k1, v1 in v
+        for guard, minuteCount in guardCounts
         {
-            if v1 > minCount
+            if minuteCount > bestMinuteCount
             {
-                minCount = v1
-                min      = i
-                guard    = k1
+                bestMinuteCount = minuteCount
+                bestMinute      = minute
+                bestGuard       = guard
             }
         }
     }
 
-    Swag.assert(guard * min == 10491)
+    Swag.assert(bestGuard * bestMinute == 10491)
 }

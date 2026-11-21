@@ -173,7 +173,7 @@ impl ImageReader
         if image.width != frame.width or
            image.height != frame.height or
            image.pixelFormat != frame.pixelFormat or
-           (.options.decodePixels and (image.byteCount == 0 or image.pixels.count != image.byteCount)) do
+           (.options.decodePixels and not image.isValid()) do
             fail InvalidFormatError{"decoded frame does not match its image index"}
     }
 

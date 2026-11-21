@@ -50,16 +50,19 @@ their position determines which value they receive.
 
 #test
 {
-    for value, index in "ABC"
+    let matrix: [2][2] s32 = [[10, 20], [30, 40]]
+    var weightedTotal      = 0
+
+    for row, rowIndex in matrix
     {
-        let a = index
-        switch a
+        for value, columnIndex in row
         {
-        case 0: Swag.require(value == 'A')
-        case 1: Swag.require(value == 'B')
-        case 2: Swag.require(value == 'C')
+            let weight = cast(s32, rowIndex + columnIndex + 1)
+            weightedTotal += value * weight
         }
     }
+
+    Swag.require(weightedTotal == 230)
 }
 
 /**

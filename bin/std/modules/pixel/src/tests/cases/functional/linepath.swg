@@ -101,3 +101,13 @@ func arcRadii(path: const *LinePath)->Array'f32
         Swag.require(uniform.elements[index].p2 == corners.elements[index].p2)
     }
 }
+
+// An arc keeps its full span when its endpoint crosses the zero-angle direction.
+#test
+{
+    var path: LinePath
+    path.setArc(50, 50, 10, 270.0'deg, 450.0'deg)
+
+    Swag.require(path.startPoint.isEqualEpsilon({40, 50}, 0.001))
+    Swag.require(path.endPoint.isEqualEpsilon({60, 50}, 0.001))
+}

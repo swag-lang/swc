@@ -3,6 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
+// An empty Y4M stream cannot be opened by the matching decoder, so ending one must fail.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    var bytes: ConcatBuffer
+    var writer = expect Writer.createMemory("empty.y4m", &bytes, 2, 2, rate)
+
+    var emptyOutcome: Swag.Error
+    discard catch writer.end() as emptyOutcome
+    Swag.require((emptyOutcome.value() is BadParameterError))
+}
+
 func y4mAspectBytes(aspect: string)->Array'u8
 {
     var result: #returntype
@@ -428,6 +440,12 @@ func y4mAspectBytes(aspect: string)->Array'u8
     var missingHeaderOutcome: Swag.Error
     discard catch Reader.openMemory("bad.y4m", "not video") as missingHeaderOutcome
     let missingHeader = missingHeaderOutcome.value()
+    var malformedHeader: Array'u8
+    malformedHeader.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444 W\nFRAME\n"))
+    malformedHeader.add([81'u8, 90, 240])
+    var missingWidthValueOutcome: Swag.Error
+    discard catch Reader.openMemory("bad.y4m", malformedHeader.toSlice()) as missingWidthValueOutcome
+    let missingWidthValue = missingWidthValueOutcome.value()
     var chromaOutcome: Swag.Error
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420p10\nFRAME\nabc") as chromaOutcome
     let chroma = chromaOutcome.value()
@@ -441,6 +459,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
     discard catch Reader.openMemory("bad.mp4", "") as mp4HeaderOutcome
     let mp4Header = mp4HeaderOutcome.value()
     Swag.require((missingHeader is InvalidFormatError))
+    Swag.require((missingWidthValue is InvalidFormatError))
     Swag.require((chroma is UnsupportedFormatError))
     Swag.require((truncated is InvalidFormatError))
     Swag.require((noFrame is InvalidFormatError))

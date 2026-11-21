@@ -117,6 +117,19 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     expect sink.close()
     expect sink.close()
 
+    var closedWriteOutcome: Swag.Error
+    discard catch sink.writeText("after close") as closedWriteOutcome
+    Swag.require(closedWriteOutcome.value() is BadParameterError)
+
+    var closedPatchOutcome: Swag.Error
+    discard catch sink.patch(0, cast(const [..] u8, "x")) as closedPatchOutcome
+    Swag.require(closedPatchOutcome.value() is BadParameterError)
+
+    var closedFlushOutcome: Swag.Error
+    discard catch sink.flush() as closedFlushOutcome
+    Swag.require(closedFlushOutcome.value() is BadParameterError)
+    Swag.require(sink.position() == expected.count)
+
     let actual = expect File.readAllBytes(fileName)
     Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
@@ -230,6 +243,20 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     expect sink.patch(1, cast(const [..] u8, "XY"))
     expect sink.writeByte('!'u8)
     expect sink.close()
+    expect sink.close()
     Swag.require(buffer.toString() == "prefix keptdXYa!")
     Swag.require(sink.position() == 5)
+
+    var closedWriteOutcome: Swag.Error
+    discard catch sink.writeText("after close") as closedWriteOutcome
+    Swag.require(closedWriteOutcome.value() is BadParameterError)
+
+    var closedPatchOutcome: Swag.Error
+    discard catch sink.patch(0, cast(const [..] u8, "x")) as closedPatchOutcome
+    Swag.require(closedPatchOutcome.value() is BadParameterError)
+
+    var closedFlushOutcome: Swag.Error
+    discard catch sink.flush() as closedFlushOutcome
+    Swag.require(closedFlushOutcome.value() is BadParameterError)
+    Swag.require(buffer.toString() == "prefix keptdXYa!")
 }

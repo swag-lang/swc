@@ -71,3 +71,38 @@ using Swag, Core
     Swag.require(modalResult == Dialog.BtnOk)
     Swag.require(host.autoHandled and host.autoFailure.isEmpty())
 }
+
+// Destroying a parent dialog while a nested dialog is open must not leave its modal loop running.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 120)
+
+    let parent = Dialog.create(&host.surface, 260, 150, title: "Parent")
+    let parentSurface = unwrap parent.surface
+    parent.addButton("Close", Dialog.BtnCancel, true)
+    var stage: u32
+    host.app.sigFrame += func|host = &host, parentSurface, &stage|(app)
+    {
+        if stage == 0 and app.modalSurfaces.count == 1
+        {
+            stage = 1
+            let child = Dialog.create(parentSurface, 220, 120, title: "Child")
+            child.addButton("Ok", Dialog.BtnOk, true)
+            parentSurface.wnd.destroyNow()
+            Swag.require(child.doModal() == Dialog.BtnOk)
+        }
+        elif stage == 1 and app.modalSurfaces.count == 2
+        {
+            stage = 2
+            Swag.require(host.clickModalButton(Dialog.BtnOk))
+        }
+    }
+
+    let result = parent.doModal()
+    host.app.sigFrame.clear()
+    Swag.require(stage == 2, "destroying a covered modal must end its loop after the child closes")
+    Swag.require(result == "")
+    Swag.require(host.app.modalSurfaces.isEmpty() and host.app.inModalLoop == 0)
+    Swag.require(not host.surface.isDisabled)
+}

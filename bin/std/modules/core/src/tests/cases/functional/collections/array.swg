@@ -7,6 +7,15 @@ var ArrayDropCount: s32 = 0
 var ArrayDropTrace: s64 = 0
 var ArrayDropMask:  u32 = 0
 
+struct RejectArraySetAllocator {}
+
+impl IAllocator for RejectArraySetAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 struct ArrayDropTracked
 {
     value: s32
@@ -167,6 +176,26 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.clear()
     Swag.require(values.isEmpty())
     Swag.require(values.count == 0)
+}
+
+// A rejected replacement leaves the array's existing elements available.
+#test
+{
+    var reject: RejectArraySetAllocator
+    var values: Array's32
+    values.add(10)
+
+    let oldAllocator = values.allocator
+    values.allocator = &reject
+    let replacement: [2] s32 = [20, 30]
+    let failed = Swag.catchPanic(func|&values, replacement|()
+    {
+        values.opSet(replacement)
+    })
+    values.allocator = oldAllocator
+
+    Swag.require(failed.raised)
+    Swag.require(values.count == 1 and values[0] == 10)
 }
 
 // Borrowed add-once handles duplicates and copies new values; pair views visit adjacent elements.

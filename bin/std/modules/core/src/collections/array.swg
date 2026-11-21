@@ -142,12 +142,13 @@ impl Array
             }
         }
 
+        // Grow before clearing so an allocation failure leaves the old elements intact.
+        .grow(sourceCount)
         .clear()
         if not sourceCount do
             return
         let sourceData = arr.buffer
 
-        .grow(sourceCount)
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             .initNewSlots(0, sourceCount)

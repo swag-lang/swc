@@ -247,6 +247,71 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     }
 }
 
+// A raw texture upload replaces all tightly packed planar bytes, just like a planar view update.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+
+    for shift in [1's32, 0]
+    {
+        var storage: Array'u8
+        var source = flatPlanarPicture(&storage, 3, 3, 16, 128, 128, shift)
+        source.matrix      = .Bt709
+        source.studioRange = false
+        var texture = renderer.addImage(&source)
+        defer renderer.removeTexture(&texture)
+
+        var update: Array'u8
+        update.resize(texture.byteCount())
+        for i in 9'u64 do
+            update[i] = 100
+        let chromaSize = shift == 1 ? 4'u64 : 9'u64
+        for i in chromaSize
+        {
+            update[4 + i] = 90
+            update[4 + chromaSize + i] = 200
+        }
+
+        Swag.require(renderer.updateTexture(texture, update.storage()))
+
+        let updatedPlanes = cast(const [*] u8, update.storage())
+        source.luma         = updatedPlanes
+        source.chromaB      = updatedPlanes + 9
+        source.chromaR      = updatedPlanes + 9 + chromaSize
+        source.lumaStride   = 3
+        source.chromaStride = shift == 1 ? 2 : 3
+        var referenceTexture = renderer.addImage(&source)
+        defer renderer.removeTexture(&referenceTexture)
+
+        var target = renderer.createRenderTarget(6, 3)
+        defer renderer.deleteRenderTarget(&target)
+        var painter = Painter.create(renderer)
+        painter.begin()
+        painter.bindRenderTarget(&target)
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.Zero))
+        painter.setBlendingMode(.Copy)
+        painter.drawTexture({0, 0, 3, 3}, texture)
+        painter.drawTexture({3, 0, 3, 3}, referenceTexture)
+        painter.unbindRenderTarget()
+        painter.end()
+        expect renderer.draw(&painter)
+
+        let image = renderer.readRenderTarget(&target, 0, 0, 6, 3)
+        for y in 3's32
+        {
+            for x in 3's32
+            {
+                let actual   = image.pixelColor(x, y)
+                let expected = image.pixelColor(x + 3, y)
+                Swag.require(actual.r == expected.r and actual.g == expected.g and actual.b == expected.b)
+            }
+        }
+    }
+}
+
 // A new picture replaces the one a texture holds, which is what a player does every frame.
 #test
 {

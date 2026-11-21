@@ -3493,6 +3493,33 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
+
+        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
+        {
+            let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
+            let divisor      = 1's32 << shift
+            let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
+            let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
+            let lumaSize     = cast(u64, texture.width) * cast(u64, texture.height)
+            let chromaSize   = cast(u64, chromaWidth) * cast(u64, chromaHeight)
+            let source       = cast(const [*] u8, pixels)
+            let planar       = &target.planar
+            let view         = YuvPlanarView{
+                luma: source,
+                chromaB: source + lumaSize,
+                chromaR: source + lumaSize + chromaSize,
+                lumaStride: cast(u64, texture.width),
+                chromaStride: cast(u64, chromaWidth),
+                width: texture.width,
+                height: texture.height,
+                chromaShift: shift,
+                matrix: planar.matrix,
+                studioRange: planar.studioRange}
+            view.convertToRgb(&target.image)
+            .copyPlanar(&view, &target.planar)
+            return true
+        }
+
         Memory.copy(target.image.pixels.storage(), pixels, target.image.byteCount)
         return true
     }

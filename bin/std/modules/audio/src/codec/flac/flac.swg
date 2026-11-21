@@ -282,8 +282,12 @@ private impl Codec
             extraBytes = 1
         elif lead >= 0x80 do
             fail InvalidFormatError{"FLAC frame number is malformed"}
-        for extraBytes do
-            discard reader.read(8)
+        for extraBytes
+        {
+            let continuation = reader.read(8)
+            if (continuation & 0xC0) != 0x80 do
+                fail InvalidFormatError{"FLAC frame number has an invalid continuation byte"}
+        }
 
         switch blockSizeCode
         {

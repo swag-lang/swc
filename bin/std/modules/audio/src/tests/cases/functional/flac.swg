@@ -168,6 +168,24 @@ private func flacFrameWithInvalidSampleNumberPrefix()->Array'u8
     return frame
 }
 
+private func flacFrameWithInvalidSampleNumberContinuation()->Array'u8
+{
+    let valid = flacWideMidSideFrame()
+    var frame: Array'u8
+    for index in 4 do
+        frame.add(valid[index])
+    frame.add(0xC2)         // Valid two-byte number prefix.
+    frame.add(0x00)         // Not a UTF-8 continuation byte.
+    frame.add(valid[5])     // Block-size extension follows the encoded number.
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+    frame.add(valid[7 until valid.count - 2])
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
 // FLAC is lossless, so the only acceptable result is the exact stream that was encoded.
 //
 // The reference is the interleaved 16-bit PCM the fixture was produced from, not this module's own
@@ -258,6 +276,37 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     // The container index must reject the same invalid prefix before exposing a packet.
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                             Format.toString("audio-flac-invalid-number-%.flac", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    var fileBytes: Array'u8
+    fileBytes.add("fLaC")
+    fileBytes.add(0x80)     // Last metadata block: STREAMINFO.
+    fileBytes.add(0)
+    fileBytes.add(0)
+    fileBytes.add(34)
+    fileBytes.add(config.toSlice())
+    fileBytes.add(frame.toSlice())
+    expect File.writeAllBytes(path.toString(), fileBytes.toSlice())
+
+    discard catch SoundFile.load(path.toString()) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+}
+
+// A syntactically valid FLAC frame-number lead still needs UTF-8 continuation bytes.
+#test
+{
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacWideStereoTestConfig()
+    expect decoder.initialize(config.toSlice(), 48_000, 2)
+
+    var decoded:      [2] s16
+    let frame = flacFrameWithInvalidSampleNumberContinuation()
+    var errorOutcome: Swag.Error
+    discard catch decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), frame.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-flac-invalid-number-continuation-%.flac", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
     var fileBytes: Array'u8
     fileBytes.add("fLaC")

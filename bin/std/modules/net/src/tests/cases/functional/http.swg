@@ -220,10 +220,18 @@ func serveHttp(thread: const *Threading.Thread)
     Swag.require(parsed.body.count == 4 and cast(string, parsed.body.toSlice()) == "data")
     Swag.require(parsed.headers.count == 3 and parsed.headers[2].name == "X-Mode")
     expect connection.respond(201, cast(const [..] u8, "created"))
-    var response: [256] u8
-    let count = expect client.read(response)
-    Swag.require(Utf8.indexOf(cast(string, response[0 until count]), "HTTP/1.1 201 Created") != Swag.U64.Max)
-    Swag.require(Utf8.indexOf(cast(string, response[0 until count]), "created") != Swag.U64.Max)
+    var response: String
+    var buffer: [256] u8
+    for
+    {
+        let count = expect client.read(buffer)
+        if count == 0 do
+            break
+        response.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(Utf8.indexOf(response.toString(), "HTTP/1.1 201 Created") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(response.toString(), "created") != Swag.U64.Max)
+    Swag.require(expect client.read(buffer) == 0)
 }
 
 // The server accepts chunked uploads and can stream a chunked response.
@@ -268,4 +276,37 @@ func serveHttp(thread: const *Threading.Thread)
     var error: Swag.Error
     discard catch connection.readRequest() as error
     Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
+// Malformed transfer framing and forbidden trailers fail before a request is returned.
+#test
+{
+    let requests = [
+        "POST / HTTP/1.1\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nx",
+        "POST / HTTP/1.1\r\nTransfer-Encoding: gzip\r\n\r\n",
+        "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nz\r\n",
+        "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\nContent-Length: 0\r\n\r\n"]
+    for requestText in requests
+    {
+        var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+        var client = expect TcpStream.connect(expect server.localAddress())
+        let request = cast(const [..] u8, requestText)
+        Swag.require(expect client.write(request) == request.count)
+        var connection = expect server.accept()
+        var error: Swag.Error
+        discard catch connection.readRequest() as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+}
+
+// Closing an HTTP server releases its listening endpoint without changing accepted streams.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect server.localAddress()
+    server.close()
+    server.close()
+    var error: Swag.Error
+    discard catch TcpStream.connect(endpoint) as error
+    Swag.require(error.value() is NetworkError)
 }

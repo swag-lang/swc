@@ -27,6 +27,8 @@ and Windows. Operations can fail and may transfer fewer bytes than requested. DN
 preserves the platform resolver's address order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.
+An HTTP server handles one request per connection and closes each response; closing the server
+stops its listener while accepted connections remain independent.
 
 ## Request an HTTPS resource
 

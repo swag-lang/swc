@@ -253,3 +253,22 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     let err = errOutcome.value()
     Swag.require(err != null)
 }
+
+// A frame header whose final frame is cut short must not silently shorten the sound.
+#test
+{
+    let sourcePath = audioGetTestDataPath("mp3-mono-22050.mp3")
+    var bytes      = expect File.readAllBytes(sourcePath.toString())
+    let original   = expect SoundFile.load(sourcePath.toString())
+    let lastPacket = expect original.packet(original.packetCount() - 1)
+    bytes.resize(lastPacket.sourceOffset + lastPacket.byteSize - 1)
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-mp3-truncated-%.mp3", Guid64.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary) as error
+    Swag.require(error.value() is InvalidFormatError)
+}

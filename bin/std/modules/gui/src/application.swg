@@ -112,12 +112,13 @@ struct Application
 
     // Keyboard recipient and pointer routing state.
     keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
+    pointerFocusEpoch:     u64       // Detects a pointer press during a focus callback.
     focusRevision:         u64       // Changes whenever the keyboard recipient changes.
     mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
     mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
     nativeMouseButtons:    bool      // The native adapter dispatches queued mouse-button transitions.
     nativeKeyboardEvents:  bool      // The native adapter dispatches queued keyboard transitions.
-    nativeFocusTransition: bool      // Whether a logical focus move is synchronously changing the native focus.
+    nativeFocusSurface:    *Surface? // Surface confirmed by the native keyboard-focus backend.
 
     // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
     // window it is over and the position it reached are followed apart from the pointer state.
@@ -434,20 +435,46 @@ private impl Application
 
     // Gives a focusless surface's root view a keyboard receiver when its first key arrives.
     //
-    // The innermost modal owns the keyboard while one is up; otherwise the main surface does. This
-    // is a last resort for a surface that never placed its own focus — see
-    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately. The first key must not choose a
-    // button or field on behalf of the reader: Tab enters the traversal from the root, while
-    // a canvas can still read direct input and a root can still route shortcuts.
-    internal mtd seedKeyboardFocus()
+    // Gives input from a native surface only to that surface. The software host can omit the
+    // source because it has no window system to supply one.
+    internal mtd keyboardTarget(source: *Surface? = null, seed = false)->*Wnd?
     {
-        var surface = .mainSurface
-        if not .modalSurfaces.isEmpty() do
-            surface = .modalSurfaces.back()
-        if not surface do
-            return
+        if source and not .acceptsNativeKeyboard(source) do
+            return null
 
-        surface.wnd.view.setSurfaceFallbackFocus()
+        let modal = .modalSurfaces.isEmpty() ? null : .modalSurfaces.back()
+        let scopeSurface = source orelse modal
+        var target = .keyboardFocusWnd
+        if target and target.surface and not target.surface.isDisabled and
+           (not scopeSurface or target.surface == scopeSurface) do
+            return skipDisabled(target)
+        if not seed do
+            return null
+
+        let surface = scopeSurface orelse .mainSurface
+        if surface do
+            surface.wnd.view.setSurfaceFallbackFocus()
+        target = .keyboardFocusWnd
+        return target and target.surface == surface ? skipDisabled(target) : null
+    }
+
+    internal mtd acceptsNativeKeyboard(source: *Surface)->bool
+    {
+        return source == .nativeFocusSurface and not source.isHidden and not source.isDisabled and
+               (.modalSurfaces.isEmpty() or .modalSurfaces.back() == source)
+    }
+
+    // Publishes the confirmation before notifying controls. A Lost callback may change the
+    // native focus again, so only restore the requested surface if it still owns the keyboard.
+    internal mtd updateNativeFocus(surface: *Surface?)
+    {
+        if .nativeFocusSurface == surface do
+            return
+        .nativeFocusSurface?.setAccessKeysVisible(false)
+        .nativeFocusSurface = surface
+        .keyboardFocusWnd?.surface?.loseKeyboardFocus()
+        if surface and surface == .nativeFocusSurface and not .keyboardFocusWnd do
+            discard surface.restoreFocus()
     }
 
     // An action pressed by the pointer does not become a keyboard selection.
@@ -456,8 +483,8 @@ private impl Application
     // traversal, but a click clears the prior keyboard owner rather than marking the button.
     internal mtd focusPointerTarget(target: *Wnd)
     {
-        if .keyboardFocusWnd?.surface == target.surface do
-            .setFocusVisible(false)
+        .pointerFocusEpoch += 1
+        .setFocusVisible(false)
         if target.wndFlags.has(.NoPointerFocus) do
             return
         if target.wndFlags.has(.ActivatesOnKey)
@@ -494,13 +521,14 @@ private impl Application
         if .nativeKeyboardEvents do
             return
 
-        // The state above is polled from the system, not read from this application's own message
-        // stream, so it keeps moving while another application owns the keyboard. Presenting every
-        // key as released while this application is not the active one keeps its shortcuts
-        // focus-bound: nothing is pressed, so nothing is dispatched and nothing re-seeds the
-        // keyboard focus until the application is activated again.
-        if not .isActivated do
+        // Polling sees other applications' keys as well. Only the confirmed native surface may
+        // receive physical transitions from this snapshot.
+        let source = .nativeFocusSurface
+        if not source or not .acceptsNativeKeyboard(source)
+        {
             .keyboard.releaseAllKeys()
+            return
+        }
 
         // Modifiers
         let modifiers = .keyboard.pressedModifiers()
@@ -515,14 +543,9 @@ private impl Application
             let lastP = previous.pressed[i]
             let curP  = current.pressed[i]
 
-            // A surface nothing has focused yet would be deaf to the keyboard. The first key
-            // pressed is what seeds the focus, so a window can be driven from the keyboard without
-            // having been clicked once.
-            if curP and not lastP and not .keyboardFocusWnd do
-                .seedKeyboardFocus()
-
-            var targetWnd = .keyboardFocusWnd
-            targetWnd = skipDisabled(targetWnd)
+            if lastP == curP do
+                continue
+            let targetWnd = .keyboardTarget(source, seed: curP)
             if not targetWnd do
                 continue
 
@@ -549,15 +572,9 @@ private impl Application
         }
     }
 
-    internal mtd sendRuneEvent(key: Input.Key, r: rune)
+    internal mtd sendRuneEvent(key: Input.Key, r: rune, modifiers: Input.KeyModifiers, source: *Surface? = null)
     {
-        .sendRuneEvent(key, r, .keyboard.pressedModifiers())
-    }
-
-    internal mtd sendRuneEvent(key: Input.Key, r: rune, modifiers: Input.KeyModifiers)
-    {
-        var targetWnd = .keyboardFocusWnd
-        targetWnd = skipDisabled(targetWnd)
+        let targetWnd = .keyboardTarget(source, seed: source != null)
         if not targetWnd do
             return
 
@@ -644,9 +661,9 @@ private impl Application
     // reaches this through the destroy event of its root window.
     internal mtd destroySurface(surface: *Surface)
     {
-        .unregisterSurface(surface)
         if surface == .mainSurface do
             .postQuitEvent()
+        .unregisterSurface(surface)
 
         if not .modalSurfaces.isEmpty() and surface == .modalSurfaces.back() do
             .endModal = true
@@ -914,6 +931,9 @@ private impl Application
         }
     }
 
+    // Reports whether a dialog or captured popup is running a nested input loop.
+    public mtd const isInModalLoop()->bool => .inModalLoop != 0
+
     // Runs a nested event loop for `surface` and returns the identifier passed to [[Gui.Application.exitModal]].
     //
     // Other enabled surfaces are disabled for the duration of the loop and restored to their
@@ -945,6 +965,13 @@ private impl Application
         {
             surface.enable()
             .modalSurfaces.add(surface)
+            let previous = .keyboardFocusWnd?.surface
+            if previous and previous != surface
+            {
+                previous.loseKeyboardFocus()
+                if not .keyboardFocusWnd do
+                    discard surface.restoreFocus()
+            }
         }
 
         // A test host refuses a box nobody is going to answer: the loop ends at once, and the
@@ -1002,8 +1029,13 @@ private impl Application
         elif not disabledSurfaces.isEmpty() do
             restoreSurface = disabledSurfaces.back()
 
-        if mustRestore and restoreSurface do
-            discard restoreSurface.restoreFocus()
+        if mustRestore and restoreSurface and .surfaces.contains(restoreSurface)
+        {
+            if .renderer.needsNativeWindow() and restoreSurface != .nativeFocusSurface do
+                restoreSurface.requestNativeFocus()
+            else do
+                discard restoreSurface.restoreFocus()
+        }
 
         surface?.destroy()
 
@@ -1031,9 +1063,7 @@ internal impl Application
         {
             if .keyboard.pressedModifiers().has(.Alt)
             {
-                if not .keyboardFocusWnd do
-                    .seedKeyboardFocus()
-                .keyboardFocusWnd?.surface?.setAccessKeysVisible(true)
+                .keyboardTarget(.nativeFocusSurface, seed: true)?.surface?.setAccessKeysVisible(true)
             }
 
             return
@@ -1059,6 +1089,10 @@ internal impl Application
     mtd unregisterSurface(surface: *Surface)
     {
         .surfaces.remove(surface)
+        if .nativeFocusSurface == surface do
+            .updateNativeFocus(null)
+        if .mainSurface == surface do
+            .mainSurface = null
     }
 
     mtd dispatchHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
@@ -1143,15 +1177,13 @@ impl Application
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
     //
     // Use this when a gesture changes the presentation of the current recipient without moving
-    // focus. The next native activation restores the updated presentation with the recipient.
+    // focus.
     internal mtd setFocusVisible(visible: bool)
     {
         if .focusVisible == visible do
             return
         .focusVisible = visible
-        if let surface = .keyboardFocusWnd?.surface do
-            surface.savedFocusVisible = visible
-        .keyboardFocusWnd?.invalidate()
+        .keyboardFocusWnd?.invalidateFocusDecoration()
     }
 
     // Routes a pressed key that the focused window and its parents all declined.
@@ -1163,6 +1195,13 @@ impl Application
     // without either of them knowing that a traversal exists.
     internal mtd routeUnhandledKey(from: *Wnd, key: Input.Key, modifiers: Input.KeyModifiers)
     {
+        let surface = from.surface
+        let current = .keyboardFocusWnd?.surface
+        if not surface or from.isPendingDestroy or (current and current != surface) do
+            return
+        if .renderer.needsNativeWindow() and not .acceptsNativeKeyboard(surface) do
+            return
+
         let id = from.keyShortcut(modifiers, key)
         if id != null
         {
@@ -1170,9 +1209,7 @@ impl Application
             return
         }
 
-        let surface = from.surface
-        if surface do
-            discard surface.navigateKey(from, key, modifiers)
+        discard surface.navigateKey(from, key, modifiers)
     }
 
     // Frequently queried application services and per-frame input state.

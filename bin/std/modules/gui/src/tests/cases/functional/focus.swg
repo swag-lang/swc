@@ -604,6 +604,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
     let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    bar.arrowNavigation = true
     let yes   = PushButton.create(bar, "Yes", {0, 0, 80, 24})
     let no    = PushButton.create(bar, "No", {90, 0, 80, 24})
     let more  = PushButton.create(bar, "More", {180, 0, 80, 24})
@@ -679,6 +680,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let field  = EditBox.create(&host.root, "", {10, 10, 200, 24})
     let bar    = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    bar.arrowNavigation = true
     let ok     = PushButton.create(bar, "Ok", {0, 0, 80, 24}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {90, 0, 80, 24})
 
@@ -743,8 +745,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(card.submit.hasFocus())
 }
 
-// A stop alone in its group answers the arrows with the whole ring, and a modified arrow is a
-// gesture of the control rather than a traversal.
+// A lone stop has no local arrow destination. Tab can still leave its group.
 #test
 {
     var host: Testing.HeadlessHost
@@ -752,30 +753,32 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let alone = PushButton.create(&host.root, "A", {10, 10, 80, 24})
     let box   = Wnd.create'Wnd(&host.root, {10, 60, 200, 40})
+    box.arrowNavigation = true
     let inner = PushButton.create(box, "B", {0, 0, 80, 24})
 
     inner.setFocus()
     host.keyPress(.Right)
-    Swag.require(alone.hasFocus())
-
+    Swag.require(inner.hasFocus() and not inner.hasVisibleFocus())
     host.keyPress(.Right, .Shift)
-    Swag.require(alone.hasFocus())
+    Swag.require(inner.hasFocus())
     host.keyPress(.Right, .Control)
-    Swag.require(alone.hasFocus())
+    Swag.require(inner.hasFocus())
+    host.keyPress(.Tab)
+    Swag.require(alone.hasVisibleFocus())
 }
 
-// A box opens on the action it names as its default, with the ring already showing.
+// A box opens on its default action. Tab and Shift+Tab turn on the navigation ring.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Confirm")
-    dlg.addButton("Yes", Dialog.BtnYes)
-    let no = dlg.addButton("No", Dialog.BtnNo, true)
+    let yes = dlg.addButton("Yes", Dialog.BtnYes)
+    let no  = dlg.addButton("No", Dialog.BtnNo, true)
 
     var checked: bool
-    host.app.sigFrame += func|host = &host, no, checked = &checked|(_)
+    host.app.sigFrame += func|host = &host, yes, no, checked = &checked|(_)
     {
         if checked[] do
             return
@@ -783,10 +786,12 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
         // Reading order would have opened on `Yes`, and a focused button answers Enter itself:
         // the box would have answered yes to a question whose default is no.
-        Swag.require(no.hasFocus())
+        Swag.require(no.hasFocus() and not no.hasVisibleFocus())
+        host.keyPress(.Tab)
+        Swag.require(yes.hasVisibleFocus())
+        host.keyPress(.Tab, .Shift)
         Swag.require(no.hasVisibleFocus())
-        let modalButtonClicked = host.clickModalButton(Dialog.BtnNo)
-        Swag.require(modalButtonClicked)
+        host.keyPress(.Return)
     }
 
     let modalResult = dlg.doModal()

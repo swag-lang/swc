@@ -7,6 +7,7 @@ using Core, Pixel
 struct ApplicationNative
 {
     nativeKeyPresses:       [256]Input.Key
+    nativeKeyDown:          [256]bool
     public hotKeysDisabled: bool
     lastClickTime:          [Input.MouseButton]u32
     lastClickPosition:      [Input.MouseButton]Math.Point
@@ -258,7 +259,7 @@ impl Application
             case 2, 3, 4, 5, 6: id = cast(*Linux.xcb_key_press_event_t, cast(*void, event)).event
             case 9, 10:         id = cast(*Linux.xcb_focus_in_event_t, cast(*void, event)).event
             case 12:            id = cast(*Linux.xcb_expose_event_t, cast(*void, event)).window
-            case 17, 19:        id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
+            case 17:            id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
             case 22:            id = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event)).window
             case 28:            id = cast(*Linux.xcb_property_notify_event_t, cast(*void, event)).window
             case 33:            id = cast(*Linux.xcb_client_message_event_t, cast(*void, event)).window
@@ -357,16 +358,8 @@ impl Application
                     }
                 }
 
-            case 9:
-                surface.app.setActivated(true)
-                if not surface.app.nativeFocusTransition do
-                    discard surface.restoreFocus()
-
-            case 10:
-                Memory.clear(&surface.app.nativeKeyPresses, #sizeof(surface.app.nativeKeyPresses))
-                if not surface.app.nativeFocusTransition do
-                    surface.loseKeyboardFocus()
-                surface.app.setActivated(false)
+            case 9, 10:
+                LinuxDesktop.syncInputFocus(context, surface.app)
 
             case 12:
                 surface.invalidate()
@@ -375,10 +368,6 @@ impl Application
                 surface.windowId = 0
                 surface.drawable = {}
                 surface.destroy()
-
-            case 19:
-                if not surface.isHidden and not surface.isDisabled do
-                    surface.setFocus()
 
             case 22:
                 let packet = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event))
@@ -496,20 +485,21 @@ namespace LinuxDesktop
 
     internal func dispatchKey(context: *Context, surface: *Surface, packet: *Linux.xcb_key_press_event_t, pressed: bool)
     {
-        let app        = surface.app
-        var key        = app.nativeKeyPresses[packet.detail]
-        let wasPressed = key != .None
-        if key == .None do
-            key = portableKey(context, packet.detail, packet.state)
+        let app = surface.app
+        if not app.acceptsNativeKeyboard(surface) do
+            return
+        let wasPressed = app.nativeKeyDown[packet.detail]
+        if not pressed and not wasPressed do
+            return
+        let key = wasPressed ? app.nativeKeyPresses[packet.detail] : portableKey(context, packet.detail, packet.state)
 
-        // A lock change while held must not turn the release into a different key.
-        app.nativeKeyPresses[packet.detail] = pressed ? key : .None
+        // Preserve the key across layout changes, including physical keys with no portable name.
+        app.nativeKeyDown[packet.detail]    = pressed
+        app.nativeKeyPresses[packet.detail] = key
         app.keyboard.setCurrentKeyState(key, pressed)
-        if pressed and not app.keyboardFocusWnd do
-            app.seedKeyboardFocus()
+        let target = app.keyboardTarget(surface, seed: pressed)
         app.updateAccessKeyVisibility(key, pressed)
-        let target = app.keyboardFocusWnd
-        if not target or target.isDisabled() do
+        if not target do
             return
         var modifiers: Input.KeyModifiers
         if packet.state & 1 do
@@ -529,7 +519,7 @@ namespace LinuxDesktop
                 app.routeUnhandledKey(target, key, event.modifiers)
         }
 
-        if not pressed do
+        if not pressed or not app.acceptsNativeKeyboard(surface) do
             return
         let keyboardState = unwrap context.keyboardState
         discard context.xkb_state_update_mask(keyboardState, packet.state & 255, 0, 0, 0, 0, (packet.state >> 13) & 3)
@@ -553,7 +543,7 @@ namespace LinuxDesktop
                     {
                         let runes = Unicode.fromUtf8(Swag.makeSlice(bytes.buffer, cast(u64, count)))
                         for r in runes do
-                            app.sendRuneEvent(key, r)
+                            app.sendRuneEvent(key, r, modifiers, surface)
                     }
                 }
 
@@ -569,7 +559,7 @@ namespace LinuxDesktop
 
         let character = context.xkb_keysym_to_utf32(symbol)
         if character >= 32 and character != 127 and not (packet.state & 4) do
-            app.sendRuneEvent(key, cast(rune, character))
+            app.sendRuneEvent(key, cast(rune, character), modifiers, surface)
     }
 }
 

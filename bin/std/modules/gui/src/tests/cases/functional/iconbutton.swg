@@ -192,7 +192,7 @@ func iconButtonHeadlessReset()
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, IconButtonHeadless_Command, .Toggle)
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
-    btn.setFocus()
+    host.keyPress(.Tab)
 
     host.keyPress(Input.Key.Space)
     Swag.require(btn.isChecked)

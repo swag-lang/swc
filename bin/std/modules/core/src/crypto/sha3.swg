@@ -226,6 +226,16 @@ public impl Shake
         return result
     }
 
+    // Creates an internal cSHAKE128 or cSHAKE256 sponge with the cSHAKE domain separator.
+    //
+    // The caller supplies the SP 800-185 function-name and customization bytepads as input.
+    internal func createCShake(securityBits: u64)->Shake fail
+    {
+        var result: #returntype
+        try result.resetCShake(securityBits)
+        return result
+    }
+
     // Replaces prior state and selects SHAKE128 or SHAKE256 with 128 or 256 security bits.
     mtd reset(securityBits: u64) fail
     {
@@ -235,6 +245,17 @@ public impl Shake
         .clear()
         .rate   = securityBits == 128 ? 168 : 136
         .suffix = 0x1F
+    }
+
+    // Replaces prior state and selects cSHAKE128 or cSHAKE256 with its domain separator.
+    internal mtd resetCShake(securityBits: u64) fail
+    {
+        if securityBits != 128 and securityBits != 256 do
+            fail Errors.BadParameterError{"cSHAKE security strength must be 128 or 256 bits"}
+
+        .clear()
+        .rate   = securityBits == 128 ? 168 : 136
+        .suffix = 0x04
     }
 
     // Includes `data` in the running SHAKE input.

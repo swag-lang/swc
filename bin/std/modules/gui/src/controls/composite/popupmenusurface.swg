@@ -90,7 +90,8 @@ impl PopupMenuSurface
             armed[] = true
         }
 
-        if view.app().isActivated
+        let app = view.app()
+        if app.renderer.needsNativeWindow() ? app.nativeFocusSurface == view.surface : app.isActivated
         {
             wasActive[] = true
             return false

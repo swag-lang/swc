@@ -485,7 +485,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
   custom executors, including a task paused immediately before posting.
 - Done when: the invariant holds across the standard and application suites, and repeated
   Scope runs cannot post into a released application.
-- Related: app.scope.007
 
 ### std.gui.059 — Pack the widgets vector atlas more tightly
 
@@ -604,35 +603,3 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Next: rasterize the same glyphs on Windows and Linux, find the operation that diverges (sample
   count, coverage accumulation, or fused arithmetic), and make both produce the shipped pixels.
 - Done when: `theme.rasters.swg` passes on both platforms with the same shipped rasters.
-
-### std.gui.068 — Keyboard routing can disagree with the active native surface
-
-- Evidence: `Application.seedKeyboardFocus` uses the main surface unless a modal is open.
-  `LinuxDesktop.dispatchKey` has the native event surface but routes through the application's
-  keyboard recipient, including when the two surfaces differ. Win32 polls keyboard state for an
-  active application without retaining which native surface owns it. X11 focus notifications
-  arrive after the synchronous `nativeFocusTransition` guard has been reset. A non-modal secondary
-  surface with no saved widget can therefore start its keyboard traversal in another surface.
-- Next: record the active native surface separately from its remembered widget. Reproduce the
-  first key in a second surface, a denied activation and a delayed FocusOut/FocusIn pair on X11,
-  then run the same visible scenarios on Win32. Route both physical keys and committed text to
-  the surface that received them. Distinguish activation requests from confirmed activation and
-  trace the old recipient, requested recipient, reason, and result at the transition boundary.
-- Done when: keys, shortcuts and focus indicators agree on the active surface during window
-  switches, nested modals and popup capture. A surface with no remembered recipient enters its
-  own traversal on Tab.
-
-### std.gui.069 — Tab order has no explicit override for dynamic layouts
-
-- Evidence: `FocusOrder` guesses rows from sibling rectangles each time, uses child paint order
-  to break ties, and places a radio group's stop at the checked member. Resizing or selecting a
-  radio with a different row can consequently change the sequence before or after the group.
-  Surface arrow navigation treats all siblings as a group and falls back to the whole Tab order
-  for a single stop. Qt supports an explicit tab chain and WPF configures navigation per container.
-- Next: define a stable scope-level tab order with a reading-order default and an explicit
-  override. Give radio groups a fixed place in the sequence, keep their active member as the
-  recipient, and let composites or named groups own arrow navigation. Audit existing dialogs and
-  viewers for arrow behavior before changing the surface fallback.
-- Done when: Tab and Shift+Tab remain inverse across layout changes, radio selection, disabled
-  stops and composite proxies. Tests distinguish arrow movements inside a group from movement
-  across the surface, and pin the order in responsive and docked layouts.

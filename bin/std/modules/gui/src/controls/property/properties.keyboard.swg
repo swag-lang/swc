@@ -203,7 +203,8 @@ internal impl Properties
                 .commitEdit()
             return true
 
-        case .Tab:
+        case .Tab where evt.modifiers == .None or evt.modifiers == .Shift:
+            .edView.app().setFocusVisible(true)
             .commitEdit()
             .moveSel(shift ? -1 : 1)
             .activateSel()

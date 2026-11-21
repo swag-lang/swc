@@ -2046,6 +2046,58 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.require(reportViewerFinished(window.currentView) == .Replay and window.pendingFile.isEmpty())
 }
 
+// The bar's timer waits for an anchored sheet or popup menu, then hides the bar after closing.
+#[Swag.TestTag("focus.viewerbar")]
+#test
+{
+    let folder = createPictureFolder("scope_modal_bar", ["picture.svg"])
+    defer discard catch Directory.delete(folder, recurse: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(Path.combine(folder, "picture.svg"))
+    completeQueuedViewerFile(&host, window)
+    let picture = assume cast(*Picture.Panel, window.currentView)
+    let opener  = picture.playModeButton
+    window.setFullScreen(true)
+    window.pointerPosition = {0, 0}
+
+    var checked: u32
+    host.app.sigFrame += func|host = &host, window, opener, checked = &checked|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        let menu  = host.capturedPopupMenu()
+        if not sheet and not menu do
+            return
+        checked[] += 1
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(window.viewerBarShown and opener.isVisible())
+        if sheet do
+            sheet.close()
+        else do
+            Swag.require(host.clickPopupMenuItem("test.viewer.popup"))
+    }
+
+    for 5
+    {
+        window.revealViewerBar()
+        opener.showOptions()
+        Swag.require(window.viewerBarShown)
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(not window.viewerBarShown and not opener.isVisible())
+
+        window.revealViewerBar()
+        let menu = MenuCtrl.createPopup(opener)
+        menu.addItem("Item", "test.viewer.popup")
+        discard menu.doModal(opener, autoDestroy: true)
+        Swag.require(window.viewerBarShown)
+        host.fireTimer(window.viewerBarTimer)
+        Swag.require(not window.viewerBarShown and not opener.isVisible())
+    }
+    Swag.require(checked == 10)
+}
+
 // The image viewer builds its playback control in its own command group and shares the host policy.
 #test
 {

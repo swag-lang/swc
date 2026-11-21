@@ -99,8 +99,11 @@ These are separate states and each keeps its own signal:
 
 - **Hover** is temporary. Raise the whole hit target under the pointer; do not highlight only its
   text or glyph. It leaves when the pointer leaves.
-- **Keyboard focus** is where keys act. Show its 2 px focus ring in Voltage on Encre and ink on
-  Papier. Moving focus never silently changes which item is selected.
+- **Keyboard focus** is where keys act. Tab, Shift+Tab and explicit keyboard navigation show
+  its 2 px ring in Voltage on Encre and ink on Papier. A pointer press clears the ring.
+  Opening a surface or restoring its keyboard recipient leaves the ring off. An update
+  inside the same surface can carry an existing ring. Moving focus never silently changes
+  which item is selected.
 - **Selection** is the file or folder the reader chose. Keep it visibly marked after the pointer
   leaves and while the control is not focused. A row uses the Arc selection ground across its full
   bounds. A thumbnail keeps its picture intact, with an Arc outline painted above the picture and

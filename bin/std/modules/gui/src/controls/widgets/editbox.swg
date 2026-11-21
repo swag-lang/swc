@@ -199,9 +199,8 @@ impl IWnd for EditBox
             colorText   = colors.edit_DisabledText
             colorUnit   = colors.edit_DisabledText
 
-        // A rejected value and the focus replace the hairline with two pixels: of critical for the
-        // one, of what acts for the other. Only a field drawing the control outline has a heavier
-        // ring of that shape to take.
+        // A rejected value or visible keyboard focus replaces the hairline with a stronger
+        // outline on a field that draws its own border.
         case .isInvalid:
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
@@ -218,10 +217,15 @@ impl IWnd for EditBox
             colorUnit   = colors.edit_DisabledText
 
         case .hasFocus():
-            colorBorder = colors.edit_FocusBorder
-            colorBk     = colors.edit_FocusBk
-            if subRectBorder == &rects.edit_SquareBorder do
-                subRectBorder = &rects.edit_SquareStrongBorder
+            colorBk = colors.edit_FocusBk
+            if .hasVisibleFocus()
+            {
+                colorBorder = colors.edit_FocusBorder
+                if subRectBorder == &rects.edit_SquareBorder do
+                    subRectBorder = &rects.edit_SquareStrongBorder
+            }
+            elif .isHot do
+                colorBorder = colors.edit_HotBorder
 
         // On a floating sheet — a dialog — the surface is the field's own fill, so a field at rest
         // there is a well of the window's ground, which the focus lifts out of.

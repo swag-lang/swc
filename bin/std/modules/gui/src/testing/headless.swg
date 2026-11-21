@@ -1285,10 +1285,7 @@ impl HeadlessHost
     {
         // The run loop seeds the focus on the first key when nothing holds it, so a test that
         // types into a fresh tree behaves like a user typing into a fresh window.
-        if not .app.keyboardFocusWnd do
-            .app.seedKeyboardFocus()
-
-        let target = .app.keyboardFocusWnd
+        let target = .app.keyboardTarget(seed: true)
         if not target do
             return
 
@@ -1309,7 +1306,7 @@ impl HeadlessHost
         .setKeyState(key, false)
         .app.updateAccessKeyVisibility(key, false)
         evt.kind = .Released
-        target.sendEvent(&evt)
+        .app.keyboardTarget()?.sendEvent(&evt)
         .setModifierKeys(modifiers, false)
         .pump()
     }

@@ -99,7 +99,7 @@ func pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command, .Default)
     button.sigPressed += &pushButtonHeadlessPressed
-    button.setFocus()
+    host.keyPress(.Tab)
 
     host.keyPress(Input.Key.Space)
     host.keyPress(Input.Key.Return)
@@ -118,7 +118,7 @@ func pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Capture", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
-    button.setFocus()
+    host.keyPress(.Tab)
 
     for modifiers in [Input.KeyModifiers.Control, Input.KeyModifiers.Shift, Input.KeyModifiers.Alt]
     {
@@ -150,7 +150,7 @@ func pushButtonHeadlessResetCounters()
     let focused = PushButton.create(&host.root, "Focused", {20, 20, 90, 30}, PushButtonHeadless_Command)
     let idle    = PushButton.create(&host.root, "Idle", {120, 20, 90, 30}, PushButtonHeadless_Command)
     idle.sigPressed += &pushButtonHeadlessPressed
-    focused.setFocus()
+    host.keyPress(.Tab)
 
     Swag.require(focused.hasVisibleFocus() and not idle.hasVisibleFocus())
     discard idle.sendKeyPress(.Space)

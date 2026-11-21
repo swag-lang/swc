@@ -18,7 +18,7 @@ impl TcpStream
     {
         if .open
         {
-            closeTcpSocket(.handle)
+            closeNetSocket(.handle)
             .open = false
         }
     }

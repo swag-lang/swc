@@ -3,7 +3,7 @@
 
 using Core, Win32
 
-private func startup() fail
+internal func startup() fail
 {
     var data: WSADATA
     let code = WSAStartup(0x0202, &data)
@@ -16,22 +16,10 @@ private func startup() fail
     }
 }
 
-private func nativeAddress(endpoint: Endpoint)->SOCKADDR_IN
-{
-    var address: SOCKADDR_IN
-    address.sin_family                = AF_INET
-    address.sin_port                  = htons(endpoint.port)
-    address.sin_addr.S_un.S_un_b.s_b1 = endpoint.address[0]
-    address.sin_addr.S_un.S_un_b.s_b2 = endpoint.address[1]
-    address.sin_addr.S_un.S_un_b.s_b3 = endpoint.address[2]
-    address.sin_addr.S_un.S_un_b.s_b4 = endpoint.address[3]
-    return address
-}
-
-private func newSocket()->SOCKET fail
+private func newSocket(family: s32)->SOCKET fail
 {
     try startup()
-    let handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+    let handle = socket(family, SOCK_STREAM, IPPROTO_TCP)
     if handle == INVALID_SOCKET
     {
         let code = WSAGetLastError()
@@ -42,7 +30,7 @@ private func newSocket()->SOCKET fail
     return handle
 }
 
-internal func closeTcpSocket(handle: u64)
+internal func closeNetSocket(handle: u64)
 {
     discard closesocket(handle)
     discard WSACleanup()
@@ -50,19 +38,29 @@ internal func closeTcpSocket(handle: u64)
 
 impl TcpStream
 {
-    // Connects to an IPv4 endpoint, returning an owned blocking stream.
-    func connect(endpoint: Endpoint)->TcpStream fail
+    // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
+    func connect(endpoint: SocketEndpoint)->TcpStream fail
     {
-        let handle  = try newSocket()
-        let address = nativeAddress(endpoint)
-        if Win32.connect(handle, cast(const *SOCKADDR, cast(const *void, &address)), #sizeof(SOCKADDR_IN)) == SOCKET_ERROR
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+            fail Errors.BadParameterError{}
+        let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
+        let handle  = try newSocket(family)
+        let address = nativeSocketAddress(endpoint)
+        let length = endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6)
+        if Win32.connect(handle, cast(const *SOCKADDR, cast(const *void, &address)), length) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
-            closeTcpSocket(handle)
+            closeNetSocket(handle)
             fail NetworkError{code: code}
         }
 
         return {handle: handle, open: true}
+    }
+
+    // Connects to an IPv4 endpoint, returning an owned blocking stream.
+    func connect(endpoint: Endpoint)->TcpStream fail
+    {
+        return try .connect(endpoint.toSocketEndpoint())
     }
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
@@ -97,33 +95,54 @@ impl TcpListener
     // Binds an IPv4 endpoint and starts listening for connections.
     //
     // Port zero selects an available port, which [[Net.TcpListener.localEndpoint]] returns.
-    func listen(endpoint: Endpoint, backlog = 16)->TcpListener fail
+    func listen(endpoint: SocketEndpoint, backlog = 16)->TcpListener fail
     {
         if backlog <= 0 do
             fail Errors.BadParameterError{}
-        let handle  = try newSocket()
-        let address = nativeAddress(endpoint)
-        if bind(handle, cast(const *SOCKADDR, cast(const *void, &address)), #sizeof(SOCKADDR_IN)) == SOCKET_ERROR or
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+            fail Errors.BadParameterError{}
+        let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
+        let handle  = try newSocket(family)
+        let address = nativeSocketAddress(endpoint)
+        let length = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
+        if bind(handle, cast(const *SOCKADDR, cast(const *void, &address)), length) == SOCKET_ERROR or
            Win32.listen(handle, backlog) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
-            closeTcpSocket(handle)
+            closeNetSocket(handle)
             fail NetworkError{code: code}
         }
 
         return {handle: handle, open: true}
     }
 
+    // Binds an IPv4 endpoint and starts listening for connections.
+    func listen(endpoint: Endpoint, backlog = 16)->TcpListener fail
+    {
+        return try .listen(endpoint.toSocketEndpoint(), backlog)
+    }
+
     // Returns the bound local address and port.
     mtd localEndpoint()->Endpoint fail
     {
+        let endpoint = try .localAddress()
+        if endpoint.address.family != .IPv4 do
+            fail Errors.BadParameterError{}
+        var octets: [4] u8
+        for i in octets.count do
+            octets[i] = endpoint.address.bytes[i]
+        return {address: octets, port: endpoint.port}
+    }
+
+    // Returns the bound local IPv4 or IPv6 address and port.
+    mtd localAddress()->SocketEndpoint fail
+    {
         Swag.assert(.open)
-        var address: SOCKADDR_IN
-        var size = cast(s32, #sizeof(SOCKADDR_IN))
+        var address: NativeSocketAddress
+        var size = cast(s32, #sizeof(NativeSocketAddress))
         if getsockname(.handle, cast(*SOCKADDR, cast(*void, &address)), &size) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
-        let bytes = address.sin_addr.S_un.S_un_b
-        return {address: [bytes.s_b1, bytes.s_b2, bytes.s_b3, bytes.s_b4], port: ntohs(address.sin_port)}
+        return try portableSocketEndpoint(cast(const *SOCKADDR, cast(const *void, &address)))
     }
 
     // Blocks until a peer connects and returns an independently owned stream.

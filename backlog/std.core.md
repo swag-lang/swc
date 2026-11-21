@@ -10,8 +10,8 @@ owned by `bin/std/modules/core` together. [README.md](README.md) has the whole l
 
 
 Read [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md) before
-acting on any entry that proposes a boundary change. Several entries below deliberately argue for a
-new module rather than growth inside `core`.
+acting on an entry that proposes a boundary change. This file keeps the evidence and intended
+outcomes owned by `core` together.
 
 ## Entries
 
@@ -32,29 +32,6 @@ new module rather than growth inside `core`.
   still round-trips.
 - Related: std.core.021, std.core.022
 
-### std.core.001 — Blocking TCP needs portable address coverage
-
-- Evidence: `net` provides blocking TCP connections and listeners over IPv4 on Windows. IPv6,
-  portable address handling and other host backends remain absent; name resolution belongs to
-  std.core.003. Platform leaves are owned by platform.portability.088.
-- Next: extend the address and transport contract to IPv6 and the next host backend, retaining
-  loopback and failure coverage without putting networking in the module every program links.
-- Done when: a separate net module opens, listens for, accepts, reads, writes, and closes
-  blocking TCP connections by portable address, with loopback tests for EOF, partial transfer,
-  and connection failure.
-- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008,
-  std.core.002, platform.portability.088
-
-### std.core.004 — No non-blocking socket readiness API
-
-- Next: add non-blocking sockets and readiness notification after the concurrency decision in
-  language.parallelism.001. Keep the readiness mechanism separate from the blocking socket
-  foundation.
-- Done when: non-blocking sockets expose a documented readiness and cancellation contract that
-  serves multiple connections without busy waiting, with tests for readable, writable, closed,
-  and failed peers.
-- Related: std.core.001, language.parallelism.001, std.core.028
-
 ### std.core.013 — No BLAKE2s implementation
 
 - Evidence: `Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed
@@ -66,64 +43,6 @@ new module rather than growth inside `core`.
   digest lengths, and published vectors match across chunk boundaries and invalid parameters.
 - Related: std.core.014
 
-### std.core.002 — No UDP sockets
-
-- Next: add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
-  independently of TCP connection semantics.
-- Done when: UDP sockets send and receive complete datagrams with portable endpoints, report
-  size and truncation behavior explicitly, and pass loopback and error tests; broadcast and
-  multicast support are decided and documented.
-- Related: std.core.001, std.core.003, std.core.004
-
-### std.core.003 — No DNS resolver
-
-- Next: add host/service resolution to the `net` module over the platform resolver, with
-  explicit address ordering, cancellation, and failure semantics.
-- Done when: the net module resolves host and service names to portable addresses with
-  documented ordering, cancellation, and failure behavior, tested against local and invalid
-  names.
-- Related: std.core.001
-
-### std.core.005 — No TLS transport
-
-- Next: provide client and server TLS over the socket contract. Decide explicitly whether each
-  platform binds its native provider or the project owns a portable implementation.
-- Done when: client and server TLS operate over the socket contract with certificate
-  validation, handshake and shutdown failures, and stream ownership stated, with local-peer
-  tests for accepted and rejected credentials.
-- Related: std.core.001, std.core.010, std.core.015, std.core.016
-
-### std.core.006 — HTTP client needs streaming and portable transports
-
-- Evidence: `Net.Http.get` provides bounded synchronous HTTP/HTTPS GET on Windows through
-  WinHTTP, with system certificate validation, phase timeout settings, explicit redirect responses and
-  local-server tests. URL component encoding and a restricted HTTP URL parser are available.
-  The host can enforce timeouts coarsely; streaming, active cancellation, strict deadlines and
-  other host backends remain open.
-- Next: add streaming request and response bodies, bounded redirect policy and cancellation,
-  with a portable contract over std.core.001 and std.core.005 or an explicit backend decision.
-- Done when: an HTTP/1.1 client streams requests and responses, follows bounded redirect
-  policy, cancels active transfers, and rejects oversized or malformed headers in local-server
-  tests.
-- Related: std.core.001, std.core.005
-
-### std.core.007 — No HTTP server
-
-- Next: implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits
-  independently of the client API.
-- Done when: an HTTP/1.1 server parses bounded requests and streams responses over multiple
-  connection lifetimes, with tests for malformed framing, cancellation, and graceful shutdown.
-- Related: std.core.001, std.core.004, std.core.005, std.core.006
-
-### std.core.008 — No WebSocket protocol
-
-- Next: add WebSocket handshake and frame processing above HTTP without making it part of the
-  HTTP client's completion criteria.
-- Done when: a WebSocket peer completes the HTTP upgrade and exchanges masked and fragmented
-  frames, control frames, and close handshakes within declared size limits, with client and
-  server tests.
-- Related: std.core.006, std.core.007
-
 ### std.core.010 — No AES implementation
 
 - Evidence: `core/src/crypto` has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256,
@@ -134,7 +53,7 @@ new module rather than growth inside `core`.
 - Done when: AES-128, AES-192, and AES-256 block operations match published vectors in
   hardware and fallback paths, the fallback has a documented constant-time contract, and cipher
   modes retain separate backlog IDs.
-- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015,
+- Related: std.net.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015,
   std.core.016, std.core.017
 
 ### std.core.011 — No SHA-512 family
@@ -168,7 +87,7 @@ new module rather than growth inside `core`.
 - Done when: key generation, signing, and verification match published vectors, while
   malformed encodings, wrong messages, and invalid keys are rejected with an explicit failure
   contract.
-- Related: std.core.005, std.core.016
+- Related: std.net.005, std.core.016
 
 ### std.core.016 — No X25519 key agreement
 
@@ -176,7 +95,7 @@ new module rather than growth inside `core`.
   stated and tested.
 - Done when: key generation and shared-secret derivation match published vectors for both
   peers, and low-order or invalid inputs follow the documented rejection policy.
-- Related: std.core.005, std.core.015
+- Related: std.net.005, std.core.015
 
 ### std.core.017 — No RSA interoperability
 
@@ -185,7 +104,7 @@ new module rather than growth inside `core`.
 - Done when: a named interoperability case fixes the required RSA operations and safe padding
   schemes; accepted cases pass external vectors and unsafe legacy forms are rejected, or the
   entry is retired with a recorded decision that no use case justifies it.
-- Related: std.core.005
+- Related: std.net.005
 
 ### std.core.021 — No gzip container support
 
@@ -301,7 +220,7 @@ new module rather than growth inside `core`.
 - Done when: a fake backend and one real backend demonstrate exactly one terminal completion
   and retain buffers, request records, and callbacks until the backend is finished with them;
   owning I/O consumers use the common runtime without private task or cancellation machinery.
-- Related: language.parallelism.002, std.core.025, std.core.004
+- Related: language.parallelism.002, std.core.025, std.net.004
 
 ### std.core.030 — Compiling a regular expression makes many separate allocations
 

@@ -1,0 +1,95 @@
+# Network Backlog
+
+This backlog covers `bin/std/modules/net`, measured against the networking libraries in the Go
+standard library, .NET, Rust's standard library and de-facto crates, Python, and Zig.
+
+Platform-specific operating-system bindings belong in [platform.portability.md](platform.portability.md).
+Core cryptographic primitives remain in [std.core.md](std.core.md). [README.md](README.md) has the
+whole layout.
+
+## Entries
+
+### std.net.001 — Blocking TCP needs portable address coverage
+
+- Evidence: `net` provides blocking IPv4 and IPv6 TCP connections and listeners on Linux and
+  Windows. Other host backends remain absent; name resolution belongs to std.net.003. Platform
+  leaves are owned by platform.portability.088.
+- Next: add the next host backend while retaining the portable endpoint contract and loopback
+  and failure coverage without putting networking in the module every program links.
+- Done when: the next host backend opens, listens for, accepts, reads, writes, and closes
+  blocking TCP connections by portable address, with loopback tests for EOF, partial transfer,
+  and connection failure.
+- Related: std.net.003, std.net.004, std.net.005, std.net.006, std.net.007, std.net.008,
+  std.net.002, platform.portability.088
+
+### std.net.002 — Decide UDP broadcast and multicast support
+
+- Evidence: `net` now sends and receives bounded UDP datagrams over portable IPv4 and IPv6
+  endpoints on Linux and Windows. Broadcast and multicast are not part of the current API.
+- Next: decide whether UDP broadcast and multicast belong in the portable datagram contract and
+  document the platform behavior before adding either operation.
+- Done when: the API either exposes tested broadcast and multicast operations on both hosts or
+  explicitly documents why those operations are excluded.
+- Related: std.net.001, std.net.003, std.net.004
+
+### std.net.003 — DNS cancellation and resolution policy
+
+- Evidence: `Dns.resolve` uses the platform resolver on Linux and Windows, preserves resolver
+  ordering, supports address-family filters, and returns portable endpoints. It accepts a numeric
+  port only, and the synchronous API has no cancellation contract yet.
+- Next: define named-service and cancellation behavior, or explicitly constrain and document the
+  synchronous API if the platform resolver cannot be interrupted safely.
+- Done when: local and invalid-name tests cover the documented ordering, family filtering,
+  service names, failure, and cancellation behavior.
+- Related: std.net.001
+
+### std.net.004 — No non-blocking socket readiness API
+
+- Next: add non-blocking sockets and readiness notification after the concurrency decision in
+  language.parallelism.001. Keep the readiness mechanism separate from the blocking socket
+  foundation.
+- Done when: non-blocking sockets expose a documented readiness and cancellation contract that
+  serves multiple connections without busy waiting, with tests for readable, writable, closed,
+  and failed peers.
+- Related: std.net.001, language.parallelism.001, std.core.028
+
+### std.net.005 — No TLS transport
+
+- Next: provide client and server TLS over the socket contract. Decide explicitly whether each
+  platform binds its native provider or the project owns a portable implementation.
+- Done when: client and server TLS operate over the socket contract with certificate
+  validation, handshake and shutdown failures, and stream ownership stated, with local-peer
+  tests for accepted and rejected credentials.
+- Related: std.net.001, std.core.010, std.core.015, std.core.016
+
+### std.net.006 — HTTP client needs streaming and portable transports
+
+- Evidence: `Net.Http.get` now streams response chunks on Linux and Windows and bounds the
+  buffered body when no handler is supplied. Request-body streaming, active cancellation, strict
+  deadlines, and a bounded redirect policy remain open. HTTPS still uses system certificate
+  validation through each platform backend.
+- Next: add streamed request bodies, then define redirect, cancellation, and deadline behavior
+  across both backends.
+- Done when: local-server tests cover streamed requests and responses, bounded redirects,
+  cancellation, deadlines, and rejection of oversized or malformed headers.
+- Related: std.net.001, std.net.005
+
+### std.net.007 — HTTP server connection lifecycle and protocol coverage
+
+- Evidence: `Http.Server` parses bounded HTTP/1.0 and HTTP/1.1 requests and writes fixed-length
+  or chunked responses. Each connection currently closes after one response; listener shutdown,
+  keep-alive, and malformed-framing coverage need a defined contract.
+- Next: define graceful listener shutdown and whether connections support multiple requests,
+  then add malformed-framing and lifecycle tests.
+- Done when: request framing, response streaming, connection reuse or closure, cancellation, and
+  graceful shutdown have documented behavior and focused local-peer tests.
+- Related: std.net.001, std.net.004, std.net.005, std.net.006
+
+### std.net.008 — No WebSocket protocol
+
+- Next: add WebSocket handshake and frame processing above HTTP without making it part of the
+  HTTP client's completion criteria.
+- Done when: a WebSocket peer completes the HTTP upgrade and exchanges masked and fragmented
+  frames, control frames, and close handshakes within declared size limits, with client and
+  server tests.
+- Related: std.net.006, std.net.007

@@ -13,6 +13,7 @@ const CURLE_NOT_BUILT_IN               = 4's32
 const CURLE_OUT_OF_MEMORY              = 27's32
 const CURLE_OPERATION_TIMEDOUT         = 28's32
 const CURLE_PEER_FAILED_VERIFICATION   = 60's32
+const CURLE_ABORTED_BY_CALLBACK         = 42's32
 const CURLOPT_URL                      = 10002's32
 const CURLUPART_URL                    = 0's32
 const CURLOPT_WRITEDATA                = 10001's32

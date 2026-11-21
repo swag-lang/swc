@@ -13,8 +13,10 @@ using Core
 // Redirects are returned without being followed. WinHTTP applies `timeoutMs` per phase,
 // with coarse enforcement; Linux applies it to the whole transfer, including connection setup.
 // The synchronous operation cannot be cancelled while a native call is blocked.
-// The result owns its body and includes non-success status codes. Invalid input, transport
-// errors, and responses exceeding limits fail without returning a partial result. Linux limits
+// The result owns its body and includes non-success status codes. When `bodyHandler` is supplied,
+// it receives body chunks during the transfer and `Response.body` remains empty. Returning false
+// stops the transfer and reports a network error. Invalid input, transport errors, and responses
+// exceeding limits fail without returning a partial result. Linux limits
 // total response headers to 64 KiB and Location to 4096 bytes; Windows limits Location to
 // 8192 bytes of UTF-16 storage. Linux transport failures use libcurl codes in [[Net.NetworkError]].
 //

@@ -15,7 +15,7 @@ impl TcpListener
     {
         if .open
         {
-            closeTcpSocket(.handle)
+            closeNetSocket(.handle)
             .open = false
         }
     }

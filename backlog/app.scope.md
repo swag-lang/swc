@@ -143,7 +143,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   retaining source attribution, privacy, cancellation and bounded requests.
 - Done when: users can review candidate matches in the application and correct one without
   looking up an ID elsewhere; series identification remains distinct from film matching.
-- Related: app.scope.004, std.core.001, std.core.003, std.core.005, std.core.006
+- Related: app.scope.004, std.net.001, std.net.003, std.net.005, std.net.006
 
 ### app.scope.006 — Music matching needs correction and broader tag coverage
 
@@ -159,7 +159,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   coordinate rate limiting across processes sharing the same host when practical.
 - Done when: users can choose a release in the application, supported tagged formats have
   equivalent lookup behavior, and rate-limited or ambiguous responses remain safe and usable.
-- Related: app.scope.005, app.scope.audio.008, std.core.006
+- Related: app.scope.005, app.scope.audio.008, std.net.006
 
 ### app.scope.007 — The viewer bar can leave while an options sheet opened from it is up
 

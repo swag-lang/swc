@@ -98,8 +98,12 @@ private struct CurlResponse
 {
     response:             Response
     maxBodyBytes:         u64
+    bodyBytes:            u64
+    bodyHandler:          BodyHandler?
+    bodyContext:          *void?
     headerBytes:          u64
     overflow:             bool
+    cancelled:            bool
     hasLocation:          bool
     locationContinuation: bool
     inHeaders:            bool
@@ -116,13 +120,23 @@ private func receiveBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
     }
 
     let length = size * count
-    if length > state.maxBodyBytes - Math.min(state.maxBodyBytes, state.response.body.count)
+    if length > state.maxBodyBytes - Math.min(state.maxBodyBytes, state.bodyBytes)
     {
         state.overflow = true
         return 0
     }
 
-    state.response.body.add(bytes[until length])
+    state.bodyBytes += length
+    if state.bodyHandler
+    {
+        if not state.bodyHandler(state.bodyContext, bytes[until length])
+        {
+            state.cancelled = true
+            return 0
+        }
+    }
+    else do
+        state.response.body.add(bytes[until length])
     return length
 }
 
@@ -201,7 +215,9 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     defer api.freeUrl(unwrap url)
     var headers: *Curl.curl_slist?
     defer api.freeHeaders(headers)
-    var received = CurlResponse{maxBodyBytes: options.maxBodyBytes}
+    var received = CurlResponse{maxBodyBytes: options.maxBodyBytes,
+                                bodyHandler: options.bodyHandler,
+                                bodyContext: options.bodyContext}
     let request  = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
@@ -283,6 +299,8 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     let code = api.perform(request)
     if received.overflow do
         fail Errors.OverflowError{}
+    if received.cancelled do
+        fail NetworkError{"HTTP response body handler stopped the transfer", code: Curl.CURLE_ABORTED_BY_CALLBACK}
     try checkCurl(code)
     var status: s64
     try checkCurl(api.getInfo(request, Curl.CURLINFO_RESPONSE_CODE, &status))

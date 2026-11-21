@@ -82,6 +82,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [std.gui.markdown.md](std.gui.markdown.md) | Markdown engine in `std/gui` |
 | [std.gui.md](std.gui.md) | `std/gui` |
 | [std.gui.pdf.md](std.gui.pdf.md) | PDF engine and view in `std/gui` |
+| [std.net.md](std.net.md) | `std/net` |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs and SVG decoding in `std/pixel` |
 | [std.pixel.md](std.pixel.md) | `std/pixel` |
 | [std.screen.md](std.screen.md) | `std/screen` live acquisition |

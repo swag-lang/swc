@@ -2,6 +2,7 @@
 #global export
 
 const IPPROTO_TCP = 6's32
+const IPPROTO_UDP = 17's32
 
 struct in_addr
 {
@@ -19,9 +20,29 @@ struct sockaddr_in
     }
 }
 
+struct in6_addr
+{
+    public s6_addr: [16] u8
+}
+
+struct sockaddr_in6
+{
+    public
+    {
+        sin6_family:   u16
+        sin6_port:     u16
+        sin6_flowinfo: u32
+        sin6_addr:     in6_addr
+        sin6_scope_id: u32
+    }
+}
+
 #assert(#sizeof(in_addr) == 4)
 #assert(#sizeof(sockaddr_in) == 16)
 #assert(#offsetof(sockaddr_in.sin_addr) == 4)
+#assert(#sizeof(in6_addr) == 16)
+#assert(#sizeof(sockaddr_in6) == 28)
+#assert(#offsetof(sockaddr_in6.sin6_addr) == 8)
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {

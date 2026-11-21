@@ -77,6 +77,7 @@ func getNative(host: string, port: u16, path: string, secure = true, options: Ge
     result.location = try queryLocation(request)
 
     var chunk: [8192] u8
+    var bodyBytes = 0'u64
     while true
     {
         var received: u32
@@ -84,9 +85,16 @@ func getNative(host: string, port: u16, path: string, secure = true, options: Ge
             fail NetworkError{code: cast(s32, GetLastError())}
         if received == 0 do
             break
-        if received > options.maxBodyBytes - Math.min(options.maxBodyBytes, result.body.count) do
+        if received > options.maxBodyBytes - Math.min(options.maxBodyBytes, bodyBytes) do
             fail Errors.OverflowError{}
-        result.body.add(chunk[0 until received])
+        bodyBytes += received
+        if options.bodyHandler
+        {
+            if not options.bodyHandler(options.bodyContext, chunk[0 until received]) do
+                fail NetworkError{"HTTP response body handler stopped the transfer", code: 995}
+        }
+        else do
+            result.body.add(chunk[0 until received])
     }
 
     return result

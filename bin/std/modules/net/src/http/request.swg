@@ -13,7 +13,10 @@ struct Header
     }
 }
 
-// Limits and headers for a synchronous GET request.
+// Receives one response-body chunk and returns whether the transfer should continue.
+alias BodyHandler = func(context: *void?, bytes: const [..] u8)->bool
+
+// Limits, headers, and optional streaming receiver for a synchronous GET request.
 struct GetOptions
 {
     public
@@ -22,6 +25,8 @@ struct GetOptions
         userAgent:    string = "Swag Net"          // User-Agent sent to the server.
         timeoutMs:    u32    = 15_000              // Timeout in milliseconds: per phase on Windows, whole transfer on Linux.
         maxBodyBytes: u64    = 4 * 1024 * 1024     // Maximum response body size in bytes.
+        bodyHandler:  BodyHandler?                 // Receives chunks instead of storing the body when supplied.
+        bodyContext:  *void?                       // Borrowed state passed to `bodyHandler` for this call.
     }
 }
 

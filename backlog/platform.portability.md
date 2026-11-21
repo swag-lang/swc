@@ -837,29 +837,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.088 — Network transports need portable host backends
 
-- Owner: the `net` module from std.core.001.
-- Evidence: Windows and Linux leaves implement blocking IPv4 TCP behind the same stream and
-  listener owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send, retries interrupted
-  transfers/accept, and completes interrupted connects through poll and SO_ERROR. Failed acquisition
-  closes its socket. The two ordinary TCP tests and four tagged Linux integration cases pass in
-  JIT/native, covering loopback, EOF, close/drop, descriptor inheritance flags, error preservation,
-  SIGPIPE suppression and repeated failed bind/connect without leaked sockets.
-  A separately linked Net consumer passes in JIT/native, including short reads and drop/EOF.
-  Generated Net API docs have 25 documented declarations and 18 documented members, with no
-  unresolved links. The existing Windows socket cleanup is preserved by inspection; Windows
-  execution has not been rerun for this change.
-  Linux HTTP/HTTPS now uses a lazily loaded libcurl backend with strict target and proxy TLS,
-  bounded bodies/headers, preserved request-target bytes, explicit redirects and whole-transfer
-  deadlines. Six ordinary HTTP tests, seven direct HTTP/TLS cases, three proxy scenarios and a
-  separate importing consumer pass in JIT/native execution. The generated Net API has 26 documented
-  declarations and 18 documented members, with no unresolved links. IPv6, datagram transport,
-  resolver APIs and cancellation remain absent from the common transport surface.
-- Next: extend the address and ownership contracts for IPv6, UDP and host/service resolution. Add cancellation and interrupted-connect integration coverage;
-  keep native handles and error translation inside host leaves, and add readiness only after
-  the common concurrency contract is decided.
-- Done when: both host backends pass the same loopback, partial-transfer, cancellation,
-  resolution-failure, and handle-lifetime tests without exposing native types to callers.
-- Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.
+- Owner: the `net` module from std.net.001.
+- Evidence: Windows and Linux leaves implement blocking IPv4/IPv6 TCP, UDP, and DNS behind
+  portable address and socket owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send,
+  retries interrupted transfers/accept, and completes interrupted connects through poll and SO_ERROR.
+  Linux focused tests cover loopback, EOF, UDP delivery, IPv6, resolver behavior, and HTTP streaming.
+  Windows bindings and implementations exist, but equivalent runtime coverage has not been run.
+  Linux HTTPS still uses a lazily loaded libcurl backend with system trust, bounded bodies and
+  headers, explicit redirects, and whole-transfer deadlines. HTTP servers now parse bounded
+  requests and stream responses. TLS streams, readiness, and cancellation remain separate contracts.
+- Next: run equivalent Windows integration coverage for IPv6, UDP, resolver failures, and socket
+  lifetime; keep native handles and error translation inside host leaves, and add readiness only
+  after the common concurrency contract is decided.
+- Done when: both host backends pass equivalent loopback, partial-transfer, resolution-failure,
+  and handle-lifetime tests without exposing native types to callers.
+- Related: std.net.001, std.net.002, std.net.003, std.net.004, language.parallelism.001.
 
 ### platform.portability.081 — Foreign vector ABIs are unavailable
 

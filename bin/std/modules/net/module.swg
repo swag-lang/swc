@@ -1,5 +1,5 @@
 /*
-Net provides blocking IPv4 TCP connections, bounded HTTP GET requests and URL helpers.
+Net provides blocking TCP and UDP, DNS resolution, bounded HTTP requests and servers, and URL helpers.
 
 ## Connect over TCP
 
@@ -22,8 +22,10 @@ using Net
 }
 ```
 
-Streams own their connections and close them on drop. Operations can fail and may transfer fewer
-bytes than requested. TCP, HTTP and HTTPS are available on Windows and Linux.
+Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
+and Windows. Operations can fail and may transfer fewer bytes than requested. DNS resolution
+preserves the platform resolver's address order. HTTP and HTTPS clients and the HTTP/1.1 server are
+available on Windows and Linux.
 
 ## Request an HTTPS resource
 

@@ -17,6 +17,21 @@ struct HttpTimeoutFixture
     received:             bool
 }
 
+struct HttpBodyFixture
+{
+    body:    String
+    calls:   u32
+    proceed: bool
+}
+
+func receiveHttpBody(context: *void?, bytes: const [..] u8)->bool
+{
+    let fixture = cast(*HttpBodyFixture, unwrap context)
+    fixture.body.append(cast(string, bytes))
+    fixture.calls += 1
+    return fixture.proceed
+}
+
 func serveHttp(thread: const *Threading.Thread)
 {
     let fixture = cast(*HttpServerFixture, unwrap thread.userParam)
@@ -75,6 +90,43 @@ func serveHttp(thread: const *Threading.Thread)
         else do
             Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
     }
+}
+
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var server = HttpServerFixture{listener: &listener,
+        response: "HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nstreamed"}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttp, &server)
+    expect thread.start()
+
+    var received = HttpBodyFixture{proceed: true}
+    let response = expect Http.get("127.0.0.1", endpoint.port, "/", false,
+        {bodyHandler: &receiveHttpBody, bodyContext: &received})
+    thread.wait()
+    Swag.require(response.status == 200 and response.body.isEmpty())
+    Swag.require(received.body.toString() == "streamed" and received.calls > 0)
+}
+
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var server = HttpServerFixture{listener: &listener,
+        response: "HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\ndata"}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttp, &server)
+    expect thread.start()
+
+    var received = HttpBodyFixture{proceed: false}
+    var error: Swag.Error
+    discard catch Http.get("127.0.0.1", endpoint.port, "/", false,
+        {bodyHandler: &receiveHttpBody, bodyContext: &received}) as error
+    thread.wait()
+    Swag.require(error.value() is NetworkError)
+    Swag.require(received.body.toString() == "data")
 }
 
 #test
@@ -152,4 +204,68 @@ func serveHttp(thread: const *Threading.Thread)
     thread.wait()
     Swag.require(response.status == 302 and response.body.isEmpty())
     Swag.require(response.location == "http://127.0.0.1:1/")
+}
+
+// The HTTP server parses a bounded request body and sends a complete response.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client = expect TcpStream.connect(expect server.localAddress())
+    let request = cast(const [..] u8,
+        "POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\nX-Mode: test\r\n\r\ndata")
+    Swag.require(expect client.write(request) == request.count)
+    var connection = expect server.accept()
+    let parsed = expect connection.readRequest()
+    Swag.require(parsed.method == "POST" and parsed.target == "/submit")
+    Swag.require(parsed.body.count == 4 and cast(string, parsed.body.toSlice()) == "data")
+    Swag.require(parsed.headers.count == 3 and parsed.headers[2].name == "X-Mode")
+    expect connection.respond(201, cast(const [..] u8, "created"))
+    var response: [256] u8
+    let count = expect client.read(response)
+    Swag.require(Utf8.indexOf(cast(string, response[0 until count]), "HTTP/1.1 201 Created") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(cast(string, response[0 until count]), "created") != Swag.U64.Max)
+}
+
+// The server accepts chunked uploads and can stream a chunked response.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client = expect TcpStream.connect(expect server.localAddress())
+    let request = cast(const [..] u8,
+        "POST /chunks HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n0123456789\r\n1\r\n!\r\n0\r\n\r\n")
+    Swag.require(expect client.write(request) == request.count)
+    var connection = expect server.accept()
+    let parsed = expect connection.readRequest()
+    Swag.require(cast(string, parsed.body.toSlice()) == "0123456789!")
+    expect connection.beginChunkedResponse(200)
+    expect connection.writeBody(cast(const [..] u8, "first"))
+    expect connection.writeBody(cast(const [..] u8, "second"))
+    expect connection.finishResponse()
+    var response: String
+    var buffer: [512] u8
+    for
+    {
+        let count = expect client.read(buffer)
+        if count == 0 do
+            break
+        response.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(Utf8.indexOf(response.toString(), "Transfer-Encoding: chunked") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(response.toString(), "5\r\nfirst\r\n") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(response.toString(), "6\r\nsecond\r\n") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(response.toString(), "0\r\n\r\n") != Swag.U64.Max)
+}
+
+// Ambiguous HTTP body framing is rejected before any body bytes are consumed.
+#test
+{
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client = expect TcpStream.connect(expect server.localAddress())
+    let request = cast(const [..] u8,
+        "POST / HTTP/1.1\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n")
+    Swag.require(expect client.write(request) == request.count)
+    var connection = expect server.accept()
+    var error: Swag.Error
+    discard catch connection.readRequest() as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
 }

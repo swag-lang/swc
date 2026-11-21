@@ -59,6 +59,17 @@ impl TcpStream
             fail NetworkError{code: Linux.errno()}
     }
 
+    // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
+                                    tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO,
+                            cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {

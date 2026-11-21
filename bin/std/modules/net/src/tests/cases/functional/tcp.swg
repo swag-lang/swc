@@ -4,6 +4,19 @@
 #test
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    var client = expect TcpStream.connect(expect listener.localEndpoint())
+    var server = expect listener.accept()
+    expect server.setReadTimeout(50)
+
+    var buffer: [8] u8
+    var error: Swag.Error
+    discard catch server.read(buffer) as error
+    Swag.require(error.value() is NetworkError)
+}
+
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
     Swag.require(endpoint.port != 0)
 

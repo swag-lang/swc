@@ -15,6 +15,7 @@ const SOCK_DGRAM         = 2
 const SD_SEND             = 1
 const SOL_SOCKET          = 0xFFFF
 const SO_KEEPALIVE        = 0x0008
+const SO_RCVTIMEO         = 0x1006
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
 const TCP_NODELAY        = 1

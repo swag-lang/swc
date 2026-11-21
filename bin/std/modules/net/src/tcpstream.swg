@@ -34,4 +34,7 @@ impl TcpStream
 
     // Enables or disables operating-system TCP keepalive probes for this connection.
     mtd setKeepAlive(enabled: bool) fail
+
+    // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
 }

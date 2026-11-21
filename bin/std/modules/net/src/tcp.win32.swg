@@ -56,6 +56,15 @@ impl TcpStream
             fail NetworkError{code: WSAGetLastError()}
     }
 
+    // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        var timeout = timeoutMs
+        if setsockopt(.handle, SOL_SOCKET, SO_RCVTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {

@@ -130,12 +130,6 @@ new module rather than growth inside `core`.
 - Related: std.core.005, std.core.014, std.core.015,
   std.core.016, std.core.017
 
-### std.core.014 — No BLAKE3 implementation
-
-- Next: add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one
-  algorithm contract.
-- Done when: BLAKE3 unkeyed, keyed, and key-derivation modes match published vectors across
-  chunk and tree boundaries, and parallel and serial processing return identical outputs.
 ### std.core.015 — No Ed25519 signatures
 
 - Next: add key generation, signing, verification, strict input validation, and published

@@ -59,6 +59,11 @@ defer Crypto.secureClear(key)
 try Crypto.hkdfSha256(salt, inputKeyMaterial, info, key)
 ```
 
+## Hash files and derive context-bound keys
+
+[[Core.Hash.Blake3]] provides unkeyed hashing, keyed hashing, context-derived keys,
+and extendable output. Large one-shot inputs use parallel chunk processing.
+
 ## Store independently readable payloads
 
 [[Core.Scc]] writes a versioned Swag Chunk Container whose manifest remains cheap to read.

@@ -81,3 +81,19 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8, hexEncoded: bool = false
     discard catch unwrapPfb(UnknownSegment) as rejected
     Swag.require(rejected.value() != null)
 }
+
+#test
+{
+    const CompletePfb: [9] u8 = [0x80, 0x01, 0x01, 0x00, 0x00, 0x00, 'A', 0x80, 0x03]
+    let content = expect unwrapPfb(CompletePfb)
+    Swag.require(content.count == 1 and content[0] == 'A')
+}
+
+#test
+{
+    // A complete PFB ends with its type-3 marker after the final data segment.
+    const MissingEndMarker: [7] u8 = [0x80, 0x01, 0x01, 0x00, 0x00, 0x00, 'A']
+    var rejected: Swag.Error
+    discard catch unwrapPfb(MissingEndMarker) as rejected
+    Swag.require(rejected.value() != null)
+}

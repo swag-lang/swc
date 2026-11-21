@@ -154,32 +154,47 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
 func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
 {
     var result: #returntype
-    if bytes.count < 6 or bytes[0] != 0x80
+    if not bytes.count or bytes[0] != 0x80
     {
         result.add(bytes)
         return result
     }
 
+    if bytes.count < 2 do
+        try fault(0x03)
+
     let data = bytes
     var pos  = 0'u64
-    while pos + 6 <= bytes.count and data[pos] == 0x80
+    while pos < bytes.count
     {
+        if pos + 2 > bytes.count or data[pos] != 0x80 do
+            try fault(0x03)
+
         let kind = data[pos + 1]
-        if kind == 3 do
-            break
+        pos += 2
+        if kind == 3
+        {
+            if pos != bytes.count do
+                try fault(0x03)
+            return result
+        }
+
         if kind != 1 and kind != 2 do
             try fault(0x03)
 
+        if pos + 4 > bytes.count do
+            try fault(0x03)
         var size = 0'u64
         for k in 4'u64 do
-            size |= cast(u64, data[pos + 2 + k]) << (k * 8)
-        pos += 6
+            size |= cast(u64, data[pos + k]) << (k * 8)
+        pos += 4
         if pos + size > bytes.count do
             try fault(0x03)
         result.add(try getSlice(bytes, pos, size))
         pos += size
     }
 
+    try fault(0x03)
     return result
 }
 

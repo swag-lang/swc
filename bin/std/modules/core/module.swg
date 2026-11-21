@@ -43,6 +43,22 @@ try Crypto.pbkdf2HmacSha256(password, salt, 200_000, key)
 Cryptographic randomness and guaranteed clearing use the target operating
 system behind the portable [[Core.Crypto]] API.
 
+## Expand existing key material
+
+[[Core.Crypto.hkdfSha256]] derives independent keys from input key material and context:
+
+```swag
+using Core
+
+let salt             = cast(const [..] u8, "session salt")
+let inputKeyMaterial = cast(const [..] u8, "already secret key material")
+let info             = cast(const [..] u8, "file encryption key")
+var key: [32] u8
+defer Crypto.secureClear(key)
+
+try Crypto.hkdfSha256(salt, inputKeyMaterial, info, key)
+```
+
 ## Store independently readable payloads
 
 [[Core.Scc]] writes a versioned Swag Chunk Container whose manifest remains cheap to read.

@@ -55,17 +55,6 @@ new module rather than growth inside `core`.
   and failed peers.
 - Related: std.core.001, language.parallelism.001, std.core.028
 
-### std.core.013 — No BLAKE2s implementation
-
-- Evidence: `Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed
-  hashing, with variable digest lengths and tests in `src/tests/cases/functional/crypto/blake2b.swg`. There
-  is no BLAKE2s.
-- Next: add BLAKE2s with the same operation family and published vectors; BLAKE3 remains
-  independent.
-- Done when: BLAKE2s supports incremental and one-shot keyed and unkeyed hashing with variable
-  digest lengths, and published vectors match across chunk boundaries and invalid parameters.
-- Related: std.core.014
-
 ### std.core.002 — No UDP sockets
 
 - Next: add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
@@ -126,32 +115,20 @@ new module rather than growth inside `core`.
 
 ### std.core.010 — No AES implementation
 
-- Evidence: `core/src/crypto` has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256,
-  PBKDF2, BLAKE2b, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and several
-  non-cryptographic hashes, but no block cipher.
-- Next: add AES with hardware acceleration where available and constant-time fallback
-  behavior, then add separately numbered modes only when their contracts are chosen.
+- Evidence: `Crypto.Aes` now implements AES-128/192/256 blocks with a constant-operation-path
+  software substitution and FIPS 197 tests. `Math.Simd` has no AES-round intrinsic, so AES-NI
+  dispatch is not available; the software path is slower than a hardware backend. `core/src/crypto`
+  also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA-3, SHAKE,
+  HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512, HKDF-SHA-256, HKDF-SHA-512, PBKDF2, BLAKE2b,
+  BLAKE2s, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and several non-cryptographic hashes.
+- Next: add an AES-round backend that can safely select AES-NI after runtime feature detection,
+  retain the constant-operation-path software fallback, and measure both paths. Add separately
+  numbered modes only when their contracts are chosen.
 - Done when: AES-128, AES-192, and AES-256 block operations match published vectors in
   hardware and fallback paths, the fallback has a documented constant-time contract, and cipher
   modes retain separate backlog IDs.
-- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015,
+- Related: std.core.005, std.core.014, std.core.015,
   std.core.016, std.core.017
-
-### std.core.011 — No SHA-512 family
-
-- Next: implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity
-  with the existing SHA-256 API.
-- Done when: SHA-384 and SHA-512 digests and their HMAC variants match published vectors for
-  one-shot and chunked input, including empty input and boundary block lengths.
-- Related: std.core.010
-
-### std.core.012 — No SHA-3 family
-
-- Next: implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct
-  sponge-based API.
-- Done when: the supported SHA-3 digest sizes and SHAKE output lengths match published vectors
-  across one-shot and incremental input, including empty and multi-block messages.
-- Related: std.core.010
 
 ### std.core.014 — No BLAKE3 implementation
 
@@ -159,8 +136,6 @@ new module rather than growth inside `core`.
   algorithm contract.
 - Done when: BLAKE3 unkeyed, keyed, and key-derivation modes match published vectors across
   chunk and tree boundaries, and parallel and serial processing return identical outputs.
-- Related: std.core.013
-
 ### std.core.015 — No Ed25519 signatures
 
 - Next: add key generation, signing, verification, strict input validation, and published

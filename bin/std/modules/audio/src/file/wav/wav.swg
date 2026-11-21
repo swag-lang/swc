@@ -235,8 +235,13 @@ private func parseFormat(bytes: const [..] u8)->Format fail
 
     var extraStart = FormatExtraSize
     var extraEnd   = FormatExtraSize
-    if size >= FormatExtraSize do
-        extraEnd = Math.min(size, FormatExtraSize + readU16(bytes, 16))
+    if size >= FormatExtraSize
+    {
+        let extraSize = readU16(bytes, 16)
+        if extraSize > size - FormatExtraSize do
+            fail InvalidFormatError{"invalid wav"}
+        extraEnd = FormatExtraSize + extraSize
+    }
 
     var classicTag = tag
     if tag == WAVE_FORMAT_EXTENSIBLE

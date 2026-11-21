@@ -103,6 +103,42 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     Swag.require(decoded[2] == Swag.S16.Max)
 }
 
+// A WAVE ADPCM fmt chunk cannot declare bytes beyond its chunk payload.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-adpcm-truncated-coefficients-%.wav", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    var bytes: Array'u8
+    var writer = ByteStream.openWrite(&bytes)
+    writer.writeBytes(cast(const [..] u8, "RIFF"))
+    writer.writeLittleEndian(50'u32)     // File size minus the RIFF marker and size.
+    writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
+    writer.writeLittleEndian(22'u32)     // Stops before the declared predictor coefficients.
+    writer.writeLittleEndian(2'u16)      // Microsoft ADPCM.
+    writer.writeLittleEndian(1'u16)      // Mono.
+    writer.writeLittleEndian(8_000'u32)
+    writer.writeLittleEndian(16_000'u32)
+    writer.writeLittleEndian(8'u16)     // Block alignment.
+    writer.writeLittleEndian(4'u16)     // Bits per sample.
+    writer.writeLittleEndian(8'u16)     // Extension bytes claim eight, but only four follow.
+    writer.writeLittleEndian(4'u16)     // Samples per block.
+    writer.writeLittleEndian(1'u16)     // One custom predictor.
+    writer.writeBytes(cast(const [..] u8, "data"))
+    writer.writeLittleEndian(8'u32)
+    writer.writeLittleEndian(0'u8)
+    writer.writeLittleEndian(16's16)
+    writer.writeLittleEndian(-32_768's16)
+    writer.writeLittleEndian(-32_768's16)
+    writer.writeLittleEndian(0'u8)
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    var errOutcome: Swag.Error
+    discard catch SoundFile.load(path.toString()) as errOutcome
+    Swag.require(errOutcome.value() is Errors.InvalidFormatError)
+}
+
 // A voice seeks to the block holding the target frame and discards the frames before it, so the
 // samples heard after a seek are the same ones a decode from the start reaches.
 #test

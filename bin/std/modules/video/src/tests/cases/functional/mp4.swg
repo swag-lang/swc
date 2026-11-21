@@ -279,6 +279,28 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require((expect File.readAllText(path)) == "keep")
 }
 
+// A failed MP4 finalization stays failed and cannot be reported as a successful retry.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("empty.mp4", &buffer, 16, 16, rate)
+    let opened = buffer.toArray()
+    var rejected: Swag.Error
+    discard catch writer.end() as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
+
+    let frame = videoGrayImage(16, 16, 96)
+    discard catch writer.addFrame(frame) as rejected
+    Swag.require(rejected.value() is BadParameterError and writer.frameCount() == 0)
+
+    var repeated: Swag.Error
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
+}
+
 // File-backed patching produces the same seekable stream as memory-backed patching.
 #test
 {

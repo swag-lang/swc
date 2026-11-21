@@ -70,7 +70,9 @@ struct Writer
         encoder:     IEncoder?        // Encoder instance owned by this writer.
         encoderType: const *Swag.TypeInfoStruct?     // Concrete encoder type, used to release it.
         frames:      u64              // Number of frames appended so far.
-        isEnded:     bool             // Whether the stream was finished.
+        isEnded:     bool             // Whether finalization was attempted and frame writes stopped.
+        isFinalized: bool             // Whether encoder finalization and sink close both succeeded.
+        finalizationError: Swag.Error // Error from the failed finalization attempt, when present.
     }
 }
 
@@ -235,18 +237,38 @@ impl Writer
 
     // Finishes the stream and releases everything it held.
     //
-    // Only a stream that ended without failing is complete. Repeated calls do nothing.
+    // Only a stream that ended without failing is complete. Repeated calls after success do
+    // nothing; calls after failed finalization re-raise that failure.
     mtd end() fail
     {
-        if .isEnded do
-            return
+        if .isEnded
+        {
+            if .isFinalized do
+                return
+            try .finalizationError.raise()
+            fail BadParameterError{"video writer finalization previously failed"}
+        }
         if not .encoder do
             fail BadParameterError{"video writer has no open stream"}
 
         .isEnded = true
-        try .encoder.end(&.sink)
-        try .sink.close()
+        var failure: Swag.Error
+        catch .encoder.end(&.sink) as failure
+        if not failure.isEmpty()
+        {
+            .finalizationError = failure
+            try .finalizationError.raise()
+        }
+
+        catch .sink.close() as failure
+        if not failure.isEmpty()
+        {
+            .finalizationError = failure
+            try .finalizationError.raise()
+        }
+
         .release()
+        .isFinalized = true
     }
 
     // Returns the number of frames appended so far.

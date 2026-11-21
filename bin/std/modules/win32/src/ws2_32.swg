@@ -16,6 +16,7 @@ const SD_SEND             = 1
 const SOL_SOCKET          = 0xFFFF
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
+const TCP_NODELAY        = 1
 const IPPROTO_IP         = 0
 const IPPROTO_IPV6       = 41
 const SO_BROADCAST       = 0x20

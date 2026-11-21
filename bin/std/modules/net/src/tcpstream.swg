@@ -28,4 +28,7 @@ impl TcpStream
 
     // Closes the connection when this owner is dropped.
     mtd opDrop() { .close() }
+
+    // Enables or disables Nagle's algorithm for this connection.
+    mtd setNoDelay(enabled: bool) fail
 }

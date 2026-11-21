@@ -3,6 +3,7 @@
 
 const IPPROTO_TCP = 6's32
 const IPPROTO_UDP = 17's32
+const TCP_NODELAY = 1's32
 const IPPROTO_IP = 0's32
 const IPPROTO_IPV6 = 41's32
 const IP_ADD_MEMBERSHIP = 35's32

@@ -39,6 +39,16 @@ private func finishInterruptedConnect(handle: s32) fail
 
 impl TcpStream
 {
+    // Enables or disables Nagle's algorithm for this connection.
+    mtd setNoDelay(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if Linux.setsockopt(cast(s32, .handle), Linux.IPPROTO_TCP, Linux.TCP_NODELAY,
+                            cast(const *void, &value), #sizeof(s32)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {

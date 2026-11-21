@@ -38,6 +38,15 @@ internal func closeNetSocket(handle: u64)
 
 impl TcpStream
 {
+    // Enables or disables Nagle's algorithm for this connection.
+    mtd setNoDelay(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if setsockopt(.handle, IPPROTO_TCP, TCP_NODELAY, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {

@@ -9,6 +9,8 @@
 
     var client = expect TcpStream.connect(endpoint)
     var server = expect listener.accept()
+    expect client.setNoDelay(true)
+    expect client.setNoDelay(false)
     listener.close()
     var bytes: [16] u8
     let emptyRead  = expect server.read(bytes[0 until 0])

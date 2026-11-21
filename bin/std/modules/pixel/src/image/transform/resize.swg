@@ -3,8 +3,9 @@ using Core
 // Resolves one aspect-preserving dimension, keeping a positive request at least one pixel.
 private func resizeAspectDimension(sourceSize, sourceBase, targetBase: s32)->s32
 {
-    let scaled = cast(f32, targetBase) * (cast(f32, sourceSize) / cast(f32, sourceBase))
-    Swag.assert(Math.isFinite(scaled) and scaled < 2_147_483_648.0'f32,
+    // A product of two positive s32 dimensions fits in s64, preserving the exact floor.
+    let scaled = cast(s64, sourceSize) * cast(s64, targetBase) / cast(s64, sourceBase)
+    Swag.assert(scaled < 2_147_483_648,
                 "resized dimension is outside the supported range")
     return Math.max(cast(s32, scaled), 1)
 }

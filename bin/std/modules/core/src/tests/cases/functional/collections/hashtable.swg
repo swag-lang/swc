@@ -378,6 +378,42 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     Swag.require(table[3] == 30)
 }
 
+// A rejected growth while replacing entries leaves the original table intact.
+#test
+{
+    var reject: RejectHashTableGrowthAllocator
+    var table:  HashTable'(s32, s32)
+    table.add(-1, -10)
+
+    let oldAllocator = table.allocator
+    table.allocator = &reject
+    let failed = Swag.catchPanic(func|&table|()
+    {
+        table.opSet([
+            struct { k: s32, v: s32 }{k: 0, v: 100},
+            {k: 1, v: 101},
+            {k: 2, v: 102},
+            {k: 3, v: 103},
+            {k: 4, v: 104},
+            {k: 5, v: 105},
+            {k: 6, v: 106},
+            {k: 7, v: 107},
+            {k: 8, v: 108},
+            {k: 9, v: 109},
+            {k: 10, v: 110},
+            {k: 11, v: 111},
+            {k: 12, v: 112},
+            {k: 13, v: 113},
+            {k: 14, v: 114},
+            {k: 15, v: 115},
+            {k: 16, v: 116}])
+    })
+    table.allocator = oldAllocator
+
+    Swag.require(failed.raised)
+    Swag.require(table.count == 1 and table.contains(-1) and table[-1] == -10)
+}
+
 #test
 {
     var table: HashTable'(s32, s32)

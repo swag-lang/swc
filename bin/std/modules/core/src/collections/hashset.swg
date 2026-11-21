@@ -140,9 +140,18 @@ impl HashSet
     mtd opSet(slice: const [..] K)
         where Reflection.canCopy(K)
     {
-        .clear()
+        if not slice.count
+        {
+            .clear()
+            return
+        }
+
+        var replacement: HashSet'K
+        replacement.allocator = .allocator
         for v in slice do
-            .add(v)
+            replacement.add(v)
+
+        Core.swap(me, &replacement)
     }
 
     #static if Reflection.canCopy(K)

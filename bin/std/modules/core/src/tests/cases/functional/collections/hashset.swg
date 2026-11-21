@@ -295,6 +295,29 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.contains(74))
 }
 
+// A rejected growth while replacing keys leaves the original set intact.
+#test
+{
+    var reject: RejectHashSetGrowthAllocator
+    var values: HashSet's32
+    values.add(-1)
+
+    var replacement: Array's32
+    for i in 17 do
+        replacement.add(cast(s32, i))
+
+    let oldAllocator = values.allocator
+    values.allocator = &reject
+    let failed = Swag.catchPanic(func|&values, &replacement|()
+    {
+        values.opSet(replacement.toSlice())
+    })
+    values.allocator = oldAllocator
+
+    Swag.require(failed.raised)
+    Swag.require(values.count == 1 and values.contains(-1))
+}
+
 #test
 {
     var reject: RejectHashSetGrowthAllocator

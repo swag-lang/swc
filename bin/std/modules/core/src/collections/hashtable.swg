@@ -223,9 +223,18 @@ impl HashTable
     mtd opSet(slice: const [..] { k: K, v: V })
         where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
-        .clear()
+        if not slice.count
+        {
+            .clear()
+            return
+        }
+
+        var replacement: HashTable'(K, V)
+        replacement.allocator = .allocator
         for v in slice do
-            .add(v.k, v.v)
+            replacement.add(v.k, v.v)
+
+        Core.swap(me, &replacement)
     }
 
     #static if Reflection.canCopy(K) and Reflection.canCopy(V)

@@ -10,37 +10,40 @@ public const AesGcmTagSize = 16
 
 private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
-    var value: [16] u8
-    for index in 16 do
-        value[index] = state[][index] ^ block[index]
-
-    var product: [16] u8
-    var factor = hashKey
-    for byte in 16
+    var value:   [2] u64
+    var factor:  [2] u64
+    var product: [2] u64
+    var input:   [2] u64
+    Swag.memcpy(&value[0], &state[][0], 16)
+    Swag.memcpy(&input[0], block, 16)
+    Swag.memcpy(&factor[0], &hashKey[0], 16)
+    for index in 2
     {
-        for bit in 8
+        value[index]  = Math.bigEndianToNative(value[index] ^ input[index])
+        factor[index] = Math.bigEndianToNative(factor[index])
+    }
+
+    for word in 2
+    {
+        for bit in 64
         {
-            let selected = cast(u8, 0'u8 - ((value[byte] >> (7 - bit)) & 1))
-            for index in 16 do
-                product[index] ^= factor[index] & selected
+            let selected = 0'u64 - ((value[word] >> (63 - bit)) & 1)
+            product[0] ^= factor[0] & selected
+            product[1] ^= factor[1] & selected
 
-            let lowBit = factor[15] & 1
-            var carry  = 0'u8
-            for index in 16
-            {
-                let nextCarry = factor[index] & 1
-                factor[index] = (factor[index] >> 1) | (carry << 7)
-                carry         = nextCarry
-            }
-
-            factor[0] ^= 0xE1'u8 & cast(u8, 0'u8 - lowBit)
+            let lowBit = factor[1] & 1
+            factor[1] = (factor[1] >> 1) | (factor[0] << 63)
+            factor[0] = (factor[0] >> 1) ^ (0xE100000000000000'u64 & (0'u64 - lowBit))
         }
     }
 
-    state[] = product
-    Crypto.secureClear(value)
+    for index in 2 do
+        value[index] = Math.nativeToBigEndian(product[index])
+    Swag.memcpy(&state[][0], &value[0], 16)
     Crypto.secureClear(product)
     Crypto.secureClear(factor)
+    Crypto.secureClear(input)
+    Crypto.secureClear(value)
 }
 
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)

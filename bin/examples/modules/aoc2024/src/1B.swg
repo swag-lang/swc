@@ -44,19 +44,18 @@ func day1B()
         rightIds.add(expect StrConv.toS32(locationIds[1]))
     }
 
-    // Only the right list is sorted for matching; the left list stays as read.
-    rightIds.sort()
+    var rightCounts: HashTable'(s32, s32)
+    for id in rightIds
+    {
+        rightCounts.findOrAdd(id).value += 1
+    }
 
     var total = 0
-    for index in leftIds.count
+    for id in leftIds
     {
-        var matchIndex = Slice.findLinear(rightIds.toSlice(), leftIds[index])
-        if matchIndex == Swag.U64.Max do
-            continue
-        while matchIndex < leftIds.count and rightIds[matchIndex] == leftIds[index]
+        if let count = rightCounts.tryFind(id)
         {
-            total      += leftIds[index]
-            matchIndex += 1
+            total += id * count.value
         }
     }
 

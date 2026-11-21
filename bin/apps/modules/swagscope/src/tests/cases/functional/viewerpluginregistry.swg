@@ -301,6 +301,13 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     discard catch registry.register(#move incompatible) as versionErrorOutcome
     let versionError = versionErrorOutcome.value()
     Swag.require(versionError != null)
+
+    var emptySelector = testPlugin("empty")
+    emptySelector.selectors.add("")
+    var selectorErrorOutcome: Swag.Error
+    discard catch registry.register(#move emptySelector) as selectorErrorOutcome
+    let selectorError = selectorErrorOutcome.value()
+    Swag.require(selectorError != null and registry.plugins.count == 26)
 }
 
 // Folder navigation groups files by explicitly registered plugins, with extension equality only

@@ -125,6 +125,8 @@ impl ViewerPluginRegistry
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' needs one smoke-fixture basename", plugin.key))}
         if plugin.selectors.isEmpty() and not plugin.probe do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has no selector or content probe", plugin.key))}
+        for selector in plugin.selectors where selector.isEmpty() do
+            fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' has an empty selector", plugin.key))}
         for current in .plugins where current.key == plugin.key do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin key '%' is already registered", plugin.key))}
         .plugins.add(#move plugin)

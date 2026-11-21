@@ -71,6 +71,20 @@ func formatDuration(seconds: u64)->String
     return Format.toString("%:%{02}", minutes, seconds % 60)
 }
 
+// Writes a local file time in the current interface language and date order.
+func explorerFileTime(time, now: Time.DateTime, language: string)->String
+{
+    if time.year == now.year and time.month == now.month and time.day == now.day do
+        return time.toString(.TimeIsoHm)
+
+    let months = Tokenize.split(appStrings().explore_DateMonths, ';'rune)
+    let month  = months[time.month - 1]
+    let date = language == "fr" ? Format.toString("% %", time.day, month) : Format.toString("% %", month, time.day)
+    if time.year == now.year do
+        return Format.toString(appStrings().explore_DateSameYear, date, time.toString(.TimeIsoHm))
+    return Format.toString(appStrings().explore_DateOtherYear, date, time.year)
+}
+
 // Returns the duration a thumbnail is labelled with, in seconds, or zero when it carries none.
 func thumbnailDuration(image: const *Image)->u64
 {
@@ -243,7 +257,7 @@ impl Explorer
                         .mono      = true
                     }
 
-                    with let modified = line.setItem(3, entry.modified)
+                    with let modified = line.setItem(3, entry.when.year ? explorerFileTime(entry.when, Time.DateTime.now(), explorer.window.language) : "")
                     {
                         .colorFg = faint
                         .mono    = true
@@ -2807,6 +2821,23 @@ impl ExplorerGrid
 
         FileTile.paint(me, painter, tile, &content, options)
 
+        if not entry.directory
+        {
+            var pluginIndex: u64
+            if .explorer.window.index.namePlugin(entry.path, &pluginIndex)
+            {
+                let metrics  = .themeMetrics()
+                let colors   = .themeColors()
+                let iconSize = metrics.menuPopup_IconSize
+                let inset    = metrics.fileTile_Inset
+                let side     = iconSize + inset
+                let badge    = Math.Rectangle{tile.x + inset, tile.y + inset, side, side}
+                painter.fillRoundRect(badge, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
+                let icon = .explorer.window.pluginIcon(&.explorer.window.index.plugins[pluginIndex], iconSize)
+                icon.paint(painter, badge.horzCenter() - icon.sizeX * 0.5, badge.vertCenter() - icon.sizeY * 0.5, colors.softText)
+            }
+        }
+
         // A file left in its middle carries how far it was read along the foot of its picture.
         if not entry.directory
         {
@@ -3125,7 +3156,7 @@ impl ExplorerGrid
             painter.popClippingRect()
 
             // The date as briefly as a list reads it: the time today, the day this year, the date before.
-            let date = entry.when.year ? briefFileTime(entry.when, Time.DateTime.now()) : String.from("")
+            let date = entry.when.year ? explorerFileTime(entry.when, Time.DateTime.now(), explorer.window.language) : String.from("")
             painter.drawString(dateRight - Painter.measureString(date, mono).width, mono.opticalLineTop(centerY), date, mono, colors.faintText)
 
             var size: String

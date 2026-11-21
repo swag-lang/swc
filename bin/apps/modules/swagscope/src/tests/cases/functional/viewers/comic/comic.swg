@@ -26,7 +26,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(not view.status.isVisible())
     Swag.require(Path.lowercaseExtension(view.previewFile) == ".png", view.previewFile)
     let embedded = assume cast(*EmbeddedViewer, view.embedded)
-    Swag.require(embedded.choices[0].key == "image")
+    Swag.require(embedded.choices.count == 1 and embedded.choices[0].key == "image")
+    Swag.require(not embedded.viewerMenu.isLocallyVisible())
 
     view.turn(1)
     Swag.require(view.activePage == 1)

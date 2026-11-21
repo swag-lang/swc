@@ -8,6 +8,32 @@ private func reportCodeDetails(_: *Wnd, details: string) { g_CodeReportedDetails
 
 func codeFixturePath(name: string)->String => Path.combine(scopeTestDataDirectory(), name)
 
+// Source views expose the same line wrapping and numbering choices as basic text.
+#test
+{
+    let oldWrapping    = Code.g_Wrapping
+    let oldLineNumbers = Code.g_LineNumbers
+    defer
+    {
+        Code.g_Wrapping    = oldWrapping
+        Code.g_LineNumbers = oldLineNumbers
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var view = Code.Panel.create(&host.root, codeFixturePath("sample.cpp"))
+    Swag.require(not view.editor.flags.has(.WordWrap) and view.editor.flags.has(.LineNumbers))
+    view.toggleWrap()
+    view.toggleLineNumbers()
+    Swag.require(view.editor.flags.has(.WordWrap) and not view.editor.flags.has(.LineNumbers))
+    view.destroy()
+
+    view = Code.Panel.create(&host.root, codeFixturePath("sample.cpp"))
+    Swag.require(view.editor.flags.has(.WordWrap) and not view.editor.flags.has(.LineNumbers))
+    view.destroy()
+    host.shutdown()
+}
+
 // Per-file language choices survive reopen, stay isolated between similar paths, and are tied to
 // the current file metadata. The preference record accepts only shipped language names.
 #test

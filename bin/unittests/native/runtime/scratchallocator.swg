@@ -649,6 +649,41 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
 }
 
+// Invalid alignment is rejected without consuming scratch storage.
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    let itf = makeScratchAllocator(&scratch, &alloc)
+
+    var request: AllocatorRequest
+    request.size      = 32
+    request.alignment = 3
+    itf.alloc(&request)
+
+    Swag.require(request.address == null)
+    Swag.require(scratch.used == 0)
+
+    request.alignment = 0
+    request.size      = 32
+    itf.alloc(&request)
+    Swag.require(request.address != null)
+    let originalAddress = request.address
+    cast([*] u8, originalAddress)[0] = 73
+
+    request.oldSize   = 32
+    request.size      = 64
+    request.alignment = 3
+    itf.realloc(&request)
+    Swag.require(request.address == null)
+    Swag.require(cast([*] u8, originalAddress)[0] == 73)
+
+    request.address = originalAddress
+    request.size    = 32
+    itf.free(&request)
+    scratch.release()
+}
+
 // Small payload alignments must not leave the overflow bookkeeping header misaligned.
 #test
 {

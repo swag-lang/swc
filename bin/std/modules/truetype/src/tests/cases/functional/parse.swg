@@ -143,6 +143,22 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // A custom format-1 charset range must fit the remaining CharStrings.
+    var completeCharset = buildPredefinedCffCharset(33)
+    completeCharset.add([0x01, 0x00, 0x02, 0x01])
+    let parsed = expect parseCffFont(completeCharset.toSlice())
+    Swag.require(parsed.glyphNames[2].toString() == "quotedbl")
+
+    var overlongCharset = buildPredefinedCffCharset(33)
+    overlongCharset.add([0x01, 0x00, 0x02, 0x02])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(overlongCharset.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // A format-0 charset must contain one SID for every glyph after .notdef.
     const TruncatedCharset: [32] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

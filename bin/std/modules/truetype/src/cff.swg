@@ -506,11 +506,11 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
             {
                 let first = cast(u32, try readU16(font.block, pos))
                 let left  = format == 1 ? cast(u32, try readU8(font.block, pos + 2)) : cast(u32, try readU16(font.block, pos + 2))
+                if left + 1 > glyphCount - sids.count do
+                    try fault(0x08)
                 pos += 2 + leftSize
                 for offsetInRange in left + 1
                 {
-                    if sids.count >= glyphCount do
-                        break
                     sids.add(first + cast(u32, offsetInRange))
                 }
             }

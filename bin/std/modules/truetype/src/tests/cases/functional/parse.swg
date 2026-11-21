@@ -196,6 +196,23 @@ func buildCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // FDSelect values must index an entry in the font's FDArray.
+    var invalidFormat0 = buildCffWithFdSelectPrefix()
+    invalidFormat0.add([0x00, 0x01])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(invalidFormat0.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+
+    var invalidFormat3 = buildCffWithFdSelectPrefix()
+    invalidFormat3.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01])
+    rejected = {}
+    discard catch parseCffFont(invalidFormat3.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Encoding format 1 ranges cannot assign more GIDs than CharStrings contains.
     const OverlongRange: [35] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

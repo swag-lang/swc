@@ -3,6 +3,27 @@
 
 using Swag
 
+func pbkdf2HexDigit(value: u8)->u8
+{
+    if value >= '0' and value <= '9' do
+        return value - '0'
+    return (value - 'a') + 10
+}
+
+func pbkdf2HexBytes(text: string)->Array'u8
+{
+    var result: #returntype
+    result.reserve(text.count / 2)
+    var index = 0'u64
+    while index + 1 < text.count
+    {
+        result.add(cast(u8, ((pbkdf2HexDigit(text[index]) << 4) | pbkdf2HexDigit(text[index + 1]))))
+        index += 2
+    }
+
+    return result
+}
+
 #test
 {
     let key  = cast(const [..] u8, "key")
@@ -106,6 +127,33 @@ using Swag
     Crypto.secureClear(random)
     for byte in random do
         Swag.require(byte == 0)
+}
+
+#test
+{
+    let password    = cast(const [..] u8, "password")
+    let salt        = cast(const [..] u8, "salt")
+    let expected224 = pbkdf2HexBytes("93200ffa96c5776d38fa10abdf8f5bfc0054b9718513df472d2331d2d1e66a3f97b510224f700ce72581ffb10a1c99ec99a8cc1b951851a71f30d9265fccf912")
+    let expected384 = pbkdf2HexBytes("54f775c6d790f21930459162fc535dbf04a939185127016a04176a0730c6f1f4fb48832ad1261baadd2cedd50814b1c806ad1bbf43ebdc9d047904bf7ceafe1e")
+    let expected512 = pbkdf2HexBytes("e1d9c16aa681708a45f5c7c4e215ceb66e011a2e9f0040713f18aefdb866d53cf76cab2868a39b9f7840edce4fef5a82be67335c77a6068e04112754f27ccf4e")
+
+    var output224: [64] u8
+    var output384: [64] u8
+    var output512: [64] u8
+    expect Crypto.pbkdf2HmacSha224(password, salt, 2, output224)
+    expect Crypto.pbkdf2HmacSha384(password, salt, 2, output384)
+    expect Crypto.pbkdf2HmacSha512(password, salt, 2, output512)
+    Swag.require(Crypto.constantTimeEqual(output224, expected224.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(output384, expected384.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(output512, expected512.toSlice()))
+
+    var overlapping: [64] u8
+    Swag.memcpy(&overlapping[0], password.buffer, password.count)
+    expect Crypto.pbkdf2HmacSha224(cast(const [..] u8, overlapping[until 8]), salt, 2, overlapping)
+    Swag.require(Crypto.constantTimeEqual(overlapping, expected224.toSlice()))
+
+    var empty: [1] u8
+    expect Crypto.pbkdf2HmacSha512(password, salt, 1, empty[until 0])
 }
 
 #test

@@ -102,3 +102,27 @@ func hkdfHexBytes(text: string)->Array'u8
     discard catch Crypto.hkdfSha224(Salt, inputKeyMaterial, Info, tooLong) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    var inputKeyMaterial: [22] u8
+    Memory.set(inputKeyMaterial.buffer, 0x0B'u8, inputKeyMaterial.count)
+    const Salt = [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    const Info = [0xF0'u8, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9]
+    let expected = hkdfHexBytes("9b5097a86038b805309076a44b3a9f38063e25b516dcbf369f394cfab43685f748b6457763e4f0204fc5")
+
+    var output: [42] u8
+    expect Crypto.hkdfSha384(Salt, inputKeyMaterial, Info, output)
+    Swag.require(Crypto.constantTimeEqual(output, expected.toSlice()))
+
+    var overlapping: [42] u8
+    for index in 10 do
+        overlapping[index] = Info[index]
+    expect Crypto.hkdfSha384(Salt, inputKeyMaterial, overlapping[until 10], overlapping)
+    Swag.require(Crypto.constantTimeEqual(overlapping, expected.toSlice()))
+
+    var tooLong: [Crypto.HkdfSha384MaxOutputSize + 1] u8
+    var error:   Swag.Error
+    discard catch Crypto.hkdfSha384(Salt, inputKeyMaterial, Info, tooLong) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}

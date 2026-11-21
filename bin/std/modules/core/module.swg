@@ -78,6 +78,28 @@ try Crypto.randomBytes(privateKey)
 try Crypto.x25519SharedSecret(privateKey, peerPublicKey, sharedKey)
 ```
 
+## Sign messages
+
+[[Core.Crypto.ed25519PublicKey]], [[Core.Crypto.ed25519Sign]], and
+[[Core.Crypto.ed25519Verify]] implement Ed25519 with 32-byte seeds and public keys and 64-byte
+signatures. Verification returns `false` for invalid signatures and rejects noncanonical points.
+
+```swag
+using Core
+
+var seed: [Crypto.Ed25519KeySize] u8
+var publicKey: [Crypto.Ed25519KeySize] u8
+var signature: [Crypto.Ed25519SignatureSize] u8
+defer Crypto.secureClear(seed)
+defer Crypto.secureClear(publicKey)
+defer Crypto.secureClear(signature)
+
+try Crypto.randomBytes(seed)
+try Crypto.ed25519PublicKey(seed, publicKey)
+try Crypto.ed25519Sign(seed, "message", signature)
+Swag.assert(try Crypto.ed25519Verify(publicKey, "message", signature), "signature verification failed")
+```
+
 ## Hash files and derive context-bound keys
 
 [[Core.Hash.Blake3]] provides unkeyed hashing, keyed hashing, context-derived keys,

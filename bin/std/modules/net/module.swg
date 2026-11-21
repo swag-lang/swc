@@ -23,7 +23,7 @@ using Net
 ```
 
 Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
-and Windows. TCP streams support no-delay mode and half-closing their send side. UDP supports broadcast and
+and Windows. TCP streams support no-delay mode, keepalive probes, and half-closing their send side. UDP supports broadcast and
 IPv4/IPv6 multicast membership. Operations can fail or transfer fewer bytes than requested. DNS resolution
 preserves the platform resolver's address order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are

@@ -31,4 +31,7 @@ impl TcpStream
 
     // Enables or disables Nagle's algorithm for this connection.
     mtd setNoDelay(enabled: bool) fail
+
+    // Enables or disables operating-system TCP keepalive probes for this connection.
+    mtd setKeepAlive(enabled: bool) fail
 }

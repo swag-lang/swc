@@ -47,6 +47,15 @@ impl TcpStream
             fail NetworkError{code: WSAGetLastError()}
     }
 
+    // Enables or disables operating-system TCP keepalive probes for this connection.
+    mtd setKeepAlive(enabled: bool) fail
+    {
+        Swag.assert(.open)
+        let value = enabled ? 1's32 : 0's32
+        if setsockopt(.handle, SOL_SOCKET, SO_KEEPALIVE, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {

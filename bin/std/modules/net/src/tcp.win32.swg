@@ -66,9 +66,12 @@ impl TcpStream
     }
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd read(buffer: [..] u8)->u64 fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if buffer.count == 0 do
             return 0
         let count  = cast(s32, Math.min(buffer.count, cast(u64, Swag.S32.Max)))
@@ -79,9 +82,12 @@ impl TcpStream
     }
 
     // Writes up to `buffer.count` bytes and returns the amount accepted by the host.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd write(buffer: const [..] u8)->u64 fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if buffer.count == 0 do
             return 0
         let count  = cast(s32, Math.min(buffer.count, cast(u64, Swag.S32.Max)))
@@ -115,9 +121,12 @@ impl TcpListener
     }
 
     // Returns the bound local address and port.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd localEndpoint()->Endpoint fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP listener is closed"}
         var address: SOCKADDR_IN
         var size = cast(s32, #sizeof(SOCKADDR_IN))
         if getsockname(.handle, cast(*SOCKADDR, cast(*void, &address)), &size) == SOCKET_ERROR do
@@ -127,9 +136,12 @@ impl TcpListener
     }
 
     // Blocks until a peer connects and returns an independently owned stream.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd accept()->TcpStream fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP listener is closed"}
         try startup()
         let handle = Win32.accept(.handle, null, null)
         if handle == INVALID_SOCKET

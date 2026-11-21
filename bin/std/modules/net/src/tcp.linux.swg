@@ -68,9 +68,12 @@ impl TcpStream
     }
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd read(buffer: [..] u8)->u64 fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if buffer.count == 0 do
             return 0
         let count = Math.min(buffer.count, cast(u64, Swag.S64.Max))
@@ -88,9 +91,12 @@ impl TcpStream
     // Writes up to `buffer.count` bytes and returns the amount accepted by the host.
     //
     // A closed peer reports [[Net.NetworkError]] without raising SIGPIPE in the process.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd write(buffer: const [..] u8)->u64 fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if buffer.count == 0 do
             return 0
         let count = Math.min(buffer.count, cast(u64, Swag.S64.Max))
@@ -129,9 +135,12 @@ impl TcpListener
     }
 
     // Returns the bound local address and port.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd localEndpoint()->Endpoint fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP listener is closed"}
         var address: Linux.sockaddr_in
         var size = cast(u32, #sizeof(Linux.sockaddr_in))
         if Linux.getsockname(cast(s32, .handle), cast(*Linux.sockaddr, cast(*void, &address)), &size) < 0 do
@@ -142,9 +151,12 @@ impl TcpListener
     }
 
     // Blocks until a peer connects and returns an independently owned stream.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd accept()->TcpStream fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP listener is closed"}
         for
         {
             let handle = Linux.accept4(cast(s32, .handle), null, null, Linux.SOCK_CLOEXEC)

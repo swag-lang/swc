@@ -128,6 +128,35 @@ using Swag, Core, Core.Errors
     Swag.require(not expect track.finish(&packet, &info))
 }
 
+// A restored capture block spanning two AAC packets marks both packets as interrupted.
+#test
+{
+    var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 2_048, tolerance: 0)
+    var first:    [1_024] s16
+    var restored: [2_048] s16
+    discard expect queue.push(Swag.makeSlice(&first[0], first.count), 0)
+    expect queue.markLost(1_024)
+    expect queue.markRestored(1_024)
+    discard expect queue.push(Swag.makeSlice(&restored[0], restored.count), 1_024)
+
+    var track = expect CaptureAacTrack.create(&queue)
+    var packet: Array'u8
+    var info:   CaptureAacPacket
+    Swag.require(expect track.nextPacket(&packet, &info))
+    Swag.require(info.startSample == 0 and info.validFrames == 1_024 and not info.sourceInterrupted)
+    for index in 1 until 3
+    {
+        Swag.require(expect track.nextPacket(&packet, &info))
+        Swag.require(info.startSample == index * 1_024 and
+                     info.validFrames == 1_024 and
+                     info.sourceInterrupted)
+    }
+
+    Swag.require(not expect track.nextPacket(&packet, &info) and packet.isEmpty())
+    Swag.require(expect track.finish(&packet, &info))
+    Swag.require(info.validFrames == 0 and not info.sourceInterrupted)
+}
+
 // A queue overrun is encoded as silence without retaining a history of dropped blocks.
 #test
 {
@@ -175,7 +204,7 @@ using Swag, Core, Core.Errors
     Swag.require(track.inputFrameCount() == 1_600)
     Swag.require(expect track.finish(&packet, &info))
     Swag.require(info.startSample == 1_024 and info.validFrames == 576)
-    Swag.require(info.syntheticFrames == 0 and not info.sourceInterrupted)
+    Swag.require(info.syntheticFrames == 0 and info.sourceInterrupted)
 }
 
 // Invalid queue formats and post-finish reads fail without emitting a packet.

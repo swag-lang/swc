@@ -43,7 +43,7 @@ struct CaptureAacTrack
         nextInputSample:    u64
         gapFrames:          u64
         syntheticInPacket:  u32
-        pendingInterrupted: bool
+        pendingInterrupted: bool     // Kept while the current source block spans more packets.
         packetInterrupted:  bool
         finishing:          bool
         finished:           bool
@@ -147,8 +147,7 @@ private impl CaptureAacTrack
 
             if .capturedOffset < .current.frameCount
             {
-                .packetInterrupted  = .packetInterrupted or .pendingInterrupted
-                .pendingInterrupted = false
+                .packetInterrupted = .packetInterrupted or .pendingInterrupted
                 let start    = .capturedOffset * .channels
                 let consumed = try .encoder.push(.captured.toSlice()[start until .current.frameCount * .channels], packet)
                 .capturedOffset  += consumed

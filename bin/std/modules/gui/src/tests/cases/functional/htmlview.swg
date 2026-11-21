@@ -3,6 +3,12 @@
 
 using Core, Pixel
 
+#test
+{
+    let text = HtmlView.extractText("<p>One &amp; <b>two</b></p><script>hidden()</script><style>.x { color: red }</style>")
+    Swag.require(text == "One & two")
+}
+
 // The virtual HTML window is refreshed in advance in both directions. A delayed timer still
 // cannot leave the viewport outside the materialized layout on the next paint.
 #test

@@ -52,13 +52,14 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 - Evidence: Image, Video, Comic, PDF, Sound (the sleeve its tags embed, else its waveform), EPUB
   (the cover its package names) and MIDI (its notes as a small piano roll, drums in a softer tone)
   can supply content thumbnails; a plugin decoder answering an empty image keeps the shared
-  preview. Text, Code, Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample;
+  preview. Text, Code, Markdown and Subtitle still show a bounded source sample. Table draws a small
+  CSV/TSV grid from at most 16 KiB; HTML and RTF draw text from their parsed documents;
   Archive, Binary, DOCX, ODT, ODS, ODP, EPUB without a cover, Font, Hex, PPTX and XLSX show neutral
   file facts. The old fallback's byte map
   was misleading for binary documents and is no longer used.
 - Next: give each remaining visual reader a bounded thumbnail callback using its own decoded
-  model: EPUB first spine page when no cover is named, Office first page/slide/sheet, font specimen,
-  and parsed HTML/RTF/Markdown/Table content. Keep archive and hexadecimal previews
+  model: EPUB first spine page when no cover is named, Office first page/slide/sheet, and a font
+  specimen. Keep archive and hexadecimal previews
   explicitly neutral when no single rendered page represents the file. Use the same page
   provider for a bounded scrollable PDF/Office preview after first-page previews work.
 - Done when: every registered viewer either supplies a representative content image through its

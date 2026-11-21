@@ -14,12 +14,86 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Table)
         .create       = &createViewer
+        .thumbnail    = &loadThumbnail
         .textual      = true
         .smokeFixture = "viewer.csv"
         .addSelectors(".csv;.tsv;.tab")
     }
 
     return result
+}
+
+// Draws a small sample of the parsed rows without reading the rest of a large table.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    const SourceLimit = 16 * 1024'u64
+    const MaxColumns  = 5'u64
+    const MaxRows     = 5'u64
+    const Margin      = 8.0
+
+    let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let height = Math.max(width * 3 / 4, 64)
+    var canvas = try ImageCanvas.create(width, height)
+    canvas.clear(Color.fromRgb(248, 249, 250))
+
+    var stream = catch File.openReadLive(fileName) { return {} }
+    let sample = catch stream.readUtf8Chunk(SourceLimit) { return {} }
+    let model  = catch parseDocument(sample.toString(), detectDelimiter(fileName, sample.toString())) { return {} }
+    if model.columns.isEmpty() do
+        return try canvas.toImage()
+
+    let columns     = Math.min(model.columns.count, MaxColumns)
+    let shownRows   = Math.min(model.rows.count, MaxRows)
+    let left        = Margin
+    let top         = Margin
+    let tableWidth  = cast(f32, width) - Margin * 2
+    let rowHeight   = cast(f32, height - cast(s32, Margin * 2)) / cast(f32, shownRows + 1)
+    let columnWidth = tableWidth / cast(f32, columns)
+    let painter     = &canvas.painter
+    painter.fillRect({left, top, tableWidth, rowHeight}, Color.fromRgb(232, 235, 238))
+
+    let face       = try Gui.embeddedTypeFace(false, .Regular)
+    let fonts      = painter.renderer().fontCache()
+    let headerFont = fonts.createFont(face, 10, .Bitmap, true)
+    let bodyFont   = fonts.createFont(face, 10, .Bitmap, false)
+    for rowIndex in 0 to shownRows
+    {
+        let header = rowIndex == 0
+        let y      = top + cast(f32, rowIndex) * rowHeight
+        if rowIndex > 0 and rowIndex % 2 == 0 do
+            painter.fillRect({left, y, tableWidth, rowHeight}, Color.fromRgb(248, 249, 250))
+
+        for column in columns
+        {
+            var value = model.columns[column].toString()
+            if not header
+            {
+                let row = &model.rows[rowIndex - 1]
+                value = column < row.cells.count ? row.cells[column].toString() : ""
+            }
+
+            var text:   RichString = String.from(value)
+            var format: RichStringFormat
+            format.font.regular = header ? headerFont : bodyFont
+            format.palette      = [Color.fromRgb(45, 52, 59), Color.fromRgb(45, 52, 59),
+                                   Color.fromRgb(45, 52, 59), Color.fromRgb(45, 52, 59)]
+            format.minLineHeight = format.font.regular.height
+            format.maxLines      = 1
+            format.flags         = .Clip
+            painter.drawRichString({left + cast(f32, column) * columnWidth + 3,
+                                    y + 2,
+                                    Math.max(columnWidth - 6, 1),
+                                    Math.max(rowHeight - 4, 1)},
+                                   &text,
+                                   format)
+            painter.fillRect({left + cast(f32, column + 1) * columnWidth - 1, y, 1, rowHeight},
+                             Color.fromRgb(224, 227, 230))
+        }
+
+        painter.fillRect({left, y + rowHeight - 1, tableWidth, 1}, Color.fromRgb(224, 227, 230))
+    }
+
+    return try canvas.toImage()
 }
 
 private

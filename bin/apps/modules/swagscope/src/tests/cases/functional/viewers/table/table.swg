@@ -15,6 +15,49 @@ using Core, Pixel, Gui, Viewers
     Swag.require(document.rows[6].cells[1] == "2026-05-18T09:10:00Z")
 }
 
+// Explorer shows the parsed table surface, using only the bounded source prefix.
+#test
+{
+    let file     = scopeTestDataPath("viewer.field-observations.csv")
+    let registry = createViewerPluginRegistry()
+    var renderer = expect ThumbnailRenderer.create()
+    let image    = expect renderThumbnail(&registry, &renderer, file)
+
+    Swag.require(image.isValid() and Math.max(image.width, image.height) <= 256)
+    Swag.require(image.width > image.height)
+    Swag.require(image.pixelColor(4, 4).argb == Color.fromRgb(248, 249, 250).argb)
+    Swag.require(image.pixelColor(50, 10).argb == Color.fromRgb(232, 235, 238).argb)
+}
+
+// Bytes beyond the preview budget cannot delay or invalidate the first rows.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-table-thumbnail-", ".csv")
+    defer catch File.delete(fileName)
+
+    var source: String = "city,value\nParis,22\n"
+    for 3000 do
+        source += "row,2\n"
+    source += "\"unfinished"
+    discard expect File.writeAllText(fileName, source)
+
+    var service: ThumbnailService
+    let image = expect service.render(fileName)
+    Swag.require(image.isValid() and image.width == 256)
+}
+
+// A damaged text encoding leaves the shared file card available.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-table-invalid-", ".csv")
+    defer catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, [0xFF'u8])
+
+    var service: ThumbnailService
+    let image = expect service.render(fileName)
+    Swag.require(image.isValid() and image.width == 256)
+}
+
 #test
 {
     Swag.require(Viewer.isByteRangeInBounds(4, 0, 4))

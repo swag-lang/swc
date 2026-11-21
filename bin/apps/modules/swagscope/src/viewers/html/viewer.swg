@@ -4,6 +4,19 @@
 using Core, Gui, Pixel
 
 private var g_ZoomPercent: u32 = 100
+private const ThumbnailSourceSize = 16 * 1024'u64
+
+// Reads the visible text from a bounded HTML prefix for the Explorer preview.
+private func loadThumbnail(fileName: string, _: u32)->Image fail
+{
+    var stream  = catch File.openReadLive(fileName) { return {} }
+    let source  = catch stream.readUtf8Chunk(ThumbnailSourceSize) { return {} }
+    let content = HtmlView.extractText(source.toString())
+    if not content.count do
+        return {}
+    var renderer = try ThumbnailRenderer.create()
+    return try renderer.renderContent("HTML", content.toString())
+}
 
 // Offers the rendered surface for a page that announces itself, whatever the file is called.
 //
@@ -23,6 +36,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Html)
         .create       = &createViewer
         .probe        = &pluginProbe
+        .thumbnail    = &loadThumbnail
         .textual      = true
         .smokeFixture = "viewer.html"
         .addSelectors(".htm;.html;.shtml;.xht;.xhtml")

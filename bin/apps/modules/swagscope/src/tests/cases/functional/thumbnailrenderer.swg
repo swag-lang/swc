@@ -59,6 +59,16 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
     let markdown = expect renderThumbnail(&registry, &renderer, thumbnailFixture("markdown.images.md"))
     Swag.require(markdown.width == 256 and markdown.height == 320)
 
+    let htmlPath   = thumbnailFixture("viewer.html")
+    let html       = expect renderThumbnail(&registry, &renderer, htmlPath)
+    let htmlSource = expect renderer.render(htmlPath, "HTML", true)
+    Swag.require(html.isValid() and not Slice.equals(html.pixels.toSlice(), htmlSource.pixels.toSlice()))
+
+    let rtfPath   = thumbnailFixture("viewer.rtf")
+    let rtf       = expect renderThumbnail(&registry, &renderer, rtfPath)
+    let rtfSource = expect renderer.render(rtfPath, "RTF", true)
+    Swag.require(rtf.isValid() and not Slice.equals(rtf.pixels.toSlice(), rtfSource.pixels.toSlice()))
+
     let pdf = expect renderThumbnail(&registry, &renderer, thumbnailFixture("viewer.pdf"))
     Swag.require(pdf.isValid())
     let genericPdf = expect renderer.render(thumbnailFixture("viewer.pdf"), "PDF", false)
@@ -81,6 +91,18 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
     for x in 16 to 240 where sound.pixelColor(x, 64).argb != Color.fromRgb(248, 249, 250).argb do
         waveform = true
     Swag.require(waveform)
+}
+
+// A damaged document leaves the shared text card available when its decoder declines it.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-rtf-thumbnail-", ".rtf")
+    defer catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "not an RTF document")
+
+    var service: ThumbnailService
+    let image = expect service.render(fileName)
+    Swag.require(image.isValid() and image.width == 256 and image.height == 320)
 }
 
 // Every registered reader produces a bounded Explorer thumbnail from its smoke fixture.

@@ -1696,6 +1696,22 @@ img, video, table { max-width: 100% !important; }
         return result
     }
 
+    // Extracts parsed text content from HTML source without creating a view.
+    //
+    // The result follows parser text order and resolves character references. Elements the parser
+    // excludes, including script and style subtrees, are omitted. The source is parsed in memory;
+    // no linked resources are opened, and memory use grows with the supplied source, so callers
+    // choose its bound.
+    public func extractText(source: string)->String
+    {
+        var document = HtmlDocument.create()
+        var parser: HtmlParser
+        parser.start(&document)
+        parser.feed(source)
+        parser.finish()
+        return document.textContent(0)
+    }
+
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
     // Embedded fragments leave keyboard focus with their host during progressive loading.
     // A supplied image cache is consumed before layout; it must not own uploaded textures.

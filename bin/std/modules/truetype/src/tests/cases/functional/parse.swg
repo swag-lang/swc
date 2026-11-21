@@ -300,6 +300,15 @@ func buildCffExpertEncoding()->Array'u8
 
 #test
 {
+    // CFF real nibble 0xD is reserved and must not be silently skipped.
+    const ReservedRealNibble: [2] u8 = [30, 0xDF]
+    var rejected: Swag.Error
+    discard catch parseCffDict(ReservedRealNibble) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Escaped CFF DICT operators require a second byte.
     const TruncatedEscape: [1] u8 = [0x0C]
     var rejected: Swag.Error

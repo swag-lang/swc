@@ -315,6 +315,10 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 inExponent  = true
                 expNegative = true
             }
+            elif nibble == 0x0D
+            {
+                try fault(0x08)
+            }
             elif nibble == 0x0E
             {
                 negative = true

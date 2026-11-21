@@ -3,6 +3,49 @@
 
 using Swag
 
+struct RejectConcatBucketDataAllocator
+{
+    #[Swag.Align(16)]
+    headers: [512] u8
+    #[Swag.Align(16)]
+    data: [16] u8
+    headerCount: u32
+    dataCount:   u32
+    freedHeaders: u32
+}
+
+impl Swag.IAllocator for RejectConcatBucketDataAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        if request.size == #sizeof(ConcatBufferBucket)
+        {
+            request.address = &.headers[cast(u64, .headerCount) * #sizeof(ConcatBufferBucket)]
+            .headerCount += 1
+        }
+        elif request.size == 4
+        {
+            .dataCount += 1
+            if .dataCount == 1 do
+                request.address = &.data[0]
+            else do
+                request.address = null
+        }
+        else
+        {
+            request.address = null
+        }
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+
+    mtd impl free(request: *Swag.AllocatorRequest)
+    {
+        if request.size == #sizeof(ConcatBufferBucket) do
+            .freedHeaders += 1
+    }
+}
+
 func buildConcatBuffer()->ConcatBuffer
 {
     var result: #returntype
@@ -88,6 +131,33 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     var buffer: ConcatBuffer
     buffer.addBytes("abc")
     Swag.require(inspectConcatBuffer(buffer))
+}
+
+// A failed bucket allocation leaves the existing buffer and cursor usable.
+#test
+{
+    var allocator: RejectConcatBucketDataAllocator
+    var buffer: ConcatBuffer
+    buffer.setAllocator(&allocator)
+    buffer.setBucketSize(4)
+    buffer.addBytes("abcd")
+    let position = buffer.position()
+
+    let failed = Swag.catchPanic(func|&buffer|() { buffer.addBytes("e") })
+    Swag.require(failed.raised and
+                 failed.message() == "Memory.alloc cannot allocate memory: requested size 4 bytes, alignment 0 bytes")
+    Swag.require(allocator.freedHeaders == 1)
+    Swag.require(buffer.count() == 4 and
+                 buffer.position().bucket == position.bucket and
+                 buffer.position().pointer == position.pointer)
+
+    let retryFailed = Swag.catchPanic(func|&buffer|() { buffer.addBytes("f") })
+    Swag.require(retryFailed.raised)
+    Swag.require(buffer.count() == 4 and
+                 buffer.position().bucket == position.bucket and
+                 buffer.position().pointer == position.pointer and
+                 allocator.data[4] == 0 and
+                 Memory.compare(allocator.data.buffer, "abcd".buffer, 4) == 0)
 }
 
 #test

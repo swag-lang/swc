@@ -142,6 +142,8 @@ impl ConcatBuffer
     mtd const count()->u64 => .lastBucket ? .lastBucket.countBefore + .lastBucket.count : 0
 
     // Ensures the last bucket has room for `numBytes` more bytes, reusing a retained bucket or allocating one.
+    //
+    // If allocation fails, the existing buckets and cursor remain unchanged.
     mtd grow(numBytes: u64)
     {
         Swag.assert(.isAtEnd)
@@ -174,6 +176,17 @@ impl ConcatBuffer
         if not .allocator do
             .allocator = Swag.getContext().allocator
         let newBucket = Memory.new'ConcatBufferBucket(.allocator)
+        let bsize     = Math.max(.granularity, numBytes)
+        let allocator = .allocator
+        let allocation = Swag.catchPanic(func|newBucket, bsize, allocator|() {
+            newBucket.data = Memory.alloc(bsize, allocator)
+        })
+        if allocation.raised
+        {
+            Memory.delete(newBucket, .allocator)
+            Swag.panic(allocation.message(), allocation.loc)
+        }
+        newBucket.size = bsize
 
         if .lastBucket
         {
@@ -193,12 +206,7 @@ impl ConcatBuffer
             newBucket.countBefore = .lastBucket.countBefore + .lastBucket.count
 
         .curBucket, .lastBucket = newBucket
-
-        let bsize      = Math.max(.granularity, numBytes)
-        let lastBucket = unwrap .lastBucket
-        lastBucket.data = Memory.alloc(bsize, .allocator)
-        lastBucket.size = bsize
-        .currentSP      = lastBucket.data
+        .currentSP = newBucket.data
     }
 
     // Selects the allocator used for the buffer's storage.

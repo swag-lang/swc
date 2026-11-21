@@ -15,6 +15,21 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
     return 0
 }
 
+func buildPredefinedCffCharset(charset: u8)->Array'u8
+{
+    var result: Array'u8
+    result.add([
+        0x01, 0x00, 0x04, 0x04,                       // Header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x05,                 // Top DICT INDEX
+        0x8C, 0x0F, 0xA2, 0x11,                       // charset 1, CharStrings offset 23
+        0x00, 0x00, 0x00, 0x00,                       // String and GlobalSubrs INDEX
+        0x00, 0x03, 0x01, 0x01, 0x02, 0x03, 0x04,     // Three-entry CharStrings INDEX
+        0x0E, 0x0E, 0x0E])
+    result[15] = 139 + charset
+    return result
+}
+
 #test
 {
     let valueU16 = expect readU16(ReaderBytes, 0)
@@ -61,6 +76,18 @@ func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
     var rejected: Swag.Error
     discard catch readCffIndex(BadCffIndex, 0) as rejected
     Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // The predefined Expert charsets map glyph IDs through their canonical SIDs.
+    var expertBytes = buildPredefinedCffCharset(1)
+    let expert      = expect parseCffFont(expertBytes.toSlice())
+    Swag.require(expert.glyphNames[2].toString() == "exclamsmall")
+
+    let expertSubsetBytes = buildPredefinedCffCharset(2)
+    let expertSubset      = expect parseCffFont(expertSubsetBytes.toSlice())
+    Swag.require(expertSubset.glyphNames[2].toString() == "dollaroldstyle")
 }
 
 #test

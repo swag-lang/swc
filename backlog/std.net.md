@@ -56,10 +56,11 @@ whole layout.
 
 - Evidence: `Net.Http.get` streams response chunks and `Net.Http.post` reads request chunks on
   Linux and Windows. Both bound the buffered response body when no handler is supplied and use
-  platform certificate validation. GET can follow a bounded number of redirects on both
-  backends; HTTPS redirects cannot downgrade to HTTP, POST never follows redirects, and callers
-  cannot combine redirect following with origin-sensitive headers. Active cancellation and
-  identical end-to-end deadline semantics remain open.
+  platform certificate validation. Responses expose ordered headers with duplicates preserved.
+  GET can follow a bounded number of redirects on both backends; HTTPS redirects cannot
+  downgrade to HTTP, POST never follows redirects, and callers cannot combine redirect following
+  with origin-sensitive headers. Active cancellation and identical end-to-end deadline
+  semantics remain open.
 - Next: align active cancellation and whole-transfer deadlines across both backends.
 - Done when: local-server tests cover streamed requests and responses, bounded redirects,
   cancellation, deadlines, and rejection of oversized or malformed headers.
@@ -86,26 +87,25 @@ whole layout.
 
 ### std.net.010 — TCP streams lack complete read and write helpers
 
-- Evidence: `TcpStream.read` and `write` may transfer fewer bytes than requested; HTTP and
-  WebSocket protocols each implement private loops to read or write a complete buffer.
-- Next: expose portable `readExact` and `writeAll` methods with explicit EOF and zero-progress
-  failure behavior.
+- Evidence: `TcpStream.readExact` and `writeAll` implement full-buffer transfers with explicit
+  EOF and zero-progress failures. Linux runtime tests pass; Windows runtime coverage remains open.
+- Next: run the full-transfer and early-EOF tests on Windows.
 - Done when: tests cover complete transfers, empty buffers, and EOF before the requested length
   on both supported hosts.
 - Related: platform.portability.088
 
 ### std.net.011 — TCP streams cannot set a write timeout
 
-- Evidence: `TcpStream` supports a blocking read timeout, but writes can block without a
-  caller-controlled limit.
-- Next: expose the platform send timeout on Linux and Windows.
+- Evidence: `TcpStream.setWriteTimeout` configures and disables the platform send timeout. Linux
+  runtime tests pass; Windows runtime coverage remains open.
+- Next: run the write-timeout test on Windows.
 - Done when: callers can set and disable a write timeout with tests on both supported hosts.
 - Related: std.net.004, platform.portability.088
 
 ### std.net.012 — UDP receive cannot be timed out
 
-- Evidence: `DatagramSocket.receiveFrom` blocks indefinitely when no datagram arrives, unlike the
-  TCP stream reads.
-- Next: expose the platform receive timeout on Linux and Windows.
+- Evidence: `DatagramSocket.setReadTimeout` configures and disables the platform receive timeout.
+  Linux runtime tests pass; Windows runtime coverage remains open.
+- Next: run the UDP receive-timeout test on Windows.
 - Done when: callers can set and disable a UDP receive timeout with tests on both supported hosts.
 - Related: std.net.004, platform.portability.088

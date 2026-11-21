@@ -740,17 +740,23 @@ private impl FileBrowserCtrl
                         evt.accepted = true
                     }
 
-                case .Enter:
-                    let l = list.focusedLine()
-                    if not l do
+                case .Return, .Enter where evt.key == .Enter or fileBrowser.options.mode != .CreateFile:
+                    let folderOnly = fileBrowser.options.mode == .SelectFolder
+                    let line       = folderOnly ? list.selectedLine() : (list.focusedLine() orelse list.selectedLine())
+                    if not line
+                    {
+                        // In folder mode an empty selection keeps the dialog open.
+                        evt.accepted = folderOnly
                         break
-                    let fi = cast(const *FileInfo, unwrap l.userData0)
+                    }
+
+                    let fi = cast(const *FileInfo, unwrap line.userData0)
                     if fi.isDirectory()
                     {
-                        fileBrowser.setCurrentFolder(fi.fullName)
                         evt.accepted = true
+                        fileBrowser.setCurrentFolder(fi.fullName)
                     }
-                    elif fileBrowser.options.mode != .SelectFolder
+                    elif evt.key == .Enter
                     {
                         fileBrowser.sigAccepted.call(fileBrowser)
                         list.setFocus()

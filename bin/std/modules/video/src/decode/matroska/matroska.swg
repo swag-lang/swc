@@ -2695,6 +2695,26 @@ impl ITimedDecoder for Decoder
         let count = .info.frameCount
         if count and seconds >= .durationSeconds do
             return count
+
+        // The average frame rate cannot identify a picture across a variable-rate gap. Once the
+        // complete timeline is indexed from its beginning, select by the presentation times.
+        if count and .windowBaseRank == 0 and .streamSampleCount == count
+        {
+            let target = cast(f64, .presentationOrigin) + seconds * 1_000_000_000.0
+            var low    = 0'u64
+            var high   = .streamSampleCount
+            while low < high
+            {
+                let middle = low + (high - low) / 2
+                if cast(f64, .video.presentationTimeAtRank(middle)) <= target do
+                    low = middle + 1
+                else do
+                    high = middle
+            }
+
+            return low ? low - 1 : 0
+        }
+
         let rate = .info.frameRate
         if not rate.isValid() do
             return 0

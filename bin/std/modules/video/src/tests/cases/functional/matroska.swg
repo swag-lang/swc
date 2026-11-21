@@ -171,6 +171,16 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(matroska.frameAtTime(0.3) == 7)
 }
 
+// Time lookup follows the indexed presentation timestamps across a variable-rate gap.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("matroska-vfr.mkv"), pictureOnly: true)
+    let last   = expect reader.decodeFrame(4)
+    Swag.require(last.isValid() and reader.frameCount() == 5)
+    Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(2), 0.2, 0.000001))
+    Swag.require(reader.frameAtTime(0.16) == 1)
+}
+
 // Every supported AAC track is exposed independently, with the default track first. The fixture
 // deliberately carries the same access units twice so their sparse packet ranges can be compared
 // without decoding them or loading the container into memory.

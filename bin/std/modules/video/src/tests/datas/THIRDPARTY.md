@@ -174,6 +174,14 @@ that ambiguous laced timing is refused. These files contain no third-party recor
 - FFmpeg: 7.1.5; source: `testsrc2=size=96x64:rate=25`, MPEG-4 Part 2, two intra pictures.
 - License: same as this repository.
 
+`matroska-vfr.mkv` is a five-picture H.264 sequence generated from FFmpeg `testsrc` at 25 fps.
+Its presentation timestamps are `0`, `0.04`, `0.20`, `0.24`, and `0.28` seconds, leaving a
+deliberate gap after the second picture to test frame lookup against variable-rate timing.
+
+- FFmpeg 7.1.5: `-f lavfi -i testsrc=size=64x48:rate=25:duration=0.4 -vf "setpts='if(eq(N,0),0,if(eq(N,1),1,if(eq(N,2),5,if(eq(N,3),6,7))))'" -fps_mode vfr -c:v libx264 -x264-params bframes=0:keyint=1:scenecut=0 -an`.
+- Bytes: 7077; SHA-256: `5f2f5c3184dec09590f6fe1566a9de2aefce374f9f04330403327fc1271690be`.
+- License: same as this repository.
+
 `ffmpeg-h264-subtitle.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and muxes the repository's
 `subtitle-sample.srt` as a default French SubRip track through FFmpeg 7.1. It exercises Matroska
 subtitle discovery, metadata, packet timestamps, durations, and cue decoding without introducing

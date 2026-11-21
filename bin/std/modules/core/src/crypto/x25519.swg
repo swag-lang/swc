@@ -5,15 +5,15 @@
 // Size in bytes of an X25519 private or public key and shared secret.
 public const X25519KeySize = 32
 
-private struct X25519Field
+internal struct X25519Field
 {
     limbs: [16] u64
 }
 
-private func x25519Normalize(value: X25519Field)->X25519Field
+internal func x25519Normalize(value: X25519Field)->X25519Field
 {
     var result = value
-    for pass in 3
+    for pass in 5
     {
         discard pass
         for index in 15
@@ -31,7 +31,7 @@ private func x25519Normalize(value: X25519Field)->X25519Field
     return result
 }
 
-private func x25519Add(left, right: X25519Field)->X25519Field
+internal func x25519Add(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in 16 do
@@ -39,7 +39,7 @@ private func x25519Add(left, right: X25519Field)->X25519Field
     return x25519Normalize(result)
 }
 
-private func x25519Subtract(left, right: X25519Field)->X25519Field
+internal func x25519Subtract(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in 16
@@ -51,7 +51,7 @@ private func x25519Subtract(left, right: X25519Field)->X25519Field
     return x25519Normalize(result)
 }
 
-private func x25519Multiply(left, right: X25519Field)->X25519Field
+internal func x25519Multiply(left, right: X25519Field)->X25519Field
 {
     var products: [32] u64
     for i in 16
@@ -69,12 +69,12 @@ private func x25519Multiply(left, right: X25519Field)->X25519Field
     return x25519Normalize(result)
 }
 
-private func x25519Square(value: X25519Field)->X25519Field
+internal func x25519Square(value: X25519Field)->X25519Field
 {
     return x25519Multiply(value, value)
 }
 
-private func x25519Invert(value: X25519Field)->X25519Field
+internal func x25519Invert(value: X25519Field)->X25519Field
 {
     // p - 2 = 2^255 - 21; this fixed exponent has no secret-dependent control flow.
     var result: X25519Field
@@ -91,7 +91,7 @@ private func x25519Invert(value: X25519Field)->X25519Field
     return result
 }
 
-private func x25519Decode(data: const [..] u8)->X25519Field
+internal func x25519Decode(data: const [..] u8)->X25519Field
 {
     var result: #returntype
     for index in 16
@@ -104,25 +104,29 @@ private func x25519Decode(data: const [..] u8)->X25519Field
     return result
 }
 
-private func x25519Encode(value: X25519Field, destination: [..] u8)
+internal func x25519Encode(value: X25519Field, destination: [..] u8)
 {
     var canonical         = x25519Normalize(value)
     let modulus: [16] u64 = [65517, 65535, 65535, 65535, 65535, 65535, 65535, 65535,
                              65535, 65535, 65535, 65535, 65535, 65535, 65535, 32767]
-    var difference: [16] u64
-    var borrow = 0'u64
-    for index in 16
+    for reduction in 2
     {
-        let sub       = modulus[index] + borrow
-        let underflow = canonical.limbs[index] < sub
-        difference[index] = (canonical.limbs[index] - sub) & (index == 15 ? 0x7FFF'u64 : 0xFFFF'u64)
-        borrow = cast(u64, underflow)
-    }
+        discard reduction
+        var difference: [16] u64
+        var borrow = 0'u64
+        for index in 16
+        {
+            let sub       = modulus[index] + borrow
+            let underflow = canonical.limbs[index] < sub
+            difference[index] = (canonical.limbs[index] - sub) & (index == 15 ? 0x7FFF'u64 : 0xFFFF'u64)
+            borrow = cast(u64, underflow)
+        }
 
-    let selectDifference = 0'u64 - (1 - borrow)
-    for index in 16 do
-        canonical.limbs[index] = (difference[index] & selectDifference) |
-                                 (canonical.limbs[index] & ~selectDifference)
+        let selectDifference = 0'u64 - (1 - borrow)
+        for index in 16 do
+            canonical.limbs[index] = (difference[index] & selectDifference) |
+                                     (canonical.limbs[index] & ~selectDifference)
+    }
 
     for index in X25519KeySize
     {

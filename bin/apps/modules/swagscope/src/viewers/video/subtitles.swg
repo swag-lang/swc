@@ -161,7 +161,7 @@ func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
     // Sort paths before loading: subtitle tracks own their decoded cues and are moved only once.
     // The exact stem compares before every dotted qualifier, matching VLC's preferred sidecar
     // while keeping the language variants deterministic.
-    candidates.sort(func(a, b) => Utf8.compare(a, b, .Latin1NoCase))
+    candidates.sort(func(a, b) => Text.compareNames(a, b))
     for candidate in candidates do
         discard catch addSidecar(candidate.toString(), result)
 }

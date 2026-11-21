@@ -62,7 +62,7 @@ func readLargeAsSmall(large: *Large)->*Small
     return cast(*Small, large)     // swc-expected-error {{sema_err_fallible_cast_requires_handler}}
 }
 
-// GAP compiler.ai.020 - '*void' explicitly bypasses that relationship. Observe the
+// GAP compiler.safety.033 - '*void' explicitly bypasses that relationship. Observe the
 // address only: dereferencing this result as Large would really overrun Small.
 func reinterpretSmallAddress()->bool
 {
@@ -76,9 +76,9 @@ func reinterpretSmallAddress()->bool
     Swag.require(reinterpretSmallAddress())
 }
 
-// GAP compiler.ai.020 - reading the union member that was not written turns an integer
+// GAP compiler.safety.033 - reading the union member that was not written turns an integer
 // into a pointer with no cast at all: the widest route on the unsafe surface, and the one
-// that needs no ceremony whatsoever. See compiler.ai.016 for the tagged form that would
+// that needs no ceremony whatsoever. See language.design.055 for the tagged form that would
 // remove it rather than gate it. Left commented because it really does forge a pointer.
 //
 // func forgePointerThroughUnion()->s32

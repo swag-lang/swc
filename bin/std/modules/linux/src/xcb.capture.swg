@@ -4,6 +4,8 @@
 // XCB image, visual and window-query layouts from libxcb 1.17 and XFixes headers.
 // Function pointers borrow the loaded library; reply/error buffers use libc free.
 
+const XCB_MAP_STATE_VIEWABLE = 2'u8     // The window and its ancestors are mapped.
+
 struct xcb_format_t
 {
     public

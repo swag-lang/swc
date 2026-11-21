@@ -3,7 +3,8 @@
 This backlog covers image decoding, encoding, metadata, multi-image containers, and SVG input
 owned by `bin/std/modules/pixel`. Module-wide rendering, effects, image transformations, surface,
 texture-sampling, vector-output, and geometry work lives in [std.pixel.md](std.pixel.md).
-Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
 Entries stay in one flat list. Delete an entry when it
@@ -232,3 +233,61 @@ ships; history lives in Git, not here.
 - Related: std.pixel.image.051
 
 ---
+
+### std.pixel.image.053 — Remaining PNG sample conversion needs a current profile
+
+- Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth
+  and Sub for 1/2/3/4/6/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
+  `image.png.swg` compares Sub against scalar recurrence across strides 1 through 8.
+  Gray and palette conversion have thresholded packed-word paths. Native 16-bit samples
+  without transparency keys are byte-swapped eight at a time, and grayscale keys
+  are compared eight at a time; RGB keys are compared two pixels at a time. Earlier rejections of other packed
+  Sub and gray shuffles predate cross-module SIMD inlining and do not settle the current cost.
+- Next: profile current decoding by filter and bit depth, then compare the packed 16-bit
+  sample and transparency-key paths against their scalar forms in the same process. Keep Inflate's
+  share separate from image conversion so a microkernel gain has an end-to-end
+  interpretation.
+- Done when: remaining paths have a measured decision, odd/Adam7 tails and malformed rows
+  retain bounds protection, and every retained kernel improves representative decoding.
+- Related: std.core.043, std.core.044, compiler.codegen.022.
+
+### std.pixel.image.054 — The JPEG forward transform and quantization remain scalar
+
+- Evidence: the JPEG decoder and the encoder's colour conversion (`loadFromRGB` in
+  `encode/jpg/dct.swg`) are packed. The encoder's float AAN forward transform and the
+  quantization that follows it are scalar and now dominate encoding. Their samples go
+  through an `s16` staging array because no packed `s32` to `f32` lane conversion exists
+  (std.core.042).
+- Next: decide whether byte-exactness with today's encoded output must be kept. Lane-by-lane
+  float order can still change the last bit under multiply-add contraction, and an integer
+  transform changes the bytes outright. Then profile the encoder stages before writing the
+  kernel.
+- Done when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered,
+  and encode throughput improves in an interleaved A/B on a quiet machine.
+- Related: std.core.042, compiler.codegen.022.
+
+### std.pixel.image.055 — WebP reconstruction and transforms remain mostly scalar
+
+- Evidence: the VP8 DC-only 4x4 transform has a packed saturated row path with a scalar
+  boundary fallback. Its effect on decode performance remains unmeasured; the other
+  reconstruction and transform stages still need profiling and vectorization.
+- Next: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
+  and lossless subtract-green/cross-color/predictor transforms.
+- Done when: lossy and lossless fixture pixels remain identical where specified, predictor and
+  boundary modes are exhaustive, and stage benchmarks show the retained gains.
+- Related: std.core.043, compiler.codegen.022.
+
+### std.pixel.image.056 — Remaining palette lookups need a profitable packed strategy
+
+- Evidence: BMP/TGA 16-bit expansion, TGA row reversal and RLE spans, RGB/BGR channel shuffles,
+  GIF fixed quantization and PNG packed-word palette tables already have bulk implementations.
+  Palette lookup still has no general gather/shuffle strategy that beats those direct tables.
+- Evidence: a 16-entry SSSE3 PNG table shuffle lost (2.97x RGB, 1.83x RGBA) while SIMD
+  wrappers were still cross-module calls; PNG's packed-u32 lookup beat the gather
+  prototype. Neither result settles every palette size or target.
+- Next: profile GIF palette expansion and remaining indexed layouts before selecting gather or
+  shuffle, preserve the existing small-image setup thresholds, and compare against the current
+  packed-word tables rather than an older per-channel loop.
+- Done when: each remaining indexed path has a measured dispatch decision and covers palette
+  size, transparency and tails without invalid reads or changes to decoded pixels.
+- Related: std.core.044.

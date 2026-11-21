@@ -157,7 +157,8 @@ impl ShortcutEditor
     mtd fill()
     {
         let selected = .selected()
-        let query    = String.toLower(.filter.text())
+        let matcher  = assume Text.NameMatcher.create(.filter.text(), {comparisonType: .UnicodeNoCase})
+        let hasQuery = .filter.text().count != 0
         let text     = strings()
         var index: u32
         var restore  = Swag.U32.Max
@@ -170,9 +171,9 @@ impl ShortcutEditor
                 reach = text.shortcuts_Global
             elif command.source do
                 reach = text.shortcuts_Document
-            if not query.isEmpty() and
-               not Utf8.contains(command.title.toLower().toString(), query.toString()) and
-               not Utf8.contains(chord.toLower().toString(), query.toString()) do
+            if hasQuery and
+               not matcher.isMatch(command.title.toString()) and
+               not matcher.isMatch(chord.toString()) do
                 continue
             let row = .list.createLine(command.title)
             row.userData0 = cast #unconst (*void, command)

@@ -738,20 +738,18 @@ impl LibraryView
     // Case-insensitive substring test used by the library search box. Matches the file name, and
     // for a capture its title, its linked image, where it was taken, and its tags, so the user can
     // find a capture by any of the names it is known under.
-    mtd const matchSearch(it: *LibraryItem, capture: *Capture?, search: String)->bool
+    mtd const matchSearch(it: *LibraryItem, capture: *Capture?, search: string, matcher: *Text.NameMatcher)->bool
     {
-        func contains(text: const [..] u8, search: string)->bool => Utf8.indexOf(text, search, 0, .Latin1NoCase) != Swag.U64.Max
-
-        if search.isEmpty() or contains(it.fi.fullName.toSlice(), search) do
+        if not search.count or matcher.isMatch(it.fi.fullName.toString()) do
             return true
         if not capture do
             return false
 
         let names = [capture.title.toSlice(), capture.linkedImage.toSlice(), capture.sourceApplication.toSlice(),
                      capture.sourceExecutable.toSlice(), capture.sourceWindowTitle.toSlice(), capture.sourceWindowClass.toSlice()]
-        for name in names where contains(name, search) do
+        for name in names where matcher.isMatch(cast(string, name)) do
             return true
-        for tag in capture.tags where contains(tag.toSlice(), search) do
+        for tag in capture.tags where matcher.isMatch(tag.toString()) do
             return true
         return false
     }
@@ -828,7 +826,7 @@ impl LibraryView
 
     // Whether the library shows `it`: its date, kind, linked image, favorite, rating, application,
     // tag, and text all pass the filters. `byDate` says whether the date filter applies.
-    mtd accepts(it: *LibraryItem, capture: *Capture?, loaded: bool, search: string, byDate: bool)->bool
+    mtd accepts(it: *LibraryItem, capture: *Capture?, loaded: bool, search: string, matcher: *Text.NameMatcher, byDate: bool)->bool
     {
         let lib = .libWnd
         if byDate and not .matchesDate(it) do
@@ -860,7 +858,7 @@ impl LibraryView
         }
 
         if it.kind == .Image do
-            return not lib.filtersMetadata() and .matchSearch(it, null, search)
+            return not lib.filtersMetadata() and .matchSearch(it, null, search, matcher)
 
         if not capture do
             return false
@@ -881,7 +879,7 @@ impl LibraryView
             return false
         if not lib.tagFilter.isEmpty() and not capture.hasTag(lib.tagFilter) do
             return false
-        return .matchSearch(it, capture, search)
+        return .matchSearch(it, capture, search, matcher)
     }
 
     // Rebuilds the shown items from every item the filters accept, keeping the selection.
@@ -889,7 +887,8 @@ impl LibraryView
     {
         let selection = .rememberSelection()
         .items.clear()
-        let search = .libWnd.searchText.toString()
+        let search  = .libWnd.searchText.toString()
+        var matcher = assume Text.NameMatcher.create(search)
 
         // Both folders are resolved once for the whole pass. They do not change while it runs,
         // and asking for them per item is a path build — and, for the default library, a shell
@@ -904,7 +903,7 @@ impl LibraryView
             let itemLoaded = itn.loaded
             .mutexLoaded.unlock()
 
-            itn.filtered = not .accepts(itn, capture, itemLoaded, search, dateFilterApplies)
+            itn.filtered = not .accepts(itn, capture, itemLoaded, search, &matcher, dateFilterApplies)
             if not itn.filtered do
                 .items.add(itn)
         }
@@ -1101,17 +1100,17 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                value = Utf8.compare(a.sortName.toSlice(), b.sortName.toSlice(), .Latin1NoCase)
+                value = Text.compareNames(a.sortName.toSlice(), b.sortName.toSlice())
 
             case .Application:
                 let applicationA: const [..] u8 = captureA ? captureA.sourceApplication.toSlice() : ""
                 let applicationB: const [..] u8 = captureB ? captureB.sourceApplication.toSlice() : ""
-                value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
+                value = Text.compareNames(applicationA, applicationB)
 
             case .WindowTitle:
                 let windowA: const [..] u8 = captureA ? captureA.sourceWindowTitle.toSlice() : ""
                 let windowB: const [..] u8 = captureB ? captureB.sourceWindowTitle.toSlice() : ""
-                value = Utf8.compare(windowA, windowB, .Latin1NoCase)
+                value = Text.compareNames(windowA, windowB)
 
             case .Dimensions:
                 value = cast(u64, b.width) * cast(u64, b.height) <=> cast(u64, a.width) * cast(u64, a.height)
@@ -1124,7 +1123,7 @@ impl LibraryView
             }
 
             if not value do
-                value = Utf8.compare(a.fi.fullName.toSlice(), b.fi.fullName.toSlice(), .Latin1NoCase)
+                value = Text.compareNames(a.fi.fullName.toSlice(), b.fi.fullName.toSlice())
 
             if libWnd.invertSort do
                 return -value

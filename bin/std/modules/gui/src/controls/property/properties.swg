@@ -185,6 +185,7 @@ struct Properties
     hotItem:             *PropertiesItem?       // Row under the mouse.
     currentSectionIndex: u32 = Swag.U32.Max     // Section the viewport is scrolled to.
     stringFilter:        String                 // Active row filter.
+    stringFilterMatcher: Text.NameMatcher       // Prepared matcher reused while filtering and painting.
     cursorSet:           bool                   // Whether the grid set the cursor this frame.
     resizingColumn:      bool                   // Whether a column-resize drag is in progress.
     aniBar:              BlendColor             // Animation of the live column-resize rule.
@@ -902,6 +903,7 @@ impl Properties
         if .stringFilter == filter do
             return
         .stringFilter = filter
+        .stringFilterMatcher = assume Text.NameMatcher.create(filter)
         .updateStates()
     }
 
@@ -1081,8 +1083,10 @@ impl Properties
         if item.section == .currentSectionIndex or .currentSectionIndex >= .sections.count
         {
             mustShow = not .modifiedOnly or (item.data != null and item.isModified)
-            if mustShow and not .stringFilter.isEmpty() do
-                mustShow = Utf8.indexOf(item.filter.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase) != Swag.U64.Max
+            if mustShow and not .stringFilter.isEmpty()
+            {
+                mustShow = .stringFilterMatcher.isMatch(item.filter.toString())
+            }
 
             if mustShow do
                 {

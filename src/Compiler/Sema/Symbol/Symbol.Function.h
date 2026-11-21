@@ -417,8 +417,8 @@ public:
     void appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     bool hasCallDependencies() const;
 
-    void addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
-    void appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
+    void addLoweringDependency(const SymbolFunction* sym, bool observesLifecycleEffects);
+    void appendLoweringDependencies(SmallVector<SymbolFunction*>& out) const;
     void appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const;
 
     // Visit the cached order in place so metadata and dependency queries avoid
@@ -649,7 +649,7 @@ private:
     std::vector<SymbolFunction*> callDependencies_;
     PointerSet<SymbolFunction>   callDependencySet_;
 
-    std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
+    std::unique_ptr<std::vector<SymbolFunction*>> loweringDependencies_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleEffectDependencies_;
 
     uint32_t numComputedLocals_ = 0;

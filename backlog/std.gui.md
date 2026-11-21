@@ -5,7 +5,8 @@ Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourse
 Dear ImGui and egui.
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/gui` stay together here.
-Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
 
@@ -23,7 +24,7 @@ prove it. Operating-system integrations live in
 - Evidence: ordinary frames keep the content in an OpenGL target and present on the window
   thread. The native presenter can wait for the driver and compositor. Message round-trip
   probes do not measure wheel-to-display latency.
-- Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
+- Reproducer: the user reports slow scrolling of `backlog/compiler.build.md` in Swag Scope
   while the CPU is busy, with Typora remaining fluid on the same document under that load;
   the slowdown affects the entire application, not only Markdown.
 - On the Intel Arc Windows host, two ten-second Markdown wheel probes report 12–18% 3D use
@@ -538,7 +539,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   `%LOCALAPPDATA%/swc-agent-builds/capture-startup-20261030`. Debug or terminate only probe-owned
   processes, and never use the personal library as a writable benchmark profile.
 - Related: std.gui.059 (widgets packing), std.gui.057 (GPU presentation), std.gui.054
-  (input-to-display measurement), compiler.optimization.136 (distinct relocation investigation).
+  (input-to-display measurement), compiler.codegen.017 (distinct relocation investigation).
 
 ### std.gui.061 — Keep borrowed atlas images stable across cache growth
 

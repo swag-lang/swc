@@ -397,14 +397,33 @@ namespace
         // Metadata may remain unpublished while the runtime call graph is incomplete.
         // Pulling an interface method into #ast could wait on the function containing
         // that #ast. Stop at the first dependency that cannot yet be included.
-        return root.allInJitOrder([](const SymbolFunction* dependency) {
-            if (dependency->isForeignOrEmptyOrAttribute())
+        SmallVector<SymbolFunction*>                         pending;
+        static thread_local PointerSet<const SymbolFunction> seen;
+        seen.clear();
+        const auto inspect = [&pending](const SymbolFunction* dependency) {
+            if (!seen.insert(dependency) || dependency->isForeignOrEmptyOrAttribute() || dependency->attributes().hasMacroOrMixin())
                 return true;
-            if (dependency->attributes().hasMacroOrMixin())
-                return true;
+            if (!isIncludableConstantJitDependency(*dependency))
+                return false;
 
-            return isIncludableConstantJitDependency(*dependency);
-        });
+            // Lowering will join these bodies before it can build the runtime payloads.
+            // Follow them outside the current JIT order's cache lock.
+            dependency->appendLoweringDependencies(pending);
+            return true;
+        };
+
+        if (!root.allInJitOrder(inspect))
+            return false;
+
+        while (!pending.empty())
+        {
+            const SymbolFunction* dependency = pending.back();
+            pending.pop_back();
+            if (!dependency->isExcludedByCondition() && !seen.contains(dependency) && !dependency->allInJitOrder(inspect))
+                return false;
+        }
+
+        return true;
     }
 
     // Reuse traversal tables per worker: a module performs thousands of constant-graph walks.

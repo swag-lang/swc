@@ -154,3 +154,16 @@ being compiled by it.
 - Done when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
   timings and memory peaks, and a disturbed sample is identified in the record.
 - Related: compiler.optimization.029
+
+### repo.tooling.013 — Measure reliable agent changes on repository tasks
+
+- Next: freeze tasks with independent behavioral tests for adding an enum case, changing an
+  overload, repairing an invalidated borrow, preserving a destination on file failure and
+  reproducing a native test failure. Include code that compiles but violates the requirement.
+  Run paired trials across multiple agents at matched tool and time budgets.
+- Done when: the campaign reports first-patch and final behavioral success, false greens,
+  repair attempts, time to verified success and use of unchecked assertions or escape
+  hatches. Use the results to rank migrations with compatibility costs, including generic
+  delimiters, multidimensional array forms, conditional chains and control-body delimiters.
+- Related: language.design.065, language.design.066, compiler.query.002, compiler.command.test.001,
+  language.design.067, language.design.068, compiler.build.004.

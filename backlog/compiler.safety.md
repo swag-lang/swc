@@ -113,8 +113,8 @@ is the current scorecard.
   reports a conflict. Tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.
-- Related: compiler.ai.020, compiler.safety.020,
-  compiler.ai.029.
+- Related: compiler.safety.033, compiler.safety.020,
+  language.parallelism.015.
 
 ### compiler.safety.019 — Bound current sanity cost and attribute retained-state storage
 
@@ -129,7 +129,7 @@ is the current scorecard.
   transfer/state work without weakening proofs or changing analysis limits.
 - Done when: current CPU and state-heap costs are attributed and accepted or reduced with
   a repeatable comparison and the safety/sanity behavior preserved.
-- Related: compiler.core.005.
+- Related: compiler.build.005.
 
 ### compiler.safety.008 — Runtime bound guards still impose measurable hot-loop cost
 
@@ -275,9 +275,45 @@ is the current scorecard.
   marks. This is inherent — the compiler cannot see the callee — which is exactly why it belongs on
   the unsafe surface rather than inside the analysis.
 - Next: decide the default. Either a foreign call is one of the operations that requires the marker
-  from compiler.ai.020, or a foreign declaration without a written summary is assumed to store
+  from compiler.safety.033, or a foreign declaration without a written summary is assumed to store
   everything it receives and the bindings are annotated. Measure the second option against
   `bin/std/modules/win32` before choosing.
 - Done when: the foreign boundary has one documented default, and the reference says what
   crossing it suspends.
-- Related: compiler.ai.020.
+- Related: compiler.safety.033.
+
+### compiler.safety.033 — Raw memory operations have no common unsafe opt-in
+
+- Evidence: Swag has no common opt-in or compiler mode for operations that can violate memory
+  safety: integer-to-pointer casts, unchecked raw-memory construction and access, pointer
+  arithmetic, union reinterpretation, byte-copy intrinsics, lifecycle bypasses, and foreign calls.
+  Pointer casts between unrelated structs are already rejected. Checked dynamic casts have explicit
+  `try`, `expect`, and `assume` forms and must be distinguished from unchecked assumptions.
+- Next: require a visible lexical boundary around unchecked assumptions and raw operations.
+  Inventory the remaining operation families across shipped `bin/` sources and tagged native
+  integration tests. Use that inventory to choose expression-level and file-level opt-ins, then
+  define and enforce which faults the safe subset excludes.
+- Done when: the unsafe operation list is fixed and documented, safe code cannot reach any of
+  them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
+  states which faults the safe subset excludes.
+- Related: language.design.055, compiler.safety.007, compiler.safety.034.
+
+### compiler.safety.034 — Nothing states what the safe subset guarantees
+
+- Evidence: [013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg),
+  [013_003_sanity.swg](../bin/reference/modules/language/src/013_003_sanity.swg) and
+  [013_004_borrowing.swg](../bin/reference/modules/language/src/013_004_borrowing.swg) each describe
+  a mechanism accurately, and no page says what a program written without the unsafe operations
+  cannot do. A reader can learn that indexes are checked in `devmode` and that views cannot outlive
+  their storage; they cannot learn whether a use-after-free is possible.
+- Consequence: the language's actual position is stronger than its documentation implies in some
+  places — definite initialization is total and there is no `undefined` escape hatch, non-null is the
+  default with use-site proofs, errors must be handled, `const` cannot be cast away — and weaker in
+  others. Neither is legible, so the language gets judged on its mechanisms rather than on its
+  guarantee.
+- Next: inventory each fault class, what excludes it today and in which configuration.
+  Publish the resulting guarantee once compiler.safety.033 settles the unchecked boundary.
+- Done when: the reference carries one page stating, per fault class, whether the safe subset
+  excludes it, in which build configurations, and by which mechanism — and every claim on it is
+  backed by a test in `bin/unittests`.
+- Related: compiler.safety.033, compiler.safety.008.

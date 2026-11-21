@@ -123,3 +123,57 @@ func metadataCallGraphWorks()
     metadataCallGraphWorks()
     metadataLazyMethodWorks()
 }
+
+interface IMetadataDispatch
+{
+    mtd value()->s32
+}
+
+struct MetadataDispatch
+{
+    number: s32
+}
+
+#[Swag.ExportType(.Methods)]
+struct MetadataBinder
+{
+    unused: u8
+}
+
+impl MetadataBinder
+{
+    #[Swag.Inline]
+    mtd const bind(dispatch: *MetadataDispatch)->IMetadataDispatch
+    {
+        return dispatch
+    }
+}
+
+#[Swag.NoInline]
+func reflectedBinder()->const *void?
+{
+    let info = cast(const *Swag.TypeInfoStruct, #typeof(MetadataBinder))
+    return info.methods![0].value
+}
+
+impl IMetadataDispatch for MetadataDispatch
+{
+    mtd impl value()->s32
+    {
+        // The inline call completes the binder's analysis, but its interface table depends
+        // on this method. Reflecting on the binder must defer its address until we finish.
+        let binder: MetadataBinder
+        discard binder.bind(me)
+        const pointer = #run reflectedBinder()
+        #assert(pointer == null)
+        return .number
+    }
+}
+
+#test
+{
+    var dispatch = MetadataDispatch{number: 42}
+    let binder: MetadataBinder
+    let bound    = binder.bind(&dispatch)
+    Swag.require(bound.value() == 42)
+}

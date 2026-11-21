@@ -23,7 +23,7 @@ func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
     let bItem      = b.itemAt(sortColumn)
     let aText      = aItem.sortKey.isEmpty() ? &aItem.name.text : &aItem.sortKey
     let bText      = bItem.sortKey.isEmpty() ? &bItem.name.text : &bItem.sortKey
-    var result     = Latin1.compareNatural(aText[], bText[])
+    var result     = Text.compareNames(aText[], bText[])
     if descending do
         result *= -1
     return result
@@ -37,8 +37,12 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
     if content.head.count >= 2 and content.head[0] == 0x1F and content.head[1] == 0x8B do
         return true
-    if content.head.count >= 262 and content.head[257] == 'u' and content.head[258] == 's' and
-       content.head[259] == 't' and content.head[260] == 'a' and content.head[261] == 'r' do
+    if content.head.count >= 262 and
+       content.head[257] == 'u' and
+       content.head[258] == 's' and
+       content.head[259] == 't' and
+       content.head[260] == 'a' and
+       content.head[261] == 'r' do
         return true
     if not content.startsWith("PK") or content.head.count < 4 do
         return false
@@ -500,8 +504,9 @@ private impl Panel
 
     internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
+        var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for &entry, index in .archive.entries do
-            Viewer.collectTextMatches(entry.path, text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(entry.path, &matcher, index, 0, 0, result)
     }
 
     internal mtd clearSearch()

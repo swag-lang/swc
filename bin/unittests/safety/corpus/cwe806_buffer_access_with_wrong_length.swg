@@ -27,7 +27,7 @@ func viewWithSourceCount(index: u64)->u8
     return view[index]     // reads past 'destination', but 'view' says it is in range
 }
 
-// GAP compiler.ai.020 - 'Swag.makeSlice' takes the count on trust, so the read above is
+// GAP compiler.safety.033 - 'Swag.makeSlice' takes the count on trust, so the read above is
 // checked against a count that does not describe the storage. The bound check answers
 // truthfully and the answer is wrong. The call is what needs the marker; the access after it
 // cannot be blamed. Left commented because it really does read out of bounds.

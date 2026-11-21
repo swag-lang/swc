@@ -81,7 +81,7 @@ impl ViewerChoiceLoad
             for file in files where not file.isDirectory() do
                 operation.result.folderFiles.add(file.fullName)
 
-            operation.result.folderFiles.sort(func(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
+            operation.result.folderFiles.sort(func(a, b) => Text.compareNames(a.toSlice(), b.toSlice()))
         },
                 owner)
     }

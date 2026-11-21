@@ -124,24 +124,20 @@ struct SearchApi
 }
 
 // Reports whether `match` is bounded by non-word runes in `source`.
-func isWholeWordMatch(source: string, match, length: u64)->bool
+func isWholeWordMatch(source: string, match, length: u64)->bool => Text.isWholeWordMatch(source, match, length)
+
+// Prepares the shared text matcher with the viewer search options.
+//
+// A compiled expression in `options` is borrowed for the matcher's lifetime; the matcher owns a
+// compiled expression when the option is empty. Invalid regular expressions fail.
+func createNameMatcher(query: string, options: SearchOptions)->Text.NameMatcher fail
 {
-    if match
-    {
-        let {c, eat: _} = Utf8.decodeLastRune(source[until match])
-        if Unicode.isWord(c) do
-            return false
-    }
-
-    let end = match + length
-    if end < source.count
-    {
-        let {c, eat: _} = Utf8.decodeRune(source[end to])
-        if Unicode.isWord(c) do
-            return false
-    }
-
-    return true
+    return try Text.NameMatcher.create(query,
+                                       {
+                                           matchCase: options.matchCase,
+                                           wholeWord: options.wholeWord,
+                                           regularExpression: options.regularExpression},
+                                       options.expression)
 }
 
 // Appends every non-overlapping match in one text container.
@@ -150,58 +146,29 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
     if not query.count do
         return
 
-    if options.regularExpression
+    var matcher = catch createNameMatcher(query, options)
     {
-        var localExpression: Parser.RegExp
-        var expression = options.expression
-        if not expression
-        {
-            catch localExpression.compile(query, ignoreCase: not options.matchCase)
-            {
-                return
-            }
-
-            expression = &localExpression
-        }
-
-        let sourceData = source.buffer
-        for value in expression.grepAll(source)
-        {
-            // Zero-width expressions are meaningful to a parser, but there is no document span
-            // for a viewer to outline or select.
-            if not value.count do
-                continue
-            let found = cast(u64, cast(s64, value.buffer - sourceData))
-            if not options.wholeWord or isWholeWordMatch(source, found, value.count) do
-                result.add(SearchMatch{major, minor, baseOffset + found, value.count})
-        }
-
         return
     }
 
-    let comparison = options.matchCase ? Utf8.ComparisonType.Latin1 : Utf8.ComparisonType.Latin1NoCase
-    var from       = 0'u64
-    while from < source.count
-    {
-        let found = Utf8.indexOf(source, query, from, comparison)
-        if found == Swag.U64.Max do
-            break
+    collectTextMatches(source, &matcher, major, minor, baseOffset, result)
+}
 
-        if not options.wholeWord or isWholeWordMatch(source, found, query.count) do
-            result.add(SearchMatch{major, minor, baseOffset + found, query.count})
-        from = found + Math.max(query.count, 1)
-    }
+// Appends matches from a prepared query without recompiling it for each text field.
+func collectTextMatches(source: string, matcher: *Text.NameMatcher, major, minor, baseOffset: u64, result: *Array'SearchMatch)
+{
+    for span in matcher.findAll(source) do
+        result.add(SearchMatch{major, minor, baseOffset + span.start, span.length})
 }
 
 // Reports whether a non-empty regular-expression query can be compiled.
 func patternIsValid(query: string, options: SearchOptions)->bool
 {
-    if not options.regularExpression or not query.count do
+    if not query.count or not options.regularExpression do
         return true
-    var expressionErrorOutcome: Swag.Error
-    discard catch Parser.RegExp.create(query, ignoreCase: not options.matchCase) as expressionErrorOutcome
-    let expressionError = expressionErrorOutcome.value()
-    return expressionError == null
+    var matcherError: Swag.Error
+    discard catch createNameMatcher(query, options) as matcherError
+    return matcherError.value() == null
 }
 
 // Selects an exact UTF-8 byte range in a rich editor whose text came from `source`.

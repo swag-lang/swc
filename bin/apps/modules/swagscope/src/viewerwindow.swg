@@ -1156,6 +1156,7 @@ impl ViewerWindow
         result.createAppearanceChrome()
         with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
         {
+            .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.FullScreen) }
         }
@@ -1172,6 +1173,7 @@ impl ViewerWindow
         with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
         {
             .toolTip = appStrings().lens_ViewAs
+            .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()
@@ -1194,6 +1196,7 @@ impl ViewerWindow
         result.lensLauncher.captionButton.hide()
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline, ViewerCommands.Outline)
         {
+            .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()

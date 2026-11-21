@@ -4,7 +4,8 @@ This backlog covers `std/truetype`, measured against the font libraries it compe
 FreeType, stb_truetype, HarfBuzz for shaping, and msdfgen for distance fields.
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/truetype` stay together
-here. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
 
@@ -170,3 +171,14 @@ here. Compiler and language work belongs in [compiler.core.md](compiler.core.md)
   programs fail safely.
 
 ---
+
+### std.truetype.022 — TrueType raster and MSDF kernels remain scalar
+
+- Evidence: ordinary SDF already evaluates two F64 sample positions through
+  `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
+  implementations.
+- Next: vectorize analytic coverage conversion and process multiple sample points in MSDF
+  distance evaluation, using vector math and gathers only where edge traversal remains profitable.
+- Done when: glyph goldens stay within a declared coverage/distance tolerance and raster and
+  MSDF are benchmarked separately across small and large glyphs.
+- Related: std.core.044, std.core.047.

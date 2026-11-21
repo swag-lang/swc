@@ -43,7 +43,7 @@ impl Zip
         while first < last
         {
             let middle = first + (last - first) / 2
-            if Utf8.compare(.entries[middle].path.toSlice(), path, .Latin1NoCase) < 0 do
+            if Text.compareNames(.entries[middle].path.toSlice(), path, {natural: false}) < 0 do
                 first = middle + 1
             else do
                 last = middle
@@ -52,7 +52,7 @@ impl Zip
         for index in first until .entries.count
         {
             let entry = &.entries[index]
-            if Utf8.compare(entry.path.toSlice(), path, .Latin1NoCase) != 0 do
+            if Text.compareNames(entry.path.toSlice(), path, {natural: false}) != 0 do
                 break
             if entry.path == path do
                 return entry
@@ -247,7 +247,7 @@ impl Zip
             result.entries.add(#move read.entry)
         }
 
-        result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
+        result.entries.sort(func(a, b) => Text.compareNames(a.path.toSlice(), b.path.toSlice(), {natural: false}))
         return result
     }
 
@@ -753,7 +753,7 @@ private impl Zip
 
         if zeroHeaders < 2 or result.entries.isEmpty() do
             fail Errors.InvalidFormatError{texts().err_TarEnd}
-        result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
+        result.entries.sort(func(a, b) => Text.compareNames(a.path.toSlice(), b.path.toSlice(), {natural: false}))
         return result
     }
 

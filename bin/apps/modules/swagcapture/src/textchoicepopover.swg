@@ -133,13 +133,13 @@ impl TextChoicePopover
 
         if .kind == .Face
         {
-            var query: String
+            var filterText = ""
             if .filter do
-                query = String.from(.filter.text()).toLower(.Unicode)
+                filterText = .filter.text()
+            let matcher = assume Text.NameMatcher.create(filterText, {comparisonType: .UnicodeNoCase})
 
-            let defaultFace  = .theme().res.defaultTypeFaceR.familyName()
-            let defaultLower = String.from(defaultFace).toLower(.Unicode)
-            if query.isEmpty() or Utf8.contains(defaultLower.toString(), query.toString())
+            let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+            if not .filter or matcher.isMatch(defaultFace)
             {
                 chosen = style.face.count == 0 or style.face == defaultFace ? 0 : Swag.U32.Max
                 .list.createLine(defaultFace)
@@ -148,9 +148,8 @@ impl TextChoicePopover
 
             for &font, index in g_MiniBarFonts where font.name != defaultFace
             {
-                let name  = font.name.toString()
-                let lower = String.from(name).toLower(.Unicode)
-                if not query.isEmpty() and not Utf8.contains(lower.toString(), query.toString()) do
+                let name = font.name.toString()
+                if .filter and not matcher.isMatch(name) do
                     continue
                 if style.face == name do
                     chosen = cast(u32, .values.count)

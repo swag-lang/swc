@@ -152,7 +152,7 @@ impl ThumbnailCache
         defer g_CachePruneLock.unlock()
         if not root.count do
             g_CachePruned = true
-        return try clear(root.count ? root : ThumbnailCache.directory())
+        return try clear(root.count ? String.from(root) : ThumbnailCache.directory())
     }
 
     func key(source: string, member: string = "", executable: string = "", settings: string = "", privacy: File.MountPrivacy = {})->String fail

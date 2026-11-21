@@ -153,7 +153,8 @@ internal impl Properties
     {
         if item.label == null do
             return Swag.U64.Max
-        return Utf8.indexOf(item.label.text(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase)
+        let spans = .stringFilterMatcher.findAll(item.label.text())
+        return spans.isEmpty() ? Swag.U64.Max : spans[0].start
     }
 
     // Lays the highlight ground under the characters of the name of `item` the text filter found.

@@ -3,7 +3,8 @@
 This backlog covers `std/audio`, measured against the embeddable audio libraries it
 competes with: miniaudio, SoLoud, OpenAL Soft, and the commercial tier of FMOD and Wwise.
 
-Cross-cutting compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
+[compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 

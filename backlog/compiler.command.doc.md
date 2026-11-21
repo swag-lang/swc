@@ -2,7 +2,7 @@
 
 This backlog covers `swc doc`, measured against rustdoc and docs.rs, godoc and
 pkg.go.dev, Doxygen, Sphinx, DocFX, and Zig's autodoc. The compiler that hosts it is
-[compiler.core.md](compiler.core.md).
+[compiler.build.md](compiler.build.md).
 
 Evidence, investigations, and intended outcomes for the command stay together here.
 [README.md](README.md) has the whole layout.
@@ -13,8 +13,9 @@ Evidence, investigations, and intended outcomes for the command stay together he
 The `doc` command: what a documentation run collects, what it renders, and what it costs.
 
 What belongs here is what the documentation pipeline itself does — collection, rendering, and the
-price of a run. A frontend, semantic-analysis, or code-generation defect that a documentation run
-merely exposed belongs in [compiler.core.md](compiler.core.md): the file follows the fix,
+price of a run. A frontend or semantic-analysis defect that a documentation run merely exposed belongs in
+[compiler.frontend.md](compiler.frontend.md); code emission belongs in [compiler.codegen.md](compiler.codegen.md),
+and workspace scheduling or reuse belongs in [compiler.build.md](compiler.build.md): the file follows the fix,
 not the discovery.
 
 ### compiler.command.doc.002 — Search stops at the page it is printed in
@@ -34,20 +35,20 @@ not the discovery.
 ### compiler.command.doc.004 — No public-API diff consumes the documentation model
 
 - Evidence: no tool compares two public surfaces without scraping HTML.
-- Next: once compiler.ai.050 publishes stable item identities and signatures,
+- Next: once compiler.command.doc.010 publishes stable item identities and signatures,
   compare two serialized models and report additions, removals and signature changes.
 - Done when: a command reports source-compatible additions, removals and changes between two
   serialized models, with a test for each kind.
-- Related: compiler.ai.050
+- Related: compiler.command.doc.010
 
 ### compiler.command.doc.005 — No documentation-coverage report
 
 - Evidence: nothing reports undocumented public symbols.
-- Next: report undocumented public symbols from the compiler.ai.050 model, with a
+- Next: report undocumented public symbols from the compiler.command.doc.010 model, with a
   warning contract that can be enforced independently of API diffing.
 - Done when: `swc doc` lists or warns on every undocumented public symbol of a module, and a
   test covers a documented and an undocumented declaration.
-- Related: compiler.ai.050, compiler.command.doc.004
+- Related: compiler.command.doc.010, compiler.command.doc.004
 
 ### compiler.command.doc.006 — Attribute the remaining semantic and JIT cost of documentation
 
@@ -65,8 +66,8 @@ not the discovery.
   then decide whether a doc-mode fast path exists.
 - Done when: `swc doc --workspace bin/std` no longer pays for JIT emission or lowering its
   pages do not need, or the attribution shows that no doc-mode fast path exists and the
-  remaining cost is left to compiler.ai.044 and compiler.core.003.
-- Related: compiler.ai.044, compiler.core.003
+  remaining cost is left to compiler.build.119 and compiler.build.003.
+- Related: compiler.build.119, compiler.build.003
 
 ### compiler.command.doc.009 — Filtering to a child reference page asserts while building the table of contents
 
@@ -78,3 +79,53 @@ not the discovery.
   cover the focused `doc` command at the command boundary.
 - Done when: an isolated child source generates valid HTML without an assertion or malformed
   list nesting, and the complete reference keeps its chapter hierarchy.
+
+### compiler.command.doc.010 — There is no serializable documentation model
+
+- Evidence: the pipeline collects `DocItem`/`DocOverload` ([DocTypes.h](../src/Doc/DocTypes.h))
+  and renders straight to HTML, so nothing else can consume it. `--export-api-dir` publishes
+  the public surface as Swag source, but not the items with their documentation and links.
+- Next: publish the collected model with stable item identity, kind, signature, documentation,
+  source location, imports, target restrictions and available ownership summaries. Emit
+  it from `swc doc` beside the HTML.
+- Done when: a documentation run can write the serialized model, its item identities stay
+  stable across runs on unchanged sources, and a test reads it back.
+- Related: compiler.command.doc.004, compiler.command.doc.005
+
+### compiler.command.doc.011 — Documentation is not available as version-matched local data
+
+- Evidence: the language reference and standard-library documentation are maintained in the
+  repository and the website is generated from them, but the command help points at remote pages.
+  The `doc` pipeline has no serializable documentation model yet (compiler.command.doc.010), so an
+  agent or offline command cannot ask a stable local semantic question without scraping HTML.
+- Intent: publish documentation as local, version-matched data, with both
+  concise terminal rendering and structured retrieval. It includes the language tour, command-line
+  reference, runtime and standard-module APIs, ownership/lifetime rules, platform limits, and the
+  source-backed examples needed by first use. A release may also offer browser-opening HTML, but no
+  task may require a browser or Internet connection.
+- Next: make compiler.command.doc.010's documentation serialization the source of the local index;
+  define `swc docs show <topic>`, `swc docs search <terms>`, and API/module lookup around that
+  index. Every returned item carries a release version, stable identifier, local source/topic
+  reference, signatures, imports, platform requirements, and a minimal compilable example where
+  one exists. Index by operation and input/output type as well as by symbol, and expose
+  the owner and invalidation rules of borrowed results.
+- Done when: the compiler can answer an offline query for a language feature, a standard symbol,
+  an import, a lifetime contract, and a command option from data built by the same release. A query
+  cannot accidentally combine documentation, runtime, or standard-library data from different
+  compiler builds.
+- Related: compiler.command.doc.012, compiler.command.doc.002, compiler.command.doc.010,
+  compiler.command.help.001, compiler.query.001.
+
+### compiler.command.doc.012 — Code examples in documentation are rendered, never compiled
+
+- Evidence: every ```` ```swag ```` fence goes through `DocMarkdown::renderCodeBlock`, which
+  only syntax-colors it. Nothing compiles it, so examples such as the worked example in the
+  `truetype` module header ([module.swg](../bin/std/modules/truetype/module.swg)) are
+  unchecked.
+- Next: synthesize one `#test` per documentation example and compile and run it with the
+  module's tests. Mark intentionally incomplete or illustrative snippets explicitly. Give
+  diagnostic examples expected failures and executable examples behavioral checks.
+- Done when: every unmarked ```` ```swag ```` example in `bin/` compiles, behavioral examples
+  run, and a broken example reports its location inside the documentation comment.
+- Elsewhere: rustdoc compiles and runs every example; Go compiles `Example` functions and
+  checks their output.

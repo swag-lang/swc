@@ -273,7 +273,9 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
 
     // Set the authority as separate URL components: host text cannot inject a port,
     // user information or another destination through URL delimiters.
-    let server  = String.from(host)
+    var server = String.from(host)
+    if Utf8.indexOf(host, ':') != Swag.U64.Max do
+        server = Format.toString("[%]", host)
     let service = Format.toString("%", port)
     let scheme  = secure ? "https" : "http"
     if api.setUrlPart(url, Curl.CURLUPART_SCHEME, scheme.buffer, 0) != Curl.CURLUE_OK or

@@ -74,3 +74,12 @@ whole layout.
 - Done when: secure client and server peers pass local tests for credential validation, masked
   and fragmented frames, control frames, limits, and close handshakes.
 - Related: std.net.005, std.net.006
+
+### std.net.009 — HTTP URLs reject IPv6 literals
+
+- Evidence: `Url.parseHttp` rejects bracketed IPv6 authorities, and the native HTTP clients do not
+  format IPv6 hosts for their platform transports.
+- Next: parse bracketed IPv6 literals and verify local HTTP requests over `::1` on both hosts.
+- Done when: compressed and full IPv6 authorities parse with optional ports, malformed literals
+  fail, and local HTTP requests reach an IPv6 loopback listener on Linux and Windows.
+- Related: std.net.002, platform.portability.088

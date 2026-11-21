@@ -75,7 +75,8 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     }
 
     let agent         = Utf16.toZeroTerminated(options.userAgent)
-    let server        = Utf16.toZeroTerminated(host)
+    let serverName    = Utf8.indexOf(host, ':') != Swag.U64.Max ? Format.toString("[%]", host) : host
+    let server        = Utf16.toZeroTerminated(serverName)
     let objectName    = Utf16.toZeroTerminated(path)
     let nativeHeaders = Utf16.toZeroTerminated(headers)
     let verb          = Utf16.toZeroTerminated(post ? "POST" : "GET")

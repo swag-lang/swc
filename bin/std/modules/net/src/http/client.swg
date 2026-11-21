@@ -3,7 +3,8 @@
 
 using Core
 
-// Issues a bounded HTTP or HTTPS GET to `host`, `port` and an absolute request `path`.
+// Issues a bounded HTTP or HTTPS GET to `host`, `port` and an absolute request `path`. For IPv6,
+// pass the unbracketed address, such as `::1`; [[Net.Url.parseHttp]] returns it in this form.
 //
 // `path` must be absolute, fragment-free and already percent-encoded. HTTPS verifies the
 // peer's certificate and host name using the platform trust store. On Linux, libcurl supplies

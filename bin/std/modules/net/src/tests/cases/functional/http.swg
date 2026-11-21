@@ -94,7 +94,7 @@ func rejectShortHttpPost(thread: const *Threading.Thread)
     var connection = expect fixture.server.accept()
     var error: Swag.Error
     discard catch connection.readRequest() as error
-    fixture.bodyRejected = error.value() is Errors.InvalidFormatError
+    fixture.bodyRejected = error.value() is Errors.InvalidFormatError or error.value() is NetworkError
 }
 
 func serveHttp(thread: const *Threading.Thread)

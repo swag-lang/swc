@@ -216,6 +216,8 @@ impl SelectionBar
         if not style.found do
             return
 
+        let capture      = unwrap .main.getCapture()
+        let selectedForm = capture.selection.back()
         let metrics     = .themeMetrics()
         let defaultFace = .theme().res.defaultTypeFaceR.familyName()
         let shown       = style.face.count ? style.face : defaultFace
@@ -225,7 +227,7 @@ impl SelectionBar
             .updateFlags(add: .Popup)
             .setText(shown)
             .resize(112, metrics.miniBar_ButtonSize)
-            .sigPopupRequested += func|bar = me, main = me.main|(button) { bar.choicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Face) }
+            .sigPopupRequested += func|bar = me, main = me.main, selectedForm|(button) { bar.choicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Face, selectedForm) }
             .sigPopupClosed    += func|bar = me|(_) { bar.choicePopover = null }
         }
 
@@ -236,6 +238,8 @@ impl SelectionBar
     mtd addTextSize()
     {
         let style   = .main.selectedTextStyle()
+        let capture      = unwrap .main.getCapture()
+        let selectedForm = capture.selection.back()
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize)
         let width   = Math.ceil(Painter.measureString("150", font).width + metrics.miniBar_ButtonSize)
@@ -245,7 +249,7 @@ impl SelectionBar
             .updateFlags(add: .Popup)
             .setText(Format.toString("%", cast(s32, Math.round(style.size))))
             .resize(width, metrics.miniBar_ButtonSize)
-            .sigPopupRequested += func|bar = me, main = me.main|(button) { bar.choicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size) }
+            .sigPopupRequested += func|bar = me, main = me.main, selectedForm|(button) { bar.choicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size, selectedForm) }
             .sigPopupClosed    += func|bar = me|(_) { bar.choicePopover = null }
         }
 

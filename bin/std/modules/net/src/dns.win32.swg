@@ -10,9 +10,14 @@ internal func resolveNative(host: string, service: const [*]u8?, port: u16,
     defer discard WSACleanup()
     let family = options.family == .IPv4 ? AF_INET : options.family == .IPv6 ? AF_INET6 : AF_UNSPEC
     var hints: ADDRINFOA
+    hints.ai_flags = 0
     hints.ai_family = family
     hints.ai_socktype = SOCK_STREAM
     hints.ai_protocol = IPPROTO_TCP
+    hints.ai_addrlen = 0
+    hints.ai_addr = null
+    hints.ai_canonname = null
+    hints.ai_next = null
     var result: *ADDRINFOA?
     let code = getaddrinfo(host.buffer, service, &hints, &result)
     if code != 0 do

@@ -553,7 +553,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     }
 
     let text = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
-    let face = unwrap main.miniBar.faceButton
+    var face = unwrap main.miniBar.faceButton
     let size = unwrap main.miniBar.sizeButton
     Swag.require(face.position.height == size.position.height and face.arrowPosition == size.arrowPosition)
     host.paint(main)
@@ -578,12 +578,22 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     host.runFrames(1)
     Swag.require(text.fontName == last and face.text() == last.toString())
 
+    let capture = unwrap main.getCapture()
+    capture.selection.clear()
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.updateState()
+    Swag.require(main.selectedTextStyle().found)
+    face = main.miniBar.faceButton
     host.clickWnd(face)
+    host.finishAnimations()
     let popup      = unwrap main.miniBar.choicePopover
     let filter     = unwrap popup.filter
+    Swag.require(popup.list.lineCount() > 0)
     let fullHeight = (unwrap popup.parent).position.height
     filter.setText("__missing_font__")
     Swag.require(popup.list.lineCount() == 0)
+    host.finishAnimations()
     Swag.require(popup.parent.position.height < fullHeight)
     filter.setText(main.theme().res.defaultTypeFaceR.familyName())
     Swag.require(popup.list.lineCount() > 0)

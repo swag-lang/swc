@@ -128,8 +128,8 @@ struct ADDRINFOA
         ai_socktype:  s32
         ai_protocol:  s32
         ai_addrlen:   u64
-        ai_addr:      *SOCKADDR?
         ai_canonname: [*]u8?
+        ai_addr:      *SOCKADDR?
         ai_next:      *ADDRINFOA?
     }
 }

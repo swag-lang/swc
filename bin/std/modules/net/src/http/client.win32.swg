@@ -75,8 +75,12 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
         headers += "\r\n"
     }
 
-    let agent         = Utf16.toZeroTerminated(options.userAgent)
-    let serverName    = Utf8.indexOf(host, ':') != Swag.U64.Max ? Format.toString("[%]", host) : host
+    let agent = Utf16.toZeroTerminated(options.userAgent)
+    var serverName: String
+    if Utf8.indexOf(host, ':') != Swag.U64.Max do
+        serverName = Format.toString("[%]", host)
+    else do
+        serverName = String.from(host)
     let server        = Utf16.toZeroTerminated(serverName)
     let objectName    = Utf16.toZeroTerminated(path)
     let nativeHeaders = Utf16.toZeroTerminated(headers)
@@ -106,7 +110,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
 
     var redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER
     if options.maxRedirects > 0 do
-        redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS | WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP
+        redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS
     if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32)) do
         fail NetworkError{code: cast(s32, GetLastError())}
     if options.maxRedirects > 0

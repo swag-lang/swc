@@ -60,6 +60,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_body(b"", 302, (("Location", "/redirect-target"),))
             elif self.path == "/redirect-target":
                 self.send_body(b"redirect was followed")
+            elif self.path == "/redirect-a":
+                self.send_body(b"", 302, (("Location", "/redirect-b"),))
+            elif self.path == "/redirect-b":
+                self.send_body(b"", 302, (("Location", "/redirect-target"),))
+            elif self.path == "/redirect-loop":
+                self.send_body(b"", 302, (("Location", "/redirect-loop"),))
+            elif self.path == "/https-downgrade":
+                location = f"http://localhost:{self.server.server_port}/body"
+                self.send_body(b"", 302, (("Location", location),))
+            elif self.path == "/https-redirect":
+                location = f"https://localhost:{self.server.server_port}/body"
+                self.send_body(b"", 302, (("Location", location),))
             elif self.path == "/headers":
                 self.send_body((self.headers.get("X-Empty", "missing") + "|" +
                                 self.headers.get("X-Test", "missing") + "|" +

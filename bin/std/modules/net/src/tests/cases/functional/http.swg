@@ -49,19 +49,19 @@ func receiveHttpBody(context: *void?, bytes: const [..] u8)->bool
 func supplyHttpRequestBody(context: *void?, buffer: [..] u8)->u64
 {
     let fixture = cast(*HttpRequestBodyFixture, unwrap context)
-    let source = cast(const [..] u8, fixture.body.toString())
-    let count = Math.min(Math.min(buffer.count, 512), source.count - fixture.offset)
+    let source  = cast(const [..] u8, fixture.body.toString())
+    let count   = Math.min(Math.min(buffer.count, 512), source.count - fixture.offset)
     Memory.copy(buffer.buffer, source.buffer + fixture.offset, count)
     fixture.offset += count
-    fixture.calls += 1
+    fixture.calls  += 1
     return count
 }
 
 func serveHttpPost(thread: const *Threading.Thread)
 {
-    let fixture = cast(*HttpPostServerFixture, unwrap thread.userParam)
+    let fixture    = cast(*HttpPostServerFixture, unwrap thread.userParam)
     var connection = expect fixture.server.accept()
-    let request = expect connection.readRequest()
+    let request    = expect connection.readRequest()
     Swag.require(request.method == "POST")
     fixture.body = String.from(cast(string, request.body.toSlice()))
     expect connection.respond(200, cast(const [..] u8, "received"))
@@ -69,7 +69,7 @@ func serveHttpPost(thread: const *Threading.Thread)
 
 func rejectShortHttpPost(thread: const *Threading.Thread)
 {
-    let fixture = cast(*HttpPostServerFixture, unwrap thread.userParam)
+    let fixture    = cast(*HttpPostServerFixture, unwrap thread.userParam)
     var connection = expect fixture.server.accept()
     var error: Swag.Error
     discard catch connection.readRequest() as error
@@ -108,7 +108,7 @@ func serveHttp(thread: const *Threading.Thread)
     Swag.require(missingReader.value() is Errors.BadParameterError)
 
     var framedHeader: Swag.Error
-    var options: Http.PostOptions
+    var options:      Http.PostOptions
     options.headers.add({name: "Content-Length", value: "1"})
     discard catch Http.post("localhost", 80, "/", false, options) as framedHeader
     Swag.require(framedHeader.value() is Errors.BadParameterError)
@@ -119,33 +119,34 @@ func serveHttp(thread: const *Threading.Thread)
 {
     var invalid: Swag.Error
     discard catch Http.Server.listen({address: [127, 0, 0, 1], port: 0},
-        {maxRequestsPerConnection: 2}) as invalid
+                                     {maxRequestsPerConnection: 2}) as invalid
     Swag.require(invalid.value() is Errors.BadParameterError)
 
-    var options = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 1000}
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
-    var client = expect TcpStream.connect(expect server.localAddress())
+    var options      = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 1000}
+    var server       = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
+    var client       = expect TcpStream.connect(expect server.localAddress())
     let firstRequest = cast(const [..] u8,
-        "GET /one HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n")
+                            "GET /one HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n")
     Swag.require(expect client.write(firstRequest) == firstRequest.count)
 
     var connection = expect server.accept()
-    let first = expect connection.readRequest()
+    let first      = expect connection.readRequest()
     Swag.require(first.target == "/one")
     expect connection.respond(200, cast(const [..] u8, "one"))
 
     var response: String
-    var buffer: [512] u8
+    var buffer:   [512] u8
     while Utf8.indexOf(response.toString(), "one") == Swag.U64.Max
     {
         let count = expect client.read(buffer)
         Swag.require(count > 0)
         response.append(cast(string, buffer[0 until count]))
     }
+
     Swag.require(Utf8.indexOf(response.toString(), "Connection: keep-alive") != Swag.U64.Max)
 
     let secondRequest = cast(const [..] u8,
-        "GET /two HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                             "GET /two HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
     Swag.require(expect client.write(secondRequest) == secondRequest.count)
     let second = expect connection.readRequest()
     Swag.require(second.target == "/two")
@@ -159,6 +160,7 @@ func serveHttp(thread: const *Threading.Thread)
             break
         finalResponse.append(cast(string, buffer[0 until count]))
     }
+
     Swag.require(Utf8.indexOf(finalResponse.toString(), "two") != Swag.U64.Max)
     Swag.require(Utf8.indexOf(finalResponse.toString(), "Connection: close") != Swag.U64.Max)
 }
@@ -166,9 +168,9 @@ func serveHttp(thread: const *Threading.Thread)
 // An idle persistent connection times out while waiting for its first request.
 #test
 {
-    let options = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 50}
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
-    var client = expect TcpStream.connect(expect server.localAddress())
+    let options    = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 50}
+    var server     = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
+    var client     = expect TcpStream.connect(expect server.localAddress())
     var connection = expect server.accept()
     var error: Swag.Error
     discard catch connection.readRequest() as error
@@ -214,7 +216,7 @@ func serveHttp(thread: const *Threading.Thread)
 // POST request bytes are read incrementally and carry an exact content length.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     var fixture = HttpPostServerFixture{server: &server}
     var thread: Threading.Thread
     expect thread.init(&serveHttpPost, &fixture)
@@ -224,11 +226,10 @@ func serveHttp(thread: const *Threading.Thread)
     for 20000 do
         requestBytes.append(cast(u8, 'x'))
     var requestBody = HttpRequestBodyFixture{body: #move requestBytes}
-    let endpoint = expect server.localAddress()
-    let response = expect Http.post("127.0.0.1", endpoint.port, "/upload", false,
-        {requestBodyLength: requestBody.body.count,
-         bodyReader: &supplyHttpRequestBody,
-         requestContext: &requestBody})
+    let endpoint    = expect server.localAddress()
+    let response    = expect Http.post("127.0.0.1", endpoint.port, "/upload", false, {requestBodyLength: requestBody.body.count,
+                                                                                      bodyReader: &supplyHttpRequestBody,
+                                                                                      requestContext: &requestBody})
     thread.wait()
     Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "received")
     Swag.require(fixture.body.toString() == requestBody.body.toString())
@@ -239,7 +240,7 @@ func serveHttp(thread: const *Threading.Thread)
 // A request body reader that ends early fails instead of sending a shorter body silently.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     var fixture = HttpPostServerFixture{server: &server}
     var thread: Threading.Thread
     expect thread.init(&rejectShortHttpPost, &fixture)
@@ -247,9 +248,8 @@ func serveHttp(thread: const *Threading.Thread)
 
     var requestBody: HttpRequestBodyFixture
     let endpoint = expect server.localAddress()
-    var error: Swag.Error
-    discard catch Http.post("127.0.0.1", endpoint.port, "/upload", false,
-        {requestBodyLength: 1, bodyReader: &supplyHttpRequestBody, requestContext: &requestBody}) as error
+    var error:       Swag.Error
+    discard catch Http.post("127.0.0.1", endpoint.port, "/upload", false, {requestBodyLength: 1, bodyReader: &supplyHttpRequestBody, requestContext: &requestBody}) as error
     thread.wait()
     Swag.require(error.value() is NetworkError)
     Swag.require(fixture.bodyRejected)
@@ -259,15 +259,14 @@ func serveHttp(thread: const *Threading.Thread)
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
-    var server = HttpServerFixture{listener: &listener,
-        response: "HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nstreamed"}
+    var server   = HttpServerFixture{listener: &listener,
+                                     response: "HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nstreamed"}
     var thread: Threading.Thread
     expect thread.init(&serveHttp, &server)
     expect thread.start()
 
     var received = HttpBodyFixture{proceed: true}
-    let response = expect Http.get("127.0.0.1", endpoint.port, "/", false,
-        {bodyHandler: &receiveHttpBody, bodyContext: &received})
+    let response = expect Http.get("127.0.0.1", endpoint.port, "/", false, {bodyHandler: &receiveHttpBody, bodyContext: &received})
     thread.wait()
     Swag.require(response.status == 200 and response.body.isEmpty())
     Swag.require(received.body.toString() == "streamed" and received.calls > 0)
@@ -277,16 +276,15 @@ func serveHttp(thread: const *Threading.Thread)
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
-    var server = HttpServerFixture{listener: &listener,
-        response: "HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\ndata"}
+    var server   = HttpServerFixture{listener: &listener,
+                                     response: "HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\ndata"}
     var thread: Threading.Thread
     expect thread.init(&serveHttp, &server)
     expect thread.start()
 
     var received = HttpBodyFixture{proceed: false}
     var error: Swag.Error
-    discard catch Http.get("127.0.0.1", endpoint.port, "/", false,
-        {bodyHandler: &receiveHttpBody, bodyContext: &received}) as error
+    discard catch Http.get("127.0.0.1", endpoint.port, "/", false, {bodyHandler: &receiveHttpBody, bodyContext: &received}) as error
     thread.wait()
     Swag.require(error.value() is NetworkError)
     Swag.require(received.body.toString() == "data")
@@ -326,6 +324,20 @@ func serveHttp(thread: const *Threading.Thread)
 {
     var error: Swag.Error
     discard catch Http.get("127.0.0.1", 80, "/resource#fragment", false) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}
+
+#test
+{
+    var error:      Swag.Error
+    var getOptions: Http.GetOptions
+    getOptions.maxRedirects = 11
+    discard catch Http.get("127.0.0.1", 80, "/", false, getOptions) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+
+    var postOptions: Http.PostOptions
+    postOptions.maxRedirects = 1
+    discard catch Http.post("127.0.0.1", 80, "/", false, postOptions) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
 
@@ -372,19 +384,19 @@ func serveHttp(thread: const *Threading.Thread)
 // The HTTP server parses a bounded request body and sends a complete response.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
-    var client = expect TcpStream.connect(expect server.localAddress())
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client  = expect TcpStream.connect(expect server.localAddress())
     let request = cast(const [..] u8,
-        "POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\nX-Mode: test\r\n\r\ndata")
+                       "POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\nX-Mode: test\r\n\r\ndata")
     Swag.require(expect client.write(request) == request.count)
     var connection = expect server.accept()
-    let parsed = expect connection.readRequest()
+    let parsed     = expect connection.readRequest()
     Swag.require(parsed.method == "POST" and parsed.target == "/submit")
     Swag.require(parsed.body.count == 4 and cast(string, parsed.body.toSlice()) == "data")
     Swag.require(parsed.headers.count == 3 and parsed.headers[2].name == "X-Mode")
     expect connection.respond(201, cast(const [..] u8, "created"))
     var response: String
-    var buffer: [256] u8
+    var buffer:   [256] u8
     for
     {
         let count = expect client.read(buffer)
@@ -392,6 +404,7 @@ func serveHttp(thread: const *Threading.Thread)
             break
         response.append(cast(string, buffer[0 until count]))
     }
+
     Swag.require(Utf8.indexOf(response.toString(), "HTTP/1.1 201 Created") != Swag.U64.Max)
     Swag.require(Utf8.indexOf(response.toString(), "created") != Swag.U64.Max)
     Swag.require(expect client.read(buffer) == 0)
@@ -400,20 +413,20 @@ func serveHttp(thread: const *Threading.Thread)
 // The server accepts chunked uploads and can stream a chunked response.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
-    var client = expect TcpStream.connect(expect server.localAddress())
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client  = expect TcpStream.connect(expect server.localAddress())
     let request = cast(const [..] u8,
-        "POST /chunks HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n0123456789\r\n1\r\n!\r\n0\r\n\r\n")
+                       "POST /chunks HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nA\r\n0123456789\r\n1\r\n!\r\n0\r\n\r\n")
     Swag.require(expect client.write(request) == request.count)
     var connection = expect server.accept()
-    let parsed = expect connection.readRequest()
+    let parsed     = expect connection.readRequest()
     Swag.require(cast(string, parsed.body.toSlice()) == "0123456789!")
     expect connection.beginChunkedResponse(200)
     expect connection.writeBody(cast(const [..] u8, "first"))
     expect connection.writeBody(cast(const [..] u8, "second"))
     expect connection.finishResponse()
     var response: String
-    var buffer: [512] u8
+    var buffer:   [512] u8
     for
     {
         let count = expect client.read(buffer)
@@ -421,6 +434,7 @@ func serveHttp(thread: const *Threading.Thread)
             break
         response.append(cast(string, buffer[0 until count]))
     }
+
     Swag.require(Utf8.indexOf(response.toString(), "Transfer-Encoding: chunked") != Swag.U64.Max)
     Swag.require(Utf8.indexOf(response.toString(), "5\r\nfirst\r\n") != Swag.U64.Max)
     Swag.require(Utf8.indexOf(response.toString(), "6\r\nsecond\r\n") != Swag.U64.Max)
@@ -430,10 +444,10 @@ func serveHttp(thread: const *Threading.Thread)
 // Ambiguous HTTP body framing is rejected before any body bytes are consumed.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
-    var client = expect TcpStream.connect(expect server.localAddress())
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var client  = expect TcpStream.connect(expect server.localAddress())
     let request = cast(const [..] u8,
-        "POST / HTTP/1.1\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n")
+                       "POST / HTTP/1.1\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n")
     Swag.require(expect client.write(request) == request.count)
     var connection = expect server.accept()
     var error: Swag.Error
@@ -451,8 +465,8 @@ func serveHttp(thread: const *Threading.Thread)
         "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n0\r\nContent-Length: 0\r\n\r\n"]
     for requestText in requests
     {
-        var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
-        var client = expect TcpStream.connect(expect server.localAddress())
+        var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+        var client  = expect TcpStream.connect(expect server.localAddress())
         let request = cast(const [..] u8, requestText)
         Swag.require(expect client.write(request) == request.count)
         var connection = expect server.accept()
@@ -465,7 +479,7 @@ func serveHttp(thread: const *Threading.Thread)
 // Closing an HTTP server releases its listening endpoint without changing accepted streams.
 #test
 {
-    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var server   = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect server.localAddress()
     server.close()
     server.close()

@@ -10,13 +10,16 @@ using Core
 // system trust roots; `SSL_CERT_FILE` and `SSL_CERT_DIR` can override the CA file/directory.
 // Linux needs `libcurl.so.4` with thread-safe initialization and asynchronous DNS support.
 // Its proxy environment variables, including `NO_PROXY`, retain libcurl's native behavior.
-// Redirects are returned without being followed. WinHTTP applies `timeoutMs` per phase,
+// Redirects are returned without being followed unless `maxRedirects` is nonzero. Redirect
+// following is GET-only, limited to HTTP and HTTPS, and HTTPS requests cannot downgrade to HTTP.
+// Do not combine redirect following with Host, Authorization, Cookie, or Proxy-Authorization
+// headers because those values could be sent to another origin. WinHTTP applies `timeoutMs` per phase,
 // with coarse enforcement; Linux applies it to the whole transfer, including connection setup.
 // The synchronous operation cannot be cancelled while a native call is blocked.
 // The result owns its body and includes non-success status codes. When `bodyHandler` is supplied,
 // it receives body chunks during the transfer and `Response.body` remains empty. Returning false
-// stops the transfer and reports a network error. Invalid input, transport errors, and responses
-// exceeding limits fail without returning a partial result. Linux limits
+// stops the transfer and reports a network error. Invalid input, transport errors, a reached
+// redirect limit, and responses exceeding limits fail without returning a partial result. Linux limits
 // total response headers to 64 KiB and Location to 4096 bytes; Windows limits Location to
 // 8192 bytes of UTF-16 storage. Linux transport failures use libcurl codes in [[Net.NetworkError]].
 //
@@ -41,19 +44,20 @@ func get(host: string, port: u16, path: string, secure = true, options: GetOptio
 //
 // `requestBodyLength` is exact; the reader must provide that many bytes. The callback receives
 // writable chunks and its state is borrowed for the duration of the call. A missing reader is
-// valid only for an empty body. Response handling, certificate validation, timeouts, and
-// cancellation follow [[Net.Http.get]].
+// valid only for an empty body. POST requests do not follow redirects; `maxRedirects` must be
+// zero. Response handling, certificate validation, timeouts, and cancellation follow
+// [[Net.Http.get]].
 func post(host: string, port: u16, path: string, secure = true, options: PostOptions = {})->Response fail
 {
     try validateHttpRequest(host, port, path, options, true)
     if options.requestBodyLength > Swag.U32.Max or
-       options.requestBodyLength != 0 and not options.bodyReader do
+       options.requestBodyLength != 0 and
+       not options.bodyReader do
         fail Errors.BadParameterError{}
     return try postNative(host, port, path, secure, options)
 }
 
-private func validateHttpRequest(host: string, port: u16, path: string, options: GetOptions,
-                                 hasRequestBody: bool) fail
+private func validateHttpRequest(host: string, port: u16, path: string, options: GetOptions, hasRequestBody: bool) fail
 {
     if host.count == 0 or
        port == 0 or
@@ -61,7 +65,10 @@ private func validateHttpRequest(host: string, port: u16, path: string, options:
        path[0] != '/' or
        not isValidRequestPath(path) or
        options.timeoutMs == 0 or
-       options.timeoutMs > Swag.S32.Max do
+       options.timeoutMs > Swag.S32.Max or
+       options.maxRedirects > 10 or
+       hasRequestBody and
+       options.maxRedirects > 0 do
         fail Errors.BadParameterError{}
     for c in host where c <= ' ' or c == 0x7F do
         fail Errors.BadParameterError{}
@@ -87,7 +94,14 @@ private func validateHttpRequest(host: string, port: u16, path: string, options:
                               Utf8.indexOf(header.name, "content-length", 0, .Latin1NoCase) == 0
         let isTransferEncoding = header.name.count == 17 and
                                  Utf8.indexOf(header.name, "transfer-encoding", 0, .Latin1NoCase) == 0
+        let isRedirectSensitive =
+            (header.name.count == 4 and Utf8.indexOf(header.name, "host", 0, .Latin1NoCase) == 0) or
+            (header.name.count == 13 and Utf8.indexOf(header.name, "authorization", 0, .Latin1NoCase) == 0) or
+            (header.name.count == 6 and Utf8.indexOf(header.name, "cookie", 0, .Latin1NoCase) == 0) or
+            (header.name.count == 19 and Utf8.indexOf(header.name, "proxy-authorization", 0, .Latin1NoCase) == 0)
         if hasRequestBody and (isContentLength or isTransferEncoding) do
+            fail Errors.BadParameterError{}
+        if options.maxRedirects > 0 and isRedirectSensitive do
             fail Errors.BadParameterError{}
     }
 }

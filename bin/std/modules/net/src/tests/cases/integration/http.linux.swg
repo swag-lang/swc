@@ -62,6 +62,20 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     Swag.require(cast(string, exact.body.toSlice()) == path)
     let redirect = expect Http.get("localhost", port, "/redirect", false)
     Swag.require(redirect.status == 302 and redirect.location == "/redirect-target")
+    let followed = expect Http.get("localhost", port, "/redirect", false, {maxRedirects: 1})
+    Swag.require(followed.status == 200 and cast(string, followed.body.toSlice()) == "redirect was followed")
+    let chain = expect Http.get("localhost", port, "/redirect-a", false, {maxRedirects: 2})
+    Swag.require(chain.status == 200 and cast(string, chain.body.toSlice()) == "redirect was followed")
+    var redirectError: Swag.Error
+    discard catch Http.get("localhost", port, "/redirect-a", false, {maxRedirects: 1}) as redirectError
+    Swag.require(redirectError.value() is NetworkError)
+    discard catch Http.get("localhost", port, "/redirect-loop", false, {maxRedirects: 2}) as redirectError
+    Swag.require(redirectError.value() is NetworkError)
+    var redirectOptions: Http.GetOptions
+    redirectOptions.maxRedirects = 1
+    redirectOptions.headers.add({name: "Authorization", value: "secret"})
+    discard catch Http.get("localhost", port, "/redirect", false, redirectOptions) as redirectError
+    Swag.require(redirectError.value() is Errors.BadParameterError)
     let missing = expect Http.get("localhost", port, "/missing", false)
     Swag.require(missing.status == 404 and cast(string, missing.body.toSlice()) == "missing")
 }
@@ -85,7 +99,12 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     let port     = httpFixturePort("SWAG_TEST_HTTPS_PORT")
     let response = expect Http.get("localhost", port, "/body")
     Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "hello")
+    let redirected = expect Http.get("localhost", port, "/https-redirect", true, {maxRedirects: 1})
+    Swag.require(redirected.status == 200 and cast(string, redirected.body.toSlice()) == "hello")
     var error: Swag.Error
+
+    discard catch Http.get("localhost", port, "/https-downgrade", true, {maxRedirects: 1}) as error
+    Swag.require(error.value() is NetworkError)
 
     // The trusted certificate names localhost, not the numeric address.
     discard catch Http.get("127.0.0.1", port, "/body") as error

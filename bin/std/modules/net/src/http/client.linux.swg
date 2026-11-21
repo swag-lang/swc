@@ -129,7 +129,7 @@ private func sendBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
     let requested = Math.min(capacity, state.requestBodyRemaining)
     if requested == 0 do
         return Curl.CURL_READFUNC_ABORT
-    let reader = unwrap state.bodyReader
+    let reader   = unwrap state.bodyReader
     let received = reader(state.requestContext, bytes[until requested])
     if received == 0 or received > requested
     {
@@ -167,8 +167,11 @@ private func receiveBody(bytes: [*]u8, size, count: u64, user: *void?)->u64
             return 0
         }
     }
-    else do
+    else
+    {
         state.response.body.add(bytes[until length])
+    }
+
     return length
 }
 
@@ -248,8 +251,7 @@ internal func postNative(host: string, port: u16, path: string, secure: bool, op
     return try requestNative(host, port, path, secure, options, true)
 }
 
-private func requestNative(host: string, port: u16, path: string, secure: bool,
-                           options: GetOptions, post: bool)->Response fail
+private func requestNative(host: string, port: u16, path: string, secure: bool, options: GetOptions, post: bool)->Response fail
 {
     let api = try ensureCurl()
     let url = api.createUrl()
@@ -264,7 +266,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool,
                                 bodyReader: options.bodyReader,
                                 requestContext: options.requestContext,
                                 requestBodyRemaining: options.requestBodyLength}
-    let request  = api.easyInit()
+    let request = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
     defer api.easyCleanup(unwrap request)
@@ -295,7 +297,11 @@ private func requestNative(host: string, port: u16, path: string, secure: bool,
     try checkCurl(api.setOption(request, Curl.CURLOPT_USERAGENT, agent.storage()))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP_VERSION, Curl.CURL_HTTP_VERSION_1_1))
     try checkCurl(api.setOption(request, Curl.CURLOPT_PROTOCOLS, Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS))
-    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, 0's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_FOLLOWLOCATION, options.maxRedirects > 0 ? 1's64 : 0's64))
+    try checkCurl(api.setOption(request, Curl.CURLOPT_MAXREDIRS, cast(s64, options.maxRedirects)))
+    let redirectProtocols = secure ? Curl.CURLPROTO_HTTPS :
+                            Curl.CURLPROTO_HTTP | Curl.CURLPROTO_HTTPS
+    try checkCurl(api.setOption(request, Curl.CURLOPT_REDIR_PROTOCOLS, redirectProtocols))
     try checkCurl(api.setOption(request, Curl.CURLOPT_NETRC, 0's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_HTTP09_ALLOWED, 0's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_NOSIGNAL, 1's64))
@@ -345,14 +351,14 @@ private func requestNative(host: string, port: u16, path: string, secure: bool,
     if post
     {
         try checkCurl(api.setOption(request, Curl.CURLOPT_POST, 1's64))
-        try checkCurl(api.setOption(request, Curl.CURLOPT_POSTFIELDSIZE_LARGE,
-                                    cast(s64, options.requestBodyLength)))
+        try checkCurl(api.setOption(request, Curl.CURLOPT_POSTFIELDSIZE_LARGE, cast(s64, options.requestBodyLength)))
         if options.bodyReader
         {
             try checkCurl(api.setOption(request, Curl.CURLOPT_READDATA, &received))
             try checkCurl(api.setOption(request, Curl.CURLOPT_READFUNCTION, &sendBody))
         }
     }
+
     let code = api.perform(request)
     if received.overflow do
         fail Errors.OverflowError{}

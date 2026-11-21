@@ -42,8 +42,8 @@ private func writeRequestBody(request: HINTERNET, options: PostOptions) fail
     while remaining > 0
     {
         let requested = Math.min(remaining, chunk.count)
-        let reader = unwrap options.bodyReader
-        let read = reader(options.requestContext, chunk[until requested])
+        let reader    = unwrap options.bodyReader
+        let read      = reader(options.requestContext, chunk[until requested])
         if read == 0 or read > requested do
             fail NetworkError{"HTTP request body reader did not provide its declared length", code: 0}
 
@@ -58,12 +58,12 @@ private func writeRequestBody(request: HINTERNET, options: PostOptions) fail
                 fail NetworkError{"HTTP transport stopped accepting request bytes", code: 0}
             offset += written
         }
+
         remaining -= read
     }
 }
 
-private func requestNative(host: string, port: u16, path: string, secure: bool,
-                           options: GetOptions, post: bool)->Response fail
+private func requestNative(host: string, port: u16, path: string, secure: bool, options: GetOptions, post: bool)->Response fail
 {
     var headers: String
     for header in options.headers
@@ -103,8 +103,17 @@ private func requestNative(host: string, port: u16, path: string, secure: bool,
         fail NetworkError{code: cast(s32, GetLastError())}
 
     var redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER
+    if options.maxRedirects > 0 do
+        redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS | WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP
     if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32)) do
         fail NetworkError{code: cast(s32, GetLastError())}
+    if options.maxRedirects > 0
+    {
+        var maximumRedirects = cast(u32, options.maxRedirects)
+        if not WinHttpSetOption(request, WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS, &maximumRedirects, #sizeof(u32)) do
+            fail NetworkError{code: cast(s32, GetLastError())}
+    }
+
     let bodyLength = post ? cast(u32, options.requestBodyLength) : 0'u32
     if not WinHttpSendRequest(request, nativeHeaders.buffer, Swag.U32.Max, null, 0, bodyLength, 0) do
         fail NetworkError{code: cast(s32, GetLastError())}
@@ -136,8 +145,10 @@ private func requestNative(host: string, port: u16, path: string, secure: bool,
             if not options.bodyHandler(options.bodyContext, chunk[0 until received]) do
                 fail NetworkError{"HTTP response body handler stopped the transfer", code: 995}
         }
-        else do
+        else
+        {
             result.body.add(chunk[0 until received])
+        }
     }
 
     return result

@@ -56,10 +56,11 @@ whole layout.
 
 - Evidence: `Net.Http.get` streams response chunks and `Net.Http.post` reads request chunks on
   Linux and Windows. Both bound the buffered response body when no handler is supplied and use
-  platform certificate validation. Active cancellation, a bounded redirect policy, and identical
-  end-to-end deadline semantics remain open.
-- Next: define bounded redirect behavior, then align active cancellation and whole-transfer
-  deadlines across both backends.
+  platform certificate validation. GET can follow a bounded number of redirects on both
+  backends; HTTPS redirects cannot downgrade to HTTP, POST never follows redirects, and callers
+  cannot combine redirect following with origin-sensitive headers. Active cancellation and
+  identical end-to-end deadline semantics remain open.
+- Next: align active cancellation and whole-transfer deadlines across both backends.
 - Done when: local-server tests cover streamed requests and responses, bounded redirects,
   cancellation, deadlines, and rejection of oversized or malformed headers.
 - Related: std.net.005, platform.portability.088

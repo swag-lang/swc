@@ -124,6 +124,45 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     return result
 }
 
+// Derives the XChaCha20 subkey from a 32-byte key and the first 16 nonce bytes.
+internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeySize] u8 fail
+{
+    if key.count != ChaCha20KeySize do
+        fail Errors.BadParameterError{"HChaCha20 needs a 32-byte key"}
+    if nonce.count != 16 do
+        fail Errors.BadParameterError{"HChaCha20 needs a 16-byte nonce"}
+
+    var state: [16] u32
+    state[0] = 0x61707865
+    state[1] = 0x3320646E
+    state[2] = 0x79622D32
+    state[3] = 0x6B206574
+    for i in 8 do
+        state[4 + i] = load32(key.buffer + i * 4)
+    for i in 4 do
+        state[12 + i] = load32(nonce.buffer + i * 4)
+
+    for 10
+    {
+        quarterRound(&state, 0, 4, 8, 12)
+        quarterRound(&state, 1, 5, 9, 13)
+        quarterRound(&state, 2, 6, 10, 14)
+        quarterRound(&state, 3, 7, 11, 15)
+        quarterRound(&state, 0, 5, 10, 15)
+        quarterRound(&state, 1, 6, 11, 12)
+        quarterRound(&state, 2, 7, 8, 13)
+        quarterRound(&state, 3, 4, 9, 14)
+    }
+
+    var subkey: #returntype
+    for i in 4 do
+        store32(&subkey[i * 4], state[i])
+    for i in 4 do
+        store32(&subkey[(i + 4) * 4], state[i + 12])
+    secureClear(state)
+    return subkey
+}
+
 // XORs `source` with the IETF ChaCha20 key stream into `destination`.
 //
 // The first block uses the key-stream counter `initialCounter`. Source and destination can be

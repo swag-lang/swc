@@ -69,6 +69,9 @@ explore_Name Nom
 explore_Type Type
 explore_Size Taille
 explore_Modified Modifié
+explore_DateMonths janv.;févr.;mars;avr.;mai;juin;juil.;août;sept.;oct.;nov.;déc.
+explore_DateSameYear % · %
+explore_DateOtherYear % %
 explore_SelectFile Sélectionnez un fichier pour afficher ses informations.
 explore_FileProperties Fichier
 explore_MediaDetails Informations sur le média

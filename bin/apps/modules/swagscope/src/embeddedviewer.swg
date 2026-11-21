@@ -128,7 +128,17 @@ impl Viewer.Embedded for EmbeddedViewer
 
         .fileName = fileName
         .title    = title
-        .choices  = .owner.index.choices(fileName)
+        var choices = .owner.index.choices(fileName)
+        if choices.count > 1 and choices[0].key == "image"
+        {
+            // A picture preview already has its intended presentation. Raw-byte readers add no
+            // useful choice there, whether the picture came from a comic page or an archive.
+            .choices.add(choices[0])
+        }
+        else
+        {
+            .choices = #move choices
+        }
         if .choices.isEmpty() do
             fail Errors.UnsupportedFormatError{}
 

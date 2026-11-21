@@ -30,6 +30,9 @@ struct AppStrings
     explore_Type:              string = "Type"                        // Exploration control or status.
     explore_Size:              string = "Size"                        // Exploration control or status.
     explore_Modified:          string = "Modified"                    // Exploration control or status.
+    explore_DateMonths:        string = "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec" // Short month names used in explorer dates.
+    explore_DateSameYear:      string = "% · %"                       // Date and time earlier this year.
+    explore_DateOtherYear:     string = "% %"                         // Date from an earlier year; date, then year.
     explore_FilterByType:      string = "Filter by type"              // Tooltip of the file-kind menu in the explorer.
     explore_View:              string = "Choose view"                 // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"          // Tooltip of the thumbnail arrangement choice.

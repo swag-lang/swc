@@ -1931,6 +1931,23 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.require(window.pendingFile.isEmpty())
 }
 
+// Folder playback keeps the active viewer's kind, even when its fallback viewers accept every file.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.currentFile = "song.wav"
+    window.folderFiles.add("song.wav")
+    window.folderFiles.add("notes.txt")
+    window.folderFiles.add("next.wav")
+    window.choices = window.index.choices(window.currentFile)
+    window.activeChoiceIndex = 0
+
+    let files = window.kindSiblings()
+    Swag.require(files.count == 2 and files[0] == "song.wav" and files[1] == "next.wav")
+}
+
 // The shuffle reaches every file of the kind once before any comes again, and never brings
 // straight back the one that has just ended.
 #test

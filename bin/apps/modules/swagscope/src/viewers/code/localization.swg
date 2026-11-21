@@ -12,6 +12,8 @@ struct Texts
     ui_ZoomMenu:          string = "Zoom…"                      // Tooltip of the zoom value menu.
     ui_HighlightAs:       string = "Highlight as %"             // Lens command coloring the source as the language it names.
     ui_PlainText:         string = "Plain Text"                 // Language choice showing the source without syntax colors.
+    ui_Wrap:              string = "Wrap Long Lines"            // Lens command folding long source lines into the view.
+    ui_Numbers:           string = "Line Numbers"                // Lens command showing logical line numbers in a gutter.
     ui_Blanks:            string = "Show Whitespace"            // Lens command marking each space with a dot and each tabulation with an arrow.
     ui_MatchingDelimiter: string = "Go to Matching Bracket"     // Lens command moving the caret to the bracket, parenthesis or brace pairing with the one at it.
     ui_DelimiterUnavailable: string = "% · no matching delimiter in loaded source"

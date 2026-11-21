@@ -786,7 +786,7 @@ impl ViewerWindow
             alternateViewer = not choices.isEmpty() and choices[0].key != "archive"
         }
 
-        .viewerCaptionButton.setChecked(alternateViewer)
+        .viewerCaptionButton.setIconColor(alternateViewer ? .themeColors().signature : Color{})
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
@@ -1173,8 +1173,7 @@ impl ViewerWindow
         with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
         {
             .toolTip = appStrings().lens_ViewAs
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Frame)
+            .setIconColor(Color{})
             .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()
         }

@@ -7,6 +7,10 @@ private var g_ZoomPercent: u32 = 100
 
 // Whether source code marks its spaces and tabulations. The choice follows the reader from file to file.
 private var g_Blanks: bool
+// Whether source code wraps long lines. The choice follows the reader from file to file.
+private var g_Wrapping: bool
+// Whether source code shows logical line numbers. The choice follows the reader from file to file.
+private var g_LineNumbers: bool = true
 
 // Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
 private var g_TabWidth: s32 = 4
@@ -430,6 +434,28 @@ impl Panel
         .applyBlanks()
     }
 
+    // Toggles long-line wrapping in the source view and carries the choice to the next file.
+    mtd toggleWrap()
+    {
+        g_Wrapping = not .editor.flags.has(.WordWrap)
+        if g_Wrapping do
+            .editor.flags.add(.WordWrap)
+        else do
+            .editor.flags.remove(.WordWrap)
+        .editor.setFlags(.editor.flags)
+    }
+
+    // Toggles logical line numbers and carries the choice to the next file.
+    mtd toggleLineNumbers()
+    {
+        g_LineNumbers = not .editor.flags.has(.LineNumbers)
+        if g_LineNumbers do
+            .editor.flags.add(.LineNumbers)
+        else do
+            .editor.flags.remove(.LineNumbers)
+        .editor.setFlags(.editor.flags)
+    }
+
     mtd applyBlanks()
     {
         if g_Blanks do
@@ -580,6 +606,8 @@ impl Panel
         // The pair is offered only when the caret stands by a bracket, which is when it means something.
         if .delimiterAtCaret().lineIndex != Swag.U64.Max do
             entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, defaultKey: {modifiers: .Control, key: .Oem6}, bindId: "scope.code.matchingDelimiter")
+        entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .editor.flags.has(.WordWrap), defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.code.wrap")
+        entries.add(texts().ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .editor.flags.has(.LineNumbers), bindId: "scope.code.numbers")
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks), bindId: "scope.code.blanks")
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
@@ -690,7 +718,7 @@ impl Panel
             .marginLeft  = Viewer.ColumnInset
             .marginRight = Viewer.ColumnInset
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
-            .setFlags(.ReadOnly | .LineNumbers)
+            .setFlags(.ReadOnly | (g_LineNumbers ? .LineNumbers : .None) | (g_Wrapping ? .WordWrap : .None))
         }
     }
 

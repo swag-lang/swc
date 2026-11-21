@@ -432,8 +432,18 @@ impl ViewerWindow
     mtd kindSiblings()->Array'String
     {
         var result: #returntype
-        for file in .folderFiles where .index.sharesViewer(.currentFile, file[]) do
-            result.add(file[])
+        if .activeChoiceIndex >= .choices.count do
+            return result
+        let activeKey = .choices[.activeChoiceIndex].key
+        for file in .folderFiles
+        {
+            let choices = .index.choices(file[])
+            for choice in choices where choice.key == activeKey
+            {
+                result.add(file[])
+                break
+            }
+        }
         return result
     }
 

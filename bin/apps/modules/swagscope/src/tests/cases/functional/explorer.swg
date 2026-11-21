@@ -18,6 +18,25 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(false, "exploration did not settle")
 }
 
+// Explorer dates keep the language's month names and day/month order.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    registerAppStrings(&host.app.resources)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
+
+    let now = Time.DateTime{2026, 11, 21, 15, 0, 0, 0}
+    let old = Time.DateTime{2026, 11, 21, 14, 30, 0, 0}
+    Swag.require(explorerFileTime(old, now, "fr") == "14:30")
+    Swag.require(explorerFileTime({2026, 11, 20, 14, 30, 0, 0}, now, "fr") == "20 nov. · 14:30")
+    Swag.require(explorerFileTime({2025, 11, 20, 0, 0, 0, 0}, now, "fr") == "20 nov. 2025")
+    expect host.app.setLanguage(ReferenceLanguage)
+    Swag.require(explorerFileTime({2026, 11, 20, 14, 30, 0, 0}, now, "en") == "Nov 20 · 14:30")
+}
+
 // Filesystem and ZIP locations expose the same immediate-child model, including implicit folders.
 #test
 {
@@ -275,7 +294,8 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         completeExplorer(&host, explorer)
         Swag.require(window.isExploring() and explorer.listing.isArchive)
         Swag.require(window.viewerCaptionButton.isLocallyVisible())
-        Swag.require(window.viewerCaptionButton.isChecked and window.viewerCaptionButton.checkIndicator == .Frame)
+        Swag.require(not window.viewerCaptionButton.isChecked)
+        Swag.require(window.viewerCaptionButton.iconColor == window.themeColors().signature)
         window.openFile(file)
         completeQueuedViewerFile(&host, window)
         completeExplorer(&host, explorer)

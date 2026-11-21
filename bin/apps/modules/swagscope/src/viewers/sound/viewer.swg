@@ -433,6 +433,7 @@ struct Panel
     late
     {
         commands:       *Wnd
+        playModeButton: *Viewer.PlaybackButton
         playButton:     *IconButton
         stopButton:     *IconButton
         backwardButton: *IconButton
@@ -1406,6 +1407,12 @@ impl Panel
     // Every control starts disabled; opening the sound enables what the engine can serve.
     mtd createTransportBar()
     {
+        with .playModeButton = Viewer.PlaybackButton.create(.commands, me, .services.playback)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+        }
+
         with .playButton = Viewer.createActionButton(.commands, .Play)
         {
             .dockStyle = .Left
@@ -1505,6 +1512,7 @@ impl Panel
             if evt is ResizeEvent
             {
                 let width = view.commands.position.width
+                view.playModeButton.show(width >= 640)
                 view.volumeSlider.show(width >= 580)
                 view.stopButton.show(width >= 520)
                 view.backwardButton.show(width >= 520)

@@ -41,7 +41,7 @@ outcomes owned by `core` together.
   also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA-3, SHAKE,
   HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512, HKDF-SHA-256, HKDF-SHA-512, PBKDF2, BLAKE2b,
   BLAKE2s, BLAKE3, X25519, Ed25519, AES-GCM, Argon2id, ChaCha20, Poly1305,
-  ChaCha20-Poly1305, and several non-cryptographic hashes.
+  ChaCha20-Poly1305, XChaCha20-Poly1305, and several non-cryptographic hashes.
 - Next: add an AES-round backend that can safely select AES-NI after runtime feature detection,
   retain the constant-operation-path software fallback, and measure both paths. Add separately
   numbered modes only when their contracts are chosen.

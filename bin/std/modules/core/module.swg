@@ -106,6 +106,10 @@ Swag.assert(try Crypto.ed25519Verify(publicKey, "message", signature), "signatur
 nonces and complete 16-byte tags. Never reuse a nonce with the same key. Decryption leaves the
 destination untouched if authentication fails.
 
+[[Core.Crypto.xchacha20Poly1305Seal]] and [[Core.Crypto.xchacha20Poly1305Open]] provide the
+XChaCha20-Poly1305 AEAD with 24-byte nonces. Its larger nonce lowers accidental collision risk;
+nonce reuse with one key is still unsafe.
+
 ```swag
 using Core
 

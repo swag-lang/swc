@@ -3,6 +3,7 @@ using Core, Pixel
 // The recording controls stand beside the frame, outside the recorded area. Their readouts,
 // progress and choices use GUI widgets so one theme and event model owns the whole bar.
 const RecordHudHeight     = 40.0     // Logical height of the pill.
+const RecordHudBorderWidth = 2.0     // Weight of the outline against the live screen.
 const RecordHudLeft       = 7.0      // Air before the recording mark.
 const RecordHudRight      = 6.0      // Air after the last command.
 const RecordHudMark       = 26.0     // Side of the recording mark's cell.
@@ -49,11 +50,11 @@ impl IWnd for RecordHud
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        // The screen below can be as light or dark as either palette. Keep the floating
-        // controls legible against both with a full-contrast outline around their surface.
+        // The screen below can be as light or dark as either palette. Use the theme's stronger
+        // edge role so the outline stays legible without competing with the controls.
         let painter = evt.paintContext.painter
         painter.setParams(.Antialiased)
-        painter.drawRoundRect(.clientRect(), .themeMetrics().corner_Floating, .themeMetrics().corner_Floating, .themeColors().text, .themeMetrics().separator_HairlineSize)
+        painter.drawRoundRect(.clientRect(), .themeMetrics().corner_Floating, .themeMetrics().corner_Floating, .themeColors().strongLine, RecordHudBorderWidth)
     }
 
     mtd impl onThemeEvent(evt: *ThemeEvent)

@@ -4,7 +4,7 @@
 using Core, Pixel
 
 // Exercises a real ARGB XCB drawable and EGL swap, including independent native queries.
-#[Swag.TestTag("integration.desktop.capture")]
+#[Swag.TestTag("integration.desktop")]
 #test
 {
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
@@ -250,7 +250,7 @@ struct NativeInputProbe
 }
 
 // Hiding or disabling the captured subtree releases the X11 pointer grab.
-#[Swag.TestTag("integration.desktop")]
+#[Swag.TestTag("integration.desktop.capture")]
 #test
 {
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")

@@ -191,7 +191,10 @@ impl CffFont
         if standard.count do
             return String.from(standard)
 
-        let custom = try .strings.item(.block, sid - cast(u32, StandardStrings.count))
+        let customSid = sid - cast(u32, StandardStrings.count)
+        if customSid >= .strings.count() do
+            try fault(0x08)
+        let custom = try .strings.item(.block, customSid)
         return String.from(cast(string?, custom))
     }
 }

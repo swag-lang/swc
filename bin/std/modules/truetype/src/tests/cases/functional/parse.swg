@@ -140,6 +140,17 @@ func buildCffExpertEncoding()->Array'u8
 
 #test
 {
+    // A custom charset SID must address a standard string or the String INDEX.
+    var invalidSidBytes = buildPredefinedCffCharset(34)
+    invalidSidBytes.add([0x00, 0x01, 0x87, 0x01, 0x87])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(invalidSidBytes.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Encoding format 1 ranges cannot assign more GIDs than CharStrings contains.
     const OverlongRange: [35] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

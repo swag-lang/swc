@@ -646,8 +646,9 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
     if format != 3 do
         try fault(0x08)
 
-    let ranges = try readU16(font.block, offset + 1)
-    var pos    = offset + 3
+    let ranges   = try readU16(font.block, offset + 1)
+    var pos      = offset + 3
+    var sentinel = 0'u32
     for ranges
     {
         let first = cast(u32, try readU16(font.block, pos))
@@ -655,10 +656,14 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
         let next  = cast(u32, try readU16(font.block, pos + 3))
         if fd >= font.fdLocalSubrs.count do
             try fault(0x08)
-        pos += 3
+        sentinel = next
+        pos      += 3
         for gid in first until Math.min(next, glyphCount) do
             font.fdSelect[gid] = fd
     }
+
+    if sentinel != glyphCount do
+        try fault(0x08)
 }
 
 private func readCffFdArray(font: *CffFont, offset: u64) fail

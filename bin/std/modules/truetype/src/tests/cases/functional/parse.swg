@@ -213,6 +213,22 @@ func buildCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // A format-3 FDSelect sentinel must equal the number of glyphs in the face.
+    var completeCoverage = buildCffWithFdSelectPrefix()
+    completeCoverage.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01])
+    let parsed = expect parseCffFont(completeCoverage.toSlice())
+    Swag.require(parsed.fdSelect.count == 1)
+
+    var outOfRangeSentinel = buildCffWithFdSelectPrefix()
+    outOfRangeSentinel.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x02])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(outOfRangeSentinel.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Encoding format 1 ranges cannot assign more GIDs than CharStrings contains.
     const OverlongRange: [35] u8 = [
         0x01, 0x00, 0x04, 0x04,                                   // header

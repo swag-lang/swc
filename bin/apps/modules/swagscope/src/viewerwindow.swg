@@ -1396,6 +1396,9 @@ impl ViewerWindow
     mtd teachHints(exploring: bool)
     {
         let texts = appStrings()
+        let metrics = .themeMetrics()
+        .hintLine.margin.w = .readingLine.isLocallyVisible() ?
+                             .readingLine.position.height + metrics.floating_Inset : 0
         .hintLine.clearHints()
 
         // The keys of an explored page are taught while what it shows leaves its foot free: an

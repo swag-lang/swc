@@ -156,6 +156,8 @@ struct Panel
     extract:            ZipEntryExtract
     previewTimer:       *Timer?
     pendingPreview:     u64 = Swag.U64.Max
+    sortColumn:         u32
+    descending:         bool
     awaitingRetirement: bool     // The previous preview is still retiring; the next task event below the panel asks again.
     retiring:           bool
     returningToEntries: bool
@@ -285,7 +287,8 @@ private impl Panel
 
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
-                line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize))
+                let size = line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize))
+                size.sortKey = Format.toString("%{X016}", entry.uncompressedSize)
                 line.userData0 = cast(*void?, entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
@@ -645,6 +648,15 @@ private impl Panel
             .header.form = .Transparent
             .addColumn(texts().ui_ColName, 170)
             .addColumn(texts().ui_ColSize, 60)
+            .header.show(true)
+            .header.setSortIndicator(0, .Ascending)
+            .header.sigColumnClicked += func|viewer = me|(_, column)
+            {
+                viewer.descending = viewer.sortColumn == column and not viewer.descending
+                viewer.sortColumn = column
+                viewer.list.sort(column, viewer.descending, persistent: true)
+                viewer.list.header.setSortIndicator(column, viewer.descending ? .Descending : .Ascending)
+            }
             .sigLeftDoubleClicked += func|viewer = me|(_, _)
             {
                 viewer.previewSelectedEntry()

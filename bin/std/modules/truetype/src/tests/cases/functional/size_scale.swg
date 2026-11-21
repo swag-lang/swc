@@ -10,10 +10,10 @@ using Swag, Core
     defer face.destroy()
 
     expect face.setPixelSize(12, 24)
-    Swag.require(expect face.size.scaleHorizontal(1000) == scale26_6(1000, 12, face.unitsPerEm))
-    Swag.require(expect face.size.scaleVertical(1000) == scale26_6(1000, 24, face.unitsPerEm))
-    Swag.require(expect face.size.scaleHorizontal(-500) == scale26_6(-500, 12, face.unitsPerEm))
-    Swag.require(expect face.size.scaleVertical(0) == 0)
+    Swag.require(expect face.size.scaleHorizontal(1000) == expect scale26_6(1000, 12, face.unitsPerEm))
+    Swag.require(expect face.size.scaleVertical(1000) == expect scale26_6(1000, 24, face.unitsPerEm))
+    Swag.require(expect face.size.scaleHorizontal(-500) == expect scale26_6(-500, 12, face.unitsPerEm))
+    Swag.require(expect face.size.scaleVertical(0) == expect scale26_6(0, 24, face.unitsPerEm))
 }
 
 #test

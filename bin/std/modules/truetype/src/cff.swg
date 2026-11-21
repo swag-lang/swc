@@ -266,15 +266,20 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: #returntype
-    var mantissa    = 0.0'f64
-    var fraction    = 0.1'f64
-    var exponent    = 0
-    var negative    = false
-    var expNegative = false
-    var inFraction  = false
-    var inExponent  = false
-    var done        = false
-    var pos         = offset
+    var mantissa         = 0.0'f64
+    var fraction         = 0.1'f64
+    var exponent         = 0
+    var negative         = false
+    var expNegative      = false
+    var inFraction       = false
+    var inExponent       = false
+    var hasMantissaDigit = false
+    var hasExponentDigit = false
+    var hasDecimalPoint  = false
+    var hasExponent      = false
+    var hasSign          = false
+    var done             = false
+    var pos              = offset
 
     while not done
     {
@@ -290,28 +295,39 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 let digit = cast(f64, nibble)
                 if inExponent
                 {
-                    exponent = exponent * 10 + cast(s32, nibble)
+                    exponent         = exponent * 10 + cast(s32, nibble)
+                    hasExponentDigit = true
                 }
                 elif inFraction
                 {
-                    mantissa += digit * fraction
-                    fraction *= 0.1
+                    mantissa         += digit * fraction
+                    fraction         *= 0.1
+                    hasMantissaDigit = true
                 }
                 else
                 {
-                    mantissa = mantissa * 10.0 + digit
+                    mantissa         = mantissa * 10.0 + digit
+                    hasMantissaDigit = true
                 }
             }
             elif nibble == 0x0A
             {
-                inFraction = true
+                if hasDecimalPoint or inExponent do
+                    try fault(0x08)
+                inFraction      = true
+                hasDecimalPoint = true
             }
             elif nibble == 0x0B
             {
-                inExponent = true
+                if hasExponent or not hasMantissaDigit do
+                    try fault(0x08)
+                inExponent  = true
+                hasExponent = true
             }
             elif nibble == 0x0C
             {
+                if not inExponent or hasExponentDigit or expNegative do
+                    try fault(0x08)
                 inExponent  = true
                 expNegative = true
             }
@@ -321,10 +337,15 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
             }
             elif nibble == 0x0E
             {
+                if hasSign or hasMantissaDigit or hasDecimalPoint or inExponent do
+                    try fault(0x08)
                 negative = true
+                hasSign  = true
             }
             elif nibble == 0x0F
             {
+                if not hasMantissaDigit or (hasExponent and not hasExponentDigit) do
+                    try fault(0x08)
                 done = true
                 break
             }

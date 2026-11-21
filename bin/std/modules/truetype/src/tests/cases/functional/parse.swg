@@ -309,6 +309,15 @@ func buildCffExpertEncoding()->Array'u8
 
 #test
 {
+    // A CFF real sign is only valid before its mantissa digits.
+    const TrailingRealSign: [3] u8 = [30, 0x1E, 0x1F]
+    var rejected: Swag.Error
+    discard catch parseCffDict(TrailingRealSign) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Escaped CFF DICT operators require a second byte.
     const TruncatedEscape: [1] u8 = [0x0C]
     var rejected: Swag.Error

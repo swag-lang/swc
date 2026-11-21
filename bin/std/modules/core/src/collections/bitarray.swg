@@ -201,7 +201,8 @@ public impl BitArray
 
     // Sets the number of bits to `bitCount` and every bit to `initialValue`.
     //
-    // The previous bits are not preserved. A zero `bitCount` releases the storage.
+    // The previous bits are not preserved. A zero `bitCount` releases the storage. If growth
+    // allocation fails, the original count and bits remain unchanged.
     mtd resize(bitCount: u64, initialValue = false)
     {
         if not bitCount
@@ -210,10 +211,13 @@ public impl BitArray
             return
         }
 
-        .count = bitCount
-        let byteCount = .wordCount() * #sizeof(u32)
+        var wordCount = bitCount >> 5
+        if wordCount << 5 < bitCount do
+            wordCount += 1
+        let byteCount = wordCount * #sizeof(u32)
         if byteCount != .capacityBytes do
             .realloc(byteCount)
+        .count = bitCount
         Memory.set(.dataPtr(), initialValue ? 0xFF : 0x00, .capacityBytes)
         .clearUnusedBits()
     }

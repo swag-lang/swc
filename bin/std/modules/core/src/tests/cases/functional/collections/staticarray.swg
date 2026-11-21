@@ -80,6 +80,23 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
     Swag.require(assertConstStaticArrayEnds(&values) == 5)
 }
 
+// A rejected replacement leaves the existing array intact.
+#test
+{
+    var values:    StaticArray'(s32, 2'u64)
+    let oversized: [3] s32 = [1, 2, 3]
+    values.add(10)
+    values.add(20)
+
+    let failed = Swag.catchPanic(func|&values, oversized|()
+    {
+        values.opSet(oversized)
+    })
+
+    Swag.require(failed.raised)
+    Swag.require(values.count == 2 and values[0] == 10 and values[1] == 20)
+}
+
 #test
 {
     var values: StaticArray'(s32, 4'u64)

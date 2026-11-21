@@ -87,6 +87,7 @@ impl StaticArray
     {
         // Preserve an aliased source before clearing the destination.
         let countof = arr.count
+        Swag.assert(countof <= N, "slice is too big")
         if countof
         {
             let dataof = arr.buffer
@@ -103,7 +104,6 @@ impl StaticArray
         .clear()
         if not countof do
             return
-        Swag.assert(countof <= N, "slice is too big")
         var dataof = arr.buffer
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)

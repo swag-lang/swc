@@ -79,7 +79,7 @@ using Core
     }
 
     Swag.require(Linux.sigpending(&pending) == 0 and Linux.sigismember(&pending, Linux.SIGPIPE) == 0)
-    Swag.require(Linux.shutdown(cast(s32, client.handle), Linux.SHUT_WR) == 0)
+    expect client.shutdownWrite()
     var error: Swag.Error
     discard catch client.write(cast(const [..] u8, "closed")) as error
     Swag.require(error.value() is NetworkError)

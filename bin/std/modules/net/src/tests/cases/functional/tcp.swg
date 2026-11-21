@@ -39,6 +39,41 @@
     Swag.require(end == 0 and not client.isOpen())
 }
 
+// Half-closing the send side delivers EOF without preventing the peer's response.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    var client = expect TcpStream.connect(expect listener.localEndpoint())
+    var server = expect listener.accept()
+    let request = cast(const [..] u8, "request")
+    Swag.require(expect client.write(request) == request.count)
+    expect client.shutdownWrite()
+
+    var received: String
+    var buffer: [32] u8
+    for
+    {
+        let count = expect server.read(buffer)
+        if count == 0 do
+            break
+        received.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(received.toString() == "request")
+    let response = cast(const [..] u8, "response")
+    Swag.require(expect server.write(response) == response.count)
+    server.close()
+
+    received.clear()
+    for
+    {
+        let count = expect client.read(buffer)
+        if count == 0 do
+            break
+        received.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(received.toString() == "response")
+}
+
 #test
 {
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})

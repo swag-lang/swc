@@ -23,6 +23,9 @@ impl TcpStream
         }
     }
 
+    // Stops sending bytes while keeping the receive side open.
+    mtd shutdownWrite() fail
+
     // Closes the connection when this owner is dropped.
     mtd opDrop() { .close() }
 }

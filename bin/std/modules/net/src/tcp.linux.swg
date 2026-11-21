@@ -75,6 +75,14 @@ impl TcpStream
         return try .connect(endpoint.toSocketEndpoint())
     }
 
+    // Stops sending bytes while keeping the receive side open.
+    mtd shutdownWrite() fail
+    {
+        Swag.assert(.open)
+        if Linux.shutdown(cast(s32, .handle), Linux.SHUT_WR) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
     mtd read(buffer: [..] u8)->u64 fail
     {

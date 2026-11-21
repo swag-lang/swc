@@ -12,6 +12,7 @@ const AF_INET6           = 23
 const AF_UNSPEC          = 0
 const SOCK_STREAM        = 1
 const SOCK_DGRAM         = 2
+const SD_SEND             = 1
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
 const AI_PASSIVE         = 1
@@ -118,6 +119,7 @@ struct ADDRINFOA
     func getsockname(handle: SOCKET, address: *SOCKADDR, length: *s32)->s32
     func recv(handle: SOCKET, buffer: [*] u8, length, flags: s32)->s32
     func send(handle: SOCKET, buffer: const [*] u8, length, flags: s32)->s32
+    func shutdown(handle: SOCKET, how: s32)->s32
     func recvfrom(handle: SOCKET, buffer: [*] u8, length, flags: s32, address: *SOCKADDR?, addressLength: *s32?)->s32
     func sendto(handle: SOCKET, buffer: const [*] u8, length, flags: s32, address: const *SOCKADDR, addressLength: s32)->s32
     func getaddrinfo(node, service: const [*]u8?, hints: const *ADDRINFOA?, result: *(*ADDRINFOA?))->s32

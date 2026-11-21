@@ -63,6 +63,14 @@ impl TcpStream
         return try .connect(endpoint.toSocketEndpoint())
     }
 
+    // Stops sending bytes while keeping the receive side open.
+    mtd shutdownWrite() fail
+    {
+        Swag.assert(.open)
+        if shutdown(.handle, SD_SEND) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
     mtd read(buffer: [..] u8)->u64 fail
     {

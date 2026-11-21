@@ -139,7 +139,7 @@ private func setMulticastMembership(handle: SOCKET, group: IpAddress, options: M
     {
         var request: IPV6_MREQ
         for i in 16 do
-            request.ipv6mr_multiaddr.Byte[i] = group.bytes[i]
+            request.ipv6mr_multiaddr.u6_addr.Byte[i] = group.bytes[i]
         request.ipv6mr_interface = options.interfaceIndex
         let option = join ? IPV6_JOIN_GROUP : IPV6_LEAVE_GROUP
         if setsockopt(handle, IPPROTO_IPV6, option, cast(const *u8, &request), #sizeof(IPV6_MREQ)) == SOCKET_ERROR do

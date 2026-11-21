@@ -2475,6 +2475,24 @@ impl IDecoder for Decoder
                 return .windowBaseRank + local
         }
 
+        if .variableVideoTiming and fileIndex
+        {
+            // The cue table has timestamps but no display ranks; index from the start to answer
+            // this rank exactly instead of returning a cue estimated from the average rate.
+            var indexOutcome: Swag.Error
+            discard catch .ensureFrames(index) as indexOutcome
+            if indexOutcome.value() != null
+            {
+                let layout = unwrap fileIndex.progressive
+                if layout.indexComplete do
+                    return layout.tracks[layout.selectedVideo].videoSamples.count
+                return index
+            }
+            if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
+                return .windowBaseRank + .video.syncRankAt(index - .windowBaseRank)
+            return index
+        }
+
         if not fileIndex do
             return index
         let timestamp = .targetTimestamp(index)

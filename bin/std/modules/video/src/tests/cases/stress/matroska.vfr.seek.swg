@@ -9,6 +9,7 @@ using Core, Core.Errors, Pixel
 {
     var reader = expect Reader.open(videoFixturePath("matroska-vfr-seek.mkv"), pictureOnly: true)
     let first  = expect reader.decodeFrame(0)
+    Swag.require(reader.syncFrameAt(2_300) == 2_300)
     let target = expect reader.decodeFrame(2_300)
     Swag.require(first.isValid() and target.isValid())
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(2_300), 94.0, 0.001))

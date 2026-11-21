@@ -82,9 +82,9 @@ struct ParallelChunk
 //
 // Partition boundaries and the order partitions run in are not part of the contract, so a body
 // must not depend on either. Every partition observes the caller's cancellation state through
-// [[Swag.isCancelled]]; a request does not stop the range by itself. The body can execute on the caller or a worker, so everything it reaches must
-// either be owned by that partition or be safe to share; the caller's frame stays alive for the
-// whole call, which is what makes an `&` capture of a local valid here.
+// [[Swag.isCancelled]]; a request does not stop the range by itself. The body can execute on the
+// caller or a worker, so everything it reaches must be owned by that partition or safe to share.
+// The caller's frame stays alive for the whole call, which makes an `&` capture of a local valid.
 //
 // Cost observations can keep short work on the caller or reduce the number of partitions.
 // With fewer than two workers, and under compile-time execution, all work stays on the caller.

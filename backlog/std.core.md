@@ -41,22 +41,14 @@ outcomes owned by `core` together.
   also has Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA-3, SHAKE,
   HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512, HKDF-SHA-256, HKDF-SHA-512, PBKDF2, BLAKE2b,
   BLAKE2s, BLAKE3, X25519, Ed25519, AES-GCM, Argon2id, ChaCha20, Poly1305,
-  ChaCha20-Poly1305, XChaCha20-Poly1305, and several non-cryptographic hashes.
+  ChaCha20-Poly1305, XChaCha20-Poly1305, RSA-OAEP-SHA-256, RSA-PSS-SHA-256, and several
+  non-cryptographic hashes.
 - Next: add an AES-round backend that can safely select AES-NI after runtime feature detection,
   retain the constant-operation-path software fallback, and measure both paths. Add separately
   numbered modes only when their contracts are chosen.
 - Done when: AES-128, AES-192, and AES-256 block operations match published vectors in
   hardware and fallback paths, the fallback has a documented constant-time contract, and cipher
   modes retain separate backlog IDs.
-- Related: std.net.005, std.core.017
-
-### std.core.017 — No RSA interoperability
-
-- Next: provide only the RSA operations and padding schemes justified by external
-  interoperability, with unsafe legacy modes excluded from the default surface.
-- Done when: a named interoperability case fixes the required RSA operations and safe padding
-  schemes; accepted cases pass external vectors and unsafe legacy forms are rejected, or the
-  entry is retired with a recorded decision that no use case justifies it.
 - Related: std.net.005
 
 ### std.core.021 — No gzip container support

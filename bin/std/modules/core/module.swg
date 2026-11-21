@@ -110,6 +110,14 @@ destination untouched if authentication fails.
 XChaCha20-Poly1305 AEAD with 24-byte nonces. Its larger nonce lowers accidental collision risk;
 nonce reuse with one key is still unsafe.
 
+## Interoperate with RSA peers
+
+[[Core.Crypto.rsaOaepSha256Encrypt]] and [[Core.Crypto.rsaOaepSha256Decrypt]] use RSAES-OAEP
+with SHA-256. [[Core.Crypto.rsaPssSha256Sign]] and [[Core.Crypto.rsaPssSha256Verify]] use
+RSASSA-PSS with SHA-256 and a 32-byte salt. Pass modulus and exponent components as unsigned
+big-endian byte slices from 2048- through 4096-bit keys. These APIs do not parse PEM or DER key
+containers. PKCS#1 v1.5 padding is not provided.
+
 ```swag
 using Core
 

@@ -103,11 +103,11 @@ private struct CurlResponse
     bodyContext:          *void?
     bodyReader:           BodyReader?
     requestContext:       *void?
+    headerParser:         ResponseHeaderParser
     headerBytes:          u64
     overflow:             bool
     cancelled:            bool
-    hasLocation:          bool
-    locationContinuation: bool
+    invalidHeaders:       bool
     inHeaders:            bool
     requestBodyRemaining: u64
     bodyReadFailed:       bool
@@ -196,45 +196,26 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
     let line = cast(string, bytes[until length])
     if Utf8.startsWith(line, "HTTP/")
     {
-        // Informational responses must not leak their Location into the final response.
+        // Redirect and informational headers must not leak into the final response.
+        state.response.headers.clear()
         state.response.location.clear()
-        state.hasLocation = false
-        state.locationContinuation = false
-        state.inHeaders   = true
+        state.headerParser.lastHeaderIndex = Swag.U64.Max
+        state.headerParser.locationSeen    = false
+        state.inHeaders = true
     }
     elif line == "\r\n" or line == "\n"
     {
         state.inHeaders = false
-        state.locationContinuation = false
     }
     elif state.inHeaders and length > 0
     {
-        let continuation = line[0] == ' ' or line[0] == '\t'
-        if not continuation do
-            state.locationContinuation = not state.hasLocation and Utf8.startsWith(line, "Location:", .Latin1NoCase)
-        if state.locationContinuation
+        if not appendResponseHeader(&state.response, &state.headerParser, line)
         {
-            var start = continuation ? 0'u64 : 9'u64
-            var end   = length
-            while start < end and (line[start] == ' ' or line[start] == '\t') do
-                start += 1
-            while end > start and
-                  (line[end - 1] == '\r' or
-                   line[end - 1] == '\n' or
-                   line[end - 1] == ' ' or
-                   line[end - 1] == '\t') do
-                end -= 1
-            let separator = continuation and not state.response.location.isEmpty() ? 1'u64 : 0'u64
-            if separator + end - start > 4096 - state.response.location.count
-            {
+            if state.headerParser.overflow do
                 state.overflow = true
-                return 0
-            }
-
-            if separator do
-                state.response.location += " "
-            state.response.location += line[start until end]
-            state.hasLocation       = true
+            else do
+                state.invalidHeaders = true
+            return 0
         }
     }
 
@@ -266,6 +247,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
                                 bodyReader: options.bodyReader,
                                 requestContext: options.requestContext,
                                 requestBodyRemaining: options.requestBodyLength}
+    received.headerParser.lastHeaderIndex = Swag.U64.Max
     let request = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}
@@ -364,6 +346,8 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     let code = api.perform(request)
     if received.overflow do
         fail Errors.OverflowError{}
+    if received.invalidHeaders do
+        fail NetworkError{"malformed or oversized HTTP response header", code: 0}
     if received.cancelled do
         fail NetworkError{"HTTP response body handler stopped the transfer", code: Curl.CURLE_ABORTED_BY_CALLBACK}
     if received.bodyReadFailed do

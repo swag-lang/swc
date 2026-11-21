@@ -43,6 +43,11 @@ struct HttpPostServerFixture
     bodyRejected: bool
 }
 
+struct HttpResponseHeadersFixture
+{
+    server: *Http.Server
+}
+
 func receiveHttpBody(context: *void?, bytes: const [..] u8)->bool
 {
     let fixture = cast(*HttpBodyFixture, unwrap context)
@@ -70,6 +75,17 @@ func serveHttpPost(thread: const *Threading.Thread)
     Swag.require(request.method == "POST")
     fixture.body = String.from(cast(string, request.body.toSlice()))
     expect connection.respond(200, cast(const [..] u8, "received"))
+}
+
+func serveHttpResponseHeaders(thread: const *Threading.Thread)
+{
+    let fixture    = cast(*HttpResponseHeadersFixture, unwrap thread.userParam)
+    var connection = expect fixture.server.accept()
+    discard expect connection.readRequest()
+    let headers: [3] Http.Header = [{name: "X-Reply", value: "first"},
+                                    {name: "X-Reply", value: "second"},
+                                    {name: "Set-Cookie", value: "a=1"}]
+    expect connection.respond(200, cast(const [..] u8, "headers"), headers)
 }
 
 func rejectShortHttpPost(thread: const *Threading.Thread)
@@ -149,6 +165,32 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     let response = expect Http.get("127.0.0.1", endpoint.port, "/", false, {maxRedirects: 1})
     thread.wait()
     Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "redirected")
+}
+
+#test
+{
+    var server  = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture = HttpResponseHeadersFixture{server: &server}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttpResponseHeaders, &fixture)
+    expect thread.start()
+
+    let endpoint = expect server.localAddress()
+    let response = expect Http.get("127.0.0.1", endpoint.port, "/", false)
+    thread.wait()
+    Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "headers")
+    var replies: Array'String
+    var cookie = false
+    for header in response.headers
+    {
+        if header.name == "X-Reply" do
+            replies.add(header.value)
+        if header.name == "Set-Cookie" and header.value == "a=1" do
+            cookie = true
+    }
+
+    Swag.require(replies.count == 2 and replies[0] == "first" and replies[1] == "second")
+    Swag.require(cookie)
 }
 
 // Request validation rejects missing body readers and caller-supplied transfer framing.

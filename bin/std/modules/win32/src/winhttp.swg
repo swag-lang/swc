@@ -15,9 +15,8 @@ const WINHTTP_OPTION_REDIRECT_POLICY_NEVER        = 0'u32
 const WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP = 1'u32
 const WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS       = 2'u32
 const WINHTTP_QUERY_STATUS_CODE                   = 19'u32
-const WINHTTP_QUERY_LOCATION                      = 33'u32
+const WINHTTP_QUERY_RAW_HEADERS_CRLF              = 22'u32
 const WINHTTP_QUERY_FLAG_NUMBER                   = 0x20000000'u32
-const ERROR_WINHTTP_HEADER_NOT_FOUND              = 12150'u32
 
 #[Foreign("winhttp", callconv: Swag.CallConv.C)]
 {

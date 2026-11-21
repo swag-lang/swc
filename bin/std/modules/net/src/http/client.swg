@@ -18,7 +18,9 @@ using Core
 // with coarse enforcement; Linux applies it to the whole transfer, including connection setup.
 // The synchronous operation cannot be cancelled while a native call is blocked.
 // The result owns its body and includes non-success status codes. When `bodyHandler` is supplied,
-// it receives body chunks during the transfer and `Response.body` remains empty. Returning false
+// it receives body chunks during the transfer and `Response.body` remains empty. All final
+// response headers are returned in received order, preserving duplicate names; `Response.location`
+// contains the first Location value. Returning false
 // stops the transfer and reports a network error. Invalid input, transport errors, a reached
 // redirect limit, and responses exceeding limits fail without returning a partial result. Linux limits
 // total response headers to 64 KiB and Location to 4096 bytes; Windows limits Location to
@@ -134,4 +136,149 @@ private func isValidRequestPath(path: string)->bool
     }
 
     return true
+}
+
+private struct ResponseHeaderParser
+{
+    lastHeaderIndex: u64
+    locationSeen:    bool
+    overflow:        bool
+}
+
+private func appendResponseHeader(response: *Response, parser: *ResponseHeaderParser, line: string)->bool
+{
+    var end = line.count
+    while end > 0 and (line[end - 1] == '\r' or line[end - 1] == '\n') do
+        end -= 1
+    let text = line[0 until end]
+    if text.count == 0 do
+        return true
+    if text[0] == ' ' or text[0] == '\t'
+    {
+        if parser.lastHeaderIndex == Swag.U64.Max do
+            return false
+        var start = 0'u64
+        while start < text.count and (text[start] == ' ' or text[start] == '\t') do
+            start += 1
+        while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t') do
+            end -= 1
+        if end == start do
+            return true
+        let value  = text[start until end]
+        let header = &response.headers[parser.lastHeaderIndex]
+        if header.value.count + 1 + value.count > 65536
+        {
+            parser.overflow = true
+            return false
+        }
+
+        if not header.value.isEmpty() do
+            header.value += " "
+        header.value += value
+        if parser.locationSeen and
+           header.name.count == 8 and
+           Utf8.indexOf(header.name, "location", 0, .Latin1NoCase) == 0
+        {
+            if response.location.count + 1 + value.count > 4096
+            {
+                parser.overflow = true
+                return false
+            }
+
+            if not response.location.isEmpty() do
+                response.location += " "
+            response.location += value
+        }
+
+        return true
+    }
+
+    let colon = Utf8.indexOf(text, ':')
+    if colon == Swag.U64.Max or colon == 0 do
+        return false
+    let name = text[0 until colon]
+    for c in name
+    {
+        if not ((c >= 'a' and c <= 'z') or
+                (c >= 'A' and c <= 'Z') or
+                (c >= '0' and c <= '9') or
+                Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max) do
+            return false
+    }
+
+    var start = colon + 1
+    end = text.count
+    while start < end and (text[start] == ' ' or text[start] == '\t') do
+        start += 1
+    while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t') do
+        end -= 1
+    let value = text[start until end]
+    for c in value where (c < ' ' and c != '\t') or c == 0x7F do
+        return false
+    response.headers.add({name: String.from(name), value: String.from(value)})
+    parser.lastHeaderIndex = response.headers.count - 1
+    if name.count == 8 and
+       Utf8.indexOf(name, "location", 0, .Latin1NoCase) == 0 and
+       not parser.locationSeen
+    {
+        if value.count > 4096
+        {
+            parser.overflow = true
+            return false
+        }
+
+        response.location   = String.from(value)
+        parser.locationSeen = true
+    }
+
+    return true
+}
+
+private func parseResponseHeaders(raw: string, response: *Response) fail
+{
+    if raw.count > 65536 do
+        fail Errors.OverflowError{}
+    var parser    = ResponseHeaderParser{lastHeaderIndex: Swag.U64.Max}
+    var inHeaders = false
+    var lineStart = 0'u64
+    var index     = 0'u64
+    while index < raw.count
+    {
+        if raw[index] == '\n'
+        {
+            let line = raw[lineStart until index + 1]
+            if Utf8.startsWith(line, "HTTP/")
+            {
+                response.headers.clear()
+                response.location.clear()
+                parser.lastHeaderIndex = Swag.U64.Max
+                parser.locationSeen    = false
+                inHeaders = true
+            }
+            elif line == "\r\n" or line == "\n"
+            {
+                inHeaders = false
+                parser.lastHeaderIndex = Swag.U64.Max
+            }
+            elif inHeaders and not appendResponseHeader(response, &parser, line)
+            {
+                if parser.overflow do
+                    fail Errors.OverflowError{}
+                fail NetworkError{"malformed HTTP response header", code: 0}
+            }
+
+            lineStart = index + 1
+        }
+
+        index += 1
+    }
+
+    if lineStart < raw.count and
+       inHeaders and
+       not appendResponseHeader(response, &parser, raw[lineStart to])
+    {
+        if parser.overflow do
+            fail Errors.OverflowError{}
+        fail NetworkError{"malformed HTTP response header", code: 0}
+    }
 }

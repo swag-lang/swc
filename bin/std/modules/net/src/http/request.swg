@@ -43,13 +43,24 @@ alias GetOptions = RequestOptions
 // Options accepted by [[Net.Http.post]].
 alias PostOptions = RequestOptions
 
-// An HTTP response whose body storage is owned by the value.
+// One response header; duplicate names and their received order are preserved.
+struct ResponseHeader
+{
+    public
+    {
+        name:  String     // Header field name as returned by the peer.
+        value: String     // Header field value with surrounding whitespace removed.
+    }
+}
+
+// An HTTP response whose body and header values are owned by the value.
 struct Response
 {
     public
     {
         status:   u32          // HTTP status code, including non-success responses.
         body:     Array'u8     // Response body bytes.
-        location: String       // Redirect location when supplied; empty otherwise.
+        location: String       // First Location header value; empty when the response has none.
+        headers:  Array'ResponseHeader     // Response headers in received order, including duplicate names.
     }
 }

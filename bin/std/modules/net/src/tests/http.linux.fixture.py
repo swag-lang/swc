@@ -82,6 +82,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.close_connection = True
             elif self.path == "/header-overflow":
                 self.send_body(b"", headers=(("X-Large", "a" * 70000),))
+            elif self.path == "/malformed-header":
+                self.wfile.write(b"HTTP/1.1 200 OK\r\nBad Header: invalid\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                self.close_connection = True
             elif self.path == "/location-overflow":
                 self.send_body(b"", 302, (("Location", "/" + "a" * 4096),))
             elif self.path in ("/folded-location", "/folded-location-overflow"):

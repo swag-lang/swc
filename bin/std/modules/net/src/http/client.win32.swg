@@ -4,25 +4,26 @@
 
 using Core, Win32
 
-private func queryLocation(request: HINTERNET)->String fail
+private func queryResponseHeaders(request: HINTERNET, response: *Response) fail
 {
     var length: u32
-    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_LOCATION, null, null, &length, null)
+    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_RAW_HEADERS_CRLF, null, null, &length, null)
     {
         let code = GetLastError()
-        if code == ERROR_WINHTTP_HEADER_NOT_FOUND do
-            return {}
         if code != ERROR_INSUFFICIENT_BUFFER do
             fail NetworkError{code: cast(s32, code)}
     }
 
-    if length > 8192 or length % 2 != 0 do
+    if length > 131074 or length % 2 != 0 do
         fail Errors.OverflowError{}
     var buffer: Array'u16
     buffer.resize(length / 2)
-    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_LOCATION, null, buffer.storage(), &length, null) do
+    if not WinHttpQueryHeaders(request, WINHTTP_QUERY_RAW_HEADERS_CRLF, null, buffer.storage(), &length, null) do
         fail NetworkError{code: cast(s32, GetLastError())}
-    return Utf8.fromUtf16(buffer.toSlice()[0 until length / 2])
+    var characterCount = length / 2
+    while characterCount > 0 and buffer[characterCount - 1] == 0 do
+        characterCount -= 1
+    try parseResponseHeaders(Utf8.fromUtf16(buffer.toSlice()[0 until characterCount]), response)
 }
 
 func getNative(host: string, port: u16, path: string, secure = true, options: GetOptions = {})->Response fail
@@ -127,7 +128,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
     var statusSize = cast(u32, #sizeof(u32))
     if not WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, null, &result.status, &statusSize, null) do
         fail NetworkError{code: cast(s32, GetLastError())}
-    result.location = try queryLocation(request)
+    try queryResponseHeaders(request, &result)
 
     var chunk: [8192] u8
     var bodyBytes = 0'u64

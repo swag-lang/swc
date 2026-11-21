@@ -38,8 +38,19 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     expectHttpOverflow(port, "/header-overflow", 0)
     expectHttpOverflow(port, "/location-overflow", 0)
     expectHttpOverflow(port, "/folded-location-overflow", 0)
+    var malformed: Swag.Error
+    discard catch Http.get("localhost", port, "/malformed-header", false) as malformed
+    Swag.require(malformed.value() is NetworkError)
     let folded = expect Http.get("localhost", port, "/folded-location", false)
     Swag.require(folded.location == "/first /second")
+    var sawFoldedLocation = false
+    for header in folded.headers where header.name == "Location"
+    {
+        Swag.require(header.value == "/first /second")
+        sawFoldedLocation = true
+    }
+
+    Swag.require(sawFoldedLocation)
     let limit = expect Http.get("localhost", port, "/location-limit", false, {maxBodyBytes: 0})
     Swag.require(limit.status == 302 and limit.location.count == 4096)
     let response = expect Http.get("localhost", port, "/informational", false)

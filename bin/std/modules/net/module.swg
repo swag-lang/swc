@@ -54,7 +54,8 @@ HTTPS verifies certificates and host names against the platform trust roots. Lin
 `libcurl.so.4` on the first HTTP request and needs thread-safe initialization and asynchronous DNS
 support; TCP-only programs do not load it. Standard proxy settings remain effective, including
 `NO_PROXY`. `SSL_CERT_FILE` and `SSL_CERT_DIR` override Linux CA roots for the server and HTTPS proxy.
-Requests have bounded response bodies and return redirects without following them, so the caller
+Responses expose the final status, body, and ordered headers (including duplicate names). Requests
+have bounded response bodies and return redirects without following them, so the caller
 can decide which destinations are acceptable by default. GET can optionally follow at most ten
 redirects; HTTPS requests cannot downgrade to HTTP, and redirect following rejects
 origin-sensitive request headers. POST never follows redirects. [[Net.Http.get]] documents timeout

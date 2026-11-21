@@ -8,7 +8,76 @@ public const AesGcmNonceSize = 12
 // AES-GCM authentication tag size in bytes.
 public const AesGcmTagSize = 16
 
-private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
+private func aesGcmTogglePolynomialBit(product: *[4] u64, position: u32, mask: u64)
+{
+    let word = position / 64
+    let bit  = position % 64
+    product[][word] ^= (1'u64 << bit) & mask
+}
+
+internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
+{
+    var value:      [2] u64
+    var key:        [2] u64
+    var stateWords: [2] u64
+    var blockWords: [2] u64
+    var keyWords:   [2] u64
+    Swag.memcpy(&stateWords[0], &state[][0], 16)
+    Swag.memcpy(&blockWords[0], block, 16)
+    Swag.memcpy(&keyWords[0], &hashKey[0], 16)
+    for index in 2
+    {
+        value[index] = Math.reverse(Math.bigEndianToNative(stateWords[index] ^ blockWords[index]))
+        key[index]   = Math.reverse(Math.bigEndianToNative(keyWords[index]))
+    }
+
+    let left  = cast(Math.Simd.U64x2, value)
+    let right = cast(Math.Simd.U64x2, key)
+    var lowLow:   [2] u64
+    var lowHigh:  [2] u64
+    var highLow:  [2] u64
+    var highHigh: [2] u64
+    Math.Simd.store(&lowLow[0], Math.Simd.clmulLowLow(left, right))
+    Math.Simd.store(&lowHigh[0], Math.Simd.clmulLowHigh(left, right))
+    Math.Simd.store(&highLow[0], Math.Simd.clmulHighLow(left, right))
+    Math.Simd.store(&highHigh[0], Math.Simd.clmulHighHigh(left, right))
+
+    var product: [4] u64
+    product[0] = lowLow[0]
+    product[1] = lowLow[1] ^ lowHigh[0] ^ highLow[0]
+    product[2] = highHigh[0] ^ lowHigh[1] ^ highLow[1]
+    product[3] = highHigh[1]
+
+    // Reduce x^255..x^128 by x^128 + x^7 + x^2 + x + 1 in a fixed bit schedule.
+    for bit in 128
+    {
+        let position = 128'u32 + (127 - bit)
+        let selected = 0'u64 - ((product[position / 64] >> (position % 64)) & 1)
+        aesGcmTogglePolynomialBit(&product, position, selected)
+        aesGcmTogglePolynomialBit(&product, position - 128, selected)
+        aesGcmTogglePolynomialBit(&product, position - 127, selected)
+        aesGcmTogglePolynomialBit(&product, position - 126, selected)
+        aesGcmTogglePolynomialBit(&product, position - 121, selected)
+    }
+
+    var output: [2] u64
+    output[0] = Math.nativeToBigEndian(Math.reverse(product[0]))
+    output[1] = Math.nativeToBigEndian(Math.reverse(product[1]))
+    Swag.memcpy(&state[][0], &output[0], 16)
+    Crypto.secureClear(value)
+    Crypto.secureClear(key)
+    Crypto.secureClear(stateWords)
+    Crypto.secureClear(blockWords)
+    Crypto.secureClear(keyWords)
+    Crypto.secureClear(lowLow)
+    Crypto.secureClear(lowHigh)
+    Crypto.secureClear(highLow)
+    Crypto.secureClear(highHigh)
+    Crypto.secureClear(product)
+    Crypto.secureClear(output)
+}
+
+internal func aesGcmGhashBlockScalar(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
     var value:   [2] u64
     var factor:  [2] u64
@@ -44,6 +113,18 @@ private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*
     Crypto.secureClear(factor)
     Crypto.secureClear(input)
     Crypto.secureClear(value)
+}
+
+private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
+{
+    #static if not BIG_ENDIAN
+    {
+        aesGcmGhashBlockClmul(state, hashKey, block)
+    }
+    else
+    {
+        aesGcmGhashBlockScalar(state, hashKey, block)
+    }
 }
 
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)
@@ -112,15 +193,52 @@ private func aesGcmTag(aes: *Aes, nonce: const [..] u8, associatedData: const [.
     return tag
 }
 
-private func aesGcmIncrementCounter(counter: *[16] u8)
+private func aesGcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
-    var carry = 1'u8
-    for index in 4
+    var block    = firstBlock
+    let endBlock = firstBlock + blockCount
+    while block < endBlock
     {
-        let byteIndex = 15 - index
-        let value     = cast(u16, counter[][byteIndex]) + carry
-        counter[][byteIndex] = cast(u8, value & 0xFF)
-        carry = cast(u8, value >> 8)
+        var counter: [16] u8
+        Swag.memcpy(&counter[0], nonce.buffer, AesGcmNonceSize)
+        let counterValue = cast(u32, block + 2)
+        counter[12] = Math.byteAt(counterValue, 3)
+        counter[13] = Math.byteAt(counterValue, 2)
+        counter[14] = Math.byteAt(counterValue, 1)
+        counter[15] = Math.byteAt(counterValue, 0)
+
+        var keyStream: [16] u8
+        try aes[].encryptBlock(counter, keyStream)
+        let offset = block * 16
+        let count  = Math.min(source.count - offset, 16)
+        for index in count do
+            destination[offset + index] = source[offset + index] ^ keyStream[index]
+        Crypto.secureClear(counter)
+        Crypto.secureClear(keyStream)
+        block += 1
+    }
+}
+
+private func aesGcmCrypt(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8) fail
+{
+    const ParallelThreshold = 64 * 1024
+    const BatchBlocks       = 1024
+    let blockCount = source.count / 16 + cast(u64, (source.count % 16) != 0)
+    if source.count < ParallelThreshold
+    {
+        try aesGcmCryptBlocks(aes, nonce, source, destination, 0, blockCount)
+        return
+    }
+
+    let batchCount = blockCount / BatchBlocks + cast(u64, (blockCount % BatchBlocks) != 0)
+    catch parallel for |&aes, &nonce, &source, &destination, blockCount| batch in batchCount
+    {
+        let firstBlock = batch * BatchBlocks
+        let count      = Math.min(blockCount - firstBlock, BatchBlocks)
+        try aesGcmCryptBlocks(aes, nonce, source, destination, firstBlock, count)
+    }
+    {
+        fail Swag.err
     }
 }
 
@@ -148,22 +266,7 @@ func aesGcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
     defer Crypto.secureClear(hashKey)
     var initialHash = try aesGcmInitialHash(hashKey, associatedData)
     defer Crypto.secureClear(initialHash)
-    var counter: [16] u8
-    defer Crypto.secureClear(counter)
-    Swag.memcpy(&counter[0], &nonceCopy[0], AesGcmNonceSize)
-    counter[15] = 1
-    var offset = 0'u64
-    while offset < plaintext.count
-    {
-        aesGcmIncrementCounter(&counter)
-        var keyStream: [16] u8
-        try aes.encryptBlock(counter, keyStream)
-        let count = Math.min(plaintext.count - offset, 16)
-        for index in count do
-            ciphertext[offset + index] = plaintext[offset + index] ^ keyStream[index]
-        Crypto.secureClear(keyStream)
-        offset += count
-    }
+    try aesGcmCrypt(&aes, nonceCopy, plaintext, ciphertext)
 
     let computedTag = try aesGcmTag(&aes, nonceCopy, associatedData, hashKey, initialHash, ciphertext)
     Swag.memcpy(tag.buffer, &computedTag[0], AesGcmTagSize)
@@ -200,20 +303,5 @@ func aesGcmDecrypt(key, nonce, associatedData, ciphertext: const [..] u8, tag: c
         fail Errors.BadParameterError{"AES-GCM authentication failed"}
     }
 
-    var counter: [16] u8
-    defer Crypto.secureClear(counter)
-    Swag.memcpy(&counter[0], &nonceCopy[0], AesGcmNonceSize)
-    counter[15] = 1
-    var offset = 0'u64
-    while offset < ciphertext.count
-    {
-        aesGcmIncrementCounter(&counter)
-        var keyStream: [16] u8
-        try aes.encryptBlock(counter, keyStream)
-        let count = Math.min(ciphertext.count - offset, 16)
-        for index in count do
-            plaintext[offset + index] = ciphertext[offset + index] ^ keyStream[index]
-        Crypto.secureClear(keyStream)
-        offset += count
-    }
+    try aesGcmCrypt(&aes, nonceCopy, ciphertext, plaintext)
 }

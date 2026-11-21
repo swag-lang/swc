@@ -581,6 +581,27 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     Swag.require(right.b > right.r)
 }
 
+// A zero scale collapses geometry instead of being treated as an identity transform.
+#test
+{
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+
+    painter.scaleTransform(0)
+    painter.fillRect({1, 1, 2, 2}, Color.fromArgb(Argb.Red))
+    painter.resetTransform()
+
+    painter.scaleTransform(0, 0)
+    painter.fillRect({5, 5, 2, 2}, Color.fromArgb(Argb.Blue))
+    painter.end()
+
+    let image = renderCpu(8, 8, &painter)
+    assertPixel(image, 1, 1, Argb.Zero)
+    assertPixel(image, 5, 5, Argb.Zero)
+}
+
 // mapOver keeps one gradient continuous across separately painted shapes.
 #test
 {

@@ -1278,7 +1278,7 @@ impl Painter
     // Appends independent horizontal and vertical scale factors.
     mtd scaleTransform(x, y: f32)
     {
-        if isZeroEpsilon(x) and isZeroEpsilon(y) do
+        if isZeroEpsilon(x - 1) and isZeroEpsilon(y - 1) do
             return
         let tr = Transform2.createScale(x, y, 0, 0)
         .curState.transform.multiply(tr)
@@ -1288,7 +1288,7 @@ impl Painter
     // Appends a uniform scale factor.
     mtd scaleTransform(x: f32)
     {
-        if isZeroEpsilon(x) do
+        if isZeroEpsilon(x - 1) do
             return
         let tr = Transform2.createScale(x, x, 0, 0)
         .curState.transform.multiply(tr)

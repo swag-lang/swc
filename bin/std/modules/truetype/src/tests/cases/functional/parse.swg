@@ -30,6 +30,20 @@ func buildPredefinedCffCharset(charset: u8)->Array'u8
     return result
 }
 
+func buildCffExpertEncoding()->Array'u8
+{
+    var result: Array'u8
+    result.add([
+        0x01, 0x00, 0x04, 0x04,                       // Header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x07,                 // Top DICT INDEX
+        0x8C, 0x0F, 0x8C, 0x10, 0xA4, 0x11,           // charset 1, ExpertEncoding, CharStrings 25
+        0x00, 0x00, 0x00, 0x00,                       // String and GlobalSubrs INDEX
+        0x00, 0x03, 0x01, 0x01, 0x02, 0x03, 0x04,     // Three-entry CharStrings INDEX
+        0x0E, 0x0E, 0x0E])
+    return result
+}
+
 #test
 {
     let valueU16 = expect readU16(ReaderBytes, 0)
@@ -88,6 +102,11 @@ func buildPredefinedCffCharset(charset: u8)->Array'u8
     let expertSubsetBytes = buildPredefinedCffCharset(2)
     let expertSubset      = expect parseCffFont(expertSubsetBytes.toSlice())
     Swag.require(expertSubset.glyphNames[2].toString() == "dollaroldstyle")
+
+    let encodingBytes  = buildCffExpertEncoding()
+    let expertEncoding = expect parseCffFont(encodingBytes.toSlice())
+    let code33         = expertEncoding.codeToGid.tryFind(33)
+    Swag.require(code33 != null and code33.value == 2)
 }
 
 #test

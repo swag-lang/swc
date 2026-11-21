@@ -44,8 +44,7 @@ impl TcpStream
     {
         Swag.assert(.open)
         let value = enabled ? 1's32 : 0's32
-        if Linux.setsockopt(cast(s32, .handle), Linux.IPPROTO_TCP, Linux.TCP_NODELAY,
-                            cast(const *void, &value), #sizeof(s32)) < 0 do
+        if Linux.setsockopt(cast(s32, .handle), Linux.IPPROTO_TCP, Linux.TCP_NODELAY, cast(const *void, &value), #sizeof(s32)) < 0 do
             fail NetworkError{code: Linux.errno()}
     }
 
@@ -54,8 +53,7 @@ impl TcpStream
     {
         Swag.assert(.open)
         let value = enabled ? 1's32 : 0's32
-        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_KEEPALIVE,
-                            cast(const *void, &value), #sizeof(s32)) < 0 do
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_KEEPALIVE, cast(const *void, &value), #sizeof(s32)) < 0 do
             fail NetworkError{code: Linux.errno()}
     }
 
@@ -65,8 +63,17 @@ impl TcpStream
         Swag.assert(.open)
         let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
                                     tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
-        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO,
-                            cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
+            fail NetworkError{code: Linux.errno()}
+    }
+
+    // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
+    mtd setWriteTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
+                                    tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
+        if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_SNDTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
             fail NetworkError{code: Linux.errno()}
     }
 
@@ -88,6 +95,7 @@ impl TcpStream
         {
             result = Linux.connect(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), #sizeof(Linux.sockaddr_in6))
         }
+
         if result < 0
         {
             let code = Linux.errno()
@@ -164,10 +172,10 @@ impl TcpListener
             fail Errors.BadParameterError{}
         if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
             fail Errors.BadParameterError{}
-        let family = endpoint.address.family == .IPv4 ? Linux.AF_INET : Linux.AF_INET6
+        let family  = endpoint.address.family == .IPv4 ? Linux.AF_INET : Linux.AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
-        let length = cast(u32, endpoint.address.family == .IPv4 ? #sizeof(Linux.sockaddr_in) : #sizeof(Linux.sockaddr_in6))
+        let length  = cast(u32, endpoint.address.family == .IPv4 ? #sizeof(Linux.sockaddr_in) : #sizeof(Linux.sockaddr_in6))
         if Linux.bind(handle, cast(const *Linux.sockaddr, cast(const *void, &address)), length) < 0 or
            Linux.listen(handle, backlog) < 0
         {

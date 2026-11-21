@@ -65,15 +65,24 @@ impl TcpStream
             fail NetworkError{code: WSAGetLastError()}
     }
 
+    // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
+    mtd setWriteTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        var timeout = timeoutMs
+        if setsockopt(.handle, SOL_SOCKET, SO_SNDTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {
         if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
             fail Errors.BadParameterError{}
-        let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
+        let family  = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
-        let length = endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6)
+        let length  = endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6)
         if Win32.connect(handle, cast(const *SOCKADDR, cast(const *void, &address)), cast(s32, length)) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
@@ -136,10 +145,10 @@ impl TcpListener
             fail Errors.BadParameterError{}
         if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
             fail Errors.BadParameterError{}
-        let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
+        let family  = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
-        let length = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
+        let length  = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
         if bind(handle, cast(const *SOCKADDR, cast(const *void, &address)), length) == SOCKET_ERROR or
            Win32.listen(handle, backlog) == SOCKET_ERROR
         {

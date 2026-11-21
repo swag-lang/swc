@@ -26,6 +26,8 @@
     expect client.setNoDelay(false)
     expect client.setKeepAlive(true)
     expect client.setKeepAlive(false)
+    expect client.setWriteTimeout(50)
+    expect client.setWriteTimeout(0)
     listener.close()
     var bytes: [16] u8
     let emptyRead  = expect server.read(bytes[0 until 0])

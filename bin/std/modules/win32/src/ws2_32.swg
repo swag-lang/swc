@@ -12,10 +12,11 @@ const AF_INET6           = 23
 const AF_UNSPEC          = 0
 const SOCK_STREAM        = 1
 const SOCK_DGRAM         = 2
-const SD_SEND             = 1
-const SOL_SOCKET          = 0xFFFF
-const SO_KEEPALIVE        = 0x0008
-const SO_RCVTIMEO         = 0x1006
+const SD_SEND            = 1
+const SOL_SOCKET         = 0xFFFF
+const SO_KEEPALIVE       = 0x0008
+const SO_RCVTIMEO        = 0x1006
+const SO_SNDTIMEO        = 0x1005
 const IPPROTO_TCP        = 6
 const IPPROTO_UDP        = 17
 const TCP_NODELAY        = 1
@@ -30,7 +31,7 @@ const AI_PASSIVE         = 1
 const AI_NUMERICHOST     = 4
 const AI_NUMERICSERV     = 8
 const WSAVERNOTSUPPORTED = 10092
-const WSAEMSGSIZE         = 10040
+const WSAEMSGSIZE        = 10040
 
 struct WSADATA
 {

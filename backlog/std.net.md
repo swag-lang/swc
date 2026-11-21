@@ -93,3 +93,11 @@ whole layout.
 - Done when: tests cover complete transfers, empty buffers, and EOF before the requested length
   on both supported hosts.
 - Related: platform.portability.088
+
+### std.net.011 — TCP streams cannot set a write timeout
+
+- Evidence: `TcpStream` supports a blocking read timeout, but writes can block without a
+  caller-controlled limit.
+- Next: expose the platform send timeout on Linux and Windows.
+- Done when: callers can set and disable a write timeout with tests on both supported hosts.
+- Related: std.net.004, platform.portability.088

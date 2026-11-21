@@ -26,6 +26,7 @@ const SO_ERROR     = 4's32
 const SO_BROADCAST = 6's32
 const SO_KEEPALIVE = 9's32
 const SO_RCVTIMEO  = 20's32
+const SO_SNDTIMEO  = 21's32
 const SHUT_WR      = 1's32
 
 struct timeval

@@ -73,4 +73,7 @@ impl TcpStream
 
     // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
     mtd setReadTimeout(timeoutMs: u32) fail
+
+    // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
+    mtd setWriteTimeout(timeoutMs: u32) fail
 }

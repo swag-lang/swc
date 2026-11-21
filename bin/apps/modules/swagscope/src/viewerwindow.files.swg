@@ -444,6 +444,7 @@ impl ViewerWindow
                 break
             }
         }
+
         return result
     }
 

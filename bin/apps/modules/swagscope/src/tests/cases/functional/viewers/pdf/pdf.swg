@@ -30,6 +30,7 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
         page.addText("Summary · analysis · references", 24, 76, 11, Color.fromArgb(Argb.Black))
         document.addPage(#move page)
     }
+
     expect document.save(fileName)
     return fileName
 }
@@ -43,13 +44,15 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     var host: HeadlessHost
     host.setup(680, 520)
     var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PdfDocument.Panel, session.view)
+    let view    = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)
     view.resize(680, 500)
     view.applyLayout()
     view.thumbnailTask.wait()
     host.pump()
-    Swag.require(view.pdfView.pageCount() == 1000 and view.thumbnails.count == 5 and view.thumbnailButtons.count == 5)
+    Swag.require(view.pdfView.pageCount() == 1000 and
+                 view.thumbnails.count == 5 and
+                 view.thumbnailButtons.count == 5)
     Swag.require(view.thumbnailStart == 0 and view.thumbnailScroll.scrollSize.y == 730)
 
     view.pdfView.showPage(999)
@@ -61,9 +64,10 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     for button, slot in view.thumbnailButtons
     {
         let pageNumber = 996 + slot
-        let expected = pageNumber == 1000 ? Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, pageNumber) : Format.toString("%", pageNumber)
+        let expected   = pageNumber == 1000 ? Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, pageNumber) : Format.toString("%", pageNumber)
         Swag.require(button.text() == expected, Format.toString("slot % shows '%', expected '%'.", slot, button.text(), expected))
     }
+
     Swag.require(view.thumbnailScroll.scrollPosition().y > 0)
     for imageView in view.thumbnails
     {
@@ -89,11 +93,11 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
 
     var host: HeadlessHost
     host.setup(640, 450)
-    var reader = expect Pdf.Reader.open(source)
+    var reader        = expect Pdf.Reader.open(source)
     let originalPages = reader.pageCount()
-    let originalSize = (expect File.info(source)).size
-    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, source)
-    let view = assume cast(*PdfDocument.Panel, session.view)
+    let originalSize  = (expect File.info(source)).size
+    var session       = openTestViewer(PdfDocument.viewerPlugin(), &host.root, source)
+    let view          = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)
     view.resize(640, 420)
     view.applyLayout()
@@ -117,19 +121,22 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     expect Directory.create(rangeFolder)
     defer discard catch Directory.delete(rangeFolder, recurse: true)
     var range: PdfDocument.PageRange
-    Swag.require(PdfDocument.parsePageRange("1-2", originalPages, &range) and range.first == 0 and range.last == 1)
+    Swag.require(PdfDocument.parsePageRange("1-2", originalPages, &range) and
+                 range.first == 0 and
+                 range.last == 1)
     for invalid in ["", "0-1", "2-1", "1-3", "one-two", "1-51"]
     {
         var rejected: PdfDocument.PageRange
         Swag.require(not PdfDocument.parsePageRange(invalid, originalPages, &rejected), invalid)
     }
+
     var capped: PdfDocument.PageRange
     Swag.require(not PdfDocument.parsePageRange("1-51", 100, &capped))
     view.startPageRangeExport(range, rangeFolder, "fixture", 150)
     view.pageExportTask.wait()
     view.finishPageExport()
     let firstExport = expect Image.load(PdfDocument.pageRangeFileName(rangeFolder, "fixture", 0))
-    let lastExport = expect Image.load(PdfDocument.pageRangeFileName(rangeFolder, "fixture", 1))
+    let lastExport  = expect Image.load(PdfDocument.pageRangeFileName(rangeFolder, "fixture", 1))
     Swag.require(firstExport.width == 667 and lastExport.width == 667 and firstExport.height == 459)
     var overwriteFailure: Swag.Error
     discard catch PdfDocument.savePageRange(source, rangeFolder, "fixture", 0, 1, 150) as overwriteFailure
@@ -144,8 +151,9 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
         Swag.require(not entry.disabled)
         found = true
     }
+
     Swag.require(found)
-    var rangeLens = Lens.Results{}
+    var rangeLens    = Lens.Results{}
     var rangeEntries = Viewer.LensEntries.create(&rangeLens, "PDF", host.theme)
     view.describeLens(&rangeEntries)
     found = false
@@ -154,6 +162,7 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
         Swag.require(not entry.disabled)
         found = true
     }
+
     Swag.require(found)
 }
 
@@ -225,8 +234,10 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     completeViewerBackgroundLoad(&host, &view.load)
     view.thumbnailTask.wait()
     host.pump()
-    Swag.require(view.children.count == 2 and view.children.contains(cast(*Wnd, view.pdfView)) and
-                 view.thumbnails.count == 5 and view.thumbnailButtons.count == 5)
+    Swag.require(view.children.count == 2 and
+                 view.children.contains(cast(*Wnd, view.pdfView)) and
+                 view.thumbnails.count == 5 and
+                 view.thumbnailButtons.count == 5)
     if let firstThumbnail = view.thumbnails[0].picture() do
         Swag.require(firstThumbnail.isValid())
     else do
@@ -235,7 +246,8 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
         Swag.require(secondThumbnail.isValid())
     else do
         Swag.require(false)
-    Swag.require(view.thumbnailButtons[0].isEnabled() and view.thumbnailButtons[1].isEnabled() and
+    Swag.require(view.thumbnailButtons[0].isEnabled() and
+                 view.thumbnailButtons[1].isEnabled() and
                  not view.thumbnailButtons[2].isEnabled())
     assertViewerInfoButton(view.zoomLabel)
     Swag.require(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
@@ -317,7 +329,7 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     var host: HeadlessHost
     host.setup(680, 520)
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    let view = assume cast(*PdfDocument.Panel, result.view)
+    let view   = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
 
     let directBatch = expect PdfDocument.loadThumbnailBatch(fileName, 4, 9)
@@ -344,6 +356,7 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
         else do
             Swag.require(false)
     }
+
     view.thumbnailButtons[4].button.sigPressed.call(view.thumbnailButtons[4])
     Swag.require(view.pdfView.pageIndex == 8)
 }

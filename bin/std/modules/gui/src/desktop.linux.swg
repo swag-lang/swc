@@ -343,6 +343,7 @@ internal func syncInputFocus(context: *Context, app: *Application)
         Memory.clear(&app.nativeKeyDown, #sizeof(app.nativeKeyDown))
         app.updateNativeFocus(focused)
     }
+
     app.setActivated(app.nativeFocusSurface != null)
 }
 

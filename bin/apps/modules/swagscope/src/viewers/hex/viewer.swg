@@ -88,16 +88,16 @@ struct Panel
 
     late
     {
-        goToButton:     *IconButton
-        copyBytesButton: *IconButton
+        goToButton:        *IconButton
+        copyBytesButton:   *IconButton
         copyFormatsButton: *IconButton
-        analysisButton: *IconButton
-        optionsButton:  *IconButton
-        analysisView:   *AnalysisView
-        grid:           *GridView
-        tabs:           *StructureTabs
-        inspector:      *FloatingPanel
-        inspectorView:  *InspectorView
+        analysisButton:    *IconButton
+        optionsButton:     *IconButton
+        analysisView:      *AnalysisView
+        grid:              *GridView
+        tabs:              *StructureTabs
+        inspector:         *FloatingPanel
+        inspectorView:     *InspectorView
     }
 
     zoomLabel: *IconButton?
@@ -109,20 +109,20 @@ struct Panel
     formatIndex:     u32      // Hexadecimal, unsigned, signed, or float for the wide values.
     bigEndian:       bool     // Whether multi-byte values read their most significant byte first.
 
-    searchPattern: SearchPattern
-    bookmarkOffset: u64
-    hasBookmark:    bool     // One session-local byte offset; set after the lens stores it.
+    searchPattern:     SearchPattern
+    bookmarkOffset:    u64
+    hasBookmark:       bool     // One session-local byte offset; set after the lens stores it.
     navigationHistory: Array'u64
     navigationIndex:   u64 = Swag.U64.Max
     navigatingHistory: bool
-    analysis:      AnalysisOperation
-    analysisTimer: *Timer?     // Refreshes the progress of a running analysis.
-    fileName:      String
-    details:       String
-    structure:     Structure     // What the binary readers recognized; the tabs and the inspector read it.
-    load:          Viewer.BackgroundLoad'Loaded
-    services:      Viewer.HostServices
-    failureReason: String
+    analysis:          AnalysisOperation
+    analysisTimer:     *Timer?     // Refreshes the progress of a running analysis.
+    fileName:          String
+    details:           String
+    structure:         Structure     // What the binary readers recognized; the tabs and the inspector read it.
+    load:              Viewer.BackgroundLoad'Loaded
+    services:          Viewer.HostServices
+    failureReason:     String
 }
 
 private impl IWnd for Panel
@@ -252,6 +252,7 @@ impl Panel
         {
             .grid.moveCaret(offset, false, center: true)
         }
+
         .recordNavigation(offset, previous)
         .grid.setFocus()
         return true
@@ -400,7 +401,7 @@ impl Panel
         .copyBytesButton.toolTip   = texts().ui_CopyBytes
         .copyFormatsButton.toolTip = texts().ui_CopyFormats
         .optionsButton.toolTip     = appStrings().ui_Options
-        .analysisButton.toolTip = texts().ui_AnalysisTip
+        .analysisButton.toolTip    = texts().ui_AnalysisTip
         .analysisView.retranslate()
         .grid.invalidate()
         .refreshInspector()
@@ -423,12 +424,12 @@ impl Panel
         }
 
         // The commands of the context menu, so none of them needs a right click.
-        let strings = texts()
+        let strings      = texts()
         let hasSelection = .grid.hasSelection()
-        let bounded = .grid.selectionLength() > CopyLimit
-        let limit   = StrConv.toDisplaySize(CopyLimit)
+        let bounded      = .grid.selectionLength() > CopyLimit
+        let limit        = StrConv.toDisplaySize(CopyLimit)
         entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.hex.goTo")
-        let canGoBack = .navigationIndex != Swag.U64.Max and .navigationIndex > 0
+        let canGoBack    = .navigationIndex != Swag.U64.Max and .navigationIndex > 0
         let canGoForward = .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not canGoBack, defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.hex.back")
         entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not canGoForward, defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.hex.forward")
@@ -441,9 +442,10 @@ impl Panel
         if .hasBookmark
         {
             let bookmark = .bookmarkOffset
-            let address = offsetHex(bookmark)
+            let address  = offsetHex(bookmark)
             entries.add(Format.toString(strings.ui_GoToBookmark, address), .GoTo, func|view = me, bookmark|() { discard view.navigateTo(bookmark, 0) }, disabled: bookmark >= .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Alt, key: .B}, bindId: "scope.hex.goToBookmark")
         }
+
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.hex.options")
 
         // The zoom keys step the size of the bytes within the grid's own bounds rather than the
@@ -921,14 +923,22 @@ impl Panel
     {
         with .grid = GridView.create(me)
         {
-            .sigGoToOffset += func|view = me|(_, offset) { view.recordNavigation(offset, view.grid.caret) }
+            .sigGoToOffset += func|view = me|(_, offset)
+            {
+                view.recordNavigation(offset, view.grid.caret)
+            }
+
             .sigCaretChanged += func|view = me|(_)
             {
                 view.refreshInspector()
                 view.copyBytesButton.enable(view.grid.hasSelection())
                 view.copyFormatsButton.enable(view.grid.hasSelection())
             }
-            .sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
+
+            .sigZoomChanged += func|view = me|(_)
+            {
+                view.refreshZoom()
+            }
         }
     }
 

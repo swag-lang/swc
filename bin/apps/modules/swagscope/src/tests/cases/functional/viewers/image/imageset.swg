@@ -24,7 +24,7 @@ using Core, Pixel, Gui, Viewers
         {
             let count = Math.min(movie.frameCount, 128)
             Swag.require(view.itemSelector.items.count == count)
-            let firstInfo = movie.frameInfo(view.selectorStart)
+            let firstInfo  = movie.frameInfo(view.selectorStart)
             let firstLabel = view.itemSelector.items[0]!.name.text
             Swag.require(firstInfo and Utf8.contains(firstLabel, Format.toString("% × %", firstInfo.width, firstInfo.height).toString()))
             if firstInfo.kind == .Texture do
@@ -39,6 +39,7 @@ using Core, Pixel, Gui, Viewers
             Swag.require(view.itemSelectorStart(129, 256) == 65)
             Swag.require(view.itemSelectorStart(255, 256) == 128)
         }
+
         Swag.require(view.playButton.isLocallyVisible() == movie.isAnimated())
         Swag.require(movie.isPaused != movie.isAnimated())
         view.imageView.setPaused(true)
@@ -62,7 +63,7 @@ using Core, Pixel, Gui, Viewers
     source.fill(Argb.White)
     var encoded = expect source.encode("selector-window.ktx2")
     encoded.makeLinear()
-    var bytes = unwrap encoded.toSlice()
+    var bytes      = unwrap encoded.toSlice()
     let dataOffset = cast(const *u64, bytes.buffer + 80)[]
     cast(*u32, bytes.buffer + 32)[] = 256
     cast(*u64, bytes.buffer + 88)[] = 1024
@@ -87,8 +88,7 @@ using Core, Pixel, Gui, Viewers
     view.imageView.setFrameIndex(127)
     view.refreshFrame()
     Swag.require(view.selectorStart == 0 and view.itemSelector.selectedIndex == 127,
-                 Format.toString("window %, selected %, frame %, failure %", view.selectorStart,
-                                 view.itemSelector.selectedIndex, movie.frameIndex, movie.failureReason).toString())
+                 Format.toString("window %, selected %, frame %, failure %", view.selectorStart, view.itemSelector.selectedIndex, movie.frameIndex, movie.failureReason).toString())
     view.imageView.setFrameIndex(128)
     view.refreshFrame()
     Swag.require(view.selectorStart == 64 and view.itemSelector.selectedIndex == 64)
@@ -103,7 +103,7 @@ using Core, Pixel, Gui, Viewers
         Swag.require(not view.thumbnailReady[index] and not view.thumbnailRequested[index])
     let selectorRect = view.itemSelector.surfaceRect()
     host.click({selectorRect.x + selectorRect.width / 2, selectorRect.y + selectorRect.height / 2})
-    let popup = unwrap view.thumbnailPopup
+    let popup   = unwrap view.thumbnailPopup
     let visible = popup.visibleItemRange()
     Swag.require(visible.first == 0 and visible.end > 0)
     Swag.require(view.thumbnailRequestLocalIndex >= visible.first and view.thumbnailRequestLocalIndex < visible.end)
@@ -112,6 +112,7 @@ using Core, Pixel, Gui, Viewers
         if view.thumbnailRequested[index] do
             Swag.require(index >= visible.first and index < visible.end)
     }
+
     Swag.require(view.thumbnailPixels.width == 256 and view.thumbnailPixels.height == 384)
     Swag.require(view.thumbnailPixels.byteCount == 393216 and view.thumbnailList.frameCount == 128)
 
@@ -129,7 +130,7 @@ using Core, Pixel, Gui, Viewers
         Swag.require(not view.thumbnailReady[index] and not view.thumbnailRequested[index])
     let nextSelectorRect = view.itemSelector.surfaceRect()
     host.click({nextSelectorRect.x + nextSelectorRect.width / 2, nextSelectorRect.y + nextSelectorRect.height / 2})
-    let nextPopup = view.thumbnailPopup
+    let nextPopup   = view.thumbnailPopup
     let nextVisible = nextPopup.visibleItemRange()
     Swag.require(view.thumbnailRequestLocalIndex >= nextVisible.first and view.thumbnailRequestLocalIndex < nextVisible.end)
     Swag.require(view.selectorStart + cast(s32, view.thumbnailRequestLocalIndex) < movie.frameCount)
@@ -144,6 +145,7 @@ using Core, Pixel, Gui, Viewers
         host.pump()
         retired = view.retire()
     }
+
     Swag.require(retired and not view.thumbnailList.isValid(), "retired image panel retained thumbnail work or texture")
 }
 

@@ -67,7 +67,7 @@ private func requireMidiFormatFailure(fileName: string)
         Swag.require(ppqn.notes.count == ppqn.tracks.count)
         Swag.require(Math.abs(ppqn.durationSeconds - 0.5) < 0.00001, Format.toString("format % PPQN: %", format, ppqn.durationSeconds))
 
-        const SmpteDivisions: [4] u16 = [0xE828, 0xE728, 0xE328, 0xE228]
+        const SmpteDivisions:  [4] u16 = [0xE828, 0xE728, 0xE328, 0xE228]
         const ExpectedSeconds: [4] f64 = [1.0416666667, 1.0, 0.8341675, 0.8333333333]
         for division, index in SmpteDivisions
         {
@@ -366,7 +366,9 @@ private func requireMidiFormatFailure(fileName: string)
     Swag.require(document.tempoText() == "120–150 BPM · 2 changes", document.tempoText())
     Swag.require(document.meterChangesText() == "4/4 · 1 change", document.meterChangesText())
     Swag.require(document.keyChangesText() == "C major · 2 changes", document.keyChangesText())
-    Swag.require(document.keySignatures.count == 3 and document.keySignatures[2].sharps == -2 and document.keySignatures[2].minor)
+    Swag.require(document.keySignatures.count == 3 and
+                 document.keySignatures[2].sharps == -2 and
+                 document.keySignatures[2].minor)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)

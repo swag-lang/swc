@@ -228,8 +228,8 @@ struct GridView
 
     doc: Document
 
-    sigCaretChanged: SigArray'func||(*Wnd)     // Emitted after the caret or the selection moves.
-    sigGoToOffset:   SigArray'func||(*Wnd, u64) // Emitted when Go To accepts an explicit destination.
+    sigCaretChanged: SigArray'func||(*Wnd)          // Emitted after the caret or the selection moves.
+    sigGoToOffset:   SigArray'func||(*Wnd, u64)     // Emitted when Go To accepts an explicit destination.
 
     topRow: u64     // First row the viewport shows.
     caret:  u64     // Byte the caret stands on.

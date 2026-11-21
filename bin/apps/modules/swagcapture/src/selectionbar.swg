@@ -218,9 +218,9 @@ impl SelectionBar
 
         let capture      = unwrap .main.getCapture()
         let selectedForm = capture.selection.back()
-        let metrics     = .themeMetrics()
-        let defaultFace = .theme().res.defaultTypeFaceR.familyName()
-        let shown       = style.face.count ? style.face : defaultFace
+        let metrics      = .themeMetrics()
+        let defaultFace  = .theme().res.defaultTypeFaceR.familyName()
+        let shown        = style.face.count ? style.face : defaultFace
         with .faceButton = IconButton.createQuiet(me)
         {
             .toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
@@ -237,12 +237,12 @@ impl SelectionBar
     // The size uses the same trigger and popup as the face. Exact values stay in the inspector.
     mtd addTextSize()
     {
-        let style   = .main.selectedTextStyle()
+        let style        = .main.selectedTextStyle()
         let capture      = unwrap .main.getCapture()
         let selectedForm = capture.selection.back()
-        let metrics = .themeMetrics()
-        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize)
-        let width   = Math.ceil(Painter.measureString("150", font).width + metrics.miniBar_ButtonSize)
+        let metrics      = .themeMetrics()
+        let font         = .theme().createDefaultFontFs(metrics.defaultFontSize)
+        let width        = Math.ceil(Painter.measureString("150", font).width + metrics.miniBar_ButtonSize)
         with .sizeButton = IconButton.createQuiet(me)
         {
             .toolTip = appStrings().prop_Size

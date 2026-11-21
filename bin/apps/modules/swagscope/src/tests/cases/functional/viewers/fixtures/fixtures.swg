@@ -16,7 +16,7 @@ private struct Fixture
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
     Swag.require(face.hasChar('ع'))
-    let bold  = expect Face.loadAt(bytes.toSlice(), 1)
+    let bold = expect Face.loadAt(bytes.toSlice(), 1)
     defer bold.destroy()
     Swag.require(bold.hasChar('ع'))
 }

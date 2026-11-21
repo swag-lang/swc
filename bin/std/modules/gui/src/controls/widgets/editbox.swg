@@ -224,8 +224,10 @@ impl IWnd for EditBox
                 if subRectBorder == &rects.edit_SquareBorder do
                     subRectBorder = &rects.edit_SquareStrongBorder
             }
-            elif .isHot do
+            elif .isHot
+            {
                 colorBorder = colors.edit_HotBorder
+            }
 
         // On a floating sheet — a dialog — the surface is the field's own fill, so a field at rest
         // there is a well of the window's ground, which the focus lifts out of.

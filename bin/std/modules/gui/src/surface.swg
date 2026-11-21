@@ -125,9 +125,9 @@ struct Surface
     paintedWnds: u32     // Windows the last pass painted.
     skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
 
-    focusWnd:          *Wnd?     // Last window that held the keyboard on this surface.
-    savedFocusReason:  FocusReason  // How the recipient was chosen before reactivation.
-    focusAllowsNone:   bool      // Whether focus was set as a fallback keyboard receiver.
+    focusWnd:         *Wnd?           // Last window that held the keyboard on this surface.
+    savedFocusReason: FocusReason     // How the recipient was chosen before reactivation.
+    focusAllowsNone:  bool            // Whether focus was set as a fallback keyboard receiver.
 
     public
     {

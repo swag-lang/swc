@@ -6,47 +6,47 @@ using Core, Gui
 // Visible strings of the MIDI viewer.
 struct Texts
 {
-    ui_Track:            string = "Track"     // Option choosing which track the roll shows.
-    ui_AllTracks:        string = "All Tracks"
-    ui_TrackName:        string = "Track %"
-    ui_ZoomOut:          string = "Zoom Out"
-    ui_ZoomIn:           string = "Zoom In"
-    ui_Fit:              string = "Fit Complete Score"
-    ui_ZoomMenu:         string = "Zoom…"
-    ui_PitchLabels:      string = "Pitch Labels"
-    ui_PitchReference:   string = "C4 = MIDI 60"
-    ui_PitchScientific:  string = "C4 Names"
-    ui_PitchMidiNumber:  string = "MIDI Numbers"
-    ui_KeyboardWidth:    string = "Piano Keyboard Width"
-    ui_KeyboardCompact:  string = "Compact"
-    ui_KeyboardStandard: string = "Standard"
-    ui_KeyboardWide:     string = "Wide"
-    ui_ScaleHighlight:   string = "Scale Highlight"
+    ui_Track:                string = "Track"     // Option choosing which track the roll shows.
+    ui_AllTracks:            string = "All Tracks"
+    ui_TrackName:            string = "Track %"
+    ui_ZoomOut:              string = "Zoom Out"
+    ui_ZoomIn:               string = "Zoom In"
+    ui_Fit:                  string = "Fit Complete Score"
+    ui_ZoomMenu:             string = "Zoom…"
+    ui_PitchLabels:          string = "Pitch Labels"
+    ui_PitchReference:       string = "C4 = MIDI 60"
+    ui_PitchScientific:      string = "C4 Names"
+    ui_PitchMidiNumber:      string = "MIDI Numbers"
+    ui_KeyboardWidth:        string = "Piano Keyboard Width"
+    ui_KeyboardCompact:      string = "Compact"
+    ui_KeyboardStandard:     string = "Standard"
+    ui_KeyboardWide:         string = "Wide"
+    ui_ScaleHighlight:       string = "Scale Highlight"
     ui_ScaleHighlightDetail: string = "In Piano Roll, colors scale pitches; the keyboard follows the first visible time."
-    ui_Off:              string = "Off"
-    ui_On:               string = "On"
-    ui_PianoRoll:        string = "PIANO ROLL"
-    ui_NoNotes:          string = "No note events"
-    ui_OneTrack:         string = "1 track"
-    ui_Tracks:           string = "% tracks"
-    ui_OneNote:          string = "1 note"
-    ui_Notes:            string = "% notes"
-    ui_Summary:          string = "% · % · % · % BPM · % · %"
-    ui_Details:          string = "% · % · % · %"     // Tracks, meter, notes and length, at the foot of the score.
-    ui_Channel:          string = "channel %"         // The channel a track plays on, under its name.
-    ui_Percussion:       string = "percussion"        // What the tenth channel plays, in the information sheet.
-    ui_Presentation:     string = "Presentation"      // Option choosing how the score is laid out.
-    ui_ByTrack:          string = "Tracks"            // One lane per track.
-    ui_ByPitch:          string = "Piano Roll"        // One row per key.
-    ui_OneChange:        string = "1 change"          // A tempo, meter or key that changes once in the file.
-    ui_Changes:          string = "% changes"         // A tempo, meter or key that changes several times.
-    ui_Major:            string = "major"
-    ui_Minor:            string = "minor"
-    err_TooLarge:        string = "the MIDI viewer accepts files up to 32 MiB"
-    err_TooManyNotes:    string = "the MIDI file contains too many notes to display safely"
-    err_Header:          string = "the file does not contain a valid Standard MIDI header"
-    err_Track:           string = "the MIDI track chain ends before its declared track count"
-    err_Event:           string = "a MIDI event ends outside its track"
+    ui_Off:                  string = "Off"
+    ui_On:                   string = "On"
+    ui_PianoRoll:            string = "PIANO ROLL"
+    ui_NoNotes:              string = "No note events"
+    ui_OneTrack:             string = "1 track"
+    ui_Tracks:               string = "% tracks"
+    ui_OneNote:              string = "1 note"
+    ui_Notes:                string = "% notes"
+    ui_Summary:              string = "% · % · % · % BPM · % · %"
+    ui_Details:              string = "% · % · % · %"     // Tracks, meter, notes and length, at the foot of the score.
+    ui_Channel:              string = "channel %"         // The channel a track plays on, under its name.
+    ui_Percussion:           string = "percussion"        // What the tenth channel plays, in the information sheet.
+    ui_Presentation:         string = "Presentation"      // Option choosing how the score is laid out.
+    ui_ByTrack:              string = "Tracks"            // One lane per track.
+    ui_ByPitch:              string = "Piano Roll"        // One row per key.
+    ui_OneChange:            string = "1 change"          // A tempo, meter or key that changes once in the file.
+    ui_Changes:              string = "% changes"         // A tempo, meter or key that changes several times.
+    ui_Major:                string = "major"
+    ui_Minor:                string = "minor"
+    err_TooLarge:            string = "the MIDI viewer accepts files up to 32 MiB"
+    err_TooManyNotes:        string = "the MIDI file contains too many notes to display safely"
+    err_Header:              string = "the file does not contain a valid Standard MIDI header"
+    err_Track:               string = "the MIDI track chain ends before its declared track count"
+    err_Event:               string = "a MIDI event ends outside its track"
 }
 
 private const FrenchStringsName = "lang/fr/scope.midi.tweak"

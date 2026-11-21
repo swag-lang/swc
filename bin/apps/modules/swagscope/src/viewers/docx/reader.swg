@@ -45,6 +45,7 @@ private impl Reader
             .document.stylesSimplified = true
             return
         }
+
         .document.pageWidth  = width
         .document.pageHeight = height
     }
@@ -60,6 +61,7 @@ private impl Reader
                 .document.stylesSimplified = true
                 continue
             }
+
             switch index
             {
             case 0: .document.marginTop = value
@@ -67,6 +69,7 @@ private impl Reader
             case 2: .document.marginBottom = value
             case 3: .document.marginLeft = value
             }
+
             .document.marginMask |= cast(u8, 1 << index)
         }
     }
@@ -273,15 +276,17 @@ private impl Reader
                 // Paragraph-level section breaks can change geometry mid-document; keep them
                 // readable and disclose that this one-layout projection is approximate.
                 .document.stylesSimplified = true
-                .inSectionProperties = not token.empty
-                .ignoreSectionGeometry = not token.empty
+                .inSectionProperties       = not token.empty
+                .ignoreSectionGeometry     = not token.empty
             }
             else
             {
                 .inSectionProperties = not token.empty
             }
+
             return
         }
+
         if .inSectionProperties
         {
             if not .ignoreSectionGeometry and token.isElement("pgSz") do
@@ -406,7 +411,7 @@ private impl Reader
 
         if token.isElement("sectPr")
         {
-            .inSectionProperties = false
+            .inSectionProperties   = false
             .ignoreSectionGeometry = false
             return
         }

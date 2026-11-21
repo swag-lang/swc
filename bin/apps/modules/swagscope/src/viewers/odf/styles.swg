@@ -58,10 +58,10 @@ impl PageGeometry
         if not .valid or .width <= .left + .right or .width > 1584 do
             return String.from("24px")
         return Format.toString("%px %px %px %px",
-                              cast(u32, Math.round(.top * 4 / 3)),
-                              cast(u32, Math.round(.right * 4 / 3)),
-                              cast(u32, Math.round(.bottom * 4 / 3)),
-                              cast(u32, Math.round(.left * 4 / 3)))
+                               cast(u32, Math.round(.top * 4 / 3)),
+                               cast(u32, Math.round(.right * 4 / 3)),
+                               cast(u32, Math.round(.bottom * 4 / 3)),
+                               cast(u32, Math.round(.left * 4 / 3)))
     }
 
     mtd readMargin(token: const *Package.Token, attribute: string, side: PageMargin)
@@ -77,10 +77,10 @@ impl PageGeometry
 
             switch side
             {
-            case .Top:    .top    = margin.value
+            case .Top:    .top = margin.value
             case .Bottom: .bottom = margin.value
-            case .Left:   .left   = margin.value
-            case .Right:  .right  = margin.value
+            case .Left:   .left = margin.value
+            case .Right:  .right = margin.value
             }
         }
     }
@@ -163,7 +163,7 @@ impl StyleCatalog
                     }
                     else
                     {
-                        let width  = Odf.points(token.attribute("page-width") orelse "")
+                        let width = Odf.points(token.attribute("page-width") orelse "")
                         if width.valid and width.value > 0
                         {
                             .page.width = width.value

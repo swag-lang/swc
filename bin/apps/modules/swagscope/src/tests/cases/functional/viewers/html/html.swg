@@ -51,7 +51,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
     finishHtmlViewer(&host, &result)
 
-    let panel = assume cast(*Html.Panel, result.view)
+    let panel  = assume cast(*Html.Panel, result.view)
     let offset = source.indexOf("Safety and access")
     Swag.require(offset != Swag.U64.Max and panel.view.revealFileOffset(offset, "Safety and access"))
     let readingOffset = panel.view.readingOffset()

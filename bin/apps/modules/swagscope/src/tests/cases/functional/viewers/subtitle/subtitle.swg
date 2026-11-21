@@ -12,13 +12,14 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     host.setup(820, 520)
     var result = openTestViewer(Captions.viewerPlugin(), &host.root, subtitleViewerFixturePath(), commandParent: &host.root)
     Swag.require(result.collectMatches != null and result.revealMatch != null)
-    let view   = assume cast(*Captions.Panel, result.view)
+    let view = assume cast(*Captions.Panel, result.view)
     view.dockStyle = .Center
     host.root.applyLayout()
 
     view.setMinimumCueDuration(2)
     Swag.require(view.sheet.rows.count == view.track!.cueCount() and
-                 not view.sheet.rows[0].visible and view.sheet.rows[1].visible and
+                 not view.sheet.rows[0].visible and
+                 view.sheet.rows[1].visible and
                  view.track.cueContent(1) == "A second caption\non two lines.")
     Swag.require(view.identity().contains("Cues ≥ 2.00 s"))
     Swag.require(view.navigateCue(true) and view.currentCue == 1 and view.timeButton.text() == "0:02")
@@ -28,7 +29,9 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "first caption", &matches)
     Swag.require(matches.count == 1 and result.revealMatch(matches[0], "first caption"))
-    Swag.require(view.currentCue == 0 and view.minimumCueDuration == 0 and view.sheet.rows[0].visible and
+    Swag.require(view.currentCue == 0 and
+                 view.minimumCueDuration == 0 and
+                 view.sheet.rows[0].visible and
                  view.timeButton.text() == "0:00")
 
     view.setMinimumCueDuration(2)
@@ -68,8 +71,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     let x      = left + cast(f32, (target - view.rhythm.timeWindowStart()) * cast(f64, width) / 60)
     host.click(view.rhythm.localToSurface(Math.Point{x, rhythm.height * 0.5}))
     Swag.require(view.currentCue == 7 and view.timeButton.text() == "0:36",
-                 Format.toString("cue % at % (target %, start %, width %)", view.currentCue,
-                                 view.timeButton.text(), target, view.rhythm.timeWindowStart(), width))
+                 Format.toString("cue % at % (target %, start %, width %)", view.currentCue, view.timeButton.text(), target, view.rhythm.timeWindowStart(), width))
 }
 
 // Shift selection keeps cue indexes stable and copies the selected cues with their times.
@@ -111,7 +113,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     for &entry in results.sections[0]!.entries where entry.title == Captions.texts().ui_CopySelectedCues do
         localizedCopy = true
     Swag.require(localizedCopy)
-    var normalizedCopy = false
+    var normalizedCopy   = false
     var normalizedExport = false
     for &entry in results.sections[0]!.entries
     {
@@ -120,6 +122,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
         if entry.title == Captions.texts().ui_ExportNormalized do
             normalizedExport = true
     }
+
     Swag.require(normalizedCopy and normalizedExport)
 }
 
@@ -138,13 +141,16 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var host: Testing.HeadlessHost
     host.setup(820, 520)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
-    var result = openTestViewer(Captions.viewerPlugin(), &host.root, fileName)
-    let view   = assume cast(*Captions.Panel, result.view)
+    var result     = openTestViewer(Captions.viewerPlugin(), &host.root, fileName)
+    let view       = assume cast(*Captions.Panel, result.view)
     let normalized = "1\n00:00:01,000 --> 00:00:02,500\nMorning report\n\n"
     Swag.require((expect view.normalizedTranscript()) == normalized)
     let loss = view.normalizationLossSummary()
-    Swag.require(Utf8.contains(loss, "WebVTT") and Utf8.contains(loss, "SubRip") and
-                 Utf8.contains(loss, "records: 1") and Utf8.contains(loss, "identifiers"), loss)
+    Swag.require(Utf8.contains(loss, "WebVTT") and
+                 Utf8.contains(loss, "SubRip") and
+                 Utf8.contains(loss, "records: 1") and
+                 Utf8.contains(loss, "identifiers"),
+                 loss)
     expect view.exportNormalizedTranscriptTo(destination)
     Swag.require((expect File.readAllText(destination)) == normalized)
 
@@ -301,10 +307,14 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var result = openTestViewer(Captions.viewerPlugin(), &host.root, fileName)
     let view   = assume cast(*Captions.Panel, result.view)
     Swag.require(view.overlapGroups.count == 2)
-    Swag.require(view.overlapGroups[0].firstCue == 0 and view.overlapGroups[0].endCue == 3 and
-                 view.overlapGroups[0].start == 1 and view.overlapGroups[0].end == 5)
-    Swag.require(view.overlapGroups[1].firstCue == 4 and view.overlapGroups[1].endCue == 6 and
-                 view.overlapGroups[1].start == 8 and view.overlapGroups[1].end == 11)
+    Swag.require(view.overlapGroups[0].firstCue == 0 and
+                 view.overlapGroups[0].endCue == 3 and
+                 view.overlapGroups[0].start == 1 and
+                 view.overlapGroups[0].end == 5)
+    Swag.require(view.overlapGroups[1].firstCue == 4 and
+                 view.overlapGroups[1].endCue == 6 and
+                 view.overlapGroups[1].start == 8 and
+                 view.overlapGroups[1].end == 11)
     Swag.require(view.rhythm.toolTip == Captions.texts().ui_OverlapMarkerHint)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)

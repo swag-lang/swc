@@ -280,6 +280,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_SETFOCUS:
+
             // Start polling from the keys already held at activation.
             surface.app.keyboard.update()
             surface.app.updateNativeFocus(surface)

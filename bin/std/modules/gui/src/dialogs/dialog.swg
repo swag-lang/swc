@@ -173,8 +173,8 @@ impl Dialog
         let metrics = .themeMetrics()
         with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
         {
-            .spacing   = metrics.dialog_BtnPadding
-            .mode      = .HorizontalEnd
+            .spacing         = metrics.dialog_BtnPadding
+            .mode            = .HorizontalEnd
             .dockStyle       = .Bottom
             .arrowNavigation = true
 

@@ -8,10 +8,10 @@ struct ServerOptions
 {
     public
     {
-        maxHeaderBytes:             u64 = 64 * 1024     // Maximum request line, header fields, and trailers.
-        maxBodyBytes:               u64 = 4 * 1024 * 1024 // Maximum decoded request body.
-        maxRequestsPerConnection:   u32 = 1              // Maximum requests served on one connection; values above one require an idle timeout.
-        idleTimeoutMs:              u32                  // Maximum time for each blocking read in milliseconds; zero disables it.
+        maxHeaderBytes: u64 = 64 * 1024           // Maximum request line, header fields, and trailers.
+        maxBodyBytes:   u64 = 4 * 1024 * 1024     // Maximum decoded request body.
+        maxRequestsPerConnection: u32 = 1         // Maximum requests served on one connection; values above one require an idle timeout.
+        idleTimeoutMs:  u32     // Maximum time for each blocking read in milliseconds; zero disables it.
     }
 }
 
@@ -20,8 +20,8 @@ struct ServerHeader
 {
     public
     {
-        name:  String // Owned field name.
-        value: String // Owned field value.
+        name:  String     // Owned field name.
+        value: String     // Owned field value.
     }
 }
 
@@ -30,11 +30,11 @@ struct ServerRequest
 {
     public
     {
-        method:  String         // Request method token.
-        target:  String         // Origin-form request target.
-        version: String         // `HTTP/1.0` or `HTTP/1.1`.
-        headers: Array'ServerHeader // Request headers in wire order.
-        body:    Array'u8       // Request body after Content-Length or chunked decoding.
+        method:  String       // Request method token.
+        target:  String       // Origin-form request target.
+        version: String       // `HTTP/1.0` or `HTTP/1.1`.
+        headers: Array'ServerHeader     // Request headers in wire order.
+        body:    Array'u8     // Request body after Content-Length or chunked decoding.
     }
 }
 
@@ -50,9 +50,9 @@ struct Server
 #[Swag.NoCopy]
 struct ServerConnection
 {
-    stream:          TcpStream
-    options:         ServerOptions
-    responseStarted: bool
+    stream:           TcpStream
+    options:          ServerOptions
+    responseStarted:  bool
     responseFinished: bool
     input:            [4096] u8
     inputOffset:      u64
@@ -81,14 +81,15 @@ private func httpHeaderContainsToken(value: string, token: string)->bool
     while start < value.count
     {
         let separator = Utf8.indexOf(value, ",", start)
-        let end = separator == Swag.U64.Max ? value.count : separator
-        let part = Latin1.trim(value[start until end])
+        let end       = separator == Swag.U64.Max ? value.count : separator
+        let part      = Latin1.trim(value[start until end])
         if part.count == token.count and Utf8.indexOf(part, token, 0, .Latin1NoCase) == 0 do
             return true
         if separator == Swag.U64.Max do
             break
         start = separator + 1
     }
+
     return false
 }
 
@@ -113,7 +114,7 @@ private func httpReasonPhrase(status: u32)->string
     case 500: return "Internal Server Error"
     case 501: return "Not Implemented"
     case 503: return "Service Unavailable"
-    default: return "Response"
+    default:  return "Response"
     }
 }
 
@@ -130,8 +131,7 @@ impl Server
     // `idleTimeoutMs`, which bounds each blocking read while parsing requests.
     func listen(endpoint: SocketEndpoint, options: ServerOptions = {})->Server fail
     {
-        if options.maxHeaderBytes < 16 or options.maxRequestsPerConnection == 0 or
-           options.maxRequestsPerConnection > 1 and options.idleTimeoutMs == 0 do
+        if options.maxHeaderBytes < 16 or options.maxRequestsPerConnection == 0 or options.maxRequestsPerConnection > 1 and options.idleTimeoutMs == 0 do
             fail Errors.BadParameterError{}
         var listener = try TcpListener.listen(endpoint)
         return {listener: #move listener, options: options}
@@ -175,10 +175,11 @@ impl ServerConnection
         if .inputOffset == .inputCount
         {
             .inputOffset = 0
-            .inputCount = try .stream.read(.input)
+            .inputCount  = try .stream.read(.input)
             if .inputCount == 0 do
                 fail Errors.InvalidFormatError{"unexpected end of HTTP request"}
         }
+
         let byte = .input[.inputOffset]
         .inputOffset += 1
         return byte
@@ -196,10 +197,12 @@ impl ServerConnection
                     fail Errors.InvalidFormatError{"HTTP lines must end with CRLF"}
                 return line
             }
+
             if value == '\n' or value < ' ' and value != '\t' or value == 0x7F do
                 fail Errors.InvalidFormatError{"HTTP line contains a control character"}
             line.append(value)
         }
+
         fail Errors.OverflowError{"HTTP request headers exceed the configured limit"}
     }
 
@@ -213,9 +216,10 @@ impl ServerConnection
                 let count = Math.min(buffer.count - offset, .inputCount - .inputOffset)
                 Memory.copy(buffer.buffer + offset, .input.buffer + .inputOffset, count)
                 .inputOffset += count
-                offset += count
+                offset       += count
                 continue
             }
+
             let count = try .stream.read(buffer[offset to])
             if count == 0 do
                 fail Errors.InvalidFormatError{"HTTP request body ended early"}
@@ -231,8 +235,8 @@ impl ServerConnection
             headerBytes.value += line.count + 2
             if headerBytes.value > .options.maxHeaderBytes do
                 fail Errors.OverflowError{"HTTP request headers exceed the configured limit"}
-            let separator = Utf8.indexOf(line, ";")
-            let sizeText = separator == Swag.U64.Max ? line.toString() : line[until separator]
+            let separator  = Utf8.indexOf(line, ";")
+            let sizeText   = separator == Swag.U64.Max ? line.toString() : line[until separator]
             let parsedSize = catch StrConv.parseX64(sizeText) { fail Errors.InvalidFormatError{"invalid HTTP chunk size"} }
             if parsedSize.ovf or parsedSize.eat != sizeText.count do
                 fail Errors.InvalidFormatError{"invalid HTTP chunk size"}
@@ -283,7 +287,7 @@ impl ServerConnection
         var headerBytes = HeaderByteCount{}
         let requestLine = try .readLine(.options.maxHeaderBytes)
         headerBytes.value = requestLine.count + 2
-        let firstSpace = Utf8.indexOf(requestLine, " ")
+        let firstSpace  = Utf8.indexOf(requestLine, " ")
         let secondSpace = firstSpace == Swag.U64.Max ? firstSpace : Utf8.indexOf(requestLine, " ", firstSpace + 1)
         if firstSpace == 0 or secondSpace == Swag.U64.Max or secondSpace + 1 >= requestLine.count do
             fail Errors.InvalidFormatError{"invalid HTTP request line"}
@@ -291,18 +295,18 @@ impl ServerConnection
         for value in method do
             if not httpTokenByte(value) do
                 fail Errors.InvalidFormatError{"invalid HTTP method"}
-        let target = requestLine[firstSpace + 1 until secondSpace]
+        let target  = requestLine[firstSpace + 1 until secondSpace]
         let version = requestLine[secondSpace + 1 to]
         if target.count == 0 or target[0] != '/' or (version != "HTTP/1.0" and version != "HTTP/1.1") do
             fail Errors.InvalidFormatError{"unsupported HTTP request target or version"}
-        request.method = String.from(method)
-        request.target = String.from(target)
+        request.method  = String.from(method)
+        request.target  = String.from(target)
         request.version = String.from(version)
 
-        var hasContentLength = false
-        var contentLength = 0'u64
-        var isChunked = false
-        var connectionClose = false
+        var hasContentLength    = false
+        var contentLength       = 0'u64
+        var isChunked           = false
+        var connectionClose     = false
         var connectionKeepAlive = false
         for
         {
@@ -331,19 +335,22 @@ impl ServerConnection
                 if hasContentLength and parsed != contentLength do
                     fail Errors.InvalidFormatError{"conflicting HTTP Content-Length fields"}
                 hasContentLength = true
-                contentLength = parsed
+                contentLength    = parsed
             }
             elif httpHeaderNameEquals(name, "transfer-encoding")
             {
-                if isChunked or Utf8.indexOf(value, "chunked", 0, .Latin1NoCase) != 0 or value.count != 7 do
+                if isChunked or
+                   Utf8.indexOf(value, "chunked", 0, .Latin1NoCase) != 0 or
+                   value.count != 7 do
                     fail Errors.InvalidFormatError{"unsupported HTTP Transfer-Encoding"}
                 isChunked = true
             }
             elif httpHeaderNameEquals(name, "connection")
             {
-                connectionClose = connectionClose or httpHeaderContainsToken(value, "close")
+                connectionClose     = connectionClose or httpHeaderContainsToken(value, "close")
                 connectionKeepAlive = connectionKeepAlive or httpHeaderContainsToken(value, "keep-alive")
             }
+
             request.headers.add({name: String.from(name), value: String.from(value)})
         }
 
@@ -361,8 +368,8 @@ impl ServerConnection
             try .readExact(request.body.toSlice())
         }
 
-        .requestsServed += 1
-        .requestPending = true
+        .requestsServed   += 1
+        .requestPending   = true
         .requestKeepAlive = .requestsServed < .options.maxRequestsPerConnection and
                             not connectionClose and
                             (version == "HTTP/1.1" or connectionKeepAlive)
@@ -385,7 +392,8 @@ impl ServerConnection
     {
         for header in headers
         {
-            if header.name.count == 0 or httpHeaderNameEquals(header.name, "content-length") or
+            if header.name.count == 0 or
+               httpHeaderNameEquals(header.name, "content-length") or
                httpHeaderNameEquals(header.name, "transfer-encoding") or
                httpHeaderNameEquals(header.name, "connection") do
                 fail Errors.BadParameterError{}
@@ -406,10 +414,8 @@ impl ServerConnection
         var text = Format.toString("HTTP/1.1 % %\r\n", status, httpReasonPhrase(status))
         for header in headers do
             text += Format.toString("%: %\r\n", header.name, header.value)
-        if chunked
-        {
+        if chunked do
             text += "Transfer-Encoding: chunked\r\n"
-        }
         else do
             text += Format.toString("Content-Length: %\r\n", bodyLength)
         text += .requestKeepAlive ? "Connection: keep-alive\r\n\r\n" : "Connection: close\r\n\r\n"
@@ -436,11 +442,11 @@ impl ServerConnection
     {
         if not .requestPending or .responseStarted do
             fail Errors.BadParameterError{}
-        let accept = try webSocketValidateUpgrade(request)
+        let accept   = try webSocketValidateUpgrade(request)
         let response = Format.toString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
         try .writeAll(cast(const [..] u8, response))
         .responseStarted = true
-        .requestPending = false
+        .requestPending  = false
         var result = WebSocket{stream: #move .stream, side: .Server, options: options,
                                input: #move .input, inputOffset: .inputOffset, inputCount: .inputCount, open: true}
         .inputOffset = .inputCount
@@ -472,14 +478,16 @@ impl ServerConnection
     private mtd completeResponse()
     {
         .responseFinished = true
-        .requestPending = false
+        .requestPending   = false
         if .requestKeepAlive
         {
-            .responseStarted = false
+            .responseStarted  = false
             .responseFinished = false
             .requestKeepAlive = false
         }
-        else do
+        else
+        {
             .stream.close()
+        }
     }
 }

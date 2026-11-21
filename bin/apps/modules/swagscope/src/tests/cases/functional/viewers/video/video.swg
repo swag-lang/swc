@@ -1068,7 +1068,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     completeViewerWindowClassification(&host, window)
     let second = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
     waitForVideoFrame(second)
-    Swag.require(window.currentView == second and second.playing and Path.fileName(window.currentFile) == "clip2.mp4")
+    Swag.require(window.currentView == second and
+                 second.playing and
+                 Path.fileName(window.currentFile) == "clip2.mp4")
     Swag.require(window.focusedWindow() == null, Format.toString("focus after automatic playback advance: %", window.focusedWindow()?.id orelse "unnamed"))
 
     // Tab can still reach the transport explicitly.
@@ -1079,6 +1081,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
             break
         host.keyPress(.Tab)
     }
+
     Swag.require(second.playButton.hasVisibleFocus())
 
     // A keyboard choice belonged to the previous transport and does not carry to its replacement.
@@ -1086,7 +1089,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     completeViewerWindowClassification(&host, window)
     let wrapped = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
     waitForVideoFrame(wrapped)
-    Swag.require(window.currentView == wrapped and wrapped.playing and Path.fileName(window.currentFile) == "clip1.mp4")
+    Swag.require(window.currentView == wrapped and
+                 wrapped.playing and
+                 Path.fileName(window.currentFile) == "clip1.mp4")
     Swag.require(window.focusedWindow() == null)
 }
 

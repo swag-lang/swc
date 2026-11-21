@@ -12,6 +12,7 @@ using Swag, Core, Pixel
     defer host.shutdown()
 
     host.theme.setLight()
+
     // The fixture pins the card width because the headless monitor follows the machine running it.
     host.theme.metrics.trayNotice_MinWidth = host.theme.metrics.trayNotice_Width
     host.notify(.ThemeChanged)

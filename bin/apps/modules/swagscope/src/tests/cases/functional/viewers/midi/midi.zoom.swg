@@ -72,7 +72,9 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     host.notify(.LanguageChanged)
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
-    Swag.require(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large" and options.rows[4].value == "Activée")
+    Swag.require(options.rows[2].value == "Nombres MIDI" and
+                 options.rows[3].value == "Large" and
+                 options.rows[4].value == "Activée")
     Swag.require(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
     expect host.app.setLanguage(ReferenceLanguage)
 }

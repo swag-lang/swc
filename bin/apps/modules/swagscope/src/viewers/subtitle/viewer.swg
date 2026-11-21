@@ -32,10 +32,10 @@ struct CueLine
 // Where one cue stands in the reading list, at the width the list was last laid out at.
 struct CueRow
 {
-    top:    f32
-    height: f32
+    top:     f32
+    height:  f32
     visible: bool
-    lines:  Array'CueLine
+    lines:   Array'CueLine
 }
 
 // The search occurrence the list shows, in the words of one cue.
@@ -59,7 +59,7 @@ struct CueOverlapGroup
 private func collectCueOverlapGroups(track: const *Subtitle.Track)->Array'CueOverlapGroup
 {
     var result: Array'CueOverlapGroup
-    var group: CueOverlapGroup
+    var group:  CueOverlapGroup
     var active = false
     for index in track.cueCount()
     {
@@ -74,7 +74,7 @@ private func collectCueOverlapGroups(track: const *Subtitle.Track)->Array'CueOve
 
         if active and group.endCue - group.firstCue > 1 do
             result.add(group)
-        group = CueOverlapGroup{start, end, index, index + 1}
+        group  = CueOverlapGroup{start, end, index, index + 1}
         active = true
     }
 
@@ -222,13 +222,14 @@ impl CueSheet
         for &row, index in .rows
         {
             row.lines.clear()
-            row.top = y
+            row.top     = y
             row.visible = .panel.matchesDuration(index)
             if not row.visible
             {
                 row.height = 0
                 continue
             }
+
             .wrapCue(index, words, &row.lines)
             row.top    = y
             row.height = Math.max(TimesHeight, cast(f32, row.lines.count) * WordsLeading) + 2 * RowPadding
@@ -309,18 +310,19 @@ impl CueSheet
     // its words.
     mtd paintRow(painter: *Painter, index: u64)
     {
-        let colors  = .themeColors()
-        let metrics = .themeMetrics()
-        let mono    = .monoFont()
-        let words   = .wordsFont()
-        let band    = .rowRect(index)
-        let current = index == .panel.currentCue
+        let colors   = .themeColors()
+        let metrics  = .themeMetrics()
+        let mono     = .monoFont()
+        let words    = .wordsFont()
+        let band     = .rowRect(index)
+        let current  = index == .panel.currentCue
         let selected = .panel.isCueSelected(index)
         if selected
         {
             painter.setParams(.Antialiased)
             painter.fillRoundRect(band, metrics.corner_Control, metrics.corner_Control, colors.selection)
         }
+
         if current do
             painter.fillRect(Math.Rectangle{band.x, band.y, 3, band.height}, colors.caret)
 
@@ -468,9 +470,9 @@ impl CueRhythm
     // Maps a local point on the ruler to its subtitle time, clamped to the visible minute.
     mtd timeAt(point: Math.Point)->f64
     {
-        let room  = .clientRect()
-        let width = Math.min(CueSheet.ColumnWidth, Math.max(0, room.width - 2 * CueSheet.Gutter)) - 2 * CueSheet.NumberX
-        let left  = Math.round((room.width - width) * 0.5)
+        let room     = .clientRect()
+        let width    = Math.min(CueSheet.ColumnWidth, Math.max(0, room.width - 2 * CueSheet.Gutter)) - 2 * CueSheet.NumberX
+        let left     = Math.round((room.width - width) * 0.5)
         let fraction = Math.clamp((point.x - left) / Math.max(width, 1), 0, 1)
         return .timeWindowStart() + cast(f64, fraction) * Span
     }
@@ -523,7 +525,9 @@ impl IWnd for CueRhythm
             let x0 = left + cast(f32, (Math.max(group.start, start) - start) * scale)
             let x1 = left + cast(f32, (Math.min(group.end, start + Span) - start) * scale)
             painter.fillRoundRect(Math.Rectangle{x0, centerY - RuleSize * 1.5, Math.max(2, x1 - x0), RuleSize * 0.5},
-                                  RuleSize * 0.25, RuleSize * 0.25, colors.arc)
+                                  RuleSize * 0.25,
+                                  RuleSize * 0.25,
+                                  colors.arc)
         }
 
         if panel.currentCue != Swag.U64.Max
@@ -541,6 +545,7 @@ impl IWnd for CueRhythm
             evt.accepted = false
             return
         }
+
         .panel.revealTime(.timeAt(.surfaceToLocal(evt.surfacePos)))
     }
 }
@@ -558,15 +563,15 @@ struct Panel
         timeButton: *IconButton
     }
 
-    track:      *Subtitle.Track?
-    fileName:   String
-    services:   Viewer.HostServices
-    currentCue: u64 = Swag.U64.Max
-    selectionAnchor: u64 = Swag.U64.Max
-    duration:   f64
+    track:              *Subtitle.Track?
+    fileName:           String
+    services:           Viewer.HostServices
+    currentCue:         u64 = Swag.U64.Max
+    selectionAnchor:    u64 = Swag.U64.Max
+    duration:           f64
     minimumCueDuration: f64
-    overlapGroups: Array'CueOverlapGroup
-    match:      CueMatch
+    overlapGroups:      Array'CueOverlapGroup
+    match:              CueMatch
 }
 
 impl IWnd for Panel
@@ -615,8 +620,8 @@ impl Panel
     mtd retranslate()
     {
         .timeButton.toolTip = texts().ui_GoToTime
-        .rhythm.toolTip = texts().ui_OverlapMarkerHint
-        .sheet.toolTip = texts().ui_SelectCuesHint
+        .rhythm.toolTip     = texts().ui_OverlapMarkerHint
+        .sheet.toolTip      = texts().ui_SelectCuesHint
         .refreshReadings()
         .sheet.invalidate()
     }
@@ -637,7 +642,9 @@ impl Panel
         if index >= .track!.cueCount() or not .matchesDuration(index) do
             return false
         let anchor = .selectionAnchor == Swag.U64.Max ? .currentCue : .selectionAnchor
-        return .currentCue != Swag.U64.Max and index >= Math.min(anchor, .currentCue) and index <= Math.max(anchor, .currentCue)
+        return .currentCue != Swag.U64.Max and
+               index >= Math.min(anchor, .currentCue) and
+               index <= Math.max(anchor, .currentCue)
     }
 
     mtd selectedCueCount()->u64
@@ -675,9 +682,10 @@ impl Panel
         .minimumCueDuration = Math.max(seconds, 0.0)
         if .currentCue < .track!.cueCount() and not .matchesDuration(.currentCue)
         {
-            .currentCue = Swag.U64.Max
+            .currentCue      = Swag.U64.Max
             .selectionAnchor = Swag.U64.Max
         }
+
         .sheet.relayout()
         .scroll.setScrollPos(0, 0)
         .refreshReadings()
@@ -703,11 +711,9 @@ impl Panel
         {
             if not result.isEmpty() do
                 result += "\n"
-            result += Format.toString("%\n% --> %\n%", index + 1,
-                                      clockText(.track!.cueStartTime(index)),
-                                      clockText(.track.cueEndTime(index)),
-                                      .track.cueContent(index))
+            result += Format.toString("%\n% --> %\n%", index + 1, clockText(.track!.cueStartTime(index)), clockText(.track.cueEndTime(index)), .track.cueContent(index))
         }
+
         return result
     }
 
@@ -735,21 +741,21 @@ impl Panel
         var result: String
         for index in .track!.cueCount()
         {
-            let block = Format.toString("%\n% --> %\n%\n\n", index + 1,
-                                       clockText(.track.cueStartTime(index)),
-                                       clockText(.track.cueEndTime(index)),
-                                       .track.cueContent(index))
+            let block = Format.toString("%\n% --> %\n%\n\n", index + 1, clockText(.track.cueStartTime(index)), clockText(.track.cueEndTime(index)), .track.cueContent(index))
             if block.count > NormalizedExportLimit - Math.min(result.count, NormalizedExportLimit) do
                 fail Errors.UnsupportedFormatError{texts().ui_ExportTooLarge}
             result += block
         }
+
         return result
     }
 
     mtd normalizationLossSummary()->String
     {
         return Format.toString(texts().ui_NormalizationLoss,
-                               formatText(.track!.sourceFormat()), .track.cueCount(), .track.discardedCueCount())
+                               formatText(.track!.sourceFormat()),
+                               .track.cueCount(),
+                               .track.discardedCueCount())
     }
 
     private mtd confirmNormalization()->bool
@@ -758,8 +764,7 @@ impl Panel
             return false
         var options: MessageDlgOptions
         options.title = texts().ui_NormalizationTitle
-        return MessageDlg.confirm(.surface, .normalizationLossSummary(),
-                                  texts().ui_NormalizationQuestion, options: options) == Dialog.BtnYes
+        return MessageDlg.confirm(.surface, .normalizationLossSummary(), texts().ui_NormalizationQuestion, options: options) == Dialog.BtnYes
     }
 
     mtd copyNormalizedTranscript()
@@ -772,6 +777,7 @@ impl Panel
             .services.failed(me, Viewer.failureText(Swag.err))
             return
         }
+
         Clipboard.setString(text)
     }
 
@@ -797,6 +803,7 @@ impl Panel
             .initialName   = initialName
             .filters.add({texts().ui_NormalizationFile, ".srt"})
         }
+
         let dialog = FileDlg.create(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -911,8 +918,10 @@ impl Panel
                 for index in reversed(count) where .matchesDuration(index) do
                     return .revealCue(index, extend)
             }
+
             return false
         }
+
         if forward
         {
             for index in .currentCue + 1 until count where .matchesDuration(index) do
@@ -923,6 +932,7 @@ impl Panel
             for index in reversed(.currentCue) where .matchesDuration(index) do
                 return .revealCue(index, extend)
         }
+
         return false
     }
 
@@ -941,6 +951,7 @@ impl Panel
             for index in count where .matchesDuration(index) do
                 return .revealCue(index)
         }
+
         return false
     }
 
@@ -1023,8 +1034,8 @@ impl Panel
     mtd promptFilterDuration()
     {
         let current = Format.toString("%{f2}", .minimumCueDuration)
-        let dialog = EditDlg.createSingleLine(unwrap .surface,
-            {title: texts().ui_FilterDuration, message: texts().ui_FilterDurationHint, text: current})
+        let dialog  = EditDlg.createSingleLine(unwrap .surface,
+                                               {title: texts().ui_FilterDuration, message: texts().ui_FilterDurationHint, text: current})
         if dialog.doModal() != Dialog.BtnOk do
             return
         let seconds = catch StrConv.toF64(Latin1.trim(dialog.text())) { return; }

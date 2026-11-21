@@ -1772,7 +1772,7 @@ impl View
             if found == Swag.U64.Max or found >= offset do
                 break
             occurrence += 1
-            from = found + Math.max(text.count, 1)
+            from       = found + Math.max(text.count, 1)
         }
 
         return .findTextOccurrence(text, occurrence)

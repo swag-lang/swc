@@ -1044,8 +1044,8 @@ void MicroSsaState::renameIntoSsa()
     valueInfoCount_ = 0;
     valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
-    RenameState& state           = renameState_;
-    state.position               = 0;
+    RenameState& state = renameState_;
+    state.position     = 0;
     state.restores.clear();
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);

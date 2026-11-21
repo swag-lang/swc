@@ -101,7 +101,7 @@ struct Panel
 
     details:           String
     pitchLabelMode:    PitchLabelMode = .Scientific
-    keyboardWidthMode: u32 = 1
+    keyboardWidthMode: u32  = 1
     scaleHighlight:    bool = false
     load:              Viewer.BackgroundLoad'Document
     services:          Viewer.HostServices

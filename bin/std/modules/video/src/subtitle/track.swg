@@ -74,7 +74,7 @@ struct Track
     {
         textStorage:         String
         allocationAllocator: IAllocator?
-        discardedCues:      u64
+        discardedCues:       u64
     }
 }
 
@@ -246,24 +246,26 @@ private func decodeSubRip(track: *Track, source: string) fail
             break
 
         let blockFirst = index
-        var blockEnd = index
+        var blockEnd   = index
         while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
             blockEnd += 1
         var timeAt = blockFirst
         if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
-            timeAt += 1 // Optional cue identifier or sequence number.
+            timeAt += 1     // Optional cue identifier or sequence number.
         if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
         {
             track.noteDiscardedCue()
             index = blockEnd
             continue
         }
+
         let times = catch cueTimeLine(lines[timeAt])
         {
             track.noteDiscardedCue()
             index = blockEnd
             continue
         }
+
         var text: String
         joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
         if text.length do
@@ -299,24 +301,26 @@ private func decodeWebVtt(track: *Track, source: string) fail
         }
 
         let blockFirst = index
-        var blockEnd = index
+        var blockEnd   = index
         while blockEnd < lines.count and (Latin1.trim(lines[blockEnd])).count do
             blockEnd += 1
         var timeAt = blockFirst
         if Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max do
-            timeAt += 1 // Optional WebVTT cue identifier.
+            timeAt += 1     // Optional WebVTT cue identifier.
         if timeAt >= blockEnd or Utf8.indexOf(lines[timeAt], "-->") == Swag.U64.Max
         {
             track.noteDiscardedCue()
             index = blockEnd
             continue
         }
+
         let times = catch cueTimeLine(lines[timeAt])
         {
             track.noteDiscardedCue()
             index = blockEnd
             continue
         }
+
         var text: String
         joinCueLines(&text, lines.toSlice(), timeAt + 1, blockEnd)
         if text.length do
@@ -401,16 +405,19 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
             track.noteDiscardedCue()
             continue
         }
+
         let end = catch parseTimestamp(commaField(event, endField))
         {
             track.noteDiscardedCue()
             continue
         }
+
         if end <= start
         {
             track.noteDiscardedCue()
             continue
         }
+
         var text: String
         stripSubtitleMarkup(&text, commaTail(event, textField - 1))
         if text.length do
@@ -438,6 +445,7 @@ private func decodeLyric(track: *Track, source: string) fail
                     track.noteDiscardedCue()
                 break
             }
+
             let stamp = line[1 until close]
             if Utf8.indexOf(stamp, ":") == Swag.U64.Max do
                 break
@@ -447,6 +455,7 @@ private func decodeLyric(track: *Track, source: string) fail
                 line = line[close + 1 to]
                 continue
             }
+
             times.add(seconds)
             line = line[close + 1 to]
         }
@@ -487,28 +496,33 @@ private func decodeMicroDvd(track: *Track, source: string) fail
             track.noteDiscardedCue()
             continue
         }
+
         let firstClose = Utf8.indexOf(line, "}")
         if firstClose == Swag.U64.Max or firstClose + 1 >= line.count or line[firstClose + 1] != '{'
         {
             track.noteDiscardedCue()
             continue
         }
+
         let secondClose = Utf8.indexOf(line, "}", firstClose + 2)
         if secondClose == Swag.U64.Max
         {
             track.noteDiscardedCue()
             continue
         }
+
         let first = catch StrConv.toU64(line[1 until firstClose])
         {
             track.noteDiscardedCue()
             continue
         }
+
         let last = catch StrConv.toU64(line[firstClose + 2 until secondClose])
         {
             track.noteDiscardedCue()
             continue
         }
+
         if firstClose == 2 and first == 1 and last == 1
         {
             let declared = catch StrConv.toF64(Latin1.trim(line[secondClose + 1 to])) orelse 0
@@ -522,6 +536,7 @@ private func decodeMicroDvd(track: *Track, source: string) fail
             track.noteDiscardedCue()
             continue
         }
+
         var text = String.from(line[secondClose + 1 to])
         text.replace('|'rune, "\n")
         var clean: String
@@ -781,6 +796,7 @@ impl Track
             .noteDiscardedCue()
             return
         }
+
         let cue = .cues.emplaceInitAddress()
         cue.startSeconds = startSeconds
         cue.endSeconds   = endSeconds

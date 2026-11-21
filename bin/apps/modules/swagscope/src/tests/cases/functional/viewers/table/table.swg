@@ -6,9 +6,9 @@ using Core, Pixel, Gui, Viewers
 // A generated monthly survey table keeps its field labels and twelve realistic observations.
 #test
 {
-    let source = expect File.readAllText(scopeTestDataPath("viewer.field-observations.csv"))
+    let source    = expect File.readAllText(scopeTestDataPath("viewer.field-observations.csv"))
     let delimiter = Table.detectDelimiter("viewer.field-observations.csv", source)
-    let document = expect Table.parseDocument(source, delimiter)
+    let document  = expect Table.parseDocument(source, delimiter)
     Swag.require(document.columns.count == 6 and document.rows.count == 12)
     Swag.require(document.columns[0] == "site_id" and document.columns[4] == "conductivity_us_cm")
     Swag.require(document.rows[2].cells[0] == "north-marsh" and document.rows[2].cells[3] == "38")
@@ -192,7 +192,8 @@ using Core, Pixel, Gui, Viewers
 #test
 {
     Swag.require(Table.dateKey("2025-12-31") < Table.dateKey("2026-01-02") and
-                 Table.dateKey("2026-01-02") < Table.dateKey("2026/02/04"), "date key ordering")
+                 Table.dateKey("2026-01-02") < Table.dateKey("2026/02/04"),
+                 "date key ordering")
     var document = expect Table.parseDocument("day\n2026/02/04\n2025-12-31\n2026-01-02T09:00:00Z\n2026-01-02T08:00:00Z\n2026-01-02T08:00:00Z\n", ',')
     var host: Testing.HeadlessHost
     host.setup(760, 480)
@@ -200,15 +201,21 @@ using Core, Pixel, Gui, Viewers
     view.sortBy(0)
     Swag.require(view.kinds[0] == .Date)
     Swag.require(not view.numeric[0], "date column was marked numeric")
-    Swag.require(view.order[0] == 1 and view.order[1] == 3 and view.order[2] == 4 and
-                 view.order[3] == 2 and view.order[4] == 0,
+    Swag.require(view.order[0] == 1 and
+                 view.order[1] == 3 and
+                 view.order[2] == 4 and
+                 view.order[3] == 2 and
+                 view.order[4] == 0,
                  Format.toString("order: % % % % %", view.order[0], view.order[1], view.order[2], view.order[3], view.order[4]).toString())
     view.sortBy(0)
-    Swag.require(view.order[0] == 0 and view.order[1] == 2 and view.order[2] == 3 and
-                 view.order[3] == 4 and view.order[4] == 1)
+    Swag.require(view.order[0] == 0 and
+                 view.order[1] == 2 and
+                 view.order[2] == 3 and
+                 view.order[3] == 4 and
+                 view.order[4] == 1)
 
     var plainDates = expect Table.parseDocument("day\n2026-02-04\n2025-12-31\n", ',')
-    let plainView = Table.Panel.createDocument(&host.root, #move plainDates)
+    let plainView  = Table.Panel.createDocument(&host.root, #move plainDates)
     Swag.require(plainView.kinds[0] == .Date and not plainView.numeric[0])
     plainView.sortBy(0)
     Swag.require(plainView.order[0] == 1 and plainView.order[1] == 0)

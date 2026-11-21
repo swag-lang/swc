@@ -97,109 +97,109 @@ enum MediaInfoField
 // Visible strings of the media readings added to the application information sheet.
 struct MediaInfoStrings
 {
-    media:          string = "Media"
-    image:          string = "Image"
-    video:          string = "Video"
-    metadata:       string = "Metadata"
-    technical:      string = "Technical"
-    document:       string = "Document"
-    text:           string = "Text"
-    sound:          string = "Sound"
-    font:           string = "Font"
-    table:          string = "Table"
-    music:          string = "Music"
-    binary:         string = "Binary"
-    format:         string = "Format"
-    codec:          string = "Video codec"
-    dimensions:     string = "Dimensions"
-    displaySize:    string = "Display size"
-    aspectRatio:    string = "Aspect ratio"
-    pixelFormat:    string = "Pixel format"
-    depth:          string = "Bits per pixel"
-    frames:         string = "Frames"
-    pages:          string = "Pages"
-    lines:          string = "Lines"
-    sections:       string = "Sections"
-    members:        string = "Files"
-    typeface:       string = "Typeface"
-    duration:       string = "Duration"
-    frameRate:      string = "Frame rate"
-    exactFrameRate: string = "Exact frame rate"
-    bitrate:        string = "Approx. bitrate"
-    audio:          string = "Audio tracks"
-    subtitles:      string = "Subtitle tracks"
-    name:           string = "Name"
-    language:       string = "Language"
-    encoding:       string = "Encoding"
-    sampleRate:     string = "Sample rate"
-    channels:       string = "Channels"
-    sampleSize:     string = "Sample size"
-    levels:         string = "Levels"
-    samplePeak:     string = "Sample peak"
-    rmsLevel:       string = "RMS level"
-    fullScale:      string = "Full scale"
-    title:          string = "Title"
-    author:         string = "Author"
-    publisher:      string = "Publisher"
-    published:      string = "Published"
-    created:        string = "Created"
-    application:    string = "Application"
-    description:    string = "Description"
-    tags:           string = "Tags"
-    artist:         string = "Artist"
-    album:          string = "Album"
-    albumArtist:    string = "Album artist"
-    year:           string = "Year"
-    trackNumber:    string = "Track"
-    disc:           string = "Disc"
-    genre:          string = "Genre"
-    weight:         string = "Weight"
-    embedding:      string = "Embedding"
-    columns:        string = "Columns"
-    tracks:         string = "Tracks"
-    longestLine:    string = "Longest line"
-    controls:       string = "Control characters"
-    replacements:   string = "Unreadable characters (U+FFFD)"
-    transparency:   string = "Transparency"
-    character:      string = "Character"
-    glyphIndex:     string = "Glyph index"
-    timing:         string = "Timing"
-    overlaps:       string = "Overlapping cues"
-    shortestCue:    string = "Shortest cue"
-    bookmarks:      string = "Bookmarks"
-    textLayer:      string = "Text layer"
-    style:          string = "Style"
-    unitsPerEm:     string = "Units per em"
-    faces:          string = "Faces"
-    version:        string = "Version"
-    designer:       string = "Designer"
-    copyright:      string = "Copyright"
-    separator:      string = "Separator"
-    meter:          string = "Time signature"
-    tempo:          string = "Tempo"
-    keySignature:   string = "Key"
-    lineEnds:       string = "Line ends"
-    coverage:       string = "Coverage"
-    oneLine:        string = "1 line"
-    lineCount:      string = "% lines"
-    oneWord:        string = "1 word"
-    wordCount:      string = "% words"
-    oneCharacter:   string = "1 character"
-    characterCount: string = "% characters"
-    noFinalBreak:   string = "no break after the last line"
-    glyphCount:     string = "% glyphs"
-    mono:           string = "mono"
-    stereo:         string = "stereo"
-    channelCount:   string = "% channels"
-    oneSample:      string = "1 sample"
-    sampleCount:    string = "% samples"
-    track:          string = "Track %"
-    empty:          string = "None"
-    unavailable:    string = "Read error"
-    iccProfile:     string = "Embedded ICC profile"
+    media:             string = "Media"
+    image:             string = "Image"
+    video:             string = "Video"
+    metadata:          string = "Metadata"
+    technical:         string = "Technical"
+    document:          string = "Document"
+    text:              string = "Text"
+    sound:             string = "Sound"
+    font:              string = "Font"
+    table:             string = "Table"
+    music:             string = "Music"
+    binary:            string = "Binary"
+    format:            string = "Format"
+    codec:             string = "Video codec"
+    dimensions:        string = "Dimensions"
+    displaySize:       string = "Display size"
+    aspectRatio:       string = "Aspect ratio"
+    pixelFormat:       string = "Pixel format"
+    depth:             string = "Bits per pixel"
+    frames:            string = "Frames"
+    pages:             string = "Pages"
+    lines:             string = "Lines"
+    sections:          string = "Sections"
+    members:           string = "Files"
+    typeface:          string = "Typeface"
+    duration:          string = "Duration"
+    frameRate:         string = "Frame rate"
+    exactFrameRate:    string = "Exact frame rate"
+    bitrate:           string = "Approx. bitrate"
+    audio:             string = "Audio tracks"
+    subtitles:         string = "Subtitle tracks"
+    name:              string = "Name"
+    language:          string = "Language"
+    encoding:          string = "Encoding"
+    sampleRate:        string = "Sample rate"
+    channels:          string = "Channels"
+    sampleSize:        string = "Sample size"
+    levels:            string = "Levels"
+    samplePeak:        string = "Sample peak"
+    rmsLevel:          string = "RMS level"
+    fullScale:         string = "Full scale"
+    title:             string = "Title"
+    author:            string = "Author"
+    publisher:         string = "Publisher"
+    published:         string = "Published"
+    created:           string = "Created"
+    application:       string = "Application"
+    description:       string = "Description"
+    tags:              string = "Tags"
+    artist:            string = "Artist"
+    album:             string = "Album"
+    albumArtist:       string = "Album artist"
+    year:              string = "Year"
+    trackNumber:       string = "Track"
+    disc:              string = "Disc"
+    genre:             string = "Genre"
+    weight:            string = "Weight"
+    embedding:         string = "Embedding"
+    columns:           string = "Columns"
+    tracks:            string = "Tracks"
+    longestLine:       string = "Longest line"
+    controls:          string = "Control characters"
+    replacements:      string = "Unreadable characters (U+FFFD)"
+    transparency:      string = "Transparency"
+    character:         string = "Character"
+    glyphIndex:        string = "Glyph index"
+    timing:            string = "Timing"
+    overlaps:          string = "Overlapping cues"
+    shortestCue:       string = "Shortest cue"
+    bookmarks:         string = "Bookmarks"
+    textLayer:         string = "Text layer"
+    style:             string = "Style"
+    unitsPerEm:        string = "Units per em"
+    faces:             string = "Faces"
+    version:           string = "Version"
+    designer:          string = "Designer"
+    copyright:         string = "Copyright"
+    separator:         string = "Separator"
+    meter:             string = "Time signature"
+    tempo:             string = "Tempo"
+    keySignature:      string = "Key"
+    lineEnds:          string = "Line ends"
+    coverage:          string = "Coverage"
+    oneLine:           string = "1 line"
+    lineCount:         string = "% lines"
+    oneWord:           string = "1 word"
+    wordCount:         string = "% words"
+    oneCharacter:      string = "1 character"
+    characterCount:    string = "% characters"
+    noFinalBreak:      string = "no break after the last line"
+    glyphCount:        string = "% glyphs"
+    mono:              string = "mono"
+    stereo:            string = "stereo"
+    channelCount:      string = "% channels"
+    oneSample:         string = "1 sample"
+    sampleCount:       string = "% samples"
+    track:             string = "Track %"
+    empty:             string = "None"
+    unavailable:       string = "Read error"
+    iccProfile:        string = "Embedded ICC profile"
     iccInspectionOnly: string = "% · inspection only"
-    iccProfileError: string = "Embedded ICC profile cannot be inspected: %"
-    xmpPacketError: string = "XMP packet cannot be inspected: %"
+    iccProfileError:   string = "Embedded ICC profile cannot be inspected: %"
+    xmpPacketError:    string = "XMP packet cannot be inspected: %"
 }
 
 private const FrenchMediaStringsName = "lang/fr/scope.media.tweak"
@@ -442,6 +442,7 @@ private func xmpNamespace(bindings: const [..] XmpBinding, prefix: string)->stri
         if bindings[index].prefix == prefix do
             return bindings[index].uri.toString()
     }
+
     if prefix == "xml" do
         return "http://www.w3.org/XML/1998/namespace"
     return null
@@ -454,9 +455,11 @@ private func xmpProperty(name: string, bindings: const [..] XmpBinding, attribut
     if not xmpQNameParts(name, &prefix, &local)
     {
         // XML's default namespace applies to element names, but never to attributes.
-        if attribute or not name.count do return {}
+        if attribute or not name.count do
+            return {}
         local = String.from(name)
     }
+
     let uri = xmpNamespace(bindings, prefix)
     if not uri do
         return {}
@@ -478,18 +481,19 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
         problem[] = "XMP packet exceeds the 1 MiB inspection limit"
         return false
     }
+
     if not bytes.count or not Utf8.isValid(bytes)
     {
         problem[] = "XMP packet is empty or is not valid UTF-8"
         return false
     }
 
-    let source = cast(string, bytes)
-    var scanner = Viewers.Package.Scanner.create(source)
-    var token: Viewers.Package.Token
-    var bindings: Array'XmpBinding
-    var elements: Array'String
-    var activeName: String
+    let source      = cast(string, bytes)
+    var scanner     = Viewers.Package.Scanner.create(source)
+    var token:       Viewers.Package.Token
+    var bindings:    Array'XmpBinding
+    var elements:    Array'String
+    var activeName:  String
     var activeValue: String
     var activeDepth = 0'u32
     var depth       = 0'u32
@@ -506,6 +510,7 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 problem[] = "XMP XML nesting exceeds the 64-element limit"
                 return false
             }
+
             if not depth
             {
                 if rootSeen
@@ -513,8 +518,10 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                     problem[] = "XMP packet contains more than one root element"
                     return false
                 }
+
                 rootSeen = true
             }
+
             depth += 1
             elements.add(String.from(token.name))
 
@@ -525,7 +532,8 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 if attribute.name == "xmlns" do
                     bindings.add(XmpBinding{{}, String.from(attribute.value), depth})
                 elif Utf8.startsWith(attribute.name.toString(), "xmlns:")
-                    do bindings.add(XmpBinding{String.from(cast(string, attribute.name.toSlice()[6 to])), String.from(attribute.value), depth})
+                    do
+                    bindings.add(XmpBinding{String.from(cast(string, attribute.name.toSlice()[6 to])), String.from(attribute.value), depth})
             }
 
             // XMP commonly stores simple values as attributes on rdf:Description as well as child
@@ -533,10 +541,11 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
             let propertyName = xmpProperty(token.name, bindings.toSlice(), false)
             if propertyName.count and not activeName.count
             {
-                activeName  = propertyName
+                activeName = propertyName
                 activeValue.clear()
                 activeDepth = depth
             }
+
             for &attribute in token.attributes
             {
                 let attributeName = xmpProperty(attribute.name.toString(), bindings.toSlice(), true)
@@ -558,6 +567,7 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                     activeValue.clear()
                     activeDepth = 0
                 }
+
                 while bindings.count and bindings[bindings.count - 1].depth == depth do
                     bindings.removeBack()
                 elements.removeBack()
@@ -580,6 +590,7 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 problem[] = "XMP XML has mismatched or unexpected closing elements"
                 return false
             }
+
             if activeName.count and activeDepth == depth
             {
                 let value = Latin1.trim(activeValue.toString())
@@ -588,6 +599,7 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 activeValue.clear()
                 activeDepth = 0
             }
+
             while bindings.count and bindings[bindings.count - 1].depth == depth do
                 bindings.removeBack()
             elements.removeBack()
@@ -602,6 +614,7 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
         problem[] = "XMP XML is malformed or incomplete"
         return false
     }
+
     return true
 }
 
@@ -624,6 +637,7 @@ private func iccSignature(bytes: const [..] u8, offset: u64)->String
         let byte = bytes[offset + index]
         result += cast(rune, byte >= 32 and byte <= 126 ? byte : '?')
     }
+
     return result
 }
 
@@ -637,14 +651,19 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
         return false
     }
 
-    var count: u32
+    var count:      u32
     var recordSize: u32
-    if not readIccU32(bytes, 8, &count) or not readIccU32(bytes, 12, &recordSize) or
-       count == 0 or count > 64 or recordSize < 12 or recordSize > 128
+    if not readIccU32(bytes, 8, &count) or
+       not readIccU32(bytes, 12, &recordSize) or
+       count == 0 or
+       count > 64 or
+       recordSize < 12 or
+       recordSize > 128
     {
         problem[] = "profile `mluc` record table is invalid or exceeds the inspection limit"
         return false
     }
+
     if cast(u64, count) > (bytes.count - 16) / recordSize
     {
         problem[] = "profile `mluc` record table is truncated"
@@ -653,20 +672,24 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
 
     let tableEnd = 16 + cast(u64, count) * recordSize
     var firstValid: String
-    var english: String
+    var english:    String
     for index in count
     {
         let at = 16 + cast(u64, index) * recordSize
         var byteLength: u32
-        var offset: u32
-        if not readIccU32(bytes, at + 4, &byteLength) or not readIccU32(bytes, at + 8, &offset) or
-           byteLength > 512 or byteLength % 2 != 0 or
-           cast(u64, offset) < tableEnd or cast(u64, offset) > bytes.count or
+        var offset:     u32
+        if not readIccU32(bytes, at + 4, &byteLength) or
+           not readIccU32(bytes, at + 8, &offset) or
+           byteLength > 512 or
+           byteLength % 2 != 0 or
+           cast(u64, offset) < tableEnd or
+           cast(u64, offset) > bytes.count or
            cast(u64, byteLength) > bytes.count - cast(u64, offset)
         {
             problem[] = "profile `mluc` text range is invalid or exceeds the 512-byte limit"
             return false
         }
+
         if not byteLength do
             continue
 
@@ -679,7 +702,9 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
             let value = units[unit]
             if value >= Utf16.Surr1 and value < Utf16.Surr2
             {
-                if unit + 1 >= units.count or units[unit + 1] < Utf16.Surr2 or units[unit + 1] >= Utf16.Surr3
+                if unit + 1 >= units.count or
+                   units[unit + 1] < Utf16.Surr2 or
+                   units[unit + 1] >= Utf16.Surr3
                 {
                     problem[] = "profile `mluc` text contains an unpaired high surrogate"
                     return false
@@ -706,15 +731,20 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
             english = candidate
     }
 
-    if english.count do
+    if english.count
+    {
         name[] = #move english
-    elif firstValid.count do
+    }
+    elif firstValid.count
+    {
         name[] = #move firstValid
+    }
     else
     {
         problem[] = "profile `mluc` has no nonempty valid locale description"
         return false
     }
+
     return true
 }
 
@@ -727,6 +757,7 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
         problem[] = "profile exceeds the 1 MiB inspection limit"
         return false
     }
+
     if bytes.count < 128
     {
         problem[] = "profile header is shorter than 128 bytes"
@@ -739,6 +770,7 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
         problem[] = "declared profile size is outside the embedded data"
         return false
     }
+
     let profile = bytes[until declaredSize]
     if iccSignature(profile, 36) != "acsp"
     {
@@ -748,7 +780,7 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
 
     let colorSpace = iccSignature(profile, 16)
     let pcs        = iccSignature(profile, 20)
-    var name: String
+    var name:     String
     var tagCount: u32
     if declaredSize >= 132 and readIccU32(profile, 128, &tagCount)
     {
@@ -758,6 +790,7 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
             problem[] = "profile tag table is truncated or exceeds the inspection limit"
             return false
         }
+
         for index in tagCount
         {
             let recordAt = 132 + cast(u64, index) * 12
@@ -766,12 +799,16 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
 
             var offset: u32
             var length: u32
-            if not readIccU32(profile, recordAt + 4, &offset) or not readIccU32(profile, recordAt + 8, &length) or
-               offset > declaredSize or length < 12 or cast(u64, offset) + length > declaredSize
+            if not readIccU32(profile, recordAt + 4, &offset) or
+               not readIccU32(profile, recordAt + 8, &length) or
+               offset > declaredSize or
+               length < 12 or
+               cast(u64, offset) + length > declaredSize
             {
                 problem[] = "profile description tag points outside the embedded data"
                 return false
             }
+
             let description = profile[offset until cast(u64, offset) + length]
             if iccSignature(description, 0) == "mluc"
             {
@@ -781,19 +818,24 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
             elif iccSignature(description, 0) == "desc"
             {
                 var textLength: u32
-                if not readIccU32(description, 8, &textLength) or textLength > 512 or textLength > length - 12
+                if not readIccU32(description, 8, &textLength) or
+                   textLength > 512 or
+                   textLength > length - 12
                 {
                     problem[] = "profile description text is truncated or too long"
                     return false
                 }
+
                 for byte in description[12 until 12 + textLength]
                 {
                     if byte == 0 do
                         break
                     name += cast(rune, byte >= 32 and byte <= 126 ? byte : '?')
                 }
+
                 name = Latin1.trim(name)
             }
+
             break
         }
     }
@@ -814,7 +856,7 @@ private struct JpegIccChunk
 private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: *Array'u8, problem: *String)->bool
 {
     var segmentCount: u8
-    var chunkCount: u64
+    var chunkCount:   u64
     for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
     {
         chunkCount += 1
@@ -826,17 +868,19 @@ private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: 
         }
 
         let sequence = bytes[0]
-        let count = bytes[1]
+        let count    = bytes[1]
         if count == 0 or sequence == 0 or sequence > count
         {
             problem[] = "JPEG ICC segment has an invalid sequence number"
             return false
         }
+
         if segmentCount and segmentCount != count
         {
             problem[] = "JPEG ICC segments disagree on their total count"
             return false
         }
+
         segmentCount = count
     }
 
@@ -853,21 +897,23 @@ private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: 
     var totalBytes = 0'u64
     for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
     {
-        let bytes = record.toSlice()
-        let sequence = bytes[0]
+        let bytes       = record.toSlice()
+        let sequence    = bytes[0]
         let payloadSize = bytes.count - 2
         if chunks[sequence - 1].present
         {
             problem[] = "JPEG ICC profile contains a duplicate segment"
             return false
         }
+
         if payloadSize > IccProfileLimit - totalBytes
         {
             problem[] = "JPEG ICC profile exceeds the 1 MiB assembly limit"
             return false
         }
+
         totalBytes += payloadSize
-        chunks[sequence - 1].bytes = bytes[2 to]
+        chunks[sequence - 1].bytes   = bytes[2 to]
         chunks[sequence - 1].present = true
     }
 
@@ -879,8 +925,10 @@ private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: 
             problem[] = "JPEG ICC profile is missing one or more segments"
             return false
         }
+
         profile[].add(chunk.bytes.toSlice())
     }
+
     return true
 }
 
@@ -1001,16 +1049,21 @@ impl MediaInfoData
         if hasJpegIcc
         {
             let strings = &g_MediaInfoStrings
-            var profile: Array'u8
+            var profile:  Array'u8
             var identity: String
-            var problem: String
+            var problem:  String
             if assembleJpegIccProfile(records, &profile, &problem)
             {
                 if inspectIccProfile(profile.toSlice(), &identity, &problem)
-                    do .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
-                else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+                    do
+                    .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
+                else do
+                    .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
             }
-            else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+            else
+            {
+                .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+            }
         }
 
         for record in records
@@ -1035,17 +1088,19 @@ impl MediaInfoData
             {
                 let strings = &g_MediaInfoStrings
                 var identity: String
-                var problem: String
+                var problem:  String
                 if inspectIccProfile(record.toSlice(), &identity, &problem)
-                    do .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
-                else do .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+                    do
+                    .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
+                else do
+                    .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
                 continue
             }
 
             let jpegXmp = record.signature == 1 and cast(string, record.tag.toSlice()) == "http://ns.adobe.com/xap/1.0/"
             if record.isTag("XMP") or jpegXmp
             {
-                var fields: Array'XmpField
+                var fields:  Array'XmpField
                 var problem: String
                 if readXmp(record.toSlice(), &fields, &problem)
                 {
@@ -1054,7 +1109,11 @@ impl MediaInfoData
                     if not fields.count do
                         .addText("XMP packet", "No supported descriptive fields")
                 }
-                else do .add(.Unavailable, Format.toString(g_MediaInfoStrings.xmpPacketError, problem))
+                else
+                {
+                    .add(.Unavailable, Format.toString(g_MediaInfoStrings.xmpPacketError, problem))
+                }
+
                 continue
             }
 

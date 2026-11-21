@@ -43,8 +43,8 @@ func codeFixturePath(name: string)->String => Path.combine(scopeTestDataDirector
     let root = Path.combine(base, Format.toString("scope-code-override-%", Guid128.random()))
     defer discard catch Directory.delete(root, recurse: true)
     let preferences = Path.combine(root, "preferences")
-    let firstPath = Path.combine(root, "src", "main.cpp")
-    let nearbyPath = Path.combine(root, "tests", "main.cpp")
+    let firstPath   = Path.combine(root, "src", "main.cpp")
+    let nearbyPath  = Path.combine(root, "tests", "main.cpp")
     expect Directory.create(Path.directoryName(firstPath) orelse root, recurse: true)
     expect Directory.create(Path.directoryName(nearbyPath) orelse root, recurse: true)
     discard expect File.writeAllText(firstPath, "int main() { return 0; }\n")
@@ -618,7 +618,7 @@ struct CodeLanguageSample
     var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
     view.describeLens(&entries)
     var chosen = 0
-    let label = Format.toString(Code.texts().ui_HighlightAs, Code.texts().ui_PlainText)
+    let label  = Format.toString(Code.texts().ui_HighlightAs, Code.texts().ui_PlainText)
     for &entry in results.sections[0]!.entries where entry.title == label
     {
         entry.run!()

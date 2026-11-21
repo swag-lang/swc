@@ -29,12 +29,12 @@ func viewerPlugin()->Viewer.Plugin
 
 // Image zoom is a compact reading beside the full picture transform in the action bar. Its
 // narrower side insets leave more of the information band to the file details at small widths.
-private const InfoWidth      = Viewer.ZoomButtonWidth + 2 * 6.0
-private const SvgRasterLimit = 2048.0
+private const InfoWidth              = Viewer.ZoomButtonWidth + 2 * 6.0
+private const SvgRasterLimit         = 2048.0
 private const ImageItemSelectorWidth = 272.0
 private const ImageItemSelectorLimit = 128
-private const ImageThumbnailWidth = 32
-private const ImageThumbnailHeight = 24
+private const ImageThumbnailWidth    = 32
+private const ImageThumbnailHeight   = 24
 
 func isJpegExtension(extension: string)->bool => extension == ".jpg" or extension == ".jpeg"
 
@@ -93,8 +93,8 @@ private func loadItemThumbnail(fileName: string, index: u32)->Image fail
     if Swag.isCancelled() do
         return Image{}
     var reader = try ImageReader.load(fileName, {maxPixels: 4 * 1024 * 1024,
-                                                maxDecodedBytes: 16 * 1024 * 1024,
-                                                maxInputBytes: 128 * 1024 * 1024})
+                                                 maxDecodedBytes: 16 * 1024 * 1024,
+                                                 maxInputBytes: 128 * 1024 * 1024})
     if Swag.isCancelled() do
         return Image{}
     var result = try reader.read(index)
@@ -356,26 +356,26 @@ struct Panel
         frameLabel:      *Label
     }
 
-    services:           Viewer.HostServices
-    information:        MediaInfoData
-    lastCompletedLoops: u32      // Playback cycles observed by the latest frame refresh.
-    handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
-    load:               Viewer.BackgroundLoad'ViewerContent
-    failureReason:      String
-    shownItem:          String         // What the summary last said of the item in view.
-    selectorStart:      s32            // First movie index represented by the bounded item selector.
-    thumbnailPixels:    Image            // Fixed 128-cell RGBA8 atlas (384 KiB CPU and GPU).
-    thumbnailList:      ImageList        // GPU atlas borrowed by selector and popup icons.
-    thumbnailReady:     Array'bool       // Decoded cells in the current selector window.
-    thumbnailFailed:    Array'bool       // Failed cells are not retried until the window changes.
-    thumbnailRequested: Array'bool       // Requested cells in this window, for bounded scheduling and verification.
-    thumbnailPopup:     *PopupListCtrl?  // Borrowed popup while its selector is open.
-    thumbnailGeneration: u32             // Invalidates work from an old selector window or file.
-    thumbnailRequestLocalIndex: u32      // Selector position receiving the in-flight result.
-    thumbnailRequestGeneration: u32      // Window generation captured when work was submitted.
-    thumbnailTask:      Swag.Task'Image  // At most one visible-first decode at a time.
-    probed:             Math.Point     // Pixel of the stored picture the pointer last read.
-    hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
+    services:                   Viewer.HostServices
+    information:                MediaInfoData
+    lastCompletedLoops:         u32      // Playback cycles observed by the latest frame refresh.
+    handedOff:                  bool     // The host was told the animation has run its cycle, and answered that it moves on.
+    load:                       Viewer.BackgroundLoad'ViewerContent
+    failureReason:              String
+    shownItem:                  String              // What the summary last said of the item in view.
+    selectorStart:              s32                 // First movie index represented by the bounded item selector.
+    thumbnailPixels:            Image               // Fixed 128-cell RGBA8 atlas (384 KiB CPU and GPU).
+    thumbnailList:              ImageList           // GPU atlas borrowed by selector and popup icons.
+    thumbnailReady:             Array'bool          // Decoded cells in the current selector window.
+    thumbnailFailed:            Array'bool          // Failed cells are not retried until the window changes.
+    thumbnailRequested:         Array'bool          // Requested cells in this window, for bounded scheduling and verification.
+    thumbnailPopup:             *PopupListCtrl?     // Borrowed popup while its selector is open.
+    thumbnailGeneration:        u32                 // Invalidates work from an old selector window or file.
+    thumbnailRequestLocalIndex: u32                 // Selector position receiving the in-flight result.
+    thumbnailRequestGeneration: u32                 // Window generation captured when work was submitted.
+    thumbnailTask:              Swag.Task'Image     // At most one visible-first decode at a time.
+    probed:                     Math.Point          // Pixel of the stored picture the pointer last read.
+    hasProbe:                   bool                // Whether the pointer has read a pixel of the picture shown.
 }
 
 impl Panel
@@ -496,10 +496,11 @@ impl Panel
         .itemSelector.clear()
         for index in range(.selectorStart, end)
         {
-            let info = movie.frameInfo(index)
+            let info  = movie.frameInfo(index)
             let label = info ? imageItemDescription(info, index, movie.frameCount) : Viewer.pageText(cast(u64, index), cast(u64, movie.frameCount))
             .itemSelector.addItem(label)
         }
+
         .refreshItemSelector()
     }
 
@@ -516,6 +517,7 @@ impl Panel
             .populateItemSelector(.itemSelectorStart(movie.frameIndex, movie.frameCount))
             return
         }
+
         .itemSelector.setSelectedIndex(cast(u32, movie.frameIndex - .selectorStart), notify: false)
     }
 
@@ -535,10 +537,11 @@ impl Panel
         .thumbnailRequested.resize(ImageItemSelectorLimit)
         for index in ImageItemSelectorLimit
         {
-            .thumbnailReady[index]  = false
-            .thumbnailFailed[index] = false
+            .thumbnailReady[index]     = false
+            .thumbnailFailed[index]    = false
             .thumbnailRequested[index] = false
         }
+
         if .thumbnailPixels.isValid()
         {
             .thumbnailPixels.fill(Color{r: 0, g: 0, b: 0, a: 0})
@@ -572,6 +575,7 @@ impl Panel
                 popup.setItemIcon(localIndex, icon)
             }
         }
+
         .scheduleVisibleThumbnail(visible.first, visible.end)
     }
 
@@ -580,11 +584,15 @@ impl Panel
         if .thumbnailTask.isPending() or first >= end do
             return
         let selected = .itemSelector.selectedIndex
-        if selected >= first and selected < end and not .thumbnailReady[selected] and not .thumbnailFailed[selected]
+        if selected >= first and
+           selected < end and
+           not .thumbnailReady[selected] and
+           not .thumbnailFailed[selected]
         {
             .submitThumbnail(selected)
             return
         }
+
         for localIndex in first until end
         {
             if not .thumbnailReady[localIndex] and not .thumbnailFailed[localIndex]
@@ -598,19 +606,20 @@ impl Panel
     mtd submitThumbnail(localIndex: u32)
     {
         let movieIndex = cast(u32, .selectorStart) + localIndex
-        .thumbnailRequestLocalIndex = localIndex
-        .thumbnailRequestGeneration = .thumbnailGeneration
+        .thumbnailRequestLocalIndex     = localIndex
+        .thumbnailRequestGeneration     = .thumbnailGeneration
         .thumbnailRequested[localIndex] = true
         .thumbnailTask.submit(func|view = me, movieIndex|()->Image fail => try loadItemThumbnail(view.load.fileName.toString(), movieIndex),
-                              me.taskNotifier(&.thumbnailTask), .Background)
+                              me.taskNotifier(&.thumbnailTask),
+                              .Background)
     }
 
     mtd installThumbnail(image: *Image, localIndex: u32)->bool
     {
         if not image.isValid() or localIndex >= ImageItemSelectorLimit do
             return false
-        let cellX = cast(s32, localIndex % 8) * ImageThumbnailWidth
-        let cellY = cast(s32, localIndex / 8) * ImageThumbnailHeight
+        let cellX   = cast(s32, localIndex % 8) * ImageThumbnailWidth
+        let cellY   = cast(s32, localIndex / 8) * ImageThumbnailHeight
         let offsetX = Math.max((ImageThumbnailWidth - image.width) / 2, 0)
         let offsetY = Math.max((ImageThumbnailHeight - image.height) / 2, 0)
         for y in 0 until image.height
@@ -618,14 +627,15 @@ impl Panel
             for x in 0 until image.width
             {
                 let color = image.pixelColor(x, y)
-                let dstY = .thumbnailPixels.height - (cellY + offsetY + y) - 1
-                let dst = cast([*] u8, .thumbnailPixels.pixels.storage()) + cast(u64, dstY * .thumbnailPixels.rowStride + (cellX + offsetX + x) * 4)
+                let dstY  = .thumbnailPixels.height - (cellY + offsetY + y) - 1
+                let dst   = cast([*] u8, .thumbnailPixels.pixels.storage()) + cast(u64, dstY * .thumbnailPixels.rowStride + (cellX + offsetX + x) * 4)
                 dst[0] = color.r
                 dst[1] = color.g
                 dst[2] = color.b
                 dst[3] = color.a
             }
         }
+
         return .app().renderer.updateTexture(.thumbnailList.texture, cast(const *u8, .thumbnailPixels.pixels.storage()))
     }
 
@@ -652,7 +662,7 @@ impl Panel
     mtd showPlayback()
     {
         let animated = .imageView.movie.isAnimated()
-        let width = imageSetCommandWidth(.themeMetrics(), animated)
+        let width    = imageSetCommandWidth(.themeMetrics(), animated)
         .actions.preferredSize.x = width
         .actions.resize(width, themeActionButtonSize(.themeMetrics()))
         .playButton.show(animated)
@@ -669,6 +679,7 @@ impl Panel
         {
             .populateItemSelector(0)
         }
+
         .refreshFrame()
         .services.chromeChanged(me)
     }
@@ -905,7 +916,7 @@ private impl IWnd for Panel
             var thumbnail: Image
             catch { thumbnail = try .thumbnailTask.take() } as thumbnailErrorOutcome
             let thumbnailError = thumbnailErrorOutcome.value()
-            let localIndex = .thumbnailRequestLocalIndex
+            let localIndex     = .thumbnailRequestLocalIndex
             if .thumbnailRequestGeneration == .thumbnailGeneration and localIndex < .thumbnailReady.count
             {
                 if thumbnailError == null and .installThumbnail(&thumbnail, localIndex) do
@@ -913,6 +924,7 @@ private impl IWnd for Panel
                 else do
                     .thumbnailFailed[localIndex] = true
             }
+
             if .thumbnailPopup do
                 .updateVisibleThumbnails(.thumbnailPopup)
             return
@@ -1044,6 +1056,7 @@ private impl Panel
             if not .thumbnailTask.isDone() do
                 return false
         }
+
         if .thumbnailTask.isDone() do
             discard catch .thumbnailTask.take()
         if .thumbnailList.isValid() do
@@ -1082,9 +1095,9 @@ private impl Panel
         {
             if evt is ResizeEvent
             {
-                let paged = view.imageView.movie.frameCount > 1
-                let width = view.actions.position.width
-                let animated = view.imageView.movie.isAnimated()
+                let paged      = view.imageView.movie.frameCount > 1
+                let width      = view.actions.position.width
+                let animated   = view.imageView.movie.isAnimated()
                 let enoughRoom = width >= imageSetCommandWidth(view.themeMetrics(), animated)
                 view.timeline.show(paged and animated and enoughRoom)
                 view.itemSelector.show(paged and not animated and enoughRoom)
@@ -1178,13 +1191,13 @@ private impl Panel
 
         with .itemSelector = ComboBox.create(.actions, {0, 0, ImageItemSelectorWidth, 36})
         {
-            .dockStyle = .Left
-            .margin    = {6, 1, 6, 1}
+            .dockStyle          = .Left
+            .margin             = {6, 1, 6, 1}
             .maximumPopupHeight = 360
             .minimumPopupWidth  = ImageItemSelectorWidth
-            .popupItemHeight = 36
-            .popupIconSize = ImageThumbnailWidth
-            .toolTip = texts().ui_ItemSelector
+            .popupItemHeight    = 36
+            .popupIconSize      = ImageThumbnailWidth
+            .toolTip            = texts().ui_ItemSelector
             .hide()
             .sigPopupChanged += func|view = me|(_, popup, opened)
             {
@@ -1196,16 +1209,18 @@ private impl Panel
                         if view.thumbnailPopup == popup do
                             view.updateVisibleThumbnails(popup)
                     }
+
                     view.updateVisibleThumbnails(popup)
                 }
                 else
                 {
-                    view.thumbnailPopup = null
+                    view.thumbnailPopup      = null
                     view.thumbnailGeneration += 1
                     if view.thumbnailTask.isPending() do
                         view.thumbnailTask.cancel()
                 }
             }
+
             .sigChanged += func|view = me|(_, index)
             {
                 view.imageView.setFrameIndex(view.selectorStart + cast(s32, index))
@@ -1252,8 +1267,8 @@ private impl Panel
     // Creates the zoom menu button in the information group.
     mtd createZoomControl()
     {
-        .zoomLabel = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.margin = {6, 0, 6, 0}
+        .zoomLabel            = Viewer.createZoomButton(.info, "scope.image.zoom", texts().ui_ZoomMenu)
+        .zoomLabel.margin     = {6, 0, 6, 0}
         .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 

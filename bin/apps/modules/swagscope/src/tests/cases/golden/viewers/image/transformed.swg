@@ -28,15 +28,19 @@ private func assertTransformedImageReading(light: bool, golden: string)
     var results = Testing.lensResults("Zoom")
     var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
     view.describeLens(&entries)
-    var foundIn: *Lens.Entry?
-    var foundOut: *Lens.Entry?
+    var foundIn:   *Lens.Entry?
+    var foundOut:  *Lens.Entry?
     var foundMenu: *Lens.Entry?
     for &entry in results.sections[0]!.entries
     {
-        if entry.title == appStrings().cmd_ZoomIn do foundIn = entry
-        if entry.title == appStrings().cmd_ZoomOut do foundOut = entry
-        if entry.title == appStrings().cmd_ZoomMenu do foundMenu = entry
+        if entry.title == appStrings().cmd_ZoomIn do
+            foundIn = entry
+        if entry.title == appStrings().cmd_ZoomOut do
+            foundOut = entry
+        if entry.title == appStrings().cmd_ZoomMenu do
+            foundMenu = entry
     }
+
     Swag.require(foundIn != null and foundOut != null and foundMenu != null)
     Swag.require(not foundIn.disabled and not foundOut.disabled)
     foundOut.run!()

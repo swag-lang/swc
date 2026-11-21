@@ -208,9 +208,10 @@ func detectionEvidence(fileName: string)->String
     let baseName = String.toLower(Path.fileName(fileName)).toString()
     switch baseName
     {
-    case "makefile", "gnumakefile", "bsdmakefile", "justfile", "dockerfile", "containerfile",
-         "cmakelists.txt", "rakefile", "gemfile", "vagrantfile", "podfile", "brewfile", "jenkinsfile",
-         "meson.build", ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format",
+    case "makefile", "gnumakefile", "bsdmakefile", "justfile", "dockerfile",
+         "containerfile", "cmakelists.txt", "rakefile", "gemfile", "vagrantfile",
+         "podfile", "brewfile", "jenkinsfile", "meson.build", ".gitignore",
+         ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format",
          ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env":
         return Format.toString(texts().ui_FilenameEvidence, baseName)
     }
@@ -218,18 +219,20 @@ func detectionEvidence(fileName: string)->String
     let extension = Path.lowercaseExtension(fileName)
     switch extension.toString()
     {
-    case ".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inl", ".ipp", ".cs", ".java",
-         ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".go", ".rs", ".py", ".pyw", ".pyi",
-         ".rb", ".rake", ".gemspec", ".sh", ".bash", ".zsh", ".fish", ".ps1", ".psm1", ".psd1", ".php", ".phtml",
-         ".lua", ".sql", ".json", ".jsonc", ".json5", ".xml", ".xsd", ".xsl", ".xslt", ".csproj", ".vcxproj",
-         ".props", ".targets", ".css", ".scss", ".sass", ".less", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
-         ".properties", ".kt", ".kts", ".swift", ".dart", ".r", ".pl", ".pm", ".vb", ".glsl", ".vert", ".frag",
-         ".geom", ".comp", ".hlsl", ".fx", ".cmake", ".bat", ".cmd", ".htm", ".html", ".shtml", ".xht", ".xhtml",
-         ".asm", ".s", ".incasm", ".zig", ".nim", ".nims", ".nimble", ".hs", ".lhs", ".scala", ".sc", ".groovy",
-         ".gvy", ".gy", ".gsh", ".ex", ".exs", ".erl", ".hrl", ".clj", ".cljs", ".cljc", ".edn", ".jl", ".f",
-         ".for", ".f77", ".f90", ".f95", ".f03", ".f08", ".pas", ".pp", ".lpr", ".d", ".di", ".mm", ".m", ".tcl",
-         ".tk", ".awk", ".vim", ".tex", ".sty", ".cls", ".bib", ".proto", ".graphql", ".gql", ".gradle", ".mk",
-         ".mak", ".make", ".dockerfile", ".nix":
+    case ".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".inl", ".ipp", ".cs",
+         ".java", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".go",
+         ".rs", ".py", ".pyw", ".pyi", ".rb", ".rake", ".gemspec", ".sh", ".bash", ".zsh",
+         ".fish", ".ps1", ".psm1", ".psd1", ".php", ".phtml", ".lua", ".sql", ".json",
+         ".jsonc", ".json5", ".xml", ".xsd", ".xsl", ".xslt", ".csproj", ".vcxproj", ".props",
+         ".targets", ".css", ".scss", ".sass", ".less", ".yaml", ".yml", ".toml", ".ini",
+         ".cfg", ".conf", ".properties", ".kt", ".kts", ".swift", ".dart", ".r", ".pl", ".pm",
+         ".vb", ".glsl", ".vert", ".frag", ".geom", ".comp", ".hlsl", ".fx", ".cmake", ".bat",
+         ".cmd", ".htm", ".html", ".shtml", ".xht", ".xhtml", ".asm", ".s", ".incasm", ".zig",
+         ".nim", ".nims", ".nimble", ".hs", ".lhs", ".scala", ".sc", ".groovy", ".gvy", ".gy",
+         ".gsh", ".ex", ".exs", ".erl", ".hrl", ".clj", ".cljs", ".cljc", ".edn", ".jl",
+         ".f", ".for", ".f77", ".f90", ".f95", ".f03", ".f08", ".pas", ".pp", ".lpr", ".d",
+         ".di", ".mm", ".m", ".tcl", ".tk", ".awk", ".vim", ".tex", ".sty", ".cls", ".bib",
+         ".proto", ".graphql", ".gql", ".gradle", ".mk", ".mak", ".make", ".dockerfile", ".nix":
         return Format.toString("extension %", extension)
     }
 
@@ -664,7 +667,7 @@ private impl GenericLexer
             "then", "true", "with"])
 
         case .Xml, .Html: return
-        case .PlainText: return
+        case .PlainText:  return
         }
     }
 
@@ -1008,8 +1011,8 @@ impl IRichEditLexer for GenericLexer
     {
         paintRange(line, 0, line.length(), .Default)
         let previous = linePrev ? .stateFromStorage(linePrev.lexerState()) : State.Default
-        let state = .language == .PlainText ? State.Default :
-                    .language == .Xml or .language == .Html ? .computeMarkup(line, previous) : .computeCode(line, previous)
+        let state    = .language == .PlainText ? State.Default :
+                       .language == .Xml or .language == .Html ? .computeMarkup(line, previous) : .computeCode(line, previous)
         if line.setLexerState(cast(s32, state)) and lineNext do
             lineNext.markStyleDirty()
     }

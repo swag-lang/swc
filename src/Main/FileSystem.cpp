@@ -21,7 +21,7 @@ namespace
     {
         SWC_RESULT(FileSystem::normalizeAbsolutePath(path, because));
 
-        std::error_code      ec;
+        std::error_code       ec;
         const fs::file_status status = fs::status(path, ec);
         if (!fs::exists(status))
         {

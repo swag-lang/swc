@@ -13,9 +13,9 @@ func explorerBoardName(text: const *AppStrings, index: u64)->string
 {
     switch index
     {
-    case 1: return text.board_Grid
-    case 2: return text.board_Posters
-    case 3: return text.board_Covers
+    case 1:  return text.board_Grid
+    case 2:  return text.board_Posters
+    case 3:  return text.board_Covers
     default: return text.board_Automatic
     }
 }
@@ -90,7 +90,7 @@ func explorerFileTime(time, now: Time.DateTime, language: string)->String
 
     let months = Tokenize.split(appStrings().explore_DateMonths, ';'rune)
     let month  = months[time.month - 1]
-    let date = language == "fr" ? Format.toString("% %", time.day, month) : Format.toString("% %", month, time.day)
+    let date   = language == "fr" ? Format.toString("% %", time.day, month) : Format.toString("% %", month, time.day)
     if time.year == now.year do
         return Format.toString(appStrings().explore_DateSameYear, date, time.toString(.TimeIsoHm))
     return Format.toString(appStrings().explore_DateOtherYear, date, time.year)
@@ -593,54 +593,66 @@ impl Explorer
 
     mtd describeViewOptions(page: *OptionSheet.Page)
     {
-        let text = appStrings()
+        let text      = appStrings()
         let modeNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        page.addLink(text.explore_View, modeNames[cast(u64, .mode)], func|view = me, text|(choices)
-        {
-            let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-            for mode, index in ExplorerMode do
-                choices.addChoice(names[index], cast(u64, view.mode) == index,
-                                  func|view, mode|() { view.setMode(mode) })
-        }, icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
+        page.addLink(text.explore_View,
+                     modeNames[cast(u64, .mode)],
+                     func|view = me, text|(choices)
+                     {
+                         let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
+                         for mode, index in ExplorerMode do
+                             choices.addChoice(names[index], cast(u64, view.mode) == index, func|view, mode|() { view.setMode(mode) })
+                     },
+                     icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
 
         if .isThumbnailView()
         {
-            page.addLink(text.explore_Organization, .viewName(), func|view = me, text|(choices)
-            {
-                for _, index in ViewerCommands.Boards
-                {
-                    let checked = index == 0 ? not view.forced : (view.forced and cast(u64, view.forcedBoard) == index - 1)
-                    choices.addChoice(explorerBoardName(text, index), checked,
-                                      func|view, index|()
-                                      {
-                                          if index == 0 do view.forceBoard(false)
-                                          else do view.forceBoard(true, ExplorerBoardValues[index - 1])
-                                      })
-                }
-            }, icon: .theme().icon(.ExploreFolder, themeRowIconSize(.themeMetrics())))
+            page.addLink(text.explore_Organization,
+                         .viewName(),
+                         func|view = me, text|(choices)
+                         {
+                             for _, index in ViewerCommands.Boards
+                             {
+                                 let checked = index == 0 ? not view.forced : (view.forced and cast(u64, view.forcedBoard) == index - 1)
+                                 choices.addChoice(explorerBoardName(text, index), checked, func|view, index|()
+                                 {
+                                     if index == 0 do
+                                         view.forceBoard(false)
+                                     else do
+                                         view.forceBoard(true, ExplorerBoardValues[index - 1])
+                                 })
+                             }
+                         },
+                         icon: .theme().icon(.ExploreFolder, themeRowIconSize(.themeMetrics())))
 
-            page.addLink(text.explore_ThumbnailFraming, thumbnailCropNames()[cast(u64, .thumbnailCrop)], func|view = me|(choices)
-            {
-                for mode, index in ThumbnailCropModes do
-                    choices.addChoice(thumbnailCropNames()[index], mode == view.thumbnailCrop,
-                                      func|view, mode|() { view.setThumbnailCrop(mode) })
-            }, icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
+            page.addLink(text.explore_ThumbnailFraming,
+                         thumbnailCropNames()[cast(u64, .thumbnailCrop)],
+                         func|view = me|(choices)
+                         {
+                             for mode, index in ThumbnailCropModes do
+                                 choices.addChoice(thumbnailCropNames()[index], mode == view.thumbnailCrop, func|view, mode|() { view.setThumbnailCrop(mode) })
+                         },
+                         icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
         }
 
         if .showsMedia()
         {
             let artworkNames = [text.artwork_Online, text.artwork_Local]
-            page.addLink(text.explore_ArtworkSection, artworkNames[cast(u64, .artworkSource)], func|view = me, artworkNames|(choices)
-            {
-                for source, index in ExplorerArtworkSource do
-                    choices.addChoice(artworkNames[index], cast(u64, view.artworkSource) == index,
-                                      func|view, source|() { view.setArtworkSource(source) })
-            }, icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
+            page.addLink(text.explore_ArtworkSection,
+                         artworkNames[cast(u64, .artworkSource)],
+                         func|view = me, artworkNames|(choices)
+                         {
+                             for source, index in ExplorerArtworkSource do
+                                 choices.addChoice(artworkNames[index], cast(u64, view.artworkSource) == index, func|view, source|() { view.setArtworkSource(source) })
+                         },
+                         icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
         }
 
         if .isThumbnailView() and .listingBoard() != .Album
         {
-            page.addLink(text.explore_ThumbnailDisplay, "", func|view = me|(options) { view.describeThumbnailDisplayOptions(options) },
+            page.addLink(text.explore_ThumbnailDisplay,
+                         "",
+                         func|view = me|(options) { view.describeThumbnailDisplayOptions(options) },
                          icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
         }
     }
@@ -648,12 +660,8 @@ impl Explorer
     private mtd describeThumbnailDisplayOptions(page: *OptionSheet.Page)
     {
         let text = appStrings()
-        page.addToggle(text.explore_ShowViewerIcon, .showViewerIcon,
-                       func|view = me|(_) { view.showViewerIcon = not view.showViewerIcon; view.grid.invalidate() },
-                       icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
-        page.addToggle(text.explore_ShowTileCaption, .showTileCaption,
-                       func|view = me|(_) { view.setTileCaption(not view.showTileCaption) },
-                       icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
+        page.addToggle(text.explore_ShowViewerIcon, .showViewerIcon, func|view = me|(_) { view.showViewerIcon = not view.showViewerIcon; view.grid.invalidate() }, icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
+        page.addToggle(text.explore_ShowTileCaption, .showTileCaption, func|view = me|(_) { view.setTileCaption(not view.showTileCaption) }, icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
     }
 
     mtd setTileCaption(show: bool)
@@ -661,7 +669,7 @@ impl Explorer
         if .showTileCaption == show do
             return
         .showTileCaption = show
-        .grid.toolTip = ""
+        .grid.toolTip    = ""
         .grid.refreshLayout()
     }
 
@@ -3500,7 +3508,10 @@ impl IWnd for ExplorerGrid
         if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
         {
             let row = evt.kind == .Leave ? Swag.U64.Max : .rowAt(.surfaceToLocal(evt.surfacePos))
-            if not .explorer.showTileCaption and not .rows and .board != .Album and row < .explorer.shown.count do
+            if not .explorer.showTileCaption and
+               not .rows and
+               .board != .Album and
+               row < .explorer.shown.count do
                 .toolTip = .tileToolTip(row)
             else do
                 .toolTip = ""
@@ -3544,8 +3555,8 @@ impl IWnd for ExplorerGrid
 
     private mtd tileToolTip(row: u64)->String
     {
-        let text  = appStrings()
-        let entry = &.explorer.entries[.explorer.shown[row]]
+        let text   = appStrings()
+        let entry  = &.explorer.entries[.explorer.shown[row]]
         var result = safeMediaText(.tileName(entry))
         result += Format.toString("\n%: %", text.explore_Type, entry.directory ? text.ui_Folder : (Path.extension(entry.name) orelse text.explore_File))
         if not entry.directory do

@@ -587,8 +587,8 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     face = main.miniBar.faceButton
     host.clickWnd(face)
     host.finishAnimations()
-    let popup      = unwrap main.miniBar.choicePopover
-    let filter     = unwrap popup.filter
+    let popup  = unwrap main.miniBar.choicePopover
+    let filter = unwrap popup.filter
     Swag.require(popup.list.lineCount() > 0)
     let fullHeight = (unwrap popup.parent).position.height
     filter.setText("__missing_font__")

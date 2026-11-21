@@ -2095,6 +2095,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
         host.fireTimer(window.viewerBarTimer)
         Swag.require(not window.viewerBarShown and not opener.isVisible())
     }
+
     Swag.require(checked == 10)
 }
 

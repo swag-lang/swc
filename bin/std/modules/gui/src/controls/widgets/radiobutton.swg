@@ -275,7 +275,10 @@ impl RadioButton
         var group: Array'(*RadioButton)
         for child in .parent.children
         {
-            if child is RadioButton as other where other.groupId == .groupId and other.isFocusStop() and other.isLocallyVisible() and other.isLocallyEnabled() do
+            if child is RadioButton as other where other.groupId == .groupId and
+                                                   other.isFocusStop() and
+                                                   other.isLocallyVisible() and
+                                                   other.isLocallyEnabled() do
                 group.add(other)
         }
 

@@ -70,6 +70,7 @@ using Core, Pixel
         Swag.require(cancel.hasFocus() and not cancel.hasVisibleFocus())
         host.keyPress(.Escape)
     }
+
     Swag.require(dialog.doModal() == Dialog.BtnCancel)
     Swag.require(caller.hasFocus() and not caller.hasVisibleFocus())
     host.keyPress(.Tab)
@@ -221,6 +222,7 @@ using Core, Pixel
             Swag.require(host.clickModalButton(Dialog.BtnCancel))
             return
         }
+
         if stage != 0 do
             return
 
@@ -257,11 +259,12 @@ using Core, Pixel
     var borderChanged: bool
     for x in 12
     {
-        let edge = cast(u32, x) + 154
+        let edge   = cast(u32, x) + 154
         let before = editing.pixelColor(edge, 36)
         Swag.require(before != field.themeColors().edit_FocusBorder)
         borderChanged = borderChanged or keyboard.pixelColor(edge, 36) != before
     }
+
     Swag.require(borderChanged)
 }
 
@@ -285,11 +288,12 @@ using Core, Pixel
     var borderChanged: bool
     for y in 8
     {
-        let edge = 20 + cast(u32, y)
+        let edge    = 20 + cast(u32, y)
         let resting = quiet.pixelColor(100, edge)
         borderChanged = borderChanged or resting != keyboard.pixelColor(100, edge)
         Swag.require(resting == pointer.pixelColor(100, edge))
     }
+
     Swag.require(borderChanged)
 }
 
@@ -369,6 +373,7 @@ using Core, Pixel
             focus.canChangeFocus = false
         return false
     }
+
     caller.setFocus()
 
     let dialog = Dialog.create(&host.surface, 240, 150, title: "Modal")

@@ -139,6 +139,7 @@ impl Viewer.Embedded for EmbeddedViewer
         {
             .choices = #move choices
         }
+
         if .choices.isEmpty() do
             fail Errors.UnsupportedFormatError{}
 

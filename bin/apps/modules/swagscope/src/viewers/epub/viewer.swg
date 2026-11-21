@@ -278,6 +278,7 @@ private impl Panel
         }
 
         var matchOptions = options
+
         // The host compiles a regexp for the complete field value. Scope syntax has been removed
         // from `parsed.text`, so let the shared collector compile the resulting search term.
         if parsed.text.toString() != query do
@@ -305,17 +306,19 @@ private impl Panel
     {
         if index >= .book.chapters.count do
             return
-        let path = Path.combine(.book.root, .book.chapters[index].path)
+        let path   = Path.combine(.book.root, .book.chapters[index].path)
         var stream = catch File.openReadLive(path)
         {
             .searchSkipped = true
             return
         }
+
         let size = catch stream.size()
         {
             .searchSkipped = true
             return
         }
+
         if size > SearchChapterLimit
         {
             .searchSkipped = true
@@ -333,9 +336,9 @@ private impl Panel
         if not .view do
             return false
         let sameChapter = match.major == .chapter
-        let previous = sameChapter ? .currentVisit() : ReadingVisit{}
-        let path = Path.combine(.book.root, .book.chapters[match.major].path)
-        let source = catch File.readAllText(path) { return false; }
+        let previous    = sameChapter ? .currentVisit() : ReadingVisit{}
+        let path        = Path.combine(.book.root, .book.chapters[match.major].path)
+        let source      = catch File.readAllText(path) { return false; }
         if not Viewer.isByteRangeInBounds(source.count, match.offset, match.length) do
             return false
         if not sameChapter do
@@ -351,7 +354,7 @@ private impl Panel
     internal mtd describeSearch(presentation: *Viewer.SearchPresentation)
     {
         presentation.placeholder = texts().ui_Search
-        presentation.toolTip      = texts().ui_SearchTip
+        presentation.toolTip     = texts().ui_SearchTip
     }
 
     mtd readingStyle()->HtmlStyle
@@ -622,7 +625,7 @@ private impl Panel
         if .hasBookmark
         {
             let bookmark = .bookmark
-            let chapter = bookmark.chapter + 1
+            let chapter  = bookmark.chapter + 1
             entries.add(Format.toString(texts().ui_GoToBookmark, chapter),
                         .GoTo,
                         func|view = me|() { view.goToBookmark() },
@@ -630,6 +633,7 @@ private impl Panel
                         defaultKey: {modifiers: Input.KeyModifiers.Control | .Alt, key: .B},
                         bindId: "scope.epub.goToBookmark")
         }
+
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.epub.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.epub.next")
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
@@ -729,22 +733,36 @@ func createViewer(host: Viewer.Host)
     view.load.start(host.fileName(), &Book.load, view)
     with var search: Viewer.SearchApi
     {
-        .collectMatches = func|view|(query, options, progress, matches)->bool => view.collectSearchMatches(query, options, progress, matches)
-        .revealMatch    = func|view|(match, query)->bool => view.revealSearchMatch(match, query)
-        .matchBounds    = func|view|(match, bounds)->bool
+        .collectMatches = func|view|(query, options, progress, matches)->bool
+        {
+            return view.collectSearchMatches(query, options, progress, matches)
+        }
+
+        .revealMatch = func|view|(match, query)->bool
+        {
+            return view.revealSearchMatch(match, query)
+        }
+
+        .matchBounds = func|view|(match, bounds)->bool
         {
             if not view.view or match.major != view.chapter do
                 return false
             return view.view.searchMatchRect(bounds)
         }
-        .clear          = func|view|()
+
+        .clear = func|view|()
         {
             if view.view do
                 view.view.clearSearch()
         }
-        .describe       = func|view|(presentation) => view.describeSearch(presentation)
-        .explainSearch  = func|view|(query)->String => view.explainSearch(query)
+
+        .describe      = func|view|(presentation) => view.describeSearch(presentation)
+        .explainSearch = func|view|(query)->String
+        {
+            return view.explainSearch(query)
+        }
     }
+
     host.setSearch(search)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })

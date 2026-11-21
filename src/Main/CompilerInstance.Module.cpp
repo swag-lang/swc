@@ -1544,7 +1544,7 @@ namespace
         outManifest = {};
 
         FileSystem::IoErrorInfo ioError;
-        std::vector<char>      bytes;
+        std::vector<char>       bytes;
         if (FileSystem::readBinaryFile(manifestPath, bytes, ioError) != Result::Continue || bytes.empty())
             return false;
         const std::string_view content(bytes.data(), bytes.size());
@@ -2553,10 +2553,10 @@ Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::Resolve
     outPaths.staticDir.clear();
     outPaths.sourceRoot = FileSystem::normalizePath(dependencyRoot);
 
-    const CommandLine& cmdLine = instance().cmdLine();
-    Utf8 because;
+    const CommandLine&                     cmdLine = instance().cmdLine();
+    Utf8                                   because;
     std::vector<DependencyConfigCandidate> matches;
-    const Result collected = collectDependencyConfigurationMatches(matches, because, dependencyRoot, importRequest.moduleName.view(), cmdLine);
+    const Result                           collected = collectDependencyConfigurationMatches(matches, because, dependencyRoot, importRequest.moduleName.view(), cmdLine);
     if (collected == Result::Continue)
     {
         if (const fs::path* sharedDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::SharedLibrary))

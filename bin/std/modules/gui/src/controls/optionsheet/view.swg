@@ -195,7 +195,7 @@ impl IWnd for View
         let shift = evt.modifiers == .Shift
         if evt.modifiers != .None and not shift do
             return
-        let row   = .focusedRow()
+        let row = .focusedRow()
         switch evt.key
         {
         case .Down:                                     .moveFocus(1)

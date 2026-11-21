@@ -337,7 +337,7 @@ struct PropHeadlessCancelData
     prop.focusNavigation()
     host.keyPress(Input.Key.Return)     // edit count
     Swag.require(prop.items[1]!.editBox.hasFocus() and not prop.items[1]!.editBox.hasVisibleFocus())
-    host.keyPress(Input.Key.Tab)        // -> edit label row
+    host.keyPress(Input.Key.Tab)     // -> edit label row
     Swag.require(prop.selItem == prop.items[2] and prop.items[2]!.editBox.hasVisibleFocus())
     host.keyPress(Input.Key.Tab, .Shift)
     Swag.require(prop.selItem == prop.items[1] and prop.items[1]!.editBox.hasVisibleFocus())

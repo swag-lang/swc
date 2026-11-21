@@ -116,6 +116,18 @@ using Swag, Core, Core.Errors
                  not queue.sourceIsLost())
 }
 
+// A sample-timeline overflow in a later split also rejects the packet before queue mutation.
+#test
+{
+    var queue  = expect CaptureQueue.create(8_000, 1, 0, 8_000, blockFrames: 4_096, slots: 8, tolerance: 0)
+    var feeder = CapturePcmFeeder.create(&queue)
+    var input: [8_192] s16
+    var rejected: Swag.Error
+    discard catch feeder.pushPcm16(Swag.makeSlice(&input[0], input.count), Swag.U64.Max - 5_000) as rejected
+    Swag.require(rejected.value() is OverflowError)
+    Swag.require(queue.pendingBlocks() == 0 and queue.sampleEnd() == 0)
+}
+
 // Simulated float microphone packets reach AAC with exact 44.1 kHz stereo gap metadata.
 #test
 {

@@ -52,6 +52,7 @@ impl CapturePcmFeeder
             fail BadParameterError{"capture PCM16 packet needs complete nonempty frames"}
         let frames = samples.count / .channels
         try .preflightTicks(firstTick, frames)
+        try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
@@ -70,6 +71,7 @@ impl CapturePcmFeeder
             fail BadParameterError{"capture float packet needs complete nonempty frames"}
         let frames = samples.count / .channels
         try .preflightTicks(firstTick, frames)
+        try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
@@ -97,6 +99,7 @@ impl CapturePcmFeeder
         if not frames do
             fail BadParameterError{"capture silence packet needs frames"}
         try .preflightTicks(firstTick, frames)
+        try .queue.preflightPacket(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
@@ -128,17 +131,5 @@ private impl CapturePcmFeeder
     }
 
     mtd tickAt(firstTick: u64, offset: u64)->u64 fail
-    {
-        let whole     = offset / .sampleRate
-        let remainder = offset % .sampleRate
-        if whole > (Swag.U64.Max - firstTick) / .clockRate do
-            fail OverflowError{"capture packet timestamp overflows"}
-        let base     = firstTick + whole * .clockRate
-        let scaled   = remainder * .clockRate
-        let fraction = scaled / .sampleRate +
-                       cast(u64, scaled % .sampleRate >= .sampleRate / 2 + .sampleRate % 2)
-        if fraction > Swag.U64.Max - base do
-            fail OverflowError{"capture packet timestamp overflows"}
-        return base + fraction
-    }
+        => try captureTickAt(firstTick, offset, .sampleRate, .clockRate)
 }

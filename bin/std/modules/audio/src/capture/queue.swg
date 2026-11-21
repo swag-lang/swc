@@ -27,6 +27,67 @@ private struct CaptureSlot
     generation:  u64
 }
 
+internal func captureTickAt(firstTick: u64, frameOffset: u64, sampleRate: u32, clockFrequency: u64)->u64 fail
+{
+    let whole     = frameOffset / sampleRate
+    let remainder = frameOffset % sampleRate
+    if whole > (Swag.U64.Max - firstTick) / clockFrequency do
+        fail OverflowError{"capture packet timestamp overflows"}
+    let base     = firstTick + whole * clockFrequency
+    let scaled   = remainder * clockFrequency
+    let fraction = scaled / sampleRate +
+                   cast(u64, scaled % sampleRate >= sampleRate / 2 + sampleRate % 2)
+    if fraction > Swag.U64.Max - base do
+        fail OverflowError{"capture packet timestamp overflows"}
+    return base + fraction
+}
+
+private func capturePlacement(timeline: *SampleTimeline, idleSilent: bool, frameCount: u64, firstTick: u64)->SamplePlacement fail
+{
+    var lateFrames = 0'u64
+    if idleSilent and firstTick < timeline.previousTick
+    {
+        let delta        = timeline.previousTick - firstTick
+        let wholeSeconds = delta / timeline.clockFrequency
+        if wholeSeconds > frameCount / timeline.sampleRate
+        {
+            lateFrames = frameCount
+        }
+        else
+        {
+            let wholeFrames = wholeSeconds * timeline.sampleRate
+            if wholeFrames >= frameCount
+            {
+                lateFrames = frameCount
+            }
+            else
+            {
+                let fractionalTicks  = (delta % timeline.clockFrequency) * timeline.sampleRate
+                let fractionalFrames = fractionalTicks / timeline.clockFrequency +
+                                       cast(u64, fractionalTicks % timeline.clockFrequency != 0)
+                let remaining = frameCount - wholeFrames
+                lateFrames = fractionalFrames >= remaining ? frameCount : wholeFrames + fractionalFrames
+            }
+        }
+
+        if lateFrames == frameCount do
+            return SamplePlacement{timeline.sampleEnd(), 0, lateFrames, 0}
+    }
+
+    var placement: SamplePlacement
+    if lateFrames
+    {
+        placement = try timeline.placeClipped(firstTick, lateFrames, frameCount - lateFrames)
+        placement.discardedFrames += lateFrames
+    }
+    else
+    {
+        placement = try timeline.place(firstTick, frameCount)
+    }
+
+    return placement
+}
+
 // Transfers timestamped PCM16 from a capture callback to a recorder in bounded memory.
 //
 // The caller supplies a monotonic `originTick` shared with video and submits each source block
@@ -115,48 +176,8 @@ impl CaptureQueue
         defer .mutex.unlock()
         if .lost do
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
-
-        var lateFrames = 0'u64
         let frames     = samples.count / .channels
-        if .idleSilent and firstTick < .timeline.previousTick
-        {
-            let delta        = .timeline.previousTick - firstTick
-            let wholeSeconds = delta / .timeline.clockFrequency
-            if wholeSeconds > frames / .timeline.sampleRate
-            {
-                lateFrames = frames
-            }
-            else
-            {
-                let wholeFrames = wholeSeconds * .timeline.sampleRate
-                if wholeFrames >= frames
-                {
-                    lateFrames = frames
-                }
-                else
-                {
-                    let fractionalTicks  = (delta % .timeline.clockFrequency) * .timeline.sampleRate
-                    let fractionalFrames = fractionalTicks / .timeline.clockFrequency +
-                                           cast(u64, fractionalTicks % .timeline.clockFrequency != 0)
-                    let remaining = frames - wholeFrames
-                    lateFrames = fractionalFrames >= remaining ? frames : wholeFrames + fractionalFrames
-                }
-            }
-
-            if lateFrames == frames do
-                return SamplePlacement{.timeline.sampleEnd(), 0, lateFrames, 0}
-        }
-
-        var placement: SamplePlacement
-        if lateFrames
-        {
-            placement = try .timeline.placeClipped(firstTick, lateFrames, frames - lateFrames)
-            placement.discardedFrames += lateFrames
-        }
-        else
-        {
-            placement = try .timeline.place(firstTick, frames)
-        }
+        let placement = try capturePlacement(&.timeline, .idleSilent, frames, firstTick)
 
         if not placement.acceptedFrames do
             return placement
@@ -179,6 +200,25 @@ impl CaptureQueue
         .count      += 1
         .idleSilent = false
         return placement
+    }
+
+    // Checks every chunk against a local timeline before a packet starts mutating the queue.
+    internal mtd preflightPacket(firstTick: u64, frameCount: u64) fail
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        var timeline    = .timeline
+        var idleSilent  = .idleSilent
+        var frameOffset = 0'u64
+        while frameOffset < frameCount
+        {
+            let chunkFrames = Math.min(frameCount - frameOffset, .blockFrames)
+            let tick        = try captureTickAt(firstTick, frameOffset, timeline.sampleRate, timeline.clockFrequency)
+            let placement   = try capturePlacement(&timeline, idleSilent, chunkFrames, tick)
+            if placement.acceptedFrames do
+                idleSilent = false
+            frameOffset += chunkFrames
+        }
     }
 
     // Copies the oldest captured block to `samples` and returns its timing metadata.

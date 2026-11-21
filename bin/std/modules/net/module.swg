@@ -48,6 +48,27 @@ support; TCP-only programs do not load it. Standard proxy settings remain effect
 `NO_PROXY`. `SSL_CERT_FILE` and `SSL_CERT_DIR` override Linux CA roots for the server and HTTPS proxy.
 Requests have bounded response bodies and return redirects without following them, so the caller
 can decide which destinations are acceptable. [[Net.Http.get]] documents timeout and header limits.
+
+## Exchange WebSocket frames
+
+```swag
+#import("net")
+using Core, Net
+
+#main
+{
+    var peer = try WebSocket.connect("example.com", 80, "/events")
+    try peer.sendFrame(.Text, cast(const [..] u8, "hello"))
+    let frame = try peer.receiveFrame()
+    if frame.opcode == .Text do
+        Console.println(cast(string, frame.payload.toSlice()))
+}
+```
+
+The client and server validate RFC 6455 upgrades and frame masking. Frames remain visible to the
+caller, including fragments and control frames; `closeGracefully` performs the close handshake.
+`WebSocket.connect` currently uses an unencrypted `ws://` transport. HTTPS requests verify TLS
+certificates, but the module does not yet expose a reusable TLS stream.
 */
 #import("core")
 #static if #os == Swag.TargetOs.Linux

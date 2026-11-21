@@ -85,11 +85,12 @@ whole layout.
   graceful shutdown have documented behavior and focused local-peer tests.
 - Related: std.net.001, std.net.004, std.net.005, std.net.006
 
-### std.net.008 — No WebSocket protocol
+### std.net.008 — Secure WebSocket transport and interoperability
 
-- Next: add WebSocket handshake and frame processing above HTTP without making it part of the
-  HTTP client's completion criteria.
-- Done when: a WebSocket peer completes the HTTP upgrade and exchanges masked and fragmented
-  frames, control frames, and close handshakes within declared size limits, with client and
-  server tests.
-- Related: std.net.006, std.net.007
+- Evidence: `WebSocket.connect` and `Http.ServerConnection.upgradeWebSocket` implement RFC 6455
+  over plain TCP, including masking, fragmentation, control frames, size limits, UTF-8 validation,
+  and the close handshake. TLS streams and secure `wss://` connections remain absent.
+- Next: add verified TLS transport to the WebSocket client and server after std.net.005.
+- Done when: secure client and server peers pass local tests for credential validation, masked
+  and fragmented frames, control frames, limits, and close handshakes.
+- Related: std.net.005, std.net.006, std.net.007

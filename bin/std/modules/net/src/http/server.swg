@@ -386,6 +386,21 @@ impl ServerConnection
         try .writeResponseHead(status, headers, true, 0)
     }
 
+    // Completes an RFC 6455 upgrade and transfers this connection to a WebSocket owner.
+    mtd upgradeWebSocket(request: ServerRequest, options: WebSocketOptions = {})->WebSocket fail
+    {
+        if .responseStarted do
+            fail Errors.BadParameterError{}
+        let accept = try webSocketValidateUpgrade(request)
+        let response = Format.toString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
+        try .writeAll(cast(const [..] u8, response))
+        .responseStarted = true
+        var result = WebSocket{stream: #move .stream, side: .Server, options: options,
+                               input: #move .input, inputOffset: .inputOffset, inputCount: .inputCount, open: true}
+        .inputOffset = .inputCount
+        return result
+    }
+
     // Writes one chunk of a response started by [[Net.Http.ServerConnection.beginChunkedResponse]].
     mtd writeBody(bytes: const [..] u8) fail
     {

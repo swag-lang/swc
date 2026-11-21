@@ -67,12 +67,14 @@ whole layout.
 ### std.net.007 — HTTP server connection lifecycle and protocol coverage
 
 - Evidence: `Http.Server` parses bounded HTTP/1.0 and HTTP/1.1 requests and writes fixed-length
-  or chunked responses. Each connection handles one request and closes after one response;
-  `Server.close` stops its listener without taking ownership of accepted connections.
-- Next: add keep-alive only with a bounded request-count and timeout contract; blocking accept and
-  reads otherwise remain uninterruptible.
-- Done when: request framing, malformed framing, response streaming, one-request connection
-  closure, and explicit listener closure have focused local-peer tests and documented behavior.
+  or chunked responses. Connections close after one request by default; keep-alive requires a
+  request limit and nonzero per-read idle timeout. `Server.close` stops its listener without
+  taking ownership of accepted connections.
+- Next: define whether closing a listener wakes a thread blocked in `accept` on both hosts; keep
+  accepted connection ownership independent.
+- Done when: request framing, malformed framing, response streaming, bounded keep-alive, idle
+  timeout, default connection closure, and explicit listener closure have focused local-peer tests
+  and documented behavior.
 - Related: std.net.004, std.net.005, std.net.006, platform.portability.088
 
 ### std.net.008 — Secure WebSocket transport and interoperability

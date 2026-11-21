@@ -29,9 +29,10 @@ transfer fewer bytes than requested. DNS resolution
 preserves the platform resolver's address order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.
-An HTTP server handles one request per connection and closes each response; closing the server
-stops its listener while accepted connections remain independent. `Http.post` streams a
-length-bounded request body from a caller-provided reader.
+An HTTP server handles one request per connection by default. It can allow a bounded number of
+requests when an idle read timeout is configured; closing the server stops its listener while
+accepted connections remain independent. `Http.post` streams a length-bounded request body from a
+caller-provided reader.
 
 ## Request an HTTPS resource
 

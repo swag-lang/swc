@@ -8,8 +8,10 @@ struct ServerOptions
 {
     public
     {
-        maxHeaderBytes: u64 = 64 * 1024     // Maximum request line, header fields, and trailers.
-        maxBodyBytes:   u64 = 4 * 1024 * 1024 // Maximum decoded request body.
+        maxHeaderBytes:             u64 = 64 * 1024     // Maximum request line, header fields, and trailers.
+        maxBodyBytes:               u64 = 4 * 1024 * 1024 // Maximum decoded request body.
+        maxRequestsPerConnection:   u32 = 1              // Maximum requests served on one connection; values above one require an idle timeout.
+        idleTimeoutMs:              u32                  // Maximum time for each blocking read in milliseconds; zero disables it.
     }
 }
 
@@ -36,7 +38,7 @@ struct ServerRequest
     }
 }
 
-// Owns a blocking HTTP listener; each accepted connection handles one request.
+// Owns a blocking HTTP listener with bounded per-connection request policies.
 #[Swag.NoCopy]
 struct Server
 {
@@ -44,7 +46,7 @@ struct Server
     options:  ServerOptions
 }
 
-// Owns one HTTP connection; responses close the connection after completion.
+// Owns one HTTP connection; its request limit and idle timeout come from its server.
 #[Swag.NoCopy]
 struct ServerConnection
 {
@@ -55,6 +57,9 @@ struct ServerConnection
     input:            [4096] u8
     inputOffset:      u64
     inputCount:       u64
+    requestsServed:   u32
+    requestPending:   bool
+    requestKeepAlive: bool
 }
 
 private func httpTokenByte(value: u8)->bool
@@ -68,6 +73,23 @@ private func httpTokenByte(value: u8)->bool
 private func httpHeaderNameEquals(name: string, expected: string)->bool
 {
     return name.count == expected.count and Utf8.indexOf(name, expected, 0, .Latin1NoCase) == 0
+}
+
+private func httpHeaderContainsToken(value: string, token: string)->bool
+{
+    var start = 0'u64
+    while start < value.count
+    {
+        let separator = Utf8.indexOf(value, ",", start)
+        let end = separator == Swag.U64.Max ? value.count : separator
+        let part = Latin1.trim(value[start until end])
+        if part.count == token.count and Utf8.indexOf(part, token, 0, .Latin1NoCase) == 0 do
+            return true
+        if separator == Swag.U64.Max do
+            break
+        start = separator + 1
+    }
+    return false
 }
 
 private func httpReasonPhrase(status: u32)->string
@@ -103,9 +125,13 @@ private struct HeaderByteCount
 impl Server
 {
     // Binds a blocking HTTP listener for IPv4 or IPv6 requests.
+    //
+    // Connections serve one request by default. A larger request limit requires a nonzero
+    // `idleTimeoutMs`, which bounds each blocking read while parsing requests.
     func listen(endpoint: SocketEndpoint, options: ServerOptions = {})->Server fail
     {
-        if options.maxHeaderBytes < 16 do
+        if options.maxHeaderBytes < 16 or options.maxRequestsPerConnection == 0 or
+           options.maxRequestsPerConnection > 1 and options.idleTimeoutMs == 0 do
             fail Errors.BadParameterError{}
         var listener = try TcpListener.listen(endpoint)
         return {listener: #move listener, options: options}
@@ -127,6 +153,8 @@ impl Server
     mtd accept()->ServerConnection fail
     {
         var stream = try .listener.accept()
+        if .options.idleTimeoutMs do
+            try stream.setReadTimeout(.options.idleTimeoutMs)
         return {stream: #move stream, options: .options}
     }
 }
@@ -246,7 +274,7 @@ impl ServerConnection
     // Reads and validates one bounded request, including Content-Length and chunked bodies.
     mtd readRequest()->ServerRequest fail
     {
-        if .responseStarted do
+        if .responseStarted or .requestPending do
             fail Errors.BadParameterError{}
         var request: ServerRequest
         var headerBytes = HeaderByteCount{}
@@ -271,6 +299,8 @@ impl ServerConnection
         var hasContentLength = false
         var contentLength = 0'u64
         var isChunked = false
+        var connectionClose = false
+        var connectionKeepAlive = false
         for
         {
             let line = try .readLine(.options.maxHeaderBytes - Math.min(.options.maxHeaderBytes, headerBytes.value))
@@ -306,6 +336,11 @@ impl ServerConnection
                     fail Errors.InvalidFormatError{"unsupported HTTP Transfer-Encoding"}
                 isChunked = true
             }
+            elif httpHeaderNameEquals(name, "connection")
+            {
+                connectionClose = connectionClose or httpHeaderContainsToken(value, "close")
+                connectionKeepAlive = connectionKeepAlive or httpHeaderContainsToken(value, "keep-alive")
+            }
             request.headers.add({name: String.from(name), value: String.from(value)})
         }
 
@@ -323,6 +358,11 @@ impl ServerConnection
             try .readExact(request.body.toSlice())
         }
 
+        .requestsServed += 1
+        .requestPending = true
+        .requestKeepAlive = .requestsServed < .options.maxRequestsPerConnection and
+                            not connectionClose and
+                            (version == "HTTP/1.1" or connectionKeepAlive)
         return request
     }
 
@@ -357,7 +397,7 @@ impl ServerConnection
 
     private mtd writeResponseHead(status: u32, headers: const [..] Header, chunked: bool, bodyLength: u64) fail
     {
-        if .responseStarted or status < 200 or status > 599 do
+        if not .requestPending or .responseStarted or status < 200 or status > 599 do
             fail Errors.BadParameterError{}
         try .validateResponseHeaders(headers)
         var text = Format.toString("HTTP/1.1 % %\r\n", status, httpReasonPhrase(status))
@@ -369,18 +409,17 @@ impl ServerConnection
         }
         else do
             text += Format.toString("Content-Length: %\r\n", bodyLength)
-        text += "Connection: close\r\n\r\n"
+        text += .requestKeepAlive ? "Connection: keep-alive\r\n\r\n" : "Connection: close\r\n\r\n"
         try .writeAll(cast(const [..] u8, text))
         .responseStarted = true
     }
 
-    // Writes a complete response with a known body length and closes the connection.
+    // Writes a complete response with a known body length and applies the connection policy.
     mtd respond(status: u32, body: const [..] u8, headers: const [..] Header = []) fail
     {
         try .writeResponseHead(status, headers, false, body.count)
         try .writeAll(body)
-        .responseFinished = true
-        .stream.close()
+        .completeResponse()
     }
 
     // Starts a chunked response for a body whose length is not known in advance.
@@ -392,12 +431,13 @@ impl ServerConnection
     // Completes an RFC 6455 upgrade and transfers this connection to a WebSocket owner.
     mtd upgradeWebSocket(request: ServerRequest, options: WebSocketOptions = {})->WebSocket fail
     {
-        if .responseStarted do
+        if not .requestPending or .responseStarted do
             fail Errors.BadParameterError{}
         let accept = try webSocketValidateUpgrade(request)
         let response = Format.toString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
         try .writeAll(cast(const [..] u8, response))
         .responseStarted = true
+        .requestPending = false
         var result = WebSocket{stream: #move .stream, side: .Server, options: options,
                                input: #move .input, inputOffset: .inputOffset, inputCount: .inputCount, open: true}
         .inputOffset = .inputCount
@@ -417,13 +457,26 @@ impl ServerConnection
         try .writeAll(cast(const [..] u8, "\r\n"))
     }
 
-    // Completes the chunked response and closes the connection.
+    // Completes the chunked response and applies the connection policy.
     mtd finishResponse() fail
     {
         if not .responseStarted or .responseFinished do
             fail Errors.BadParameterError{}
         try .writeAll(cast(const [..] u8, "0\r\n\r\n"))
+        .completeResponse()
+    }
+
+    private mtd completeResponse()
+    {
         .responseFinished = true
-        .stream.close()
+        .requestPending = false
+        if .requestKeepAlive
+        {
+            .responseStarted = false
+            .responseFinished = false
+            .requestKeepAlive = false
+        }
+        else do
+            .stream.close()
     }
 }

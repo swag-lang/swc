@@ -114,6 +114,67 @@ func serveHttp(thread: const *Threading.Thread)
     Swag.require(framedHeader.value() is Errors.BadParameterError)
 }
 
+// Keep-alive serves a bounded second request and closes at the configured request limit.
+#test
+{
+    var invalid: Swag.Error
+    discard catch Http.Server.listen({address: [127, 0, 0, 1], port: 0},
+        {maxRequestsPerConnection: 2}) as invalid
+    Swag.require(invalid.value() is Errors.BadParameterError)
+
+    var options = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 1000}
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
+    var client = expect TcpStream.connect(expect server.localAddress())
+    let firstRequest = cast(const [..] u8,
+        "GET /one HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n")
+    Swag.require(expect client.write(firstRequest) == firstRequest.count)
+
+    var connection = expect server.accept()
+    let first = expect connection.readRequest()
+    Swag.require(first.target == "/one")
+    expect connection.respond(200, cast(const [..] u8, "one"))
+
+    var response: String
+    var buffer: [512] u8
+    while Utf8.indexOf(response.toString(), "one") == Swag.U64.Max
+    {
+        let count = expect client.read(buffer)
+        Swag.require(count > 0)
+        response.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(Utf8.indexOf(response.toString(), "Connection: keep-alive") != Swag.U64.Max)
+
+    let secondRequest = cast(const [..] u8,
+        "GET /two HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+    Swag.require(expect client.write(secondRequest) == secondRequest.count)
+    let second = expect connection.readRequest()
+    Swag.require(second.target == "/two")
+    expect connection.respond(200, cast(const [..] u8, "two"))
+
+    var finalResponse: String
+    for
+    {
+        let count = expect client.read(buffer)
+        if count == 0 do
+            break
+        finalResponse.append(cast(string, buffer[0 until count]))
+    }
+    Swag.require(Utf8.indexOf(finalResponse.toString(), "two") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(finalResponse.toString(), "Connection: close") != Swag.U64.Max)
+}
+
+// An idle persistent connection times out while waiting for its first request.
+#test
+{
+    let options = Http.ServerOptions{maxRequestsPerConnection: 2, idleTimeoutMs: 50}
+    var server = expect Http.Server.listen({address: [127, 0, 0, 1], port: 0}, options)
+    var client = expect TcpStream.connect(expect server.localAddress())
+    var connection = expect server.accept()
+    var error: Swag.Error
+    discard catch connection.readRequest() as error
+    Swag.require(error.value() is NetworkError)
+}
+
 // A peer that accepts a connection but never sends a response reaches the receive timeout.
 #test
 {

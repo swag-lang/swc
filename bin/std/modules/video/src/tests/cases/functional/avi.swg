@@ -377,6 +377,28 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(indexStart + 8 + 3 * 16 == bytes.count)
 }
 
+// The approximate `avih` frame period stays representable at the ends of the stream-rate range.
+#test
+{
+    var slowBuffer: ConcatBuffer
+    let slowRate   = expect FrameRate.create(1, 4_295)
+    var slowWriter = expect Writer.createMemory("slow.avi", &slowBuffer, 2, 2, slowRate)
+    expect slowWriter.end()
+    let slowBytes   = slowBuffer.toArray()
+    let slow        = slowBytes.toSlice()
+    Swag.require(aviReadU32(slow, 32) == Swag.U32.Max)
+    Swag.require(aviReadU32(slow, 128) == 4_295 and aviReadU32(slow, 132) == 1)
+
+    var fastBuffer: ConcatBuffer
+    let fastRate   = expect FrameRate.create(Swag.U32.Max, 1)
+    var fastWriter = expect Writer.createMemory("fast.avi", &fastBuffer, 2, 2, fastRate)
+    expect fastWriter.end()
+    let fastBytes   = fastBuffer.toArray()
+    let fast        = fastBytes.toSlice()
+    Swag.require(aviReadU32(fast, 32) == 1)
+    Swag.require(aviReadU32(fast, 128) == 1 and aviReadU32(fast, 132) == Swag.U32.Max)
+}
+
 // A stream written to a file reads back through the file-backed sink, which is the path where
 // the header totals are rewritten in place rather than in memory.
 #test

@@ -130,8 +130,6 @@ func roundDiv(value, divisor: s64)->s32
     return cast(s32, -(((-value) + divisor / 2) / divisor))
 }
 
-func scaleFixed(ppem, unitsPerEm: u32)->s32 => roundDiv(cast(s64, ppem) * 64 * 65536, unitsPerEm)
-
 func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
 {
     if not unitsPerEm do

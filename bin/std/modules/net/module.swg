@@ -31,7 +31,8 @@ synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 ser
 available on Windows and Linux.
 An HTTP server handles one request per connection by default. It can allow a bounded number of
 requests when an idle read timeout is configured; closing the server stops its listener while
-accepted connections remain independent. `Http.post` streams a length-bounded request body from a
+accepted connections remain independent. A blocked `accept` is not guaranteed to wake on close, so
+coordinate shutdown with accept callers. `Http.post` streams a length-bounded request body from a
 caller-provided reader.
 
 ## Request an HTTPS resource

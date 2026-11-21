@@ -146,7 +146,10 @@ impl Server
     // Returns the bound local IPv4 or IPv6 address and port.
     mtd localAddress()->SocketEndpoint fail => try .listener.localAddress()
 
-    // Stops accepting new connections; connections already returned by `accept` remain owned by callers.
+    // Closes the listener; connections already accepted remain owned by callers.
+    //
+    // A call to `accept` already blocked on another thread is not guaranteed to wake. Coordinate
+    // shutdown with accept callers before closing the server.
     mtd close() => .listener.close()
 
     // Blocks until a peer connects and returns an independently owned connection.

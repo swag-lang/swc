@@ -44,7 +44,7 @@ func buildCffExpertEncoding()->Array'u8
     return result
 }
 
-func buildCffWithTruncatedFdSelect()->Array'u8
+func buildCffWithFdSelectPrefix()->Array'u8
 {
     var result: Array'u8
     result.add([0x01, 0x00, 0x04, 0x04, 0x00, 0x01, 0x01, 0x01, 0x02, 0x41])     // Header and Name INDEX end at 10.
@@ -52,7 +52,6 @@ func buildCffWithTruncatedFdSelect()->Array'u8
     result.add([0x00, 0x02, 0x01, 0x01, 0x06, 0x0E, 0x41, 0x64, 0x6F, 0x62, 0x65, 0x49, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x74, 0x79])           // Adobe and Identity String INDEX ends at 49.
     result.add([0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x02, 0x0E])     // Empty Global Subrs and one-glyph CharStrings end at 57.
     result.add([0x00, 0x01, 0x01, 0x01, 0x01])     // One empty FD DICT; FDArray ends at 62.
-    result.add([0x00])     // FDSelect format 0 has no byte for its glyph.
     return result
 }
 
@@ -164,8 +163,34 @@ func buildCffWithTruncatedFdSelect()->Array'u8
 #test
 {
     // A CID font's FDSelect must contain one FD index per glyph.
+    var truncated = buildCffWithFdSelectPrefix()
+    truncated.add([0x00])
+
     var rejected: Swag.Error
-    discard catch parseCffFont(buildCffWithTruncatedFdSelect().toSlice()) as rejected
+    discard catch parseCffFont(truncated.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // Format-3 FDSelect requires its range count, each range pair, and the final sentinel.
+    var missingCount = buildCffWithFdSelectPrefix()
+    missingCount.add([0x03])
+
+    var rejected: Swag.Error
+    discard catch parseCffFont(missingCount.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+
+    var missingRange = buildCffWithFdSelectPrefix()
+    missingRange.add([0x03, 0x00, 0x01])
+    rejected = {}
+    discard catch parseCffFont(missingRange.toSlice()) as rejected
+    Swag.require(rejected.value() != null)
+
+    var missingSentinel = buildCffWithFdSelectPrefix()
+    missingSentinel.add([0x03, 0x00, 0x01, 0x00, 0x00, 0x00])
+    rejected = {}
+    discard catch parseCffFont(missingSentinel.toSlice()) as rejected
     Swag.require(rejected.value() != null)
 }
 

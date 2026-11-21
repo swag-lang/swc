@@ -640,13 +640,13 @@ private func readCffFdSelect(font: *CffFont, offset: u64) fail
     if format != 3 do
         try fault(0x08)
 
-    let ranges = peekU16(font.block, offset + 1)
+    let ranges = try readU16(font.block, offset + 1)
     var pos    = offset + 3
     for ranges
     {
-        let first = cast(u32, peekU16(font.block, pos))
-        let fd    = peekU8(font.block, pos + 2)
-        let next  = cast(u32, peekU16(font.block, pos + 3))
+        let first = cast(u32, try readU16(font.block, pos))
+        let fd    = try readU8(font.block, pos + 2)
+        let next  = cast(u32, try readU16(font.block, pos + 3))
         pos += 3
         for gid in first until Math.min(next, glyphCount) do
             font.fdSelect[gid] = fd

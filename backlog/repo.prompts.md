@@ -37,13 +37,13 @@ findings. Put campaign results in their reports and Git history.
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
 | [6. Compiler code health](#6-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
-| [7. Swag code health](#7-swag-code-health) | Clean up the substance and presentation of all Swag code under `bin/`, including APIs |
+| [7. Swag code health](#7-swag-code-health) | Review runtime and app-used standard modules, including APIs |
 
-Campaign 6 cleans up swc itself; campaign 7 cleans up all project-owned Swag code under `bin/`,
-in both substance and presentation. Semantic refactoring, API quality, and visual readability
-belong to the same campaign and coverage inventory. A formatter pass alone completes neither
-review; keep presentation-only edits distinct from refactors, defect repairs, and contract changes
-so each receives the right evidence.
+Campaign 6 cleans up swc itself; campaign 7 reviews `bin/runtime/` and the `bin/std/modules/`
+modules used by shipped applications, in both substance and presentation. Semantic refactoring,
+API quality, and visual readability belong to the same campaign and coverage inventory. A
+formatter pass alone completes neither review; keep presentation-only edits distinct from
+refactors, defect repairs, and contract changes so each receives the right evidence.
 
 Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
 cost speed. They may run concurrently in separate worktrees; campaign 5 and the dedicated benchmark
@@ -1095,9 +1095,10 @@ result. Report structural dependency counts when useful, but no timing or memory
 ```
 Read and follow the shared working protocol for prompts 2 through 7 in backlog/repo.prompts.md.
 
-You are running the Swag code-health campaign for all of bin/: clean up both the substance and
-presentation of its code, just as prompt 6 cleans up swc itself. Read AGENTS.md, then the skills
-modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code and its
+You are running the Swag code-health campaign for `bin/runtime/` and the standard modules under
+`bin/std/modules/` that shipped applications use, directly or through module dependencies. Improve
+both their substance and presentation, just as prompt 6 cleans up swc itself. Read AGENTS.md, then
+the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code and its
 references/readability.md, design-swag-bin-modules, and write-swag-public-api-docs. Read
 tools/README.md, backlog/README.md, and the relevant domain backlogs. Apply the application,
 visual identity, theme, dialog, compiler message, and syntax-reflection skills whenever a batch
@@ -1106,7 +1107,8 @@ for the entire campaign, including presentation-only batches.
 
 GOAL
 
-Make bin/ the reference showcase for the Swag language, in both substance and form. A reader
+Make the runtime and app-used standard modules the reference showcase for the Swag language, in
+both substance and form. A reader
 should be able to copy its code and learn the best current language idioms, clear design, safe
 resource handling, coherent APIs, and readable layout. This is an implementation campaign:
 clean up, improve, refactor, simplify, and finish the code, its public contracts, and the way it
@@ -1117,13 +1119,21 @@ effort, and the code a caller actually writes. Shorter code is valuable when it 
 same intent more clearly; line count, uniform shapes, and use of the newest syntax are not goals
 of their own. Keep already clear code unchanged; do not manufacture churn to demonstrate progress.
 
-COVER ALL OF BIN/
+SCOPE: RUNTIME AND STANDARD MODULES USED BY APPS
 
-Inventory the actual tree, including every project-owned .swg and .swgs source, module descriptor,
-and public API. Cover runtime, every standard module, every application, examples, standalone
-scripts, executable language-reference pages, compiler suites, module tests, and test helpers.
-Discover additional directories from the tree instead of treating this list as exhaustive.
-Do not exclude bin/unittests/ as a whole: review its code while preserving each test's purpose.
+The in-scope code is `bin/runtime/` and the transitive dependency closure of the `bin/std/modules/`
+modules imported by shipped applications in `bin/apps/`. Determine that closure from application
+module descriptors and imports, then follow imports among standard modules. Record the resulting
+module list in campaign state so the scope is reproducible. Include each in-scope module's
+project-owned implementation, module descriptor, public API and module-owned tests and test helpers.
+The application sources are read-only evidence for discovering dependencies and checking real
+caller contracts; do not review or change application implementation.
+
+Applications, examples, standalone scripts and tools, language-reference pages, compiler suites,
+and standard modules outside the application dependency closure are out of scope. Do not add them
+to active coverage. Discover source and test directories within each included module from the
+actual tree; do not assume a fixed layout. Preserve each test's purpose, including intentionally
+awkward or invalid fixture code.
 
 Keep a coverage table outside every checkout with one row per source file, its area and API
 families, separate semantic and visual review status, findings, retained changes, validation,
@@ -1135,12 +1145,10 @@ together with implementations, documentation, tests, and representative callers.
 member of a repeated family before marking that family complete.
 
 Classify generated sources, vendored sources, binary assets, fixtures, and compilation artifacts
-explicitly. Review project-owned generation inputs and integration code; regenerate derived output
-through its owning tool. Do not hand-edit bin/help or other generated output. Preserve upstream
-code and fixtures whose unusual form is intentional. Compiler regression inputs may deliberately
-use awkward syntax, redundant code, invalid code, or unusual layout: preserve the exact behavior
-they test instead of modernizing away their purpose. Justify exemptions individually rather than
-exempting all tests, and keep exclusions separate from reviewed counts.
+inside the selected modules explicitly. Review project-owned generation inputs in those modules
+and regenerate derived output through its owning tool. Do not hand-edit generated output. Preserve
+upstream code and fixtures whose unusual form is intentional. Justify exclusions individually and
+keep them separate from reviewed counts.
 
 RESUME A PREVIOUS PASS
 
@@ -1172,9 +1180,8 @@ including single-line-argument-column-limit when affected. A formatter cannot ch
 phases, invent useful names, extract helpers, or judge whether a purpose comment helps.
 
 Prefer broad, low-noise improvements over scattered cosmetic edits. Start deep reviews at public
-bin/std and bin/runtime APIs and their important internal paths, then bin/apps/, bin/examples/,
-reference sources, standalone scripts, compiler suites, and every remaining owned source. Let
-concrete defects and high-value evidence adjust this order without dropping any area from coverage.
+APIs and important internal paths in the selected standard modules and runtime. Let concrete
+defects and high-value evidence adjust this order without dropping any in-scope area from coverage.
 
 WHAT TO IMPROVE - SUBSTANCE
 
@@ -1199,10 +1206,11 @@ WHAT TO IMPROVE - SUBSTANCE
     failure behavior, and module boundaries. Verify contracts through real caller code. Simplify
     awkward caller sequences, remove accidental public surface, and fill demonstrated gaps without
     speculative API growth. Make error behavior predictable and failure states well defined.
-  - API changes: make a deliberate before/after contract decision, assess compatibility, and update
-    every in-repository caller, test, example, reference page, and public comment in the same batch.
-    Respect documented compatibility requirements and explain any migration for external callers;
-    do not leave half-renamed families or compatibility wrappers with no concrete requirement.
+  - API changes: make a deliberate before/after contract decision and assess compatibility. Update
+    module-owned tests, documentation, and comments in the same batch. Use application call sites
+    as read-only contract evidence; preserve compatibility for them, or report a required migration
+    as blocked because application implementation is outside this prompt's scope. Do not leave
+    half-renamed families or compatibility wrappers with no concrete requirement.
   - Teaching quality: examples and reference code must show the recommended way to solve their
     problem. Keep them small and complete, with correct failure handling and resource cleanup.
     Public documentation must explain contracts, edge cases, and ownership, and use examples that
@@ -1271,7 +1279,9 @@ THE LOOP
      Remove cosmetic churn, accidental generated changes, and line-ending noise. Preserve fixture
      intent; fix or report an unresolved formatter conflict rather than accepting a harmful rewrite.
   5. Run the validation selected by validate-swag-changes: the owning module's focused tests,
-     compiler regression boundary, affected consumer, example/script smoke, or reference page.
+     compiler regression boundary or an affected module-owned test. A shipped application may be
+     built only when needed to verify a standard-module compatibility contract; do not inspect or
+     change its implementation as campaign work.
      Do not rebuild the compiler for comments and whitespace alone. Exercise source-sensitive
      inputs when affected and inspect documentation output when comments can reach it. Add
      configurations, compiler builds, and broader coverage only when the changed behavior requires
@@ -1291,13 +1301,14 @@ and implementation are resolved.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - Every project-owned Swag source and public API family under bin/ has received semantic and
-    visual review, with explicit per-file coverage and justified exclusions for generated or
-    upstream material and intentional fixtures. No directory is silently omitted.
+  - Every project-owned Swag source and public API family in `bin/runtime/` and the recorded
+    app-used standard-module dependency closure has received semantic and visual review, with
+    explicit per-file coverage and justified exclusions for generated or upstream material and
+    intentional fixtures. No in-scope directory is silently omitted.
   - Every actionable improvement found in scope is implemented and validated; every remaining
     design or external blocker is identified precisely and prevents a claim of full completion.
-  - APIs, implementations, callers, tests, examples, and documentation agree, with no stale names,
-    partial migration, unexplained duplicate implementation, or obsolete recommended idiom.
+  - In-scope APIs, implementations, module-owned tests and documentation agree, with no stale
+    names, partial migration, unexplained duplicate implementation, or obsolete recommended idiom.
   - A final reread finds no further justified visual improvement in the reviewed code. Formatting
     is stable, and presentation-only batches preserve logic and source-sensitive behavior.
   - Validation selected from the complete final diff is green, including affected consumers and
@@ -1307,15 +1318,17 @@ THE CAMPAIGN MAY END ONLY WHEN
     or line-ending-only change remains in the final diff.
 
 Do not stop after the easy style fixes or the first directory. Continue until the coverage table
-accounts for the whole tree in both dimensions. If completion is blocked, deliver the validated
+accounts for all in-scope code in both dimensions. If completion is blocked, deliver the validated
 improvements and state exactly what remains. If the user specifies a time limit, stop at that
 limit and report reviewed and unreviewed areas; elapsed time does not establish whole-tree coverage.
-Never claim that bin/ is perfect on the strength of a sample or a formatter invocation.
+Never claim that the in-scope runtime and standard modules are complete on the strength of a sample
+or a formatter invocation.
 
 REPORT
 
-Report the worktree and branch, reviewed areas, unchanged areas and exclusions, meaningful
-before/after examples explaining both design and reading benefits, refactorings and simplifications,
+Report the worktree and branch, the app-used standard-module closure, reviewed areas, unchanged areas
+and exclusions, meaningful before/after examples explaining both design and reading benefits,
+refactorings and simplifications,
 API contract changes and caller migrations, defects fixed, platform findings, documentation updates,
 and every validation command and result. Include the final semantic and visual coverage table and
 any remaining blockers or uncertain cases so the whole-tree review can be verified.

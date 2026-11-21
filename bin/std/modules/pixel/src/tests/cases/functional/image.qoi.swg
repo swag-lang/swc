@@ -9,6 +9,17 @@ using Swag, Core
     Swag.require(Image.canSave("sample.qoi"))
 }
 
+// QOI refuses a buffer that no longer matches the image geometry.
+#test
+{
+    var image = Image.create(1, 1, .RGBA8)
+    image.pixels.resize(1)
+
+    var errorOutcome: Swag.Error
+    catch { discard try image.encodeToBytes("truncated.qoi") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode every QOI chunk family and map the file's top-down rows to Image storage.
 #test
 {

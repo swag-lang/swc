@@ -313,9 +313,30 @@ internal func writeLogicalPixelValue(destination: [*] u8, format: PixelFormat, a
 
 impl Image
 {
-    // Reports whether the image owns an allocated pixel buffer.
+    // Reports whether the image has complete packed pixel storage matching its geometry.
     #[Swag.Inline]
-    mtd const isValid() => .pixels.buffer != null
+    mtd const isValid()->bool
+    {
+        if not .pixels.buffer or
+           .width <= 0 or
+           .height <= 0 or
+           not .pixelFormat.isPacked() or
+           (not .pixelFormat.hasAlpha() and .alphaMode != .Straight) do
+            return false
+
+        let bitsPerPixel = .pixelFormat.bitsPerPixel()
+        if bitsPerPixel == 0 or bitsPerPixel % 8 != 0 do
+            return false
+        let bytesPerPixel = cast(u8, bitsPerPixel / 8)
+        if .bitsPerPixel != bitsPerPixel or .bytesPerPixel != bytesPerPixel do
+            return false
+
+        let rowBytes = cast(u64, .width) * cast(u64, bytesPerPixel)
+        if rowBytes > Swag.S32.Max or .rowStride != cast(s32, rowBytes) do
+            return false
+        let byteCount = rowBytes * cast(u64, .height)
+        return .byteCount == byteCount and .pixels.count == byteCount
+    }
 
     // Creates a tightly packed image with positive dimensions.
     //

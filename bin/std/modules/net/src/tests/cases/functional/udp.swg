@@ -47,6 +47,17 @@ using Core
 
 #test
 {
+    var socket = expect DatagramSocket.bind({address: [127, 0, 0, 1], port: 0})
+    expect socket.setReadTimeout(50)
+    var buffer: [1] u8
+    var error:  Swag.Error
+    discard catch socket.receiveFrom(buffer) as error
+    Swag.require(error.value() is NetworkError)
+    expect socket.setReadTimeout(0)
+}
+
+#test
+{
     #static if #os == Swag.TargetOs.Linux
     {
         let anyAddress = IpAddress.ipv6([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])

@@ -6,8 +6,8 @@ struct Datagram
     public
     {
         endpoint:  SocketEndpoint     // Sender address and port.
-        count:     u64                // Bytes copied into the receive buffer.
-        truncated: bool               // The datagram contained more bytes than the receive buffer.
+        count:     u64      // Bytes copied into the receive buffer.
+        truncated: bool     // The datagram contained more bytes than the receive buffer.
     }
 }
 
@@ -16,8 +16,8 @@ struct MulticastOptions
 {
     public
     {
-        interfaceAddress: IpAddress = {} // Local IPv4 interface address; zero selects the default.
-        interfaceIndex:   u32           // IPv6 interface index; zero selects the default.
+        interfaceAddress: IpAddress = {}     // Local IPv4 interface address; zero selects the default.
+        interfaceIndex:   u32     // IPv6 interface index; zero selects the default.
     }
 }
 
@@ -36,6 +36,9 @@ impl DatagramSocket
 
     // Enables or disables sending IPv4 broadcast datagrams on this socket.
     mtd setBroadcast(enabled: bool) fail
+
+    // Sets the maximum blocking receive time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
 
     // Joins an IPv4 or IPv6 multicast group on the selected local interface.
     mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail

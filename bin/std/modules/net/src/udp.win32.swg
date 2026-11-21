@@ -13,6 +13,7 @@ private func newDatagramSocket(family: s32)->SOCKET fail
         discard WSACleanup()
         fail NetworkError{code: code}
     }
+
     return handle
 }
 
@@ -24,6 +25,15 @@ impl DatagramSocket
         Swag.assert(.open)
         let value = enabled ? 1's32 : 0's32
         if setsockopt(.handle, SOL_SOCKET, SO_BROADCAST, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+            fail NetworkError{code: WSAGetLastError()}
+    }
+
+    // Sets the maximum blocking receive time in milliseconds; zero disables the timeout.
+    mtd setReadTimeout(timeoutMs: u32) fail
+    {
+        Swag.assert(.open)
+        var timeout = timeoutMs
+        if setsockopt(.handle, SOL_SOCKET, SO_RCVTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
     }
 
@@ -46,16 +56,17 @@ impl DatagramSocket
     {
         if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
             fail Errors.BadParameterError{}
-        let family = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
-        let handle = try newDatagramSocket(family)
+        let family  = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
+        let handle  = try newDatagramSocket(family)
         let address = nativeSocketAddress(endpoint)
-        let length = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
+        let length  = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
         if Win32.bind(handle, cast(const *SOCKADDR, cast(const *void, &address)), length) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
             closeNetSocket(handle)
             fail NetworkError{code: code}
         }
+
         return {handle: handle, open: true}
     }
 
@@ -85,9 +96,8 @@ impl DatagramSocket
         if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
             fail Errors.BadParameterError{}
         let address = nativeSocketAddress(endpoint)
-        let length = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
-        let result = sendto(.handle, bytes.buffer, cast(s32, bytes.count), 0,
-                            cast(const *SOCKADDR, cast(const *void, &address)), length)
+        let length  = cast(s32, endpoint.address.family == .IPv4 ? #sizeof(SOCKADDR_IN) : #sizeof(SOCKADDR_IN6))
+        let result  = sendto(.handle, bytes.buffer, cast(s32, bytes.count), 0, cast(const *SOCKADDR, cast(const *void, &address)), length)
         if result == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
         if cast(u64, result) != bytes.count do
@@ -100,10 +110,9 @@ impl DatagramSocket
     {
         Swag.assert(.open)
         var address: NativeSocketAddress
-        var size = cast(s32, #sizeof(NativeSocketAddress))
+        var size     = cast(s32, #sizeof(NativeSocketAddress))
         let capacity = Math.min(buffer.count, cast(u64, Swag.S32.Max))
-        let result = recvfrom(.handle, buffer.buffer, cast(s32, capacity), 0,
-                              cast(*SOCKADDR, cast(*void, &address)), &size)
+        let result   = recvfrom(.handle, buffer.buffer, cast(s32, capacity), 0, cast(*SOCKADDR, cast(*void, &address)), &size)
         if result == SOCKET_ERROR
         {
             let code = WSAGetLastError()
@@ -112,6 +121,7 @@ impl DatagramSocket
                         count: capacity, truncated: true}
             fail NetworkError{code: code}
         }
+
         return {endpoint: try portableSocketEndpoint(cast(const *SOCKADDR, cast(const *void, &address))),
                 count: cast(u64, result), truncated: false}
     }
@@ -125,10 +135,10 @@ private func setMulticastMembership(handle: SOCKET, group: IpAddress, options: M
             fail Errors.BadParameterError{}
         var request: IP_MREQ
         request.imr_multiaddr.S_un.S_addr = htonl((cast(u32, group.bytes[0]) << 24) |
-            (cast(u32, group.bytes[1]) << 16) | (cast(u32, group.bytes[2]) << 8) | group.bytes[3])
+                                                  (cast(u32, group.bytes[1]) << 16) | (cast(u32, group.bytes[2]) << 8) | group.bytes[3])
         request.imr_interface.S_un.S_addr = htonl((cast(u32, options.interfaceAddress.bytes[0]) << 24) |
-            (cast(u32, options.interfaceAddress.bytes[1]) << 16) |
-            (cast(u32, options.interfaceAddress.bytes[2]) << 8) | options.interfaceAddress.bytes[3])
+                                                  (cast(u32, options.interfaceAddress.bytes[1]) << 16) |
+                                                  (cast(u32, options.interfaceAddress.bytes[2]) << 8) | options.interfaceAddress.bytes[3])
         let option = join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP
         if setsockopt(handle, IPPROTO_IP, option, cast(const *u8, &request), #sizeof(IP_MREQ)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}

@@ -101,3 +101,11 @@ whole layout.
 - Next: expose the platform send timeout on Linux and Windows.
 - Done when: callers can set and disable a write timeout with tests on both supported hosts.
 - Related: std.net.004, platform.portability.088
+
+### std.net.012 — UDP receive cannot be timed out
+
+- Evidence: `DatagramSocket.receiveFrom` blocks indefinitely when no datagram arrives, unlike the
+  TCP stream reads.
+- Next: expose the platform receive timeout on Linux and Windows.
+- Done when: callers can set and disable a UDP receive timeout with tests on both supported hosts.
+- Related: std.net.004, platform.portability.088

@@ -158,6 +158,16 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect source.reopen()
     expect source.grabInto(&image)
     Swag.require(image.pixels.storage() == storage and image.pixelColor(4, 5).argb == Argb.Blue)
+    Swag.require(source.fresh)
+
+    Memory.set(image.pixels.storage(), 0x5A, image.byteCount)
+    expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(not source.fresh)
+    for byte in image.pixels do
+        Swag.require(byte == 0x5A, "an unchanged frame should leave a reusable target untouched")
+
+    expect source.grabInto(&image)
+    Swag.require(not source.fresh and image.pixelColor(4, 5).argb == Argb.Blue)
 }
 
 // Opening and reconnecting a source must release its X11 sockets when it leaves scope.

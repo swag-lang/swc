@@ -42,9 +42,13 @@ impl ComplementaryMultiplyWithCarry4096
         .index = (.index + 1) & 4095
         let t = a * .state[.index] + .carry
         .carry = cast(u32, (t >> 32))
-        var x = t + .carry
-        if x < .carry do
-            x, .carry += 1
+        var x = cast(u32, t) + .carry
+        if x < .carry
+        {
+            x      += 1
+            .carry += 1
+        }
+
         let v = cast(u32, (r - x))
         .state[.index] = v
         return v

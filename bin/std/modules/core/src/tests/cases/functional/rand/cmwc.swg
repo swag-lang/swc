@@ -70,3 +70,16 @@ using Swag
     Swag.require(rng.nextU32() == 0xA874171C'u32)
     Swag.require(rng.nextU32() == 0xFC852A71'u32)
 }
+
+#test
+{
+    // The low-word addition can overflow even though the 64-bit sum cannot.
+    var rng: Random.ComplementaryMultiplyWithCarry4096
+    rng.state[0] = 0x0207E7CB'u32
+    rng.carry    = 0'u32
+    rng.index    = 4095
+
+    Swag.require(rng.nextU32() == 0xFFFFFFDF'u32)
+    Swag.require(rng.carry == 0x95'u32)
+    Swag.require(rng.nextU32() == 0xFFFFFF69'u32)
+}

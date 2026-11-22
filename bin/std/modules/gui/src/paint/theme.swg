@@ -65,6 +65,7 @@ internal struct ThemeImages
 
 impl ThemeImages
 {
+    // Releases the theme-owned widget raster images.
     mtd opDrop()
     {
         Sync.scopedLock(&.lock)

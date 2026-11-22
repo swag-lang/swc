@@ -186,8 +186,7 @@ impl IconSet
         .lists.clear()
     }
 
-    // Creates an icon descriptor for glyph `index` displayed at `size` logical pixels. An
-    // out-of-range index returns an invalid icon.
+    // Creates a logical-size icon descriptor or an invalid icon for an out-of-range frame.
     //
     // `scale` is the device density to rasterize at — usually the theme atlas scale. A
     // request sharper than the cached lists replaces their textures in place. Previously

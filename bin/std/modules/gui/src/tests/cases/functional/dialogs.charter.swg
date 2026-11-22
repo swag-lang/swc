@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core, Pixel
+using Swag, Core, File, Pixel
 
 // Asserts the composition every predefined dialog shares, whatever it holds.
 //
@@ -256,9 +256,50 @@ func assertDialogCharter(dlg: *Dialog)
     expect Directory.create(folder.toString(), recurse: true)
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
-    host.clickModalButtonWhenShown(Dialog.BtnYes)
-    Swag.require(FileDlg.askReplace(&host.surface, Path.combine(folder.toString(), "capture.png").toString()))
-    Swag.require(host.autoHandled)
+    let missingPath      = Path.combine(folder.toString(), "capture.png").toString()
+    var missingInspected = false
+    host.app.sigFrame += func|host = &host, &missingInspected|(app)
+    {
+        if missingInspected or app.modalSurfaces.isEmpty() do
+            return
+
+        if app.modalSurfaces.back().view() is MessageDlg as dlg
+        {
+            Swag.require(dlg.detailLabel == null)
+            missingInspected = true
+            Swag.require(host.clickModalButton(Dialog.BtnYes))
+        }
+    }
+
+    let missingConfirmed = FileDlg.askReplace(&host.surface, missingPath)
+    Swag.require(missingInspected and missingConfirmed)
+
+    var emptyFile: String = folder.toString()
+    emptyFile += "/empty.png"
+    Swag.require(Directory.exists(folder.toString()))
+    Swag.require(emptyFile.count > 0 and Path.isValidPathName(emptyFile))
+    var emptyStream = expect File.openWrite(emptyFile)
+    emptyStream.close()
+    let emptyInfo = expect File.info(emptyFile)
+    Swag.require(emptyInfo.size == 0 and not emptyInfo.isDirectory())
+
+    var inspected = false
+    host.app.sigFrame += func|host = &host, &inspected|(app)
+    {
+        if inspected or app.modalSurfaces.isEmpty() do
+            return
+
+        if app.modalSurfaces.back().view() is MessageDlg as dlg
+        {
+            let detail = unwrap dlg.detailLabel
+            Swag.require(Utf8.contains(detail.text(), "0 B"))
+            inspected = true
+            Swag.require(host.clickModalButton(Dialog.BtnYes))
+        }
+    }
+
+    let confirmed = FileDlg.askReplace(&host.surface, emptyFile)
+    Swag.require(inspected and confirmed)
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     let name = FileDlg.askNewFolderName(&host.surface, folder.toString(), "Temp")

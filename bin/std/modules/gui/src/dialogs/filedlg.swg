@@ -153,11 +153,16 @@ impl FileDlg
     // an application that writes a file by other means asks the same question through this.
     func askReplace(from: *Surface, path: string)->bool
     {
-        // A file that cannot be read leaves an empty description, and the question stands without it.
         var detail: String
-        let info = catch File.info(path) orelse {}
-        if info.size do
-            detail = Format.toString(strings().fileDlg_ReplaceDetail, Format.byteSize(info.size), info.lastWriteTime.toString(.DateTimeIsoHm))
+
+        // Keep file metadata for empty files too; directories have no file size.
+        var info: File.FileInfo
+        var infoErrorOutcome: Swag.Error
+        catch { info = try File.info(path) } as infoErrorOutcome
+        if infoErrorOutcome.value() == null and not info.isDirectory() do
+            detail = Format.toString(strings().fileDlg_ReplaceDetail,
+                                     Format.byteSize(info.size),
+                                     info.lastWriteTime.toString(.DateTimeIsoHm))
 
         let box = createReplaceBox(from, Path.fileName(path) orelse path, detail)
         return box.doModal() == Dialog.BtnYes

@@ -317,10 +317,10 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let cur  = source[index]
         let next = source[(index + 1) % source.count]
 
-        var e0x = cast(f64, (cur.x - prev.x))
-        var e0y = cast(f64, (cur.y - prev.y))
-        var e1x = cast(f64, (next.x - cur.x))
-        var e1y = cast(f64, (next.y - cur.y))
+        var e0x = cast(f64, cur.x) - cast(f64, prev.x)
+        var e0y = cast(f64, cur.y) - cast(f64, prev.y)
+        var e1x = cast(f64, next.x) - cast(f64, cur.x)
+        var e1y = cast(f64, next.y) - cast(f64, cur.y)
 
         let len0 = Math.sqrt(e0x * e0x + e0y * e0y)
         let len1 = Math.sqrt(e1x * e1x + e1y * e1y)

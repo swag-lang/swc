@@ -721,8 +721,8 @@ impl Ast
             }
         }
 
-        if value > Utf8.MaxRune do
-            fail SyntaxError{"hexadecimal escape is above the largest scalar value"}
+        if not Utf8.isValidRune(cast(rune, value)) do
+            fail SyntaxError{"hexadecimal escape is not a Unicode scalar value"}
         return cast(rune, value)
     }
 

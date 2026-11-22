@@ -1546,6 +1546,11 @@ using Swag
     let tooWide = tooWideOutcome.value()
     Swag.require(tooWide is Errors.SyntaxError)
 
+    var surrogateOutcome: Swag.Error
+    discard catch Parser.RegExp.create(#raw "\x{D800}") as surrogateOutcome
+    let surrogate = surrogateOutcome.value()
+    Swag.require(surrogate is Errors.SyntaxError)
+
     var badFlagOutcome: Swag.Error
     discard catch Parser.RegExp.create(#raw "(?y)a") as badFlagOutcome
     let badFlag = badFlagOutcome.value()

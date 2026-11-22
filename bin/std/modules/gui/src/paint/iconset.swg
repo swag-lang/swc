@@ -186,7 +186,8 @@ impl IconSet
         .lists.clear()
     }
 
-    // Creates an icon descriptor for glyph `index` displayed at `size` logical pixels.
+    // Creates an icon descriptor for glyph `index` displayed at `size` logical pixels. An
+    // out-of-range index returns an invalid icon.
     //
     // `scale` is the device density to rasterize at — usually the theme atlas scale. A
     // request sharper than the cached lists replaces their textures in place. Previously
@@ -195,10 +196,14 @@ impl IconSet
     mtd icon(index: s32, size: f32, scale: f32)->Icon
     {
         var result: #returntype
-        result.imageList = .list(size, scale)
-        result.index     = index
-        result.sizeX     = size
-        result.sizeY     = size
+        let list = .list(size, scale)
+        if index < 0 or index >= list.frameCount do
+            return result
+        result.imageList         = list
+        result.index             = index
+        result.sizeX             = size
+        result.sizeY             = size
+        result.imageListRevision = list.revision
         return result
     }
 
@@ -247,7 +252,6 @@ impl IconSet
         let texture = .renderer.addImage(image[])
         if not texture.isValid() do
             return
-        list.release(.renderer)
-        list.set(texture, cell, cell)
+        list.replace(.renderer, texture, cell, cell)
     }
 }

@@ -93,10 +93,41 @@ impl IWnd for IconTintProbe
     Swag.require(smallList.frameCount == 1 and largeList.frameCount == 1)
     Swag.require(icons.icon(0, 16, 1).imageList == smallList)
     Swag.require(icons.icon(0, 24, 1).imageList == largeList)
+    Swag.require(small.isValid() and large.isValid())
+    Swag.require(small == icons.icon(0, 16, 1) and large == icons.icon(0, 24, 1))
     let after = host.render()
     Swag.require(before.width == after.width and before.height == after.height)
     Swag.require(after.pixelColor(30, 30).argb == before.pixelColor(30, 30).argb)
     Swag.require(after.pixelColor(85, 30).argb == before.pixelColor(85, 30).argb)
+}
+
+// Icons reject out-of-range frames and expire when their list is released or replaced.
+#[Swag.TestTag("prompt7.paint.icon_lifetime")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 32)
+
+    var atlas: IconAtlas
+    expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='blue'/></svg>")
+    var icons: IconSet
+    icons.setup(host.app.renderer, &atlas)
+    defer icons.free()
+
+    Swag.require(not icons.icon(-1, 24, 1).isValid())
+    Swag.require(not icons.icon(1, 24, 1).isValid())
+
+    let stale = icons.icon(0, 24, 1)
+    let list  = unwrap stale.imageList
+    Swag.require(stale.isValid())
+    list.release(host.app.renderer)
+    Swag.require(not stale.isValid())
+
+    list.set(host.app.renderer.addImage(Pixel.Image.create(24, 24, .RGBA8)), 24, 24)
+    Swag.require(not stale.isValid())
+    let replacement = Icon.from(list, 0)
+    Swag.require(replacement.isValid())
+    Swag.require(stale != replacement)
 }
 
 // A borrowed raster keeps its address while the atlas grows to other sizes.

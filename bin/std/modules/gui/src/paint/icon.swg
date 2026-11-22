@@ -15,13 +15,19 @@ struct Icon
         sizeY:     f32 = 24        // Logical draw height.
         color:     Color           // Intrinsic tint; fully transparent lets the painting widget choose.
     }
+
+    internal imageListRevision: u64
 }
 
 impl Icon
 {
-    // Reports whether the icon refers to a valid atlas frame.
+    // Reports whether the borrowed list still describes the frame this icon was created for.
     #[Swag.Inline]
-    mtd const isValid() => .imageList != null
+    mtd const isValid() => .imageList != null and
+                           .imageList.isValid() and
+                           .imageList.revision == .imageListRevision and
+                           .index >= 0 and
+                           .index < .imageList.frameCount
 
     // Reports whether two descriptors name the same frame, drawn the same way.
     //
@@ -30,6 +36,7 @@ impl Icon
     mtd const opEquals(other: Icon)->bool
     {
         return .imageList == other.imageList and
+               .imageListRevision == other.imageListRevision and
                .index == other.index and
                .sizeX == other.sizeX and
                .sizeY == other.sizeY and
@@ -57,10 +64,11 @@ impl Icon
         Swag.assert(index >= 0 and index < imageList.frameCount, "icon frame index is out of range")
         Swag.assert(width >= 0 and height >= 0, "icon size cannot be negative")
 
-        .imageList = imageList
-        .index     = index
-        .sizeX     = width != 0 ? width : cast(f32, imageList.frameWidth)
-        .sizeY     = height != 0 ? height : cast(f32, imageList.frameHeight)
+        .imageList         = imageList
+        .index             = index
+        .sizeX             = width != 0 ? width : cast(f32, imageList.frameWidth)
+        .sizeY             = height != 0 ? height : cast(f32, imageList.frameHeight)
+        .imageListRevision = imageList.revision
     }
 
     // Draws the icon with its top-left corner at `x`, `y`, using its intrinsic tint when defined.
@@ -68,24 +76,25 @@ impl Icon
     // The `color` argument is the fallback for an icon whose [[Gui.Icon.color]] is transparent.
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
-        if not .imageList or not .imageList.isValid() do
+        if not .isValid() do
             return
 
-        let idx  = .index
-        var srcX = idx % .imageList.columnCount()
-        var srcY = idx / .imageList.columnCount()
+        let imageList = unwrap .imageList
+        let idx       = .index
+        var srcX      = idx % imageList.columnCount()
+        var srcY      = idx / imageList.columnCount()
 
-        srcX *= .imageList.frameWidth
-        srcY *= .imageList.frameHeight
+        srcX *= imageList.frameWidth
+        srcY *= imageList.frameHeight
 
         let oldInterpol = painter.interpolationMode()
-        if .sizeX == .imageList.frameWidth and .sizeY == .imageList.frameHeight do
+        if .sizeX == imageList.frameWidth and .sizeY == imageList.frameHeight do
             painter.setInterpolationMode(InterpolationMode.Pixel)
         else do
             painter.setInterpolationMode(InterpolationMode.Linear)
         defer painter.setInterpolationMode(oldInterpol)
 
         let tint = .color.a ? .color : color
-        painter.drawTexture(Math.Rectangle{x, y, .sizeX, .sizeY}, Math.Rectangle{srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, tint)
+        painter.drawTexture(Math.Rectangle{x, y, .sizeX, .sizeY}, Math.Rectangle{srcX, srcY, imageList.frameWidth, imageList.frameHeight}, imageList.texture, tint)
     }
 }

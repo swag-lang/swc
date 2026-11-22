@@ -2,6 +2,10 @@
 
 using Pixel
 
+private var g_ImageListRevision: Swag.AtomicValue'u64
+
+private func nextImageListRevision()->u64 => g_ImageListRevision.add(1) + 1
+
 // Describes a texture atlas split into equally sized animation or icon frames.
 struct ImageList
 {
@@ -15,6 +19,8 @@ struct ImageList
         frameWidth:  s32         // Width of one frame, in pixels.
         frameHeight: s32         // Height of one frame, in pixels.
     }
+
+    internal revision: u64     // Changes when callers replace or release this descriptor.
 }
 
 impl ImageList
@@ -60,6 +66,7 @@ impl ImageList
         .frameWidth  = resolvedWidth
         .frameHeight = resolvedHeight
         .frameCount  = resolvedCount
+        .revision    = nextImageListRevision()
     }
 
     // Releases the atlas back to the renderer that created it, and empties the list.
@@ -68,8 +75,20 @@ impl ImageList
     // renderer.
     mtd release(renderer: IRenderer)
     {
+        let revision = nextImageListRevision()
         if .texture.isValid() do
             renderer.removeTexture(&.texture)
         Swag.init(me, 1)
+        .revision = revision
+    }
+
+    // Replaces only the renderer texture while preserving icons that borrow this list.
+    internal mtd replace(renderer: IRenderer, texture: Texture, frameWidth = 0, frameHeight = 0, frameCount = 0)
+    {
+        let revision = .revision != 0 ? .revision : nextImageListRevision()
+        if .texture.isValid() do
+            renderer.removeTexture(&.texture)
+        .set(texture, frameWidth, frameHeight, frameCount)
+        .revision = revision
     }
 }

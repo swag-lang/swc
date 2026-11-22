@@ -61,6 +61,7 @@ struct ViewerWindow
         documentHost:                *Wnd
         documentPanel:               *Wnd
         mainSplitter:                *SplitterCtrl
+        outlinePanelPlaceholder:     *Wnd
         sidePanelPlaceholder:        *Wnd
         loadingOverlay:              *ViewerLoadingOverlay
         searchOverlay:               *ViewerSearchOverlay
@@ -167,6 +168,7 @@ struct ViewerWindow
     musicChoices:              Array'MusicChoice
     onlineMovies:              bool = true
     onlineMusic:               bool = true
+    leftPanelWidth:             f32
     rightPanelWidth:           f32
     fileDlgState:              FileDlgState
     themeIndex:                u32  = cast(u32, AppearanceTheme.Document)
@@ -530,8 +532,14 @@ impl IWnd for ViewerWindow
             for index in splitter.items.count
             {
                 let item = unwrap splitter.items[index]
-                if item.view == .currentSidePanelHost do
-                    .rightPanelWidth = item.size - .themeMetrics().floating_Inset
+                if item.view == .currentSidePanelHost
+                {
+                    let width = item.size - .themeMetrics().floating_Inset
+                    if .currentSidePanelButton?.id == OutlineToggleId do
+                        .leftPanelWidth = width
+                    else do
+                        .rightPanelWidth = width
+                }
             }
         }
 
@@ -547,6 +555,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)
+        catch evt.serializer.serialize("ViewerWindow.leftPanelWidth", &me.leftPanelWidth)
         catch evt.serializer.serialize("ViewerWindow.rightPanelWidth", &me.rightPanelWidth)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.playMode", &me.playMode)
@@ -565,16 +574,27 @@ impl IWnd for ViewerWindow
             .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Document))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
-            if .mainSplitter.items.count > 1
+            if .leftPanelWidth > 0 do
+                .leftPanelWidth = Math.clamp(.leftPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
+            if .mainSplitter.items.count > 2
             {
                 if .rightPanelWidth > 0
                 {
                     let rightWidth = .rightPanelWidth + .themeMetrics().floating_Inset
-                    if .mainSplitter.items[1]!.view.isLocallyVisible()
+                    if .mainSplitter.items[2]!.view.isLocallyVisible()
                         do
-                        .mainSplitter.setPaneSize(1, rightWidth)
+                        .mainSplitter.setPaneSize(2, rightWidth)
                     else do
-                        .mainSplitter.items[1]!.size = rightWidth
+                        .mainSplitter.items[2]!.size = rightWidth
+                }
+                if .leftPanelWidth > 0
+                {
+                    let leftWidth = .leftPanelWidth + .themeMetrics().floating_Inset
+                    if .mainSplitter.items[0]!.view.isLocallyVisible()
+                        do
+                        .mainSplitter.setPaneSize(0, leftWidth)
+                    else do
+                        .mainSplitter.items[0]!.size = leftWidth
                 }
 
                 .mainSplitter.sendResizeEvent()
@@ -648,6 +668,9 @@ impl ViewerWindow
 
     // The document and its viewer-specific side panel.
     const DocumentMinWidth       = 320.0
+    const LeftPanelIndex         = 0
+    const DocumentPanelIndex     = 1
+    const RightPanelIndex        = 2
     const RightPanelMinWidth     = 220.0
     const RightPanelMaxWidth     = 600.0
     const RightPanelDefaultWidth = 368.0
@@ -1067,7 +1090,8 @@ impl ViewerWindow
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
             .documentPanel.backgroundStyle = .View
             .readingLine.hide()
-            .mainSplitter.setPaneVisible(1, false)
+            .mainSplitter.setPaneVisible(LeftPanelIndex, false)
+            .mainSplitter.setPaneVisible(RightPanelIndex, false)
             .updateDocumentInsets()
         }
         else
@@ -1079,9 +1103,12 @@ impl ViewerWindow
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .documentPanel.backgroundStyle = .View
             .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
-            .mainSplitter.items[1]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
-            .mainSplitter.items[1]!.view.show(.currentSidePanelButton?.isChecked orelse false)
-            .mainSplitter.setPaneVisible(1, .currentSidePanelButton?.isChecked orelse false)
+            let left = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
+            let index = left ? LeftPanelIndex : RightPanelIndex
+            let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
+            .mainSplitter.items[index]!.view = .currentSidePanelHost orelse placeholder
+            .mainSplitter.items[index]!.view.show(.currentSidePanelButton?.isChecked orelse false)
+            .mainSplitter.setPaneVisible(index, .currentSidePanelButton?.isChecked orelse false)
             .updateDocumentInsets()
         }
 
@@ -1157,6 +1184,14 @@ impl ViewerWindow
             .hide()
         }
 
+        with result.outlineCaptionButton = CaptionButton.createLeading(result.surface, .Outline, ViewerCommands.Outline)
+        {
+            .updateFlags(.Toggle)
+            .setCheckIndicator(.Frame)
+            .sigPressed += func|window = result|(_) { window.postCommandEvent(ViewerCommands.Outline) }
+            .hide()
+        }
+
         // Trailing actions are registered from the window controls toward the title.
         result.createAppearanceChrome()
         with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
@@ -1198,14 +1233,6 @@ impl ViewerWindow
         result.createLens()
         result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
         result.lensLauncher.captionButton.hide()
-        with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline, ViewerCommands.Outline)
-        {
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Frame)
-            .sigPressed += func|window = result|(_) { window.postCommandEvent(ViewerCommands.Outline) }
-            .hide()
-        }
-
         result.privacy.window = result
         result.privacy.createIndicator()
         result.privacyTimer = result.addTimer(250'ms)

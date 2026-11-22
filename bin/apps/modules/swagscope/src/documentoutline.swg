@@ -77,7 +77,8 @@ impl DocumentOutline
         let side  = host.createSidePanel(276,
                                          theme.icon(.Outline, themeActionIconSize(&theme.metrics)),
                                          g_DocumentOutlineStrings.title,
-                                         floatingSurface: floatingSurface)
+                                         floatingSurface: floatingSurface,
+                                         placement: .Left)
         side.toggle.id = OutlineToggleId
 
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")

@@ -149,6 +149,21 @@ impl ViewerWindow
 
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
+        with .outlinePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
+        {
+            .backgroundStyle = .Transparent
+            .hide()
+        }
+
+        let gutter        = .themeMetrics().floating_Inset
+        let leftWidth     = (.leftPanelWidth > 0 ? .leftPanelWidth : RightPanelDefaultWidth) + gutter
+        with let outlineItem = .mainSplitter.addPane(.outlinePanelPlaceholder, leftWidth)
+        {
+            .minimumSize  = RightPanelMinWidth + gutter
+            .maximumSize  = RightPanelMaxWidth + gutter
+            .preserveSize = true
+        }
+
         .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
         with .sidePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
         {
@@ -156,7 +171,6 @@ impl ViewerWindow
             .hide()
         }
 
-        let gutter        = .themeMetrics().floating_Inset
         with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + gutter)
         {
             .minimumSize  = RightPanelMinWidth + gutter
@@ -164,7 +178,8 @@ impl ViewerWindow
             .preserveSize = true
         }
 
-        .mainSplitter.setPaneVisible(1, false)
+        .mainSplitter.setPaneVisible(LeftPanelIndex, false)
+        .mainSplitter.setPaneVisible(RightPanelIndex, false)
     }
 
     // Keeps the document below the strip floating over the top of the window, out of full screen,

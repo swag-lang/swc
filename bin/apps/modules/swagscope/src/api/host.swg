@@ -54,6 +54,13 @@ enum Continuation
 // host retires it.
 alias ReportFinished = func(*Wnd)->Continuation
 
+// Chooses the side of a viewer's work where its optional panel is placed.
+enum SidePanelPlacement
+{
+    Left  // Places the panel in the left lane.
+    Right // Places the panel in the right lane.
+}
+
 // Reports that the plugin is showing content with no end of its own, such as a still picture.
 //
 // A folder mode keeps such content on screen for the reader's slideshow time before moving on;
@@ -213,13 +220,14 @@ interface Host
     // Creates and registers the plugin's full-width lower command group.
     mtd createCommandGroup(width: f32)->*Wnd
 
-    // Creates the plugin's optional right-side panel and its host-positioned toggle.
+    // Creates an optional side panel and its host-positioned toggle.
     //
     // `width` is the content width in logical pixels; the host adds the themed integration
     // gutter. `icon` is displayed at the application toolbar size and `toolTip` is copied.
     // `floatingSurface` gives the contents a sheet-shaped ground; set it to false for a quiet
-    // margin whose controls stand directly on the window ground.
-    mtd createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true)->SidePanel
+    // margin whose controls stand directly on the window ground. `placement` selects the left
+    // or right lane beside the document.
+    mtd createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true, placement = SidePanelPlacement.Right)->SidePanel
 
     // Attaches the document view produced by the plugin.
     mtd attachView(view: *Wnd)

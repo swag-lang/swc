@@ -108,8 +108,8 @@ struct PacketStreamOptions
     {
         leadingTrimFrames:    u64             // Decoded priming frames omitted before audible frame zero.
         trailingTrimFrames:   u64             // Decoded padding omitted at end; smaller than the final packet.
-        speakerMask:          u32             // WAVE speaker-position mask; zero derives the standard mask from the channel count.
-        timelineStartSeconds: f64             // Position of audible frame zero on the containing media timeline, in seconds.
+        speakerMask:          u32             // WAVE speaker mask; zero derives a standard mask from channel count.
+        timelineStartSeconds: f64             // Position of audible frame zero on the media timeline, in seconds.
         displayName:          string = ""     // Optional human-readable track name supplied by the containing media.
         language:             string = ""     // Optional media language code, such as `eng` or `fra`.
     }
@@ -369,7 +369,14 @@ impl SoundFile
     // support up to six channels; MP3, Opus, and WAVE ADPCM support up to two; FLAC and Vorbis
     // support up to eight. The optional display name and language are copied from `options` and
     // remain valid for this value's lifetime.
-    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
+    func openPacketStream(path: string,
+                          encoding: SoundFileEncoding,
+                          sampleRateHz,
+                          channels: u32,
+                          frameCount: u64,
+                          packets: const [..] SoundPacket,
+                          decoderConfig: const [..] u8,
+                          options: PacketStreamOptions = {})->SoundFile fail
     {
         if not isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
@@ -437,7 +444,8 @@ impl SoundFile
                 fail BadParameterError{"sound packets need a payload or a duration"}
             if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
-            if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or payloadBytes > Swag.U64.Max - packet.byteSize do
+            if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or
+               payloadBytes > Swag.U64.Max - packet.byteSize do
                 fail OverflowError{"sound packet table is too large"}
 
             result.packetStarts.add(decodedFrames)
@@ -477,7 +485,11 @@ impl SoundFile
     // The chunk table is copied, while sample bytes stay in `path` and are read only as playback
     // reaches them. Every chunk must hold complete interleaved sample frames in playback order.
     // Supported encodings are 8-, 16-, 24-, and 32-bit integer PCM.
-    func openPcmPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, packets: const [..] SoundPacket)->SoundFile fail
+    func openPcmPacketStream(path: string,
+                             encoding: SoundFileEncoding,
+                             sampleRateHz,
+                             channels: u32,
+                             packets: const [..] SoundPacket)->SoundFile fail
     {
         var bitsPerSample: u32
         switch encoding
@@ -520,9 +532,11 @@ impl SoundFile
                 fail BadParameterError{"PCM source chunks need non-zero byte and sample-frame counts"}
             if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"PCM source chunk runs past the end of its source file"}
-            if cast(u64, packet.sampleFrameCount) > Swag.U64.Max / bytesPerFrame or cast(u64, packet.sampleFrameCount) * bytesPerFrame != packet.byteSize do
+            if cast(u64, packet.sampleFrameCount) > Swag.U64.Max / bytesPerFrame or
+               cast(u64, packet.sampleFrameCount) * bytesPerFrame != packet.byteSize do
                 fail InvalidFormatError{"PCM source chunk size does not match its sample-frame count"}
-            if result.frameCount > Swag.U64.Max - packet.sampleFrameCount or result.dataSize > Swag.U64.Max - packet.byteSize do
+            if result.frameCount > Swag.U64.Max - packet.sampleFrameCount or
+               result.dataSize > Swag.U64.Max - packet.byteSize do
                 fail OverflowError{"packetized PCM stream exceeds the supported size"}
 
             result.packetStarts.add(result.frameCount)

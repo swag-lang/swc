@@ -3,6 +3,24 @@
 
 using Swag, Core
 
+// Empty and released image lists have zero frame-grid dimensions.
+#test
+{
+    var atlas: ImageList
+    Swag.require(not atlas.isValid())
+    Swag.require(atlas.columnCount() == 0 and atlas.rowCount() == 0)
+
+    var host: Testing.HeadlessHost
+    host.setup(32, 32)
+    var texture = host.app.renderer.addImage(Pixel.Image.create(4, 2, .RGBA8))
+    atlas.set(texture, frameWidth: 2, frameHeight: 2)
+    Swag.require(atlas.columnCount() == 2 and atlas.rowCount() == 1)
+
+    atlas.release(host.app.renderer)
+    Swag.require(not atlas.isValid())
+    Swag.require(atlas.columnCount() == 0 and atlas.rowCount() == 0)
+}
+
 // An empty `ImageRect` is a valid, hit-testable window.
 #test
 {

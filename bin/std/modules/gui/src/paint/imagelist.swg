@@ -21,11 +21,11 @@ impl ImageList
 {
     #[Swag.Inline]
     {
-        // Returns the number of complete frame columns in the atlas.
-        mtd const columnCount() => .texture.width / .frameWidth
+        // Returns the number of complete frame columns, or zero when the frame width is invalid.
+        mtd const columnCount() => .frameWidth > 0 ? .texture.width / .frameWidth : 0
 
-        // Returns the number of complete frame rows in the atlas.
-        mtd const rowCount() => .texture.height / .frameHeight
+        // Returns the number of complete frame rows, or zero when the frame height is invalid.
+        mtd const rowCount() => .frameHeight > 0 ? .texture.height / .frameHeight : 0
 
         // Reports whether the atlas and frame geometry are valid.
         mtd const isValid() => .texture.isValid() and .frameCount > 0

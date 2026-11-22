@@ -12,6 +12,30 @@ struct AudioTeardownAllocator
 
 var g_AudioTeardownAllocator: AudioTeardownAllocator
 
+struct AudioDestroyRequestProbe
+{
+    voice:   *Voice
+    ready:   u32
+    start:   u32
+    winners: u32
+    done:    u32
+}
+
+func requestVoiceDestroyOnce(thread: const *Threading.Thread)
+{
+    let probe = cast(*AudioDestroyRequestProbe, unwrap thread.userParam)
+    for iteration in 128
+    {
+        let round = cast(u32, iteration + 1)
+        Atomic.add(&probe.ready, 1)
+        while Atomic.get(&probe.start) != round do
+            Threading.Thread.yield()
+        if probe.voice.markPendingDestroy() do
+            Atomic.add(&probe.winners, 1)
+        Atomic.add(&probe.done, 1)
+    }
+}
+
 impl IAllocator for AudioTeardownAllocator
 {
     mtd impl alloc(request: *AllocatorRequest)   => .upstream.alloc(request)
@@ -141,4 +165,56 @@ impl IAllocator for AudioTeardownAllocator
             break
     }
     Swag.require(recycledAfterUnlock, "voice was not recycled after releasing its data mutex")
+
+// Repeated destroy requests queue one destruction for a voice.
+#test
+{
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+
+    // Keep the update queue stable while exercising repeated destroy requests.
+    g_Driver.updateTh.safeForceEnd()
+    g_Driver.wakeupUpdate.signal()
+    while not g_Driver.updateTh.isDone() do
+        Threading.Thread.yield()
+
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice = expect Voice.create(&file)
+    voice.destroy()
+    voice.destroy()
+
+    var destroyCommands = 0
+    for command in g_Driver.voicesToUpdate do
+        if command.command == .Destroy do
+            destroyCommands += 1
+    Swag.require(destroyCommands == 1)
 }
+
+// Concurrent destroy requests atomically elect one caller to enqueue cleanup.
+#test
+{
+    var voice: Voice
+    var probe: AudioDestroyRequestProbe = {voice: &voice}
+    var threads: [8] Threading.Thread
+
+    for &thread in threads
+    {
+        discard expect thread.init(&requestVoiceDestroyOnce, &probe)
+        discard expect thread.start()
+    }
+
+    for iteration in 128
+    {
+        let round        = cast(u32, iteration + 1)
+        let expectedDone = cast(u32, threads.count) * round
+        while Atomic.get(&probe.ready) != expectedDone do
+            Threading.Thread.yield()
+        Atomic.set(&probe.start, round)
+        while Atomic.get(&probe.done) != expectedDone do
+            Threading.Thread.yield()
+        Swag.require(Atomic.get(&probe.winners) == round)
+        voice.resetState(.PendingDestroy)
+    }
+
+    for &thread in threads do
+        thread.wait()

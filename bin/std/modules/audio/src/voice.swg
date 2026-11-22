@@ -139,6 +139,12 @@ impl Voice
     {
         discard Atomic.logicAnd(cast(*u32, &.state), ~cast(u32, st))
     }
+
+    mtd markPendingDestroy()->bool
+    {
+        let oldState = Atomic.logicOr(cast(*u32, &.state), cast(u32, VoiceState.PendingDestroy))
+        return (oldState & cast(u32, VoiceState.PendingDestroy)) == 0
+    }
 }
 
 public impl Voice
@@ -348,9 +354,8 @@ public impl Voice
     // use the pointer after requesting destruction.
     mtd destroy()
     {
-        if .hasState(.PendingDestroy) do
+        if not .markPendingDestroy() do
             return
-        .setState(.PendingDestroy)
         g_Driver.updateVoice(me, .Destroy)
     }
 

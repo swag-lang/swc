@@ -54,6 +54,7 @@ internal func targetMatchesImage(target: *Image,
     target.width == width and
     target.height == height and
     target.pixelFormat == .BGRA8 and
+    target.isValid() and
     cast(u64, target) == imageAddress and
     cast(u64, target.pixels.storage()) == storageAddress
 
@@ -70,7 +71,10 @@ internal func copyCachedFrameIfNeeded(target: *Image,
     if not copyRequested and reusable do
         return false
 
-    if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
+    if not target.isValid() or
+       target.width != width or
+       target.height != height or
+       target.pixelFormat != .BGRA8 do
         target[] = Image.create(width, height, .BGRA8)
     copyFrameBytes(target.pixels.storage(), sourcePixels, target.byteCount)
     return true
@@ -449,7 +453,8 @@ impl Source
                 let outputFresh   = fresh or cursorChanged
                 if target.width != .options.width or
                    target.height != .options.height or
-                   target.pixelFormat != .BGRA8 do
+                   target.pixelFormat != .BGRA8 or
+                   not target.isValid() do
                     target[] = Image.create(.options.width, .options.height, .BGRA8)
                 let outputStart  = Time.monotonicMicroseconds()
                 let cursorCopied = copyCachedFrameIfNeeded(target,
@@ -484,7 +489,8 @@ impl Source
 
         if target.width != .options.width or
            target.height != .options.height or
-           target.pixelFormat != .BGRA8 do
+           target.pixelFormat != .BGRA8 or
+           not target.isValid() do
             target[] = Image.create(.options.width, .options.height, .BGRA8)
         let composeStart = Time.monotonicMicroseconds()
         var targetImageAddress:   u64  = 0

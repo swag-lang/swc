@@ -92,6 +92,21 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
                                              false))
     Swag.require(Memory.compare(target.pixels.storage(), cached.pixels.storage(), target.byteCount) != 0,
                  "an unchanged reusable target should remain untouched")
+
+    target.pixels.clear()
+    Swag.require(not target.isValid())
+    Swag.require(copyCachedFrameIfNeeded(&target,
+                                         cached.pixels.storage(),
+                                         8,
+                                         4,
+                                         imageAddress,
+                                         storageAddress,
+                                         true,
+                                         false))
+    Swag.require(target.isValid() and
+                 Memory.compare(target.pixels.storage(), cached.pixels.storage(), cached.byteCount) == 0,
+                 "an invalid target should be rebuilt from the cached frame")
+
     Swag.require(not targetMatchesImage(&target, 8, 4, imageAddress, storageAddress + 1, true))
     Swag.require(not targetMatchesImage(&target, 8, 4, imageAddress + 1, storageAddress, true))
     Swag.require(not targetMatchesImage(&target, 7, 4, imageAddress, storageAddress, true))

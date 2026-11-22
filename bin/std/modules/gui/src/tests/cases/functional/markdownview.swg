@@ -896,7 +896,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
     view.selectAll()
 
-    let inline = unwrap view.blocks[0].inline
+    var inline = unwrap view.blocks[0].inline
     Swag.require(inline.lines.count >= 3)
     for index in inline.lines.count - 1 do
         Swag.require(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
@@ -948,24 +948,42 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.require(not view.hasSelection())
 }
 
-// One find result marks one exact text range, even when its atom also carries another word.
+// Find walks exact matches within and across blocks, wraps, and clears a missing query.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240)
 
-    let view = Markdown.View.createText(&host.root, "alpha beta alpha")
+    let view = Markdown.View.createText(&host.root, "alpha beta alpha\n\nalpha beta alpha")
     view.resize(640, 240)
     view.applyLayout()
     view.layoutDocument()
 
     Swag.require(view.findText("alpha"))
-    let inline = unwrap view.blocks[0].inline
+    var inline = unwrap view.blocks[0].inline
     Swag.require(inline.searchStart == 0 and inline.searchEnd == 5)
     var bounds: Math.Rectangle
     Swag.require(view.searchMatchRect(&bounds) and bounds.width > 0 and bounds.width < inline.position.width)
-    Swag.require(inline.highlightText("alpha", 1))
+    Swag.require(view.findText("ALPHA"))
     Swag.require(inline.searchStart == 11 and inline.searchEnd == 16)
+    Swag.require(view.findText("alpha"))
+    Swag.require(view.searchBlockIndex == 1)
+    inline = unwrap view.blocks[1].inline
+    Swag.require(inline.searchStart == 0 and inline.searchEnd == 5)
+    Swag.require(view.findText("alpha"))
+    Swag.require(inline.searchStart == 11 and inline.searchEnd == 16)
+    Swag.require(view.findText("alpha"))
+    Swag.require(view.searchBlockIndex == 0)
+    inline = unwrap view.blocks[0].inline
+    Swag.require(inline.searchStart == 0 and inline.searchEnd == 5)
+
+    Swag.require(not view.findText("missing"))
+    Swag.require(not view.searchMatchRect(&bounds))
+    Swag.require(view.findText("beta"))
+    Swag.require(view.searchBlockIndex == 0)
+    Swag.require(view.findText("alpha"))
+    Swag.require(view.searchBlockIndex == 0)
+    Swag.require(inline.searchStart == 0 and inline.searchEnd == 5)
 }
 
 // A file-offset reveal selects the requested repeated word rather than the first copy retained in

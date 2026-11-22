@@ -4,7 +4,6 @@
 using Core, Pixel
 
 private const StreamChunkSize    = 8 * 1024'u64
-private const StreamCarryLimit   = 16 * 1024'u64
 private const RevealContextSize  = 64 * 1024'u64
 private const ReverseContextSize = 32 * 1024'u64
 private const RevealChunkSize    = RevealContextSize + StreamChunkSize
@@ -134,6 +133,31 @@ internal impl VisualBlock
         .html?.clearSearchHighlight()
     }
 
+    // Counts rendered occurrences, or one match for a text-only block.
+    mtd searchMatchCount(text: string)->u64
+    {
+        if .inline do
+            return .inline.searchMatchCount(text)
+        if .table do
+            return .table.searchMatchCount(text)
+        if .html do
+            return .html.searchMatchCount(text)
+        return not .searchText.isEmpty() and
+               Utf8.indexOf(.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max ? 1 : 0
+    }
+
+    // Highlights a rendered occurrence; text-only blocks can only be scrolled into view.
+    mtd highlightText(text: string, occurrence: u64)->bool
+    {
+        if .inline do
+            return .inline.highlightText(text, occurrence)
+        if .table do
+            return .table.highlightText(text, occurrence)
+        if .html do
+            return .html.findTextOccurrence(text, occurrence)
+        return occurrence == 0 and .searchMatchCount(text) != 0
+    }
+
     // Retires text rasters owned by this block, including table-cell views.
     mtd releaseRenderCaches()
     {
@@ -194,6 +218,8 @@ struct View
     virtualHeight:                f32
     pendingSearch:                String
     pendingSearchOccurrence:      u64
+    searchQuery:                  String
+    searchMatchOccurrenceInBlock: u64
     pendingSeek:                  bool
     pendingSeekOffset:            u64
     pendingSeekPreservesPosition: bool
@@ -353,14 +379,7 @@ private func takeStreamSource(source: *String, sourceDone: bool)->String
     if source.isEmpty() do
         return {}
 
-    var boundary = sourceDone ? source.length : streamBoundary(source.toString())
-    if not boundary and source.length >= StreamCarryLimit
-    {
-        for value, index in source.toString() where value == '\n' do
-            boundary = index + 1
-        if not boundary do
-            boundary = source.length
-    }
+    let boundary = sourceDone ? source.length : streamBoundary(source.toString())
 
     if not boundary do
         return {}
@@ -1672,39 +1691,42 @@ impl View
         }
     }
 
-    // Scrolls to the next rendered block containing `text`, wrapping once at the end.
+    // Scrolls to the next rendered match for `text`, wrapping to the first match at the end.
+    //
+    // Repeating the same query advances within a block before continuing to later blocks.
+    // Changing the query starts at the first rendered match. A query with no match returns false
+    // and clears the current highlight. An empty query leaves the current highlight unchanged.
+    // Matching ignores ASCII and Latin-1 letter case.
     mtd findText(text: string)->bool
     {
         if not text.count or .blocks.isEmpty() do
             return false
 
+        var matchCount: u64
         for &block in .blocks do
-            block.clearSearchHighlight()
-
-        let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
-        for offset in .blocks.count
+            matchCount += block.searchMatchCount(text)
+        if not matchCount
         {
-            let index = (first + offset) % .blocks.count
-            let block = &.blocks[index]
-            var found: bool
-            if block.inline do
-                found = block.inline.highlightText(text)
-            elif block.table do
-                found = block.table.highlightText(text)
-            elif block.html do
-                found = block.html.findText(text)
-            if not found do
-                found = Utf8.indexOf(block.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max
-            if not found do
-                continue
-
-            .searchBlockIndex = index
-            let position = .scroll.scrollPosition()
-            .scroll.setScrollPos(position.x, block.wnd.position.y - .documentStyle.topInset)
-            return true
+            for &block in .blocks do
+                block.clearSearchHighlight()
+            .searchBlockIndex = Swag.U64.Max
+            .searchQuery.clear()
+            .searchMatchOccurrenceInBlock = 0
+            return false
         }
 
-        return false
+        var occurrence = 0'u64
+        if Utf8.compare(.searchQuery.toString(), text, .Latin1NoCase) == 0 and
+           .searchBlockIndex < .blocks.count
+        {
+            for index in .searchBlockIndex do
+                occurrence += .blocks[index].searchMatchCount(text)
+            occurrence += .searchMatchOccurrenceInBlock + 1
+            if occurrence >= matchCount do
+                occurrence = 0
+        }
+
+        return .findTextOccurrence(text, occurrence)
     }
 
     // Selects one rendered occurrence in document order. Streaming reveal derives this ordinal
@@ -1722,18 +1744,14 @@ impl View
         for index in .blocks.count
         {
             let block = &.blocks[index]
-            let count = block.inline ? block.inline.searchMatchCount(text) :
-                        block.table ? block.table.searchMatchCount(text) :
-                        block.html ? block.html.searchMatchCount(text) : 0
+            let count = block.searchMatchCount(text)
             if remaining >= count
             {
                 remaining -= count
                 continue
             }
 
-            let found = block.inline ? block.inline.highlightText(text, remaining) :
-                        block.table ? block.table.highlightText(text, remaining) :
-                        block.html ? block.html.findTextOccurrence(text, remaining) : false
+            let found = block.highlightText(text, remaining)
             if not found do
                 return false
             if not .retainedBlocks.isEmpty() and
@@ -1741,6 +1759,8 @@ impl View
                block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight do
                 return false
             .searchBlockIndex = index
+            .searchQuery      = text
+            .searchMatchOccurrenceInBlock = remaining
             .publishReplacement(true)
             let position = .scroll.scrollPosition()
             .repositioning = true
@@ -1883,10 +1903,12 @@ impl View
         .pendingBlocks.clear()
         .pendingIndex = 0
         .sourceCarry.clear()
-        .sourceDone              = false
-        .searchBlockIndex        = Swag.U64.Max
-        .pendingSearch           = text
-        .pendingSearchOccurrence = 0
+        .sourceDone       = false
+        .searchBlockIndex = Swag.U64.Max
+        .searchQuery.clear()
+        .searchMatchOccurrenceInBlock = 0
+        .pendingSearch = text
+        .pendingSearchOccurrence      = 0
 
         let requested = Math.min(offset, .fileSize)
 
@@ -2013,6 +2035,8 @@ impl View
         .pendingSeek             = false
         .pendingSeekOffset       = 0
         .searchBlockIndex        = Swag.U64.Max
+        .searchQuery.clear()
+        .searchMatchOccurrenceInBlock = 0
         for &block in .blocks do
             block.clearSearchHighlight()
     }

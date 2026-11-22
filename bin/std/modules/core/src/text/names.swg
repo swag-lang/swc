@@ -136,7 +136,8 @@ public impl NameMatcher
             let end = match.index + match.length
             if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end) do
                 return true
-            start = match.index + 1
+            let {eat: nextRuneBytes} = Utf8.decodeRune(candidate[match.index to])
+            start = match.index + nextRuneBytes
         }
 
         return false

@@ -64,6 +64,11 @@ using Swag
     Swag.require(widthChangingSpans[1].start == 2 and widthChangingSpans[1].length == 1)
     Swag.require(widthChangingSpans[2].start == 4 and widthChangingSpans[2].length == 3)
 
+    let replacementMatcher = expect Text.NameMatcher.create("\uFFFD", {
+        comparisonType: .UnicodeNoCase,
+        wholeWord: true})
+    Swag.require(not replacementMatcher.isMatch("\uFFFDa"))
+
     let overlapping  = expect Text.NameMatcher.create("ana")
     let overlapSpans = overlapping.findAll("banana")
     Swag.require(overlapSpans.count == 1 and overlapSpans[0].start == 1)

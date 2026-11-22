@@ -165,6 +165,24 @@ struct XmlPairSequencePayload
     }
 }
 
+// XML whitespace is exactly space, tab, line feed and carriage return; Latin-1 NEL and
+// non-breaking space cannot stand in for it outside text.
+#test
+{
+    const InvalidXml = [
+        "\u00A0<payload><value>x</value></payload>",
+        "<p><id>7</id><active>true</active><name></name><counts>1\u00A02</counts><pair><x>0</x><y>0</y></pair></p>",
+        "<p><id>7</id><active>true</active><name></name><counts>1\u00852</counts><pair><x>0</x><y>0</y></pair></p>"]
+
+    for input in InvalidXml
+    {
+        var decoder:      Serialization.Decoder'Serialization.Read.Xml
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.SyntaxError)
+    }
+}
+
 #test
 {
     let invalidXml: String = "<p>\n<id>7</id>\n<active>true</active>\n<name>x\ny&nbsp;</name><counts></counts><pair><x>0</x><y>0</y></pair></p>"

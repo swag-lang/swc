@@ -49,6 +49,23 @@ using Swag
     Swag.require((guid.bytes[8] & 0xC0) == 0x80)
 }
 
+// A fixed clock exercises counter rollover without depending on scheduler timing.
+#test
+{
+    var lastMilliseconds: u64
+    var counter:          u32
+    var initialized:      bool
+    var previous:         u64
+    for index in 5000
+    {
+        let key = Core.nextTimestampedGuidKey(1234, &lastMilliseconds, &counter, &initialized)
+        Swag.require(key > previous)
+        if index == 4096 do
+            Swag.require(key >> 12 == 1235)
+        previous = key
+    }
+}
+
 struct GuidRace
 {
     ready: u32

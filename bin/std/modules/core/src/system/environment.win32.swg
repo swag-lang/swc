@@ -140,7 +140,7 @@ public func getMonitors()->Array'Monitor
         defer discard Win32.SetThreadDpiAwarenessContext(last)
         catch GetMonitorInfoA(hMonitor, &mi)
 
-        m.scaleFactor = (mi.rcMonitor.right - mi.rcMonitor.left) / m.bounds.width
+        m.scaleFactor = cast(f32, mi.rcMonitor.right - mi.rcMonitor.left) / cast(f32, m.bounds.width)
 
         m.physicalBounds.x      = mi.rcMonitor.left
         m.physicalBounds.y      = mi.rcMonitor.top
@@ -163,9 +163,14 @@ public func getMonitors()->Array'Monitor
 }
 
 // Opens the platform file explorer with `path` selected and returns whether the shell accepted the request.
+//
+// Paths containing a zero byte are refused because Windows paths are zero-terminated.
 #[Swag.Discardable]
 public func showInFileExplorer(path: string)->bool
 {
+    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+        return false
+
     var x: String = path
     x.replace("/", "\\")
     x = Format.toString("/select,\"%\"", x)
@@ -183,10 +188,14 @@ public func showInFileExplorer(path: string)->bool
 // The chooser is the shell's own, so it offers the same applications, the same default-handler
 // checkbox and the same store lookup the file explorer offers. It runs in its own process: the
 // call returns as soon as the request is handed over, long before the user has chosen anything,
-// and reports only whether the chooser could be started.
+// and reports only whether the chooser could be started. Paths containing a zero byte are
+// refused because Windows paths are zero-terminated.
 #[Swag.Discardable]
 public func openFileWith(path: string)->bool
 {
+    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+        return false
+
     var x: String = path
     x.replace("/", "\\")
 
@@ -207,10 +216,14 @@ public func openFileWith(path: string)->bool
 //
 // The request is handed to the Windows shell and returns before the application finishes. The
 // result reports whether the shell accepted the request; it does not report what the application
-// subsequently did with the file.
+// subsequently did with the file. Paths containing a zero byte return `false` because Windows
+// paths are zero-terminated.
 #[Swag.Discardable]
 public func openFile(path: string)->bool
 {
+    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+        return false
+
     var normalized = String.from(path)
     normalized.replace("/", "\\")
 
@@ -711,6 +724,10 @@ impl Window
 
 internal func createWindowNative(result: *Window, options: WindowOptions) fail
 {
+    if Utf8.contains(cast(const [..] u8, options.identifier), 0'u8) or
+       Utf8.contains(cast(const [..] u8, options.title), 0'u8) do
+        fail Errors.BadParameterError{"window identifier and title cannot contain a zero byte"}
+
     // The first native window of the process decides its DPI awareness.
     enableDpiAwareness()
 

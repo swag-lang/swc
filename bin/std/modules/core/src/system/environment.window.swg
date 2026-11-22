@@ -290,7 +290,8 @@ impl Window
 //
 // The returned [[Core.Env.Window]] keeps its platform-specific state opaque and closes the
 // window when it leaves scope. The logical `options` size is realized in the physical pixels
-// of the monitor where the platform creates it.
+// of the monitor where the platform creates it. Windows rejects an identifier or title with an
+// embedded zero byte because its native window names are zero-terminated.
 func createWindow(options: WindowOptions)->Window fail
 {
     var result: #returntype

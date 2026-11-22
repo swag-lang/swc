@@ -1163,7 +1163,6 @@ impl ViewerWindow
         {
             .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
-            .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.FullScreen) }
         }
 
         with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)

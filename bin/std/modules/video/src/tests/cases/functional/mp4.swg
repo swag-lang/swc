@@ -67,6 +67,19 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(times.count == 1 and times[0] == expected)
 }
 
+func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
+{
+    var track: Mp4.Track
+    track.times.add({2, 100})
+    track.sizes.add(1)
+    track.sizes.add(1)
+    track.ctsEntries.add({compositionSamples, 0})
+
+    var rejected: Swag.Error
+    discard catch track.sampleTimes() as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
 // Pixel aspect ratio is stored beside the codec configuration in a visual sample entry.
 #test
 {
@@ -146,6 +159,14 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     expect mp4AssertSignedCompositionOffset(0xFFFF_FF9C, -100)
     expect mp4AssertSignedCompositionOffset(0x8000_0000, -2_147_483_648's64)
     expect mp4AssertSignedCompositionOffset(0x7FFF_FFFF, 2_147_483_647's64)
+}
+
+// Composition-offset runs must describe every sample exactly once.
+#test
+{
+    expect mp4AssertCompositionCountRejected(1)
+    expect mp4AssertCompositionCountRejected(3)
+    expect mp4AssertCompositionCountRejected(0)
 }
 
 // frameAtTime follows presentation timestamps when composition offsets extend the timeline
@@ -282,7 +303,7 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
 // A failed MP4 finalization stays failed and cannot be reported as a successful retry.
 #test
 {
-    var buffer: ConcatBuffer
+    var buffer:   ConcatBuffer
     let rate   = expect FrameRate.create(24, 1)
     var writer = expect Writer.createMemory("empty.mp4", &buffer, 16, 16, rate)
     let opened = buffer.toArray()

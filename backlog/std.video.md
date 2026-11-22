@@ -557,3 +557,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: `Layout.parseInfo` rejected non-finite and negative durations but accepted large finite values. `clusterBefore` and metadata configuration convert duration ticks to nanoseconds, which could overflow the supported `u64` timeline.
 - Resolved: Info timing validation now rejects durations at or beyond the representable nanosecond range; a focused boundary test verifies finite normal timing remains accepted and `F64.Max` is rejected. Release Matroska tests passed.
+
+### std.video.024 — MP4 composition-offset runs can omit or exceed samples (resolved)
+
+- Evidence: classic MP4 expanded each `ctts` run only while sample slots remained. Short runs left later frames with fabricated zero offsets; long runs were silently truncated.
+- Resolved: composition-offset runs now reject zero counts and any total that differs from the sample-size table. Focused Release tests cover short, long, zero, unsigned, and signed offsets.

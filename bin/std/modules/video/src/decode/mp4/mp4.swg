@@ -398,9 +398,11 @@ impl Layout
                         try source.seek(start + BoxHeaderSize)
                         incomplete = (try source.readBigEndian'u64()) > remaining
                     }
+
                     try source.seek(start)
                 }
-                elif declared >= BoxHeaderSize and declared > remaining and
+                elif declared >= BoxHeaderSize and
+                     declared > remaining and
                      (kind == FragmentId or kind == MediaDataId or kind == FragmentRandomAccessId)
                 {
                     incomplete = true
@@ -1319,14 +1321,17 @@ impl Track
         var index = 0'u64
         for entry in .ctsEntries
         {
+            if not entry.sampleCount or entry.sampleCount > result.count - index do
+                fail InvalidFormatError{"MP4 composition-offset and sample-size tables describe different frame counts"}
             for entry.sampleCount
             {
-                if index >= result.count do
-                    break
                 result[index] += entry.offset
                 index         += 1
             }
         }
+
+        if index and index != result.count do
+            fail InvalidFormatError{"MP4 composition-offset and sample-size tables describe different frame counts"}
 
         return result
     }

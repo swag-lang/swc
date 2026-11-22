@@ -39,12 +39,14 @@ impl NativeLibrary
     // Reports whether a native library is currently loaded.
     mtd const isOpen()->bool => .handle != null
 
-    // Resolves an exported symbol, or returns null when the library has no export by that name.
+    // Resolves an exported symbol, or returns null when the name contains a zero byte or has no export.
     //
     // The returned address is borrowed from this library and remains valid only until [[Core.NativeLibrary.close]].
     mtd const symbol(name: string)->const *void?
     {
         if not .handle do
+            return null
+        for byte in name where byte == 0 do
             return null
         return nativeLibrarySymbol(.handle, name)
     }
@@ -67,10 +69,13 @@ impl NativeLibrary
     //
     // The returned owner closes the library automatically. For a Swag library, loading adopts the
     // caller's runtime context and runs `#init` and `#premain` once before this function returns.
-    // Repeated loads hold independent lifecycle references. Loading fails when the platform loader
-    // cannot resolve the file or one of its dependencies.
+    // Repeated loads hold independent lifecycle references. Embedded zero bytes are rejected;
+    // loading also fails when the platform loader cannot resolve the file or one of its dependencies.
     func load(path: string)->NativeLibrary fail
     {
+        for byte in path where byte == 0 do
+            fail BadParameterError{"native library paths must not contain zero bytes"}
+
         var result: #returntype
         result.handle = try loadNativeLibrary(path)
 

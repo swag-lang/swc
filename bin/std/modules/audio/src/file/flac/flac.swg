@@ -288,10 +288,9 @@ internal func openFile(path: string)->SoundFile fail
         fail InvalidFormatError{"FLAC file carries no audio frame"}
 
     // The stream information may state the length; when it does, it is what the file promises.
-    var declared = frames
-    if prologue.totalFrames and prologue.totalFrames <= frames do
-        declared = prologue.totalFrames
+    if prologue.totalFrames and prologue.totalFrames != frames do
+        fail InvalidFormatError{"FLAC stream sample count differs from its frames"}
 
     source.close()
-    return try SoundFile.openPacketStream(path, .Flac, prologue.sampleRate, prologue.channels, declared, packets.toSlice(), prologue.config.toSlice())
+    return try SoundFile.openPacketStream(path, .Flac, prologue.sampleRate, prologue.channels, frames, packets.toSlice(), prologue.config.toSlice())
 }

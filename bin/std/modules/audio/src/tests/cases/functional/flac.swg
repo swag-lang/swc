@@ -60,6 +60,17 @@ private func flacTestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u64, co
     }
 }
 
+private func flacTestSetTotalSamples(bytes: *Array'u8, total: u64)
+{
+    var description = 0'u64
+    for index in 18 until 26 do
+        description = (description << 8) | bytes[][index]
+
+    let patched = (description & ~((1'u64 << 36) - 1)) | total
+    for index in 8 do
+        bytes[][18 + index] = cast(u8, (patched >> (56 - index * 8)) & 0xFF)
+}
+
 private func flacWideStereoTestConfig()->Array'u8
 {
     var config: Array'u8
@@ -483,6 +494,27 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     discard catch SoundFile.load(path.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
+}
+
+// STREAMINFO's nonzero total sample count must match the indexed frame lengths exactly.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("flac-5.1-48000.flac").toString())
+    let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                              Format.toString("audio-flac-total-samples-%.flac", Guid128.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    for total in [23_999'u64, 24_001]
+    {
+        var bytes: Array'u8
+        bytes.add(source.toSlice())
+        flacTestSetTotalSamples(&bytes, total)
+        expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+        var error: Swag.Error
+        discard catch SoundFile.load(path.toString()) as error
+        Swag.require(error.value() is InvalidFormatError)
+    }
 }
 
 // A final frame with its CRC16 trailer truncated is rejected while the file is indexed.

@@ -18,8 +18,10 @@ enum LogFlags
 // Receives the formatted messages of a [[Core.Log]].
 interface ILogWriter
 {
-    // Writes one fully formatted log message to the destination. The call is synchronous and runs
-    // while the invoking Log's lock is held; do not call any method on that same Log from here.
+    // Writes one fully formatted log message to the destination.
+    //
+    // The call is synchronous and runs while the invoking Log's lock is held; do not call any
+    // method on that same Log from here.
     mtd print(text: string)
 }
 

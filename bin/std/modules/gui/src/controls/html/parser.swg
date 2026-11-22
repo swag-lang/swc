@@ -810,9 +810,22 @@ impl HtmlParser
     mtd readRawText(source: string, index: u64)->u64
     {
         let closing = Format.toString("</%", HtmlDocument.tagName(.rawTag))
-        let end     = Utf8.indexOf(source, closing.toString(), index, .Latin1NoCase)
-        if end == Swag.U64.Max do
-            return Swag.U64.Max
+        var search  = index
+        var end: u64
+        while true
+        {
+            end = Utf8.indexOf(source, closing.toString(), search, .Latin1NoCase)
+            if end == Swag.U64.Max do
+                return Swag.U64.Max
+
+            let delimiter = end + closing.length
+            if delimiter >= source.count do
+                return Swag.U64.Max
+            let next = source[delimiter]
+            if next == '>' or next == '/' or Latin1.isSpace(next) do
+                break
+            search = delimiter
+        }
 
         let close = Utf8.indexOf(source, '>'rune, end)
         if close == Swag.U64.Max do

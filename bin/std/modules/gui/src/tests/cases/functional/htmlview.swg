@@ -347,6 +347,14 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.require(findTag(&document, .B) == HtmlNoNode)
 }
 
+// A raw-text end tag must match the complete element name, not a prefix of it.
+#test
+{
+    let document = parseDocument("<textarea>visible</textareax>still-visible</textarea>")
+    let textarea = findTag(&document, .TextArea)
+    Swag.require(document.textContent(textarea).toString() == "visible</textareax>still-visible")
+}
+
 // Reading a document in chunks produces the tree the whole source produces.
 #test
 {

@@ -427,15 +427,13 @@ private impl Codec
             if precision == 16 do
                 fail InvalidFormatError{"FLAC linear predictor uses the reserved coefficient precision"}
             let shift = reader.readSigned(5)
-            if shift < 0 do
-                fail InvalidFormatError{"FLAC linear predictor shift is negative"}
 
             var coefficients: [MaxLpcOrder] s64
             for index in order do
                 coefficients[index] = reader.readSigned(precision)
 
             try .readResidual(reader, blockSize, order)
-            .predictLinear(target, &coefficients[0], order, blockSize, cast(u32, shift))
+            try .predictLinear(target, &coefficients[0], order, blockSize, cast(s32, shift))
         }
         else
         {
@@ -486,7 +484,7 @@ private impl Codec
     //
     // The accumulator is 64-bit because the format allows thirty-two coefficients of fifteen
     // bits each over samples of up to thirty-three bits in a decorrelated stereo side channel.
-    mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)
+    mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: s32) fail
     {
         let source = .residual.storage()
         for index in order do
@@ -497,7 +495,26 @@ private impl Codec
             var sum = 0's64
             for tap in order do
                 sum += coefficients[tap] * target[index - 1 - tap]
-            target[index] = source[index] + (sum >> shift)
+
+            var prediction: s64
+            if shift >= 0
+            {
+                prediction = sum >> cast(u32, shift)
+            }
+            else
+            {
+                let amount = cast(u32, -shift)
+                if (sum > 0 and sum > (Swag.S64.Max >> amount)) or
+                   (sum < 0 and sum < (Swag.S64.Min >> amount)) do
+                    fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
+                prediction = sum << amount
+            }
+
+            let residual = source[index]
+            if (prediction > 0 and residual > Swag.S64.Max - prediction) or
+               (prediction < 0 and residual < Swag.S64.Min - prediction) do
+                fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
+            target[index] = residual + prediction
         }
     }
 

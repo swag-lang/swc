@@ -94,6 +94,97 @@ private func flac24BitStereoTestConfig()->Array'u8
     return config
 }
 
+private func flacLinearShiftTestConfig()->Array'u8
+{
+    var config: Array'u8
+    config.add(0)
+    config.add(2)     // Min block size: two samples.
+    config.add(0)
+    config.add(2)     // Max block size: two samples.
+    for 6 do
+        config.add(0)     // Min/max frame sizes are unknown.
+    let description = (48_000'u64 << 44) | (15'u64 << 36) | 2
+    for byte in 8 do
+        config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
+    for 16 do
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    return config
+}
+
+private func flacLinearOverflowTestConfig()->Array'u8
+{
+    var config: Array'u8
+    config.add(0)
+    config.add(33)     // Min block size: 33 samples.
+    config.add(0)
+    config.add(33)     // Max block size: 33 samples.
+    for 6 do
+        config.add(0)     // Min/max frame sizes are unknown.
+    let description = (48_000'u64 << 44) | (31'u64 << 36) | 33
+    for byte in 8 do
+        config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
+    for 16 do
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    return config
+}
+
+private func flacLinearShiftFrame(shift: u32)->Array'u8
+{
+    var frame: Array'u8
+    frame.add(0xFF)
+    frame.add(0xF9)     // Variable-block strategy.
+    frame.add(0x60)     // Two-sample block size follows; sample rate from STREAMINFO.
+    frame.add(0x00)     // One channel, 16-bit samples from STREAMINFO.
+    frame.add(0)        // Sample number.
+    frame.add(1)        // Block size minus one.
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x40, 8)     // Order-one linear predictor.
+    flacTestAppendBits(&frame, &bitCount, 1, 16)       // Warmup sample: 1.
+    let fields = (1'u64 << 18) | (cast(u64, shift) << 13) | (1'u64 << 11) | 1
+    flacTestAppendBits(&frame, &bitCount, fields, 22)     // Precision 2, coefficient 1, zero residual.
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
+private func flacOverflowingLinearShiftFrame()->Array'u8
+{
+    var frame: Array'u8
+    frame.add(0xFF)
+    frame.add(0xF9)     // Variable-block strategy.
+    frame.add(0x70)     // Thirty-three-sample block size follows; sample rate from STREAMINFO.
+    frame.add(0x00)     // One channel, 32-bit samples from STREAMINFO.
+    frame.add(0)        // Sample number.
+    frame.add(0)
+    frame.add(32)     // Block size minus one.
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x7E, 8)     // Order-32 linear predictor.
+    for 32 do
+        flacTestAppendBits(&frame, &bitCount, 0x7FFF_FFFF, 32)
+    flacTestAppendBits(&frame, &bitCount, 14, 4)           // Fifteen-bit coefficients.
+    flacTestAppendBits(&frame, &bitCount, 0b1_0000, 5)     // Signed QLP shift: -16.
+    for 32 do
+        flacTestAppendBits(&frame, &bitCount, 0x3FFF, 15)
+    flacTestAppendBits(&frame, &bitCount, 0, 2)     // Rice residual coding.
+    flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition, Rice parameter 0.
+    flacTestAppendBits(&frame, &bitCount, 1, 1)     // Zero residual.
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
 private func flac24BitStereoTestFrame()->Array'u8
 {
     let left:  [6] s32 = [0x007FFFFF, 0x007FFF00, 0x00000100, 0, -0x00000100, -0x00800000]
@@ -257,6 +348,48 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         0, -1,
         -1, 1,
         -32768, 32767])
+}
+
+// Signed QLP shifts right-scale when positive and left-scale when negative across the full range.
+#test
+{
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacLinearShiftTestConfig()
+    expect decoder.initialize(config.toSlice(), 48_000, 1)
+
+    var decoded: [2] s16
+    let frame = flacLinearShiftFrame(0b1_1111)     // -1.
+    let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), frame.toSlice())
+    Swag.require(bytes == 2 * #sizeof(s16))
+    audioAssertSamples(cast([..] u8, decoded), [1's16, 2's16])
+
+    let rightShiftFrame = flacLinearShiftFrame(1)
+    discard expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), rightShiftFrame.toSlice())
+    audioAssertSamples(cast([..] u8, decoded), [1's16, 0's16])
+
+    let minShiftFrame = flacLinearShiftFrame(0b1_0000)     // -16, the signed field's lower bound.
+    discard expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), minShiftFrame.toSlice())
+    audioAssertSamples(cast([..] u8, decoded), [1's16, 32767's16])
+
+    let maxShiftFrame = flacLinearShiftFrame(0b0_1111)     // +15, the signed field's upper bound.
+    discard expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), maxShiftFrame.toSlice())
+    audioAssertSamples(cast([..] u8, decoded), [1's16, 0's16])
+}
+
+// A malformed linear predictor cannot overflow the signed accumulator on a left shift.
+#test
+{
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacLinearOverflowTestConfig()
+    expect decoder.initialize(config.toSlice(), 48_000, 1)
+
+    var decoded:      [33] s16
+    let frame = flacOverflowingLinearShiftFrame()
+    var errorOutcome: Swag.Error
+    discard catch decoder.decodePacket(cast([*] void, &decoded[0]), 33 * #sizeof(s16), frame.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
 }
 
 // 0xFE is FLAC's seven-byte number prefix; 0xFF is reserved and rejected.

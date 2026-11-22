@@ -79,8 +79,6 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     default:         fail Errors.BadParameterError{"file access must request reading, writing, or both"}
     }
 
-    if (mode == .Create or mode == .Truncate) and not access.has(.Write) do
-        fail Errors.BadParameterError{"creating or truncating a file requires write access"}
     let validShare = FileShare.ReadWrite | .Delete | .Inheritable
     if (share & ~validShare) != .Zero do
         fail Errors.BadParameterError{"file sharing contains an unknown flag"}

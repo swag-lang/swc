@@ -176,19 +176,15 @@ impl Array
             return
         let buffer = unwrap .buffer
 
-        // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
-        var scan = buffer - 1
-
         for visitIdx in .count
         {
-            scan += 1
-
+            let element = buffer + visitIdx
             #static if ptr do
-                #inject(stmt, item = cast(*T, scan), index = visitIdx)
+                #inject(stmt, item = cast(*T, element), index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
+                #inject(stmt, item = cast(const *T, element), index = visitIdx)
             else do
-                #inject(stmt, item = scan[0], index = visitIdx)
+                #inject(stmt, item = element[0], index = visitIdx)
         }
     }
 
@@ -200,19 +196,15 @@ impl Array
             return
         let buffer = cast(const [*] T, unwrap .buffer)
 
-        // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
-        var scan = buffer - 1
-
         for visitIdx in .count
         {
-            scan += 1
-
+            let element = buffer + visitIdx
             #static if ptr do
-                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
+                #inject(stmt, item = cast(const *T, element), index = visitIdx)
             elif Reflection.isStruct(T) do
-                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
+                #inject(stmt, item = cast(const *T, element), index = visitIdx)
             else do
-                #inject(stmt, item = scan[0], index = visitIdx)
+                #inject(stmt, item = element[0], index = visitIdx)
         }
     }
 

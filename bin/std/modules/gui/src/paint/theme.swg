@@ -59,8 +59,18 @@ internal struct ThemeImages
     initialized:    bool
     widgetsSource:  string?         // Static stock source, parsed only for an uncached scale.
     widgets:        Svg.Drawing     // Vector widgets atlas, parsed once.
-    widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
+    widgetsRasters: HashTable'(s32, *Image)     // Raster image addresses stay stable as scales are added.
     icons:          IconAtlas       // Vector icon set, parsed once, with its own frames.
+}
+
+impl ThemeImages
+{
+    mtd opDrop()
+    {
+        Sync.scopedLock(&.lock)
+        for _, image in .widgetsRasters do
+            Memory.delete(image)
+    }
 }
 
 // Bundle names of the theme resources. The `Default*Name` constants above are include
@@ -231,20 +241,25 @@ private func defaultThemeImages()->*ThemeImages
 // its frames ever reaching the compositor: an empty window, on a display chained through a
 // DisplayLink adapter. Each parsed document caches rasterizations by scale. Embedded art shares
 // that cache across themes; disk overrides keep a cache owned by their theme.
-private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
+internal func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
 {
     Sync.scopedLock(&cache.lock)
 
     let key   = cast(s32, scale)
     let found = cache.widgetsRasters.tryFind(key)
     if found do
-        return &found.value
+        return found.value
 
     if cache == &g_DefaultThemeImages
     {
         let bytes = themeWidgetRaster(key)
-        if bytes do
-            return &cache.widgetsRasters.add(key, decodeThemeRaster(bytes)).value
+        if bytes
+        {
+            let image = Memory.new'Image()
+            image[] = decodeThemeRaster(bytes)
+            cache.widgetsRasters.add(key, image)
+            return image
+        }
     }
 
     if let source = cache.widgetsSource
@@ -262,7 +277,10 @@ private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
     while ss > 1 and w * cast(s32, ss) > 4096 do
         ss /= 2
 
-    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
+    let image = Memory.new'Image()
+    image[] = cache.widgets.rasterize(w, h, ss)
+    cache.widgetsRasters.add(key, image)
+    return image
 }
 
 // A theme with disk art owns its parsed documents. Another bundle, or a later theme created

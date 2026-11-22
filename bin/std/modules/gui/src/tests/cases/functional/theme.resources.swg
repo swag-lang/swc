@@ -75,6 +75,36 @@ using Swag, Core, Pixel
     Swag.require(Slice.equals(fallbackIcons.pixels.toSlice(), originalIcons.pixels.toSlice()))
 }
 
+// A theme-owned raster keeps its address while concurrent requests add other scales.
+#[Swag.TestTag("prompt7.paint.cache")]
+#test
+{
+    let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_theme_cache_%", Guid64.random()).toString())
+    let folder = Path.combine(root.toString(), "theme")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    expect Directory.create(folder)
+    let widgetsPath = Path.combine(folder.toString(), "widgets.svg")
+    const Widgets = #raw """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#0000ff"/></svg>"""
+    discard expect File.writeAllText(widgetsPath, Widgets)
+
+    var host: Testing.HeadlessHost
+    host.app.resources.addFolder(root.toString())
+    host.setup(80, 60)
+
+    let cache    = unwrap host.theme.images
+    let borrowed = themeWidgetsImage(cache, 1)
+    parallel for |cache| index in 10
+    {
+        let scale = cast(f32, index) + 2
+        let image = themeWidgetsImage(cache, scale)
+        Swag.require(image.width == cast(s32, scale) * 24)
+    }
+
+    Swag.require(themeWidgetsImage(cache, 1) == borrowed)
+    Swag.require(borrowed.pixelColor(12, 12).argb == 0xFF0000FF)
+}
+
 // A logical font name cannot alias different disk payloads in the process typeface cache.
 #test
 {

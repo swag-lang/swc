@@ -16,22 +16,29 @@ struct IconAtlas
 {
     lock:          Swag.Mutex      // Guards the rasterizations against concurrent first use.
     drawing:       Svg.Drawing     // The vector document, parsed once.
-    rasters:       HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
+    rasters:       HashTable'(s64, *Image)     // Raster image addresses stay stable as the map grows.
     embedded:      bool            // Only the unmodified stock document can use the shipped rasters.
     pendingSource: string?         // Static stock source, parsed only when an uncached size needs it.
 }
 
 impl IconAtlas
 {
+    // Releases the cached raster images.
+    mtd opDrop()
+    {
+        Sync.scopedLock(&.lock)
+        .clearRasters()
+    }
+
     // Parses `source`, an SVG document laid out as a uniform grid of 24-unit cells.
     //
     // Fails when the document does not parse. Call it once, on an atlas that outlives every
-    // icon set built on it; parsing again replaces the document and discards the frames
-    // rasterized from the previous one.
+    // icon set built on it; parsing again replaces the document, discards its cached frames,
+    // and invalidates previous image borrows.
     mtd setup(source: string) fail
     {
         Sync.scopedLock(&.lock)
-        .rasters.clear()
+        .clearRasters()
         .embedded      = false
         .pendingSource = null
         .drawing       = try Svg.Drawing.parse(source)
@@ -41,8 +48,9 @@ impl IconAtlas
     //
     // Call after [[Gui.IconAtlas.setup]], before creating icon sets from this atlas. `image`
     // must represent the same SVG grid at this size; the atlas owns a copy of its pixels. A
-    // repeated call replaces that size, and setup discards all supplied rasters. Sizes not
-    // supplied still rasterize on demand. Existing renderer textures are not refreshed.
+    // repeated call replaces that size and invalidates its previous image borrow; setup discards
+    // all supplied rasters and invalidates their borrows. Sizes not supplied still rasterize on
+    // demand. Existing renderer textures are not refreshed.
     // Fails without changing the cache if the size is not positive or the image dimensions
     // do not match the document's 24-unit grid.
     mtd setRaster(cell: s32, image: Image) fail
@@ -56,13 +64,20 @@ impl IconAtlas
            cast(f64, image.width) != cols * cell or
            cast(f64, image.height) != rows * cell do
             fail Core.Errors.BadParameterError{"icon raster dimensions do not match the SVG grid"}
-        .rasters.add(cast(s64, cell), image)
+        let key = cast(s64, cell)
+        var previous: *Image?
+        if let found = .rasters.tryFind(key) do
+            previous = found.value
+        let cached = Memory.new'Image()
+        cached[] = image
+        .rasters.add(key, cached)
+        Memory.delete(previous)
     }
 
     // Returns the sheet rasterized with `cell` device pixels per glyph, building it on first use.
     //
-    // The image is borrowed from the atlas and stays valid for its lifetime; a caller uploads a
-    // copy of it into its own renderer rather than holding this one.
+    // The image is borrowed from the atlas until the next setup, replacement of this cell, or
+    // atlas drop. A caller uploads it into its own renderer rather than holding on to the borrow.
     //
     // Common stock sizes decode their lossless embedded PNG; other sheets are rasterized on the
     // processor, whatever renderer the application draws with. A window builds its controls before
@@ -76,13 +91,18 @@ impl IconAtlas
         let key   = cast(s64, cell)
         let found = .rasters.tryFind(key)
         if found do
-            return &found.value
+            return found.value
 
         if .embedded
         {
             let bytes = themeIconRaster(cell)
-            if bytes do
-                return &.rasters.add(key, decodeThemeRaster(bytes)).value
+            if bytes
+            {
+                let image = Memory.new'Image()
+                image[] = decodeThemeRaster(bytes)
+                .rasters.add(key, image)
+                return image
+            }
         }
 
         .ensureDrawing()
@@ -95,7 +115,18 @@ impl IconAtlas
         while ss > 1 and cols * cell * cast(s32, ss) > 8192 do
             ss /= 2
 
-        return &.rasters.add(key, .drawing.rasterize(cols * cell, rows * cell, ss)).value
+        let image = Memory.new'Image()
+        image[] = .drawing.rasterize(cols * cell, rows * cell, ss)
+        .rasters.add(key, image)
+        return image
+    }
+
+    // The caller holds the atlas lock. The map owns its images.
+    private mtd clearRasters()
+    {
+        for _, image in .rasters do
+            Memory.delete(image)
+        .rasters.clear()
     }
 
     // The caller holds the atlas lock. Custom sources were already checked by setup.

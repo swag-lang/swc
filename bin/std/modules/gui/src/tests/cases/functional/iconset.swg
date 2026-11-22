@@ -98,3 +98,22 @@ impl IWnd for IconTintProbe
     Swag.require(after.pixelColor(30, 30).argb == before.pixelColor(30, 30).argb)
     Swag.require(after.pixelColor(85, 30).argb == before.pixelColor(85, 30).argb)
 }
+
+// A borrowed raster keeps its address while the atlas grows to other sizes.
+#[Swag.TestTag("prompt7.paint.cache")]
+#test
+{
+    var atlas: IconAtlas
+    expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='blue'/></svg>")
+    let borrowed = atlas.image(24)
+
+    parallel for |&atlas| index in 100
+    {
+        let cell  = cast(s32, index) + 1
+        let image = atlas.image(cell)
+        Swag.require(image.width == cell)
+    }
+
+    Swag.require(atlas.image(24) == borrowed)
+    Swag.require(borrowed.width == 24 and borrowed.pixelColor(12, 12).argb == 0xFF0000FF)
+}

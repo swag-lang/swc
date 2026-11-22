@@ -37,7 +37,9 @@ func constantTimeEqual(left, right: const [..] u8)->bool
         offset     += 1
     }
 
-    return difference == 0 and not Math.Simd.anyTrue(vectorDifference != zero)
+    let tailEqual   = difference == 0
+    let vectorEqual = not Math.Simd.anyTrue(vectorDifference != zero)
+    return tailEqual and vectorEqual
 }
 
 // Fills `buffer` completely from the operating system cryptographic random-number source.

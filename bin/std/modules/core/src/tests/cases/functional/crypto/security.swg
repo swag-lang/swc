@@ -117,6 +117,15 @@ func pbkdf2HexBytes(text: string)->Array'u8
     Swag.require(not Crypto.constantTimeEqual(one, other))
     Swag.require(not Crypto.constantTimeEqual(empty, one))
 
+    var vectorBytes: [64] u8
+    var sameBytes:   [64] u8
+    Swag.require(Crypto.constantTimeEqual(vectorBytes, sameBytes))
+    sameBytes[0] = 1
+    Swag.require(not Crypto.constantTimeEqual(vectorBytes, sameBytes))
+    sameBytes[0]  = 0
+    sameBytes[63] = 1
+    Swag.require(not Crypto.constantTimeEqual(vectorBytes, sameBytes))
+
     var random: [64] u8
     expect Crypto.randomBytes(random)
     var anyNonZero: bool

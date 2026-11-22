@@ -69,3 +69,39 @@ using Swag, Core
     Swag.require(password.edit.text() == "")
     Swag.require(password.byteCount == 0)
 }
+
+// Rejecting an over-capacity replacement preserves the selected password and does not report a change.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(280, 60)
+
+    let password = PasswordEdit.create(&host.root, {20, 20, 240, 26}, flags: .None)
+    password.edit.setFocus()
+    for index in 0 until PasswordEdit.MaximumByteLength
+    {
+        password.storage[index] = 'a'
+    }
+    password.byteCount = PasswordEdit.MaximumByteLength
+    password.runeCount = PasswordEdit.MaximumByteLength
+    var mask: Array'u8
+    mask.resize(PasswordEdit.MaximumByteLength)
+    Swag.memset(mask.storage(), '*', mask.count)
+    password.edit.setText(Swag.makeString(mask.buffer, mask.count), false)
+    password.edit.setSelection(PasswordEdit.MaximumByteLength, PasswordEdit.MaximumByteLength)
+
+    var changes: u32
+    password.sigChanged += func|changes = &changes|(_) { changes[] += 1 }
+    password.edit.setSelection(500, 501)
+    host.sendRune(Input.Key.A, '\U0001F642')
+
+    Swag.require(password.byteCount == PasswordEdit.MaximumByteLength)
+    Swag.require(password.runeCount == PasswordEdit.MaximumByteLength)
+    Swag.require(password.edit.text().count == PasswordEdit.MaximumByteLength)
+    for byte in password.bytes() do
+        Swag.require(byte == 'a')
+    for mask in password.edit.text() do
+        Swag.require(mask == '*')
+    Swag.require(changes == 0)
+    Swag.require(password.edit.selBeg == 500 and password.edit.selEnd == 501)
+}

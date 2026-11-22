@@ -163,17 +163,17 @@ private impl PasswordEdit
         var encoded: [4] u8
         let count = Utf8.encodeRune(encoded, value)
 
-        let erased = .eraseSelection()
-        let caret  = erased.caret
-        if .byteCount + count > #sizeof(.storage)
+        let selectionStart = Math.min(.edit.selBeg, .edit.selEnd)
+        let selectionEnd   = Math.max(.edit.selBeg, .edit.selEnd)
+        let selectedBytes  = .byteOffsetAt(selectionEnd) - .byteOffsetAt(selectionStart)
+        if .byteCount - selectedBytes + count > #sizeof(.storage)
         {
             Crypto.secureClear(encoded)
-            .refresh(caret)
-            if erased.changed do
-                .sigChanged.call(me)
             return
         }
 
+        let erased = .eraseSelection()
+        let caret  = erased.caret
         let byteOffset = .byteOffsetAt(caret)
         let tailSize   = .byteCount - byteOffset
         if tailSize do

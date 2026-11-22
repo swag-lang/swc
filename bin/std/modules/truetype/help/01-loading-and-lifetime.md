@@ -2,7 +2,8 @@
 
 TrueType works from bytes already present in memory. A [[TrueType.Face]] parses
 and owns a private copy of those bytes, so the source buffer does not need to
-remain alive.
+remain alive. If you supply a custom allocator to a load function, keep it alive
+until after [[TrueType.Face.destroy]] releases the face.
 
 ```swag
 using Core, TrueType

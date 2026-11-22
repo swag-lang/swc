@@ -611,8 +611,14 @@ func countFacesIn(data: const [..] u8)->u32 fail
 {
     if data.count < 12 do
         fault(0x02)
-    if readU32(data, 0) == TAG_TTCF do
-        return readU32(data, 8)
+    if readU32(data, 0) == TAG_TTCF
+    {
+        let faceCount = readU32(data, 8)
+        if not faceCount do
+            fault(0x02)
+        assertRange(data, 12, cast(u64, faceCount) * 4)
+        return faceCount
+    }
     if readU32(data, 0) == TAG_WOFF
     {
         discard readWoffDirectory(data)

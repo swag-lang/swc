@@ -281,7 +281,8 @@ public impl Face
     // The face owns a private copy of `bytes`, so the input may be released after
     // this call. Success returns a non-null face. Release the returned pointer with
     // [[TrueType.Face.destroy]]. When `allocator` is null, the allocator active at the
-    // start of the call owns the face allocation.
+    // start of the call owns the face allocation. A supplied allocator must remain alive
+    // until the face is destroyed.
     //
     // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
     // or a `ttcf` collection, of which the first face is taken; use

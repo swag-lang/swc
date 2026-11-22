@@ -36,7 +36,7 @@ func serveWebSocketCustomStatus(thread: const *Threading.Thread)
     if keyEnd == Swag.U64.Max do
         return
     let accept   = expect webSocketAccept(requestText[keyStart until keyEnd])
-    let response = Format.toString("HTTP/1.1 101 Web Socket Ready\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
+    let response = Format.toString("HTTP/1.1 101 Web Socket Ready\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept:\t%\t\r\n\r\n", accept)
     discard expect stream.writeAll(cast(const [..] u8, response))
 }
 

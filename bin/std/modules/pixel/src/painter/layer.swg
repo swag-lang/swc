@@ -68,6 +68,16 @@ struct Layer
         active:        bool               // Whether recording is between `begin` and `end`.
         resolved:      bool               // Whether content is at logical resolution.
     }
+
+    private
+    {
+        shadowCacheValid:   bool
+        shadowCacheMargin:  s32
+        shadowCacheRadius:  f32
+        shadowCacheOffsetX: f32
+        shadowCacheOffsetY: f32
+        shadowCacheColor:   Color
+    }
 }
 
 impl Layer
@@ -177,6 +187,13 @@ impl Layer
         if radius <= 0 do
             return
 
+        if .shadowTarget
+        {
+            .painter!.releaseRenderTarget(.shadowTarget)
+            .shadowTarget     = null
+            .shadowCacheValid = false
+        }
+
         .resolve()
         let renderer = unwrap .renderer
         let painter  = unwrap .painter
@@ -227,12 +244,24 @@ impl Layer
             return
 
         .resolve()
-        if .shadowTarget do
-            return
+        let margin = Math.max(info.margin, 0)
+        if .shadowTarget
+        {
+            if .shadowCacheValid and
+               .shadowCacheMargin == margin and
+               .shadowCacheRadius == info.radius and
+               .shadowCacheOffsetX == info.offsetX and
+               .shadowCacheOffsetY == info.offsetY and
+               .shadowCacheColor == info.color do
+                return
+
+            .painter!.releaseRenderTarget(.shadowTarget)
+            .shadowTarget     = null
+            .shadowCacheValid = false
+        }
 
         // Destination rectangles are logical, source rectangles address the texels
         // of the already device-resolution targets.
-        let margin       = Math.max(info.margin, 0)
         let shadowWidth  = .width + 2 * margin
         let shadowHeight = .height + 2 * margin
         let devShadowW   = cast(s32, Math.ceil(shadowWidth * .deviceScale))
@@ -288,7 +317,13 @@ impl Layer
             .releaseRenderTarget(target2)
         }
 
-        .shadowTarget = target1
+        .shadowTarget       = target1
+        .shadowCacheValid   = true
+        .shadowCacheMargin  = margin
+        .shadowCacheRadius  = info.radius
+        .shadowCacheOffsetX = info.offsetX
+        .shadowCacheOffsetY = info.offsetY
+        .shadowCacheColor   = info.color
     }
 
     // Composites the resolved layer into the painter.
@@ -380,11 +415,12 @@ impl Layer
                 .painter.releaseRenderTarget(.shadowTarget)
         }
 
-        .paintTarget   = null
-        .contentTarget = null
-        .shadowTarget  = null
-        .active        = false
-        .resolved      = false
+        .paintTarget      = null
+        .contentTarget    = null
+        .shadowTarget     = null
+        .shadowCacheValid = false
+        .active           = false
+        .resolved         = false
     }
 
     // Releases every owned render target safely for the painter's current recording state.
@@ -413,10 +449,11 @@ impl Layer
                 .renderer.releaseRenderTarget(.shadowTarget)
         }
 
-        .paintTarget   = null
-        .contentTarget = null
-        .shadowTarget  = null
-        .active        = false
-        .resolved      = false
+        .paintTarget      = null
+        .contentTarget    = null
+        .shadowTarget     = null
+        .shadowCacheValid = false
+        .active           = false
+        .resolved         = false
     }
 }

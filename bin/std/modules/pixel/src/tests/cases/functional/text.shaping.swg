@@ -330,6 +330,50 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(betaChunk.pos.y > alphaChunk.pos.y)
 }
 
+// A word split into styled chunks can overflow at the start of a line, but the style boundary
+// does not become a line break.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.font.bold     = font
+    format.font.italic   = font
+    format.horzAlignment = .Left
+    format.flags         |= .WordWrap
+
+    var text = RichString.fromMarkup("<b>alpha</b><i>beta</i>")
+    text.compute()
+    let room = Painter.measureStringSnapped("alpha", font) + 1
+    Painter.computeLayout({0, 0, room, 200}, &text, format)
+
+    Swag.require(text.chunks.count == 2)
+    Swag.require(text.chunks[0].visible and text.chunks[1].visible)
+    Swag.require(text.chunks[0].pos.y == text.chunks[1].pos.y)
+}
+
+// A hit-test cannot return a link chunk whose text and layout were invalidated by mutation.
+#test
+{
+    var cache:  FontCache
+    let font = makeShapingTestFont(&cache)
+    var format: RichStringFormat
+    format.font.regular = font
+
+    var text = RichString.fromMarkup("<a>old</a>")
+    text.compute()
+    Painter.computeLayout({0, 0, 200, 80}, &text, format)
+    let chunk = text.chunks[0]
+    let point = Math.Point{chunk.pos.x + chunk.boundRect.width * 0.5,
+                           chunk.pos.y + chunk.boundRect.height * 0.5}
+    Swag.require(text.getUrlChunkAt(point) != null)
+
+    text.set("new")
+    Swag.require(text.getUrlChunkAt(point) == null)
+}
+
 // A no-break space keeps its neighbours in one chunk, so a wrap can never fall on it, while an
 // ordinary space still separates two words.
 #test

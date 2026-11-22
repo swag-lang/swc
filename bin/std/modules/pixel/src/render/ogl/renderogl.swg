@@ -2610,6 +2610,9 @@ impl RenderOgl
                 oldest = mask.lastUse
                 reuse  = cast(s32, index)
             }
+
+            if reuse < 0 do
+                fail RenderResourceError{"OpenGL cannot allocate a clipping mask while all cached masks are in use"}
         }
 
         // The texture is created on the mask's own unit, so the paint texture bound on unit zero

@@ -87,7 +87,7 @@ impl Encoder
         var zlib: Compress.ZLib
         let cmp = try zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
 
-        .writePtr = .writeHeader(TypeIDat, cmp.count)
+        .writePtr = try .writeHeader(TypeIDat, cmp.count)
         Memory.copy(.writePtr, cmp.storage(), cmp.count)
         .bufferToCompress.count = 0
 

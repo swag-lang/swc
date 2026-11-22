@@ -68,3 +68,51 @@ using Swag, Core
         sawRelease = true
     Swag.require(sawCopy and sawRelease and layer.contentTarget == null)
 }
+
+// A retained layer rebuilds its shadow when the draw-time shadow configuration changes.
+#test
+{
+    func renderLayerShadow(reuseShadow: bool)->Image
+    {
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        renderer.init()
+        var target = renderer.createRenderTarget(96, 64)
+        defer renderer.deleteRenderTarget(&target)
+        var painter = Painter.create(renderer)
+        painter.begin()
+        painter.bindRenderTarget(&target)
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.Black))
+
+        var layer: Layer
+        layer.begin(&painter, {width: 48, height: 32})
+        painter.fillRoundRect({12, 8, 24, 16}, 4, 4, Color.fromArgb(Argb.White))
+        layer.end()
+
+        var draw: LayerDrawInfo
+        draw.dstRect = {20, 16, 48, 32}
+        draw.releaseAfterDraw = false
+        if reuseShadow
+        {
+            draw.shadow = {enabled: true, margin: 3, radius: 2, offsetX: 1, offsetY: 1,
+                           color: Color.fromArgb(Argb.Blue)}
+            layer.draw(draw)
+            painter.clear(Color.fromArgb(Argb.Black))
+        }
+
+        draw.shadow = {enabled: true, margin: 10, radius: 7, offsetX: 5, offsetY: -3,
+                       color: Color.fromArgb(Argb.Red)}
+        layer.draw(draw)
+        painter.unbindRenderTarget()
+        painter.end()
+        expect renderer.draw(&painter)
+        let image = renderer.readRenderTarget(&target, 0, 0, 96, 64)
+        layer.releaseImmediate()
+        return image
+    }
+
+    let expected = renderLayerShadow(false)
+    let actual   = renderLayerShadow(true)
+    Swag.require(Slice.equals(expected.pixels.toSlice(), actual.pixels.toSlice()))
+}

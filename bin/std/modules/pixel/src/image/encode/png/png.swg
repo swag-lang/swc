@@ -72,6 +72,7 @@ private
     const TypeIDat:     [4] u8 = ['I', 'D', 'A', 'T']
     const TypeIEnd:     [4] u8 = ['I', 'E', 'N', 'D']
     const TypeTEXt:     [4] u8 = ['t', 'E', 'X', 't']
+    const MaxPngChunkLength    = 0x7FFF_FFFF'u64
 
     struct SubImage
     {
@@ -143,6 +144,12 @@ private func isValidTextKeyword(keyword: const [..] u8)->bool
     return true
 }
 
+internal func validateChunkLength(chunkLength: u64) fail
+{
+    if chunkLength > MaxPngChunkLength do
+        fail UnsupportedFormatError{"PNG chunk exceeds the maximum supported size"}
+}
+
 // Encodes PNG images with configurable filtering, compression, and interlacing.
 //
 // The encoder is opaque; use [[Pixel.Png.EncodeOptions]] to configure output.
@@ -200,9 +207,11 @@ impl Encoder
         .stream!.addBytes(Swag.makeSlice(cast(const [*] u8, &v), 4))
     }
 
-    mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
+    mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8 fail
     {
-        let total  = chunkLength + 8 + 4
+        try .validateChunkLength(chunkLength)
+
+        let total  = chunkLength + 12
         let stream = unwrap .stream
         stream.grow(total)
 
@@ -227,9 +236,9 @@ impl Encoder
         .writeU32(.currentChunk.crc)
     }
 
-    mtd writeChunk(chunkType: const [4] u8, buf: const *u8, length: u64)
+    mtd writeChunk(chunkType: const [4] u8, buf: const *u8, length: u64) fail
     {
-        .writePtr = .writeHeader(chunkType, length)
+        .writePtr = try .writeHeader(chunkType, length)
         if length do
             Memory.copy(.writePtr, buf, length)
         .finishChunk()
@@ -247,7 +256,7 @@ impl Encoder
         dst[10] = .ihdr.compressionMethod
         dst[11] = .ihdr.filterMethod
         dst[12] = .ihdr.interlaceMethod
-        .writeChunk(TypeIHdr, dst, 13)
+        try .writeChunk(TypeIHdr, dst, 13)
     }
 
     mtd writeMetadata(image: Image) fail
@@ -261,7 +270,7 @@ impl Encoder
                 if not md.value.count do
                     continue
                 const TypeEXIf: [4] u8 = ['e', 'X', 'I', 'f']
-                .writePtr = .writeHeader(TypeEXIf, md.value.count)
+                .writePtr = try .writeHeader(TypeEXIf, md.value.count)
                 Memory.copy(.writePtr, md.value.storage(), md.value.count)
                 .finishChunk()
                 continue
@@ -270,7 +279,11 @@ impl Encoder
             if not isValidTextKeyword(md.tag.toSlice()) do
                 fail UnsupportedFormatError{"PNG text metadata tag is not a valid tEXt keyword"}
 
-            .writePtr = .writeHeader(TypeTEXt, md.tag.count + 1 + md.value.count)
+            if md.tag.count >= MaxPngChunkLength or md.value.count > MaxPngChunkLength - md.tag.count - 1 do
+                fail UnsupportedFormatError{"PNG text metadata exceeds the maximum chunk size"}
+
+            let chunkLength = md.tag.count + 1 + md.value.count
+            .writePtr = try .writeHeader(TypeTEXt, chunkLength)
             Memory.copy(.writePtr, md.tag.storage(), md.tag.count)
             .writePtr[md.tag.count] = 0
             if md.value.count do
@@ -369,7 +382,7 @@ internal impl IImageEncoder for Encoder
                 break
         }
 
-        discard .writeHeader(TypeIEnd, 0)
+        discard try .writeHeader(TypeIEnd, 0)
         .finishChunk()
     }
 }

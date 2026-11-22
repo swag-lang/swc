@@ -1045,6 +1045,19 @@ impl Painter
 
                 if curW + chunkAdvance(c.boundRect.width, cast(s32, idx), startLine, format.letterSpacing) > pos.width
                 {
+                    // Once a multi-chunk word has opened the line, keep its remaining styled
+                    // chunks together even when the word is wider than the available room.
+                    if not c.isSpace and wordStart == startLine and cast(s32, idx) > wordStart
+                    {
+                        line.measure.width   += chunkAdvance(ms.width, cast(s32, idx), startLine, format.letterSpacing)
+                        line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
+                        line.measure.descent = Math.max(line.measure.descent, ms.descent)
+                        line.measure.height  = Math.max(line.measure.height, ms.height)
+                        line.fontAscent      = Math.max(line.fontAscent, lineMetrics.ascent)
+                        line.fontDescent     = Math.min(line.fontDescent, -lineMetrics.descent)
+                        continue
+                    }
+
                     // Rewind to the first chunk of the word being accumulated when an earlier
                     // word already holds the line, so the whole word moves down together. A word
                     // that starts the line has nothing to rewind to and is cut where it runs out.

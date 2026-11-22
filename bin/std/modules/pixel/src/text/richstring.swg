@@ -491,12 +491,12 @@ impl RichString
         return result
     }
 
-    // Returns the visible link chunk containing `at`, or `null` when there is none.
+    // Returns the visible link chunk containing `at`, or `null` when there is none or the layout is stale.
     //
     // `at` is expressed in the coordinates of the last layout.
     mtd getUrlChunkAt(at: Math.Point)->*RichChunk?
     {
-        if not .hasUrl do
+        if .dirty or not .hasUrl do
             return null
         for &c in .chunks where c.isUrl and c.visible
         {

@@ -12,12 +12,14 @@ private func checkedDynamicX11(connection: *void, check: Linux.xcb_request_check
 
 private func has4KDesktop()->bool fail
 {
+    if Env.variable("SWAG_CAPTURE_4K_STRESS").isEmpty() do
+        return false
     var capture = try X11Capture.create()
     return capture.desktopWidth() >= 3840 and capture.desktopHeight() >= 2160
 }
 
 // Measures one second of real 4K X11 acquisition, conversion, H.264 and fragmented MP4.
-// Run this opt-in test on an X11 server with a 3840x2160 root, such as DISPLAY=:92.
+// Set SWAG_CAPTURE_4K_STRESS=1 on an X11 server with a 3840x2160 root, such as DISPLAY=:92.
 #[Swag.TestTag("stress.capture.x11.4k")]
 #test
 {
@@ -108,12 +110,12 @@ private func has4KDesktop()->bool fail
 #[Swag.TestTag("stress.capture.x11.4k.dynamic")]
 #test
 {
+    if not expect has4KDesktop() do
+        return
     const Width  = 3840
     const Height = 2160
     const Tile   = 512'u64
-    var x11 = expect X11Capture.create()
-    if x11.desktopWidth() < Width or x11.desktopHeight() < Height do
-        return
+    var x11        = expect X11Capture.create()
     let library    = unwrap x11.nativeLibrary()
     let connection = unwrap x11.nativeConnection()
     let generate   = expect X11Capture.symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")

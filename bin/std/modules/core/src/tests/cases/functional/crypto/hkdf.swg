@@ -34,6 +34,13 @@ func hkdfHexBytes(text: string)->Array'u8
     expect Crypto.hkdfSha256(Salt, inputKeyMaterial, Info, output)
     Swag.require(Crypto.constantTimeEqual(output, expected.toSlice()))
 
+    // Expansion must keep reading the original info when the output covers it.
+    var overlapping: [42] u8
+    for index in 10 do
+        overlapping[index] = Info[index]
+    expect Crypto.hkdfSha256(Salt, inputKeyMaterial, overlapping[until 10], overlapping)
+    Swag.require(Crypto.constantTimeEqual(overlapping, expected.toSlice()))
+
     // Exercise the multi-block expansion with several splits at digest boundaries.
     var longer: [96] u8
     expect Crypto.hkdfSha256(Salt, inputKeyMaterial, Info, longer)

@@ -164,6 +164,8 @@ impl Inflate
 
     mtd decode(ht: *HuffmanTable)->u16 fail
     {
+        if .stream.numBits == 255 do
+            fail InvalidFormatError{"malformed"}
         if .stream.numBits < 16
         {
             .stream.refill()
@@ -175,6 +177,8 @@ impl Inflate
         if b
         {
             let s = cast(u8, (b >> FastBits))
+            if .stream.numBits < s do
+                fail InvalidFormatError{"truncated input"}
             .stream.consumeBits(s)
             return b & 511
         }
@@ -188,6 +192,8 @@ impl Inflate
 
         if s >= 16 do
             fail InvalidFormatError{"bad huffman code"}
+        if .stream.numBits < s do
+            fail InvalidFormatError{"truncated input"}
         let b1 = (k >> (16 - s)) - ht.firstCode[s] + ht.firstSymbol[s]
         if b1 >= ht.size.count do
             fail InvalidFormatError{"bad huffman code"}
@@ -277,6 +283,8 @@ impl Inflate
             if b
             {
                 let s = cast(u32, (b >> FastBits))
+                if nb < s do
+                    fail InvalidFormatError{"truncated input"}
                 cb    >>= s
                 nb    -= #wrap s
                 value = b & 511
@@ -289,6 +297,8 @@ impl Inflate
                     s += 1
                 if s >= 16 do
                     fail InvalidFormatError{"bad huffman code"}
+                if nb < s do
+                    fail InvalidFormatError{"truncated input"}
                 let b1 = (k >> (16 - s)) - repeatHt.firstCode[s] + repeatHt.firstSymbol[s]
                 if b1 >= repeatHt.size.count do
                     fail InvalidFormatError{"bad huffman code"}
@@ -343,6 +353,8 @@ impl Inflate
             let lextra = cast(u32, LengthExtra[value])
             if lextra
             {
+                if nb < lextra do
+                    fail InvalidFormatError{"truncated input"}
                 length += cb & ((1'u64 << lextra) - 1)
                 cb     >>= lextra
                 nb     -= #wrap lextra
@@ -353,6 +365,8 @@ impl Inflate
             if d
             {
                 let s = cast(u32, (d >> FastBits))
+                if nb < s do
+                    fail InvalidFormatError{"truncated input"}
                 cb     >>= s
                 nb     -= #wrap s
                 dvalue = d & 511
@@ -365,6 +379,8 @@ impl Inflate
                     s += 1
                 if s >= 16 do
                     fail InvalidFormatError{"bad huffman code"}
+                if nb < s do
+                    fail InvalidFormatError{"truncated input"}
                 let b1 = (k >> (16 - s)) - repeatZ.firstCode[s] + repeatZ.firstSymbol[s]
                 if b1 >= repeatZ.size.count do
                     fail InvalidFormatError{"bad huffman code"}
@@ -383,6 +399,8 @@ impl Inflate
             let dextra   = cast(u32, DistExtra[dvalue])
             if dextra
             {
+                if nb < dextra do
+                    fail InvalidFormatError{"truncated input"}
                 distance += cb & ((1'u64 << dextra) - 1)
                 cb       >>= dextra
                 nb       -= #wrap dextra
@@ -485,15 +503,21 @@ impl Inflate
 
         for
         {
-            let final = .stream.readBits(1)
-            let type  = .stream.readBits(2)
+            .stream.refill(2)
+            if .stream.numBits == 255 or .stream.numBits < 3 do
+                fail InvalidFormatError{"truncated input"}
+            let final = .stream.readBitsUnchecked(1)
+            let type  = .stream.readBitsUnchecked(2)
 
             switch type
             {
             case 0:
                 .stream.discardToNextByte()
-                let uncompressedLen = cast(u16, .stream.readBits(16))
-                let lengthCheck     = cast(u16, .stream.readBits(16))
+                .stream.refill(31)
+                if .stream.numBits == 255 or .stream.numBits < 32 do
+                    fail InvalidFormatError{"truncated input"}
+                let uncompressedLen = cast(u16, .stream.readBitsUnchecked(16))
+                let lengthCheck     = cast(u16, .stream.readBitsUnchecked(16))
                 if ~uncompressedLen != lengthCheck do
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
@@ -520,6 +544,8 @@ impl Inflate
                 var lenCodes:        [286 + 32 + 137] u8
                 var codeLengthSizes: [19] u8
                 .stream.refill(14)
+                if .stream.numBits == 255 or .stream.numBits < 14 do
+                    fail InvalidFormatError{"truncated input"}
                 let hlit  = .stream.readBitsUnchecked(5) + 257
                 let hdist = .stream.readBitsUnchecked(5) + 1
                 let hclen = .stream.readBitsUnchecked(4) + 4
@@ -528,7 +554,10 @@ impl Inflate
 
                 for i in hclen
                 {
-                    let s = cast(u8, .stream.readBits(3))
+                    .stream.refill(2)
+                    if .stream.numBits == 255 or .stream.numBits < 3 do
+                        fail InvalidFormatError{"truncated input"}
+                    let s = cast(u8, .stream.readBitsUnchecked(3))
                     codeLengthSizes[LengthDezigzag[i]] = s
                 }
 
@@ -550,18 +579,26 @@ impl Inflate
                     {
                         var fill = 0'u8
                         .stream.refill(7)
+                        if .stream.numBits == 255 do
+                            fail InvalidFormatError{"malformed"}
                         switch c
                         {
                         case 16:
+                            if .stream.numBits < 2 do
+                                fail InvalidFormatError{"truncated input"}
                             c = cast(u16, (.stream.readBitsUnchecked(2) + 3))
                             if n == 0 do
                                 fail InvalidFormatError{"bad code lengths"}
                             fill = lenCodes[n - 1]
 
                         case 17:
+                            if .stream.numBits < 3 do
+                                fail InvalidFormatError{"truncated input"}
                             c = cast(u16, (.stream.readBitsUnchecked(3) + 3))
 
                         case 18:
+                            if .stream.numBits < 7 do
+                                fail InvalidFormatError{"truncated input"}
                             c = cast(u16, (.stream.readBitsUnchecked(7) + 11))
 
                         default:

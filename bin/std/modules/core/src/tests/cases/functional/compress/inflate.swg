@@ -36,6 +36,29 @@ using Swag
     Swag.require(Slice.equals(decompressed.toSlice(), original))
 }
 
+// Every strict prefix of a dynamic Deflate stream must fail as invalid input, not panic while
+// reading an incomplete Huffman header.
+#test
+{
+    var original: [4000] u8
+    for i in original.count do
+        original[i] = cast(u8, (i * 37 + (i >> 2)) & 0xFF)
+
+    var deflater: Compress.Deflate
+    deflater.init(.BestCompression)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, original)
+
+    for length in compressed.count
+    {
+        var inflater: Compress.Inflate
+        var decoded:  Array'u8
+        var outcome:  Swag.Error
+        catch inflater.decompress(&decoded, compressed.toSlice()[until length]) as outcome
+        Swag.require(outcome.value() is Errors.InvalidFormatError)
+    }
+}
+
 // An output limit is enforced while decoding, including within a repeated match, so callers can
 // reject expansion bombs before the destination grows beyond their policy.
 #test

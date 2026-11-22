@@ -441,3 +441,78 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     host.pumpPostedEvents()
     Swag.require(g_TaskEventsSeen == 0)
 }
+
+// Cancellation still runs the task notification before the task becomes done.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+
+    var started: Swag.AtomicFlag
+    var task:    Swag.Task
+    task.submit(func|&started|()
+    {
+        discard started.raise()
+        while not Swag.isCancelled() do
+            Threading.Thread.sleep(1'ms)
+    },
+                watcher.taskNotifier(&task))
+    defer task.cancel()
+
+    for 1000
+    {
+        if started.isRaised() do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(started.isRaised())
+
+    task.cancel()
+    task.wait()
+
+    Swag.require(host.app.pendingTaskNotifications.load() == 0)
+    host.pumpPostedEvents()
+    Swag.require(g_TaskEventsSeen == 1)
+}
+
+// A blocked task keeps its notification pending until it finishes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+    var entered: Swag.AtomicFlag
+    var release: Swag.AtomicFlag
+    defer discard release.raise()
+
+    var task: Swag.Task
+    task.submit(func|&entered, &release|()
+    {
+        discard entered.raise()
+        while not release.isRaised() do
+            Threading.Thread.sleep(1'ms)
+    },
+                watcher.taskNotifier(&task))
+
+    for 1000
+    {
+        if entered.isRaised() do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(entered.isRaised())
+    Swag.require(host.app.pendingTaskNotifications.load() == 1)
+    discard release.raise()
+    task.wait()
+
+    Swag.require(host.app.pendingTaskNotifications.load() == 0)
+    host.pumpPostedEvents()
+    Swag.require(g_TaskEventsSeen == 1)
+}

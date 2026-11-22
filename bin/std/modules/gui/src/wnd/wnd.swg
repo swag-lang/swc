@@ -2715,6 +2715,10 @@ impl Wnd
     // Returns a notification for [[Swag.Task.submit]] that posts a [[Gui.TaskEvent]] naming `task`
     // to this window once the task has finished.
     //
+    // The application tracks this one-shot notification until it runs. Create a fresh one for
+    // each submission, then pass it to the task's `notify` parameter or call it exactly once
+    // before the application is destroyed.
+    //
     // The notification runs on the thread that finished the task and reads nothing from this
     // window there. The event reaches [[Gui.IWnd.onTaskEvent]] on the GUI thread during a later
     // frame, and is dropped once the window's destruction has completed. The window must be on a
@@ -2723,8 +2727,11 @@ impl Wnd
     {
         let app = .surface!.app
         let wnd = me
+        discard app.pendingTaskNotifications.add(1)
         return func|app, wnd, task|()
         {
+            defer discard app.pendingTaskNotifications.sub(1)
+
             let evt = Event.create'TaskEvent()
             evt.target     = wnd
             evt.task       = task

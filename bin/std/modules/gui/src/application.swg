@@ -148,27 +148,28 @@ struct Application
     }
 
     // Run-loop state. It only means something to the loop that owns it.
-    postedEvents:        Array'(IEvent)       // Events queued from any thread, drained each frame.
-    postDestroy:         Array'(*Wnd)         // Windows to destroy once the frame is over.
-    hookOnEvent:         Array'(*Wnd)         // Windows watching every event of the application.
-    endModalExit:        WndId?               // Result the innermost modal loop exits with.
-    inModalLoop:         u32                  // Depth of the modal loop nesting.
-    quitCode:            s32                  // Exit code the run loop returns.
-    mustQuit:            bool                 // Whether the run loop stops at the end of the frame.
-    endModal:            bool                 // Whether the innermost modal loop stops.
-    mutexPostedEvents:   Swag.Mutex           // Guards 'postedEvents' against other threads.
-    duringTimerEvents:   bool                 // Whether timer callbacks are running, so lists defer.
-    timers:              Array'(*Timer)       // Active timers.
-    timersToAdd:         Array'(*Timer)       // Timers added while callbacks were running.
-    timersToDelete:      Array'(*Timer)       // Timers removed while callbacks were running.
-    frameEvents:         Array'(*Wnd)         // Windows asking for a per-frame event.
-    modalSurfaces:       Array'(*Surface)     // Surface stack of the nested modal loops.
-    modalWatch:          (func||(*Surface)->String)?     // Set by a test host: why the modal `surface` must not wait any longer, or nothing.
-    toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
-    systemReducedMotion: bool                 // Platform client-area-animation preference.
-    systemPrefersLight:  bool                 // Whether the platform asks applications for a light theme.
-    inClockFrame:        bool                 // Whether a clock frame runs inside a desktop loop.
-    cursorHidden:        bool                 // Whether the application hides the native pointer until it moves.
+    postedEvents:             Array'(IEvent)                  // Events queued from any thread, drained each frame.
+    postDestroy:              Array'(*Wnd)                    // Windows to destroy once the frame is over.
+    pendingTaskNotifications: Swag.AtomicValue'u32            // Callbacks still able to post to this application.
+    hookOnEvent:              Array'(*Wnd)                    // Windows watching every event of the application.
+    endModalExit:             WndId?                          // Result the innermost modal loop exits with.
+    inModalLoop:              u32                             // Depth of the modal loop nesting.
+    quitCode:                 s32                             // Exit code the run loop returns.
+    mustQuit:                 bool                            // Whether the run loop stops at the end of the frame.
+    endModal:                 bool                            // Whether the innermost modal loop stops.
+    mutexPostedEvents:        Swag.Mutex                      // Guards 'postedEvents' against other threads.
+    duringTimerEvents:        bool                            // Whether timer callbacks are running, so lists defer.
+    timers:                   Array'(*Timer)                  // Active timers.
+    timersToAdd:              Array'(*Timer)                  // Timers added while callbacks were running.
+    timersToDelete:           Array'(*Timer)                  // Timers removed while callbacks were running.
+    frameEvents:              Array'(*Wnd)                    // Windows asking for a per-frame event.
+    modalSurfaces:            Array'(*Surface)                // Surface stack of the nested modal loops.
+    modalWatch:               (func||(*Surface)->String)?     // Set by a test host: why the modal `surface` must not wait any longer, or nothing.
+    toDelete:                 Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
+    systemReducedMotion:      bool                            // Platform client-area-animation preference.
+    systemPrefersLight:       bool                            // Whether the platform asks applications for a light theme.
+    inClockFrame:             bool                            // Whether a clock frame runs inside a desktop loop.
+    cursorHidden:             bool                            // Whether the application hides the native pointer until it moves.
 
     public
     {
@@ -1138,6 +1139,8 @@ impl Application
         for it in .surfaces do
             it.destroy()
         .sendDestroyEvents()
+
+        Swag.assert(.pendingTaskNotifications.load() == 0, "task notification outlived its application")
 
         for it in .postedEvents do
             .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})

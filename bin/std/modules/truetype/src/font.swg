@@ -78,6 +78,12 @@ struct GlyphMetric
     leftSideBearing: s16
 }
 
+struct GposPairLookup
+{
+    firstSubtable:  u64
+    subtableCount: u32
+}
+
 // Internal backing store for a public Face. The public Face is the first field so
 // that a *Face can be reinterpreted as a *FaceImpl and vice versa.
 struct FaceImpl
@@ -136,6 +142,7 @@ struct FaceImpl
     // answer before 'kernPairs', which covers the pairs they leave at zero.
     gposTable:         const [..] u8?
     gposPairSubtables: Array'u32
+    gposPairLookups:   Array'GposPairLookup
 
     // Names declared by an sfnt `post` table. Keys are owned by this face.
     postNameToGid:  HashTable'(String, u32)
@@ -160,6 +167,7 @@ impl FaceImpl
         .colorBitmapPixels.free()
         .kernPairs.free()
         .gposPairSubtables.free()
+        .gposPairLookups.free()
         .postNameToGid.free()
         .postGlyphNames.free()
         .syntheticCMap.free()

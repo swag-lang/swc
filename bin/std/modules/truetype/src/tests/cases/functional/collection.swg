@@ -14,6 +14,24 @@ using Swag, Core
     Swag.require(face.familyName == "Arial")
 }
 
+// Counting faces rejects empty collections and validates every declared offset.
+#test
+{
+    var truncated: Array'u8
+    truncated.resize(12)
+    writeBigU32(&truncated, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
+
+    var emptyOutcome: Swag.Error
+    discard catch Face.countFaces(truncated.toSlice()) as emptyOutcome
+    Swag.require(emptyOutcome.value() != null)
+
+    writeBigU32(&truncated, 8, 1)
+
+    var truncatedOutcome: Swag.Error
+    discard catch Face.countFaces(truncated.toSlice()) as truncatedOutcome
+    Swag.require(truncatedOutcome.value() != null)
+}
+
 // A face reports the version, designer, and copyright its name table declares.
 #test
 {

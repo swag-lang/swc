@@ -26,6 +26,21 @@ struct WoffTable
     data:   Array'u8
 }
 
+// WOFF blocks are four-byte aligned with at most three zero padding bytes.
+func checkWoffPadding(block: const [..] u8, start, end: u64) fail
+{
+    if end < start or end - start > 3 do
+        try fault(0x08)
+
+    var offset = start
+    while offset < end
+    {
+        if try readU8(block, offset) != 0 do
+            try fault(0x08)
+        offset += 1
+    }
+}
+
 // Parses the WOFF1 header and table directory without expanding compressed tables.
 func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Array'WoffTableRecord } fail
 {
@@ -113,6 +128,7 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
             try fault(0x08)
 
         try assertRange(block, record.offset, record.compLength)
+        try checkWoffPadding(block, previousDataEnd, record.offset)
         previousTag          = record.tag
         previousDataEnd      = cast(u64, record.offset) + record.compLength
         expectedSfntSize     += (cast(u64, record.origLength) + 3) & ~3'u64
@@ -125,14 +141,22 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     let metadataEnd = cast(u64, metadataOffset) + metadataLength
     let privateEnd  = cast(u64, privateOffset) + privateLength
     if (metadataOffset != 0 and cast(u64, metadataOffset) < previousDataEnd) or
-       (privateOffset != 0 and cast(u64, privateOffset) < previousDataEnd) do
+       (privateOffset != 0 and cast(u64, privateOffset) < previousDataEnd) or
+       (privateOffset != 0 and metadataOffset != 0 and cast(u64, privateOffset) < metadataEnd) do
         try fault(0x08)
-    if metadataOffset and privateOffset and metadataOffset < privateEnd and privateOffset < metadataEnd do
-        try fault(0x08)
-    if metadataOffset and privateOffset and metadataEnd > privateOffset do
-        try fault(0x08)
-    if privateOffset and privateEnd != result.header.length do
-        try fault(0x08)
+    var lastBlockEnd = previousDataEnd
+    if metadataOffset
+    {
+        try checkWoffPadding(block, previousDataEnd, metadataOffset)
+        lastBlockEnd = metadataEnd
+    }
+    if privateOffset
+    {
+        let privatePaddingStart = metadataOffset ? metadataEnd : previousDataEnd
+        try checkWoffPadding(block, privatePaddingStart, privateOffset)
+        lastBlockEnd = privateEnd
+    }
+    try checkWoffPadding(block, lastBlockEnd, result.header.length)
 
     return result
 }

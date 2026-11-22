@@ -145,5 +145,7 @@ private func parseNameHex(digits: string)->rune
         result = result * 16 + value
     }
 
+    if result > 0x10FFFF or (result >= 0xD800 and result <= 0xDFFF) do
+        return 0
     return cast(rune, result)
 }

@@ -227,3 +227,21 @@ using Swag, Core
     Swag.require(points[1].x == 57 and points[1].y == 1)
     Swag.require(points[4].x == 51 and points[4].y == 1)
 }
+
+// Edge differences must be widened before subtraction, even when both endpoints fit s32.
+#test
+{
+    var points: [4] Vector = [
+        Vector{-1200000000, -1200000000},
+        Vector{-1200000000, 1200000000},
+        Vector{1200000000, 1200000000},
+        Vector{1200000000, -1200000000}
+    ]
+    var tags:     [4] u8  = [1, 1, 1, 1]
+    var contours: [1] s16 = [3]
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 4, 1)
+    discard expect outline.embolden(64)
+
+    Swag.require(points[0].x < -1200000000)
+    Swag.require(points[0].y < -1200000000)
+}

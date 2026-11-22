@@ -21,13 +21,16 @@ func distToPixel(v: s32)->s32
 
     discard expect face.setPixelSize(0, 13)
     discard expect face.loadChar('x')
-    let before = face.glyph.outline.bounds().yMax
+    let boundsBefore = face.glyph.outline.bounds()
+    let before = boundsBefore.yMax
 
     discard expect face.hintVertical()
-    let after = face.glyph.outline.bounds().yMax
+    let boundsAfter = face.glyph.outline.bounds()
+    let after = boundsAfter.yMax
 
     // The baseline (y = 0) must stay put, and the x-height must end up on (or within
     // rounding of) a whole pixel, at least as well aligned as before.
+    Swag.require(boundsAfter.yMin == boundsBefore.yMin)
     Swag.require(distToPixel(after) <= distToPixel(before) + 1)
     Swag.require(distToPixel(after) <= 3)
 }

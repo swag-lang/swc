@@ -352,21 +352,25 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
 {
     // A bare CFF or Type 1 program declares no character map; the one derived from its
     // built-in encoding answers in its place.
-    if not faceData.hasCMap do
-        return faceData.syntheticCMap.getOrDefault(charCode, 0)
-
-    let cmap = faceData.chosenCMap
-    switch faceData.cmapFormat
+    if not faceData.hasCMap
     {
-    case 0:  return lookupCMap0(cmap, charCode)
-    case 4:  return lookupCMap4(cmap, charCode)
-    case 6:  return lookupCMap6(cmap, charCode)
-    case 8:  return lookupCMap8(cmap, charCode)
-    case 10: return lookupCMap10(cmap, charCode)
-    case 12: return lookupCMap12(cmap, charCode)
-    case 13: return lookupCMap13(cmap, charCode)
+        let glyphIndex = faceData.syntheticCMap.getOrDefault(charCode, 0)
+        return glyphIndex < faceData.face.glyphCount ? glyphIndex : 0
     }
 
-    try fault(0x96)
-    return 0
+    let cmap = faceData.chosenCMap
+    var glyphIndex = 0'u32
+    switch faceData.cmapFormat
+    {
+    case 0:  glyphIndex = lookupCMap0(cmap, charCode)
+    case 4:  glyphIndex = lookupCMap4(cmap, charCode)
+    case 6:  glyphIndex = lookupCMap6(cmap, charCode)
+    case 8:  glyphIndex = lookupCMap8(cmap, charCode)
+    case 10: glyphIndex = lookupCMap10(cmap, charCode)
+    case 12: glyphIndex = lookupCMap12(cmap, charCode)
+    case 13: glyphIndex = lookupCMap13(cmap, charCode)
+    default: try fault(0x96)
+    }
+
+    return glyphIndex < faceData.face.glyphCount ? glyphIndex : 0
 }

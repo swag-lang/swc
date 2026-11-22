@@ -495,6 +495,63 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Applying 10^309 directly overflows before the finite 0.1 significand can scale it back.
+    const FiniteLargeReal: [4] u8 = [0x0A, 0x1B, 0x30, 0x9F] // 0.1E309
+    let parsed = expect readCffReal(FiniteLargeReal, 0)
+    Swag.require(parsed.value > 9.99e307 and parsed.value < 1.01e308)
+}
+
+#test
+{
+    // Fractional zeros and the explicit exponent can cancel even when 0.1-style accumulation underflows.
+    const FractionDigits = 400'u64
+    var nibbles: Array'u8
+    nibbles.add(0)
+    nibbles.add(0x0A)
+    var index = 0'u64
+    while index < FractionDigits
+    {
+        nibbles.add(0)
+        index += 1
+    }
+    nibbles.add(1)
+    nibbles.add(0x0B)
+    nibbles.add(4)
+    nibbles.add(0)
+    nibbles.add(1)
+    nibbles.add(0x0F)
+
+    var bytes: Array'u8
+    index = 0
+    while index < nibbles.count / 2
+    {
+        bytes.add((nibbles[index * 2] << 4) | nibbles[index * 2 + 1])
+        index += 1
+    }
+    let parsed = expect readCffReal(bytes.toSlice(), 0)
+    Swag.require(Math.isEqualEpsilon(parsed.value, 1.0, 0.000001))
+}
+
+#test
+{
+    // Exponent accumulation must reject values that cannot fit its signed counter.
+    const OversizedExponent: [7] u8 = [0x1B, 0x21, 0x47, 0x48, 0x36, 0x48, 0xF0]
+    var rejected: Swag.Error
+    discard catch readCffReal(OversizedExponent, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // A syntactically valid real whose final value exceeds f64 must fail instead of returning infinity.
+    const InfiniteReal: [3] u8 = [0x1B, 0x30, 0x9F] // 1E309
+    var rejected: Swag.Error
+    discard catch readCffReal(InfiniteReal, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Escaped CFF DICT operators require a second byte.
     const TruncatedEscape: [1] u8 = [0x0C]
     var rejected: Swag.Error
@@ -508,6 +565,20 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     const TruncatedPositive: [1] u8 = [0xF7]
     var rejected: Swag.Error
     discard catch parseCffDict(TruncatedPositive) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    // The 16-bit integer marker requires both bytes of its operand.
+    const MissingWord: [1] u8 = [0x1C]
+    const ShortWord:   [2] u8 = [0x1C, 0x00]
+    var rejected: Swag.Error
+    discard catch parseCffDict(MissingWord) as rejected
+    Swag.require(rejected.value() != null)
+
+    rejected = {}
+    discard catch parseCffDict(ShortWord) as rejected
     Swag.require(rejected.value() != null)
 }
 

@@ -126,3 +126,21 @@ using Swag, Core
     let thin = source.smartCropRect(0.01, .Center)
     Swag.require(Math.abs(thin.width - 0.4) < 0.001 and thin.height == 40)
 }
+
+// A positive fractional target width still yields a one-pixel crop in both search modes.
+#test
+{
+    let source = Image.create(100, 100, .Gray8)
+    let target: Math.Rectangle = {width: 0.01, height: 100}
+
+    var singleScale = source
+    var options: Image.SmartCropSearchOpts = {}
+    options.minCoverage = 1.0
+    singleScale.smartCrop(target, options)
+    Swag.require(singleScale.width == 1 and singleScale.height == 100)
+
+    var multiScale = source
+    multiScale.smartCrop(target)
+    Swag.require(multiScale.width == 1)
+    Swag.require(multiScale.height > 0 and multiScale.height <= source.height)
+}

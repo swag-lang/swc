@@ -33,6 +33,22 @@ using Core
         gpu.end()
     }
 
+    // A zero-sized drawable skips drawing, but a successful no-op submission must still return
+    // queued transient targets to the pool before the painter discards its command stream.
+    var zeroSized = first
+    zeroSized.width = 0
+    let transient = gpu.acquireRenderTarget(8, 8)
+    gpu.begin(zeroSized)
+    var releasePainter = Painter.create(gpu)
+    releasePainter.begin()
+    releasePainter.releaseRenderTarget(transient)
+    releasePainter.end()
+    expect gpu.draw(&releasePainter)
+    let reused = gpu.acquireRenderTarget(8, 8)
+    Swag.require(reused == transient)
+    gpu.releaseRenderTarget(reused)
+    gpu.end()
+
     gpu.deleteContext(&first)
     gpu.begin(second)
     let retained = gpu.readRenderTarget(&target, 0, 0, 32, 24)

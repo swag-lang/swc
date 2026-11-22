@@ -56,7 +56,8 @@ impl IRenderer for RenderCpu
 
     mtd impl draw(painter: *Painter) fail
     {
-        .drawImpl(painter)
+        try .drawImpl(painter)
+        painter.markSubmitted()
     }
 
     mtd impl bindRenderTarget(target: *RenderTarget, _: *Math.Rectangle? = null)

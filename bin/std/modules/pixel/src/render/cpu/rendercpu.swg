@@ -22,6 +22,7 @@ struct RenderCpu
     private
     {
         nextHandle: u64 = 1
+        generation: TextureGeneration
         textures:   Array'CpuTexture
 
         surface: Image
@@ -293,6 +294,20 @@ private impl FontFrame
 
 private impl RenderCpu
 {
+    mtd ensureGeneration()->bool
+    {
+        if .generation.tag do
+            return true
+
+        var generation: TextureGeneration
+        var outcome:    Swag.Error
+        catch { generation = try TextureGeneration.claim() } as outcome
+        if outcome.value() != null do
+            return false
+        .generation = generation
+        return true
+    }
+
     mtd findTexture(handle: TextureHandle)->*CpuTexture?
     {
         for &texture in .textures where texture.handle == handle do
@@ -2313,7 +2328,7 @@ private impl RenderCpu
         batch.blurTapCount    = 0
         batch.blurWeights     = null
         batch.blurWeightCount = 0
-        if .paintOn and .paint.type == .Texture
+        if .paintOn and .paint.type == .Texture and .paint.texture.isValid()
         {
             let storage = .findTexture(.paint.texture.handle)
             if storage
@@ -3196,6 +3211,7 @@ impl RenderCpu
     // Releases pooled render-target descriptors owned by the renderer.
     mtd opDrop()
     {
+        .generation.release()
         for rt in .stackReleasedRT do
             Memory.delete(rt)
     }
@@ -3293,13 +3309,56 @@ impl RenderCpu
 
     // Executes a completed painter command stream synchronously.
     //
-    // The painter must have been ended and must remain unchanged until this call returns.
-    internal mtd drawImpl(painter: *Painter)
+    // The painter must have been ended and must remain unchanged until this call returns. A
+    // stream that refers to a retired render target fails before changing renderer state.
+    internal mtd drawImpl(painter: *Painter) fail
     {
+        var nextCommand: u64
+        defer #fail
+        {
+            for cmd in painter.commandBuffer.toSlice()[nextCommand until painter.commandBuffer.count]
+            {
+                switch cmd.op
+                {
+                case .ReleaseRenderTarget:
+                    .releaseRenderTargetImpl(cmd.renderTgt.tgt)
+
+                case .ReleaseTexture:
+                    var texture = cmd.texture0.texture
+                    .removeTextureImpl(&texture)
+
+                default:
+                    break
+                }
+            }
+
+            painter.markSubmitted()
+        }
+
+        for cmd in painter.commandBuffer
+        {
+            switch cmd.op
+            {
+            case .BindRenderTarget:
+                if not cmd.renderTgt.tgt.colorBuffer.isValid() do
+                    fail RenderResourceError{"CPU renderer cannot bind a render target from an earlier resource generation"}
+
+            case .CaptureBackdrop:
+                if not cmd.backdropCapture.tgt.colorBuffer.isValid() do
+                    fail RenderResourceError{"CPU renderer cannot capture into a target from an earlier resource generation"}
+
+            default:
+                break
+            }
+        }
+
         .resetDrawState()
         .contentScale = painter.contentScale()
-        for &cmd, idx in painter.commandBuffer do
+        for &cmd, idx in painter.commandBuffer
+        {
             .executeCommand(painter, cmd, cast(u64, idx))
+            nextCommand = cast(u64, idx) + 1
+        }
     }
 
     // Binds an off-screen target for following direct operations or painter submission.
@@ -3323,6 +3382,8 @@ impl RenderCpu
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, width, height: s32)->Image
     {
         Swag.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
+        if not rt.colorBuffer.isValid() do
+            return {}
         let storage = .findTexture(rt.colorBuffer.handle)
         Swag.assert(storage != null, "render target is not owned by this renderer")
         let source = storage
@@ -3361,6 +3422,8 @@ impl RenderCpu
     internal mtd createRenderTargetImpl(width, height: s32)->RenderTarget
     {
         Swag.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
+        if not .ensureGeneration() do
+            return {}
 
         let targetHandle = cast(RenderTargetHandle, .nextHandle)
         .nextHandle += 1
@@ -3368,7 +3431,7 @@ impl RenderCpu
         .nextHandle += 1
 
         var result: #returntype
-        result.attach(targetHandle, textureHandle, .BGRA8, width, height)
+        result.attach(targetHandle, textureHandle, .BGRA8, width, height, .generation)
 
         var storage: CpuTexture
         storage.handle = textureHandle
@@ -3381,8 +3444,14 @@ impl RenderCpu
     // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
+        if rt.handle == InvalidRenderTargetHandle do
             return
+        if not rt.colorBuffer.isValid()
+        {
+            rt.clear()
+            return
+        }
+
         .removeTextureStorage(rt.colorBuffer.handle)
         rt.clear()
     }
@@ -3401,14 +3470,14 @@ impl RenderCpu
     // the caller handed over.
     internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
-        if not view.isValidLayout() do
+        if not view.isValidLayout() or not .ensureGeneration() do
             return {}
 
         var image = Image.create(view.width, view.height, .RGB8)
         view.convertToRgb(&image)
 
         var result: #returntype
-        result.attach(cast(TextureHandle, .nextHandle), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle, .nextHandle), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height, .generation)
         .nextHandle += 1
 
         var storage: CpuTexture
@@ -3471,11 +3540,11 @@ impl RenderCpu
     // Copies an image into a renderer-owned CPU texture.
     internal mtd addImageImpl(image: const *Image)->Texture
     {
-        if not image.isValid() do
+        if not image.isValid() or not .ensureGeneration() do
             return {}
 
         var result: #returntype
-        result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height)
+        result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height, .generation)
         .nextHandle += 1
 
         var storage: CpuTexture
@@ -3493,6 +3562,8 @@ impl RenderCpu
     // `pixels` must address at least [[Pixel.Texture.byteCount]] readable bytes.
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)->bool
     {
+        if not texture.isValid() do
+            return false
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
@@ -3544,8 +3615,12 @@ impl RenderCpu
     // Releases a renderer-owned texture and invalidates its descriptor.
     internal mtd removeTextureImpl(texture: *Texture)
     {
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
+            texture.clear()
             return
+        }
+
         .removeTextureStorage(texture.handle)
         texture.clear()
     }
@@ -3626,6 +3701,13 @@ impl RenderCpu
     {
         if not target do
             return
+        if not target.colorBuffer.isValid()
+        {
+            target.clear()
+            Memory.delete(target)
+            return
+        }
+
         target.poolUsed = true
         .stackReleasedRT.add(target)
     }

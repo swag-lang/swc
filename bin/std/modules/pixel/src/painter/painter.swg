@@ -386,11 +386,12 @@ struct Painter
         curTextureFont:      *Font?       // Font owning the currently bound glyph atlas.
         curTextureFontAtlas: s32 = -1     // Zero-based bound atlas index, or `-1`.
 
-        drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
-        layoutOnly:     bool            // Whether text layout skips rendering commands.
-        overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
-        canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
-        curState:       PaintState      // Current mutable drawing state.
+        drawingBegin:      bool            // Whether a `begin`/`end` recording scope is active.
+        submissionPending: bool            // Whether the ended command stream has not been submitted.
+        layoutOnly:        bool            // Whether text layout skips rendering commands.
+        overlapMode:       bool            // Whether overlap-safe alpha rendering is active.
+        canSetTexture0:    bool = true     // Whether drawing operations may change the brush texture.
+        curState:          PaintState      // Current mutable drawing state.
 
         // Physical device pixels per painter path-space unit. The renderer multiplies
         // every recorded coordinate by it at draw time, so the whole stream stays in
@@ -535,6 +536,12 @@ impl Painter
     // Reports whether commands are currently being recorded between `begin` and `end`.
     internal mtd const isRecording()->bool => .drawingBegin
 
+    // Marks a synchronous renderer submission complete.
+    internal mtd markSubmitted()
+    {
+        .submissionPending = false
+    }
+
     // Queues a transient texture for release after every preceding command has consumed it.
     internal mtd releaseTexture(texture: Texture)
     {
@@ -549,6 +556,7 @@ impl Painter
     {
         Swag.assert(not .drawingBegin)
         try .renderer().draw(me)
+        .submissionPending = false
     }
 
     private func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
@@ -1075,6 +1083,25 @@ impl Painter
     {
         Swag.assert(not .drawingBegin)
 
+        // A new recording discards an ended stream. Return any resources that stream had queued
+        // for release instead of losing them with the commands.
+        if .submissionPending and .rendererItf
+        {
+            let renderer = .renderer()
+            for command in .commandBuffer
+            {
+                if command.op is .ReleaseTexture
+                {
+                    var texture = command.texture0.texture
+                    renderer.removeTexture(&texture)
+                }
+                elif command.op is .ReleaseRenderTarget
+                {
+                    renderer.releaseRenderTarget(command.renderTgt.tgt)
+                }
+            }
+        }
+
         .commandBuffer.clear()
         .vertexBuffer.clear()
         .gradientStops.clear()
@@ -1082,6 +1109,7 @@ impl Painter
         .transientTargets.clear()
 
         .drawingBegin      = true
+        .submissionPending = false
         .layoutOnly        = layoutOnly
         .canSetTexture0    = true
         .overlapMode       = false
@@ -1111,7 +1139,8 @@ impl Painter
             .newCommand(.ReleaseRenderTarget).op = .ReleaseRenderTarget{tgt: target}
         }
 
-        .drawingBegin = false
+        .drawingBegin      = false
+        .submissionPending = true
     }
 
     // Records a clear of the active rendering surface.
@@ -1570,15 +1599,28 @@ impl Painter
         .curPaintAlpha = .stackPaintAlpha.isEmpty() ? false : .stackPaintAlpha.popBack()
     }
 
-    // Queues a pooled render target for release once the recorded frame has consumed it.
+    // Releases a pooled render target after the current recording or pending submission consumes it.
     //
-    // `null` is ignored. The target goes back to the renderer when [[Pixel.Painter.end]] closes
-    // the recording, after every command that references it.
+    // `null` is ignored. During recording, release waits for [[Pixel.Painter.end]]. After `end`,
+    // the release is appended after the commands already recorded. Between submissions, the
+    // target is returned to the renderer immediately.
     mtd releaseRenderTarget(tgt: *RenderTarget?)
     {
         if not tgt do
             return
-        .transientTargets.add(tgt)
+
+        if .drawingBegin
+        {
+            .transientTargets.add(tgt)
+        }
+        elif .submissionPending
+        {
+            .commandBuffer.emplaceAddress(1).op = .ReleaseRenderTarget{tgt: tgt}
+        }
+        else
+        {
+            .renderer().releaseRenderTarget(tgt)
+        }
     }
 
     // Selects a custom shader for subsequent drawing, or restores the built-in program with `null`.

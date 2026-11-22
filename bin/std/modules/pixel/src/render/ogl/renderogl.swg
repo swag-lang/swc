@@ -79,9 +79,11 @@ internal struct ChromaPlanes
 {
     internal
     {
-        chromaB: GLuint
-        chromaR: GLuint
-        factors: YuvConversionFactors
+        chromaB:     GLuint
+        chromaR:     GLuint
+        factors:     YuvConversionFactors
+        matrix:      YuvMatrix
+        studioRange: bool
     }
 }
 
@@ -926,6 +928,7 @@ impl RenderOgl
         glClearStencil(0)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
         glClearColor(0, 0, 0, 0)
+        .prepareFramebufferTouch()
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
     }
 
@@ -1464,6 +1467,8 @@ impl RenderOgl
 
         var result: #returntype
         result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height, .generation)
+        planes.matrix      = view.matrix
+        planes.studioRange = view.studioRange
         .chromaPlanes.add(result.handle, planes)
         if not .updatePlanarImpl(result, view)
         {
@@ -1494,7 +1499,9 @@ impl RenderOgl
            not .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight()) or
            not .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight()) do
             return false
-        planes.value.factors = view.conversionFactors()
+        planes.value.factors     = view.conversionFactors()
+        planes.value.matrix      = view.matrix
+        planes.value.studioRange = view.studioRange
         return true
     }
 
@@ -1702,6 +1709,9 @@ impl RenderOgl
         if not texture.isValid() do
             return result
         Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
+        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444 do
+            return .readPlanarTexturePixelsImpl(texture, pixelFormat)
+
         var previousTexture, previousBuffer, alignment, rowLength, skipRows, skipPixels: GLint
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
         glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previousBuffer)
@@ -1733,11 +1743,82 @@ impl RenderOgl
         return result
     }
 
+    // Reads and converts every plane of a planar texture into the requested packed format.
+    internal mtd readPlanarTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    {
+        var result: #returntype
+        let planes = .chromaPlanes.tryFind(texture.handle)
+        if not planes do
+            return result
+
+        var previousTexture, previousBuffer, alignment, rowLength, skipRows, skipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+        glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+        glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+        glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_PACK_ALIGNMENT, alignment)
+            glPixelStorei(GL_PACK_ROW_LENGTH, rowLength)
+            glPixelStorei(GL_PACK_SKIP_ROWS, skipRows)
+            glPixelStorei(GL_PACK_SKIP_PIXELS, skipPixels)
+        }
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        glPixelStorei(GL_PACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
+
+        func readPlane(handle: GLuint, width, height: s32)->Array'u8
+        {
+            var pixels: #returntype
+            pixels.resize(cast(u64, width) * cast(u64, height))
+            glBindTexture(GL_TEXTURE_2D, handle)
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.buffer)
+            return pixels
+        }
+
+        let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
+        let divisor      = 1's32 << shift
+        let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
+        let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
+        let luma         = readPlane(cast(GLuint, texture.handle), texture.width, texture.height)
+        let chromaB      = readPlane(planes.value.chromaB, chromaWidth, chromaHeight)
+        let chromaR      = readPlane(planes.value.chromaR, chromaWidth, chromaHeight)
+        if glGetError() != GL_NO_ERROR do
+            return result
+
+        let view = YuvPlanarView{
+            luma: luma.storage(),
+            chromaB: chromaB.storage(),
+            chromaR: chromaR.storage(),
+            lumaStride: cast(u64, texture.width),
+            chromaStride: cast(u64, chromaWidth),
+            width: texture.width,
+            height: texture.height,
+            chromaShift: shift,
+            matrix: planes.value.matrix,
+            studioRange: planes.value.studioRange}
+        var rgb: Image
+        view.convertToRgb(&rgb)
+        let converted = rgb.convertedTo(pixelFormat)
+        result = converted.pixels
+        return result
+    }
+
     // Releases a texture created by `addImage` and invalidates its descriptor.
     internal mtd removeTextureImpl(texture: *Texture)
     {
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
+            texture.clear()
             return
+        }
 
         let planes = .chromaPlanes.tryFind(texture.handle)
         if planes
@@ -2462,6 +2543,10 @@ impl RenderOgl
             .rebindCurrentTarget()
             .clearScissor()
             while glGetError() != GL_NO_ERROR {}
+
+            // The executed prefix and the releases in the unexecuted suffix have both been
+            // handled. A later Painter.begin must not replay those releases.
+            dc.markSubmitted()
         }
 
         // Attribute an earlier native error to the submission boundary, never to the next
@@ -2494,8 +2579,25 @@ impl RenderOgl
         glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
         glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         let {width, height} = .targetSizeImpl()
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
+            // A minimized drawable cannot consume drawing commands, but the stream still owns
+            // resources queued for release. Process those before the interface marks it handled.
+            for cmd in dc.commandBuffer
+            {
+                if cmd.op is .ReleaseRenderTarget
+                {
+                    .releaseRenderTargetImpl(cmd.renderTgt.tgt)
+                }
+                elif cmd.op is .ReleaseTexture
+                {
+                    var texture = cmd.texture0.texture
+                    .removeTextureImpl(&texture)
+                }
+            }
+
             return
+        }
 
         // The stream's logical-to-device factor drives the model matrix, the
         // scissor, and blur radii for the whole submission.

@@ -24,7 +24,9 @@ struct TraceOptions
 // sub-pixel precision on the antialiased alpha boundary, simplified, and written
 // as one filled shape per color, in back-to-front coverage order. The result is
 // faithful for the flat-color art this is meant for — icon glyphs, UI masks — and
-// approximate for photographs, which have no flat regions to trace.
+// approximate for photographs, which have no flat regions to trace. Sampling uses
+// the image's logical top-left pixels and straight-alpha colors, regardless of its
+// packed format or stored alpha association.
 //
 // ## Example
 //
@@ -42,22 +44,15 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     let w = image.width
     let h = image.height
 
-    // Sample helpers over the source, BGRA8 or RGBA8.
-    let bpp     = cast(s32, image.bytesPerPixel)
-    let rOffset = image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB8 ? 0 : 2
-    let bOffset = 2 - rOffset
-
-    func sample(image: const *Image, bpp, rOffset, bOffset: s32, x, y: s32)->{ color: Color, alpha: u8 }
+    // Read logical pixels so every packed format and alpha association follows Image's contract.
+    func sample(image: const *Image, x, y: s32)->{ color: Color, alpha: u8 }
     {
         var result: #returntype
         if x < 0 or y < 0 or x >= image.width or y >= image.height do
             return result
 
-        let idx = (cast(u64, y) * cast(u64, image.width) + cast(u64, x)) * cast(u64, bpp)
-        let ptr = image.pixels.storage() + idx
-        let a   = bpp == 4 ? ptr[3] : 255'u8
-        result.color = Color.fromArgb(255, ptr[rOffset], ptr[1], ptr[bOffset])
-        result.alpha = a
+        result.color = image.pixelColor(x, y)
+        result.alpha = result.color.a
         return result
     }
 
@@ -68,7 +63,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     {
         for x in w
         {
-            let {color, alpha} = sample(image, bpp, rOffset, bOffset, x, y)
+            let {color, alpha} = sample(image, x, y)
             if alpha <= options.threshold do
                 continue
             let key  = color.argb & 0x00FFFFFF
@@ -88,7 +83,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     // Trace each color class independently.
     for entry in colors
     {
-        var paths = traceClass(image, bpp, rOffset, bOffset, entry.key, options)
+        var paths = traceClass(image, entry.key, options)
         if paths.paths.isEmpty() do
             continue
 
@@ -98,7 +93,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
         {
             for x in w
             {
-                let {color, alpha} = sample(image, bpp, rOffset, bOffset, x, y)
+                let {color, alpha} = sample(image, x, y)
                 if alpha > options.threshold and (color.argb & 0x00FFFFFF) == entry.key
                 {
                     alphaSum   += alpha
@@ -119,18 +114,17 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 // Membership of a pixel in the traced color class, as a coverage value: the class
 // alpha where the pixel matches, zero where it belongs to another color, and the
 // inverted neighborhood for the outer transparent boundary.
-private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32, threshold: u8, x, y: s32)->f32
+private func coverage(image: const *Image, key: u32, threshold: u8, x, y: s32)->f32
 {
     if x < 0 or y < 0 or x >= image.width or y >= image.height do
         return 0
 
-    let idx = (cast(u64, y) * cast(u64, image.width) + cast(u64, x)) * cast(u64, bpp)
-    let ptr = image.pixels.storage() + idx
-    let a   = bpp == 4 ? ptr[3] : 255'u8
+    let color = image.pixelColor(x, y)
+    let a     = color.a
     if a == 0 do
         return 0
 
-    let pixKey = (cast(u32, ptr[rOffset]) << 16) | (cast(u32, ptr[1]) << 8) | cast(u32, ptr[bOffset])
+    let pixKey = color.argb & 0x00FFFFFF
     if a > threshold and pixKey != key do
         return 0
 
@@ -142,7 +136,7 @@ private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32,
 //
 // Cell corners sit on pixel centers; edge crossings interpolate the coverage so
 // the contour follows the antialiased boundary with sub-pixel precision.
-private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u32, options: TraceOptions)->LinePathList
+private func traceClass(image: const *Image, key: u32, options: TraceOptions)->LinePathList
 {
     var result: #returntype
 
@@ -159,7 +153,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
     for y in gh
     {
         for x in gw do
-            grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = coverage(image, bpp, rOffset, bOffset, key, options.threshold, x - 1, y - 1)
+            grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = coverage(image, key, options.threshold, x - 1, y - 1)
     }
 
     func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => grid[][cast(u64, y) * cast(u64, gw) + cast(u64, x)]

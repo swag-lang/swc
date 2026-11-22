@@ -4,9 +4,9 @@ using Ogl, Core
 
 // Describes a renderer-owned two-dimensional texture.
 //
-// The value does not own or release the graphics resource. Its handle belongs to the renderer
-// that created it; discard every copy after removing the texture or resetting the renderer. See
-// [[Pixel.Texture.isValid]] for the handle and device-generation check.
+// The value does not own or release the renderer resource. Its handle belongs to the renderer
+// that created it; discard every copy after removing the texture or resetting or releasing the
+// renderer. See [[Pixel.Texture.isValid]] for the handle and resource-generation check.
 struct Texture
 {
     // What the renderer created. The four of them describe one resource, so they are established
@@ -21,8 +21,8 @@ struct Texture
         height:      s32 = 0         // Height, in texels.
     }
 
-    // The device generation of the renderer that created the handle, or zero when that renderer
-    // never loses its storage.
+    // The resource generation of the renderer that created the handle. Zero is reserved for
+    // untracked descriptors that do not belong to a live renderer resource.
     generation: TextureGeneration
 }
 
@@ -61,11 +61,11 @@ impl Texture
         return width * height * .pixelFormat.bitsPerPixel() / 8
     }
 
-    // Reports whether the handle is present and its renderer device generation is still current.
+    // Reports whether the handle is present and its renderer resource generation is still current.
     //
     // This does not detect removal through another copy of the value. Discard every copy after
     // removing the texture or resetting its renderer. An owner that keeps the source can upload
-    // it again when a device reset makes this answer `false`.
+    // it again after a reset makes this answer `false`.
     mtd const isValid()->bool => .handle != InvalidTextureHandle and .generation.isCurrent()
 
     // Invalidates the descriptor without releasing a renderer resource.
@@ -77,7 +77,7 @@ impl Texture
     // Describes the resource a renderer just created.
     //
     // Only a renderer calls this: it is the one that knows the handle, the geometry the storage
-    // was really allocated with, and the device generation that storage belongs to.
+    // was really allocated with, and the resource generation that storage belongs to.
     internal mtd attach(handle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, generation: TextureGeneration = {})
     {
         Swag.assert(handle != InvalidTextureHandle and width > 0 and height > 0)
@@ -89,15 +89,14 @@ impl Texture
     }
 }
 
-// Names the graphics device a renderer's resources were created on.
+// Names the renderer resource lifetime a handle was created in.
 //
-// A renderer that can lose its device claims a slot for its whole life and stamps every resource
-// with the slot's current tag. Losing the device advances the tag, which retires every resource
-// stamped before at once, without the renderer having to find their owners. The zero tag is never
-// retired: renderers that cannot lose their storage, such as [[Pixel.RenderCpu]], use it.
+// A renderer claims a slot and stamps its resources with the slot's current tag. Resetting or
+// releasing the renderer advances the tag, which retires every resource stamped before at once,
+// without the renderer having to find their owners.
 internal struct TextureGeneration
 {
-    tag: u32     // Slot in the top byte, device count of that slot below; zero is untracked.
+    tag: u32     // Slot in the top byte, generation count of that slot below; zero is untracked.
 }
 
 internal const TextureGenerationSlots    = 256'u32
@@ -111,7 +110,7 @@ private var g_TextureGenerationOwned: [TextureGenerationSlots] Swag.AtomicValue'
 
 internal impl TextureGeneration
 {
-    // Claims a slot for a renderer that can lose its device.
+    // Claims a slot for a renderer resource lifetime.
     func claim()->TextureGeneration fail
     {
         for slot in 1 until TextureGenerationSlots
@@ -120,10 +119,10 @@ internal impl TextureGeneration
                 return advanceSlot(slot)
         }
 
-        fail RenderResourceError{"OpenGL cannot track another device generation: its slots are full"}
+        fail RenderResourceError{"Renderer cannot track another resource generation: its slots are full"}
     }
 
-    // Retires this generation and gives its slot back once the renderer has no device left.
+    // Retires this generation and gives its slot back when the renderer releases its resources.
     mtd release()
     {
         if .tag == 0 do
@@ -137,7 +136,7 @@ internal impl TextureGeneration
     // Retires every resource stamped with this generation and returns the generation that follows.
     mtd const next()->TextureGeneration => .tag == 0 ? {} : advanceSlot(.tag >> TextureGenerationSlotShift)
 
-    // Reports whether resources stamped with this generation still belong to a live device.
+    // Reports whether resources stamped with this generation still belong to a live renderer.
     #[Swag.Inline]
     mtd const isCurrent()->bool => .tag == 0 or g_TextureGenerationTags[.tag >> TextureGenerationSlotShift].load() == .tag
 

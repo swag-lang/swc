@@ -116,3 +116,131 @@ using Swag, Core
     let actual   = renderLayerShadow(true)
     Swag.require(Slice.equals(expected.pixels.toSlice(), actual.pixels.toSlice()))
 }
+
+// Releasing a retained layer between painter recordings returns its targets before the next begin.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(16, 16)
+    let renderer: IRenderer = &cpu
+    var painter = Painter.create(renderer)
+    var layer:    Layer
+
+    painter.begin()
+    layer.begin(&painter, {width: 8, height: 8})
+    layer.end()
+    painter.end()
+    discard expect renderer.draw(&painter)
+    renderer.end()
+
+    let releasedTarget = unwrap layer.contentTarget
+    layer.release()
+    Swag.require(layer.painter == null and layer.renderer == null)
+
+    // A fresh recording used to discard the queued release before it reached the renderer.
+    painter.begin()
+    painter.end()
+
+    let reusedTarget = renderer.acquireRenderTarget(releasedTarget.colorBuffer.width,
+                                                    releasedTarget.colorBuffer.height)
+    Swag.require(reusedTarget == releasedTarget)
+    renderer.releaseRenderTarget(reusedTarget)
+}
+
+// Starting a new recording abandons the old stream and still releases its queued targets.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(16, 16)
+    let renderer: IRenderer = &cpu
+    var painter = Painter.create(renderer)
+    var layer:    Layer
+
+    painter.begin()
+    layer.begin(&painter, {width: 8, height: 8})
+    layer.end()
+    painter.end()
+
+    let releasedTarget = unwrap layer.contentTarget
+    layer.release()
+    painter.begin()
+    painter.end()
+
+    let reusedTarget = renderer.acquireRenderTarget(releasedTarget.colorBuffer.width,
+                                                    releasedTarget.colorBuffer.height)
+    Swag.require(reusedTarget == releasedTarget)
+    renderer.releaseRenderTarget(reusedTarget)
+    renderer.end()
+}
+
+// A released layer can outlive its renderer and then bind to a new one safely.
+#test
+{
+    var firstCpu: RenderCpu
+    firstCpu.begin(16, 16)
+    let firstRenderer: IRenderer = &firstCpu
+    var firstPainter = Painter.create(firstRenderer)
+
+    var secondCpu: RenderCpu
+    secondCpu.begin(16, 16)
+    let secondRenderer: IRenderer = &secondCpu
+    var secondPainter = Painter.create(secondRenderer)
+
+    var layer: Layer
+    firstPainter.begin()
+    layer.begin(&firstPainter, {width: 8, height: 8})
+    layer.end()
+    firstPainter.end()
+    discard expect firstRenderer.draw(&firstPainter)
+    firstRenderer.end()
+    layer.releaseImmediate()
+
+    Swag.require(layer.painter == null and layer.renderer == null)
+
+    secondPainter.begin()
+    layer.begin(&secondPainter, {width: 8, height: 8})
+    layer.end()
+    secondPainter.end()
+    discard expect secondRenderer.draw(&secondPainter)
+    secondRenderer.end()
+    layer.release()
+}
+
+// Releasing after painter.end still waits until the pending command stream unbinds the layer.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(16, 16)
+    let renderer: IRenderer = &cpu
+    var painter = Painter.create(renderer)
+    var layer:    Layer
+
+    painter.begin()
+    layer.begin(&painter, {width: 8, height: 8})
+    painter.fillRect(0, 0, 8, 8, Color.fromArgb(Argb.Red))
+    layer.end()
+    painter.end()
+
+    let releasedTarget = unwrap layer.contentTarget
+    layer.release()
+    var sawUnbind: bool
+    var sawReleaseAfterUnbind: bool
+    for command in painter.commandBuffer
+    {
+        if command.op is .UnbindRenderTarget do
+            sawUnbind = true
+        elif sawUnbind and
+             command.op is .ReleaseRenderTarget and
+             command.renderTgt.tgt == releasedTarget do
+            sawReleaseAfterUnbind = true
+    }
+
+    Swag.require(sawReleaseAfterUnbind)
+
+    discard expect renderer.draw(&painter)
+    renderer.end()
+    let reusedTarget = renderer.acquireRenderTarget(releasedTarget.colorBuffer.width,
+                                                    releasedTarget.colorBuffer.height)
+    Swag.require(reusedTarget == releasedTarget)
+    renderer.releaseRenderTarget(reusedTarget)
+}

@@ -290,3 +290,33 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     Swag.require(result.triangleCount() == 1)
     tess.clear()
 }
+
+// Poly2Tri accepts Polygon's implicit closure and ignores borders that cannot enclose an area.
+#test
+{
+    var empty: Pixel.Polygon
+
+    var short: Pixel.Polygon
+    short.add({0, 0})
+    short.add({4, 0})
+
+    var collinear: Pixel.Polygon
+    collinear.add({0, 0})
+    collinear.add({2, 0})
+    collinear.add({4, 0})
+
+    var open: Pixel.Polygon
+    open.add({0, 0})
+    open.add({4, 0})
+    open.add({0, 3})
+
+    var tess: Pixel.Poly2Tri.Tessellate
+    tess.addPolyLine(empty)
+    tess.addPolyLine(short)
+    tess.addPolyLine(collinear)
+    tess.addPolyLine(open)
+    tess.triangulate()
+
+    let result = tess.takeResult()
+    Swag.require(result.triangleCount() == 1)
+}

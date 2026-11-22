@@ -147,6 +147,7 @@ impl IRenderer for RenderOgl
     mtd impl draw(painter: *Painter) fail
     {
         try .drawImpl(painter)
+        painter.markSubmitted()
     }
 
     mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)

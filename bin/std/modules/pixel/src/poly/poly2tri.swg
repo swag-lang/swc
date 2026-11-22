@@ -975,21 +975,53 @@ impl Tessellate
             }
         }
 
-        Swag.assert(.polyStart != .points.count, "no points !")
+        if .points.count - .polyStart < 3
+        {
+            while .points.count > .polyStart do
+                dropPoint(me, .points.count - 1)
+            .polyStart = .points.count
+            return
+        }
+
+        // A ring can retain three distinct points and still enclose no area.
+        var twiceArea = 0'f64
+        var previous  = .points[.points.count - 1]
+        for i in .polyStart to .points.count - 1
+        {
+            let current = .points[i]
+            twiceArea += cast(f64, previous.x) * cast(f64, current.y) - cast(f64, current.x) * cast(f64, previous.y)
+            previous  = current
+        }
+
+        if Math.isZeroEpsilon(twiceArea)
+        {
+            while .points.count > .polyStart do
+                dropPoint(me, .points.count - 1)
+            .polyStart = .points.count
+            return
+        }
+
         initEdges(me, .points[.polyStart to .points.count - 1])
     }
 
-    // Registers the points of `poly` as one closed polygon border.
+    // Registers the points of `poly` as one closed polygon border. A repeated final point that is
+    // within half a pixel of the first is treated as the closing endpoint and omitted. Borders
+    // with fewer than three points are ignored; zero-area borders are ignored when the line closes.
     public mtd addPolyLine(poly: Polygon)
     {
         .points.grow(.points.count + poly.points.count)
+
+        var count = poly.points.count
+        if count > 1 and poly.points[0].distanceSquaredTo(poly.points[count - 1]) < 0.5 * 0.5 do
+            count -= 1
+        if count < 3 do
+            return
 
         // Poly2Tri cannot represent two constraints that share a vertex. PDF glyph-like paths
         // nevertheless use touching holes, so separate a repeated point by one thousandth of a
         // path-space pixel toward the contour it belongs to. The perturbation is subpixel even
         // at extreme display scales and turns an undefined topology into the intended tiny
         // bridge of fill between the holes.
-        let count = poly.points.count - 1
         var center: Math.Vector2
         for i in count do
             center += poly.points[i]

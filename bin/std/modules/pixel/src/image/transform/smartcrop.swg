@@ -562,12 +562,12 @@ impl Image
         if imgAspect > aspect
         {
             cropH = h
-            cropW = cast(s32, Math.floor(aspect * cast(f32, cropH) + 0.5))
+            cropW = Math.max(1, cast(s32, Math.floor(aspect * cast(f32, cropH) + 0.5)))
         }
         else
         {
             cropW = w
-            cropH = cast(s32, Math.floor(cast(f32, cropW) / aspect + 0.5))
+            cropH = Math.max(1, cast(s32, Math.floor(cast(f32, cropW) / aspect + 0.5)))
         }
 
         // Features (no shrink prior, still want edges if edgePenalty>0)
@@ -651,15 +651,15 @@ impl Image
             if imgAspect > aspect
             {
                 ch = Math.min(h, Math.max(8, Math.roundS32(Math.sqrt(targetArea / aspect))))
-                cw = Math.min(w, Math.roundS32(ch * aspect))
+                cw = Math.min(w, Math.max(1, Math.roundS32(ch * aspect)))
             }
             else
             {
                 cw = Math.min(w, Math.max(8, Math.roundS32(Math.sqrt(targetArea * aspect))))
-                ch = Math.min(h, Math.roundS32(cw / aspect))
+                ch = Math.min(h, Math.max(1, Math.roundS32(cw / aspect)))
             }
 
-            if cw < 4 or ch < 4 do
+            if cw <= 0 or ch <= 0 do
                 continue
             let maxX = w - cw
             let maxY = h - ch
@@ -874,11 +874,12 @@ public impl Image
         return .evaluateCropScoreFull(rect, opts)
     }
 
-    // Reframes and crops the image to the size of `rect`.
+    // Reframes and crops the image to the aspect ratio of `rect`.
     //
     // The position in `rect` is ignored: Pixel searches the source for the
     // highest-scoring placement with the requested width and height. The final
-    // crop always uses the original pixels, even when search downscaling is enabled.
+    // crop always uses the original pixels, even when search downscaling is enabled. The crop
+    // uses whole pixels, so an extreme aspect ratio keeps at least one pixel on its narrow side.
     mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})
     {
         Swag.assert(rect.width > 0 and rect.height > 0)

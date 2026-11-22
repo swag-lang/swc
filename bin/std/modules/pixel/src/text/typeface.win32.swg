@@ -53,47 +53,62 @@ impl TypeFace
         return result
     }
 
-    // Reads the family name the handle was created for.
-    //
-    // A collection hands back every one of its faces at once, so this name is what
-    // says which of them was asked for.
-    func readHfontFamily(hfont: HFONT)->String fail
+    // Reads the selected font attributes from a borrowed Windows font handle.
+    func readHfontLogFont(hfont: HFONT)->LOGFONTW fail
     {
         var logFont: LOGFONTW
         try GetObjectW(cast(HANDLE, hfont), #sizeof(LOGFONTW), cast(LPVOID, &logFont))
-
-        let length = Utf16.lengthUntilZero(logFont.lfFaceName)
-        if not length do
-            return ""
-        return Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length))
+        return logFont
     }
 
-    // Loads the face `family` names out of the font data GDI returned.
+    // Loads the face matching the family and style GDI selected from its font data.
     //
-    // The first face in a collection may differ from the requested family: for example,
-    // `msgothic.ttc` lists `MS Gothic` first and `MS PGothic` last. Match by name; skip faces
-    // whose names cannot be read, and fall back to the first face if no name matches (for example,
-    // when the system's localized names differ from the `name` table).
-    func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
+    // A collection can contain multiple faces with the same family name. Prefer the closest
+    // weight with the requested slant, while preserving the first face as a fallback when names
+    // cannot be matched.
+    internal func loadFaceForFamily(bytes: const [..] u8, family: string, weight: LONG, italic: bool, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
         if count > 1 and family.count != 0
         {
+            var requestedWeight = weight
+            if requestedWeight == FW_DONTCARE do
+                requestedWeight = FW_REGULAR
+            let targetWeight = cast(u16, requestedWeight)
+
+            var bestIndex: u32?
+            var bestScore = 4000'u32
             for index in count
             {
                 var errOutcome: Swag.Error
-                var name:       #decltype(expect Face.familyNameAt(bytes, index))
-                catch { name = try Face.familyNameAt(bytes, index) } as errOutcome
+                var metadata:   #decltype(expect Face.metadataAt(bytes, index))
+                catch { metadata = try Face.metadataAt(bytes, index) } as errOutcome
                 let err = errOutcome.value()
-                if err == null and not Latin1.compare(name, family, ignoreCase: true) do
-                    return try Face.loadAt(bytes, index, allocator)
+                if err != null or Latin1.compare(metadata.familyName, family, ignoreCase: true) do
+                    continue
+
+                let weightDistance = metadata.weight > targetWeight ? metadata.weight - targetWeight : targetWeight - metadata.weight
+                let boldPenalty    = metadata.style.has(.Bold) == (targetWeight >= FW_SEMIBOLD) ? 0'u32 : 1000'u32
+                let italicPenalty  = metadata.style.has(.Italic) == italic ? 0'u32 : 2000'u32
+                let score          = italicPenalty + boldPenalty + cast(u32, weightDistance)
+                if score < bestScore
+                {
+                    bestIndex = index
+                    bestScore = score
+                }
             }
+
+            if let selectedIndex = bestIndex do
+                return try Face.loadAt(bytes, selectedIndex, allocator)
         }
 
         return try Face.load(bytes, allocator)
     }
 
     // Creates or reuses a cached typeface from a borrowed Windows font handle.
+    //
+    // For a font collection, matches the face by family, then by the handle's requested weight
+    // and slant.
     public func createFromHfont(fullName: string, hfont: HFONT)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
@@ -108,9 +123,11 @@ impl TypeFace
         // Everything that can fail runs before the cached value exists. Dropping a typeface
         // destroys its face. Build the face first so a failure cannot read an unassigned pointer
         // instead of reporting the original error.
-        var buffer = try readHfontData(hfont)
-        let family = try readHfontFamily(hfont)
-        let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)
+        var buffer  = try readHfontData(hfont)
+        let logFont = try readHfontLogFont(hfont)
+        let length  = Utf16.lengthUntilZero(logFont.lfFaceName)
+        let family  = length ? Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length)) : ""
+        let face    = try loadFaceForFamily(buffer.toSlice(), family, logFont.lfWeight, logFont.lfItalic != 0, allocator)
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator

@@ -96,6 +96,19 @@ func checkDifference(expected, actual: const *Image)
     checkDifference(&expected, &actual)
 }
 
+// A text golden cannot be recorded below a path occupied by a file.
+#test
+{
+    var blockerName = String.from("pixel-golden-write-blocker-")
+    blockerName += Guid64.random().toString()
+    let blocker = Path.combine(Env.getSpecialDirectory(.Temp).toString(), blockerName)
+    discard expect File.writeAllBytes(blocker.toString(), [0'u8])
+    defer discard catch File.delete(blocker.toString())
+
+    let missing = Path.combine(blocker, "missing.txt")
+    Swag.require(not Testing.writeGoldenText(missing.toString(), "golden"))
+}
+
 func setGray(image: *Image, x, y: s32, level: u8)
 {
     let pixel = image.pixels.storage() + cast(u64, y) * image.rowStride + cast(u64, x) * 4

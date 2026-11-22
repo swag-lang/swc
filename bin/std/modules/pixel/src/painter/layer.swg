@@ -399,25 +399,40 @@ impl Layer
     // painter content scale in texels.
     mtd sourceRect()->Math.Rectangle => Math.Rectangle{0, 0, .width, .height}
 
-    // Queues every owned render target for release and resets the layer.
+    // Releases every owned render target and resets the layer.
     //
+    // During recording, targets are queued until `end`. After `end`, they are appended after the
+    // pending commands; between submitted streams they return directly to the renderer. The
+    // borrowed painter and renderer are cleared.
     // Calling `release` on an empty layer is harmless.
     mtd release()
     {
-        if .painter
+        let painter       = .painter
+        let renderer      = .renderer
+        let paintTarget   = .paintTarget
+        let contentTarget = .contentTarget
+        let shadowTarget  = .shadowTarget
+
+        if painter
         {
-            let paintTarget   = .paintTarget
-            let contentTarget = .contentTarget
-            .painter.releaseRenderTarget(.paintTarget)
+            painter.releaseRenderTarget(paintTarget)
             if contentTarget != paintTarget do
-                .painter.releaseRenderTarget(.contentTarget)
-            if .shadowTarget do
-                .painter.releaseRenderTarget(.shadowTarget)
+                painter.releaseRenderTarget(contentTarget)
+            painter.releaseRenderTarget(shadowTarget)
+        }
+        elif renderer
+        {
+            renderer.releaseRenderTarget(paintTarget)
+            if contentTarget != paintTarget do
+                renderer.releaseRenderTarget(contentTarget)
+            renderer.releaseRenderTarget(shadowTarget)
         }
 
         .paintTarget      = null
         .contentTarget    = null
         .shadowTarget     = null
+        .painter          = null
+        .renderer         = null
         .shadowCacheValid = false
         .active           = false
         .resolved         = false
@@ -425,35 +440,10 @@ impl Layer
 
     // Releases every owned render target safely for the painter's current recording state.
     //
-    // [[Pixel.Layer.release]] records the release into the painter command stream, which is
-    // right in the middle of a frame but wrong for a layer retained across frames:
-    // [[Pixel.Painter.begin]] discards pending commands, so a release recorded between two
-    // frames would be lost with them. This form queues the release while the painter is recording
-    // and otherwise returns the targets directly to the renderer pool.
+    // This is an alias for [[Pixel.Layer.release]], which preserves command order for an active
+    // recording or ended submission and releases targets directly between submitted streams.
     mtd releaseImmediate()
     {
-        if .painter and .painter.isRecording()
-        {
-            .release()
-            return
-        }
-
-        if .renderer
-        {
-            let paintTarget   = .paintTarget
-            let contentTarget = .contentTarget
-            .renderer.releaseRenderTarget(.paintTarget)
-            if contentTarget != paintTarget do
-                .renderer.releaseRenderTarget(.contentTarget)
-            if .shadowTarget do
-                .renderer.releaseRenderTarget(.shadowTarget)
-        }
-
-        .paintTarget      = null
-        .contentTarget    = null
-        .shadowTarget     = null
-        .shadowCacheValid = false
-        .active           = false
-        .resolved         = false
+        .release()
     }
 }

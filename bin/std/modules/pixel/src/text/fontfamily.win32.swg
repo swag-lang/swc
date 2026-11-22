@@ -5,6 +5,27 @@ using Core, Win32, Win32.Gdi32
 private var g_SystemFallbackLock: Swag.Mutex
 private var g_SystemFallback:     SystemFontFallbackCache
 
+impl FontFamily
+{
+    internal func classifySystemFontStyle(weight: LONG, italic: bool)->FontFamilyStyle
+    {
+        if italic
+        {
+            if weight >= FW_BOLD do
+                return .BoldItalic
+            return .Italic
+        }
+
+        if weight != FW_DONTCARE and weight < FW_REGULAR do
+            return .Light
+        if weight >= FW_BOLD do
+            return .Bold
+        if weight >= FW_SEMIBOLD do
+            return .SemiBold
+        return .Regular
+    }
+}
+
 // Describes one Windows face discovered for a font-family style.
 public struct SystemFontFaceInfo
 {
@@ -122,21 +143,9 @@ impl FontFamily
             return TRUE
         let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
-        let ret = cast(*SystemFontFamilyInfo, cast #bit (u64, lParam))
-        var idx = cast(u64, FontFamilyStyle.Regular)
-
-        if fa.lfWeight > FW_REGULAR
-        {
-            if fa.lfItalic != 0 do
-                idx = cast(u64, FontFamilyStyle.BoldItalic)
-            else do
-                idx = cast(u64, FontFamilyStyle.Bold)
-        }
-        elif fa.lfItalic != 0
-        {
-            idx = cast(u64, FontFamilyStyle.Italic)
-        }
-
+        let ret   = cast(*SystemFontFamilyInfo, cast #bit (u64, lParam))
+        let style = classifySystemFontStyle(fa.lfWeight, fa.lfItalic != 0)
+        let idx   = cast(u64, style)
         ret.faces[idx].name = x
         ret.faces[idx].face = fa[]
         return TRUE

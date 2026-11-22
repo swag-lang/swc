@@ -137,9 +137,9 @@ func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
     }
 }
 
-// Reuse the existing font fixture. The second copy declares bold in head.macStyle,
-// making index selection observable without adding another font binary.
-func makeTypeFaceCollection()->Array'u8
+// Reuse the existing font fixture. The second copy declares style traits in head.macStyle;
+// its weight and italic trait make selection observable without adding another font binary.
+func makeTypeFaceCollection(secondWeight: u16 = 400, secondItalic: bool = false)->Array'u8
 {
     func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
                                                        cast(u32, bytes[offset + 1]) << 16 |
@@ -175,7 +175,14 @@ func makeTypeFaceCollection()->Array'u8
             {
                 bytes[target + 44] = 0
                 bytes[target + 45] = cast(u8, index)
+                if index == 1 and secondItalic do
+                    bytes[target + 45] |= 2
                 foundHead = true
+            }
+            elif index == 1 and read32(&bytes, record) == 0x4F532F32
+            {
+                bytes[target + 4] = cast(u8, secondWeight >> 8)
+                bytes[target + 5] = cast(u8, secondWeight & 255)
             }
         }
 

@@ -96,3 +96,55 @@ using Swag, Core
 
     gpu.end()
 }
+
+// Planar texture readback converts all three planes for both supported chroma layouts.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    var renderer: RenderOgl
+    renderer.setOffscreen()
+    let gpu: IRenderer = &renderer
+    var context        = expect gpu.createContext(null, 8, 8)
+    defer gpu.deleteContext(&context)
+    gpu.setCurrentContext(context)
+    gpu.init()
+
+    for shift in [1's32, 0]
+    {
+        let chromaWidth = shift == 1 ? 2 : 3
+        let chromaSize  = cast(u64, chromaWidth) * cast(u64, chromaWidth)
+        var pixels: Array'u8
+        pixels.resize(9 + chromaSize * 2)
+        for i in 9'u64 do
+            pixels[i] = cast(u8, 54 + i * 17)
+        for i in 9'u64 until 9 + chromaSize do
+            pixels[i] = cast(u8, 72 + (i - 9) * 19)
+        for i in 9 + chromaSize until pixels.count do
+            pixels[i] = cast(u8, 184 - (i - 9 - chromaSize) * 13)
+
+        let planes = YuvPlanarView{
+            luma: pixels.storage(),
+            chromaB: pixels.storage() + 9,
+            chromaR: pixels.storage() + 9 + chromaSize,
+            lumaStride: 3,
+            chromaStride: cast(u64, chromaWidth),
+            width: 3,
+            height: 3,
+            chromaShift: shift}
+        var texture = gpu.addImage(&planes)
+        var expectedImage: Image
+        planes.convertToRgb(&expectedImage)
+        let expected = expectedImage.pixels
+        let actual   = gpu.readTexturePixels(texture, .RGB8)
+        Swag.require(actual.count == expected.count)
+        for index in expected.count
+        {
+            let delta = cast(s32, actual[index]) - cast(s32, expected[index])
+            Swag.require(Math.abs(delta) <= 1)
+        }
+
+        gpu.removeTexture(&texture)
+    }
+
+    gpu.end()
+}

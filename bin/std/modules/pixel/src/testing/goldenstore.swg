@@ -26,9 +26,10 @@ struct ImageGoldenOptions
 // Golden operations are supported only in Release, where their reference output is produced.
 // DevMode tests the behavior and safety paths without comparing or generating snapshots.
 //
-// There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
-// so a new test starts by producing its reference; the file then shows up as untracked, which is
-// where it gets reviewed and committed. A name whose golden no longer matches writes the produced
+// There is no recording mode and no flag to pass. A name with no golden yet writes one and passes
+// only when the reference was recorded successfully, so a new test starts by producing its
+// reference; the file then shows up as untracked, which is where it gets reviewed and committed.
+// A name whose golden no longer matches writes the produced
 // text next to it as '<name>.actual.txt', prints the first differing line, and fails the test
 // through [[Swag.check]]: the test goes on, so one run reports every golden it moved. Accepting
 // the new output is therefore a copy, which `tools/goldens.bat accept` does in bulk.
@@ -59,12 +60,17 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 
     let path = goldenPath(name, ".txt", loc)
 
-    // No golden yet: write one and let the test pass. It is loud on purpose -- an untracked file
-    // appearing in the working tree is what turns a mistyped name into something visible rather
-    // than a test that silently asserts nothing forever.
+    // No golden yet: write one and let the test pass only if it was recorded successfully. It is
+    // loud on purpose -- an untracked file appearing in the working tree is what turns a mistyped
+    // name into something visible rather than a test that silently asserts nothing forever.
     if not File.exists(path)
     {
-        writeText(path.toString(), text)
+        if not writeGoldenText(path.toString(), text)
+        {
+            Swag.check(false, "the golden could not be recorded", loc)
+            return
+        }
+
         Console.println("[golden] created ", name, " -- review it before committing")
         Console.println("         ", path)
         return
@@ -81,7 +87,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
         return
 
     let actual = actualPath(path.toString(), ".txt", ".actual.txt")
-    writeText(actual.toString(), text)
+    discard writeGoldenText(actual.toString(), text)
     reportDiff(name, path.toString(), actual.toString(), expected.toString(), text)
     Swag.check(false, "the text differs from its golden", loc)
 }
@@ -601,7 +607,7 @@ private
     // Writes UTF-8 bytes with the '\n' separators the text already carries. Going through
     // 'writeAllBytes' rather than a text writer guarantees the stored file keeps single '\n',
     // whatever the platform default is.
-    func writeText(path: string, text: string)
+    internal func writeGoldenText(path: string, text: string)->bool
     {
         let dir = Path.directoryName(path)
         if dir != null and not Directory.exists(dir)
@@ -610,15 +616,18 @@ private
             {
                 Console.println("[golden] cannot create ", dir)
                 reportSandboxRefusal(dir)
-                return
+                return false
             }
         }
 
-        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count))
+        catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count))
         {
             Console.println("[golden] cannot write ", path)
             reportSandboxRefusal(path)
+            return false
         }
+
+        return true
     }
 
     func splitLines(text: string)->Array'String

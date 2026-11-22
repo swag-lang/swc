@@ -69,7 +69,8 @@ impl IRenderer for PresentProbe
 
     mtd impl draw(painter: *Painter) fail
     {
-        .cpu.drawImpl(painter)
+        try .cpu.drawImpl(painter)
+        painter.markSubmitted()
     }
 
     mtd impl bindRenderTarget(target: *RenderTarget, _: *Math.Rectangle? = null)

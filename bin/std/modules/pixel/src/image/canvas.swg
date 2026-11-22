@@ -11,6 +11,8 @@ using Core, Core.Errors, Core.Math
 //
 // Record into [[Pixel.ImageCanvas.painter]], then call [[Pixel.ImageCanvas.toImage]]. A canvas
 // can be reused: drawing again after a read starts a new frame over a cleared target.
+// A canvas is non-copyable because it owns its renderer and render target; move it when transferring
+// that ownership.
 //
 // ## Example
 //
@@ -28,6 +30,7 @@ using Core, Core.Errors, Core.Math
 // var image = try canvas.toImage()
 // try image.save("triangle.png")
 // ```
+#[Swag.NoCopy]
 struct ImageCanvas
 {
     public painter: Painter     // Records the drawing; every painter operation is available.

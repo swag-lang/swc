@@ -107,9 +107,10 @@ impl RenderThread
         .reportCompletion(status)
     }
 
-    // Returns and clears the duration, in microseconds, of the last completed presentation.
+    // Returns and clears the accumulated backend presentation duration, in microseconds.
     //
-    // Returns zero while busy. This measures the backend's `end`, not input-to-display latency.
+    // Returns zero without clearing the value while busy. The value sums backend `end` calls since
+    // the previous ready read; it does not measure input-to-display latency.
     mtd takePresentMicroseconds()->u64
     {
         if not .isReady() do
@@ -291,7 +292,13 @@ impl IRenderer for RenderThread
 
     mtd impl setScissorRect(rect: Math.Rectangle) { .execute(func|me, &rect|() { me.backend.setScissorRect(rect) }) }
     mtd impl resetScissorRect() { .execute(func|me|() { me.backend.resetScissorRect() }) }
-    mtd impl draw(painter: *Painter) fail { try .executeFallible(func|me, painter|() fail { try me.backend.draw(painter) }) }
+
+    mtd impl draw(painter: *Painter) fail
+    {
+        try .executeFallible(func|me, painter|() fail { try me.backend.draw(painter) })
+        painter.markSubmitted()
+    }
+
     mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null) { .execute(func|me, target, vp|() { me.backend.bindRenderTarget(target, vp) }) }
 
     mtd impl readRenderTarget(target: const *RenderTarget, x, y, width, height: s32)->Image

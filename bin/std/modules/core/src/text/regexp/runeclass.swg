@@ -127,8 +127,36 @@ impl RuneClass
         var folded: RuneClass
         for &range in .ranges
         {
-            if range.hi - range.lo >= WidestFoldedRange do
+            if range.hi - range.lo >= WidestFoldedRange
+            {
+                // Case mappings outside a wide range still matter at its edges. Walk the
+                // compact case table instead of every scalar in the range.
+                for &caseRange in Unicode.TableCaseRanges
+                {
+                    var start = range.lo
+                    var end   = range.hi
+                    if start < caseRange.lo do
+                        start = caseRange.lo
+                    if end > caseRange.hi do
+                        end = caseRange.hi
+                    if start > end do
+                        continue
+
+                    var scalar = start
+                    while scalar <= end
+                    {
+                        let upper = Unicode.toUpper(scalar)
+                        let lower = Unicode.toLower(scalar)
+                        if upper != scalar do
+                            folded.addRune(upper)
+                        if lower != scalar do
+                            folded.addRune(lower)
+                        scalar += 1
+                    }
+                }
+
                 continue
+            }
 
             var scalar = range.lo
             while scalar <= range.hi

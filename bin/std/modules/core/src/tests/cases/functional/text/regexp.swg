@@ -1839,6 +1839,8 @@ func buildSubject(rng: *Rng)->String
     Swag.require(lines.count == 3 and lines[1] == "cd" and lines[2] == "ef")
     var ci = expect Parser.RegExp.create("(?i)éa", true)
     Swag.require(ci.match("ÉA"))
+    var wideClass = expect Parser.RegExp.create(#raw "[\x{0100}-\x{1100}]", true)
+    Swag.require(wideClass.match("i"))
     var back = expect Parser.RegExp.create(#raw "(a+)b\1")
     Swag.require(back.match("aabaa") and not back.match("aabaaa") and not back.match("aaba"))
     var named = expect Parser.RegExp.create(#raw "(?<year>\d{4})-(?<month>\d\d)")

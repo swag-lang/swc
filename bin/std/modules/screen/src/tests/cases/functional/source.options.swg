@@ -114,4 +114,5 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
                  metrics.multiRectFrames == 0 and
                  metrics.copiedPixels == 0 and
                  metrics.mirroredPixels == 0)
+    Swag.require(native[].metrics.mirroredPixels == 0)
 }

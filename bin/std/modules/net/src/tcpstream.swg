@@ -24,6 +24,8 @@ impl TcpStream
     }
 
     // Stops sending bytes while keeping the receive side open.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd shutdownWrite() fail
 
     // Reads exactly `buffer.count` bytes, retrying partial reads.
@@ -66,14 +68,22 @@ impl TcpStream
     mtd opDrop() { .close() }
 
     // Enables or disables Nagle's algorithm for this connection.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd setNoDelay(enabled: bool) fail
 
     // Enables or disables operating-system TCP keepalive probes for this connection.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd setKeepAlive(enabled: bool) fail
 
     // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd setReadTimeout(timeoutMs: u32) fail
 
     // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd setWriteTimeout(timeoutMs: u32) fail
 }

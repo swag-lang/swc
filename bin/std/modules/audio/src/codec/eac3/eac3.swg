@@ -20,14 +20,15 @@ private const Eac3FrameExponentStrategies: [32, 6] u32 = [
 
 private struct Eac3Bsi
 {
-    streamType: u32
-    frameSize:  u32
-    fscod:      u32
-    sampleRate: u32
-    blocks:     u32
-    acmod:      u32
-    nfchans:    u32
-    lfeon:      bool
+    streamType:   u32
+    frameSize:    u32
+    fscod:        u32
+    reducedFscod: u32
+    sampleRate:   u32
+    blocks:       u32
+    acmod:        u32
+    nfchans:      u32
+    lfeon:        bool
 }
 
 private struct Eac3Frame
@@ -62,6 +63,8 @@ private struct Eac3Codec
     ditherState:  u32 = 0x6E624EB7
 }
 
+internal func eac3BitAllocationFscod(fscod, reducedFscod: u32)->u32 => fscod == 3 ? reducedFscod : fscod
+
 private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
 {
     if reader.read(16) != 0x0B77 do
@@ -78,8 +81,9 @@ private func parseEac3Bsi(reader: *BitReader)->Eac3Bsi fail
         let reduced = reader.read(2)
         if reduced >= 3 do
             fail InvalidFormatError{"E-AC-3 packet has a reserved reduced sample rate"}
-        result.sampleRate = SampleRates[reduced] / 2
-        result.blocks     = 6
+        result.sampleRate   = SampleRates[reduced] / 2
+        result.reducedFscod = reduced
+        result.blocks       = 6
     }
     else
     {
@@ -387,6 +391,7 @@ private impl Eac3Codec
 
         for channel in bsi.nfchans where block.channelExpStrategy[channel] and not block.channelCoupled[channel] do
             block.channelBandwidth[channel] = reader.read(6)
+
         if block.coupling and block.couplingExpStrategy
         {
             let couplingSpan = block.couplingEndMantissa - block.couplingStart
@@ -555,17 +560,18 @@ private impl Eac3Codec
             reader.skip(cast(u64, bytes) * 8)
         }
 
-        let slowDecay = SLOW_DECAY[block.slowDecayCode]
-        let fastDecay = FAST_DECAY[block.fastDecayCode]
-        let slowGain  = SLOW_GAIN[block.slowGainCode]
-        let dbKnee    = DB_PER_BIT[block.dbPerBitCode]
-        let floor     = FLOOR[block.floorCode]
+        let slowDecay       = SLOW_DECAY[block.slowDecayCode]
+        let fastDecay       = FAST_DECAY[block.fastDecayCode]
+        let slowGain        = SLOW_GAIN[block.slowGainCode]
+        let dbKnee          = DB_PER_BIT[block.dbPerBitCode]
+        let floor           = FLOOR[block.floorCode]
+        let allocationFscod = eac3BitAllocationFscod(bsi.fscod, bsi.reducedFscod)
         for channel in bsi.nfchans do
-            bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0])
+            bitAllocation(allocationFscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0])
         if block.coupling do
-            bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
+            bitAllocation(allocationFscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
         if bsi.lfeon do
-            bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
+            bitAllocation(allocationFscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
     }
 
     mtd readMantissas(reader: *BitReader, bsi: const *Eac3Bsi)

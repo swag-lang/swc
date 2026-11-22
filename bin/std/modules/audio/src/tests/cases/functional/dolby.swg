@@ -189,6 +189,27 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     Swag.require(error.value() is InvalidFormatError)
 }
 
+// Reduced-rate E-AC-3 maps each accepted rate to its corresponding core allocation row.
+#test
+{
+    const ReducedRates: [3] u32 = [24_000, 22_050, 16_000]
+    for reduced in ReducedRates.count
+    {
+        var packet: [8] u8
+        packet[0] = 0x0B
+        packet[1] = 0x77
+        packet[3] = 3     // Eight-byte sync frame.
+        packet[4] = cast(u8, 0xC4 | (reduced << 4))     // fscod 3 and fscod2.
+
+        let header = Swag.makeSlice(&packet[0], packet.count)
+        let info   = expect Dolby.eac3FrameInfo(header)
+        let fscod  = cast(u32, packet[4] >> 6)
+        let fscod2 = cast(u32, (packet[4] >> 4) & 3)
+        Swag.require(info.sampleRate == ReducedRates[reduced])
+        Swag.require(Dolby.eac3BitAllocationFscod(fscod, fscod2) == reduced)
+    }
+}
+
 // Reserved AC-3 bandwidth codes must fail before their exponent groups exceed the 256-bin arrays.
 #test
 {

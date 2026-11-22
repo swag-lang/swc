@@ -75,3 +75,70 @@ impl IAllocator for AudioTeardownAllocator
     destroyEngine()
     Swag.require(allocator.voiceFreed, "shutdown leaked an unregistered native voice")
 }
+
+// Destruction waits for an in-flight transport operation before releasing voice resources.
+#test
+{
+    if Swag.jit() do
+        return
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+
+    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice = expect Voice.create(&file)
+    var recycledWhileLocked = false
+    scope {
+        voice.dataMutex.lock()
+        defer voice.dataMutex.unlock()
+        voice.destroy()
+
+        // Wait until the update thread has taken the queued registration and destroy commands.
+        var commandsPending = true
+        var attempt = 0
+        while attempt < 1000
+        {
+            attempt += 1
+            g_Driver.mutexVoicesToUpdate.lock()
+            commandsPending = not g_Driver.voicesToUpdate.isEmpty()
+            g_Driver.mutexVoicesToUpdate.unlock()
+            if not commandsPending do
+                break
+            Threading.Thread.sleep(1'ms)
+        }
+        Swag.require(not commandsPending, "audio update thread did not take the destroy command")
+
+        // Keep waking the worker so a completed destroy reaches the visible recycler list.
+        attempt = 0
+        while attempt < 1000
+        {
+            attempt += 1
+            g_Driver.wakeupUpdate.signal()
+            Threading.Thread.sleep(1'ms)
+            g_Driver.mutexRecycleVoices.lock()
+            for recycledVoice in g_Driver.toRecycleVoices do
+                if recycledVoice == voice do
+                    recycledWhileLocked = true
+            g_Driver.mutexRecycleVoices.unlock()
+            if recycledWhileLocked do
+                break
+        }
+    }
+    Swag.require(not recycledWhileLocked, "voice was recycled while its data mutex was held")
+
+    var recycledAfterUnlock = false
+    var attempt = 0
+    while attempt < 1000
+    {
+        attempt += 1
+        g_Driver.wakeupUpdate.signal()
+        Threading.Thread.sleep(1'ms)
+        g_Driver.mutexRecycleVoices.lock()
+        for recycledVoice in g_Driver.toRecycleVoices do
+            if recycledVoice == voice do
+                recycledAfterUnlock = true
+        g_Driver.mutexRecycleVoices.unlock()
+        if recycledAfterUnlock do
+            break
+    }
+    Swag.require(recycledAfterUnlock, "voice was not recycled after releasing its data mutex")
+}

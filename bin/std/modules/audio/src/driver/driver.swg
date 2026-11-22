@@ -78,11 +78,15 @@ internal func updateThreadProc(th: const *Threading.Thread)
                 driver.activeVoices.add(voice)
 
             case .Destroy:
-                voice.setState(.PendingDestroy)
-                catch voice.stopNative()
-                catch voice.resetNative()
-                voice.closeBuffer()
-                voice.destroyNative()
+                scope {
+                    voice.dataMutex.lock()
+                    defer voice.dataMutex.unlock()
+                    voice.setState(.PendingDestroy)
+                    catch voice.stopNative()
+                    catch voice.resetNative()
+                    voice.closeBuffer()
+                    voice.destroyNative()
+                }
 
                 let idx = voice.idxInList
                 driver.activeVoices.removeAt(idx)

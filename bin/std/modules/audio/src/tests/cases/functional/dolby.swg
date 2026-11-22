@@ -15,7 +15,7 @@ private func ac3TestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u32, cou
     }
 }
 
-private func ac3TestFrameWithBandwidth(bandwidth: u32)->Array'u8
+private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool)->Array'u8
 {
     var frame: Array'u8
     var bits = 0'u64
@@ -38,19 +38,37 @@ private func ac3TestFrameWithBandwidth(bandwidth: u32)->Array'u8
     ac3TestAppendBits(&frame, &bits, 0, 1)     // Dither.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No dynamic range word.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No coupling.
-    ac3TestAppendBits(&frame, &bits, 1, 2)     // Exponent strategy 1.
-    ac3TestAppendBits(&frame, &bits, bandwidth, 6)
-    ac3TestAppendBits(&frame, &bits, 12, 4)     // Absolute exponent.
-    for 87 do
-        ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep every exponent at the absolute value.
-    ac3TestAppendBits(&frame, &bits, 0, 2)      // Gain range.
+    ac3TestAppendBits(&frame, &bits, exponentStrategy, 2)
+    if exponentStrategy
+    {
+        ac3TestAppendBits(&frame, &bits, bandwidth, 6)
+        ac3TestAppendBits(&frame, &bits, 12, 4)     // Absolute exponent.
+        let end    = 37 + 3 * cast(s32, (bandwidth + 12))
+        let groups = cast(u32, ((end - 1 + 2) / 3))
+        for groups do
+            ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep every exponent at the absolute value.
+        ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
+    }
+
     ac3TestAppendBits(&frame, &bits, 1, 1)      // First block has allocation parameters.
     ac3TestAppendBits(&frame, &bits, 0, 11)     // Allocation parameters.
     ac3TestAppendBits(&frame, &bits, 1, 1)      // SNR offsets present.
     ac3TestAppendBits(&frame, &bits, 15, 6)     // Coarse SNR: zero bit allocation.
     ac3TestAppendBits(&frame, &bits, 0, 7)      // Fine SNR and fast gain.
-    ac3TestAppendBits(&frame, &bits, 0, 1)      // No delta allocation.
-    ac3TestAppendBits(&frame, &bits, 0, 1)      // No skip field.
+    ac3TestAppendBits(&frame, &bits, invalidDelta ? 1 : 0, 1)
+    if invalidDelta
+    {
+        ac3TestAppendBits(&frame, &bits, 1, 2)     // New delta allocation.
+        ac3TestAppendBits(&frame, &bits, 1, 2)     // Two segments.
+        ac3TestAppendBits(&frame, &bits, 31, 5)
+        ac3TestAppendBits(&frame, &bits, 15, 4)
+        ac3TestAppendBits(&frame, &bits, 0, 3)
+        ac3TestAppendBits(&frame, &bits, 31, 5)
+        ac3TestAppendBits(&frame, &bits, 1, 4)
+        ac3TestAppendBits(&frame, &bits, 0, 3)
+    }
+
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No skip field.
 
     while frame.count < 128 do
         frame.add(0)
@@ -128,7 +146,19 @@ private func dolbyRequireInvalidFile(path: String, bytes: const [..] u8)
     Swag.require(error.value() is InvalidFormatError)
 }
 
-private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
+private func dolbyRequireDecodeFormatError(path: string, encoding: SoundFileEncoding, frameFrames: u32, bytes: const [..] u8, expectedMessage: string)
+{
+    discard expect File.writeAllBytes(path, bytes)
+    let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), frameFrames}]
+    var config:  Array'u8
+    var sound = expect SoundFile.openPacketStream(path, encoding, 48_000, 1, frameFrames, packets, config.toSlice())
+    var error:   Swag.Error
+    discard catch sound.decodePcm16(func(_)->bool => true) as error
+    Swag.require(error.value() is InvalidFormatError)
+    Swag.require(Errors.message(error.value()) == expectedMessage)
+}
+
+private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->Array'u8
 {
     var frame: Array'u8
     var bits = 0'u64
@@ -155,7 +185,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
     ac3TestAppendBits(&frame, &bits, 1, 1)     // Read per-block dither flags.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // Reuse allocation defaults.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No fast gain codes.
-    ac3TestAppendBits(&frame, &bits, 0, 1)     // No delta allocation.
+    ac3TestAppendBits(&frame, &bits, invalidDelta ? 1 : 0, 1)
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No skipped data.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No spectral-extension attenuation.
     for block in 6 do
@@ -182,12 +212,65 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
             ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
         }
 
-        ac3TestAppendBits(&frame, &bits, 0, 1)     // No dynamic range word.
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // No block start information.
+        if invalidDelta
+        {
+            ac3TestAppendBits(&frame, &bits, block == 0 ? 1 : 0, 1)
+            if not block
+            {
+                ac3TestAppendBits(&frame, &bits, 1, 2)     // New delta allocation.
+                ac3TestAppendBits(&frame, &bits, 1, 3)     // Two segments.
+                ac3TestAppendBits(&frame, &bits, 31, 5)
+                ac3TestAppendBits(&frame, &bits, 15, 4)
+                ac3TestAppendBits(&frame, &bits, 0, 3)
+                ac3TestAppendBits(&frame, &bits, 31, 5)
+                ac3TestAppendBits(&frame, &bits, 1, 4)
+                ac3TestAppendBits(&frame, &bits, 0, 3)
+            }
+        }
     }
 
     while frame.count < 512 do
         frame.add(0)
     return frame
+}
+
+// A first AC-3 block cannot reuse channel exponents before any packet state exists.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-first-exponent-reuse-%.ac3", Guid128.random()))
+    defer discard catch File.delete(path)
+    let frame = ac3TestFrameWithBandwidth(0, 0, false)
+    dolbyRequireDecodeFormatError(path,
+                                  .Ac3,
+                                  1536,
+                                  frame.toSlice(),
+                                  "Dolby bit-allocation range is invalid")
+}
+
+// Delta segments that extend past the active band range fail before indexing the mask table.
+#test
+{
+    let ac3Path = Path.combine(Env.getSpecialDirectory(.Temp),
+                               Format.toString("dolby-delta-ac3-%.ac3", Guid128.random()))
+    defer discard catch File.delete(ac3Path)
+    let ac3Frame = ac3TestFrameWithBandwidth(0, 1, true)
+    dolbyRequireDecodeFormatError(ac3Path,
+                                  .Ac3,
+                                  1536,
+                                  ac3Frame.toSlice(),
+                                  "Dolby delta allocation segment exceeds the channel bands")
+
+    let eac3Path = Path.combine(Env.getSpecialDirectory(.Temp),
+                                Format.toString("dolby-delta-eac3-%.eac3", Guid128.random()))
+    defer discard catch File.delete(eac3Path)
+    let eac3Frame = eac3TestChannelBandwidthFrame(0, true)
+    dolbyRequireDecodeFormatError(eac3Path,
+                                  .Eac3,
+                                  1536,
+                                  eac3Frame.toSlice(),
+                                  "Dolby delta allocation segment exceeds the channel bands")
 }
 
 // Elementary stream indexing rejects trailing bytes and midstream shape changes for both codecs.
@@ -204,7 +287,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
     dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
 
     var truncatedFrame = fixture
-    let frame = ac3TestFrameWithBandwidth(0)
+    let frame = ac3TestFrameWithBandwidth(0, 1, false)
     truncatedFrame.add(Swag.makeSlice(&frame[0], 8))
     dolbyRequireInvalidFile(testPath, truncatedFrame.toSlice())
 
@@ -227,7 +310,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
     dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
 
     var truncatedFrame = fixture
-    let frame = eac3TestChannelBandwidthFrame(0)
+    let frame = eac3TestChannelBandwidthFrame(0, false)
     truncatedFrame.add(Swag.makeSlice(&frame[0], 8))
     dolbyRequireInvalidFile(testPath, truncatedFrame.toSlice())
 
@@ -337,7 +420,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
 
     for bandwidth in [61'u32, 62, 63]
     {
-        let frame = eac3TestChannelBandwidthFrame(bandwidth)
+        let frame = eac3TestChannelBandwidthFrame(bandwidth, false)
         discard expect File.writeAllBytes(path, frame.toSlice())
 
         var packets: [1] SoundPacket = [SoundPacket{0, cast(u32, frame.count), 1536}]
@@ -365,7 +448,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
 
     for bandwidth in [62'u32, 63]
     {
-        let bytes = ac3TestFrameWithBandwidth(bandwidth)
+        let bytes = ac3TestFrameWithBandwidth(bandwidth, 1, false)
         expect File.writeAllBytes(path.toString(), bytes.toSlice())
         var packets: Array'SoundPacket
         packets.add(SoundPacket{0, 128, 1536})

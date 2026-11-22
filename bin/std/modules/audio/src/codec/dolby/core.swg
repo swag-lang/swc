@@ -333,15 +333,21 @@ private func lowCompensation(value, first, second, bin: s32)->s32
     return Math.max(0, value - 128)
 }
 
-private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32)
+private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32) fail
 {
+    if start < 0 or end <= start or end > 253 do
+        fail InvalidFormatError{"Dolby bit-allocation range is invalid"}
+
     var currentFastLeak = fastLeak
     var currentSlowLeak = slowLeak
     let bandStart       = MASKTAB[start]
     let bandEnd         = MASKTAB[end - 1] + 1
     var psd: [256] s32
     var bandPsd, excitation, mask: [50] s32
-    var bin             = start
+    if bandStart < 0 or bandEnd <= bandStart or bandEnd > mask.count do
+        fail InvalidFormatError{"Dolby bit-allocation bands exceed the core limit"}
+
+    var bin = start
     while bin < end
     {
         psd[bin] = 3072 - (exponents[bin - start] << 7)
@@ -424,10 +430,17 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
     if delta and (delta.mode == 0 or delta.mode == 1)
     {
+        if delta.count > delta.offset.count do
+            fail InvalidFormatError{"Dolby delta allocation has too many segments"}
+
         band = 0
         for segment in cast(u64, delta.count)
         {
             band += cast(s32, delta.offset[segment])
+            let segmentEnd = band + cast(s32, delta.length[segment])
+            if band < 0 or segmentEnd > bandEnd or segmentEnd > mask.count do
+                fail InvalidFormatError{"Dolby delta allocation segment exceeds the channel bands"}
+
             let code   = cast(s32, delta.value[segment])
             let amount = (code >= 4 ? code - 3 : code - 4) << 7
             for cast(u64, delta.length[segment])

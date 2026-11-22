@@ -428,13 +428,13 @@ private impl Ac3Codec
         for channel in bsi.nfchans
         {
             let delta = &block.channelDelta[channel]
-            bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0])
+            try bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0])
         }
 
         if block.coupling do
-            bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
+            try bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
         if bsi.lfeon do
-            bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
+            try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
     }
 
     mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi)

@@ -313,10 +313,11 @@ struct IXAudio2Itf
 {
     public
     {
-        queryInterface:         *void?
-        addRef:                 func(this: *IXAudio2)->ULONG
-        release:                func(this: *IXAudio2)->ULONG
-        registerForCallbacks:   func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
+        queryInterface:       *void?
+        addRef:               func(this: *IXAudio2)->ULONG
+        release:              func(this: *IXAudio2)->ULONG
+        registerForCallbacks: func(this: *IXAudio2,
+                                   pCallback: *IXAudio2EngineCallback)->HRESULT
         unregisterForCallbacks: func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
         createSourceVoice:      func(this: *IXAudio2,
                                      ppSourceVoice: *(*IXAudio2SourceVoice?),

@@ -92,8 +92,8 @@ struct SourceOptions
 struct SourceMetrics
 {
     public acquiredFrames:              u64     // Frames read from the native source, including pixel-identical images.
-    public unchangedFrames:             u64     // Polls where a backend detected no pixel change in the selected image; may overlap acquisitions.
-    public coalescedUpdates:            u64     // Desktop updates combined before acquisition, when reported by the source.
+    public unchangedFrames:             u64     // Polls with no selected-image change; acquisition may still occur.
+    public coalescedUpdates:            u64     // Desktop updates combined before acquisition, when reported.
     public acquireMicroseconds:         u64     // Time waiting for a native frame.
     public maxAcquireMicroseconds:      u64     // Longest single native acquisition wait.
     public changeDetectionMicroseconds: u64     // CPU time checking pixels or metadata for selected-image changes.
@@ -102,11 +102,11 @@ struct SourceMetrics
     public deferredReadbacks:           u64     // Readback polls deferred while the GPU still owned the pixels.
     public copyMicroseconds:            u64     // Time copying native pixels into owned storage.
     public outputMicroseconds:          u64     // Native cache-output time, zero for current backends.
-    public composeMicroseconds:         u64     // Time composing output images, cursor overlays and copies into the caller's image.
+    public composeMicroseconds:         u64     // Time composing output images, cursor overlays, and caller copies.
     public partialFrames:               u64     // Frames read through a region smaller than the selected output.
     public multiRectFrames:             u64     // Frames read through several bounded desktop update regions.
     public copiedPixels:                u64     // Pixels converted from native readback storage, including full frames.
-    public mirroredPixels:              u64     // Pixels incrementally copied from the native cache into a stable caller image.
+    public mirroredPixels:              u64     // Pixels incrementally copied from the native cache to the caller.
 }
 
 // Owns a live desktop source and its most recent image.
@@ -293,7 +293,7 @@ impl Source
         .pictures.add({})
     }
 
-    // Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.
+    // Writes a bottom-up BGRA8 image; true means a fresh backend capture or changed composed cursor.
     //
     // False means the backend reports no new image yet, either because the selected image and cursor did not
     // change or because a video readback is still pending. It is not a source failure.
@@ -410,8 +410,11 @@ impl Source
             {
                 let nativeSource = .sources[index]
                 let x            = cast(u64, nativeSource.options.x - .options.x)
-                let bottom       = cast(u64, .options.height - (nativeSource.options.y - .options.y) - nativeSource.options.height)
-                let changed      = try nativeSource.grabInto(&.pictures[index], true)
+                let bottom       = cast(u64,
+                                        .options.height -
+                                        (nativeSource.options.y - .options.y) -
+                                        nativeSource.options.height)
+                let changed = try nativeSource.grabInto(&.pictures[index], true)
                 fresh = changed or fresh
                 if not first and not changed do
                     continue
@@ -538,10 +541,12 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
-    // Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.
+    // Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame
+    // or an age under one microsecond.
     //
     // Check lastFrameCaptureMicroseconds() to distinguish those cases.
-    // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
+    // Cursor-only changes count as delivered frames when cursor composition is enabled. A
+    // successful reopen clears the age.
     mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
 
     // Returns the display presentation time for the latest acquired frame, when the backend reports it.

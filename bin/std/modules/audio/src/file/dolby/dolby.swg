@@ -30,14 +30,19 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     for
     {
         if byteOffset > fileBytes do
+            fail InvalidFormatError{"Dolby frame offset exceeds the file size"}
+        if byteOffset == fileBytes do
             break
-        if fileBytes - byteOffset < HeaderBytes do
-            break
+        let remainingBytes = fileBytes - byteOffset
+        if remainingBytes < HeaderBytes do
+            fail InvalidFormatError{"Dolby elementary stream ends with a partial sync header"}
         try source.seek(byteOffset)
         let probe = try source.peek(HeaderBytes)
         let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
-        if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
-            break
+        if not info.frameBytes do
+            fail InvalidFormatError{"Dolby sync frame has an invalid size"}
+        if info.frameBytes > remainingBytes do
+            fail InvalidFormatError{"Dolby elementary stream ends inside a sync frame"}
 
         if not packets.count
         {
@@ -49,8 +54,7 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
              info.channels != channelCount or
              info.speakerMask != speakerMask
         {
-            // A stream that changes shape mid-file is not one this reader indexes.
-            break
+            fail InvalidFormatError{"Dolby elementary stream changes shape between sync frames"}
         }
 
         if info.frameBytes > Swag.U32.Max do

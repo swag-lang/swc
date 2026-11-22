@@ -120,6 +120,14 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     return result
 }
 
+private func dolbyRequireInvalidFile(path: String, bytes: const [..] u8)
+{
+    discard expect File.writeAllBytes(path.toString(), bytes)
+    var error: Swag.Error
+    discard catch SoundFile.load(path.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
 {
     var frame: Array'u8
@@ -180,6 +188,54 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
     while frame.count < 512 do
         frame.add(0)
     return frame
+}
+
+// Elementary stream indexing rejects trailing bytes and midstream shape changes for both codecs.
+#test
+{
+    let sourcePath = audioGetTestDataPath("ac3-5.1-48000.ac3")
+    let testPath   = Path.combine(Env.getSpecialDirectory(.Temp),
+                                  Format.toString("dolby-truncated-ac3-%.ac3", Guid128.random()))
+    defer discard catch File.delete(testPath)
+    let fixture = expect File.readAllBytes(sourcePath)
+
+    var partialHeader = fixture
+    partialHeader.add([0x0B'u8, 0x77, 0])
+    dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
+
+    var truncatedFrame = fixture
+    let frame = ac3TestFrameWithBandwidth(0)
+    truncatedFrame.add(Swag.makeSlice(&frame[0], 8))
+    dolbyRequireInvalidFile(testPath, truncatedFrame.toSlice())
+
+    var changedShape = fixture
+    let packets      = expect ac3TestPackets(sourcePath)
+    changedShape[packets[1].sourceOffset + 6] = 0x20
+    dolbyRequireInvalidFile(testPath, changedShape.toSlice())
+}
+
+#test
+{
+    let sourcePath = audioGetTestDataPath("eac3-5.1-48000.eac3")
+    let testPath   = Path.combine(Env.getSpecialDirectory(.Temp),
+                                  Format.toString("dolby-truncated-eac3-%.eac3", Guid128.random()))
+    defer discard catch File.delete(testPath)
+    let fixture = expect File.readAllBytes(sourcePath)
+
+    var partialHeader = fixture
+    partialHeader.add([0x0B'u8, 0x77, 0])
+    dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
+
+    var truncatedFrame = fixture
+    let frame = eac3TestChannelBandwidthFrame(0)
+    truncatedFrame.add(Swag.makeSlice(&frame[0], 8))
+    dolbyRequireInvalidFile(testPath, truncatedFrame.toSlice())
+
+    var changedShape = fixture
+    let packets      = expect eac3TestPackets(sourcePath)
+    let secondHeader = packets[1].sourceOffset + 4
+    changedShape[secondHeader] = (changedShape[secondHeader] & 0xF1) | 0x02
+    dolbyRequireInvalidFile(testPath, changedShape.toSlice())
 }
 
 // Dolby 2/1 audio uses the back-center speaker position rather than front-center.

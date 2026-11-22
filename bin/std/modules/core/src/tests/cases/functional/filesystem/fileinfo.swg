@@ -24,4 +24,8 @@ using Swag
     Swag.require(directoryInfo.fullName == root.toString())
     Swag.require(directoryInfo.size == 0)
     Swag.require(directoryInfo.isDirectory())
+
+    let relativeInfo = expect File.info(".")
+    Swag.require(relativeInfo.fullName == ".")
+    Swag.require(relativeInfo.isDirectory())
 }

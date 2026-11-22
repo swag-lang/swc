@@ -3,12 +3,12 @@
 
 using Time
 
-// Describes the metadata of a file or directory.
+// Metadata returned by [[Core.File.info]] for a file, directory, or symbolic link.
 struct FileInfo
 {
     public
     {
-        fullName:       String               // Full path of the file or directory
+        fullName:       String               // Path passed to [[Core.File.info]], unchanged
         attributes = FileAttributes.None     // Characteristics such as read-only or hidden
         creationTime:   DateTime             // Creation time in UTC, or zero when unavailable
         lastAccessTime: DateTime             // Last access time, in UTC

@@ -65,7 +65,7 @@ internal impl NativeRenderOgl
         fail RenderResourceError{"OpenGL device reset recovery is not available with EGL"}
     }
 
-    mtd setCurrentContext(rc: OglContext) { expect xcbSurface(rc).makeCurrent() }
+    mtd makeCurrent(rc: OglContext) fail => try xcbSurface(rc).makeCurrent()
     mtd swapBuffers(rc: OglContext) { expect xcbSurface(rc).swapBuffers() }
     mtd applyPresentPolicy() { expect Ogl.Platform.Xcb.setSwapInterval(1) }
 

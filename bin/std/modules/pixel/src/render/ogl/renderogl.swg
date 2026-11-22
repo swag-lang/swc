@@ -210,6 +210,7 @@ struct RenderOgl
         contexts:              Array'(*OglContext)         // The live interface-created drawables, which share `nativeContext`.
         generation:            TextureGeneration           // Device generation stamped on every texture and target.
         resetQuery:            u8                          // How the context reports a device reset, if it does.
+        rendererName:          String                      // Driver name copied while the context is healthy.
         deviceLost:            bool                        // Whether a reported reset still waits for a replacement context.
         advancedBlending:      u8                          // Advanced blend-equation family supplied by the current context.
         advancedBarrierActive: bool                        // Whether this context must keep later framebuffer touches in separate passes.
@@ -717,8 +718,9 @@ impl RenderOgl
         let first = .contexts[0]
         if not .deviceLost
         {
-            .native.setCurrentContext(first[])
-            if .deviceResetStatus() == GL_NO_ERROR do
+            try .native.makeCurrent(first[])
+            let status = .deviceResetStatus()
+            if status == GL_NO_ERROR do
                 return false
 
             // Retire everything at once, so nothing of the lost device is drawn or released
@@ -726,14 +728,48 @@ impl RenderOgl
             .deviceLost = true
             .generation = .generation.next()
             .forgetDeviceResources()
+            .logDeviceReset(status)
         }
 
         .nativeContext = try .native.replaceLostContext(.contexts.toSlice(), .nativeContext)
-        .deviceLost    = false
-        .native.setCurrentContext(first[])
         .initImpl()
+        .deviceLost = false
         .deviceResets += 1
         return true
+    }
+
+    private mtd logDeviceReset(status: GLenum)
+    {
+        var name: string
+        switch status
+        {
+        case GL_GUILTY_CONTEXT_RESET:   name = "GL_GUILTY_CONTEXT_RESET"
+        case GL_INNOCENT_CONTEXT_RESET: name = "GL_INNOCENT_CONTEXT_RESET"
+        case GL_UNKNOWN_CONTEXT_RESET:  name = "GL_UNKNOWN_CONTEXT_RESET"
+        default:                       name = "unrecognized status"
+        }
+
+        let message = Format.toString("% % [%] OpenGL reset: % (0x%{X}), renderer: %\n",
+                                      Time.DateTime.now().toString(), Path.fileName(Env.executablePath()),
+                                      Env.Process.currentProcessId(), name, status, .rendererName)
+        Debugger.log(message)
+
+        let appData = Env.getSpecialDirectory(.UserAppData)
+        if appData.isEmpty() do
+            return
+        let directory = Path.combine(appData, "Swag")
+        catch Directory.create(directory, recurse: true)
+        {
+            return
+        }
+
+        let path = Path.combine(directory, "opengl-resets.log")
+        var stream = catch File.open(path, .Append, .Write, .Read)
+        {
+            return
+        }
+
+        catch stream.writeAll(cast(const [..] u8, message.toString()))
     }
 
     // Returns what the context reports about a device reset, `GL_NO_ERROR` when nothing happened.
@@ -1071,6 +1107,9 @@ impl RenderOgl
     {
         glInitExtensions()
         .applyPresentPolicy()
+
+        let renderer = glGetString(GL_RENDERER)
+        .rendererName = renderer ? cast(string, cast(const cstring, renderer)) : "unavailable"
 
         // Only a context created to report resets is asked about them, and only through an entry
         // point it publishes: the extension wrappers end the process on a missing one.

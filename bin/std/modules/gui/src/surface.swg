@@ -611,6 +611,8 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
+        if .app.renderingSuspended do
+            return
         var paintedRect: Math.Rectangle
         if .paintToRenderTarget(root, &paintedRect) do
             discard .presentRenderTarget(paintedRect)

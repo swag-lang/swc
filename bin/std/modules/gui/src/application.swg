@@ -80,6 +80,7 @@ struct Application
     }
 
     rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer, owned by the window thread.
+    renderingSuspended: bool        // The next paint needs a usable rendering context.
     deterministicStreaming: bool     // Headless hosts limit streaming turns by work alone.
 
     public
@@ -810,6 +811,8 @@ private impl Application
     internal mtd paintSurfaces()
     {
         .recoverLostRenderer()
+        if .renderingSuspended do
+            return
 
         // A stress run measures what a complete repaint of a full-screen window costs, so it
         // maximizes what it is about to measure and asks for a complete repaint every frame
@@ -843,11 +846,16 @@ private impl Application
 
         if .renderer is Pixel.RenderOgl as ogl
         {
-            // A renderer that cannot create a replacement context yet stays lost and draws
-            // nothing; the next frame asks again.
-            if not (catch ogl.recoverLostDevice() orelse false) do
+            let recovered = catch ogl.recoverLostDevice()
+            {
+                .renderingSuspended = true
+                return
+            }
+            defer .renderingSuspended = false
+            if not recovered do
                 return
 
+            .renderingSuspended = true
             .theme.restoreLostTextures(.renderer)
             for surface in .surfaces do
                 surface.recoverLostRendering()
@@ -1251,6 +1259,7 @@ impl Application
     {
         Swag.assert(not .mainSurface, "renderer must be selected before creating a surface")
         .renderer = renderer
+        .renderingSuspended = false
     }
 
     internal mtd clearWndInputState(wnd: *Wnd)

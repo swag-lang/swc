@@ -113,12 +113,15 @@ internal impl NativeRenderOgl
 
     // Replaces the lost shared context of `contexts` and returns the new one.
     //
-    // The replacement is created before the lost context is deleted, so a failure leaves every
-    // drawable on a context that still answers calls, even though it draws nothing.
+    // Makes the replacement current before publishing it to the drawables.
     mtd replaceLostContext(contexts: const [..] *OglContext, lost: const *void?)->const *void? fail
     {
-        let replacement = try .createSharedContext(cast(HDC, contexts[0].hDC))
-        catch Ogl.wglMakeCurrent(null, null)
+        let dc = cast(HDC, contexts[0].hDC)
+        let previousNotifiesReset = .notifiesReset
+        defer #fail .notifiesReset = previousNotifiesReset
+        let replacement = try .createSharedContext(dc)
+        defer #fail catch Ogl.wglDeleteContext(replacement)
+        try Ogl.wglMakeCurrent(dc, replacement)
         catch Ogl.wglDeleteContext(cast(HGLRC, lost))
         for index in contexts.count do
             contexts[index].hRC = cast(const *void?, replacement)
@@ -144,13 +147,13 @@ internal impl NativeRenderOgl
     }
 
     // Makes `rc` current on the calling thread.
-    mtd setCurrentContext(rc: OglContext)
+    mtd makeCurrent(rc: OglContext) fail
     {
         let dc      = cast(HDC, rc.hDC)
         let context = cast(HGLRC, rc.hRC)
         if wglGetCurrentContext() == context and wglGetCurrentDC() == dc do
             return
-        expect wglMakeCurrent(dc, context)
+        try wglMakeCurrent(dc, context)
     }
 
     // Presents the current back buffer for `rc`.

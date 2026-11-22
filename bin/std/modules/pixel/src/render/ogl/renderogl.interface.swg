@@ -26,6 +26,11 @@ internal struct OglContext
     }
 }
 
+internal impl NativeRenderOgl
+{
+    mtd setCurrentContext(rc: OglContext) => expect .makeCurrent(rc)
+}
+
 impl IRenderer for RenderOgl
 {
     mtd const impl needsNativeWindow()->bool => not .offscreen
@@ -81,7 +86,7 @@ impl IRenderer for RenderOgl
             break
         }
 
-        if not .contextCount
+        if not .contextCount and not .deviceLost
         {
             .native.setCurrentContext(ogl[])
             .releaseFontTextures()
@@ -99,6 +104,7 @@ impl IRenderer for RenderOgl
         {
             .native.deleteContextHandle(.nativeContext)
             .nativeContext = null
+            .deviceLost = false
             .generation.release()
         }
 

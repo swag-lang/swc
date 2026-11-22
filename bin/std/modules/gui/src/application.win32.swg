@@ -38,6 +38,8 @@ impl Application
     // the native wait directly; gestures, animations and timer deadlines keep their cadence.
     internal mtd nativeFrameWaitMicroseconds(elapsed: u64)->u64
     {
+        if .renderingSuspended do
+            return elapsed < 16000 ? 16000 - elapsed : 0
         if .frameTrace.busyLoop do
             return 0
 

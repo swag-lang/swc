@@ -79,7 +79,7 @@ struct Curve
         //
         // [[Core.Math.Curve.addKey]] maintains that order. Editing a key in place is allowed, and is how a
         // curve editor retimes one; call [[Core.Math.Curve.sortKeys]] afterwards when the edit moved a key
-        // past a neighbour.
+        // past a neighbour. Keys with the same abscissa retain their order, which controls a vertical jump.
         keys: Array'CurveKey
 
         // User-space window the normalized unit square maps onto.
@@ -416,10 +416,22 @@ impl Curve
         .keys.removeAtOrdered(index)
     }
 
-    // Restores the abscissa order after keys were edited in place.
+    // Restores the abscissa order after keys were edited in place, preserving the order of equal abscissas.
     mtd sortKeys()
     {
-        .keys.sort(func||(left, right) => left.x <=> right.x)
+        // Retiming usually moves only a few keys; insertion sort stays cheap and keeps vertical-jump order.
+        for var index = 1'u64; index < .keys.count; index += 1
+        {
+            let key      = .keys[index]
+            var insertAt = index
+            while insertAt and .keys[insertAt - 1].x > key.x
+            {
+                .keys[insertAt] = .keys[insertAt - 1]
+                insertAt        -= 1
+            }
+
+            .keys[insertAt] = key
+        }
     }
 
     // Gives the key at `index` one slope on both sides, making the curve smooth across it.

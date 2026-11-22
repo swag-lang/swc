@@ -41,8 +41,17 @@ using Swag
 // Signed fields, and single bytes, travel through the same conversion family.
 #test
 {
-    Swag.require(Math.nativeToBigEndian(800's16) == 0x2003's16)
-    Swag.require(Math.bigEndianToNative(0x2003's16) == 800's16)
+    #static if BIG_ENDIAN
+    {
+        Swag.require(Math.nativeToBigEndian(800's16) == 800's16)
+        Swag.require(Math.bigEndianToNative(800's16) == 800's16)
+    }
+    else
+    {
+        Swag.require(Math.nativeToBigEndian(800's16) == 0x2003's16)
+        Swag.require(Math.bigEndianToNative(0x2003's16) == 800's16)
+    }
+
     Swag.require(Math.bigEndianToNative(Math.nativeToBigEndian(-800's16)) == -800's16)
     Swag.require(Math.bigEndianToNative(Math.nativeToBigEndian(-70000's32)) == -70000's32)
     Swag.require(Math.bigEndianToNative(Math.nativeToBigEndian(-5_000_000_000's64)) == -5_000_000_000's64)

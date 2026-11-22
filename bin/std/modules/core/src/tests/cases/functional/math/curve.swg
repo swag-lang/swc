@@ -308,6 +308,30 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     Swag.require(stepped.evaluateNormalized(1) == 1)
 }
 
+// Retiming a key onto an existing vertical jump keeps the jump's insertion order.
+#test
+{
+    var stepped: Math.Curve
+    discard stepped.addKey(0, -1, .Constant)
+    for value in 11 do
+        discard stepped.addKey(0.5, cast(f32, value), .Constant)
+    discard stepped.addKey(1, 11, .Constant)
+    stepped.keys[12].x = 0.5
+
+    stepped.sortKeys()
+
+    Swag.require(stepped.keys.count == 13)
+    Swag.require(stepped.keys[0].x == 0 and stepped.keys[0].y == -1)
+    for value in 11
+    {
+        Swag.require(stepped.keys[value + 1].x == 0.5)
+        Swag.require(stepped.keys[value + 1].y == cast(f32, value))
+    }
+
+    Swag.require(stepped.keys[12].x == 0.5 and stepped.keys[12].y == 11)
+    Swag.require(stepped.evaluateNormalized(0.5) == 11)
+}
+
 // A Bézier segment at the neutral weight draws exactly the Hermite segment of the same tangents.
 #test
 {

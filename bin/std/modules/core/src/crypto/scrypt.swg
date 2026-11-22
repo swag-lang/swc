@@ -186,7 +186,6 @@ func scrypt(password, salt: const [..] u8, costN, blockR, parallelP: u32, maxMem
             scryptRomix(blocks.toSlice()[offset until offset + blockSize], costN, blockR, blockSize)
         }
         {
-            Crypto.secureClear(blocks.toSlice())
             fail Swag.err
         }
     }
@@ -196,5 +195,4 @@ func scrypt(password, salt: const [..] u8, costN, blockR, parallelP: u32, maxMem
     }
 
     try pbkdf2HmacSha256(password, blocks.toSlice(), 1, destination)
-    Crypto.secureClear(blocks.toSlice())
 }

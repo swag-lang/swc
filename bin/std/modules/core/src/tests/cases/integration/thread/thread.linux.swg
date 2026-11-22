@@ -35,11 +35,10 @@ func linuxCountedThreadBody(thread: const *Threading.Thread)
         var rejected = false
         catch thread.start()
         {
-            if Swag.err is Swag.SystemError as system do
-                Swag.require(system.errorID == Linux.EINVAL)
+            if Swag.err is Errors.BadParameterError do
+                rejected = true
             else do
                 Swag.require(false, "second start returned a different error type")
-            rejected = true
         }
 
         Swag.require(rejected and thread.isValid())

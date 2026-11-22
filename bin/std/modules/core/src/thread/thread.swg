@@ -25,11 +25,12 @@ enum ThreadPriority
 // Owns an operating-system thread with inherited context settings and independent scratch storage.
 //
 // [[Core.Threading.Thread.init]] creates the thread suspended and [[Core.Threading.Thread.start]]
-// runs it. Calls that change or query the same thread's native handle must be serialized by
-// the owner. The body can read its published context, user data and cooperative stop flag.
+// runs it once. A repeated start fails. Calls that change or query the same thread's native
+// handle must be serialized by the owner. The body can read its published context, user data and
+// cooperative stop flag.
 // The value must be waited for, with [[Core.Threading.Thread.wait]],
 // [[Core.Threading.Thread.waitFor]], or [[Core.Threading.wait]], before it is dropped, and it
-// must not move while the thread runs.
+// must not move while the thread runs. Start the thread before waiting for it to finish.
 #[Swag.NoCopy]
 struct Thread
 {
@@ -48,7 +49,8 @@ struct Thread
     }
 
     // Platform handle of the thread, owned by this value.
-    handle: ThreadHandle
+    handle:  ThreadHandle
+    started: bool
 }
 
 impl Thread
@@ -98,6 +100,7 @@ impl Thread
     mtd init(lambda: func||(const *Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Swag.assert(not .isValid(), "thread already created")
+        .started = false
 
         .context = Swag.getContext()[]
         let inheritedCapacity = .context.tempAllocator.capacity
@@ -137,11 +140,14 @@ impl Thread
         initialized = true
     }
 
-    // Starts this suspended thread.
+    // Starts this suspended thread. A repeated call fails with BadParameterError.
     mtd start() fail
     {
         Swag.assert(.isValid())
+        if .started do
+            fail BadParameterError{"thread already started"}
         try startNative(.handle)
+        .started = true
     }
 
     // Changes this thread's scheduling priority.
@@ -155,7 +161,7 @@ impl Thread
         .priority = priority
     }
 
-    // Waits for this thread to finish and releases its handle.
+    // Waits for this started thread to finish and releases its handle.
     mtd wait()
     {
         Swag.assert(.isValid())

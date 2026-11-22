@@ -63,6 +63,11 @@ try sink.patch(sizeField, sizeBytes)
 try sink.close()
 ```
 
+`ByteSink.position()` is the logical offset accepted by the sink. If file I/O fails, the file may
+contain only part of that stream; the sink closes itself, later writes, patches, and flushes fail,
+and `close()` only releases the failed sink without retrying pending bytes. Treat the destination as
+incomplete after such an error.
+
 ## Memory-mapped files
 
 [[Core.File.MappedFile]] creates independently owned [[Core.File.MappedRegion]]

@@ -4,7 +4,8 @@
 //
 // `T` is one of the sized integer types. Reads and writes go through this type's operations
 // only: an ordinary read or write of the same storage beside them is a data race, so the field
-// is not part of the API.
+// is not part of the API. Values are noncopyable so copying cannot read their storage outside
+// these atomic operations.
 //
 // `load` uses acquire ordering; `store` is sequentially consistent.
 // [[Swag.AtomicValue.loadAcquire]] and [[Swag.AtomicValue.storeRelease]] provide the matching
@@ -17,6 +18,7 @@
 // counter.add(1)
 // Swag.assert(counter.load() == 1)
 // ```
+#[Swag.NoCopy]
 struct(T) AtomicValue
 {
     // Storage reached only through the atomic operations.
@@ -88,6 +90,7 @@ impl AtomicValue
 // A zero-initialized value is lowered. Raising is idempotent, so a request that several threads
 // make at once is one request; nothing lowers a flag except an explicit [[Swag.AtomicFlag.reset]] on a
 // value no other thread can still reach.
+#[Swag.NoCopy]
 struct AtomicFlag
 {
     // Raised state, reached only through the flag operations.

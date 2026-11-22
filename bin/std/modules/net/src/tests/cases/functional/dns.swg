@@ -21,6 +21,23 @@ using Core
 
 #test
 {
+    let hostSource = String.from("127.0.0.1:80")
+    let host       = hostSource.toString()[0 until 9]
+    let addresses  = expect Dns.resolve(host, 8080, {family: .IPv4})
+    Swag.require(not addresses.isEmpty())
+    for endpoint in addresses do
+        Swag.require(endpoint.address.isIPv4() and endpoint.port == 8080)
+
+    let serviceSource = String.from("80junk")
+    let service       = serviceSource.toString()[0 until 2]
+    let services      = expect Dns.resolve("127.0.0.1", service, {family: .IPv4})
+    Swag.require(not services.isEmpty())
+    for endpoint in services do
+        Swag.require(endpoint.address.isIPv4() and endpoint.port == 80)
+}
+
+#test
+{
     let ipv4 = IpAddress.ipv4([192, 0, 2, 10])
     Swag.require(ipv4.isIPv4() and ipv4.bytes[0] == 192 and ipv4.bytes[3] == 10)
     let ipv6 = IpAddress.ipv6([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])

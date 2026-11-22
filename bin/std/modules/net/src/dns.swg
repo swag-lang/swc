@@ -29,7 +29,8 @@ namespace Dns
         for i in host.count do
             if host[i] == 0 do
                 fail Errors.BadParameterError{}
-        return try resolveNative(host, null, port, options)
+        let ownedHost = String.from(host)
+        return try resolveNative(ownedHost.toString(), null, port, options)
     }
 
     // Resolves a host and a named or numeric service using the operating-system resolver.
@@ -48,6 +49,8 @@ namespace Dns
         for i in service.count do
             if service[i] == 0 do
                 fail Errors.BadParameterError{}
-        return try resolveNative(host, service.buffer, 0, options)
+        let ownedHost    = String.from(host)
+        let ownedService = String.from(service)
+        return try resolveNative(ownedHost.toString(), ownedService.buffer, 0, options)
     }
 }

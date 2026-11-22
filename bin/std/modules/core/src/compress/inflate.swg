@@ -470,6 +470,9 @@ impl Inflate
     // `maxOutputSize` bytes.
     public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = MaxDistance, maxOutputSize: u64 = Swag.U64.Max) fail
     {
+        if not winSize do
+            fail Errors.BadParameterError{"Deflate window size must be nonzero"}
+
         .stream.reset(buf)
         .adler.reset()
         .windowSize  = Math.min(winSize, MaxDistance)
@@ -479,8 +482,6 @@ impl Inflate
         var repeatHt:     HuffmanTable
         var repeatZ:      HuffmanTable
         var codeLengthHt: HuffmanTable
-
-        Swag.assert(.windowSize > 0)
 
         for
         {

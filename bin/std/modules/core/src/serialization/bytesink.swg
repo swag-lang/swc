@@ -24,6 +24,7 @@ struct ByteSink
         pendingCount: u64                      // Number of valid bytes in the write window.
         written:      u64                      // Total number of bytes accepted by this sink.
         isFile:       bool                     // Whether the sink writes to `stream`.
+        failed:       bool                     // Whether a file operation failed after I/O began.
     }
 }
 
@@ -89,13 +90,17 @@ impl ByteSink
     // Returns the file this sink writes, or an empty string for a memory sink.
     mtd const path()->string => .fileName
 
-    // Returns the number of bytes written so far, which is where the next write lands.
+    // Returns the logical offset after all bytes accepted by this sink.
+    //
+    // For a file sink this is not a guarantee that the destination contains that many bytes:
+    // after an I/O failure, the destination may contain a partial write and the sink is unusable.
     mtd const position()->u64 => .written
 
     // Appends `bytes` to the stream.
     //
     // Fails with [[Core.Errors.OverflowError]] before appending if the stream position would
-    // exceed U64.Max.
+    // exceed U64.Max. A file I/O failure can leave a partial destination; after one, this sink
+    // is closed and later writes, patches, and flushes fail with [[Core.Errors.BadParameterError]].
     mtd write(bytes: const [..] u8) fail
     {
         try .requireOpen()
@@ -107,10 +112,10 @@ impl ByteSink
         if count > Swag.U64.Max - .written do
             fail OverflowError{"byte sink write exceeds the stream position limit"}
 
-        .written += count
         if not .isFile
         {
             .buffer!.addBytes(bytes, contiguous: false)
+            .written += count
             return
         }
 
@@ -119,7 +124,8 @@ impl ByteSink
         if count >= WindowSize
         {
             try .flush()
-            try .stream.writeAll(bytes)
+            try .writeFileAll(bytes)
+            .written += count
             return
         }
 
@@ -129,6 +135,7 @@ impl ByteSink
             .pending.resize(WindowSize)
         Memory.copy(unwrap .pending.buffer + .pendingCount, bytes.buffer, count)
         .pendingCount += count
+        .written      += count
     }
 
     // Appends the bytes of `text` to the stream.
@@ -179,7 +186,8 @@ impl ByteSink
     //
     // The patched range must lie entirely inside what the sink already wrote; a range reaching
     // past the end fails rather than extending the stream. The write position is unchanged, so
-    // appending resumes exactly where it stopped.
+    // appending resumes exactly where it stopped. A file I/O failure can leave partial output;
+    // the sink is closed and later mutations fail with [[Core.Errors.BadParameterError]].
     mtd patch(offset: u64, bytes: const [..] u8) fail
     {
         try .requireOpen()
@@ -213,25 +221,62 @@ impl ByteSink
         // An older or straddling patch reaches the file. Flush first so pending bytes cannot
         // overwrite its new contents later, then restore the append cursor.
         try .flush()
-        try .stream.writeAllAt(offset, bytes)
-        try .stream.seek(.Begin, .written)
+        try .writeFileAllAt(offset, bytes)
+        try .seekFile(.written)
     }
 
     // Hands every buffered byte to the file; a memory sink has nothing to flush.
+    //
+    // A file I/O failure can leave a partial destination. The sink closes itself, and later
+    // writes, patches, and flushes fail with [[Core.Errors.BadParameterError]].
     mtd flush() fail
     {
         try .requireOpen()
 
         if not .pendingCount do
             return
-        try .stream.writeAll(.pending.toSlice()[until .pendingCount])
+        try .writeFileAll(.pending.toSlice()[until .pendingCount])
         .pendingCount = 0
+    }
+
+    private mtd writeFileAll(bytes: const [..] u8) fail
+    {
+        var failure: Swag.Error
+        catch .stream.writeAll(bytes) as failure
+        if not failure.isEmpty() do
+            try .failFileIo(&failure)
+    }
+
+    private mtd writeFileAllAt(offset: u64, bytes: const [..] u8) fail
+    {
+        var failure: Swag.Error
+        catch .stream.writeAllAt(offset, bytes) as failure
+        if not failure.isEmpty() do
+            try .failFileIo(&failure)
+    }
+
+    private mtd seekFile(offset: u64) fail
+    {
+        var failure: Swag.Error
+        catch .stream.seek(.Begin, offset) as failure
+        if not failure.isEmpty() do
+            try .failFileIo(&failure)
+    }
+
+    // Closes an unusable stream without replacing the error that made it unusable.
+    private mtd failFileIo(error: *Swag.Error) fail
+    {
+        .failed = true
+        .stream.close()
+        try error.raise()
     }
 
     private mtd requireOpen() fail
     {
         if .isFile
         {
+            if .failed do
+                fail BadParameterError{"byte sink cannot be used after a file I/O failure"}
             if not .stream.isOpen() do
                 fail BadParameterError{"byte sink is closed"}
         }
@@ -246,11 +291,20 @@ impl ByteSink
     // This is the operation whose failure decides whether the stream is complete, so an
     // encoder calls it explicitly rather than leaving it to destruction: a sink that leaves
     // scope unclosed drops whatever its window still holds. Further writes, patches, and flushes
-    // fail with [[Core.Errors.BadParameterError]].
+    // fail with [[Core.Errors.BadParameterError]]. If a file I/O operation failed, close only
+    // releases the already-poisoned stream: pending bytes are abandoned and the destination may
+    // contain a partial stream.
     mtd close() fail
     {
         if .isFile
         {
+            if .failed
+            {
+                if .stream.isOpen() do
+                    .stream.close()
+                return
+            }
+
             if not .stream.isOpen() do
                 return
             try .flush()

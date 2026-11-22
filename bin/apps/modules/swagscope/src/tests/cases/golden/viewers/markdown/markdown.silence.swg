@@ -58,14 +58,58 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
         Swag.require(zoom.outline.loaded and zoom.outline.headings.count == 2)
         window.applyLayout()
         host.settleAnimations(window)
-        Swag.require(zoom.outline.list.themeColors().listItem_Text == view.themeColors().label_Text)
-        Swag.require(zoom.outline.filterBox.themeColors().edit_Text == view.themeColors().label_Text)
-        Swag.require(zoom.outline.filterBox.themeColors().edit_FocusBk == ground)
+        let appColors = window.themeColors()
+        Swag.require(zoom.outline.list.themeColors().listItem_Text == appColors.label_Text)
+        Swag.require(zoom.outline.filterBox.themeColors().edit_Text == appColors.label_Text)
+        Swag.require(zoom.outline.filterBox.themeColors().edit_FocusBk == appColors.edit_FocusBk)
         host.surface.setTitle("Reading quietly.md")
         var outlineImage  = host.render(&host.surfaceWnd)
         let outlineGolden = Format.toString("%.outline", golden)
         assertScopeImageGolden(&outlineImage, outlineGolden.toString())
     }
+}
+
+func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, golden: string)
+{
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {themeIndex: readerTheme}
+
+    let fileName = Testing.tempFilePath("scope-plan-appearance-", ".md")
+    discard expect File.writeAllText(fileName, source)
+    defer discard catch File.delete(fileName)
+
+    var host: HeadlessHost
+    host.setup(1280, 720)
+    shipFrame(&host)
+    host.app.setAppIcon(expect Image.decode(".png", AppIcon))
+    if light do
+        host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.applyTheme(cast(u32, light ? AppearanceTheme.Light : AppearanceTheme.Dark))
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+
+    let view    = assume cast(*Markdown.View, window.currentView)
+    let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
+    let outline = unwrap zoom.outline
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    completeViewerBackgroundLoad(&host, &outline.load)
+    window.applyLayout()
+    host.settleAnimations(window)
+
+    let appColors = window.themeColors()
+    Swag.require(view.themeColors().view_Bk != appColors.view_Bk)
+    Swag.require(outline.themeColors().view_Bk == appColors.view_Bk)
+    Swag.require(outline.list.themeColors().listItem_Text == appColors.label_Text)
+    Swag.require(outline.filterBox.themeColors().edit_Text == appColors.label_Text)
+    host.surface.setTitle(title)
+
+    var image = host.renderSettled(window)
+    assertScopeImageGolden(&image, golden)
 }
 
 #[Swag.TestTag("golden")]
@@ -76,3 +120,23 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
 
 #[Swag.TestTag("golden")]
 #test { assertMarkdownSilence(false, 5, "viewer.markdown.silence.whitey") }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    assertMarkdownPlanAppearance(false,
+                                 1,
+                                 "GitHub.md",
+                                 "# The northern route\n\nThe reader keeps a light page in a dark workspace.\n\n## Departure\n\nA calm outline beside the text.\n\n## Arrival\n\nThe application palette stays in charge of its controls.\n",
+                                 "viewer.markdown.plan.github.encre")
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    assertMarkdownPlanAppearance(true,
+                                 3,
+                                 "Night.md",
+                                 "# Carnet des saisons\n\nLa page garde son apparence sombre.\n\n## Automne\n\nLes notes restent lisibles.\n\n### Première marche\n\nLe panneau suit la palette claire de l'application.\n",
+                                 "viewer.markdown.plan.night.paper")
+}

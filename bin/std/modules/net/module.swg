@@ -16,18 +16,18 @@ using Net
     {
         let sent = try connection.write(request[offset to])
         if sent == 0 do
-            break
+            fail NetworkError{"TCP stream stopped accepting bytes", code: 0}
         offset += sent
     }
 }
 ```
 
 Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
-and Windows. TCP streams can disable Nagle's algorithm, enable keepalive probes, set read and write
-timeouts, and shut down the send side while keeping reads open. TCP and UDP blocking reads can use
-a timeout. UDP supports broadcast and IPv4/IPv6 multicast membership. Operations can fail or
-transfer fewer bytes than requested. DNS resolution preserves the platform resolver's address
-order and resolves named services. DNS lookup is
+and Windows. TCP streams support no-delay mode, keepalive probes, read and write timeouts, and
+shutting down the send side while keeping reads open. TCP and UDP blocking reads support
+configurable timeouts. UDP supports broadcast and IPv4/IPv6 multicast membership. Operations can
+fail or transfer fewer bytes than requested. DNS resolution preserves the platform resolver's
+address order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.
 An HTTP server handles one request per connection by default. It can allow a bounded number of

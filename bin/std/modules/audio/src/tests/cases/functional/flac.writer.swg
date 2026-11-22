@@ -261,6 +261,31 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     Swag.require((expect File.info(path)).size == changed.count)
 }
 
+// Resume rejects a committed frame without a boundary before scanning the rest of the file.
+#test
+{
+    let path = flacWriterPath("oversized-committed-frame")
+    defer discard catch File.delete(path)
+    var writer = expect Flac.Writer.create(path.toString(), 1, 48_000)
+    const Sample: [1] s16 = [7]
+    expect writer.addFrames(Swag.makeSlice(&Sample[0], Sample.count))
+    expect writer.end()
+
+    var tail = expect ByteSink.openAppendFile(path.toString())
+    var zeros: [65_536] u8
+    Memory.set(&zeros[0], 0, #sizeof(zeros))
+    for 4 do
+        expect tail.write(Swag.makeSlice(&zeros[0], zeros.count))
+    let checkpoint = Math.nativeToBigEndian(tail.position())
+    expect tail.patch(50, Swag.makeSlice(cast(const [*] u8, &checkpoint), #sizeof(checkpoint)))
+    expect tail.close()
+
+    var rejected: Swag.Error
+    discard catch Flac.Writer.resume(path.toString()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+    Swag.require(Errors.message(rejected.value()) == "FLAC frame exceeds its maximum size before the next frame boundary")
+}
+
 // Empty files carry a legal FLAC prologue, even though SoundFile requires one packet to play.
 #test
 {

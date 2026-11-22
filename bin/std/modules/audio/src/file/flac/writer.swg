@@ -100,6 +100,7 @@ impl Writer
         let channelCount = codec.info.channels
         let sampleRateHz = codec.info.sampleRate
         let declared     = codec.info.totalSamples
+        let frameLimit   = cast(u64, WriterBlockFrames) * channelCount * 2 + 64
         var expectedDigest: [16] u8
         Memory.copy(&expectedDigest[0], prologue.buffer + 26, 16)
         try source.seek(50)
@@ -123,9 +124,9 @@ impl Writer
         var maxFrameBytes = 0'u32
         while offset < committedEnd
         {
-            let next   = try findFrameEnd(&source, offset, committedEnd)
+            let next   = try findFrameEnd(&source, offset, committedEnd, frameLimit)
             let length = next - offset
-            if length < 10 or length > WriterBlockFrames * channelCount * 2 + 64 do
+            if length < 10 or length > frameLimit do
                 fail InvalidFormatError{"FLAC resume frame size is outside the writer's limit"}
             try source.seek(offset)
             let packet  = (try source.peek(length))[until length]

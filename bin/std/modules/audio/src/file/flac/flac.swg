@@ -214,15 +214,23 @@ private func readPrologue(source: *ByteSource)->Prologue fail
 //
 // The peek starts at one header and doubles until the next validated header is inside what it
 // returned. The preceding frame's CRC16 confirms the boundary; a false sync inside compressed
-// data cannot divide the frame. `limit` excludes an uncommitted tail of this writer's files.
-internal func findFrameEnd(source: *ByteSource, start, limit: u64)->u64 fail
+// data cannot divide the frame. `maxFrameBytes` bounds the scan plus one header to validate a
+// boundary; `limit` excludes an uncommitted tail of this writer's files.
+internal func findFrameEnd(source: *ByteSource,
+                           start,
+                           limit: u64,
+                           maxFrameBytes: u64 = Swag.U64.Max)->u64 fail
 {
-    var want = Math.min(FrameHeaderBytes, limit - start)
+    let remaining     = limit - start
+    let boundedFrame  = Math.min(maxFrameBytes, remaining)
+    let boundaryBytes = Math.min(FrameHeaderBytes, remaining)
+    let scanLimit     = boundedFrame > remaining - boundaryBytes ? remaining : boundedFrame + boundaryBytes
+    var want          = Math.min(FrameHeaderBytes, scanLimit)
     for
     {
         try source.seek(start)
         let available = try source.peek(want)
-        let bytes     = available[until Math.min(available.count, limit - start)]
+        let bytes     = available[until Math.min(available.count, scanLimit)]
         if not frameHeaderSize(bytes, 0) do
             fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
 
@@ -244,7 +252,9 @@ internal func findFrameEnd(source: *ByteSource, start, limit: u64)->u64 fail
             return limit
         }
 
-        want = Math.min(bytes.count * 2, limit - start)
+        if bytes.count >= scanLimit do
+            fail InvalidFormatError{"FLAC frame exceeds its maximum size before the next frame boundary"}
+        want = Math.min(bytes.count * 2, scanLimit)
     }
 }
 

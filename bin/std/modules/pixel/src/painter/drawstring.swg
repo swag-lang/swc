@@ -1394,14 +1394,23 @@ impl Painter
             if c.isEol or not c.visible do
                 continue
 
-            if c.isUrl and not format.urlsEnabled do
+            if c.isUrl and not format.urlsEnabled
+            {
                 brush.color = format.colorDisabledUrl.a ? format.colorDisabledUrl : format.palette[0]
-            elif c.isHotUrl do
+            }
+            elif c.isHotUrl
+            {
                 brush.color = format.colorHotUrl
-            elif c.isUrl do
+            }
+            elif c.isUrl
+            {
                 brush.color = format.colorUrl
-            else do
-                brush.color = format.palette[c.colorIdx]
+            }
+            else
+            {
+                let colorIdx = c.colorIdx >= 0 and c.colorIdx < format.palette.count ? c.colorIdx : 0
+                brush.color = format.palette[colorIdx]
+            }
 
             var under = c.under
             if c.isUrl and format.underlineUrls or c.isHotUrl and format.urlsEnabled do

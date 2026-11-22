@@ -79,8 +79,10 @@ struct Pen
         size:  f32 = 1     // Stroke width, in pixels.
         brush: Brush       // Paint source applied to the stroke.
 
-        pattern:         Array'f32               // Alternating on/off lengths, as stroke-width multiples, for `.Pattern`.
-        dashOffset:      f32                     // Distance advanced into the repeated dash sequence, in path-space pixels.
+        // Alternating on/off lengths in stroke-width multiples. Odd sequences repeat twice
+        // to preserve alternation across periods.
+        pattern:         Array'f32
+        dashOffset:      f32     // Distance advanced into the repeated dash sequence, in path-space pixels.
         dashBegCapStyle: DashCapStyle = None     // Cap at the beginning of each visible dash.
         dashEndCapStyle: DashCapStyle = None     // Cap at the end of each visible dash.
         borderPos:       BorderPos    = None     // Stroke placement for closed paths.

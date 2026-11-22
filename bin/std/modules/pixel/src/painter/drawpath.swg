@@ -48,6 +48,7 @@ struct Context
     remainingPatternLen: f32
     patternTotalLen:     f32
     patternIndex:        s32
+    patternSourceCount:  s32
     error:               f32
     divError:            f32
     late pattern:        const [*] f32
@@ -60,7 +61,8 @@ impl Context
     // period and offset as well as in the segment walk, so every phase uses the same lengths.
     mtd patternLength(index: s32)->f32
     {
-        var result = Math.max(.pattern[index], 0.01) * .pen.size
+        let sourceIndex = index % .patternSourceCount
+        var result      = Math.max(.pattern[sourceIndex], 0.01) * .pen.size
         if index & 1 do
             result *= Math.max(.pen.dashBlankScale, 0)
         return result
@@ -655,6 +657,7 @@ impl Painter
 
     func preparePattern(cxt: *Context)
     {
+        cxt.patternSourceCount = 0
         switch #complete cxt.pen.dashStyle
         {
         case .None:
@@ -663,8 +666,14 @@ impl Painter
         case .Pattern:
             cxt.pattern      = cast(const [*] f32, cxt.pen.pattern.storage())
             cxt.patternCount = cast(s32, cxt.pen.pattern.count)
-            if cxt.patternCount != 0 do
+            if cxt.patternCount != 0
+            {
+                cxt.patternSourceCount = cxt.patternCount
+                if cxt.patternCount & 1 do
+                    cxt.patternCount *= 2
                 break
+            }
+
             const P = [1.0, 1.0]
             cxt.pattern      = P.buffer
             cxt.patternCount = 2
@@ -684,6 +693,9 @@ impl Painter
             cxt.pattern      = P.buffer
             cxt.patternCount = 4
         }
+
+        if cxt.patternSourceCount == 0 do
+            cxt.patternSourceCount = cxt.patternCount
 
         cxt.patternTotalLen = 0
         for i in cxt.patternCount do

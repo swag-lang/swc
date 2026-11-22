@@ -19,7 +19,7 @@ struct RichChunk
         urlStart:     u64    = Swag.U64.Max         // Text byte offset identifying the link, or U64.Max outside links.
         isHotUrl:     bool                          // Whether pointer interaction currently highlights the link.
         visible:      bool                          // Whether layout retained the chunk for painting.
-        colorIdx:     s32                           // Palette slot of the run; zero is the default text color.
+        colorIdx:     s32                           // Palette slot of the run; invalid slots draw with the default text color.
 
         boundRect: Math.Rectangle            // Bounds local to `pos`, in pixels.
         pos:       Math.Point                // Chunk origin in the containing layout.

@@ -1710,7 +1710,8 @@ impl View
 
     // Scrolls to the next rendered match for `text`, wrapping to the first match at the end.
     //
-    // Repeating the same query advances within a block before continuing to later blocks.
+    // Repeating the same query advances within text views. A formula block is one match because
+    // it has no text range that can be highlighted separately.
     // Changing the query starts at the first rendered match. A query with no match returns false
     // and clears the current highlight. An empty query leaves the current highlight unchanged.
     // Matching ignores ASCII and Latin-1 letter case.

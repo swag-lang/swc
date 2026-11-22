@@ -376,9 +376,14 @@ impl Ast
     mtd parseNumber()->u32
     {
         var result: #returntype
-        while .isDigit(.peek()) and result <= MaxRepeatCount
+        while .isDigit(.peek())
         {
-            result = result * 10 + cast(u32, (.peek() - '0'))
+            if result <= MaxRepeatCount
+            {
+                let value = result * 10 + cast(u32, (.peek() - '0'))
+                result = value > MaxRepeatCount ? MaxRepeatCount + 1 : value
+            }
+
             .advance()
         }
 

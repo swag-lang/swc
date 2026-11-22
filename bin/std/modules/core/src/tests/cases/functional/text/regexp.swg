@@ -1565,6 +1565,11 @@ using Swag
     discard catch Parser.RegExp.create(#raw "[a-\d]") as classBoundOutcome
     let classBound = classBoundOutcome.value()
     Swag.require(classBound is Errors.SyntaxError)
+
+    var tooManyRepetitionsOutcome: Swag.Error
+    discard catch Parser.RegExp.create(#raw "a{100000}") as tooManyRepetitionsOutcome
+    let tooManyRepetitions = tooManyRepetitionsOutcome.value()
+    Swag.require(tooManyRepetitions is Errors.SyntaxError)
 }
 
 #test

@@ -16,10 +16,14 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     Swag.require(Tokenize.eatCount("core", 99) == "")
 
     Swag.require(Tokenize.eatSpaces(" \t\r\ncore") == "core")
+    Swag.require(Tokenize.eatSpaces("\u0085core") == "core")
+    Swag.require(Tokenize.eatSpaces("\u00A0core") == "core")
     Swag.require(Tokenize.eatSpaces("core") == "core")
 
     Swag.require(Tokenize.prefixToWhitespace("core value") == "core")
+    Swag.require(Tokenize.prefixToWhitespace("caf\u00E9\u00A0value") == "caf\u00E9")
     Swag.require(Tokenize.alphanumericPrefix("abc123!?") == "abc123")
+    Swag.require(Tokenize.alphanumericPrefix("caf\u00E942!?") == "caf\u00E942")
 
     Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','u8) == "a,")
     Swag.require(Tokenize.sliceToDelimiter("a,b,c", ','u8, includeDelimiter: false) == "a")

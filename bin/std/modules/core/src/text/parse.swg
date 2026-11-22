@@ -401,21 +401,39 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 
 // Returns the identifier at the start of `str`.
 //
-// An identifier starts with '_' or a letter and continues with '_', letters and digits, each byte
-// classified by [[Core.Latin1.isLetter]] and [[Core.Latin1.isLetterOrDigit]]. Fails with
-// [[Core.Errors.SyntaxError]] when `str` does not start with one.
+// An identifier starts with '_' or a Latin-1 letter and continues with '_', Latin-1 letters, and
+// digits. These characters are decoded from UTF-8. Fails with [[Core.Errors.SyntaxError]] when
+// `str` does not start with one.
 func parseIdentifier(str: string)->string fail
 {
     let byteCount = str.count
     if not byteCount do
         fail SyntaxError{}
 
-    if str[0] != '_'u8 and not Latin1.isLetter(str[0]) do
-        fail SyntaxError{}
+    let {c: first, eat: firstBytes} = Utf8.decodeRune(str)
+    if first != '_'rune
+    {
+        if not Unicode.isLatin1(first) do
+            fail SyntaxError{}
+        if not Latin1.isLetter(cast(u8, first)) do
+            fail SyntaxError{}
+    }
 
-    var endByte = 1'u64
-    while endByte < byteCount and (str[endByte] == '_'u8 or Latin1.isLetterOrDigit(str[endByte])) do
-        endByte += 1
+    var endByte = firstBytes
+    while endByte < byteCount
+    {
+        let {c, eat} = Utf8.decodeRune(str[endByte to])
+        if c != '_'rune
+        {
+            if not Unicode.isLatin1(c) do
+                break
+            if not Latin1.isLetterOrDigit(cast(u8, c)) do
+                break
+        }
+
+        endByte += eat
+    }
+
     return str[until endByte]
 }
 

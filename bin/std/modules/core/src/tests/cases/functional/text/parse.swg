@@ -242,12 +242,19 @@ func(T) checkCompleteNumberConversion(overflowText: string)
     var invalidOutcome: Swag.Error
     discard catch StrConv.parseBool("yes") as invalidOutcome
     Swag.require(invalidOutcome.value() is Errors.SyntaxError)
+
+    var nonAsciiSuffixOutcome: Swag.Error
+    discard catch StrConv.parseBool("true\u00E9") as nonAsciiSuffixOutcome
+    Swag.require(nonAsciiSuffixOutcome.value() is Errors.SyntaxError)
 }
 
 #test
 {
     let identifier = expect StrConv.parseIdentifier("_name9-rest")
     Swag.require(identifier == "_name9")
+
+    let latin1Identifier = expect StrConv.parseIdentifier("caf\u00E99-tail")
+    Swag.require(latin1Identifier == "caf\u00E99")
 
     var invalidOutcome: Swag.Error
     discard catch StrConv.parseIdentifier("9name") as invalidOutcome

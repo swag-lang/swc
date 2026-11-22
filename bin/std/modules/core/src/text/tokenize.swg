@@ -23,13 +23,7 @@ func eatCount(str: string, count: u64)->string
 // Returns `str` without its leading Latin-1 white space.
 func eatSpaces(str: string)->string
 {
-    let byteCount = str.count
-    if not byteCount do
-        return str
-
-    var offset = 0'u64
-    while offset < byteCount and Latin1.isSpace(str[offset]) do
-        offset += 1
+    let offset = Latin1.firstNonSpace(cast(const [..] u8, str))
     return str[offset to]
 }
 
@@ -204,8 +198,18 @@ func prefixToWhitespace(str: string)->string
 {
     let byteCount = str.count
     var offset    = 0'u64
-    while offset < byteCount and not Latin1.isSpace(str[offset]) do
-        offset += 1
+    while offset < byteCount
+    {
+        let {c, eat} = Utf8.decodeRune(str[offset to])
+        if Unicode.isLatin1(c)
+        {
+            if Latin1.isSpace(cast(u8, c)) do
+                break
+        }
+
+        offset += eat
+    }
+
     return str[until offset]
 }
 
@@ -214,8 +218,16 @@ func alphanumericPrefix(str: string)->string
 {
     let byteCount = str.count
     var offset    = 0'u64
-    while offset < byteCount and (Latin1.isDigit(str[offset]) or Latin1.isLetter(str[offset])) do
-        offset += 1
+    while offset < byteCount
+    {
+        let {c, eat} = Utf8.decodeRune(str[offset to])
+        if not Unicode.isLatin1(c) do
+            break
+        if not Latin1.isLetterOrDigit(cast(u8, c)) do
+            break
+        offset += eat
+    }
+
     return str[until offset]
 }
 

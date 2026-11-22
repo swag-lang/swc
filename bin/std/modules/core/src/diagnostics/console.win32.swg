@@ -78,9 +78,29 @@ public func resetColor()
 
 internal func writeNative(message: string)
 {
-    let length = cast(u32, message.count)
-    catch WriteFile(g_StdOutputHandle, message.buffer, length, null, null)
+    var offset = 0'u64
+    while offset < message.count
+    {
+        let length    = writeChunkLength(message.count - offset)
+        var written: DWORD
+        let succeeded = catch WriteFile(g_StdOutputHandle,
+                                        message.buffer + offset,
+                                        length,
+                                        &written,
+                                        null)
+        {
+            return
+        }
+
+        if not succeeded or not written do
+            return
+
+        offset += cast(u64, written)
+    }
 }
+
+internal func writeChunkLength(remaining: u64)->u32
+    => cast(u32, Swag.min(remaining, cast(u64, Swag.U32.Max)))
 
 // Waits for the user to enter a line on standard input and returns it, line ending included.
 public func prompt()->String

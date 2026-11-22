@@ -520,14 +520,15 @@ impl Bus
         var handle: *IXAudio2SubmixVoice?
         let safeXAudio2       = unwrap g_Driver.xAudio2.xAudio2
         let createSubmixVoice = safeXAudio2.vtbl.createSubmixVoice
-        let hr = createSubmixVoice(safeXAudio2,
-                                   &handle,
-                                   numChannels,
-                                   44100,
-                                   XAUDIO2_VOICE_USEFILTER,
-                                   0,
-                                   pSFXSEndList,
-                                   null)
+        let stage             = audioBusProcessingStage(parent)
+        let hr                = createSubmixVoice(safeXAudio2,
+                                                  &handle,
+                                                  numChannels,
+                                                  44100,
+                                                  XAUDIO2_VOICE_USEFILTER,
+                                                  stage,
+                                                  pSFXSEndList,
+                                                  null)
         if hr != S_OK do
             fail SystemError{"createSubmixVoice", errorID: hresultErrorId(hr)}
         bus.handle = cast(*void?, handle)

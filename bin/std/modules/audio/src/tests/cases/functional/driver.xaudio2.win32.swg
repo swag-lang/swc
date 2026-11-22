@@ -4,6 +4,21 @@
 
 using Swag, Core, Win32
 
+// Nested XAudio2 submix sends require every child to run before its parent.
+#[Swag.TestTag("integration.audio.xaudio2")]
+#test
+{
+    discard expect g_Driver.create(.XAudio2)
+    defer destroyEngine()
+
+    let root = expect Bus.create(2)
+    defer root.destroy()
+    let child = expect Bus.create(2, root)
+    defer child.destroy()
+    let grandchild = expect Bus.create(2, child)
+    defer grandchild.destroy()
+}
+
 // A window that accepts a drop starts OLE, and OLE joins the thread to the apartment-threaded
 // model. The engine then asks for the multi-threaded one and is refused with RPC_E_CHANGED_MODE.
 // Reading that as a failure is what left every windowed program silent, so the apartment the

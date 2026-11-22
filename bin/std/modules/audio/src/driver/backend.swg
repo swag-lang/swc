@@ -25,6 +25,20 @@ struct DriverNative
     }
 }
 
+// Orders each child bus before its parent in backends that process submix stages.
+func audioBusProcessingStage(parent: *Bus?)->u32
+{
+    var stage    = Swag.U32.Max
+    var ancestor = parent
+    while ancestor
+    {
+        stage    -= 1
+        ancestor = ancestor.parent
+    }
+
+    return stage
+}
+
 impl DriverNative
 {
     mtd createNative(kind: DriverKind = .Default) fail

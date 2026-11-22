@@ -29,6 +29,27 @@ func verifyDriverCreateRetry(failure: DriverCreateFailure) fail
     destroyEngine()
 }
 
+// Every nested audio bus runs before its parent in XAudio2's processing graph.
+#test
+{
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+
+    let root = expect Bus.create(2)
+    defer root.destroy()
+    let child = expect Bus.create(2, root)
+    defer child.destroy()
+    let grandchild = expect Bus.create(2, child)
+    defer grandchild.destroy()
+
+    let rootStage       = audioBusProcessingStage(root.parent)
+    let childStage      = audioBusProcessingStage(child.parent)
+    let grandchildStage = audioBusProcessingStage(grandchild.parent)
+    Swag.require(rootStage == Swag.U32.Max)
+    Swag.require(childStage + 1 == rootStage)
+    Swag.require(grandchildStage + 1 == childStage)
+}
+
 struct AudioDestroyRequestProbe
 {
     voice:   *Voice

@@ -358,14 +358,8 @@ impl Bus
         if numChannels > 8 do
             fail BadParameterError{"audio bus supports at most 8 channels"}
         var descriptor: FAudio.FAudioSendDescriptor
-        var sends    = FAudio.FAudioVoiceSends{SendCount: 1, pSends: &descriptor}
-        var stage    = Swag.U32.Max
-        var ancestor = parent
-        while ancestor
-        {
-            stage    -= 1
-            ancestor = ancestor.parent
-        }
+        var sends = FAudio.FAudioVoiceSends{SendCount: 1, pSends: &descriptor}
+        let stage = audioBusProcessingStage(parent)
 
         if parent do
             descriptor.pOutputVoice = parent.handle

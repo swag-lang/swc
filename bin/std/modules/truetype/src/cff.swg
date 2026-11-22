@@ -361,15 +361,27 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
     var value = mantissa
     if exponent
     {
-        var remainingExponent = exponent
-        while remainingExponent
+        if exponent > 632
         {
-            let step  = Math.min(remainingExponent, 300)
-            let power = Math.pow(10.0'f64, cast(f64, step))
-            value = expNegative ? value / power : value * power
-            remainingExponent -= step
+            if expNegative do
+                value = 0.0
+            else do
+                try fault(0x08)
+        }
+        else
+        {
+            var remainingExponent = exponent
+            while remainingExponent
+            {
+                let step  = Math.min(remainingExponent, 300)
+                let power = Math.pow(10.0'f64, cast(f64, step))
+                value = expNegative ? value / power : value * power
+                remainingExponent -= step
+            }
         }
     }
+    if not Math.isFinite(value) do
+        try fault(0x08)
 
     result.value = negative ? -value : value
     result.next  = pos

@@ -512,6 +512,15 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // A syntactically valid real whose final value exceeds f64 must fail instead of returning infinity.
+    const InfiniteReal: [3] u8 = [0x1B, 0x30, 0x9F] // 1E309
+    var rejected: Swag.Error
+    discard catch readCffReal(InfiniteReal, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Escaped CFF DICT operators require a second byte.
     const TruncatedEscape: [1] u8 = [0x0C]
     var rejected: Swag.Error

@@ -36,6 +36,27 @@ using Swag, Core
     }
 }
 
+// Multiple data chunks are rejected instead of returning only the first segment.
+#test
+{
+    var bytes = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
+    bytes.add(cast(const [..] u8, "data"))
+    bytes.add([8'u8, 0, 0, 0, 0x01, 0, 0x02, 0, 0x03, 0, 0x04, 0])
+
+    var writer = ByteStream.openWrite(&bytes)
+    writer.setPosition(4)
+    writer.writeLittleEndian(cast(u32, bytes.count - 8))
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-multiple-data-%.wav", Guid128.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary) as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 // PCM audio data must contain a whole number of sample frames across all channels.
 #test
 {

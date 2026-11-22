@@ -290,10 +290,11 @@ private struct Layout
     hasData:    bool
 }
 
-// Walks the RIFF chunks up to and including the `data` chunk.
+// Walks the RIFF chunks and validates the complete container.
 //
 // The stream is left positioned on the first payload byte, so a caller that keeps the audio in
-// memory reads it from there.
+// memory reads it from there. Multiple `data` chunks are rejected instead of silently truncating
+// the sound at the first segment.
 private func readLayout(stream: *File.FileStream)->Layout fail
 {
     enum Stage
@@ -312,14 +313,23 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     for
     {
         let chunkOffset = try stream.position()
-        if chunkOffset >= riffEnd do
+        if chunkOffset > riffEnd do
             fail InvalidFormatError{"invalid wav"}
-        if chunkOffset & 1 do
+        if chunkOffset < riffEnd and (chunkOffset & 1) do
             try stream.skip(1)
 
         let headerOffset = try stream.position()
-        if headerOffset > riffEnd do
+        if headerOffset >= riffEnd
+        {
+            if headerOffset == riffEnd and result.hasData
+            {
+                try stream.seek(.Begin, result.dataOffset)
+                return result
+            }
+
             fail InvalidFormatError{"invalid wav"}
+        }
+
         if riffEnd - headerOffset < #sizeof(ChunkHeader) do
             fail InvalidFormatError{"invalid wav"}
         var rawHeader: [8] u8
@@ -397,6 +407,8 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_data:
             if stage == .FindData
             {
+                if result.hasData do
+                    fail InvalidFormatError{"multiple WAVE data chunks are not supported"}
                 result.hasData    = true
                 result.dataOffset = try stream.position()
                 if result.dataOffset > fileBytes do
@@ -404,7 +416,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                 if cast(u64, header.chunkSize) > fileBytes - result.dataOffset do
                     fail InvalidFormatError{"WAV audio data is truncated"}
                 result.dataSize = header.chunkSize
-                return result
+                try stream.skip(header.chunkSize)
             }
             else
             {

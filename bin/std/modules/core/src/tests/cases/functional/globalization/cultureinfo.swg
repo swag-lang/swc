@@ -39,6 +39,15 @@ using Swag
     Swag.require(tr.toUpper("istanbul") == "\u0130STANBUL")
     Swag.require(tr.toLower("I\u0130") == "\u0131i")
     Swag.require(de.caseFold("Stra\u00DFe") == "strasse")
+    Swag.require(en.caseFold("\uFB00") == "ff")
+    Swag.require(en.caseFold("\u0130") == "i\u0307")
+    Swag.require(en.caseFold("\u0390") == "\u03B9\u0308\u0301")
+    Swag.require(en.caseFold("\u03C2") == "\u03C3")
+    Swag.require(en.caseFold("\u017F") == "s")
+    Swag.require(tr.caseFold("I\u0130") == "\u0131i")
+
+    let az = Globalization.CultureInfo.fromName("az-Latn-AZ")
+    Swag.require(az.caseFold("I\u0130") == "\u0131i")
 
     let gb = Globalization.CultureInfo.fromName("en-GB")
     Swag.require(gb.currencyFormat.symbol == "\u00A3")

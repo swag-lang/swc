@@ -268,6 +268,16 @@ struct CaseRange
     delta:  [WantedCase] s32     // Offset to add for each case, or `UpperLower` for an alternating upper-lower sequence.
 }
 
+// The full case-fold mapping for one code point, with its Turkic alternative when it has one.
+struct CaseFoldMapping
+{
+    source:      rune
+    mapping:     [3] rune
+    count:       u8
+    turkic:      [3] rune
+    turkicCount: u8
+}
+
 func isInTable(ranges: const [..] Range, r: rune)->bool
 {
     // linear search for a small array or a latin1 character
@@ -343,4 +353,38 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
     }
 
     return result
+}
+
+internal func appendCaseFold(result: *String, value: rune, turkic: bool)
+{
+    let table = cast(const [..] CaseFoldMapping, TableCaseFold)
+    var lo    = 0'u64
+    var hi    = cast(u64, table.count)
+    while lo < hi
+    {
+        let middle = lo + (hi - lo) / 2
+        let entry  = table[middle]
+        if entry.source == value
+        {
+            if turkic
+            {
+                for i in entry.turkicCount do
+                    result.append(entry.turkic[i])
+            }
+            else
+            {
+                for i in entry.count do
+                    result.append(entry.mapping[i])
+            }
+
+            return
+        }
+
+        if value < entry.source do
+            hi = middle
+        else do
+            lo = middle + 1
+    }
+
+    result.append(value)
 }

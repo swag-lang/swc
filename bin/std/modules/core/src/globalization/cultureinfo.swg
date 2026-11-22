@@ -341,25 +341,19 @@ public impl CultureInfo
         return result
     }
 
-    // Produces a locale-sensitive case-folded value for caseless matching.
+    // Produces a locale-sensitive full Unicode case-folded value for caseless matching.
+    //
+    // The returned string owns its bytes. Unicode 17.0 mappings can expand one code point to as
+    // many as three, so the result can be longer than the input. Turkish and Azerbaijani use the
+    // Turkic mappings for U+0049 and U+0130. Folding does not normalize Unicode; normalize
+    // separately when canonically equivalent strings must compare equal.
     mtd const caseFold(value: string)->String
     {
         var result: #returntype
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
-            if c == 0x00DF or c == 0x1E9E do
-                result.append("ss")
-            elif c == 0x017F do
-                result.append('s'u8)
-            elif c == 0x03C2 do
-                result.append(0x03C3)
-            elif turkic and c == 'I' do
-                result.append(0x0131)
-            elif turkic and c == 0x0130 do
-                result.append(cast(rune, 'i'))
-            else do
-                result.append(Unicode.toLower(c))
+            Unicode.appendCaseFold(&result, c, turkic)
         }
 
         return result

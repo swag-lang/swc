@@ -415,6 +415,26 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
 }
 
+// A failed frame write ends the writer before its partial AVI index can be used by end().
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("failed-frame.avi", &buffer, 2, 2, rate)
+    expect writer.sink.close()
+
+    let frame = videoGrayImage(2, 2, 96)
+    var rejected: Swag.Error
+    discard catch writer.addFrame(frame) as rejected
+    Swag.require(rejected.value() is BadParameterError and writer.frameCount() == 0)
+
+    var repeated: Swag.Error
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch writer.addFrame(frame) as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
 // A stream written to a file reads back through the file-backed sink, which is the path where
 // the header totals are rewritten in place rather than in memory.
 #test

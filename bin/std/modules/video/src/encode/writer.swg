@@ -58,7 +58,8 @@ interface IEncoder
 // A writer owns its sink and its encoder instance. Frames are appended in playback order and
 // must all have the geometry the writer was created with; [[Video.Writer.end]] finishes the
 // stream and is what decides whether it is complete, so its failure must be handled rather
-// than left to destruction.
+// than left to destruction. A failed frame submission ends the writer because a format may
+// have updated its index before the sink reports the write failure.
 #[Swag.NoCopy]
 struct Writer
 {
@@ -220,6 +221,8 @@ impl Writer
     //
     // The image must have the geometry the writer was created with. All four 8-bit Pixel RGB
     // and BGR formats are accepted; whether alpha survives depends on the format being written.
+    // If the encoder or sink fails while appending it, the writer becomes terminal and `end`
+    // re-raises that failure rather than finalizing a possibly partial frame.
     mtd addFrame(image: Image) fail
     {
         if .isEnded do
@@ -231,7 +234,14 @@ impl Writer
         if image.width != .info.width or image.height != .info.height do
             fail BadParameterError{"video frame dimensions do not match the stream"}
 
-        try .encoder.addFrame(&.sink, image)
+        var failure: Swag.Error
+        catch .encoder.addFrame(&.sink, image) as failure
+        if not failure.isEmpty()
+        {
+            .isEnded = true
+            .finalizationError = failure
+            try .finalizationError.raise()
+        }
         .frames += 1
     }
 

@@ -539,3 +539,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: H.264 kernels widen byte samples to 16-bit lanes even where the operation has a byte-lane form in the SIMD API and backend. This halves the samples processed per vector; the luma six-tap filter already fuses loads with widening, so rewriting it may trade instructions for register pressure.
 - Next: profile the current decode lane, optimize the largest remaining pixel kernel, and compare emitted instructions and lane samples on the same fixture. Revisit the luma six-tap byte path only if it reduces `interpolateLuma` cost without adding spills.
 - Done when: prediction, residual, reconstruction, and deblocking stay byte-exact and fit the measured pixel budget on the maintained fixture; delete the entry if profiling shows no viable improvement.
+
+### std.video.021 — Failed frame writes leave the video writer open (resolved)
+
+- Evidence: `Writer.addFrame` updates its frame count only after the encoder returns, but AVI appends its index entry and MP4 appends its sample entry before fallible sink writes. A write failure can leave encoder state ahead while later frames and finalization remain allowed.
+- Resolved: a failed frame submission now marks the writer ended and retains the original error for `end`; a closed memory sink reproduces failure after AVI and MP4 update their private index. Focused Release tests cover both containers.
+- Related: std.video.015

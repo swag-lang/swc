@@ -301,6 +301,26 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
 }
 
+// A failed frame write ends the writer before its partial MP4 sample table can be finalized.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(24, 1)
+    var writer = expect Writer.createMemory("failed-frame.mp4", &buffer, 16, 16, rate)
+    expect writer.sink.close()
+
+    let frame = videoGrayImage(16, 16, 96)
+    var rejected: Swag.Error
+    discard catch writer.addFrame(frame) as rejected
+    Swag.require(rejected.value() is BadParameterError and writer.frameCount() == 0)
+
+    var repeated: Swag.Error
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch writer.addFrame(frame) as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
 // File-backed patching produces the same seekable stream as memory-backed patching.
 #test
 {

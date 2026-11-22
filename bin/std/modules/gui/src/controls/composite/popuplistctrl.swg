@@ -68,7 +68,9 @@ struct PopupListCtrl
 
 public impl PopupListCtrl
 {
-    // Returns the half-open item range intersecting the current viewport. Separator rows count
+    // Returns the half-open item range intersecting the current viewport.
+    //
+    // Separator rows count
     // as items, and partially visible rows are included.
     mtd visibleItemRange()->PopupListVisibleRange
     {

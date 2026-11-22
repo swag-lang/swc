@@ -227,7 +227,9 @@ impl Reader
         return result
     }
 
-    // Returns the label of every page as the document numbers it, from its `/PageLabels` number
+    // Returns the label assigned to each page by the document.
+    //
+    // Labels come from its `/PageLabels` number
     // tree: each range a prefix and a decimal, Roman or alphabetic count from its own start, so a
     // book's front matter reads `i`, `ii`, `iii` before page `1`. Returns an empty array when the
     // document labels no page; a page before the first range is named by its position.
@@ -356,7 +358,9 @@ internal struct PageLabelRange
     node:  u32
 }
 
-// Writes `number` in the numbering style a page-label range names: `D` decimal, `R` and `r`
+// Formats `number` using a page-label range's numbering style.
+//
+// `D` is decimal, `R` and `r`
 // Roman, `A` and `a` letters repeated past Z (AA, BB...). Any other style, or none, writes nothing:
 // the label is its prefix alone.
 func pageNumberText(style: string, number: u64)->String

@@ -463,9 +463,10 @@ img, video, table { max-width: 100% !important; }
     // Uses the current layout's HTML or body background, following the same rule as painting.
     public mtd authoredCanvasBackground()->Color => .painter().canvasBackground().color
 
-    // Returns what the page says of itself in its head: the text of its first `title`, the `lang`
-    // of its `html` element and the content of its first `meta` named `description`, each empty
-    // when the page does not say.
+    // Returns the title, language, and description declared by the page.
+    //
+    // The values come from the first `title`, the `lang` of the `html` element, and the first `meta`
+    // named `description`; each is empty when the page does not provide it.
     public mtd documentFacts()->HtmlDocumentFacts
     {
         var result: #returntype
@@ -958,10 +959,10 @@ img, video, table { max-width: 100% !important; }
         return HtmlNoNode
     }
 
-    // Returns the source byte offset of the element carrying the identifier `id`, or `U64.Max`
-    // when the document read so far has none. It addresses the source as
-    // [[Gui.HtmlView.readingOffset]] does, so a reader can tell whether a fragment lies before the
-    // text being read.
+    // Returns the source byte offset of the element carrying `id`, or `U64.Max` when absent.
+    //
+    // It follows the source-offset convention of [[Gui.HtmlView.readingOffset]], so a reader can
+    // tell whether a fragment lies before the text being read.
     public mtd const fragmentOffset(id: string)->u64
     {
         let node = .elementById(id)
@@ -1489,7 +1490,9 @@ img, video, table { max-width: 100% !important; }
         .invalidate()
     }
 
-    // Switches between authored layout and a semantic reading sheet derived from the same DOM.
+    // Selects authored layout or semantic reading mode.
+    //
+    // Reading mode presents a sheet derived from the same DOM.
     // Links and the current document remain owned by this view, so local fragments and links keep
     // their normal navigation behavior. The first readable passage is restored after reflow.
     public mtd setReaderMode(enabled: bool)

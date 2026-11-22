@@ -164,7 +164,9 @@ func clearPendingRepaint(surface: *Surface)
 // Returns whether `surface` has a repaint pending, and the surface region it covers.
 func pendingRepaint(surface: const *Surface)->{dirty: bool, rect: Math.Rectangle} => {surface.isDirty, surface.dirtyRect}
 
-// Returns empty lens results for `query`, typed after `prefix`, folded as the lens folds the
+// Creates empty lens results for `query` and `prefix`.
+//
+// Results are folded as the lens folds the
 // query on screen, so a source can be asked for its rows without a lens.
 func lensResults(query: string, prefix = Lens.Prefix.None)->Lens.Results
 {

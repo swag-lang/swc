@@ -283,6 +283,7 @@ public impl MessageDlg
     }
 
     // Shows a modal message with OK and Cancel actions.
+    //
     // `defaultId` must match an action this box offers.
     // Another ID leaves Enter without a default action.
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
@@ -303,6 +304,7 @@ public impl MessageDlg
     }
 
     // Shows a modal question with Yes and No actions.
+    //
     // `defaultId` must match an action this box offers.
     // Another ID leaves Enter without a default action.
     func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
@@ -323,6 +325,7 @@ public impl MessageDlg
     }
 
     // Shows a modal question with Yes, No, and Cancel actions.
+    //
     // `defaultId` must match an action this box offers.
     // Another ID leaves Enter without a default action.
     func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId

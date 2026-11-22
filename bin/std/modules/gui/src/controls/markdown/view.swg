@@ -1795,7 +1795,9 @@ impl View
     // The preceding bytes are not parsed. Returns whether the reveal was queued.
     mtd revealFileOffset(offset: u64, text: string)->bool => .beginReveal(offset, text)
 
-    // Reveals the rendered occurrence at `offset` in the original in-memory Markdown source.
+    // Reveals the rendered occurrence at `offset` in the source.
+    //
+    // `source` is the original in-memory Markdown text.
     // Markdown syntax and link destinations do not count as rendered matches. The caller supplies
     // that source because an in-memory view does not retain its serialized text.
     mtd revealTextMatch(source: string, offset: u64, text: string)->bool

@@ -1390,7 +1390,9 @@ impl PdfView
     // Returns the number of pages of the open document, or zero when none is open.
     mtd const pageCount()->u64 => .hasDocument ? .pageSizes.count : 0
 
-    // Starts extracting the document's text on a worker, as the first search would, so that
+    // Starts extracting the open document's text on a worker.
+    //
+    // The first search also starts extraction, so that
     // [[Gui.PdfView.textCoverage]] can answer without one; [[Gui.PdfView.sigTextExtracted]] tells
     // when it is done. Extraction runs once per document, so a call after it started does nothing.
     mtd extractText()
@@ -1398,10 +1400,11 @@ impl PdfView
         .ensureDocumentText()
     }
 
-    // Counts the pages a text search finds no words in, once the document's text has been
-    // extracted for search: `pictures` carry no text at all, as a scan without a recognized text
-    // layer does, and `unreadable` could not be decoded. `complete` is false while the extraction
-    // [[Gui.PdfView.collectTextMatches]] starts is still running, and both counts are then zero.
+    // Reports pages without searchable text after document text extraction completes.
+    //
+    // `pictures` counts pages with no text layer, such as scans without recognized text.
+    // `unreadable` counts pages whose text could not be decoded. While
+    // [[Gui.PdfView.collectTextMatches]] is running, `complete` is false and both counts are zero.
     mtd textCoverage()->{ complete: bool, pictures: u64, unreadable: u64 }
     {
         var result: #returntype

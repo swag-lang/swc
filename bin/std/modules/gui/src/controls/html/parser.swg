@@ -638,7 +638,7 @@ impl HtmlParser
 
         .flushAttributes(element, source)
 
-        if HtmlDocument.isVoidTag(interned) or scan.selfClosing do
+        if HtmlDocument.isVoidTag(interned) or (scan.selfClosing and interned == .Svg) do
             return
 
         // Past the depth bound the element stays in the tree as a leaf and its content lands in

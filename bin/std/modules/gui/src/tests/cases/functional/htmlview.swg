@@ -322,6 +322,14 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.require(document.attribute(division, "class") == "x y")
 }
 
+// HTML ignores a self-closing slash on a non-void element.
+#test
+{
+    let document = parseDocument("<div id='x'/>inside</div>")
+    let division = findTag(&document, .Div)
+    Swag.require(document.textContent(division).toString() == "inside")
+}
+
 // Character references decode to their code points, including the numeric forms.
 #test
 {

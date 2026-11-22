@@ -190,6 +190,7 @@ impl Source
     }
 
     // Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.
+    //
     // Selection follows [[Core.Env.monitorForPoint]]'s physical-coordinate policy.
     // `includeCursor` requests pointer composition and defaults to false.
     func openMonitorAt(point: Math.Point, includeCursor: bool = false)->Source fail
@@ -484,11 +485,13 @@ impl Source
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
     // Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.
+    //
     // Check lastFrameCaptureMicroseconds() to distinguish those cases.
     // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
     mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
 
     // Returns the display presentation time for the latest acquired frame, when the backend reports it.
+    //
     // The value shares the monotonic microsecond clock; zero means the backend has no presentation time.
     mtd const lastFramePresentationMicroseconds()->u64 => .lastFramePresentationTime
 
@@ -523,6 +526,7 @@ impl Source
     }
 
     // Resets cumulative SourceMetrics counters without reopening the source.
+    //
     // The native capture handles, cached frame and last frame capture time are preserved.
     mtd resetMetrics()
     {

@@ -70,11 +70,14 @@ low-order peer keys.
 using Core
 
 var privateKey: [Crypto.X25519KeySize] u8
+var publicKey:  [Crypto.X25519KeySize] u8
+var peerPublicKey: [Crypto.X25519KeySize] u8 // Receive this key from the peer before deriving.
 var sharedKey:  [Crypto.X25519KeySize] u8
 defer Crypto.secureClear(privateKey)
 defer Crypto.secureClear(sharedKey)
 
 try Crypto.randomBytes(privateKey)
+try Crypto.x25519PublicKey(privateKey, publicKey)
 try Crypto.x25519SharedSecret(privateKey, peerPublicKey, sharedKey)
 ```
 

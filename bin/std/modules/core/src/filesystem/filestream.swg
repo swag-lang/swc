@@ -167,7 +167,9 @@ impl FileStream
         return try .positionNative()
     }
 
-    // Moves to `offset` bytes from `origin`.
+    // Moves by the signed 64-bit interpretation of `offset` from `origin`.
+    // Encode a negative offset as `cast #bit (u64, -n's64)` to seek backward from `.Current` or `.End`.
+    // A seek before the start of the file fails.
     mtd seek(origin: SeekOrigin, offset: u64) fail
     {
         Swag.assert(.isOpen())

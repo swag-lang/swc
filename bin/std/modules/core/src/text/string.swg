@@ -621,7 +621,9 @@ impl String
         // Resize the existing allocation.
         else
         {
-            .buffer   = cast([*] u8?, Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
+            let newBuffer = cast([*] u8, Memory.realloc(.buffer, newCapacity, .capacity, .allocator))
+            newBuffer[.length] = 0
+            .buffer   = cast([*] u8?, newBuffer)
             .capacity = newCapacity
         }
     }

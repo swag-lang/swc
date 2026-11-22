@@ -17,6 +17,8 @@ using Swag
     expect stream.writeAll(bytes)
     expect stream.flush()
     Swag.require(expect stream.position() == #sizeof(u32))
+    expect stream.seek(.Current, cast #bit (u64, -2's64))
+    Swag.require(expect stream.position() == 2)
 
     expect stream.seek(.Begin, 0)
     var value: u32

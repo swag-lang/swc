@@ -3,6 +3,9 @@
 
 using Swag
 
+#assert(not Reflection.canCopy(AtomicValue'u32))
+#assert(not Reflection.canCopy(AtomicFlag))
+
 struct AtomicCounterShared
 {
     ready:       u32

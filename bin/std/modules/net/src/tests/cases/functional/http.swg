@@ -193,6 +193,23 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     Swag.require(cookie)
 }
 
+#test
+{
+    let response = "HTTP/1.1 302 Found\r\nLocation: /first\r\nLocation: /second\r\n /third\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    var fixture  = HttpServerFixture{listener: &listener, response: response}
+    var thread: Threading.Thread
+    expect thread.init(&serveHttp, &fixture)
+    expect thread.start()
+
+    let endpoint = expect listener.localEndpoint()
+    let result   = expect Http.get("127.0.0.1", endpoint.port, "/", false)
+    thread.wait()
+    Swag.require(result.location == "/first")
+    Swag.require(result.headers[0].value == "/first")
+    Swag.require(result.headers[1].value == "/second /third")
+}
+
 // Request validation rejects missing body readers and caller-supplied transfer framing.
 #test
 {

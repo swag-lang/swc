@@ -199,8 +199,8 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
         // Redirect and informational headers must not leak into the final response.
         state.response.headers.clear()
         state.response.location.clear()
-        state.headerParser.lastHeaderIndex = Swag.U64.Max
-        state.headerParser.locationSeen    = false
+        state.headerParser.lastHeaderIndex     = Swag.U64.Max
+        state.headerParser.locationHeaderIndex = Swag.U64.Max
         state.inHeaders = true
     }
     elif line == "\r\n" or line == "\n"
@@ -247,7 +247,8 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
                                 bodyReader: options.bodyReader,
                                 requestContext: options.requestContext,
                                 requestBodyRemaining: options.requestBodyLength}
-    received.headerParser.lastHeaderIndex = Swag.U64.Max
+    received.headerParser.lastHeaderIndex     = Swag.U64.Max
+    received.headerParser.locationHeaderIndex = Swag.U64.Max
     let request = api.easyInit()
     if not request do
         fail NetworkError{code: Curl.CURLE_OUT_OF_MEMORY}

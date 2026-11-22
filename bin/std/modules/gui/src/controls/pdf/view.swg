@@ -1547,7 +1547,12 @@ impl PdfView
     // ```
     mtd restoreReadingPosition(position: PdfReadingPosition)->bool
     {
-        if not .hasDocument or position.pageIndex >= .pageSizes.count do
+        if not .hasDocument or
+           position.pageIndex >= .pageSizes.count or
+           not Math.isFinite(position.point.x) or
+           not Math.isFinite(position.point.y) or
+           position.zoomMode == .Free and
+           not Math.isFinite(position.zoom) do
             return false
         if position.zoomMode != .Free do
             .setZoomMode(position.zoomMode)

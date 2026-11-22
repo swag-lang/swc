@@ -430,6 +430,14 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(place.pageIndex == 1 and place.zoomMode == .Free and place.zoom == 3)
     Swag.require(Math.abs(place.point.x - 40) < 1 and Math.abs(place.point.y - 60) < 1)
 
+    // An invalid captured point is rejected before it can change the view.
+    var invalidPlace = place
+    invalidPlace.point.x = Swag.F32.NaN
+    let beforeInvalidRestore = view.scroll.scrollPosition()
+    Swag.require(not view.restoreReadingPosition(invalidPlace))
+    Swag.require(view.pageIndex == 1 and view.effectiveZoom() == 3)
+    Swag.require(view.scroll.scrollPosition() == beforeInvalidRestore)
+
     view.zoomToFit()
     view.showPage(0)
     Swag.require(view.restoreReadingPosition(place))

@@ -81,6 +81,59 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
     return true
 }
 
+// Raw TagBin payloads bypass typed reads, so validate Boolean representations in place.
+private func hasValidBooleanValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
+{
+    if count == 0 do
+        return true
+
+    let valueData    = unwrap values
+    let resolvedType = Reflection.resolveAliases(type)
+    let valueSize    = cast(u64, resolvedType.sizeof)
+
+    if Reflection.isBool(resolvedType)
+    {
+        for index in count
+        {
+            if valueData[index * valueSize] > 1 do
+                return false
+        }
+
+        return true
+    }
+
+    if Reflection.isStruct(resolvedType)
+    {
+        let typeStruct = assume cast(const *TypeInfoStruct, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            for &field in typeStruct.fields
+            {
+                if not field.pointedType do
+                    return false
+                if not hasValidBooleanValues(field.pointedType, value + field.offset, 1) do
+                    return false
+            }
+        }
+
+        return true
+    }
+
+    if Reflection.isStaticArray(resolvedType)
+    {
+        let typeArray = assume cast(const *TypeInfoArray, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            if not hasValidBooleanValues(typeArray.pointedType, value, typeArray.count) do
+                return false
+        }
+    }
+
+    return true
+}
+
 /*
 Reads the TagBin binary format, which keys every field so a stream survives the evolution of its types.
 
@@ -1235,6 +1288,8 @@ impl TagBin
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
                 if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
+                if not hasValidBooleanValues(vt, bufArr.buffer, countElem[]) do
+                    fail SerializationError{"serialized boolean is not 0 or 1"}
                 bufArr.count = countElem[]
                 return true
             }
@@ -1269,6 +1324,8 @@ impl TagBin
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
                 if not hasValidClosedEnumValues(te, data, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
+                if not hasValidBooleanValues(te, data, countElem[]) do
+                    fail SerializationError{"serialized boolean is not 0 or 1"}
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
@@ -1339,8 +1396,10 @@ impl TagBin
                 switch .convertNextNative.nativeKind
                 {
                 case .Bool:
-                    let v = try .stream.readNative'bool()
-                    return cast(NT, v)
+                    let value = try .stream.readNative'u8()
+                    if value > 1 do
+                        fail SerializationError{"serialized boolean is not 0 or 1"}
+                    return cast(NT, value != 0)
 
                 case .U8:
                     let v = try .stream.readNative'u8()
@@ -1385,6 +1444,14 @@ impl TagBin
                 default:
                     break
                 }
+            }
+
+            #static if NT == bool
+            {
+                let value = try .stream.readNative'u8()
+                if value > 1 do
+                    fail SerializationError{"serialized boolean is not 0 or 1"}
+                return value != 0
             }
 
             return try .stream.readNative'NT()

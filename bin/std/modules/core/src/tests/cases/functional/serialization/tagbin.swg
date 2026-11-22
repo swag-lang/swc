@@ -23,10 +23,23 @@ struct TagBinRawArrayPayload
     values: Array'u32
 }
 
+#[Serialization.Final]
+struct TagBinFinalBoolean
+{
+    value: bool
+}
+
+struct TagBinBooleanPayload
+{
+    scalar:  bool
+    values:  Array'bool
+    records: Array'TagBinFinalBoolean
+}
+
 struct TagBinArrayReallocProbe
 {
-    oldSize:     u64
-    newSize:     u64
+    oldSize:      u64
+    newSize:      u64
     rejectGrowth: bool
     #[Swag.Align(16)]
     storage: [64] u8
@@ -41,8 +54,8 @@ impl Swag.IAllocator for TagBinArrayReallocProbe
 
     mtd impl realloc(request: *Swag.AllocatorRequest)
     {
-        .oldSize = request.oldSize
-        .newSize = request.size
+        .oldSize        = request.oldSize
+        .newSize        = request.size
         request.address = .rejectGrowth ? null : &.storage[0]
     }
 
@@ -537,12 +550,12 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
             let typeSeek = stream.position()
             discard expect stream.readNative'u32()
             let flagsSeek = stream.position()
-            let flags = expect stream.readNative'u8()
+            let flags     = expect stream.readNative'u8()
             if s == shapeId and key == fieldName
             {
-                result.shapeFlags    = flags
+                result.shapeFlags     = flags
                 result.shapeFlagsSeek = flagsSeek
-                result.shapeTypeSeek = typeSeek
+                result.shapeTypeSeek  = typeSeek
 
                 // The matching fat entry holds the payload offset of the field.
                 stream.setPosition(bodyStart + fatOffset + i * #sizeof(u32))
@@ -663,6 +676,30 @@ func corruptTagBinFieldOffset(bytes: String, fieldName: string, offset: u32)->Ar
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(field.fatEntrySeek)
     writer.writeNative(offset)
+    return result
+}
+
+func corruptTagBinBoolean(bytes: String, fieldName: string)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    let field     = findTagBinV1Field(result.toSlice(), fieldName)
+    var valueSeek = field.seek
+    if fieldName != "scalar"
+    {
+        var reader = ByteStream.openRead(result.toSlice())
+        reader.setPosition(field.seek)
+        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Sequence)
+        discard expect reader.readVarint()
+        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Raw)
+        discard expect reader.readVarint()
+        valueSeek = reader.position()
+    }
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(valueSeek)
+    writer.writeNative(2'u8)
     return result
 }
 
@@ -1143,6 +1180,25 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     }
 }
 
+// TagBin rejects invalid Boolean representations in both scalar and raw-array payloads.
+#test
+{
+    var source: TagBinBooleanPayload
+    source.scalar = true
+    source.values.add([true, false])
+    source.records.add(TagBinFinalBoolean{true})
+    let bytes = encodeTagBin(source)
+
+    for fieldName in ["scalar", "values", "records"]
+    {
+        let patched = corruptTagBinBoolean(bytes, fieldName)
+        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        var error:   Swag.Error
+        discard catch decoder.readAll'TagBinBooleanPayload(patched.toSlice()) as error
+        Swag.require(error.value() is Errors.SerializationError)
+    }
+}
+
 // The stream version of a struct is visible from user code during the decode, which is
 // what a deliberate data migration keys on.
 #test
@@ -1468,7 +1524,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     source.values.add(SourceValues)
 
     var bytes = encodeTagBin(source)
-    var probe: TagBinArrayReallocProbe
+    var probe:  TagBinArrayReallocProbe
     var target: TagBinRawArrayPayload
     target.values.allocator = &probe
     target.values.add([1'u32, 2, 3])
@@ -1477,7 +1533,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     probe.rejectGrowth = true
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let reader: Serialization.IDecoder = &decoder
+    let reader:  Serialization.IDecoder = &decoder
     let failed = Swag.catchPanic(func|reader, &bytes, &target|()
     {
         expect reader.start(bytes.toSlice())

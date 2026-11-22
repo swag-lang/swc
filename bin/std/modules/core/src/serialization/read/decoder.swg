@@ -3,8 +3,15 @@
 
 using Swag, Core.Errors
 
-private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
+private func validateDecodedEnumOrBoolean(enumType: typeinfo?, data: [*] void) fail
 {
+    if Reflection.isBool(enumType)
+    {
+        if cast(const *u8, data)[] > 1 do
+            fail SerializationError{"serialized boolean is not 0 or 1"}
+        return
+    }
+
     if not Reflection.isEnum(enumType) or
        Reflection.hasAttribute(enumType, EnumFlags) or
        Reflection.hasAttribute(enumType, Incomplete) do
@@ -14,15 +21,21 @@ private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
 }
 
 // Checks closed enums inside values filled outside the regular field path.
-private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
+private func validateDecodedEnumOrBooleans(dataType: typeinfo?, data: [*] u8) fail
 {
     if not dataType do
         return
 
     let type = Reflection.resolveAliases(dataType)
+    if Reflection.isBool(type)
+    {
+        try validateDecodedEnumOrBoolean(type, data)
+        return
+    }
+
     if Reflection.isEnum(type)
     {
-        try validateDecodedEnumValue(type, data)
+        try validateDecodedEnumOrBoolean(type, data)
         return
     }
 
@@ -35,7 +48,7 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
         var element = unwrap array.buffer
         for array.count
         {
-            try validateDecodedEnumValues(elementType, element)
+            try validateDecodedEnumOrBooleans(elementType, element)
             element += elementType.sizeof
         }
 
@@ -48,7 +61,7 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
         var element   = data
         for arrayType.count
         {
-            try validateDecodedEnumValues(arrayType.pointedType, element)
+            try validateDecodedEnumOrBooleans(arrayType.pointedType, element)
             element += arrayType.pointedType.sizeof
         }
 
@@ -63,8 +76,8 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
             if Reflection.hasAttribute(field, NoSerialize) or
                Reflection.hasAttribute(field.pointedType, NoSerialize) do
                 continue
-            try validateDecodedEnumValues(field.pointedType,
-                                          data + field.offset)
+            try validateDecodedEnumOrBooleans(field.pointedType,
+                                              data + field.offset)
         }
     }
 }
@@ -274,7 +287,7 @@ impl Decoder
                 break
             }
 
-            try validateDecodedEnumValue(enumType, data)
+            try validateDecodedEnumOrBoolean(enumType, data)
 
             return
         }
@@ -284,7 +297,7 @@ impl Decoder
             let crc      = try .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
             cast(*(typeinfo?), data)[] = typeType
-            try validateDecodedEnumValue(enumType, data)
+            try validateDecodedEnumOrBoolean(enumType, data)
             return
         }
 
@@ -347,7 +360,7 @@ impl Decoder
                 strBuf[] = #nodrop try .serializer.readNative'String()
                 strBuf.opPostMove()
 
-                try validateDecodedEnumValue(enumType, data)
+                try validateDecodedEnumOrBoolean(enumType, data)
                 return
             }
 
@@ -369,7 +382,7 @@ impl Decoder
                     }
                 }
 
-                try validateDecodedEnumValue(enumType, data)
+                try validateDecodedEnumOrBoolean(enumType, data)
                 return
             }
 
@@ -380,7 +393,7 @@ impl Decoder
             {
                 if try itf.read(idecoder)
                 {
-                    try validateDecodedEnumValues(type, cast([*] u8, data))
+                    try validateDecodedEnumOrBooleans(type, cast([*] u8, data))
                     return
                 }
             }
@@ -393,7 +406,7 @@ impl Decoder
             {
                 if itf do
                     try itf.postRead(data, idecoder)
-                try validateDecodedEnumValues(type, cast([*] u8, data))
+                try validateDecodedEnumOrBooleans(type, cast([*] u8, data))
                 return
             }
 
@@ -405,7 +418,7 @@ impl Decoder
                 if itf and
                    (try itf.readElement(field.value, fieldData, idecoder))
                 {
-                    catch validateDecodedEnumValues(fieldType, fieldData)
+                    catch validateDecodedEnumOrBooleans(fieldType, fieldData)
                     {
                         if not (.flags & .IgnoreStructFieldError) do
                             fail Swag.err
@@ -447,7 +460,7 @@ impl Decoder
             if itf
             {
                 try itf.postRead(data, idecoder)
-                try validateDecodedEnumValues(type, cast([*] u8, data))
+                try validateDecodedEnumOrBooleans(type, cast([*] u8, data))
             }
 
             return
@@ -463,7 +476,7 @@ impl Decoder
             defer #nofail try .serializer.endSequence()
             if treated
             {
-                try validateDecodedEnumValue(enumType, data)
+                try validateDecodedEnumOrBoolean(enumType, data)
                 return
             }
 
@@ -474,7 +487,7 @@ impl Decoder
                 bufArr += elemType.sizeof
             }
 
-            try validateDecodedEnumValue(enumType, data)
+            try validateDecodedEnumOrBoolean(enumType, data)
             return
         }
     }

@@ -45,7 +45,7 @@ struct RichEditCtrl
         flags = RichEditFlags.None                           // Active editor behavior flags.
         lineSpacing:              f32                        // Extra vertical spacing, in logical pixels, between display lines.
         overwriteMode:            bool                       // Whether typed text replaces the rune under the caret.
-        tabSize:                  s32 = 4                    // Width of a tab stop in space advances.
+        tabSize:                  s32 = 4                    // Tab width in spaces; values below one act as one.
         marginLeft:               f32                        // Blank space between the view and the left text edge.
         marginRight:              f32                        // Blank space between the right text edge and the view.
         lexer:                    IRichEditLexer?            // Optional lexer responsible for assigning style indices.
@@ -117,6 +117,8 @@ private impl IWnd for RichEditCtrl
 
 private impl RichEditCtrl
 {
+    internal mtd effectiveTabSize()->s32 => Math.max(.tabSize, 1)
+
     internal mtd leftMargin()->f32 => .marginLeft + .gutterWidth()
 
     // Width of the line-number gutter: the widest number, never fewer than three digits so a short

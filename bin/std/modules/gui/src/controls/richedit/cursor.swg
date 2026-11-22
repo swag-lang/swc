@@ -178,7 +178,7 @@ impl RichEditCtrl
         let fontR     = .font().getFont(.styles[0].fontMode)
         let font      = nnFont(fontR)
         let sizeBlank = Painter.measureRune(' ', font)
-        let sx        = cast(s32, (sizeBlank.x * .tabSize))
+        let sx        = cast(s32, (sizeBlank.x * .effectiveTabSize()))
 
         var tab = (of / sx) * sx
         tab = of - tab

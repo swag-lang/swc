@@ -253,7 +253,7 @@ impl RichEditCtrl
         elif c == '\t' and .flags.has(.TabToSpaces)
         {
             let line = unwrap .lines[cp.lineIndex]
-            for .tabSize
+            for .effectiveTabSize()
             {
                 let posIns = Math.min(cp.charPosInLine, line.length())
                 line.insertRune(posIns, ' ', txtStyle)
@@ -840,11 +840,12 @@ public impl RichEditCtrl
                 if Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                 {
                     // X is the request position
-                    var charPt = .cursorDisplayPosition(beg)
-                    var x      = cast(f32, .tabAdvance(cast(s32, charPt.x)))
-                    x = (.tabSize * size.x) - x
+                    var charPt  = .cursorDisplayPosition(beg)
+                    var x       = cast(f32, .tabAdvance(cast(s32, charPt.x)))
+                    let tabSize = .effectiveTabSize()
+                    x = (tabSize * size.x) - x
                     if x == 0 do
-                        x = .tabSize * size.x
+                        x = tabSize * size.x
                     x = charPt.x - x
 
                     while charPt.x > x and

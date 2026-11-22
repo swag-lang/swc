@@ -271,6 +271,32 @@ using Swag, Core
     Swag.require(ed.selectedText() == "foo")
 }
 
+// A nonpositive tab size behaves like one column in layout, navigation, and tab-to-spaces editing.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setText("\t")
+    ed.tabSize = 0
+    let tabEnd = ed.cursorDisplayPosition({0, 1}).x
+
+    ed.tabSize = 1
+    Swag.require(tabEnd == ed.cursorDisplayPosition({0, 1}).x)
+
+    ed.tabSize = 0
+    ed.setCursorPos({0, 0})
+    ed.executeCommand(.CursorRight)
+    Swag.require(ed.cursorLogicalCharPos() == 1)
+    Swag.require(ed.cursorDisplayPosition(ed.cursorPos).x == tabEnd)
+
+    ed.clear()
+    ed.setFlags(.TabToSpaces)
+    ed.insertRune('\t')
+    Swag.require(ed.text() == " ")
+}
+
 // insertText at the cursor, with undo/redo.
 #test
 {

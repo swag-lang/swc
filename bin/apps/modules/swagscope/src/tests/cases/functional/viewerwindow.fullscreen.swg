@@ -16,6 +16,7 @@ using Core, Gui
     Swag.require(button.surfaceRect().right() <= host.surfaceWnd.minimizeBtn!.surfaceRect().x)
 
     host.clickWnd(button)
+    host.pumpPostedEvents()
     Swag.require(window.fullScreen and not button.isLocallyVisible())
     host.keyPress(.Escape)
     Swag.require(not window.fullScreen and button.isVisible())
@@ -33,6 +34,7 @@ using Core, Gui
     let button = window.fullScreenCaptionButton
     Swag.require(button.isVisible())
     host.clickWnd(button)
+    host.pumpPostedEvents()
     Swag.require(window.fullScreen)
     host.keyPress(.Escape)
 
@@ -44,6 +46,7 @@ using Core, Gui
     completeExplorer(&host, explorer)
     Swag.require(window.isExploring() and button.isVisible())
     host.clickWnd(button)
+    host.pumpPostedEvents()
     Swag.require(window.fullScreen)
     host.keyPress(.Escape)
     Swag.require(window.isExploring() and not window.fullScreen and button.isVisible())

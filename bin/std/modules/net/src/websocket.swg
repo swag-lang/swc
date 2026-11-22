@@ -245,7 +245,7 @@ impl WebSocket
                 return line
             }
 
-            if value == '\n' or value < ' ' or value == 0x7F do
+            if value == '\n' or (value < ' ' and value != '\t') or value == 0x7F do
                 fail Errors.InvalidFormatError{"HTTP upgrade line contains a control character"}
             line.append(value)
         }

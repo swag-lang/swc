@@ -108,7 +108,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let caption = window.outlineCaptionButton
     Swag.require(caption.isLocallyVisible() and caption.icon.isValid() and not caption.isChecked)
     Swag.require(window.currentSidePanelButton!.id == OutlineToggleId)
-    let actions = [caption, window.viewerCaptionButton, window.informationCaptionButton, window.fullScreenCaptionButton]
+    let actions = [window.viewerCaptionButton, window.informationCaptionButton, window.fullScreenCaptionButton]
     for i in actions.count - 1 do
         Swag.require(actions[i].position.right() <= actions[i + 1].position.x)
     Swag.require(window.fullScreenCaptionButton.position.right() <= window.appearanceButton.position.x)
@@ -116,18 +116,20 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     caption.button.sigPressed.call(caption.button)
     host.pumpPostedEvents()
     Swag.require(caption.isChecked and caption.checkIndicator == .Frame)
-    Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(1),
-                 Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(1)).toString())
+    Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(ViewerWindow.LeftPanelIndex))
+    Swag.require(window.mainSplitter.items[ViewerWindow.LeftPanelIndex]!.view == window.currentSidePanelHost)
+    window.sendCommandEvent(ViewerCommands.Information)
+    Swag.require(window.infoSheet.isLocallyVisible() and window.mainSplitter.isPaneVisible(ViewerWindow.LeftPanelIndex))
     host.focus(outline.list.listView)
     host.keyPress(.O, Input.KeyModifiers.Control | .Shift)
     Swag.require(not caption.isChecked and
                  not outline.toggle.isChecked and
-                 not window.mainSplitter.isPaneVisible(1))
+                 not window.mainSplitter.isPaneVisible(ViewerWindow.LeftPanelIndex))
     caption.button.sigPressed.call(caption.button)
     host.pumpPostedEvents()
     outline.toggle.setChecked(false)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
-    Swag.require(not caption.isChecked and not window.mainSplitter.isPaneVisible(1))
+    Swag.require(not caption.isChecked and not window.mainSplitter.isPaneVisible(ViewerWindow.LeftPanelIndex))
 }
 
 #test

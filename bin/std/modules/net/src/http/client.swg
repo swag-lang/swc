@@ -140,9 +140,9 @@ private func isValidRequestPath(path: string)->bool
 
 private struct ResponseHeaderParser
 {
-    lastHeaderIndex: u64
-    locationSeen:    bool
-    overflow:        bool
+    lastHeaderIndex:     u64
+    locationHeaderIndex: u64
+    overflow:            bool
 }
 
 private func appendResponseHeader(response: *Response, parser: *ResponseHeaderParser, line: string)->bool
@@ -175,9 +175,7 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
         if not header.value.isEmpty() do
             header.value += " "
         header.value += value
-        if parser.locationSeen and
-           header.name.count == 8 and
-           Utf8.indexOf(header.name, "location", 0, .Latin1NoCase) == 0
+        if parser.lastHeaderIndex == parser.locationHeaderIndex
         {
             if response.location.count + 1 + value.count > 4096
             {
@@ -219,7 +217,7 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
     parser.lastHeaderIndex = response.headers.count - 1
     if name.count == 8 and
        Utf8.indexOf(name, "location", 0, .Latin1NoCase) == 0 and
-       not parser.locationSeen
+       parser.locationHeaderIndex == Swag.U64.Max
     {
         if value.count > 4096
         {
@@ -227,8 +225,8 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
             return false
         }
 
-        response.location   = String.from(value)
-        parser.locationSeen = true
+        response.location = String.from(value)
+        parser.locationHeaderIndex = response.headers.count - 1
     }
 
     return true
@@ -238,7 +236,8 @@ private func parseResponseHeaders(raw: string, response: *Response) fail
 {
     if raw.count > 65536 do
         fail Errors.OverflowError{}
-    var parser    = ResponseHeaderParser{lastHeaderIndex: Swag.U64.Max}
+    var parser = ResponseHeaderParser{lastHeaderIndex: Swag.U64.Max,
+                                      locationHeaderIndex: Swag.U64.Max}
     var inHeaders = false
     var lineStart = 0'u64
     var index     = 0'u64
@@ -251,8 +250,8 @@ private func parseResponseHeaders(raw: string, response: *Response) fail
             {
                 response.headers.clear()
                 response.location.clear()
-                parser.lastHeaderIndex = Swag.U64.Max
-                parser.locationSeen    = false
+                parser.lastHeaderIndex     = Swag.U64.Max
+                parser.locationHeaderIndex = Swag.U64.Max
                 inHeaders = true
             }
             elif line == "\r\n" or line == "\n"

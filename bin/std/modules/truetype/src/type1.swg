@@ -268,8 +268,13 @@ func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Ar
         return result
     }
 
-    // Exactly one space separates the operator from the binary that follows it.
-    let start = token.next + 1
+    // CRLF is one PostScript line separator; preserve any following binary whitespace.
+    var start = token.next + 1
+    if token.next < data.count and
+       data[token.next] == '\r' and
+       token.next + 1 < data.count and
+       data[token.next + 1] == '\n' do
+        start += 1
     if start + size > data.count
     {
         result.next = data.count

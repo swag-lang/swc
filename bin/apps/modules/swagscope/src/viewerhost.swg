@@ -205,15 +205,19 @@ impl Viewer.Host for ViewerPluginHost
         return .session.commands
     }
 
-    mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true)->Viewer.SidePanel
+    mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string, floatingSurface = true, placement = Viewer.SidePanelPlacement.Right)->Viewer.SidePanel
     {
         Swag.assert(.session.sidePanelHost == null)
         Swag.assert(width > 0)
 
         let gutter     = .sidePanelParent.themeMetrics().floating_Inset
         var panelWidth = width
-        if .window and .window.rightPanelWidth > 0 do
-            panelWidth = .window.rightPanelWidth
+        if .window
+        {
+            let savedWidth = placement == .Left ? .window.leftPanelWidth : .window.rightPanelWidth
+            if savedWidth > 0 do
+                panelWidth = savedWidth
+        }
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
 
         // The floating inset stands the panel away from the edges of the window, beside the work.
@@ -221,7 +225,7 @@ impl Viewer.Host for ViewerPluginHost
         {
             .dockStyle       = .None
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{0, 0, gutter, gutter}
+            .padding         = placement == .Left ? Math.Vector4{gutter, 0, 0, gutter} : Math.Vector4{0, 0, gutter, gutter}
             .hide()
         }
 
@@ -256,7 +260,7 @@ impl Viewer.Host for ViewerPluginHost
         if .sideSplitter
         {
             let splitter: *SplitterCtrl = .sideSplitter
-            let paneIndex = .sidePaneIndex
+            let paneIndex = placement == .Left ? 0 : .sidePaneIndex
             .session.sidePanelItem      = unwrap splitter.items[paneIndex]
             .session.sidePanelItem.size = panelWidth + gutter
             .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)

@@ -2,6 +2,17 @@
 
 using Swag, Core
 
+#test
+{
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(9)
+    faceData.syntheticCMap.add('A'u32, 8)
+    faceData.syntheticCMap.add('B'u32, 9)
+
+    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 8)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'B'u32) == 0)
+}
+
 func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
 {
     var cmap: #returntype
@@ -258,6 +269,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     var faceData: FaceImpl
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(22)
 
     discard expect parseCMap(&faceData, false)
     Swag.require(faceData.cmapFormat == 8)
@@ -270,6 +282,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     var unflagged: FaceImpl
     unflagged.fontData.add(withoutFlag.toSlice())
     unflagged.tables.add({tag: TAG_CMAP, length: cast(u32, withoutFlag.count)})
+    unflagged.face.setGlyphCount(22)
     discard expect parseCMap(&unflagged, false)
     Swag.require(expect lookupGlyphIndex(&unflagged, 0x1F600) == 0)
 
@@ -278,8 +291,48 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     var malformed: FaceImpl
     malformed.fontData.add(malformedCmap.toSlice())
     malformed.tables.add({tag: TAG_CMAP, length: cast(u32, malformedCmap.count)})
+    malformed.face.setGlyphCount(22)
     var rejected: Swag.Error
     discard catch parseCMap(&malformed, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+// Format-8 groups must be ordered, encode valid BMP values or surrogate pairs,
+// and map only glyphs present in the face.
+#test
+{
+    var cmap        = makeCmap8Fixture(true)
+    let groupOffset = 12'u64 + 8208 + 12
+
+    // The second group's start overlaps the first group's end.
+    writeBigU32(&cmap, groupOffset, 'C'u32)
+    writeBigU32(&cmap, groupOffset + 4, 'C'u32)
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(22)
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    cmap     = makeCmap8Fixture(true)
+    writeBigU32(&cmap, groupOffset + 4, 0xD83D_D800)
+    var invalidPair: FaceImpl
+    invalidPair.fontData.add(cmap.toSlice())
+    invalidPair.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    invalidPair.face.setGlyphCount(22)
+    rejected = {}
+    discard catch parseCMap(&invalidPair, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    cmap  = makeCmap8Fixture(true)
+    writeBigU32(&cmap, groupOffset + 8, 21)
+    var missingGlyph: FaceImpl
+    missingGlyph.fontData.add(cmap.toSlice())
+    missingGlyph.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    missingGlyph.face.setGlyphCount(22)
+    rejected = {}
+    discard catch parseCMap(&missingGlyph, false) as rejected
     Swag.require(rejected.value() != null)
 }
 
@@ -471,6 +524,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     var faceData: FaceImpl
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(10)
 
     discard expect parseCMap(&faceData, false)
     Swag.require(faceData.cmapFormat == 10)
@@ -484,6 +538,15 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     var rejected: Swag.Error
     discard catch parseCMap(&malformed, false) as rejected
     Swag.require(rejected.value() != null)
+
+    // A mapped index outside the face resolves to the conventional missing glyph.
+    writeBigU32(&cmap, 28, 3)
+    var invalidGlyph: FaceImpl
+    invalidGlyph.fontData.add(cmap.toSlice())
+    invalidGlyph.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    invalidGlyph.face.setGlyphCount(9)
+    discard expect parseCMap(&invalidGlyph, false)
+    Swag.require(expect lookupGlyphIndex(&invalidGlyph, 0x1F602) == 0)
 }
 
 // The subtable format outranks the platform score, so a Macintosh format-4 record

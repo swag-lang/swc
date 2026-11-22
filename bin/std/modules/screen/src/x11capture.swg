@@ -490,15 +490,9 @@ impl X11Capture
     {
         var result: #returntype
         let connection = unwrap .connection
-        if x < 0 or
-           y < 0 or
-           x > 32767 or
-           y > 32767 or
-           width <= 0 or
-           height <= 0 or
-           cast(s64, x) + width > .screen.width_in_pixels or
-           cast(s64, y) + height > .screen.height_in_pixels do
-            fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
+        try validateCaptureRect({x, y, width, height, drawCursor},
+                                .screen.width_in_pixels,
+                                .screen.height_in_pixels)
         let library       = unwrap .library
         let get           = try symbol'Linux.xcb_get_image_fn(library, "xcb_get_image")
         let reply         = try symbol'Linux.xcb_get_image_reply_fn(library, "xcb_get_image_reply")

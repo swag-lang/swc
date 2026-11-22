@@ -350,11 +350,20 @@ impl ViewerWindow
         .updateViewerBar()
     }
 
-    // Moves the host-owned panel toggle with the viewer it belongs to. The toggle stays off the
-    // window: the lens names it after its panel and turns it, and its panel takes the right-side
-    // lane while it is on. An outline also has a direct action in the caption strip.
+    // Moves the host-owned panel toggle with the viewer it belongs to. The lens names it after
+    // its panel and turns it on; the outline uses the left lane while other viewer panels use the
+    // right lane.
     private mtd setCurrentSidePanel(panel: *Wnd?, button: *IconButton?)
     {
+        if .currentSidePanelButton
+        {
+            let oldLeft = .currentSidePanelButton.id == OutlineToggleId
+            let oldIndex = oldLeft ? LeftPanelIndex : RightPanelIndex
+            let oldPlaceholder = oldLeft ? .outlinePanelPlaceholder : .sidePanelPlaceholder
+            .mainSplitter.items[oldIndex]!.view.hide()
+            .mainSplitter.items[oldIndex]!.view = oldPlaceholder
+            .mainSplitter.setPaneVisible(oldIndex, false)
+        }
         .currentSidePanelHost?.hide()
         .currentSidePanelButton?.hide()
         .currentSidePanelHost   = panel
@@ -365,11 +374,14 @@ impl ViewerWindow
         .updateDocumentInsets()
 
         let visible = button and button.isChecked and not .fullScreen
-        .mainSplitter.items[1]!.view = panel orelse .sidePanelPlaceholder
-        .mainSplitter.items[1]!.view.show(visible)
-        .mainSplitter.setPaneVisible(1, visible)
+        let left    = button and button.id == OutlineToggleId
+        let index   = left ? LeftPanelIndex : RightPanelIndex
+        let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
+        .mainSplitter.items[index]!.view = panel orelse placeholder
+        .mainSplitter.items[index]!.view.show(visible)
+        .mainSplitter.setPaneVisible(index, visible)
         if visible do
-            .mainSplitter.setPaneSize(1, .mainSplitter.items[1]!.size)
+            .mainSplitter.setPaneSize(index, .mainSplitter.items[index]!.size)
         .mainSplitter.applyLayout()
         .layoutFileInfo()
     }
@@ -679,7 +691,7 @@ impl ViewerWindow
             .documentParent  = me.documentPanel
             .sidePanelParent = splitter
             .sideSplitter    = splitter
-            .sidePaneIndex   = 1
+            .sidePaneIndex   = 2
             .actionParent    = me.readingLine
             .infoParent      = me.readingLine
             .commandParent   = me.viewerBar

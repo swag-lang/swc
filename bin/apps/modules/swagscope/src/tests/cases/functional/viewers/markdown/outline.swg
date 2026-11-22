@@ -5,6 +5,46 @@ using Core, Gui, Gui.Testing, Viewers
 
 const SectionCount = 24'u64
 
+func requireMarkdownOutlinePalette(light: bool)
+{
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {}
+
+    let fileName = Testing.tempFilePath("scope-markdown-palette-", ".md")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "# First section\n\n## A heading\n\nA paragraph.\n")
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    if light do
+        host.theme.setLight()
+    host.notify(.ThemeChanged)
+    var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*Markdown.View, session.view)
+    let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
+    let outline = unwrap zoom.outline
+    let colors  = host.app.theme.colors
+
+    for themeIndex in 6
+    {
+        MarkdownText.applyViewerStyle(view, themeIndex, 1)
+        Swag.require(outline.themeColors().view_Bk == colors.view_Bk)
+        Swag.require(outline.list.themeColors().listItem_Text == colors.label_Text)
+        Swag.require(outline.filterBox.themeColors().edit_Text == colors.label_Text)
+        Swag.require(outline.filterBox.themeColors().edit_FocusBk == colors.edit_FocusBk)
+        Swag.require(themeIndex == 0 ? view.themeColors().view_Bk == colors.view_Bk :
+                                      view.themeColors().view_Bk != colors.view_Bk)
+    }
+}
+
+// All Markdown reading appearances remain independent from the application's Encre and Papier palettes.
+#test
+{
+    requireMarkdownOutlinePalette(false)
+    requireMarkdownOutlinePalette(true)
+}
+
 // Writes a document of numbered sections long enough to scroll, and returns where each begins.
 func writeSections(fileName: string)->Array'u64
 {
@@ -274,7 +314,8 @@ func sectionAt(offsets: const [..] u64, reading: u64)->u64
     let view    = assume cast(*Markdown.View, session.view)
     let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
     Swag.require(zoom.statisticsLoad.isPending())
-    Swag.require(zoom.outline!.list.themeColors().listItem_Text == view.themeColors().label_Text)
+    Swag.require(zoom.outline!.list.themeColors().listItem_Text == host.app.theme.colors.label_Text)
+    Swag.require(view.themeColors().view_Bk != host.app.theme.colors.view_Bk)
     completeViewerBackgroundLoad(&host, &zoom.statisticsLoad)
 }
 

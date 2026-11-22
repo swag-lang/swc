@@ -25,8 +25,18 @@ func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
 
 func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32) fail
 {
-    let contourCount = cast(u32, peekS16(glyphData, 0))
+    if glyphData.count < 10 do
+        try fault(0x14)
+
+    let signedContourCount = peekS16(glyphData, 0)
+    if signedContourCount < 0 do
+        try fault(0x14)
+
+    let contourCount = cast(u32, signedContourCount)
     var offset       = 10'u64
+    if cast(u64, contourCount) > (glyphData.count - offset) / 2 do
+        try fault(0x14)
+
     var contourEnds: Array'u16
     contourEnds.resize(contourCount)
     var previousEnd = 0'u16
@@ -40,21 +50,33 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         offset             += 2
     }
 
-    let pointCount        = contourCount ? contourEnds.back() + 1 : 0
+    let pointCount        = contourCount ? cast(u32, contourEnds.back()) + 1 : 0
+    if offset > glyphData.count or glyphData.count - offset < 2 do
+        try fault(0x14)
     let instructionLength = peekU16(glyphData, offset)
-    offset += 2 + instructionLength
+    offset += 2
+    if instructionLength > glyphData.count - offset do
+        try fault(0x14)
+    offset += instructionLength
+
+    if pointCount and offset >= glyphData.count do
+        try fault(0x14)
 
     var flags: Array'u8
     flags.resize(pointCount)
     var i = 0'u32
     while i < pointCount
     {
+        if offset >= glyphData.count do
+            try fault(0x14)
         let flag = peekU8(glyphData, offset)
         offset   += 1
         flags[i] = flag
         i        += 1
         if (flag & 0x08) != 0
         {
+            if offset >= glyphData.count do
+                try fault(0x14)
             let repeat = peekU8(glyphData, offset)
             offset += 1
             if cast(u32, repeat) > pointCount - i do
@@ -66,6 +88,22 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
             }
         }
     }
+
+    var coordinateBytes = 0'u64
+    for flag in flags
+    {
+        if (flag & 0x02) != 0 do
+            coordinateBytes += 1
+        elif (flag & 0x10) == 0 do
+            coordinateBytes += 2
+
+        if (flag & 0x04) != 0 do
+            coordinateBytes += 1
+        elif (flag & 0x20) == 0 do
+            coordinateBytes += 2
+    }
+    if coordinateBytes > glyphData.count - offset do
+        try fault(0x14)
 
     var xs: Array's32
     xs.resize(pointCount)
@@ -199,6 +237,13 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
         try appendGlyph(faceData, componentIdx, xPpem, yPpem, depth + 1)
 
         let addedPointCount = faceData.outlinePoints.count - basePointCount
+        if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and
+           (arg1 < 0 or
+            arg2 < 0 or
+            cast(u32, arg1) >= basePointCount - compositePointStart or
+            cast(u32, arg2) >= addedPointCount) do
+            try fault(0x14)
+
         if addedPointCount
         {
             var dx = 0.0
@@ -219,11 +264,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
                 faceData.outlinePoints[idx].y = cast(s32, Math.round(tx * yx + ty * yy))
             }
 
-            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0 and
-               arg1 >= 0 and
-               arg2 >= 0 and
-               cast(u32, arg1) < basePointCount - compositePointStart and
-               cast(u32, arg2) < addedPointCount
+            if (flags & CMP_ARGS_ARE_XY_VALUES) == 0
             {
                 let anchorParent = faceData.outlinePoints[compositePointStart + cast(u32, arg1)]
                 let anchorChild  = faceData.outlinePoints[basePointCount + arg2]

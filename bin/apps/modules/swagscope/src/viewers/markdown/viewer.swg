@@ -306,29 +306,7 @@ func viewerColors(themeIndex: u32)->String
     default: colors = GitHubColors
     }
 
-    // Document-owned navigation uses the same ink and ground as its paragraphs.
-    const NavigationColors = """text                       $label_Text
-                               softText                   $label_TextLight
-                               faintText                  $label_TextFaint
-                               line                       $edit_Border
-                               arc                        $url_Text
-                               ground                     $view_Bk
-                               listItem_Text              $label_Text
-                               listItem_SelectedText      $label_Text
-                               listItem_FocusSelectedText $label_Text
-                               listItem_SelectedBk        $edit_SelectedBk
-                               listItem_FocusSelectedBk   $edit_SelectedBk
-                               listItem_HotBk             $edit_SelectedBk
-                               edit_Text                  $label_Text
-                               edit_Note                  $label_TextFaint
-                               edit_Caret                 $label_Text
-                               edit_FocusBorder           $label_Text
-                               edit_FocusBk               $view_Bk
-                               edit_HotBk                 $view_Bk
-                               edit_HotBorder             $label_TextLight
-                               btnIcon_Icon               $label_TextFaint
-                               btnIcon_HotIcon            $label_Text"""
-    return Format.toString("%\n%", colors, NavigationColors)
+    return colors
 }
 
 // Styles `view` with one appearance and reading measure, scaled by `zoomPercent`.
@@ -403,12 +381,6 @@ impl IWnd for ZoomButton
 
 impl ZoomButton
 {
-    // Gives the outline beside the document the colors of the document's appearance.
-    mtd applyReadingColors()
-    {
-        .outline?.setReadingColors(viewerColors(g_ViewerSettings.themeIndex))
-    }
-
     mtd reportStatistics()
     {
         if not .hasStatistics
@@ -579,7 +551,6 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
                          {
                              g_ViewerSettings.themeIndex = index
                              applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
-                             zoom.applyReadingColors()
                              zoom.services.informationChanged(view)
                              catch g_App.saveState()
                          })
@@ -628,7 +599,6 @@ func createViewer(host: Viewer.Host)
         // The headings are read as the outline first opens: the view and its counts already read
         // the source, and most documents, and every thumbnail, are read without an outline.
         .outline.bindMarkdown(view, host.fileName())
-        .applyReadingColors()
     }
 
     optionsButton.sigPressed += func|view, zoomButton|(button)

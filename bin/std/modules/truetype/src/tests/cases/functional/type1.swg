@@ -2,19 +2,27 @@
 
 using Swag, Core
 
-func buildBinaryType1Fixture(firstCipher: const [4] u8, hexEncoded: bool = false)->Array'u8
+func buildBinaryType1Fixture(
+    firstCipher: const [4] u8,
+    hexEncoded: bool = false,
+    rdSeparator: string = " ",
+    firstNotDefByte: u8 = 139
+)->Array'u8
 {
     const ClearHeader: string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
-    const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD "
-    const ClearBetweenGlyphs: string = " ND\n/A 4 RD "
+    const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD"
+    const ClearBetweenGlyphs: string = " ND\n/A 4 RD"
     const ClearPrivateSuffix: string = " ND\nend\n"
-    const NotDefCharstring: [4] u8 = [139, 139, 13, 14]
+    var notDefCharstring: [4] u8 = [139, 139, 13, 14]
     const ACharstring: [4] u8 = [139, 189, 13, 14]
+    notDefCharstring[0] = firstNotDefByte
 
     var plain: Array'u8
     plain.add(cast(const [..] u8, ClearPrivatePrefix))
-    plain.add(NotDefCharstring)
+    plain.add(cast(const [..] u8, rdSeparator))
+    plain.add(notDefCharstring)
     plain.add(cast(const [..] u8, ClearBetweenGlyphs))
+    plain.add(cast(const [..] u8, rdSeparator))
     plain.add(ACharstring)
     plain.add(cast(const [..] u8, ClearPrivateSuffix))
 
@@ -71,6 +79,32 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8, hexEncoded: bool = false
 
     let pfa = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix, true).toSlice())
     Swag.require(pfa.glyphNames.count == 2)
+}
+
+// CRLF after RD is consumed as one separator without discarding binary bytes.
+#test
+{
+    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    let bytes = buildBinaryType1Fixture(BinaryPrefix, rdSeparator: "\r\n")
+    let font  = expect parseType1Font(bytes.toSlice())
+
+    Swag.require(font.charstrings[0].count == 4)
+    Swag.require(font.charstrings[0][0] == 139 and font.charstrings[0][1] == 139)
+    Swag.require(font.charstrings[0][2] == 13 and font.charstrings[0][3] == 14)
+    Swag.require(font.charstrings[1].count == 4)
+    Swag.require(font.charstrings[1][0] == 139 and font.charstrings[1][1] == 189)
+    Swag.require(font.charstrings[1][2] == 13 and font.charstrings[1][3] == 14)
+}
+
+// A lone separator leaves a whitespace-valued first charstring byte untouched.
+#test
+{
+    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    let bytes = buildBinaryType1Fixture(BinaryPrefix, firstNotDefByte: '\n')
+    let font  = expect parseType1Font(bytes.toSlice())
+
+    Swag.require(font.charstrings[0].count == 4)
+    Swag.require(font.charstrings[0][0] == '\n')
 }
 
 #test

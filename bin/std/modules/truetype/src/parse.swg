@@ -302,6 +302,48 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             let groupCount = try readU32(subTable, 8204)
             if cast(u64, groupCount) > (subTable.count - 8208) / 12 do
                 try fault(0x03)
+
+            var previousEndCode = 0'u32
+            var hasPrevious     = false
+            for index in groupCount
+            {
+                let base       = 8208'u64 + cast(u64, index) * 12
+                let startCode  = try readU32(subTable, base)
+                let endCode    = try readU32(subTable, base + 4)
+                let startGlyph = try readU32(subTable, base + 8)
+                let startsInBmp = startCode <= 0xFFFF
+                let endsInBmp   = endCode <= 0xFFFF
+
+                if startCode > endCode or
+                   (hasPrevious and startCode <= previousEndCode) or
+                   startsInBmp != endsInBmp do
+                    try fault(0x03)
+
+                if startsInBmp
+                {
+                    if startCode <= 0xDFFF and endCode >= 0xD800 do
+                        try fault(0x03)
+                }
+                else
+                {
+                    let startHigh = startCode >> 16
+                    let endHigh   = endCode >> 16
+                    let startLow  = startCode & 0xFFFF
+                    let endLow    = endCode & 0xFFFF
+                    if startHigh < 0xD800 or startHigh > 0xDBFF or
+                       endHigh < 0xD800 or endHigh > 0xDBFF or
+                       startLow < 0xDC00 or startLow > 0xDFFF or
+                       endLow < 0xDC00 or endLow > 0xDFFF do
+                        try fault(0x03)
+                }
+
+                let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
+                if lastGlyph >= faceData.face.glyphCount do
+                    try fault(0x03)
+
+                previousEndCode = endCode
+                hasPrevious     = true
+            }
         }
 
         if format == 14
@@ -611,8 +653,14 @@ func countFacesIn(data: const [..] u8)->u32 fail
 {
     if data.count < 12 do
         fault(0x02)
-    if readU32(data, 0) == TAG_TTCF do
-        return readU32(data, 8)
+    if readU32(data, 0) == TAG_TTCF
+    {
+        let faceCount = readU32(data, 8)
+        if not faceCount do
+            fault(0x02)
+        assertRange(data, 12, cast(u64, faceCount) * 4)
+        return faceCount
+    }
     if readU32(data, 0) == TAG_WOFF
     {
         discard readWoffDirectory(data)

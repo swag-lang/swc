@@ -3,6 +3,23 @@
 
 using Swag
 
+// A zero back-reference window is invalid even when a stream has no matches.
+#test
+{
+    const Input: [5] u8 = [0x11, 0x22, 0x33, 0x44, 0x55]
+    var deflater: Compress.Deflate
+    deflater.init(.NoCompression)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, Input)
+
+    var inflater:     Compress.Inflate
+    var decoded:      Array'u8
+    var errorOutcome: Swag.Error
+    catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 0) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.BadParameterError)
+    Swag.require(decoded.isEmpty())
+}
+
 // Round-trip through Deflate -> Inflate (with the zlib header + adler32 trailer).
 // Exercises the bulk-refill fast path and the post-stream checksum read.
 #test

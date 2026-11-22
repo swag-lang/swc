@@ -36,22 +36,34 @@ impl ScreenFrameSource
         return result
     }
 
+    private mtd replaceSource() fail
+    {
+        let replacement = Memory.new'Screen.Source()
+        catch
+        {
+            replacement[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})
+        }
+        {
+            Memory.delete(replacement)
+            fail Swag.err
+        }
+
+        Memory.delete(.source)
+        .source  = replacement
+        .sourceX = .x
+        .sourceY = .y
+    }
+
     // Writes bottom-up BGRA8 into `target`, retaining its allocation at a fixed size.
     mtd grabInto(target: *Image, copyUnchanged: bool = true) fail
     {
-        discard copyUnchanged
-        .fresh = true
+        .fresh = false
         if .x != .sourceX or .y != .sourceY
         {
-            Memory.delete(.source)
-            .source   = null
-            .source   = Memory.new'Screen.Source()
-            .source[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})
-            .sourceX  = .x
-            .sourceY  = .y
+            try .replaceSource()
         }
 
-        discard try .source!.grabInto(target)
+        .fresh = try .source!.grabInto(target, copyUnchanged: copyUnchanged)
     }
 
     // Reconnects after the display server or its capture connection is lost.
@@ -59,12 +71,7 @@ impl ScreenFrameSource
     {
         if .x != .sourceX or .y != .sourceY
         {
-            Memory.delete(.source)
-            .source   = null
-            .source   = Memory.new'Screen.Source()
-            .source[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})
-            .sourceX  = .x
-            .sourceY  = .y
+            try .replaceSource()
         }
         else
         {

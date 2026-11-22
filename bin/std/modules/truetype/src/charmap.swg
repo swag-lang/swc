@@ -12,7 +12,7 @@ public struct CharMap
     public readonly
     {
         late face:  *Face     // Borrowed pointer to the owning face.
-        encoding:   u32       // Four-byte encoding tag, or zero for the selected Unicode map.
+        encoding:   u32       // Reserved four-byte encoding tag; currently zero.
         platformID: u16       // TrueType platform identifier.
         encodingID: u16       // Platform-specific encoding identifier.
     }

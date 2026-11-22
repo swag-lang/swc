@@ -281,7 +281,8 @@ public impl Face
     // The face owns a private copy of `bytes`, so the input may be released after
     // this call. Success returns a non-null face. Release the returned pointer with
     // [[TrueType.Face.destroy]]. When `allocator` is null, the allocator active at the
-    // start of the call owns the face allocation.
+    // start of the call owns the face allocation. A supplied allocator must remain alive
+    // until the face is destroyed.
     //
     // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
     // or a `ttcf` collection, of which the first face is taken; use
@@ -513,10 +514,11 @@ public impl Face
 
     // Returns horizontal kerning between two glyph indices in font design units.
     //
-    // The result does not depend on pixel size and can be queried before setting one.
-    // GPOS pair adjustment takes priority, with the legacy `kern` table filling pairs
-    // for which the supported GPOS pair lookups return zero. Missing pairs and invalid
-    // glyph indices return zero.
+    // GPOS adjustments accumulate in LookupList order, with the first matching pair
+    // subtable selected within each lookup. The result does not depend on pixel size
+    // and can be queried before setting one. Values outside the `s16` range are clamped.
+    // The legacy `kern` table fills pairs for which supported GPOS lookups return zero.
+    // Missing pairs and invalid glyph indices return zero.
     mtd const getKerningDesignUnits(leftGlyph, rightGlyph: u32)->s16
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
@@ -525,8 +527,10 @@ public impl Face
 
     // Returns horizontal kerning between two glyph indices.
     //
-    // The x component uses 26.6 fixed-point pixels at the active size. Both
-    // components are zero when either index is missing or the pair has no adjustment.
+    // The x component uses 26.6 fixed-point pixels at the active size. GPOS lookup
+    // adjustments accumulate before scaling, with the design-unit total clamped to
+    // `s16`. Both components are zero when either index is missing or the pair has no
+    // adjustment.
     //
     // The `GPOS` `kern` feature answers first, and the legacy `kern` table answers for
     // any pair it leaves at zero. `GPOS` is where a modern face states its kerning and

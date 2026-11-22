@@ -110,7 +110,7 @@ private func requestNative(host: string, port: u16, path: string, secure: bool, 
 
     var redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_NEVER
     if options.maxRedirects > 0 do
-        redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS
+        redirectPolicy = secure ? WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP : WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS
     if not WinHttpSetOption(request, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, #sizeof(u32)) do
         fail NetworkError{code: cast(s32, GetLastError())}
     if options.maxRedirects > 0

@@ -269,9 +269,11 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: #returntype
+    // Keep f64-significant digits separate from the decimal scale so an exponent can cancel a long fraction.
     var mantissa         = 0.0'f64
-    var fraction         = 0.1'f64
     var exponent         = 0
+    var decimalExponent  = 0's64
+    var significantDigits = 0'u32
     var negative         = false
     var expNegative      = false
     var inFraction       = false
@@ -298,19 +300,40 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 let digit = cast(f64, nibble)
                 if inExponent
                 {
-                    exponent         = exponent * 10 + cast(s32, nibble)
+                    let exponentDigit = cast(s32, nibble)
+                    if exponent > (Swag.S32.Max - exponentDigit) / 10 do
+                        try fault(0x08)
+                    exponent         = exponent * 10 + exponentDigit
                     hasExponentDigit = true
                 }
                 elif inFraction
                 {
-                    mantissa         += digit * fraction
-                    fraction         *= 0.1
                     hasMantissaDigit = true
+                    if significantDigits < 17
+                    {
+                        decimalExponent -= 1
+                        if significantDigits or nibble
+                        {
+                            mantissa          = mantissa * 10.0 + digit
+                            significantDigits += 1
+                        }
+                    }
                 }
                 else
                 {
-                    mantissa         = mantissa * 10.0 + digit
                     hasMantissaDigit = true
+                    if significantDigits < 17
+                    {
+                        if significantDigits or nibble
+                        {
+                            mantissa          = mantissa * 10.0 + digit
+                            significantDigits += 1
+                        }
+                    }
+                    else
+                    {
+                        decimalExponent += 1
+                    }
                 }
             }
             elif nibble == 0x0A
@@ -356,11 +379,40 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
     }
 
     var value = mantissa
-    if exponent
+    if significantDigits
     {
-        let power = Math.pow(10.0'f64, cast(f64, exponent))
-        value = expNegative ? value / power : value * power
+        if expNegative do
+            decimalExponent -= cast(s64, exponent)
+        else do
+            decimalExponent += cast(s64, exponent)
+
+        if decimalExponent > 308
+        {
+            try fault(0x08)
+        }
+        elif decimalExponent < -341 do
+            value = 0.0
+        else
+        {
+            var remainingExponent = decimalExponent
+            while remainingExponent > 0
+            {
+                let step  = Math.min(cast(s32, remainingExponent), 300)
+                let power = Math.pow(10.0'f64, cast(f64, step))
+                value *= power
+                remainingExponent -= step
+            }
+            while remainingExponent < 0
+            {
+                let step  = Math.min(cast(s32, -remainingExponent), 300)
+                let power = Math.pow(10.0'f64, cast(f64, step))
+                value /= power
+                remainingExponent += step
+            }
+        }
     }
+    if not Math.isFinite(value) do
+        try fault(0x08)
 
     result.value = negative ? -value : value
     result.next  = pos
@@ -398,7 +450,7 @@ func parseCffDict(data: const [..] u8)->CffDict fail
 
         if b0 == 28
         {
-            pending.add(cast(f64, peekS16(data, pos + 1)))
+            pending.add(cast(f64, (try readS16(data, pos + 1))))
             pos += 3
         }
         elif b0 == 29

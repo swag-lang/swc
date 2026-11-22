@@ -132,6 +132,9 @@ namespace Platform.Win32
 {
     // Owns a Windows OpenGL context and the window device context paired with it.
     //
+    // The context borrows its [[Core.Env.Window]], which must remain alive until this value is
+    // destroyed.
+    //
     // Create this value with [[Ogl.Platform.Win32.createContext]]. It releases any remaining
     // native resources when it leaves scope; call [[Ogl.Platform.Win32.Context.destroy]] to
     // release them earlier.

@@ -934,7 +934,7 @@ img, video, table { max-width: 100% !important; }
         if nodeIndex == HtmlNoNode do
             return false
         let node = .document.constNode(nodeIndex)
-        if node.kind != .Text or offset < node.sourceOffset do
+        if node.kind != .Text or offset < node.sourceOffset or not .isSearchableText(nodeIndex) do
             return false
         let start = offset - node.sourceOffset
         if start + text.count > node.text.count do
@@ -1012,6 +1012,23 @@ img, video, table { max-width: 100% !important; }
         }
 
         return HtmlNoNode
+    }
+
+    private mtd const isSearchableText(node: u32)->bool
+    {
+        if not .layout.styleOfNode(node).visible do
+            return false
+
+        var walk = .document.constNode(node).parent
+        while walk != HtmlNoNode
+        {
+            if .document.constNode(walk).kind == .Element and
+               .layout.styleOfNode(walk).display == .None do
+                return false
+            walk = .document.constNode(walk).parent
+        }
+
+        return true
     }
 
     // Brings the box that draws a node into view.
@@ -1109,7 +1126,7 @@ img, video, table { max-width: 100% !important; }
         {
             let index = cast(u32, ((start + offset) % count))
             let node  = .document.constNode(index)
-            if node.kind != .Text or not node.text.count do
+            if node.kind != .Text or not node.text.count or not .isSearchableText(index) do
                 continue
             let match = Utf8.indexOf(.document.textOf(index), text, 0, .Latin1NoCase)
             if match == Swag.U64.Max do
@@ -1133,7 +1150,8 @@ img, video, table { max-width: 100% !important; }
             return 0
 
         var result: u64
-        for index in .document.nodes.count where .document.constNode(cast(u32, index)).kind == .Text
+        for index in .document.nodes.count where .document.constNode(cast(u32, index)).kind == .Text and
+                                                 .isSearchableText(cast(u32, index))
         {
             let content = .document.textOf(cast(u32, index))
             var from: u64
@@ -1160,7 +1178,7 @@ img, video, table { max-width: 100% !important; }
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind != .Text or not node.text.count do
+            if node.kind != .Text or not node.text.count or not .isSearchableText(cast(u32, index)) do
                 continue
 
             var from: u64

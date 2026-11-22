@@ -844,6 +844,23 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 }
 
+// Search counts and selects rendered text, not CSS text hidden by the cascade.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let view = HtmlView.createText(&host.root, "<style>p { color: red }</style><p>red</p>")
+    view.resize(320, 180)
+    view.applyLayout()
+    view.rebuild()
+
+    Swag.require(view.searchMatchCount("red") == 1)
+    Swag.require(view.findTextOccurrence("red", 0))
+    var bounds: Math.Rectangle
+    Swag.require(view.searchMatchRect(&bounds) and bounds.width > 0)
+}
+
 // A source-backed reveal marks the requested occurrence, not the first equal word in its node.
 #test
 {

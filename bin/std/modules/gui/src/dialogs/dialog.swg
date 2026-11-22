@@ -82,7 +82,11 @@ impl IWnd for Dialog
             sf.flags         = .Ellipsis
             sf.palette[0]    = colors.text
             sf.palette[1]    = colors.softText
-            let line = Math.Rectangle{x, font.opticalLineTop(centerY), .position.width - pad - x, Math.ceil(font.height)}
+            let line = Math.Rectangle{
+                x,
+                font.opticalLineTop(centerY),
+                .position.width - pad - x,
+                Math.ceil(font.height)}
             painter.drawRichString(line, &.title, sf)
         }
     }
@@ -171,7 +175,9 @@ impl Dialog
 
         // The actions end the body on its own ground: no band and no rule, one gap above them.
         let metrics = .themeMetrics()
-        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
+        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view,
+                                                      "",
+                                                      Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
         {
             .spacing         = metrics.dialog_BtnPadding
             .mode            = .HorizontalEnd

@@ -210,6 +210,32 @@ func audioStartNoSoundEngine()
     voice.destroy()
 }
 
+// A pan failure after backend routing leaves the replacement route installed.
+#test
+{
+    audioStartNoSoundEngine()
+    defer destroyEngine()
+
+    var file   = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice  = expect Voice.create(&file)
+    let handle = cast(*NoSoundVoice, unwrap voice.handle)
+    let oldBus = expect Bus.create(2)
+    let newBus = expect Bus.create(2)
+
+    expect voice.setRouting([oldBus])
+    expect voice.setPan(0.25)
+    g_FailNextNoSoundPanForTest = true
+    var routeOutcome: Swag.Error
+    discard catch voice.setRouting([newBus]) as routeOutcome
+
+    Swag.require(routeOutcome.value() is Swag.SystemError)
+    Swag.require(voice.routingBusCount == 1 and voice.routingBuses[0] == newBus)
+    Swag.require(handle.busCount == 1 and handle.buses[0] == newBus)
+    audioAssertFloat(handle.pan, 0.25)
+
+    voice.destroy()
+}
+
 // The convenience overload creates, registers, and starts a voice in one operation.
 #test
 {

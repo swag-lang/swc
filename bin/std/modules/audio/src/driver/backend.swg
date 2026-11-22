@@ -650,6 +650,9 @@ public impl Voice
     //
     // An empty slice routes directly to the mastering output. Every bus must be
     // valid and must outlive this routing relationship.
+    // If the backend installs the new route but fails while reapplying the current pan,
+    // the route remains changed and some destinations may have received the new pan. Retry
+    // [[Audio.Voice.setPan]] after handling the error to apply the current pan to every route.
     mtd setRouting(buses: const [..] *Bus) fail
     {
         if not .handle do

@@ -1,5 +1,10 @@
 using Swag, Core, Core.Errors
 
+#static if #command == Swag.CompilerCommand.Test
+{
+    var g_FailNextNoSoundPanForTest: bool
+}
+
 struct NoSoundVoice
 {
     volume:         f32 = 1
@@ -159,6 +164,15 @@ internal impl Voice
             let bus = unwrap handle.buses[i]
             if bus.channelCount != 2 do
                 fail BadParameterError{"stereo pan requires a stereo output route"}
+        }
+
+        #static if #command == Swag.CompilerCommand.Test
+        {
+            if g_FailNextNoSoundPanForTest
+            {
+                g_FailNextNoSoundPanForTest = false
+                fail SystemError{"injected no-sound pan failure"}
+            }
         }
 
         handle.pan = pan

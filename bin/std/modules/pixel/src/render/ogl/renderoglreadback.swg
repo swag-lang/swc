@@ -123,10 +123,12 @@ impl RenderOglReadback
 
     // Copies a completed transfer into borrowed bytes, optionally preserving row padding.
     //
-    // Returns false while work is pending, when empty, or on failure; [[Pixel.RenderOglReadback.hasFailed]]
-    // distinguishes failure. Every fence poll uses a zero timeout; completion covers drawing
-    // and the pixel transfer. Contexts without persistent readable storage submit the transfer
-    // only after drawing completes, avoiding a synchronous read into GPU-local buffer storage.
+    // Returns false while work is pending, when empty, or on failure;
+    // [[Pixel.RenderOglReadback.hasFailed]] distinguishes failure. Invalid strides and undersized
+    // destinations fail before any pixels are copied. Every fence poll uses a zero timeout;
+    // completion covers drawing and the pixel transfer. Contexts without persistent readable
+    // storage submit the transfer only after drawing completes, avoiding a synchronous read into
+    // GPU-local buffer storage.
     // `rowStride` is in bytes; zero means tightly packed. It must cover one row, and
     // `destination` must hold all rows. Bytes after each row's pixels are left unchanged.
     mtd tryCopyTo(destination: [..] u8, rowStride: u64 = 0)->bool
@@ -135,8 +137,21 @@ impl RenderOglReadback
             return false
         let rowBytes = cast(u64, .width) * 4
         let stride   = rowStride ? rowStride : rowBytes
-        Swag.assert(stride >= rowBytes)
-        Swag.assert(destination.count >= stride * cast(u64, (.height - 1)) + rowBytes)
+        let rowCount = cast(u64, .height - 1)
+        if stride < rowBytes or
+           (rowCount > 0 and stride > (Swag.U64.Max - rowBytes) / rowCount)
+        {
+            .failed = true
+            return false
+        }
+
+        let requiredBytes = stride * rowCount + rowBytes
+        if destination.count < requiredBytes
+        {
+            .failed = true
+            return false
+        }
+
         if .drawing
         {
             if not .ready(.drawing) do

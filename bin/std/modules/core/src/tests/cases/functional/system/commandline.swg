@@ -311,6 +311,20 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     Swag.require(result.unknown[3] == "--out:dir with space")
 }
 
+// Captured unknown tokens keep their original spelling so a caller can forward them unchanged.
+#test
+{
+    var options: BasicOptions
+    let result = expect CommandLine.parse(&options,
+                                          ["  --seed  ", "  123  ", "--out:dir with space  "],
+                                          {captureUnknown: true})
+
+    Swag.require(result.unknown.count == 3)
+    Swag.require(result.unknown[0] == "  --seed  ")
+    Swag.require(result.unknown[1] == "  123  ")
+    Swag.require(result.unknown[2] == "--out:dir with space  ")
+}
+
 // An array option appends at each occurrence instead of restarting.
 #test
 {

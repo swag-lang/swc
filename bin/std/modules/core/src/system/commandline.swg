@@ -97,7 +97,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
 
         if not isOption(argument, options)
         {
-            result.add(SplitArgument{value: argument, raw: argument})
+            result.add(SplitArgument{value: argument, raw: rawArgument})
             continue
         }
 
@@ -105,13 +105,13 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
-            result.add(SplitArgument{value: name, raw: argument})
+            result.add(SplitArgument{value: name, raw: rawArgument})
             let value = Latin1.trim(split[1])
             result.add(SplitArgument{value: value, raw: "", attachedValue: true})
         }
         else
         {
-            result.add(SplitArgument{value: argument, raw: argument})
+            result.add(SplitArgument{value: argument, raw: rawArgument})
         }
     }
 

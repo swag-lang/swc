@@ -347,6 +347,8 @@ impl Writer
     mtd initialize(containerKind: Guid128)
     {
         Swag.assert(not containerKind.isNull())
+        .header = {}
+        .chunks.clear()
         .header.containerKind = containerKind
         .header.containerId   = Guid128.random()
     }

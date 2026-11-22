@@ -219,6 +219,29 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(not File.exists(path))
 }
 
+// Reinitializing a writer starts with an empty manifest and no old chunks.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_scc_reinitialize.tmp")
+    defer discard catch File.delete(path)
+
+    var writer: Scc.Writer
+    writer.initialize(sccTestId("ac28b1b8-f5af-4a37-9c84-00b0889b5611"))
+    writer.manifest().name = "old metadata"
+    discard expect writer.addChunk("old payload", {})
+
+    let nextKind = sccTestId("5c8f45c9-7389-44e1-a3d3-7fa56bce2684")
+    writer.initialize(nextKind)
+    Swag.require(writer.manifest().name.isEmpty())
+    expect writer.saveAtomic(path)
+
+    var reader: Scc.Reader
+    expect reader.initialize(path)
+    Swag.require(reader.kind() == nextKind)
+    Swag.require(reader.manifest().name.isEmpty())
+    Swag.require(reader.chunks().count == 0)
+}
+
 // The virtual hierarchy can group one logical file and its alternate representations.
 #test
 {

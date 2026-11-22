@@ -308,3 +308,51 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     discard catch SoundFile.load(temporary) as error
     Swag.require(error.value() is InvalidFormatError)
 }
+
+// A valid later frame cannot silently change the sample rate and truncate the indexed stream.
+#test
+{
+    let sourcePath = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    let original   = expect SoundFile.load(sourcePath.toString())
+    let packet     = expect original.packet(1)
+    var bytes      = expect File.readAllBytes(sourcePath.toString())
+    let header     = expect Mp3.readHeader(bytes.toSlice()[packet.sourceOffset to])
+    Swag.require(header.sampleRate == 44_100 and header.channels == 2)
+
+    bytes[packet.sourceOffset + 2] = (bytes[packet.sourceOffset + 2] & 0xF3) | 0x04
+    let changed = expect Mp3.readHeader(bytes.toSlice()[packet.sourceOffset to])
+    Swag.require(changed.sampleRate == 48_000 and changed.channels == header.channels)
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-mp3-rate-change-%.mp3", Guid64.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
+// A valid later frame cannot silently change the channel count and truncate the indexed stream.
+#test
+{
+    let sourcePath = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    let original   = expect SoundFile.load(sourcePath.toString())
+    let packet     = expect original.packet(1)
+    var bytes      = expect File.readAllBytes(sourcePath.toString())
+    let header     = expect Mp3.readHeader(bytes.toSlice()[packet.sourceOffset to])
+    Swag.require(header.sampleRate == 44_100 and header.channels == 2)
+
+    bytes[packet.sourceOffset + 3] = (bytes[packet.sourceOffset + 3] & 0x3F) | 0xC0
+    let changed = expect Mp3.readHeader(bytes.toSlice()[packet.sourceOffset to])
+    Swag.require(changed.sampleRate == header.sampleRate and changed.channels == 1)
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-mp3-channel-change-%.mp3", Guid64.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}

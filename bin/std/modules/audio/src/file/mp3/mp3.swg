@@ -109,7 +109,7 @@ private func readFrameIndex(source: *ByteSource,
         let header = catch readHeader(probe)
         {     // Tags and padding sit between frames often enough that one bad byte is not the end
             // of the stream; a run of them is.
-            byteOffset += 1
+            byteOffset  += 1
             skippedJunk = true
             continue
         }
@@ -130,15 +130,14 @@ private func readFrameIndex(source: *ByteSource,
             if encoderInfo.isHeaderFrame
             {
                 // The tag frame decodes to silence and belongs to no sample.
-                byteOffset += header.frameBytes
+                byteOffset  += header.frameBytes
                 skippedJunk = false
                 continue
             }
         }
         elif header.sampleRate != firstHeader.sampleRate or header.channels != firstHeader.channels
         {
-            // A file that changes shape mid-stream is not one this reader indexes.
-            break
+            fail InvalidFormatError{"MP3 frame changes sample rate or channel count"}
         }
 
         if header.frameBytes > Swag.U32.Max do

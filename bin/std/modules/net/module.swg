@@ -23,11 +23,11 @@ using Net
 ```
 
 Streams own their connections and close them on drop. TCP and UDP support IPv4 and IPv6 on Linux
-and Windows. TCP streams support no-delay mode, keepalive probes, read timeouts, and half-closing
-their send side. TCP streams support read and write timeouts. UDP supports broadcast and IPv4/IPv6
-multicast membership. TCP and UDP blocking reads have configurable timeouts. Operations can fail or
-transfer fewer bytes than requested. DNS resolution
-preserves the platform resolver's address order and resolves named services. DNS lookup is
+and Windows. TCP streams can disable Nagle's algorithm, enable keepalive probes, set read and write
+timeouts, and shut down the send side while keeping reads open. TCP and UDP blocking reads can use
+a timeout. UDP supports broadcast and IPv4/IPv6 multicast membership. Operations can fail or
+transfer fewer bytes than requested. DNS resolution preserves the platform resolver's address
+order and resolves named services. DNS lookup is
 synchronous and cannot be cancelled. HTTP and HTTPS clients and the HTTP/1.1 server are
 available on Windows and Linux.
 An HTTP server handles one request per connection by default. It can allow a bounded number of

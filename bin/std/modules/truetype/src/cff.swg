@@ -398,7 +398,7 @@ func parseCffDict(data: const [..] u8)->CffDict fail
 
         if b0 == 28
         {
-            pending.add(cast(f64, peekS16(data, pos + 1)))
+            pending.add(cast(f64, (try readS16(data, pos + 1))))
             pos += 3
         }
         elif b0 == 29

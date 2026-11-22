@@ -513,6 +513,20 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // The 16-bit integer marker requires both bytes of its operand.
+    const MissingWord: [1] u8 = [0x1C]
+    const ShortWord:   [2] u8 = [0x1C, 0x00]
+    var rejected: Swag.Error
+    discard catch parseCffDict(MissingWord) as rejected
+    Swag.require(rejected.value() != null)
+
+    rejected = {}
+    discard catch parseCffDict(ShortWord) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     const TruncatedNegative: [1] u8 = [0xFB]
     var rejected: Swag.Error
     discard catch parseCffDict(TruncatedNegative) as rejected

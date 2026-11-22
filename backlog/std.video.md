@@ -546,11 +546,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Resolved: a failed frame submission now marks the writer ended and retains the original error for `end`; a closed memory sink reproduces failure after AVI and MP4 update their private index. Focused Release tests cover both containers.
 - Related: std.video.015
 
-### std.video.022 — Failed fragmented MP4 writes leave a reusable writer
+### std.video.022 — Failed fragmented MP4 writes leave a reusable writer (resolved)
 
-- Evidence: `Mp4.FragmentedWriter` can partially write media fragments or its random-access index before a sink write/flush fails. Packet counters and pending buffers are committed only after the writes, but the writer has no failed state, so another submission, flush, edit, or finalization can append to partial output.
-- Next: make the fragmented writer terminal after its first fallible output operation and add a deterministic sink failure seam for packet submission, grouped flush, and final index output.
-- Done when: the first output failure is preserved and every later mutating operation re-raises it without appending bytes; focused regressions cover video, audio, and end/index paths.
+- Evidence: `Mp4.FragmentedWriter` can partially write media fragments or its random-access index before a sink write/flush fails. Packet counters and pending buffers are committed only after the writes, but the writer had no failed state, so another submission, flush, edit, or finalization could append to partial output.
+- Resolved: output failures now poison the writer and preserve the original error for later mutation attempts. Release regressions force grouped video and AAC write failures with a closed sink and a truncated temporary index during `end`; all 31 fragmented MP4 tests pass.
 - Related: std.video.016
 
 ### std.video.023 — Matroska durations can exceed the seek timestamp range (resolved)

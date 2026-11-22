@@ -381,6 +381,99 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(firstPacket.decodeTime == 0 and firstPacket.duration == 512)
 }
 
+// A failed grouped fragment write is terminal and later mutations re-raise the first sink error.
+#test
+{
+    let path = videoTempPath("fragmented-failed-write", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    let bytes  = expect fragmentedPacket(&source)
+    var writer = expect Mp4.FragmentedWriter.create(path,
+                                                    64,
+                                                    48,
+                                                    12_800,
+                                                    config.toSlice(),
+                                                    Mp4.FragmentedOptions{2, 4 * 1024 * 1024})
+    expect writer.addPacket(EncodedPacket{bytes.toSlice(), 0, 0, 512, true})
+    expect writer.closeSinkForTest()
+
+    var rejected: Swag.Error
+    discard catch writer.addPacket(EncodedPacket{bytes.toSlice(), 512, 512, 512, false}) as rejected
+    Swag.require(rejected.value() is BadParameterError and writer.videoPacketCount() == 1)
+
+    var repeated: Swag.Error
+    discard catch writer.flush() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch writer.addPacket(EncodedPacket{bytes.toSlice(), 0, 0, 512, true}) as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
+// A failed grouped AAC fragment also poisons the writer and preserves its first error.
+#test
+{
+    let path = videoTempPath("fragmented-failed-audio-write", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    let audioTrack = Mp4.FragmentedAudioConfig{44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}
+    var source     = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    let bytes      = expect fragmentedPacket(&source)
+    var writer     = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                                 64,
+                                                                 48,
+                                                                 12_800,
+                                                                 config.toSlice(),
+                                                                 audioTrack,
+                                                                 Mp4.FragmentedOptions{1, 4 * 1024 * 1024, 2})
+    expect writer.addAudioPacket(EncodedPacket{bytes.toSlice(), 0, 0, 1_024, true})
+    expect writer.closeSinkForTest()
+
+    var rejected: Swag.Error
+    discard catch writer.addAudioPacket(EncodedPacket{bytes.toSlice(), 1_024, 1_024, 1_024, true}) as rejected
+    Swag.require(rejected.value() is BadParameterError and expect writer.audioPacketCount(0) == 1)
+
+    var repeated: Swag.Error
+    discard catch writer.flush() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
+// A failed random-access index write leaves the completed media prefix untouched and ends the writer.
+#test
+{
+    let path = videoTempPath("fragmented-failed-index", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    let bytes  = expect fragmentedPacket(&source)
+    var writer = expect Mp4.FragmentedWriter.create(path,
+                                                    64,
+                                                    48,
+                                                    12_800,
+                                                    config.toSlice(),
+                                                    Mp4.FragmentedOptions{1, 4 * 1024 * 1024, 1, true})
+    expect writer.addPacket(EncodedPacket{bytes.toSlice(), 0, 0, 512, true})
+    let mediaEnd = writer.writtenByteCount()
+    writer.requireMissingIndexEntryForTest()
+
+    var rejected: Swag.Error
+    discard catch writer.end() as rejected
+    Swag.require(rejected.value() is InvalidFormatError and writer.writtenByteCount() > mediaEnd)
+
+    var repeated: Swag.Error
+    discard catch writer.end() as repeated
+    Swag.require(repeated.value() is InvalidFormatError)
+    discard catch writer.flush() as repeated
+    Swag.require(repeated.value() is InvalidFormatError)
+}
+
 // Fragment decode times and signed composition offsets retain exact presentation order.
 #test
 {
@@ -897,14 +990,14 @@ func fragmentedPacketSource()->ByteSource fail
 
     let bytes = expect File.readAllBytes(path)
     var partialHeader: [8] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a']
-    var partialIndex: Array'u8
+    var partialIndex:  Array'u8
     partialIndex.add(bytes.toSlice())
     partialIndex.add(Swag.makeSlice(&partialHeader[0], partialHeader.count))
     var reader = expect Reader.openMemory("partial-extended-index.mp4", partialIndex.toSlice())
     Swag.require(reader.frameCount() == 1)
 
     var oversizedHeader: [16] u8 = [0, 0, 0, 1, 'm', 'f', 'r', 'a',
-                                     0, 0, 0, 0, 0, 0, 1, 0]
+                                    0, 0, 0, 0, 0, 0, 1, 0]
     var oversizedIndex: Array'u8
     oversizedIndex.add(bytes.toSlice())
     oversizedIndex.add(Swag.makeSlice(&oversizedHeader[0], oversizedHeader.count))

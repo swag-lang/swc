@@ -99,7 +99,9 @@ private struct FragmentedAudioTrack
 // are submitted separately and may be interleaved with video calls. A final key-frame index can
 // be requested in the options; sequential playback and recovery of complete fragments work before
 // [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans fragment headers and ignores a partial
-// final fragment or index after at least one complete video fragment.
+// final fragment or index after at least one complete video fragment. A failed output operation
+// ends the writer; later mutations re-raise the original failure rather than appending to partial
+// output.
 #[Swag.NoCopy]
 struct FragmentedWriter
 {
@@ -124,6 +126,8 @@ struct FragmentedWriter
         nextDecodeTime:  u64
         hasPackets:      bool
         isEnded:         bool
+        isFailed:        bool
+        failureError:    Swag.Error
     }
 }
 
@@ -312,6 +316,7 @@ impl FragmentedWriter
     // until its fragment is flushed; a packet larger than `maxBufferedBytes` is written alone.
     mtd addPacket(packet: EncodedPacket) fail
     {
+        try .raiseOutputFailure()
         if .isEnded do
             fail BadParameterError{"cannot append to an ended fragmented MP4"}
         if not packet.bytes.count or packet.bytes.count > Swag.U32.Max - 8 do
@@ -343,9 +348,14 @@ impl FragmentedWriter
                                     cast(s32, compositionOffset), packet.isKeyFrame}
         if .options.maxPacketsPerFragment == 1 or packet.bytes.count > .options.maxBufferedBytes
         {
-            let one: [1] BufferedPacket = [sample]
-            try .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes)
-            try .sink.flush()
+            let one:     [1] BufferedPacket = [sample]
+            var failure: Swag.Error
+            catch .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes) as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
+            catch .sink.flush() as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
             .sequence += 1
         }
         else
@@ -372,6 +382,7 @@ impl FragmentedWriter
     // packet is written alone.
     mtd addAudioPacket(packet: EncodedPacket, trackIndex: u32 = 0) fail
     {
+        try .raiseOutputFailure()
         if .isEnded or trackIndex >= .audioTracks.count do
             fail BadParameterError{"fragmented MP4 has no open audio track at this index"}
         if not packet.bytes.count or
@@ -394,9 +405,14 @@ impl FragmentedWriter
         if .options.maxAudioPacketsPerFragment == 1 or packet.bytes.count > .options.maxBufferedBytes
         {
             try .flush()
-            let one: [1] BufferedPacket = [sample]
-            try .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes, 2 + trackIndex)
-            try .sink.flush()
+            let one:     [1] BufferedPacket = [sample]
+            var failure: Swag.Error
+            catch .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes, 2 + trackIndex) as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
+            catch .sink.flush() as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
             .sequence += 1
         }
         else
@@ -418,6 +434,7 @@ impl FragmentedWriter
     // Writes and flushes pending video and audio groups, making their packets recoverable.
     mtd flush() fail
     {
+        try .raiseOutputFailure()
         if .isEnded do
             fail BadParameterError{"cannot flush an ended fragmented MP4"}
         try .flushVideo()
@@ -425,7 +442,10 @@ impl FragmentedWriter
         for index in .audioTracks.count do
             try .flushAudioTrack(cast(u32, index))
 
-        try .sink.flush()
+        var failure: Swag.Error
+        catch .sink.flush() as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
     }
 
     // Publishes sample-accurate presentation ranges for the video and AAC tracks.
@@ -436,6 +456,7 @@ impl FragmentedWriter
     // Invalid counts fail without changing the presentation ranges.
     mtd setPresentationEdits(videoMediaStart: u64, audioFrameCounts: const [..] u64) fail
     {
+        try .raiseOutputFailure()
         if .isEnded or
            not .movieTimescale or
            not .videoEditOffset or
@@ -473,6 +494,7 @@ impl FragmentedWriter
     // stay unchanged. Use this overload for packet-copy cuts that retain AAC transform history.
     mtd setPresentationEdits(videoMediaStart: u64, audioRanges: const [..] AudioPresentationRange) fail
     {
+        try .raiseOutputFailure()
         if .isEnded or
            not .movieTimescale or
            not .videoEditOffset or
@@ -494,7 +516,10 @@ impl FragmentedWriter
 
         try .flush()
         let videoDuration = (.nextDecodeTime - videoMediaStart) * .movieTimescale / .timescale
-        try .publishEdit(.videoEditOffset, videoDuration, videoMediaStart)
+        var failure: Swag.Error
+        catch .publishEdit(.videoEditOffset, videoDuration, videoMediaStart) as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
         for range, index in audioRanges
         {
             if not range.sampleCount do
@@ -504,22 +529,36 @@ impl FragmentedWriter
             // The movie clock is at least as fine as this sample clock. Flooring here and
             // ceiling the inverse in Reader recovers `frames` exactly, including 44.1 kHz.
             let duration = range.sampleCount * .movieTimescale / track.sampleRate
-            try .publishEdit(track.editOffset, duration, range.firstSample)
+            catch .publishEdit(track.editOffset, duration, range.firstSample) as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
         }
 
-        try .sink.flush()
+        catch .sink.flush() as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
     }
 
     // Flushes, optionally appends the random-access index, and closes the stream; repeated calls do nothing.
     mtd end() fail
     {
+        try .raiseOutputFailure()
         if .isEnded do
             return
         try .flush()
-        if .options.writeRandomAccessIndex do
-            try .writeRandomAccessIndex()
+        if .options.writeRandomAccessIndex
+        {
+            var failure: Swag.Error
+            catch .writeRandomAccessIndex() as failure
+            if not failure.isEmpty() do
+                try .rememberOutputFailure(failure)
+        }
+
         .isEnded = true
-        try .sink.close()
+        var failure: Swag.Error
+        catch .sink.close() as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
         .closeIndex()
     }
 
@@ -568,6 +607,19 @@ internal func writeFragmentRandomAccessIndex(sink: *ByteSink, entries: *File.Fil
 
 private impl FragmentedWriter
 {
+    mtd raiseOutputFailure() fail
+    {
+        if .isFailed do
+            try .failureError.raise()
+    }
+
+    mtd rememberOutputFailure(failure: Swag.Error) fail
+    {
+        .failureError = failure
+        .isFailed     = true
+        try .failureError.raise()
+    }
+
     mtd closeIndex()
     {
         .indexStream.close()
@@ -590,24 +642,46 @@ private impl FragmentedWriter
             return
         if .sequence == Swag.U32.Max do
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
-        try .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice())
+        var failure: Swag.Error
+        catch .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice()) as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
+        catch .sink.flush() as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
         .pendingPackets.clear()
         .pendingData.clear()
         .sequence += 1
-        try .sink.flush()
     }
 
     mtd flushAudioTrack(index: u32) fail
     {
         if not .audioTracks[index].pendingPackets.count do
             return
-        try .writeFragment(.audioTracks[index].pendingPackets.toSlice(),
-                           .audioTracks[index].pendingData.toSlice(),
-                           2 + index)
+        var failure: Swag.Error
+        catch .writeFragment(.audioTracks[index].pendingPackets.toSlice(),
+                             .audioTracks[index].pendingData.toSlice(),
+                             2 + index) as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
+        catch .sink.flush() as failure
+        if not failure.isEmpty() do
+            try .rememberOutputFailure(failure)
         .audioTracks[index].pendingPackets.clear()
         .audioTracks[index].pendingData.clear()
         .sequence += 1
-        try .sink.flush()
+    }
+
+    #[Swag.NoDoc]
+    internal mtd closeSinkForTest() fail
+    {
+        try .sink.close()
+    }
+
+    #[Swag.NoDoc]
+    internal mtd requireMissingIndexEntryForTest()
+    {
+        .indexCount += 1
     }
 
     func createConfigured(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail

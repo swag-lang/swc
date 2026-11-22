@@ -97,6 +97,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     Swag.require(reader.frameCount() == 0 and reader.durationInSeconds() > 0)
+    Swag.require(reader.frameAtTime(Swag.F64.Max) == Swag.U64.Max)
     let target = reader.frameAtTime(0.4)
     Swag.require(target == 10)
 

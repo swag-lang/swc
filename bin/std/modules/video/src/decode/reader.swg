@@ -389,14 +389,38 @@ impl Reader
     }
 
     // Returns the picture presented at `seconds`, or the frame count past the end.
+    //
+    // Negative times select frame zero. Formats without timestamp metadata fall back to their
+    // declared frame rate. A time beyond a known stream's duration returns its frame count.
+    // Unknown-count streams saturate when the time maps beyond the largest representable index.
     mtd const frameAtTime(seconds: f64)->u64
     {
-        if .timedDecoder do
-            return .timedDecoder.frameAtTime(seconds)
-        if seconds < 0 do
+        if seconds != seconds or seconds < 0 do
             return 0
-        let rate = .frameRate()
-        return Math.min(cast(u64, (seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator()))), .frameCount())
+
+        let count = .frameCount()
+        let rate  = .frameRate()
+        if .timedDecoder
+        {
+            if not count and rate.isValid()
+            {
+                let frame = seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())
+                if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max) do
+                    return Swag.U64.Max
+            }
+
+            return .timedDecoder.frameAtTime(seconds)
+        }
+
+        if count and seconds >= .durationInSeconds() do
+            return count
+        if not Math.isFinite(seconds) or not rate.isValid() do
+            return count ? count : Swag.U64.Max
+
+        let frame = seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())
+        if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max) do
+            return count ? count : Swag.U64.Max
+        return count ? Math.min(cast(u64, frame), count) : cast(u64, frame)
     }
 
     // Returns whether this stream can be decoded without converting its pictures to RGB.

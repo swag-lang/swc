@@ -354,6 +354,7 @@ func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
     Swag.require(sound.packetCount() >= 18 and not sound.isDataPreloaded())
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
     Swag.require(reader.frameAtTime(0.219) == 5)
+    Swag.require(reader.frameAtTime(Swag.F64.Max) == reader.frameCount())
 }
 
 // A sample table states presentation durations, and a writer is free to spread them so a track's

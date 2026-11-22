@@ -56,14 +56,12 @@ impl ThumbnailCache
         return Path.combine(directory(), Format.toString("%.%.%", policy.channel, policy.instance, policy.activation))
     }
 
-    // Remove mount-scoped entries and pre-policy flat entries. Flat entries have no provenance,
-    // so they cannot be retained safely when an already visited mount becomes private.
+    // Remove only entries belonging to this mount. Ordinary files share the flat cache directory.
     func clearMount(channel: string) fail
     {
         let root = directory()
         if not Directory.exists(root) do
             return
-        discard try clear(root, false)
         let entries = try Directory.enumerate(root, {})
         for &entry in entries where isMountCacheDirectory(entry)
         {

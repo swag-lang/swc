@@ -48,6 +48,8 @@ private struct SoftwareAudioTrack
 // textured IDR and P pictures; this fixed setting does not target a bitrate.
 // An optional [[Video.Mp4.SoftwareVideoRateControl]] adapts the per-picture QP against a target
 // video rate; fixed `quantizationQp` must remain zero when it is supplied.
+// An output failure ends the recording; later mutations re-raise that failure because codec state
+// may have advanced beyond the completed file prefix.
 // Each picture may use one through eight H.264 slices, up to its macroblock-row count.
 // One video producer and one producer per audio track may encode concurrently. Container writes
 // are serialized after encoding. Create and finish the recording with all producers stopped;
@@ -72,6 +74,8 @@ struct SoftwareRecording
         hasRateControl:   bool
         videoQp:          u32
         ended:            bool
+        failed:           bool
+        failureError:     Swag.Error
     }
 }
 
@@ -236,6 +240,7 @@ impl SoftwareRecording
     // the video sequence count unchanged. Audio may be appended before or after a video call.
     mtd addFrame(image: const *Image, slot: FrameSlot) fail
     {
+        try .checkFailure()
         if .ended do
             fail BadParameterError{"cannot append to a finished software recording"}
         if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration do
@@ -264,10 +269,16 @@ impl SoftwareRecording
             fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
         defer .muxMutex.unlock()
-        try .writer.addPacket(packet)
+        try .raiseFailure()
+        var failure: Swag.Error
+        catch .writer.addPacket(packet) as failure
+        if not failure.isEmpty() do
+            try .rememberFailure(failure)
         if .hasRateControl
         {
-            try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
+            catch .rateControl.observe(packet.bytes.count, slot.duration, .videoQp) as failure
+            if not failure.isEmpty() do
+                try .rememberFailure(failure)
         }
 
         .videoPacketBytes += packet.bytes.count
@@ -281,6 +292,7 @@ impl SoftwareRecording
     // for each gap reported by [[Video.FramePacer]] while a screen source is unavailable.
     mtd repeatLastFrame(slot: FrameSlot) fail
     {
+        try .checkFailure()
         if .ended or not .frameCount do
             fail BadParameterError{"software recording has no live picture to repeat"}
         if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration do
@@ -308,10 +320,16 @@ impl SoftwareRecording
             fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
         defer .muxMutex.unlock()
-        try .writer.addPacket(packet)
+        try .raiseFailure()
+        var failure: Swag.Error
+        catch .writer.addPacket(packet) as failure
+        if not failure.isEmpty() do
+            try .rememberFailure(failure)
         if .hasRateControl
         {
-            try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
+            catch .rateControl.observe(packet.bytes.count, slot.duration, .videoQp) as failure
+            if not failure.isEmpty() do
+                try .rememberFailure(failure)
         }
 
         .videoPacketBytes += packet.bytes.count
@@ -326,6 +344,7 @@ impl SoftwareRecording
     // method returns. An invalid channel layout leaves the audio encoder unchanged.
     mtd addAudioFrames(samples: const [..] s16, trackIndex: u32 = 0) fail
     {
+        try .checkFailure()
         if .ended do
             fail BadParameterError{"cannot append to a finished software recording"}
         if trackIndex >= .tracks.count do
@@ -343,11 +362,15 @@ impl SoftwareRecording
             {
                 .muxMutex.lock()
                 defer .muxMutex.unlock()
-                try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
-                                                         track.encoder.lastPacketStartSample(),
-                                                         track.encoder.lastPacketStartSample(),
-                                                         1_024, true},
-                                           trackIndex)
+                try .raiseFailure()
+                var failure: Swag.Error
+                catch .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
+                                                           track.encoder.lastPacketStartSample(),
+                                                           track.encoder.lastPacketStartSample(),
+                                                           1_024, true},
+                                             trackIndex) as failure
+                if not failure.isEmpty() do
+                    try .rememberFailure(failure)
             }
         }
     }
@@ -357,7 +380,11 @@ impl SoftwareRecording
     {
         .muxMutex.lock()
         defer .muxMutex.unlock()
-        try .writer.flush()
+        try .raiseFailure()
+        var failure: Swag.Error
+        catch .writer.flush() as failure
+        if not failure.isEmpty() do
+            try .rememberFailure(failure)
     }
 
     // Drains audio and finalizes the MP4 recording; repeated calls are harmless.
@@ -367,6 +394,7 @@ impl SoftwareRecording
     // FFmpeg versions that ignore edit lists in fragmented MP4 may still expose the padding.
     mtd end() fail
     {
+        try .checkFailure()
         if .ended do
             return
         if not .frameCount do
@@ -376,11 +404,14 @@ impl SoftwareRecording
             let track = &.tracks[index]
             while try track.encoder.finish(&track.packet)
             {
-                try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
-                                                         track.encoder.lastPacketStartSample(),
-                                                         track.encoder.lastPacketStartSample(),
-                                                         1_024, true},
-                                           cast(u32, index))
+                var failure: Swag.Error
+                catch .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
+                                                           track.encoder.lastPacketStartSample(),
+                                                           track.encoder.lastPacketStartSample(),
+                                                           1_024, true},
+                                             cast(u32, index)) as failure
+                if not failure.isEmpty() do
+                    try .rememberFailure(failure)
             }
         }
 
@@ -389,10 +420,49 @@ impl SoftwareRecording
             var frameCounts: Array'u64
             for &track in .tracks do
                 frameCounts.add(track.encoder.inputFrameCount())
-            try .writer.setPresentationEdits(.videoOffset, frameCounts.toSlice())
+            var failure: Swag.Error
+            catch .writer.setPresentationEdits(.videoOffset, frameCounts.toSlice()) as failure
+            if not failure.isEmpty() do
+                try .rememberFailure(failure)
         }
 
-        try .writer.end()
+        var failure: Swag.Error
+        catch .writer.end() as failure
+        if not failure.isEmpty() do
+            try .rememberFailure(failure)
         .ended = true
+    }
+}
+
+private impl SoftwareRecording
+{
+    mtd checkFailure() fail
+    {
+        var failure: Swag.Error
+        .muxMutex.lock()
+        if .failed do
+            failure = .failureError
+        .muxMutex.unlock()
+        if not failure.isEmpty() do
+            try failure.raise()
+    }
+
+    mtd raiseFailure() fail
+    {
+        if .failed do
+            try .failureError.raise()
+    }
+
+    mtd rememberFailure(failure: Swag.Error) fail
+    {
+        .failureError = failure
+        .failed       = true
+        try .failureError.raise()
+    }
+
+    #[Swag.NoDoc]
+    internal mtd closeSinkForTest() fail
+    {
+        try .writer.closeSinkForTest()
     }
 }

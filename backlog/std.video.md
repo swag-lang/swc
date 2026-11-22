@@ -561,3 +561,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: classic MP4 expanded each `ctts` run only while sample slots remained. Short runs left later frames with fabricated zero offsets; long runs were silently truncated.
 - Resolved: composition-offset runs now reject zero counts and any total that differs from the sample-size table. Focused Release tests cover short, long, zero, unsigned, and signed offsets.
+
+### std.video.025 — Software recording could continue after packet submission failed (resolved)
+
+- Evidence: `SoftwareRecording` advances its H.264 or AAC encoder before submitting the resulting packet. If the fragmented MP4 writer failed, the recording counters stayed unchanged while the codec state had advanced and later calls were still accepted.
+- Resolved: the recorder now retains output failures and re-raises them from later frame, audio, flush, and finalization calls. Focused Release regressions cover video and AAC packet failures.
+- Related: std.video.015, std.video.022

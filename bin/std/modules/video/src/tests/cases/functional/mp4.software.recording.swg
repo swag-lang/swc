@@ -106,6 +106,50 @@ using Swag, Core, Core.Errors, Audio, Pixel
     Swag.require(rejected.value() is BadParameterError)
 }
 
+// A sink failure after H.264 advances makes the software recorder terminal.
+#test
+{
+    let path = videoTempPath("mp4-software-recorder-failed-write", "mp4")
+    defer discard catch File.delete(path)
+    let image    = Image.create(16, 16, .RGB8)
+    let pacer    = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000, 90_000)
+    var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 16, 16, 90_000)
+    expect recorder.closeSinkForTest()
+
+    var rejected: Swag.Error
+    discard catch recorder.addFrame(&image, expect pacer.slotAt(0)) as rejected
+    Swag.require(rejected.value() is BadParameterError and recorder.videoFrameCount() == 0)
+
+    var repeated: Swag.Error
+    discard catch recorder.addFrame(&image, expect pacer.slotAt(0)) as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch recorder.flush() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch recorder.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
+// A failed AAC packet submission makes the software recorder terminal after PCM was consumed.
+#test
+{
+    let path = videoTempPath("mp4-software-recorder-failed-audio", "mp4")
+    defer discard catch File.delete(path)
+    var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 48_000, 1)
+    var samples: [2_048] s16
+    expect recorder.closeSinkForTest()
+
+    var rejected: Swag.Error
+    discard catch recorder.addAudioFrames(Swag.makeSlice(&samples[0], samples.count)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(recorder.audioInputFrameCount() > 0 and recorder.audioPacketCount() > 0)
+
+    var repeated: Swag.Error
+    discard catch recorder.addAudioFrames(Swag.makeSlice(&samples[0], samples.count)) as repeated
+    Swag.require(repeated.value() is BadParameterError)
+    discard catch recorder.end() as repeated
+    Swag.require(repeated.value() is BadParameterError)
+}
+
 // Lost screen slots repeat the last picture and remain visible as reported recorder frames.
 #test
 {

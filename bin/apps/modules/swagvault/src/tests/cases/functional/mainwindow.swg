@@ -257,7 +257,6 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     // The caption and lens share the owner that keeps and applies the appearance choices.
     Swag.require(window.appearanceButton.parent == &host.surfaceWnd)
     Swag.require(window.appearanceButton.isLocallyVisible())
-    Swag.require(window.optionsButton.position.x < window.appearanceButton.position.x)
 
     window.themeIndex = cast(u32, AppearanceTheme.Dark)
     window.applyTheme()
@@ -960,8 +959,8 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.chosenPath == PictureMountedPath and window.automaticMountTimer == null)
 }
 
-// The list opens with its title, the two ways to another vault at the end of its line, then the
-// vaults in two groups under their labels: the mounted ones first, whatever the order of the list.
+// The list opens with page navigation beside its title and vault actions at the far edge, then the
+// vaults in two groups under their labels: mounted ones first, whatever the order of the list.
 #test
 {
     var host: Testing.HeadlessHost
@@ -979,8 +978,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(list.rows[1].path == PictureLockedPath and list.rows[2].path == PictureArchivePath)
     Swag.require(list.mountedCount == 1)
 
-    // Beside vaults, both ways are secondary, and they end the title's line on the column's edge.
+    // Options follows the title; the two vault actions keep the far end of its line.
     Swag.require(list.newVault.form == .Normal and list.openFile.form == .Flat)
+    Swag.require(list.options.position.x > list.title.position.x)
+    Swag.require(list.options.position.y >= list.title.position.y and list.options.position.bottom() <= list.title.position.bottom())
     Swag.require(Math.abs(list.newVault.position.right() - list.title.position.right()) < 0.5)
     Swag.require(list.openFile.position.right() < list.newVault.position.x)
     Swag.require(list.newVault.position.y >= list.title.position.y and list.newVault.position.bottom() <= list.title.position.bottom())
@@ -1261,10 +1262,35 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(field.paths.count == 2)
     Swag.require((expect File.info(generated)).size == 64)
 
-    field.files.setSelectedIndex(0, notify: false)
+    field.files.selectLine(0)
     field.remove.sigPressed.call(cast(*Button, field.remove))
     Swag.require(field.paths.count == 1)
     Swag.require(field.paths[0] == generated)
+}
+
+// Mount key files are edited on the unfolded card and stay in the access used by Mount.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    window.openVault("C:\\vaults\\keyed")
+
+    let card = &window.list.card
+    card.toggleKeyFiles()
+    Swag.require(card.keyFileList.isLocallyVisible())
+
+    let path = Testing.tempFilePath("vault-mount-key-", ".key")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, [1'u8, 2, 3])
+    host.acceptModalFileDialog(path)
+    card.keyFileList.add.sigPressed.call(cast(*Button, card.keyFileList.add))
+
+    Swag.require(window.unlockKeyFiles.count == 1)
+    Swag.require(window.unlockKeyFiles[0] == path)
+    Swag.require(window.mountButton.isEnabled())
+    card.keyFileList.remove.sigPressed.call(cast(*Button, card.keyFileList.remove))
+    Swag.require(window.unlockKeyFiles.isEmpty())
+    Swag.require(card.keyFileList.isLocallyVisible())
 }
 
 // A container dropped on the location field fills it, exactly as browsing to it would.

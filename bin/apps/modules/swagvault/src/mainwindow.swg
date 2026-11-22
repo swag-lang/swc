@@ -230,7 +230,6 @@ struct MainWindow
         appearanceButton: *AppearanceButton
         lens:             *Lens.View
         lensLauncher:     *Lens.Launcher
-        optionsButton:    *CaptionButton
         hintLine:         *HintLine
         dropHighlight:    *FileDropHighlight
         list:             *VaultList
@@ -516,12 +515,6 @@ impl MainWindow
         result.createAppearanceButton()
         result.createPages()
         result.createLens()
-        with result.optionsButton = CaptionButton.create(surface, .Settings, VaultCommands.Options)
-        {
-            .toolTip    = appStrings().cmd_Options
-            .sigPressed += func|window = result|(_) { discard window.runCommand(VaultCommands.Options) }
-        }
-
         result.lensLauncher = Lens.Launcher.create(result, VaultCommands.Lens)
         result.lensLauncher.captionButton.hide()
         result.createHint()
@@ -629,8 +622,6 @@ impl MainWindow
         .page = page
         if page == .Options do
             .optionsPage.refreshDriverAction()
-        .optionsButton.show(page == .List)
-
         if animate and outgoing != incoming
         {
             discard .app().animator.transitionPage(outgoing, incoming, page == .List ? -1'f32 : 1)
@@ -803,6 +794,7 @@ impl MainWindow
     {
         .mountPassword.clear()
         .unlockKeyFiles.clear()
+        .list.card.clearKeyFiles()
         .protectHiddenOnMount = false
         if .operation.kind == .InstallDriver do
             .operation.path.clear()
@@ -952,7 +944,6 @@ impl MainWindow
     mtd retranslate()
     {
         .surface?.setTitle(appStrings().ui_WindowTitle)
-        .optionsButton.toolTip = appStrings().cmd_Options
         .createPage.retranslate()
         .optionsPage.retranslate()
         .resident.applySettings()
@@ -1220,7 +1211,6 @@ impl IWnd for MainWindow
             .retranslate()
 
         case .ThemeChanged where .layoutReady:
-            .optionsButton.button.setIcon(.theme().icon(.Settings, .themeMetrics().wnd_CaptionButtonGlyph))
             .refreshVaults()
             .dropHighlight.refreshTheme()
 

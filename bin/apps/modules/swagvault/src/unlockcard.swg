@@ -12,6 +12,7 @@ struct UnlockCard
     late
     {
         panel:      *FloatingPanel
+        window:     *MainWindow
         header:     *VaultRow
         form:       *FormLayoutCtrl
         password:   *PasswordEdit
@@ -19,6 +20,7 @@ struct UnlockCard
         driveLabel: *Label
         drive:      *ComboBox
         keyFiles:   *IconButton
+        keyFileList:*KeyFileField
         readOnly:   *CheckButton
         mount:      *PushButton
     }
@@ -28,12 +30,14 @@ impl UnlockCard
 {
     // Air between the password and the line of choices, and under that line.
     const OptionsGap    = 16'f32
+    const KeyFilesGap   = 12'f32
     const BottomPadding = 24'f32
 
     // Creates the card, hidden, over the rows of `list`.
     func create(list: *Wnd, window: *MainWindow)->UnlockCard
     {
         var result: #returntype
+        result.window = window
 
         with result.panel = FloatingPanel.create(list, {}, "vault.unlock")
         {
@@ -78,7 +82,16 @@ impl UnlockCard
             .layoutSpec.alignY = .Center
             .margin.x          = 0
             .margin.z          = metrics.dialog_BtnPadding
-            .sigPressed        += func|window|(_) { window.chooseUnlockKeyFiles() }
+            .sigPressed        += func|window|(_) { window.list.card.toggleKeyFiles() }
+        }
+
+        result.keyFileList = KeyFileField.create(result.panel, canGenerate: false)
+        result.keyFileList.hide()
+        result.keyFileList.sigPathsChanged += func|window|(field)
+        {
+            field.copyPaths(&window.unlockKeyFiles)
+            window.list.card.setKeyFileCount(window.unlockKeyFiles.count)
+            window.refreshActions()
         }
 
         with result.readOnly = CheckButton.create(result.options, appStrings().ui_ReadOnly)
@@ -101,7 +114,10 @@ impl UnlockCard
         let formTop   = VaultRow.Height - .panel.themeMetrics().dialog_BtnPadding
         let form      = Math.ceil(.form.measure(Math.Point{formWidth, 0}).preferred.y)
         let options   = .panel.themeMetrics().btnPush_Height
-        return formTop + form + OptionsGap + options + BottomPadding
+        var keyFiles = 0'f32
+        if .keyFileList.isLocallyVisible() do
+            keyFiles = KeyFilesGap + .keyFileList.measure(Math.Point{formWidth, 0}).preferred.y
+        return formTop + form + OptionsGap + options + keyFiles + BottomPadding
     }
 
     // Lays the card over `rect` of the list and arranges what it holds.
@@ -125,6 +141,13 @@ impl UnlockCard
         let optionsWidth = Math.max(0, .mount.position.x - VaultRow.TextX - .panel.themeMetrics().dialog_BtnPadding)
         .options.arrange(Math.Rectangle{VaultRow.TextX, lineTop, optionsWidth, lineH})
         .options.computeLayout()
+
+        if .keyFileList.isLocallyVisible()
+        {
+            let top    = lineTop + lineH + KeyFilesGap
+            let height = .keyFileList.measure(Math.Point{formWidth, 0}).preferred.y
+            .keyFileList.arrange(Math.Rectangle{VaultRow.TextX, top, formWidth, height})
+        }
     }
 
     // Says the card again in the language now active.
@@ -136,10 +159,11 @@ impl UnlockCard
         .driveLabel.setText(texts.ui_Drive)
         .readOnly.setText(texts.ui_ReadOnly)
         .mount.setText(texts.ui_Mount)
+        .keyFileList.retranslate()
         .setKeyFileCount(keyFileCount)
     }
 
-    // Says how many key files the access states, on the link that chooses them.
+    // Says how many key files the access states, on the control that unfolds their list.
     mtd setKeyFileCount(count: u64)
     {
         let texts = appStrings()
@@ -148,5 +172,29 @@ impl UnlockCard
         else do
             .keyFiles.setText(texts.ui_KeyFilesLink)
         .options.computeLayout()
+    }
+
+    // Opens or closes the in-card list, keeping the mount choices and their context together.
+    mtd toggleKeyFiles()
+    {
+        .keyFileList.show(not .keyFileList.isLocallyVisible())
+        .window.list.unfold(.window.chosenLockedPath())
+    }
+
+    // Stages the selected paths in the mount card and folds an empty editor after changing vaults.
+    mtd setKeyFiles(paths: const [..] String)
+    {
+        .keyFileList.setPaths(paths)
+        if paths.count == 0 do
+            .keyFileList.hide()
+        .setKeyFileCount(paths.count)
+    }
+
+    // Clears the editor when the reader switches vaults or folds the current one.
+    mtd clearKeyFiles()
+    {
+        .keyFileList.setPaths([])
+        .keyFileList.hide()
+        .setKeyFileCount(0)
     }
 }

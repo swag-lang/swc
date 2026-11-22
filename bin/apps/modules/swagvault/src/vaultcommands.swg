@@ -498,11 +498,10 @@ impl MainWindow
         return true
     }
 
-    // States the key files that open the unfolded vault.
+    // Opens the key-file list on the unfolded vault's mount card.
     mtd chooseUnlockKeyFiles()
     {
-        if .chooseKeyFiles(&.unlockKeyFiles, canGenerate: false) do
-            .list.card.setKeyFileCount(.unlockKeyFiles.count)
+        .list.card.toggleKeyFiles()
     }
 
     // States the key files the new vault will need besides its password.

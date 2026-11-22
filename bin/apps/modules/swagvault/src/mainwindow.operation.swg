@@ -695,7 +695,7 @@ impl MainWindow
                 .unlockKeyFiles = .operation.resultKeyFiles
             else do
                 .unlockKeyFiles = .createKeyFiles
-            .list.card.setKeyFileCount(.unlockKeyFiles.count)
+            .list.card.setKeyFiles(.unlockKeyFiles.toSlice())
             .showPage(.List)
         }
     }
@@ -831,7 +831,7 @@ impl MainWindow
             if .operation.accessChange == .KeyFiles
             {
                 .unlockKeyFiles = .operation.resultKeyFiles
-                .list.card.setKeyFileCount(.unlockKeyFiles.count)
+                .list.card.setKeyFiles(.unlockKeyFiles.toSlice())
                 .setStatus(.KeyFilesChanged)
             }
             else

@@ -104,6 +104,7 @@ struct VaultList
         window:   *MainWindow
         scroll:   *ScrollWnd
         title:    *Label
+        options:  *IconButton
         notice:   *NoticeLine
         heading:  *Label
         welcome:  *Label
@@ -176,6 +177,10 @@ impl VaultList
 
         let texts = appStrings()
         result.title  = createPageTitle(result, texts.ui_VaultsTitle)
+        with result.options = createQuietLink(result, texts.ui_OptionsLink)
+        {
+            .sigPressed += func|window|(_) { window.showPage(.Options) }
+        }
         result.notice = NoticeLine.create(result)
         result.card   = UnlockCard.create(result, window)
 
@@ -251,7 +256,7 @@ impl VaultList
 
         .card.header.setPath(chosen)
         .card.header.refresh()
-        .card.setKeyFileCount(.window.unlockKeyFiles.count)
+        .card.setKeyFiles(.window.unlockKeyFiles.toSlice())
         .unfold(chosen)
         .arrange()
 
@@ -322,6 +327,7 @@ impl VaultList
     {
         let texts = appStrings()
         .title.setText(texts.ui_VaultsTitle)
+        .options.setQuietText(texts.ui_OptionsLink)
         .newVault.setText(texts.ui_NewVault)
         .openFile.setText(texts.ui_OpenFile)
         .card.retranslate(.window.unlockKeyFiles.count)
@@ -356,8 +362,11 @@ impl VaultList
         .ruleRect = {}
         var y = ListTop + .stripInset()
         .title.arrange(Math.Rectangle{x, y, width, .title.position.height})
+        let optionsSize = .options.measure({}).preferred
+        let titleSize   = .title.measure({}).preferred
+        .options.arrange(Math.Rectangle{x + titleSize.x + 16, y, optionsSize.x, optionsSize.y})
 
-        // Beside the vaults, the ways to another one are secondary: a hairline ring, then words.
+        // Page navigation follows the title; vault actions stay on its far edge.
         .newVault.setForm(.Normal)
         .openFile.setForm(.Flat)
         let newSize  = .newVault.measure({}).preferred
@@ -448,6 +457,9 @@ impl VaultList
         let room   = .scroll.clientRect()
         let center = Math.round(room.width * 0.5)
         var y      = Math.max(ListTop + .stripInset(), Math.round((room.height - PageFoot - height) * 0.5))
+
+        let optionsSize = .options.measure({}).preferred
+        .options.arrange(Math.Rectangle{x + width - optionsSize.x, ListTop + .stripInset(), optionsSize.x, optionsSize.y})
 
         .markRect = Math.Rectangle{center - MarkSize * 0.5, y, MarkSize, MarkSize}
         y         += MarkSize + MarkToHeading

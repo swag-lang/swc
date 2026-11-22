@@ -176,3 +176,41 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     window.idleTimeout.sigLinkActivated.call(window.idleTimeout, "")
     Swag.require(captured)
 }
+
+// The key-file editor shows the configured paths and names each action beside the list.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+
+    var options: FormDlgOptions
+    options.title = appStrings().dlg_TitleChangeKeyFiles
+    options.confirmButtonText = appStrings().dlg_BtnApply
+    let dialog = FormDlg.create(unwrap window.surface, options)
+    var paths: Array'String
+    for index in 10 do
+        paths.add(Format.toString("/home/alice/keys/key-%.key", index + 1))
+    let field = buildKeyFileChangeForm(dialog, paths.toSlice())
+    dialog.fitHeightToContent(dialog.form.measure(Math.Point{dialog.form.position.width, 0}).preferred.y)
+    dialog.applyLayout()
+    Swag.require(field.files.lineCount() == 10)
+
+    let image = host.renderSurface(unwrap dialog.surface)
+    Pixel.Testing.assertImageGolden(&image, "keyfiles.encre")
+}
+
+// Mount keeps the chosen key files visible in the unfolded card instead of opening another form.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    fillPictureList(window)
+    window.chooseVault("/vault.bin")
+    for index in 3 do
+        window.unlockKeyFiles.add(Format.toString("/home/alice/keys/mount-%.key", index + 1))
+    window.list.refresh()
+    window.list.card.toggleKeyFiles()
+    assertSurfaceGolden(&host, window, true, "unlock.keys")
+}

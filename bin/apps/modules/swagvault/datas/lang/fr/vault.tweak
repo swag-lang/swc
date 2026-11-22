@@ -38,6 +38,7 @@ ui_VaultsTitle         Coffres
 ui_NewVault            Nouveau coffre
 ui_OpenFile            Ouvrir un fichier…
 ui_BackToVaults        ← Coffres
+ui_OptionsLink         Options →
 ui_StateMounted        monté sur %
 ui_StateLocked         verrouillé
 ui_StateReadWrite      lecture et écriture
@@ -130,9 +131,9 @@ ui_ContainerPassword   Vide si le coffre n'en a pas
 ui_KeyFiles            Fichiers clés
 ui_KeyFilesHelp        Chaque fichier listé est requis. Seul son contenu est utilisé : vous pouvez le déplacer sans modifier l'accès.
 ui_NoKeyFiles          Aucun fichier clé
-ui_AddKeyFiles         Ajouter des fichiers clés existants
+ui_AddKeyFiles         Ajouter des fichiers…
 ui_GenerateKeyFile     Créer un fichier clé aléatoire
-ui_RemoveKeyFile       Retirer le fichier clé sélectionné
+ui_RemoveKeyFile       Retirer de la liste
 ui_RemovePasswordHelp  Laissez vide pour supprimer seulement le mot de passe. Les fichiers clés sélectionnés restent requis.
 ui_NewCapacityHelp     Modifier la capacité peut déplacer les blocs utilisés qui ne tiendraient plus.
 ui_KeepCapacity        Conserver la capacité actuelle

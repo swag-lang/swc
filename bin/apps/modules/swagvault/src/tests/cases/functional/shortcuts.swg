@@ -60,7 +60,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host, width: 1024, height: 800)
         host.app.setStatePath(path)
-        host.clickWnd(window.optionsButton)
+        host.clickWnd(window.list.options)
         Swag.require(window.page == .Options)
 
         editVaultShortcuts(&host, window, save: false)
@@ -86,7 +86,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
     Swag.require(window.keyShortcutName(VaultCommands.OpenFile).isEmpty())
 
     window.showPage(.List, animate: false)
-    host.clickWnd(window.optionsButton)
+    host.clickWnd(window.list.options)
     Swag.require(window.page == .Options)
     host.app.sigFrame += func|host = &host, &reset|(app)
     {
@@ -119,7 +119,7 @@ func editVaultShortcuts(host: *Testing.HeadlessHost, window: *MainWindow, save: 
     Swag.require(lensHasEntry(window, Gui.strings().shortcuts_Open))
     window.lens.close()
 
-    host.clickWnd(window.optionsButton)
+    host.clickWnd(window.list.options)
     Swag.require(window.page == .Options)
     for remove in [true, false]
     {

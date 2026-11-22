@@ -3,8 +3,8 @@
 
 using Core, Gui
 
-// Home and the vault list offer Options directly. The icon runs the same command as the lens
-// and stays out of keyboard focus; Options remains searchable in both shipped languages.
+// Home and the vault list offer Options as a page link. The command remains searchable in both
+// shipped languages, and the Options page keeps its quiet link back to the vaults.
 #test
 {
     defer discard catch g_App.setLanguage(ReferenceLanguage)
@@ -15,19 +15,18 @@ using Core, Gui
         expect g_App.setLanguage(tag)
         host.notify(.LanguageChanged)
         window.showPage(.List, animate: false)
-        Swag.require(window.optionsButton.isLocallyVisible() and window.optionsButton.isEnabled())
-        Swag.require(window.optionsButton.focusPolicy == .None)
-        Swag.require(window.optionsButton.toolTip == appStrings().cmd_Options)
+        Swag.require(window.list.options.isLocallyVisible() and window.list.options.isEnabled())
+        Swag.require(window.list.options.text() == appStrings().ui_OptionsLink)
         window.lens.open()
         Swag.require(lensHasEntry(window, appStrings().cmd_Options))
         window.lens.close()
         window.lens.open("options")
         Swag.require(lensHasEntry(window, appStrings().cmd_Options))
         window.lens.close()
-        host.clickWnd(window.optionsButton)
+        host.clickWnd(window.list.options)
         Swag.require(window.page == .Options and window.optionsPage.isLocallyVisible())
-        Swag.require(not window.optionsButton.isLocallyVisible())
+        Swag.require(not window.list.options.isLocallyVisible())
         host.clickWnd(window.optionsPage.head.back)
-        Swag.require(window.page == .List and window.optionsButton.isLocallyVisible())
+        Swag.require(window.page == .List and window.list.options.isLocallyVisible())
     }
 }

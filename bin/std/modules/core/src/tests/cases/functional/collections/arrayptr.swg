@@ -3,6 +3,12 @@
 
 using Swag
 
+#[Swag.NoCopy]
+struct ArrayPtrNonCopyProbe
+{
+    value: s32
+}
+
 struct ArrayPtrGrowthProbeAllocator
 {
     allocationCount: u32
@@ -36,6 +42,11 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     }
 
     return true
+}
+
+#test
+{
+    #assert(not Reflection.canCopy(ArrayPtr'ArrayPtrNonCopyProbe))
 }
 
 #test

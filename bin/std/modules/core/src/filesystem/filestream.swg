@@ -170,10 +170,14 @@ impl FileStream
     // Moves by the signed 64-bit interpretation of `offset` from `origin`.
     // Encode a negative offset as `cast #bit (u64, -n's64)` to seek backward from `.Current` or `.End`.
     // A seek before the start of the file fails.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when `origin` is not a supported seek origin.
     mtd seek(origin: SeekOrigin, offset: u64) fail
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
+        if origin != .Begin and origin != .Current and origin != .End do
+            fail Errors.BadParameterError{"invalid file seek origin"}
         if .liveRead
         {
             var stream = try File.open(.name, .Open, .Read, .ReadWrite | .Delete)

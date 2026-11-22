@@ -116,8 +116,8 @@ impl RuneClass
     // Adds the other case of every scalar value the class holds, so the class matches
     // both cases of everything it names.
     //
-    // A very wide interval is left alone: it already covers the folded values of anything
-    // inside it, and walking it scalar by scalar would cost more than the pattern.
+    // A wide interval already contains most of its case partners. Inspect the compact case
+    // table to add partners outside its boundaries instead of scanning every scalar.
     mtd foldCase()
     {
         .normalize()

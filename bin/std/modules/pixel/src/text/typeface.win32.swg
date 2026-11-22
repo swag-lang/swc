@@ -76,7 +76,7 @@ impl TypeFace
                 requestedWeight = FW_REGULAR
             let targetWeight = cast(u16, requestedWeight)
 
-            var bestIndex: u32?
+            var bestIndex = count
             var bestScore = 4000'u32
             for index in count
             {
@@ -98,8 +98,8 @@ impl TypeFace
                 }
             }
 
-            if let selectedIndex = bestIndex do
-                return try Face.loadAt(bytes, selectedIndex, allocator)
+            if bestIndex < count do
+                return try Face.loadAt(bytes, bestIndex, allocator)
         }
 
         return try Face.load(bytes, allocator)
@@ -126,8 +126,11 @@ impl TypeFace
         var buffer  = try readHfontData(hfont)
         let logFont = try readHfontLogFont(hfont)
         let length  = Utf16.lengthUntilZero(logFont.lfFaceName)
-        let family  = length ? Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length)) : ""
-        let face    = try loadFaceForFamily(buffer.toSlice(), family, logFont.lfWeight, logFont.lfItalic != 0, allocator)
+
+        var family: String
+        if length do
+            family = Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length))
+        let face = try loadFaceForFamily(buffer.toSlice(), family, logFont.lfWeight, logFont.lfItalic != 0, allocator)
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator

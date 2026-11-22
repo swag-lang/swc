@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag
+using Swag, Core.Errors
 
 // Exact reads distinguish a complete value from a short read at the end of the file.
 #test
@@ -59,4 +59,35 @@ using Swag
     Swag.require(not (expect stream.readExactAt(2, tail)))
     Swag.require(tail[0] == 0xBB and tail[1] == 0x40)
     Swag.require(expect stream.position() == 4)
+}
+
+// Invalid seek origins fail without moving the cursor or changing file contents.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_filestream_invalid_origin.tmp")
+    defer discard catch File.delete(fileName)
+
+    var stream = expect File.open(fileName, .CreateNew, .ReadWrite, .Read)
+    defer stream.close()
+    let original: [4] u8 = [0x10, 0x20, 0x30, 0x40]
+    expect stream.writeAll(original)
+    expect stream.seek(.Begin, 2)
+
+    // Swag rejects numeric casts to enums, so build an invalid value through its raw bytes.
+    var invalidOrigin: File.SeekOrigin
+    var invalidBytes:  [#sizeof(File.SeekOrigin)] u8
+    for index in invalidBytes.count do
+        invalidBytes[index] = 0xFF
+    Memory.copy(&invalidOrigin, invalidBytes.buffer, invalidBytes.count)
+
+    var error: Swag.Error
+    discard catch stream.seek(invalidOrigin, 0) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    Swag.require(expect stream.position() == 2)
+    Swag.require(expect stream.size() == original.count)
+
+    expect stream.seek(.Begin, 0)
+    var recovered: [4] u8
+    Swag.require(expect stream.readExact(recovered))
+    Swag.require(Slice.equals(recovered, original))
 }

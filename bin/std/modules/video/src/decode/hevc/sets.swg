@@ -504,18 +504,25 @@ impl Pps
     // set carries: the tile geometry cannot be derived without it.
     mtd read(reader: *BitReader, sps: const *Sps) fail
     {
-        .spsId                   = reader.ue()
+        .spsId = reader.ue()
         .dependentSliceSegments  = reader.bit() != 0
         .outputFlagPresent       = reader.bit() != 0
         .numExtraSliceHeaderBits = reader.read(3)
         .signDataHiding          = reader.bit() != 0
         .cabacInitPresent        = reader.bit() != 0
-        .numRefIdxL0Default      = reader.ue() + 1
-        .numRefIdxL1Default      = reader.ue() + 1
-        .initQp                  = reader.se() + 26
-        .constrainedIntraPred    = reader.bit() != 0
-        .transformSkipEnabled    = reader.bit() != 0
-        .cuQpDeltaEnabled        = reader.bit() != 0
+        let numRefIdxL0DefaultMinus1 = reader.ue()
+        if numRefIdxL0DefaultMinus1 >= MaxRefPics do
+            fail InvalidFormatError{"HEVC picture parameter set declares too many default reference pictures"}
+        .numRefIdxL0Default = numRefIdxL0DefaultMinus1 + 1
+
+        let numRefIdxL1DefaultMinus1 = reader.ue()
+        if numRefIdxL1DefaultMinus1 >= MaxRefPics do
+            fail InvalidFormatError{"HEVC picture parameter set declares too many default reference pictures"}
+        .numRefIdxL1Default   = numRefIdxL1DefaultMinus1 + 1
+        .initQp = reader.se() + 26
+        .constrainedIntraPred = reader.bit() != 0
+        .transformSkipEnabled = reader.bit() != 0
+        .cuQpDeltaEnabled     = reader.bit() != 0
         if .cuQpDeltaEnabled do
             .diffCuQpDeltaDepth = reader.ue()
         .cbQpOffset                  = reader.se()
@@ -528,17 +535,32 @@ impl Pps
         .entropyCodingSync           = reader.bit() != 0
         if .tilesEnabled
         {
-            .numTileColumns = reader.ue() + 1
-            .numTileRows    = reader.ue() + 1
+            let numTileColumnsMinus1 = reader.ue()
+            let numTileRowsMinus1    = reader.ue()
+            if numTileColumnsMinus1 >= Swag.U32.Max or numTileRowsMinus1 >= Swag.U32.Max do
+                fail InvalidFormatError{"HEVC tile count overflows its syntax bias"}
+            .numTileColumns = numTileColumnsMinus1 + 1
+            .numTileRows    = numTileRowsMinus1 + 1
             if .numTileColumns > 32 or .numTileRows > 32 do
                 fail UnsupportedFormatError{"HEVC picture declares more than thirty-two tile rows or columns"}
             .uniformSpacing = reader.bit() != 0
             if not .uniformSpacing
             {
-                for index in .numTileColumns - 1 do
-                    .columnWidth[index] = reader.ue() + 1
-                for index in .numTileRows - 1 do
-                    .rowHeight[index] = reader.ue() + 1
+                for index in .numTileColumns - 1
+                {
+                    let columnWidthMinus1 = reader.ue()
+                    if columnWidthMinus1 >= Swag.U32.Max do
+                        fail InvalidFormatError{"HEVC tile column width overflows its syntax bias"}
+                    .columnWidth[index] = columnWidthMinus1 + 1
+                }
+
+                for index in .numTileRows - 1
+                {
+                    let rowHeightMinus1 = reader.ue()
+                    if rowHeightMinus1 >= Swag.U32.Max do
+                        fail InvalidFormatError{"HEVC tile row height overflows its syntax bias"}
+                    .rowHeight[index] = rowHeightMinus1 + 1
+                }
             }
 
             .loopFilterAcrossTiles = reader.bit() != 0
@@ -607,13 +629,16 @@ impl Pps
         if .initQp < -sps.qpBdOffsetY or .initQp > 51 do
             fail InvalidFormatError{"HEVC initial quantization parameter is out of range"}
 
-        .deriveTiles(sps)
+        try .deriveTiles(sps)
         .valid = true
     }
 
     // Computes the tile column and row boundaries of clause 6.5.1, in coding tree blocks.
-    private mtd deriveTiles(sps: const *Sps)
+    private mtd deriveTiles(sps: const *Sps) fail
     {
+        if .numTileColumns > sps.widthInCtbs or .numTileRows > sps.heightInCtbs do
+            fail InvalidFormatError{"HEVC tile count exceeds the picture's coding tree block dimensions"}
+
         if .uniformSpacing
         {
             for index in .numTileColumns + 1 do
@@ -624,13 +649,27 @@ impl Pps
         }
 
         .colBoundary[0] = 0
-        for index in .numTileColumns - 1 do
-            .colBoundary[index + 1] = .colBoundary[index] + .columnWidth[index]
+        var columnWidth = 0'u64
+        for index in .numTileColumns - 1
+        {
+            columnWidth += cast(u64, .columnWidth[index])
+            if columnWidth >= cast(u64, sps.widthInCtbs) do
+                fail InvalidFormatError{"HEVC tile columns exceed the picture width"}
+            .colBoundary[index + 1] = cast(u32, columnWidth)
+        }
+
         .colBoundary[.numTileColumns] = sps.widthInCtbs
 
         .rowBoundary[0] = 0
-        for index in .numTileRows - 1 do
-            .rowBoundary[index + 1] = .rowBoundary[index] + .rowHeight[index]
+        var rowHeight = 0'u64
+        for index in .numTileRows - 1
+        {
+            rowHeight += cast(u64, .rowHeight[index])
+            if rowHeight >= cast(u64, sps.heightInCtbs) do
+                fail InvalidFormatError{"HEVC tile rows exceed the picture height"}
+            .rowBoundary[index + 1] = cast(u32, rowHeight)
+        }
+
         .rowBoundary[.numTileRows] = sps.heightInCtbs
     }
 
@@ -767,6 +806,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta  = source.positiveDelta[index2] + deltaRps
         if delta < 0 and useDelta[source.negativeCount + index2]
         {
+            if negativeCount >= MaxRefPics do
+                fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
             target.negativeDelta[negativeCount] = delta
             target.negativeUsed[negativeCount]  = used[source.negativeCount + index2]
             negativeCount += 1
@@ -775,6 +816,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     if deltaRps < 0 and useDelta[sourceTotal]
     {
+        if negativeCount >= MaxRefPics do
+            fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
         target.negativeDelta[negativeCount] = deltaRps
         target.negativeUsed[negativeCount]  = used[sourceTotal]
         negativeCount += 1
@@ -785,6 +828,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta = source.negativeDelta[entry] + deltaRps
         if delta < 0 and useDelta[entry]
         {
+            if negativeCount >= MaxRefPics do
+                fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
             target.negativeDelta[negativeCount] = delta
             target.negativeUsed[negativeCount]  = used[entry]
             negativeCount += 1
@@ -798,6 +843,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta  = source.negativeDelta[index2] + deltaRps
         if delta > 0 and useDelta[index2]
         {
+            if positiveCount >= MaxRefPics do
+                fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
             target.positiveDelta[positiveCount] = delta
             target.positiveUsed[positiveCount]  = used[index2]
             positiveCount += 1
@@ -806,6 +853,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     if deltaRps > 0 and useDelta[sourceTotal]
     {
+        if positiveCount >= MaxRefPics do
+            fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
         target.positiveDelta[positiveCount] = deltaRps
         target.positiveUsed[positiveCount]  = used[sourceTotal]
         positiveCount += 1
@@ -816,6 +865,8 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         let delta = source.positiveDelta[entry] + deltaRps
         if delta > 0 and useDelta[source.negativeCount + entry]
         {
+            if positiveCount >= MaxRefPics do
+                fail InvalidFormatError{"HEVC predicted reference picture set holds too many pictures"}
             target.positiveDelta[positiveCount] = delta
             target.positiveUsed[positiveCount]  = used[source.negativeCount + entry]
             positiveCount += 1

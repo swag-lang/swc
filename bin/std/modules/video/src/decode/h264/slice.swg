@@ -420,7 +420,7 @@ impl Slice
     }
 
     // Parses the explicit prediction weights of both lists.
-    private mtd parseWeights() fail
+    internal mtd parseWeights() fail
     {
         let listCount = .header.type == SliceTypeB ? 2 : 1
         for list in listCount
@@ -448,8 +448,12 @@ impl Slice
                     if entry.cbWeight < -128 or
                        entry.cbWeight > 127 or
                        entry.crWeight < -128 or
-                       entry.crWeight > 127 do
-                        fail InvalidFormatError{"H.264 slice declares an out-of-range chroma weight"}
+                       entry.crWeight > 127 or
+                       entry.cbOffset < -128 or
+                       entry.cbOffset > 127 or
+                       entry.crOffset < -128 or
+                       entry.crOffset > 127 do
+                        fail InvalidFormatError{"H.264 slice declares an out-of-range chroma weight or offset"}
                 }
             }
         }

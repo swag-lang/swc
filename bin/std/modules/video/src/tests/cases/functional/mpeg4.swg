@@ -92,6 +92,25 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
     return bodyOffset * 8 + reader.bitPos
 }
 
+// Finds the first chroma_format bit of the optional VOL control parameters.
+func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
+{
+    var reader = Mpeg4.BitReader.create(bytes[bodyOffset until bytes.count])
+    discard reader.bit()
+    discard reader.read(8)
+    if reader.bit() != 0
+    {
+        discard reader.read(4)
+        discard reader.read(3)
+    }
+
+    if reader.read(4) == 15 do
+        discard reader.read(16)
+    if reader.bit() == 0 do
+        return Swag.U64.Max
+    return bodyOffset * 8 + reader.bitPos
+}
+
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
 // motion vectors where the encoder chose them.
 #test
@@ -161,6 +180,37 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
     Swag.require(rejected.value() is InvalidFormatError)
 }
 
+// The decoder stores MPEG-4 chroma in 4:2:0 planes, so other declared formats are unsupported.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-mpeg4-simple.mkv").toString())
+    const VolStartCode: [4] u8 = [0, 0, 1, 0x20]
+    let volStart = Slice.findSubslice(bytes.toSlice(), VolStartCode)
+    Swag.require(volStart != Swag.U64.Max)
+    let volEnd = Mpeg4.nextStartCode(bytes.toSlice(), volStart + VolStartCode.count)
+    Swag.require(volEnd > volStart + VolStartCode.count)
+
+    var valid: Mpeg4.Decoder
+    expect valid.configure(bytes.toSlice()[volStart until volEnd])
+
+    let formatBit = mpeg4VolChromaFormatBit(bytes.toSlice(), volStart + VolStartCode.count)
+    Swag.require(formatBit != Swag.U64.Max)
+    let highByte  = formatBit >> 3
+    let highShift = cast(u32, 7 - (formatBit & 7))
+    let highMask  = cast(u8, 1'u32 << highShift)
+    let lowBit    = formatBit + 1
+    let lowByte   = lowBit >> 3
+    let lowShift  = cast(u32, 7 - (lowBit & 7))
+    let lowMask   = cast(u8, 1'u32 << lowShift)
+    bytes[highByte] = bytes[highByte] | highMask
+    bytes[lowByte]  = bytes[lowByte] & (0xFF'u8 - lowMask)
+
+    var unsupported: Mpeg4.Decoder
+    var rejected:    Swag.Error
+    discard catch unsupported.configure(bytes.toSlice()[volStart until volEnd]) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+}
+
 // A resync header repeats the forward and backward motion-code ranges. Zero has no legal range
 // and must be rejected here, before motion-vector decoding uses it to choose a shift count.
 #test
@@ -184,6 +234,21 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
     reader = Mpeg4.BitReader.create(Swag.makeSlice(&ZeroBackward[0], ZeroBackward.count))
     discard catch decoder.readPacketHeader(&reader, &header, &index) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
+}
+
+// A full 4096-by-4096 plane needs sixteen bits to name every macroblock in a packet header.
+#test
+{
+    var decoder: Mpeg4.Decoder
+    decoder.layer.mbWidth        = 256
+    decoder.layer.mbHeight       = 256
+    decoder.layer.quantPrecision = 5
+
+    var header: Mpeg4.PlaneHeader
+    var index  = 0'u64
+    var reader = Mpeg4.BitReader.create([0x40'u8, 0, 0x08])
+    expect decoder.readPacketHeader(&reader, &header, &index)
+    Swag.require(index == 16_384 and decoder.quant == 1)
 }
 
 // A VOP time increment ranges from zero through one less than the VOL time resolution.

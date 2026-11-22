@@ -405,6 +405,7 @@ private struct Layout
     durationTicks:        f64
     tracks:               Array'Track
     clusters:             Array'Element
+    clusterOffsets:       Array'u64
     audioTracks:          Array'u64
     subtitleTracks:       Array'u64
     selectedVideo:        u64  = NoTrack
@@ -755,7 +756,7 @@ private impl Layout
     // while that cluster starts after the target. Indexing then walks forward from it as it walks
     // from a cue, so the seek lands on the same picture; only the reading before it shrinks. Returns
     // the start of the segment when no cluster qualifies.
-    mtd clusterBefore(bytes: const [..] u8, timestampNanoseconds: u64)->u64
+    internal mtd clusterBefore(bytes: const [..] u8, timestampNanoseconds: u64)->u64 fail
     {
         let start    = .segment.data
         let end      = Math.min(.segment.end, bytes.count)
@@ -778,6 +779,9 @@ private impl Layout
                 continue
             }
 
+            if not (try .hasTopLevelClusterAt(bytes, found.offset)) do
+                return try .verifiedClusterBefore(bytes, timestampNanoseconds)
+
             let foundNanoseconds = cast(f64, found.timestamp) * cast(f64, .timestampScale)
             if foundNanoseconds <= target do
                 return found.offset
@@ -785,6 +789,69 @@ private impl Layout
         }
 
         return start
+    }
+
+    // Verifies a candidate against the Segment's indexed Cluster boundaries. Block payloads are
+    // skipped by the first pass that builds `.clusters`, so a Cluster signature inside a picture
+    // is never a boundary.
+    internal mtd hasTopLevelClusterAt(bytes: const [..] u8, offset: u64)->bool fail
+    {
+        if offset < .segment.data or offset >= .segment.end do
+            return false
+
+        var cursor = Cursor.open(bytes)
+        try cursor.seek(offset)
+        let candidate = try .readSegmentElement(&cursor, .segment)
+        if candidate.id != ClusterId do
+            return false
+
+        var low  = 0'u64
+        var high = .clusterOffsets.count
+        while low < high
+        {
+            let middle = low + (high - low) / 2
+            let found  = .clusterOffsets[middle]
+            if found == offset do
+                return .clusters[middle].data == candidate.data and .clusters[middle].end == candidate.end
+            if found < offset do
+                low = middle + 1
+            else do
+                high = middle
+        }
+
+        return false
+    }
+
+    // Returns the latest verified cluster whose timestamp does not exceed the target.
+    mtd verifiedClusterBefore(bytes: const [..] u8, timestampNanoseconds: u64)->u64 fail
+    {
+        let target = timestampNanoseconds / .timestampScale
+        var index  = .clusters.count
+        while index
+        {
+            index -= 1
+            var cursor = Cursor.open(bytes)
+            let time   = try .clusterTimestamp(&cursor, .clusters[index])
+            if time <= target do
+                return .clusterOffsets[index]
+        }
+
+        return .segment.data
+    }
+
+    // Reads a cluster timestamp from its bounded children; Matroska does not require it first.
+    mtd clusterTimestamp(cursor: *Cursor, cluster: Element)->u64 fail
+    {
+        try cursor.seek(cluster.data)
+        while cursor.position < cluster.end
+        {
+            let element = try cursor.readElement(cluster.end)
+            if element.id == ClusterTimestampId do
+                return try cursor.readUnsigned(element)
+            try cursor.seek(element.end)
+        }
+
+        fail InvalidFormatError{"Matroska cluster has no timestamp"}
     }
 
     // Returns the first cluster at or after `from`, within [[ClusterSearchWindow]], with its timestamp.
@@ -998,6 +1065,7 @@ private impl Layout
         {
             if cancelled and Atomic.get(cancelled) do
                 return false
+            let offset  = cursor.position
             let element = try .readSegmentElement(cursor, segment)
             switch element.id
             {
@@ -1010,6 +1078,7 @@ private impl Layout
 
             case ClusterId:
                 .clusters.add(element)
+                .clusterOffsets.add(offset)
             }
 
             try cursor.seek(element.end)
@@ -2616,12 +2685,14 @@ impl IKeyPictureDecoder for Decoder
         var clusterOffset = layout.segment.data
         if layout.cues.isEmpty()
         {
-            clusterOffset = layout.clusterBefore(bytes, target)
+            clusterOffset = try layout.clusterBefore(bytes, target)
         }
         else
         {
             let cue = layout.cueAtOrBefore(target)
             if not cue do
+                return false
+            if not (try layout.hasTopLevelClusterAt(bytes, cue.clusterOffset)) do
                 return false
             clusterOffset = cue.clusterOffset
         }

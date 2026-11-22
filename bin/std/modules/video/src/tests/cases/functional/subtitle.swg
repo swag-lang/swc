@@ -37,6 +37,14 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
     Swag.require(end.nextChangeSeconds == Swag.F64.Inf)
 }
 
+// Track duration includes an earlier cue that extends past the last cue by start time.
+#test
+{
+    const Source = "1\n00:00:01,000 --> 00:00:10,000\nLong cue\n\n2\n00:00:02,000 --> 00:00:03,000\nShort cue\n"
+    let track = expect Subtitle.Track.decode("overlap.srt", Source)
+    Swag.require(track.durationInSeconds() == 10)
+}
+
 // Subtitle decoding rejects malformed timing and unknown document formats.
 #test
 {
@@ -123,6 +131,14 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
     let track = expect Subtitle.Track.decode("sample.ass", Source)
     Swag.require(track.format == .SubStationAlpha and track.cues.count == 1)
     Swag.require(track.cueContent(0) == "Hello\nworld")
+}
+
+// SSA event formats may put Text before the timestamp fields.
+#test
+{
+    const Source = "[Events]\nFormat: Text, Start, End\nDialogue: First,0:00:01.00,0:00:02.00\n"
+    let track = expect Subtitle.Track.decode("text-first.ass", Source)
+    Swag.require(track.cueCount() == 1 and track.cueContent(0) == "First")
 }
 
 // LRC closes an open lyric at the next timestamp and MicroDVD honors its declared frame rate.

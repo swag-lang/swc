@@ -105,8 +105,11 @@ impl PlanarFrame
     // Resizes the planes for a picture of `width` by `height`, keeping the storage it can.
     //
     // The chroma planes are `chromaShift` halvings smaller than the luma plane in each direction.
+    // Dimensions must be nonnegative, and `chromaShift` must be zero or one.
     mtd resize(width, height: s32, chromaShift = 1's32)
     {
+        Swag.assert(width >= 0 and height >= 0, "planar frame dimensions cannot be negative")
+        Swag.assert(chromaShift == 0 or chromaShift == 1, "planar frame chroma shift must be zero or one")
         let round       = (1's32 << chromaShift) - 1
         let chromaWidth = cast(u32, (width >> chromaShift) + ((width & round) != 0 ? 1 : 0))
         let chromaRows  = cast(u64, (height >> chromaShift) + ((height & round) != 0 ? 1 : 0))
@@ -120,10 +123,9 @@ impl PlanarFrame
         .strideChroma = chromaWidth
         if .luma.count != lumaSize do
             .luma.resize(lumaSize)
-        if .chromaB.count != chromaSize
-        {
+        if .chromaB.count != chromaSize do
             .chromaB.resize(chromaSize)
+        if .chromaR.count != chromaSize do
             .chromaR.resize(chromaSize)
-        }
     }
 }

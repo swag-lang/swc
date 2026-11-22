@@ -1086,13 +1086,17 @@ impl Track
         let count = try source.readBigEndian'u32()
         if cast(u64, count) * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sync-sample table is truncated"}
+        if count > MaxClassicSampleCount do
+            fail InvalidFormatError{"MP4 sync-sample table exceeds the supported sample count"}
         .syncSamples.reserve(count)
+        var previous = 0'u32
         for count
         {
             let number = try source.readBigEndian'u32()
-            if not number do
-                fail InvalidFormatError{"MP4 sync-sample table holds a zero sample number"}
+            if number <= previous do
+                fail InvalidFormatError{"MP4 sync-sample numbers are not strictly increasing"}
             .syncSamples.add(number - 1)
+            previous = number
         }
     }
 
@@ -1375,6 +1379,8 @@ impl Track
     {
         if .sizes.isEmpty() do
             fail InvalidFormatError{"MP4 video track has no samples"}
+        for sample in .syncSamples where cast(u64, sample) >= .sizes.count do
+            fail InvalidFormatError{"MP4 sync-sample table references a sample outside the track"}
         if .offsets.isEmpty() do
             fail InvalidFormatError{"MP4 video track has no chunk offsets"}
         if .chunks.isEmpty() or .chunks[0].firstChunk != 1 do

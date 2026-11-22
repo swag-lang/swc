@@ -172,7 +172,8 @@ impl Layer
 
         if reader.bit() != 0
         {
-            discard reader.read(2)     // chroma_format
+            if reader.read(2) != 1 do
+                fail UnsupportedFormatError{"video decoder does not read MPEG-4 chroma formats other than 4:2:0"}
             .lowDelay = reader.bit() != 0
             if reader.bit() != 0
             {

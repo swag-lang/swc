@@ -40,6 +40,28 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(rejected.value() is InvalidFormatError)
 }
 
+// A Cluster signature and timestamp inside a Block payload are not Segment-level cluster offsets.
+#test
+{
+    const EmbeddedClusterOffset = 14'u64
+    const Bytes: [22] u8        = [0x1F, 0x43, 0xB6, 0x75, 0x91,
+                                   0xE7, 0x81, 0x01,
+                                   0xA3, 0x8C,
+                                   0x81, 0x00, 0x00, 0x00,
+                                   0x1F, 0x43, 0xB6, 0x75, 0x83, 0xE7, 0x81, 0x05]
+    let bytes = Swag.makeSlice(&Bytes[0], Bytes.count)
+    var layout: Matroska.Layout
+    layout.segment       = {0, 0, Bytes.count, false}
+    layout.durationTicks = 6
+
+    let cluster = expect layout.clusterBefore(bytes, 5_000_000)
+    Swag.require(cluster == 0)
+    Swag.require(not (expect layout.hasTopLevelClusterAt(bytes, EmbeddedClusterOffset)))
+
+    layout.cues.add({5, EmbeddedClusterOffset})
+    Swag.require(not (expect layout.hasTopLevelClusterAt(bytes, layout.cues[0].clusterOffset)))
+}
+
 // Opus timestamps advance at its 48 kHz decoded rate even when the track declares another rate.
 #test
 {

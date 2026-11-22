@@ -379,7 +379,7 @@ impl Decoder
     {
         let total = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
         var width = 1'u32
-        while (1'u64 << width) < total and width < 14 do
+        while (1'u64 << width) < total do
             width += 1
 
         let number = cast(u64, reader.read(width))

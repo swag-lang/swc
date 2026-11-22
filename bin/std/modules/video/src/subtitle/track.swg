@@ -426,7 +426,7 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
         }
 
         var text: String
-        stripSubtitleMarkup(&text, commaTail(event, textField - 1))
+        stripSubtitleMarkup(&text, textField ? commaTail(event, textField - 1) : commaField(event, 0))
         if text.length do
             track.addCue(start, end, text.toString())
         else do
@@ -658,8 +658,14 @@ impl Track
     #[Swag.NoInline]
     mtd const languageTagLength()->u64 => .language.length
 
-    // Returns the end of the last cue, or zero for an empty track.
-    mtd const durationInSeconds()->f64 => not .cues.isEmpty() ? .cues[.cues.count - 1].endSeconds : 0
+    // Returns the greatest cue end, or zero for an empty track.
+    mtd const durationInSeconds()->f64
+    {
+        var result = 0.0'f64
+        for cue in .cues do
+            result = Math.max(result, cue.endSeconds)
+        return result
+    }
 
     private mtd closeLyricCues()
     {

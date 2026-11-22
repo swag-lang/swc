@@ -80,6 +80,27 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     Swag.require(rejected.value() is InvalidFormatError)
 }
 
+// Sync samples are one-based and must describe a strict, in-range sequence.
+#test
+{
+    const DescendingSamples: [16] u8 = [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 1]
+    var bytes  = DescendingSamples
+    var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
+    var track:    Mp4.Track
+    var rejected: Swag.Error
+    discard catch track.parseSyncSamples(&source, bytes.count) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    var rangeBytes: [12] u8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3]
+    source = ByteSource.openMemory(Swag.makeSlice(&rangeBytes[0], rangeBytes.count))
+    var boundedTrack: Mp4.Track
+    boundedTrack.sizes.add(1)
+    boundedTrack.sizes.add(1)
+    expect boundedTrack.parseSyncSamples(&source, rangeBytes.count)
+    discard catch boundedTrack.buildFrames(2) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
 // Pixel aspect ratio is stored beside the codec configuration in a visual sample entry.
 #test
 {

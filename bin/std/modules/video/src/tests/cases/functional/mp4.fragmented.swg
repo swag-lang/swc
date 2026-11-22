@@ -1701,6 +1701,33 @@ func fragmentedPacketSource()->ByteSource fail
     discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 
+    // A `moof` signature without fragment structure inside media payload is not a seek target.
+    damaged.clear()
+    damaged.add(raw)
+    var forgedSource = ByteSource.openMemory(raw)
+    expect forgedSource.seek(moofOffsets[0])
+    let firstMoofSize = cast(u64, expect forgedSource.readBigEndian'u32())
+    expect forgedSource.seek(moofOffsets[0] + firstMoofSize)
+    let mediaDataSize = expect forgedSource.readBigEndian'u32()
+    Swag.require(expect forgedSource.readBigEndian'u32() == 0x6D64_6174)
+    Swag.require(mediaDataSize >= 16)
+    let forgedOffset = moofOffsets[0] + firstMoofSize + 8
+    damaged[forgedOffset]     = 0
+    damaged[forgedOffset + 1] = 0
+    damaged[forgedOffset + 2] = 0
+    damaged[forgedOffset + 3] = 8
+    damaged[forgedOffset + 4] = 0x6D
+    damaged[forgedOffset + 5] = 0x6F
+    damaged[forgedOffset + 6] = 0x6F
+    damaged[forgedOffset + 7] = 0x66
+    for byte in 8 do
+        damaged[tfraOffset + 32 + byte] = cast(u8, (forgedOffset >> cast(u32, (7 - byte) * 8)) & 0xFF)
+    discard expect File.writeAllBytes(cutPath, damaged.toSlice())
+    var forgedIndex = expect Mp4.FragmentedIndex.open(cutPath)
+    discard catch forgedIndex.point(0) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+    forgedIndex.close()
+
     // Version zero and four-byte fragment/run/sample numbers are also valid ISO-BMFF indexes.
     var trailer: ConcatBuffer
     var sink = ByteSink.createMemory(&trailer)

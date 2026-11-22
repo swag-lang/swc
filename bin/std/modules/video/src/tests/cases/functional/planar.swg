@@ -66,6 +66,19 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
     Swag.require(picture.chromaHeight() == 1_073_741_824 and picture.chromaB.isEmpty())
 }
 
+// Resizing repairs either chroma plane independently when callers change its public storage.
+#test
+{
+    var picture: PlanarFrame
+    picture.resize(3, 3)
+    picture.chromaR.resize(0)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    Swag.require(picture.isValid())
+    Swag.require(picture.chromaB.count == 4 and picture.chromaR.count == 4)
+}
+
 // A planar picture is valid only when every plane covers its visible rows and supported chroma mode.
 #test
 {
@@ -100,7 +113,7 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
     picture.strideChroma = 1
     Swag.require(not picture.isValid())
 
-    picture.resize(3, 3, 2)
+    picture.chromaShift = 2
     Swag.require(not picture.isValid())
 
     picture.resize(3, 3, 0)

@@ -38,6 +38,75 @@ private func assertInvalidSpsCrop(payload: const [..] u8)
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 }
 
+private func assertInvalidDefaultReferences(payload: const [..] u8)
+{
+    var reader: BitReader
+    reader.init(payload)
+
+    var sps: Hevc.Sps
+    sps.widthInCtbs  = 1
+    sps.heightInCtbs = 1
+
+    var pps:      Hevc.Pps
+    var rejected: Swag.Error
+    discard catch pps.read(&reader, &sps) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
+private func assertInvalidTilePps(payload: const [..] u8, widthInCtbs, heightInCtbs: u32)
+{
+    var reader: BitReader
+    reader.init(payload)
+
+    var sps: Hevc.Sps
+    sps.widthInCtbs  = widthInCtbs
+    sps.heightInCtbs = heightInCtbs
+
+    var pps:      Hevc.Pps
+    var rejected: Swag.Error
+    discard catch pps.read(&reader, &sps) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
+// The default active-reference count is one more than its syntax value and must fit the decoder's
+// fixed reference lists before that addition is accepted.
+#test
+{
+    const TooManyL0References = [0xC0'u8, 0x04, 0x71, 0x80, 0x10, 0x00]
+    const TooManyL1References = [0xC0'u8, 0x42, 0x31, 0x80, 0x10, 0x00]
+    assertInvalidDefaultReferences(TooManyL0References)
+    assertInvalidDefaultReferences(TooManyL1References)
+}
+
+// Tile rows and columns must be positive and fit inside the coded picture before scan tables are built.
+#test
+{
+    const TooManyUniformColumns  = [0xC0'u8, 0x71, 0x84, 0xB8, 0x48]
+    const ExplicitColumnsTooWide = [0xC0'u8, 0x71, 0x84, 0xA7, 0x09]
+    const TooManyUniformRows     = [0xC0'u8, 0x71, 0x85, 0x58, 0x48]
+    const ExplicitRowsTooHigh    = [0xC0'u8, 0x71, 0x85, 0x47, 0x09]
+    assertInvalidTilePps(TooManyUniformColumns, 1, 1)
+    assertInvalidTilePps(ExplicitColumnsTooWide, 3, 1)
+    assertInvalidTilePps(TooManyUniformRows, 1, 1)
+    assertInvalidTilePps(ExplicitRowsTooHigh, 1, 3)
+}
+
+// An inter-predicted RPS that would add a seventeenth negative delta is rejected before writing
+// past the fixed reference-picture list.
+#test
+{
+    var sets: [2] Hevc.ShortTermRps
+    sets[0].negativeCount = Hevc.MaxRefPics
+    for index in Hevc.MaxRefPics do
+        sets[0].negativeDelta[index] = -cast(s32, index + 1)
+
+    var reader: BitReader
+    reader.init([0xFF'u8, 0xFF, 0xF8])
+    var rejected: Swag.Error
+    discard catch Hevc.readShortTermRps(&reader, &sets[0], 1, 2) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
 // A complete reference NAL must not let the reference check hide a truncated following length.
 #test
 {

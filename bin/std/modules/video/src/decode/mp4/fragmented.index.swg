@@ -27,8 +27,10 @@ struct FragmentedSeekPoint
 // Reads the final `mfra` index of one fragmented MP4 track with bounded memory.
 //
 // Opening reads the last box and validates its entries, without scanning media fragments. Lookup
-// uses binary search and reads entries directly from the file. The file must stay unchanged while
-// this value is open; call `close` to release it early.
+// uses binary search and reads entries directly from the file, then validates the referenced
+// fragment and media-data box locally. It does not scan intervening top-level boxes to prove the
+// offset's ancestry. The file must stay unchanged while this value is open; call `close` to release
+// it early.
 #[Swag.NoCopy]
 struct FragmentedIndex
 {
@@ -37,6 +39,7 @@ struct FragmentedIndex
         source:             ByteSource
         tableOffset:        u64
         randomAccessOffset: u64
+        trackId:            u32
         entrySize:          u32
         count:              u32
         trackFragmentBytes: u8
@@ -57,7 +60,8 @@ impl FragmentedIndex
         if not trackId do
             fail BadParameterError{"fragmented MP4 index track ID must be positive"}
         var result: #returntype
-        result.source = try ByteSource.openFile(fileName)
+        result.source  = try ByteSource.openFile(fileName)
+        result.trackId = trackId
         let size = result.source.size()
         if size < 48 do
             fail InvalidFormatError{"fragmented MP4 has no final random-access index"}
@@ -138,14 +142,37 @@ impl FragmentedIndex
     mtd const entryCount()->u32 => .count
 
     // Reads one indexed key-frame location; `index` is zero based.
+    //
+    // Validation is bounded to the referenced fragment and media-data box, without walking
+    // preceding top-level boxes.
     mtd point(index: u32)->FragmentedSeekPoint fail
     {
         if index >= .count do
             fail BadParameterError{"fragmented MP4 random-access index is outside its entries"}
         let result = try .readPoint(index)
-        try .source.seek(result.moofOffset + 4)
-        if try .source.readBigEndian'u32() != FragmentId do
+        if result.trackFragmentNumber != 1 or result.trackRunNumber != 1 do
+            fail UnsupportedFormatError{"fragmented MP4 random-access entry needs the first track fragment and run"}
+        try .source.seek(result.moofOffset)
+        let fragmentBox = try readBox(&.source, .randomAccessOffset)
+        if fragmentBox.kind != FragmentId do
             fail InvalidFormatError{"fragmented MP4 random-access entry does not point to a fragment"}
+        var layout: Layout
+        let fragment = try layout.parseFragment(&.source, result.moofOffset, fragmentBox.end)
+        if fragment.trackId != .trackId or result.sampleNumber > fragment.samples.count do
+            fail InvalidFormatError{"fragmented MP4 random-access entry does not name its indexed track sample"}
+
+        let sample = fragment.samples[result.sampleNumber - 1]
+        if not sample.isKeyFrame or sample.decodeTime != result.decodeTime do
+            fail InvalidFormatError{"fragmented MP4 random-access entry does not name its key frame"}
+        if fragmentBox.end > .randomAccessOffset - BoxHeaderSize do
+            fail InvalidFormatError{"fragmented MP4 random-access fragment has no media-data box"}
+        try .source.seek(fragmentBox.end)
+        let mediaData = try readBox(&.source, .randomAccessOffset)
+        if mediaData.kind != MediaDataId or
+           sample.offset < mediaData.data or
+           sample.offset > mediaData.end or
+           sample.size > mediaData.end - sample.offset do
+            fail InvalidFormatError{"fragmented MP4 random-access sample runs outside its media-data box"}
         return result
     }
 

@@ -55,6 +55,7 @@ struct SourceOptions
 }
 
 // Cumulative capture, copy, and composition metrics for one [[Screen.Source]].
+//
 // Time fields are measured in microseconds.
 struct SourceMetrics
 {

@@ -120,6 +120,68 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     return result
 }
 
+private func eac3TestChannelBandwidthFrame(bandwidth: u32)->Array'u8
+{
+    var frame: Array'u8
+    var bits = 0'u64
+    ac3TestAppendBits(&frame, &bits, 0x0B77, 16)     // Sync word.
+    ac3TestAppendBits(&frame, &bits, 0, 2)           // Independent substream.
+    ac3TestAppendBits(&frame, &bits, 0, 3)           // Substream id.
+    ac3TestAppendBits(&frame, &bits, 255, 11)        // 512-byte frame.
+    ac3TestAppendBits(&frame, &bits, 0, 2)           // 48 kHz.
+    ac3TestAppendBits(&frame, &bits, 3, 2)           // Six blocks.
+    ac3TestAppendBits(&frame, &bits, 1, 3)           // Mono.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No LFE.
+    ac3TestAppendBits(&frame, &bits, 16, 5)          // E-AC-3 bit-stream id.
+    ac3TestAppendBits(&frame, &bits, 0, 5)           // Dialnorm.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No compression word.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No mixing metadata.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No information metadata.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No additional BSI bytes.
+
+    ac3TestAppendBits(&frame, &bits, 1, 1)     // Six-block exponent strategy.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No adaptive hybrid transform.
+    ac3TestAppendBits(&frame, &bits, 0, 2)     // SNR strategy zero.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No transient pre-noise processing.
+    ac3TestAppendBits(&frame, &bits, 1, 1)     // Read per-block block-switch flags.
+    ac3TestAppendBits(&frame, &bits, 1, 1)     // Read per-block dither flags.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // Reuse allocation defaults.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No fast gain codes.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No delta allocation.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No skipped data.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No spectral-extension attenuation.
+    for block in 6 do
+        ac3TestAppendBits(&frame, &bits, block == 0 ? 1 : 0, 2)     // Decode exponents in block zero only.
+    ac3TestAppendBits(&frame, &bits, 0, 5)      // Converter strategy.
+    ac3TestAppendBits(&frame, &bits, 15, 6)     // Zero bit-allocation SNR offset.
+    ac3TestAppendBits(&frame, &bits, 0, 4)      // Fine SNR.
+    ac3TestAppendBits(&frame, &bits, 0, 1)      // No block start information.
+
+    for block in 6
+    {
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // No block switching.
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // No dither.
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // No dynamic range word.
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // Keep spectral extension off.
+        if not block
+        {
+            ac3TestAppendBits(&frame, &bits, bandwidth, 6)
+            ac3TestAppendBits(&frame, &bits, 24, 4)     // Minimize mantissas if validation is missing.
+            let end    = 37 + 3 * cast(s32, (bandwidth + 12))
+            let groups = cast(u32, ((end + 1) / 3))
+            for groups do
+                ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep each exponent unchanged.
+            ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
+        }
+
+        ac3TestAppendBits(&frame, &bits, 0, 1)     // No dynamic range word.
+    }
+
+    while frame.count < 512 do
+        frame.add(0)
+    return frame
+}
+
 // Dolby 2/1 audio uses the back-center speaker position rather than front-center.
 #test
 {
@@ -207,6 +269,34 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
         let fscod2 = cast(u32, (packet[4] >> 4) & 3)
         Swag.require(info.sampleRate == ReducedRates[reduced])
         Swag.require(Dolby.eac3BitAllocationFscod(fscod, fscod2) == reduced)
+    }
+}
+
+// E-AC-3 channel bandwidth codes above 60 are rejected before exponent arrays are filled.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-bandwidth-eac3-%.eac3", Guid128.random()))
+    defer discard catch File.delete(path)
+
+    for bandwidth in [61'u32, 62, 63]
+    {
+        let frame = eac3TestChannelBandwidthFrame(bandwidth)
+        discard expect File.writeAllBytes(path, frame.toSlice())
+
+        var packets: [1] SoundPacket = [SoundPacket{0, cast(u32, frame.count), 1536}]
+        var config:  Array'u8
+        var sound = expect SoundFile.openPacketStream(path.toString(),
+                                                      .Eac3,
+                                                      48_000,
+                                                      1,
+                                                      1536,
+                                                      Swag.makeSlice(&packets[0], packets.count),
+                                                      config.toSlice())
+        var error: Swag.Error
+        discard catch sound.decodePcm16(func(_)->bool => true) as error
+        Swag.require(error.value() is InvalidFormatError)
+        Swag.require(Errors.message(error.value()) == "E-AC-3 channel bandwidth code is reserved")
     }
 }
 

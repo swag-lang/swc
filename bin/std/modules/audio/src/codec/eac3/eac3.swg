@@ -18,6 +18,8 @@ private const Eac3FrameExponentStrategies: [32, 6] u32 = [
     3, 3, 1, 0, 0, 0, 3, 3, 2, 0, 0, 3, 3, 3, 2, 0, 2, 0, 3, 3, 2, 0, 3, 3,
     3, 3, 3, 2, 0, 0, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 3]
 
+private const MaxEac3ChannelBandwidthCode = 60'u32
+
 private struct Eac3Bsi
 {
     streamType:   u32
@@ -389,8 +391,13 @@ private impl Eac3Codec
             block.channelExpStrategy[channel] = frame.channelExp[blockIndex, channel]
         block.lfeExpStrategy = frame.lfeExp[blockIndex]
 
-        for channel in bsi.nfchans where block.channelExpStrategy[channel] and not block.channelCoupled[channel] do
-            block.channelBandwidth[channel] = reader.read(6)
+        for channel in bsi.nfchans where block.channelExpStrategy[channel] and not block.channelCoupled[channel]
+        {
+            let bandwidth = reader.read(6)
+            if bandwidth > MaxEac3ChannelBandwidthCode do
+                fail InvalidFormatError{"E-AC-3 channel bandwidth code is reserved"}
+            block.channelBandwidth[channel] = bandwidth
+        }
 
         if block.coupling and block.couplingExpStrategy
         {

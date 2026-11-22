@@ -16,6 +16,7 @@ using Swag
 
     expect Env.setVariable(Name, "updated")
     Swag.require(Env.variable(Name) == "updated")
+    Swag.require(Env.variable("SWAG_CORE_ENVIRONMENT_MUTATION_TEST\u0000SUFFIX") == "")
     expect Env.removeVariable(Name)
     Swag.require(Env.currentEnvironment().value(Name) == null)
     expect Env.removeVariable(Name)

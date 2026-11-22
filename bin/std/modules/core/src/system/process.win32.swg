@@ -51,11 +51,13 @@ func currentEnvironment()->ProcessEnvironment
 
 // Returns the value of the environment variable `name` in the current process.
 //
-// Answers an empty string when the variable is unset, which a variable holding nothing is
-// indistinguishable from. Read [[Core.Env.currentEnvironment]] instead when that difference
-// matters, or when more than a couple of variables are wanted.
+// Answers an empty string when the variable is unset or its name is invalid; a variable holding
+// nothing is indistinguishable from either case. Read [[Core.Env.currentEnvironment]] instead
+// when that difference matters, or when more than a couple of variables are wanted.
 func variable(name: string)->String
 {
+    if not validEnvironmentVariableName(name) do
+        return ""
     let name16 = Utf16.toZeroTerminated(name)
 
     let needed = GetEnvironmentVariableW(name16.buffer, null, 0)

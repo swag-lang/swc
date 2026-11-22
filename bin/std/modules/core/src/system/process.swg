@@ -100,10 +100,17 @@ func removeVariable(name: string) fail
 
 private func validateEnvironmentVariableName(name: string) fail
 {
+    if not validEnvironmentVariableName(name) do
+        fail Errors.BadParameterError{"environment variable names must not be empty or contain zero bytes or '='"}
+}
+
+private func validEnvironmentVariableName(name: string)->bool
+{
     if not name.count do
-        fail Errors.BadParameterError{"environment variable names must not be empty"}
+        return false
     for byte in name where byte == 0 or byte == '=' do
-        fail Errors.BadParameterError{"environment variable names must not contain zero bytes or '='"}
+        return false
+    return true
 }
 
 // Describes the process to start and how it is connected to the current one.

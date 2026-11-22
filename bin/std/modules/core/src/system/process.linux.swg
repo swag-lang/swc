@@ -14,9 +14,7 @@ func exit(exitCode: s32) => Linux.exit(exitCode)
 // an empty string. The caller must synchronize this with any concurrent environment mutation.
 func variable(name: string)->String
 {
-    if not name.count do
-        return ""
-    for byte in name where byte == 0 or byte == '=' do
+    if not validEnvironmentVariableName(name) do
         return ""
     let native = String.from(name)
     let value  = Linux.getenv(native.storage())

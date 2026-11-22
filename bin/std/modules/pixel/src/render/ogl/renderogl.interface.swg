@@ -41,12 +41,19 @@ impl IRenderer for RenderOgl
             Swag.assert(.nativeContext == sharedOgl.hRC, "shared context belongs to another renderer")
         }
 
+        var generation: TextureGeneration
+        if not .nativeContext
+        {
+            generation = try TextureGeneration.claim()
+            defer #fail generation.release()
+        }
+
         let sharedRC = .nativeContext
         var ogl      = try .native.createWindowContext(.offscreen ? null : renderHandle, width, height, sharedRC)
         if not .nativeContext
         {
             .nativeContext = ogl.hRC
-            .generation    = TextureGeneration.claim()
+            .generation    = generation
             ogl.ownsRC     = false
         }
 

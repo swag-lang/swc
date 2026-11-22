@@ -100,7 +100,7 @@ internal struct TextureGeneration
     tag: u32     // Slot in the top byte, device count of that slot below; zero is untracked.
 }
 
-private const TextureGenerationSlots     = 256'u32
+internal const TextureGenerationSlots    = 256'u32
 private const TextureGenerationSlotShift = 24'u32
 private const TextureGenerationCountMask = 0x00FF_FFFF'u32
 
@@ -111,9 +111,8 @@ private var g_TextureGenerationOwned: [TextureGenerationSlots] Swag.AtomicValue'
 
 internal impl TextureGeneration
 {
-    // Claims a slot for a renderer that can lose its device, or returns the untracked generation
-    // when every slot is taken: that renderer's resources then simply never read as retired.
-    func claim()->TextureGeneration
+    // Claims a slot for a renderer that can lose its device.
+    func claim()->TextureGeneration fail
     {
         for slot in 1 until TextureGenerationSlots
         {
@@ -121,7 +120,7 @@ internal impl TextureGeneration
                 return advanceSlot(slot)
         }
 
-        return {}
+        fail RenderResourceError{"OpenGL cannot track another device generation: its slots are full"}
     }
 
     // Retires this generation and gives its slot back once the renderer has no device left.

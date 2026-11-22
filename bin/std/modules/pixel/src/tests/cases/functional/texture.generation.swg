@@ -13,9 +13,9 @@
 
 #test
 {
-    var first = TextureGeneration.claim()
+    var first = expect TextureGeneration.claim()
     defer first.release()
-    var second = TextureGeneration.claim()
+    var second = expect TextureGeneration.claim()
     defer second.release()
     Swag.require(first.isCurrent() and second.isCurrent())
 
@@ -36,13 +36,47 @@
 // Releasing a generation retires its textures, and a slot handed to another renderer revives none.
 #test
 {
-    var generation = TextureGeneration.claim()
+    var generation = expect TextureGeneration.claim()
     var texture: Texture
     texture.attach(cast(TextureHandle, 1), .RGBA8, 4, 4, generation)
     generation.release()
     Swag.require(not texture.isValid())
 
-    var reused = TextureGeneration.claim()
+    var reused = expect TextureGeneration.claim()
     defer reused.release()
+    Swag.require(not texture.isValid())
+}
+
+// Exhaustion fails instead of creating resources that cannot be retired after device loss.
+#test
+{
+    var generations: Array'TextureGeneration
+    defer
+    {
+        for index in generations.count do
+            generations[index].release()
+    }
+
+    for expectedCount in 1 until TextureGenerationSlots
+    {
+        generations.add(expect TextureGeneration.claim())
+        Swag.require(generations.count == cast(u64, expectedCount))
+    }
+
+    Swag.require(generations.count == TextureGenerationSlots - 1)
+    for generation in generations do
+        Swag.require(generation.isCurrent())
+
+    var exhausted: Swag.Error
+    catch { discard try TextureGeneration.claim() } as exhausted
+    Swag.require(exhausted.value() is RenderResourceError)
+
+    let available = generations.count - 1
+    generations[available].release()
+    var replacement = expect TextureGeneration.claim()
+    defer replacement.release()
+    var texture: Texture
+    texture.attach(cast(TextureHandle, 1), .RGBA8, 4, 4, replacement)
+    replacement = replacement.next()
     Swag.require(not texture.isValid())
 }

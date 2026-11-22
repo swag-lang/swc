@@ -17,6 +17,7 @@ using Core, Ogl
 
     var target = gpu.createRenderTarget(2, 2)
     defer gpu.deleteRenderTarget(&target)
+    Swag.require(target.colorBuffer.isValid())
     var readback: RenderOglReadback
     defer readback.release()
     Swag.require(readback.submit(&target, 0, 0, 1, 2))

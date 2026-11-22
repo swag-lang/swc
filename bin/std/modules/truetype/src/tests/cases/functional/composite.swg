@@ -40,6 +40,49 @@ using Swag, Core
 
 #test
 {
+    var parentGlyph: Array'u8
+    parentGlyph.add([
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x33, 0x00])
+
+    var childGlyph: Array'u8
+    childGlyph.add([
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x33, 0x00])
+
+    var compositeGlyph: Array'u8
+    compositeGlyph.add([
+        0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00])
+
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(2)
+    faceData.unitsPerEm = 1000
+    faceData.fontData.add(parentGlyph.toSlice())
+    faceData.fontData.add(childGlyph.toSlice())
+    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
+    faceData.glyphLocations.add(0)
+    faceData.glyphLocations.add(cast(u32, parentGlyph.count))
+    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
+
+    // The second component's parent point index is outside the assembled outline.
+    var rejected: Swag.Error
+    discard catch appendCompositeGlyph(&faceData, compositeGlyph.toSlice(), 16, 16, 0) as rejected
+    Swag.require(rejected.value() != null)
+
+    // A valid parent index still fails when the child point index is outside its outline.
+    faceData.outlinePoints.clear()
+    faceData.outlineContours.clear()
+    writeBigU16(&compositeGlyph, 22, 0)
+    writeBigU16(&compositeGlyph, 24, 1)
+    rejected = {}
+    discard catch appendCompositeGlyph(&faceData, compositeGlyph.toSlice(), 16, 16, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Point numbers in composite arguments are unsigned. A parent anchor of 128
     // must still attach when its high bit is set in either representation.
     var parentGlyph: Array'u8

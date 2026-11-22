@@ -235,9 +235,12 @@ impl FontFamily
     // Creates a cached typeface for the requested descriptor and style.
     //
     // Falls back to the closest available style and returns `null` when the
-    // descriptor contains no usable face.
+    // descriptor contains no usable face. Invalid style values fail.
     public func createTypeFace(fontFamily: SystemFontFamilyInfo, style: FontFamilyStyle)->*TypeFace? fail
     {
+        if cast(u64, style) >= FontFamilyStyle.count do
+            fail Errors.BadParameterError{}
+
         var logFont = fontFamily.faces[cast(u64, style)]
         if style == .Regular
         {

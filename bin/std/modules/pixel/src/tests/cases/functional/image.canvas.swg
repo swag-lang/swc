@@ -104,6 +104,41 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     Swag.require(img.pixelColor(16, 24).r > 200)
 }
 
+// A semi-transparent ground keeps its alpha on pixels without drawn geometry.
+#test
+{
+    var canvas = expect ImageCanvas.create(8, 8)
+    let ground = Color.fromArgb(128'u8, 200'u8, 40'u8, 20'u8)
+    canvas.clear(ground)
+
+    let image = expect canvas.toImage()
+    Swag.require(image.pixelColor(2, 2) == ground)
+}
+
+// A semi-transparent ground is composited under antialiased foreground coverage.
+#test
+{
+    var canvas = expect ImageCanvas.create(32, 32)
+    let ground = Color.fromArgb(128'u8, 200'u8, 40'u8, 20'u8)
+    canvas.clear(ground)
+
+    var path: LinePath
+    path.start(4, 16)
+    path.lineTo(28, 16)
+
+    var pen: Pen
+    pen.size        = 8
+    pen.brush       = Brush.createSolid(Color.fromRgb(247, 249, 0))
+    pen.begCapStyle = .Round
+    pen.endCapStyle = .Round
+    canvas.painter.setAntialiased(true)
+    canvas.painter.drawPath(&path, pen)
+
+    let image = expect canvas.toImage()
+    Swag.require(image.pixelColor(2, 2) == ground)
+    Swag.require(image.pixelColor(16, 16).a == 255)
+}
+
 // An image with no pixels cannot be drawn over.
 #test
 {

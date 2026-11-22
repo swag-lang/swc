@@ -101,12 +101,8 @@ impl ImageCanvas
 
     // Opens a frame on the target.
     //
-    // The target is bound through the painter, with `paintAlpha`, because that is what tells
-    // the renderer to resolve alpha separately. Antialiased strokes reach the pixels through a
-    // pass that uses the destination alpha as scratch and leaves it at zero; without that
-    // resolve every antialiased stroke would read back fully transparent. The ground is laid
-    // with alpha writes enabled, and the content that follows draws color only, exactly as an
-    // off-screen layer does.
+    // The target resolves antialiased drawing alpha separately. The ground is laid with alpha
+    // enabled, then drawing updates color only, as it does for an off-screen layer.
     private mtd beginFrame()
     {
         .painter.bindRenderTarget(unwrap .target, true)
@@ -179,28 +175,23 @@ impl ImageCanvas
         if not .isOpen do
             fail InvalidFormatError{"the canvas is closed"}
 
-        // An antialiased pass uses the destination alpha as scratch and leaves only its own
-        // coverage there, which eats the ground laid at the start of the frame. An opaque
-        // ground is therefore stamped back over the whole surface, in alpha only, exactly as a
-        // window does before it presents. A transparent ground keeps the coverage instead:
-        // that is what makes a mark with a see-through background come out right.
-        if .background.a == 255
-        {
-            .painter.setBlendingMode(.Copy)
-            .painter.setColorMaskAlpha()
-            .painter.fillRect(Math.Rectangle{0, 0, cast(f32, .width), cast(f32, .height)}, .background)
-            .painter.setColorMaskColor()
-            .painter.setBlendingMode(.Alpha)
-        }
-
         .painter.unbindRenderTarget()
+
+        // The alpha resolve rebuilds foreground coverage from zero, so compose the ground under
+        // that coverage in a separate pass after the resolve has completed.
+        .painter.bindRenderTarget(unwrap .target)
+        .painter.setColorMaskAlpha()
+        .painter.setBlendingMode(.Alpha)
+        .painter.fillRect(Math.Rectangle{0, 0, cast(f32, .width), cast(f32, .height)}, .background)
+        .painter.unbindRenderTarget()
+
         .painter.end()
 
         let renderer = unwrap .renderer
         renderer.begin(.width, .height)
         let rendererItf: IRenderer = renderer
         expect .painter.render()
-        var result: #returntype = rendererItf.readRenderTarget(unwrap .target, 0, 0, .width, .height)
+        var result: #returntype = rendererItf.readRenderTarget(.target, 0, 0, .width, .height)
         rendererItf.end()
 
         .painter.begin()

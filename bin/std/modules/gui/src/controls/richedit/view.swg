@@ -102,8 +102,7 @@ impl IWnd for RichEditView
                 {
                     if edn.hasSelRect
                     {
-                        if cp.charPosInLine >= edn.selBeg.charPosInLine do
-                            edn.setCursorPos(cp)
+                        edn.setCursorPos(cp)
                         edn.checkSelection()
                     }
                     else

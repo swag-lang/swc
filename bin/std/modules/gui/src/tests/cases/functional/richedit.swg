@@ -297,6 +297,31 @@ using Swag, Core
     Swag.require(ed.text() == " ")
 }
 
+// An Alt-drag selects a rectangular range when the pointer moves from right to left.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 340, 200})
+    ed.setText("abcdef")
+    host.root.applyLayout()
+    discard host.render(ed)
+
+    let anchor   = ed.cursorDisplayPosition({0, 5})
+    let active   = ed.cursorDisplayPosition({0, 2})
+    let halfLine = ed.xGlyphSize().y * 0.5
+    let from     = ed.edView.localToSurface(Math.Point{anchor.x, anchor.y - halfLine})
+    let target   = ed.edView.localToSurface(Math.Point{active.x, active.y - halfLine})
+    host.drag(from, target, modifiers: .Alt)
+
+    let start = ed.selectionStart()
+    let end   = ed.selectionEnd()
+    Swag.require(ed.hasSelRect)
+    Swag.require(start.charPosInLine == 2 and end.charPosInLine == 5)
+    Swag.require(ed.selectionRect().width > 0)
+}
+
 // insertText at the cursor, with undo/redo.
 #test
 {

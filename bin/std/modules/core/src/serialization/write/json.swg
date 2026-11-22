@@ -2,7 +2,7 @@
 #global namespace Write
 #global public
 
-using Swag
+using Swag, Core.Errors
 
 // Options for customizing JSON formatting.
 struct JsonOptions
@@ -18,6 +18,7 @@ struct JsonOptions
 //
 // Non-finite floating-point values have no JSON representation and are written as
 // `null`. Strings escape every JSON control character and preserve valid UTF-8.
+// Invalid UTF-8 fails with [[Core.Errors.SerializationError]] when the document ends.
 struct Json
 {
     public options: JsonOptions     // Formatting options.
@@ -30,6 +31,7 @@ struct Json
         fmtInt:         StrConv.ConvertFormatInt     // Format used for converting integers.
         fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'u8}     // Format used for converting floating-point numbers.
         lastSeekValue:  ConcatBufferPosition         // Position used for rollback of trailing commas.
+        invalidUtf8:    bool                         // Whether a string held invalid UTF-8 bytes.
     }
 }
 
@@ -56,6 +58,9 @@ impl Json
 
     internal mtd writeString(value: string?)
     {
+        if value and not Utf8.isValid(cast(const [..] u8, value)) do
+            .invalidUtf8 = true
+
         const Hex = "0123456789ABCDEF"
 
         .output.addNative('"'u8)
@@ -108,13 +113,18 @@ impl Json
         .indent         = 0
         .containerDepth = 0
         .lastSeekValue  = {}
+        .invalidUtf8    = false
     }
 
     // Does nothing: a JSON document needs no root mark.
     mtd beginRoot() {}
 
     // Does nothing: a JSON document needs no root mark.
-    mtd endRoot() {}
+    mtd endRoot() fail
+    {
+        if .invalidUtf8 do
+            fail SerializationError{"JSON output contains invalid UTF-8"}
+    }
 
     // Begins a JSON array.
     mtd beginSequence(_: typeinfo?, _: const *void?, _: u64)->bool

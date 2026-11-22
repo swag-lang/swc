@@ -139,10 +139,10 @@ impl Encoder
 
     // Finishes writing the document and reports errors detected during finalization.
     //
-    // XML rejects unsupported value shapes and XML 1.0 forbidden characters here.
+    // JSON rejects invalid UTF-8; XML rejects unsupported value shapes and XML 1.0 forbidden characters here.
     mtd end() fail
     {
-        #static if T == Write.Xml do
+        #static if T == Write.Xml or T == Write.Json do
             try .serializer.endRoot()
         else do
             .serializer.endRoot()
@@ -394,7 +394,7 @@ impl IEncoder for Encoder
 
     mtd impl end() fail
     {
-        #static if T == Write.Xml do
+        #static if T == Write.Xml or T == Write.Json do
             try .serializer.endRoot()
         else do
             .serializer.endRoot()

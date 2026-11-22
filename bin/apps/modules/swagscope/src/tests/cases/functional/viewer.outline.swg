@@ -114,6 +114,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(window.fullScreenCaptionButton.position.right() <= window.appearanceButton.position.x)
 
     caption.button.sigPressed.call(caption.button)
+    host.pumpPostedEvents()
     Swag.require(caption.isChecked and caption.checkIndicator == .Frame)
     Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(1),
                  Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(1)).toString())
@@ -123,6 +124,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
                  not outline.toggle.isChecked and
                  not window.mainSplitter.isPaneVisible(1))
     caption.button.sigPressed.call(caption.button)
+    host.pumpPostedEvents()
     outline.toggle.setChecked(false)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
     Swag.require(not caption.isChecked and not window.mainSplitter.isPaneVisible(1))

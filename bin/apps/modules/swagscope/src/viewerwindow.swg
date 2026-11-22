@@ -755,6 +755,11 @@ impl ViewerWindow
     mtd refreshOutlineCaption()
     {
         .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
+        .updateOutlineCaptionState()
+    }
+
+    mtd updateOutlineCaptionState()
+    {
         let toggle = .currentSidePanelButton
         .outlineCaptionButton.setChecked(toggle and toggle.id == OutlineToggleId and toggle.isChecked)
     }
@@ -1197,7 +1202,7 @@ impl ViewerWindow
         {
             .updateFlags(.Toggle)
             .setCheckIndicator(.Frame)
-            .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
+            .sigPressed += func|window = result|(_) { window.postCommandEvent(ViewerCommands.Outline) }
             .hide()
         }
 

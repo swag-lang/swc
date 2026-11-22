@@ -561,7 +561,7 @@ private impl Zip
         {
             if at > trailerAt or 2 > trailerAt - at do
                 fail Errors.InvalidFormatError{texts().err_GzipHeader}
-            if cast(u16, Hash.Crc32.compute(bytes[0 until at])) != (try readU16(bytes, at)) do
+            if cast(u16, Hash.Crc32.compute(bytes[0 until at]) & 0xFFFF) != (try readU16(bytes, at)) do
                 fail Errors.InvalidFormatError{texts().err_GzipHeader}
             at += 2
         }

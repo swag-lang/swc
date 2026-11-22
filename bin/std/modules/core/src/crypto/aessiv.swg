@@ -1,5 +1,6 @@
 #global public
 #global namespace Crypto
+#global #[Swag.Safety(.Overflow, false)]
 
 // AES-SIV synthetic IV and authentication tag size in bytes.
 public const AesSivTagSize = 16

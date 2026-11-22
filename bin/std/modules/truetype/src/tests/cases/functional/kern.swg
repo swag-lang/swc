@@ -101,6 +101,26 @@ func makeGposKernFixture()->Array'u8
     Swag.require(lookupGposKerning(&clampedFace, 1, 2) == Swag.S16.Max)
 }
 
+// GPOS lookup selection covers every possible u16 index without linear searches.
+#test
+{
+    var table: Array'u8
+    table.resize(26)
+    writeBigU16(&table, 10, 1) // One feature record.
+    writeBigU32(&table, 12, TAG_KERN)
+    writeBigU16(&table, 16, 8) // Feature table offset.
+    writeBigU16(&table, 18, 0) // FeatureParams.
+    writeBigU16(&table, 20, 2) // Two lookup indices.
+    writeBigU16(&table, 22, 0)
+    writeBigU16(&table, 24, Swag.U16.Max)
+
+    let selected = expect collectKernLookups(table.toSlice(), 10)
+    Swag.require(selected.count == GPOS_LOOKUP_BITMAP_WORDS)
+    Swag.require(hasKernLookup(selected.toSlice(), 0))
+    Swag.require(hasKernLookup(selected.toSlice(), Swag.U16.Max))
+    Swag.require(not hasKernLookup(selected.toSlice(), 1))
+}
+
 // A matching zero adjustment ends subtable selection for its lookup.
 #test
 {

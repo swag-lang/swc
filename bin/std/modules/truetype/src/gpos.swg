@@ -4,6 +4,7 @@ using Swag, Core
 // lets a lookup live beyond the 64K a 16-bit offset reaches.
 const GPOS_LOOKUP_PAIR      = 2'u16
 const GPOS_LOOKUP_EXTENSION = 9'u16
+const GPOS_LOOKUP_BITMAP_WORDS = 1'u64 << 10
 
 // Byte size of a value record, one two-byte field per set bit of its format.
 func valueRecordSize(valueFormat: u16)->u64
@@ -146,9 +147,10 @@ func glyphClass(table: const [..] u8, offset: u64, glyph: u16)->u16
 //
 // A font declares the feature once per script and language system, so the same
 // indices arrive many times over; the result holds each of them once.
-func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u16 fail
+func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u64 fail
 {
     var result: #returntype
+    result.resize(GPOS_LOOKUP_BITMAP_WORDS)
 
     let featureCount = peekU16(table, featureListOffset)
     for index in featureCount
@@ -162,12 +164,20 @@ func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u16
         for idx in lookupCount
         {
             let lookupIndex = peekU16(table, feature + 4 + cast(u64, idx) * 2)
-            if not result.contains(lookupIndex) do
-                result.add(lookupIndex)
+            let wordIndex = cast(u64, lookupIndex) / 64
+            let bitIndex  = cast(u64, lookupIndex) % 64
+            result[wordIndex] |= 1'u64 << bitIndex
         }
     }
 
     return result
+}
+
+func hasKernLookup(bitmap: const [..] u64, lookupIndex: u16)->bool
+{
+    let wordIndex = cast(u64, lookupIndex) / 64
+    let bitIndex  = cast(u64, lookupIndex) % 64
+    return (bitmap[wordIndex] & (1'u64 << bitIndex)) != 0
 }
 
 // Collects the pair-adjustment subtables the GPOS 'kern' feature reaches.
@@ -195,7 +205,7 @@ func parseGpos(faceData: *FaceImpl) fail
     // The table's lookup order determines how positioning adjustments accumulate.
     for lookupIndex in lookupCount
     {
-        if not kernLookups.contains(lookupIndex) do
+        if not hasKernLookup(kernLookups.toSlice(), lookupIndex) do
             continue
 
         let lookupRecord  = lookupListOffset + 2 + cast(u64, lookupIndex) * 2

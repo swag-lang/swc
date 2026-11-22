@@ -174,6 +174,23 @@ internal impl VisualBlock
 //
 // The pair is a document position rather than a laid-out one, so it survives a relayout, a theme
 // change and a reading-width change; only rebuilding the blocks retires it.
+private func textOccurrenceCount(source, text: string)->u64
+{
+    if not text.count do
+        return 0
+
+    var result: u64
+    var from:   u64
+    while true
+    {
+        let match = Utf8.indexOf(source, text, from, .Latin1NoCase)
+        if match == Swag.U64.Max do
+            return result
+        result += 1
+        from   = match + text.count
+    }
+}
+
 internal struct SelectionPoint
 {
     view = Swag.U64.Max
@@ -1777,22 +1794,52 @@ impl View
     // The preceding bytes are not parsed. Returns whether the reveal was queued.
     mtd revealFileOffset(offset: u64, text: string)->bool => .beginReveal(offset, text)
 
-    // Reveals the occurrence at `offset` in the original in-memory Markdown source and marks it.
-    // The caller supplies that source because an in-memory view does not retain its serialized text.
+    // Reveals the rendered occurrence at `offset` in the original in-memory Markdown source.
+    // Markdown syntax and link destinations do not count as rendered matches. The caller supplies
+    // that source because an in-memory view does not retain its serialized text.
     mtd revealTextMatch(source: string, offset: u64, text: string)->bool
     {
         if not text.count or offset > source.count do
             return false
 
-        var occurrence = 0'u64
-        var from       = 0'u64
-        while from < offset
+        let precedingBlocks = parseBlocks(source[0 until offset])
+        var occurrence: u64
+        for &block in precedingBlocks
         {
-            let found = Utf8.indexOf(source, text, from, .Latin1NoCase)
-            if found == Swag.U64.Max or found >= offset do
-                break
-            occurrence += 1
-            from       = found + Math.max(text.count, 1)
+            if block.kind == .Math
+            {
+                occurrence += textOccurrenceCount(block.text.toString(), text)
+            }
+            elif block.kind == .Html
+            {
+                var document = HtmlDocument.create()
+                var parser: HtmlParser
+                parser.start(&document, .Fragment)
+                parser.feed(block.text.toString())
+                parser.finish()
+                for node, index in document.nodes where node.kind == .Text do
+                    occurrence += textOccurrenceCount(document.textOf(cast(u32, index)), text)
+            }
+            elif block.kind == .Table
+            {
+                let lines = Tokenize.splitLines(block.text.toString())
+                for line, index in lines where index != 1
+                {
+                    let cells = parseTableCells(line)
+                    for &cell in cells
+                    {
+                        var inline: InlineView
+                        inline.parse(renderInline(cell.toString()).toString())
+                        occurrence += inline.searchMatchCount(text)
+                    }
+                }
+            }
+            else
+            {
+                var inline: InlineView
+                inline.parse(block.text.toString())
+                occurrence += inline.searchMatchCount(text)
+            }
         }
 
         return .findTextOccurrence(text, occurrence)

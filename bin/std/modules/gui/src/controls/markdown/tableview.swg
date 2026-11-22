@@ -37,7 +37,7 @@ struct TableView
 private const MinColumnWidth = 48'f32
 private const CellPadding    = 20'f32
 
-private func parseTableCells(line: string)->Array'String
+internal func parseTableCells(line: string)->Array'String
 {
     var result: #returntype
     let trimmed = Latin1.trim(line)

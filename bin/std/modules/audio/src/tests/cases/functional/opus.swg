@@ -67,7 +67,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
         Swag.require(Opus.packetFrames(Swag.makeSlice(&packet[0], packet.count)) == SilkFrames[index])
     }
 
-    const HybridTocs: [4] u8 = [0x60, 0x68, 0x70, 0x78]
+    const HybridTocs:   [4] u8  = [0x60, 0x68, 0x70, 0x78]
     const HybridFrames: [4] u64 = [480, 960, 480, 960]
     for toc, index in HybridTocs
     {
@@ -76,9 +76,9 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     }
 
     const CeltTocs: [16] u8 = [0x80, 0x88, 0x90, 0x98,
-                                0xA0, 0xA8, 0xB0, 0xB8,
-                                0xC0, 0xC8, 0xD0, 0xD8,
-                                0xE0, 0xE8, 0xF0, 0xF8]
+                               0xA0, 0xA8, 0xB0, 0xB8,
+                               0xC0, 0xC8, 0xD0, 0xD8,
+                               0xE0, 0xE8, 0xF0, 0xF8]
     const CeltFrames: [16] u64 = [120, 240, 480, 960,
                                   120, 240, 480, 960,
                                   120, 240, 480, 960,
@@ -106,7 +106,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(expect packetFrameCount(.Opus, Swag.makeSlice(&packet[0], packet.count)) == 1_920)
 
     var truncated: [1] u8 = [0x0B]
-    var outcome: Swag.Error
+    var outcome:   Swag.Error
     discard catch packetFrameCount(.Opus, Swag.makeSlice(&truncated[0], truncated.count)) as outcome
     Swag.require(outcome.value() is Errors.InvalidFormatError)
 }
@@ -185,6 +185,89 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(decoded.count == TotalFrames)
     for sample in decoded do
         Swag.require(sample == 0)
+}
+
+// A one-byte DTX frame keeps CELT's overlap history available to the following mode change.
+#test
+{
+    let sourcePath = audioGetTestDataPath("opus-stereo-hybrid.opus")
+    let source     = expect SoundFile.load(sourcePath)
+    let path       = Path.combine(Env.getSpecialDirectory(.Temp),
+                                  Format.toString("audio-opus-dtx-transition-%.bin", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    let raw           = expect File.readAllBytes(sourcePath)
+    var bytes:   Array'u8
+    var packets: Array'SoundPacket
+    var current: Array'u8
+    var offset        = 0'u64
+    var packetIndex   = 0'u64
+    var headerPackets = 2'u32
+    var frameCount    = 0'u64
+    while offset < raw.count
+    {
+        let segmentCount = cast(u64, raw[offset + 26])
+        var at = offset + 27 + segmentCount
+        for segment in segmentCount
+        {
+            let size = cast(u64, raw[offset + 27 + segment])
+            current.add(raw[at until at + size])
+            at += size
+            if size < 255
+            {
+                if headerPackets
+                {
+                    headerPackets -= 1
+                }
+                else
+                {
+                    if packetIndex == 20
+                    {
+                        packets.add(SoundPacket{bytes.count, 1, 960})
+                        bytes.add(0x7C)
+                        frameCount += 960
+                    }
+
+                    let frames = Opus.packetFrames(current.toSlice())
+                    packets.add(SoundPacket{bytes.count, cast(u32, current.count), cast(u32, frames)})
+                    bytes.add(current.toSlice())
+                    frameCount  += frames
+                    packetIndex += 1
+                }
+
+                current.clear()
+            }
+        }
+
+        offset = at
+    }
+
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    let sound = expect SoundFile.openPacketStream(path.toString(),
+                                                  .Opus,
+                                                  source.sampleRateHz(),
+                                                  source.numChannels(),
+                                                  frameCount,
+                                                  packets.toSlice(),
+                                                  source.decoderConfig.toSlice(),
+                                                  PacketStreamOptions{leadingTrimFrames: source.leadingTrim,
+                                                                      trailingTrimFrames: source.trailingTrim})
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+    {
+        decoded.add(samples)
+        return true
+    })
+
+    // libopus decodes the first CELT packet after DTX to these samples. The silence packet is
+    // between the final hybrid packet and that mode transition.
+    const Reference: [8] s16 = [5122, -5867, 5271, -5887, 5402, -5862, 5518, -5794]
+    const FirstFrame         = 21 * 960 - 312
+    for sample, index in Reference
+    {
+        Swag.require(Math.abs(cast(s32, decoded[FirstFrame * 2 + index]) - cast(s32, sample)) <= 2)
+    }
 }
 
 // A voice restarts on the run before the target and discards up to it, so the samples heard after

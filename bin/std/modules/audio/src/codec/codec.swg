@@ -90,20 +90,38 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 {
     switch encoding
     {
-    case .AacLc:              return 1024
-    case .Ac3:                return Dolby.ac3PacketFrameCount(packet)
-    case .Eac3:               return Dolby.eac3PacketFrameCount(packet)
-    case .Dts:                return Dts.packetFrameCount(packet)
-    case .Flac:               return Flac.packetFrameCount(packet)
-    case .Mp3:                return Mp3.packetFrameCount(packet)
+    case .AacLc:
+        return 1024
+
+    case .Ac3:
+        return Dolby.ac3PacketFrameCount(packet)
+
+    case .Eac3:
+        return Dolby.eac3PacketFrameCount(packet)
+
+    case .Dts:
+        return Dts.packetFrameCount(packet)
+
+    case .Flac:
+        return Flac.packetFrameCount(packet)
+
+    case .Mp3:
+        return Mp3.packetFrameCount(packet)
+
     case .Opus:
         let count = Opus.packetFrames(packet)
         if not count do
             fail InvalidFormatError{"Opus packet has an invalid table of contents"}
         return cast(u32, count)
-    case .AdpcmMs, .AdpcmIma: fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
-    case .Vorbis:             fail UnsupportedFormatError{"Vorbis packet duration needs the preceding packet and stream configuration"}
-    default:                  fail UnsupportedFormatError{"unsupported packetized sound encoding"}
+
+    case .AdpcmMs, .AdpcmIma:
+        fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
+
+    case .Vorbis:
+        fail UnsupportedFormatError{"Vorbis packet duration needs the preceding packet and stream configuration"}
+
+    default:
+        fail UnsupportedFormatError{"unsupported packetized sound encoding"}
     }
 }
 
@@ -146,8 +164,8 @@ public impl PacketDurationProbe
 
     // Returns the number of sample frames `packet` decodes to.
     //
-    // The probe also remembers what the next packet needs to know about this one, so packets
-    // must be fed in stream order.
+    // Only Vorbis needs packets in stream order because its duration depends on the previous
+    // packet. Opus duration comes from each packet's header.
     mtd frames(packet: const [..] u8)->u32 fail
     {
         switch .encoding

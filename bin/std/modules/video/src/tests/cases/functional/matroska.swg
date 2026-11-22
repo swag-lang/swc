@@ -605,11 +605,10 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     reader.close()
 }
 
-// Vorbis and Opus packets do not state their duration: Matroska measures them, Vorbis from the
-// block size each mode selects against the previous packet's, Opus from its table of contents,
-// and trims the discard padding of the final block. The tracks then decode to the samples the
-// same streams give in their native Ogg files, Opus at its 48 kHz output rate with the codec
-// delay removed.
+// Opus packet durations come from the TOC; Vorbis durations come from the block size each mode
+// selects against the previous packet's. Matroska applies both rules and trims the final block's
+// discard padding. The tracks decode to the samples the streams give in native Ogg files, with
+// Opus at its 48 kHz output rate and its codec delay removed.
 #test
 {
     const Files:     [2] string = ["ffmpeg-h264-opus.mkv", "ffmpeg-h264-vorbis.mkv"]

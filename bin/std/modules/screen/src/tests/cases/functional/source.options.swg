@@ -62,3 +62,48 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
     source.lastFrameCaptureTime = Time.monotonicMicroseconds() - 60
     Swag.require(source.frameAgeMicroseconds() >= 60)
 }
+
+// Reset clears every source and native metric without opening a display.
+#test
+{
+    var source: Source
+    let native = Memory.new'NativeSource()
+    native[].metrics = SourceMetrics{acquiredFrames: 1,
+                                     unchangedFrames: 1,
+                                     coalescedUpdates: 1,
+                                     acquireMicroseconds: 1,
+                                     maxAcquireMicroseconds: 1,
+                                     changeDetectionMicroseconds: 1,
+                                     readbackMicroseconds: 1,
+                                     maxReadbackMicroseconds: 1,
+                                     deferredReadbacks: 1,
+                                     copyMicroseconds: 1,
+                                     outputMicroseconds: 1,
+                                     composeMicroseconds: 1,
+                                     partialFrames: 1,
+                                     multiRectFrames: 1,
+                                     copiedPixels: 1,
+                                     mirroredPixels: 1}
+    source.sources.add(native)
+    source.composeMicroseconds = 1
+    source.mirroredPixels      = 1
+
+    source.resetMetrics()
+    let metrics = source.metrics()
+    Swag.require(metrics.acquiredFrames == 0 and
+                 metrics.unchangedFrames == 0 and
+                 metrics.coalescedUpdates == 0 and
+                 metrics.acquireMicroseconds == 0 and
+                 metrics.maxAcquireMicroseconds == 0 and
+                 metrics.changeDetectionMicroseconds == 0 and
+                 metrics.readbackMicroseconds == 0 and
+                 metrics.maxReadbackMicroseconds == 0 and
+                 metrics.deferredReadbacks == 0 and
+                 metrics.copyMicroseconds == 0 and
+                 metrics.outputMicroseconds == 0 and
+                 metrics.composeMicroseconds == 0 and
+                 metrics.partialFrames == 0 and
+                 metrics.multiRectFrames == 0 and
+                 metrics.copiedPixels == 0 and
+                 metrics.mirroredPixels == 0)
+}

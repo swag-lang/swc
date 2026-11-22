@@ -69,6 +69,31 @@ using Swag, Core.Errors
     Swag.require(rejected.value() is BadParameterError)
 }
 
+// Invalid file modes fail without creating or changing a file.
+#test
+{
+    let missing  = CoreTests.makeFilesystemTestPath("core_file_invalid_mode_missing.tmp")
+    let existing = CoreTests.makeFilesystemTestPath("core_file_invalid_mode_existing.tmp")
+    defer discard catch File.delete(missing)
+    defer discard catch File.delete(existing)
+    discard expect File.writeAllText(existing, "keep this content")
+
+    var invalidMode:  File.FileMode
+    var invalidBytes: [#sizeof(File.FileMode)] u8
+    for index in invalidBytes.count do
+        invalidBytes[index] = 0xFF
+    Memory.copy(&invalidMode, invalidBytes.buffer, invalidBytes.count)
+
+    var error: Swag.Error
+    discard catch File.open(missing, invalidMode, .ReadWrite, .Zero) as error
+    Swag.require(error.value() is BadParameterError)
+    Swag.require(not File.exists(missing))
+
+    discard catch File.open(existing, invalidMode, .ReadWrite, .Zero) as error
+    Swag.require(error.value() is BadParameterError)
+    Swag.require((expect File.readAllText(existing)) == "keep this content")
+}
+
 // Create and Truncate reject read-only access before touching the path on both platforms.
 #test
 {

@@ -495,6 +495,23 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Applying 10^309 directly overflows before the finite 0.1 significand can scale it back.
+    const FiniteLargeReal: [4] u8 = [0x0A, 0x1B, 0x30, 0x9F] // 0.1E309
+    let parsed = expect readCffReal(FiniteLargeReal, 0)
+    Swag.require(parsed.value > 9.99e307 and parsed.value < 1.01e308)
+}
+
+#test
+{
+    // Exponent accumulation must reject values that cannot fit its signed counter.
+    const OversizedExponent: [7] u8 = [0x1B, 0x21, 0x47, 0x48, 0x36, 0x48, 0xF0]
+    var rejected: Swag.Error
+    discard catch readCffReal(OversizedExponent, 0) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // Escaped CFF DICT operators require a second byte.
     const TruncatedEscape: [1] u8 = [0x0C]
     var rejected: Swag.Error

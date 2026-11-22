@@ -298,7 +298,10 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 let digit = cast(f64, nibble)
                 if inExponent
                 {
-                    exponent         = exponent * 10 + cast(s32, nibble)
+                    let exponentDigit = cast(s32, nibble)
+                    if exponent > (Swag.S32.Max - exponentDigit) / 10 do
+                        try fault(0x08)
+                    exponent         = exponent * 10 + exponentDigit
                     hasExponentDigit = true
                 }
                 elif inFraction
@@ -358,8 +361,14 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
     var value = mantissa
     if exponent
     {
-        let power = Math.pow(10.0'f64, cast(f64, exponent))
-        value = expNegative ? value / power : value * power
+        var remainingExponent = exponent
+        while remainingExponent
+        {
+            let step  = Math.min(remainingExponent, 300)
+            let power = Math.pow(10.0'f64, cast(f64, step))
+            value = expNegative ? value / power : value * power
+            remainingExponent -= step
+        }
     }
 
     result.value = negative ? -value : value

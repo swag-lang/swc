@@ -78,6 +78,30 @@ using Swag, Core
     Swag.require(visitedSum == 19)
 }
 
+// Iteration ordinals continue across ranges and remain correct when the body skips an item.
+#test
+{
+    var model: SelModel
+    model.selectRange(1, 3)
+    model.selectRange(6, 7)
+
+    var expectedOrdinal = 0'u64
+    var visitedCount    = 0'u32
+    for item, ordinal in model
+    {
+        Swag.require(ordinal == expectedOrdinal)
+        expectedOrdinal += 1
+
+        if item == 2 do
+            continue
+
+        visitedCount += 1
+    }
+
+    Swag.require(expectedOrdinal == 5)
+    Swag.require(visitedCount == 4)
+}
+
 // Unselecting what is not selected changes nothing, selecting twice keeps one range, and unselecting
 // a middle run splits a range in two.
 #test

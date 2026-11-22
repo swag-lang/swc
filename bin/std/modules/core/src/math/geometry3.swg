@@ -169,11 +169,20 @@ impl Bounds3
     {
         if not .isValid() do
             return Vector3.Zero
-        return (.min + .max) * 0.5
+
+        // Halving before addition keeps a representable midpoint from overflowing.
+        return .min * 0.5 + .max * 0.5
     }
 
     // Returns half of each side length, or zero for an invalid box.
-    mtd const extents()->Vector3 => .size() * 0.5
+    mtd const extents()->Vector3
+    {
+        if not .isValid() do
+            return Vector3.Zero
+
+        // Halving before subtraction keeps representable extents finite when the full size is not.
+        return .max * 0.5 - .min * 0.5
+    }
 
     // Returns the volume, or zero for an invalid box.
     mtd const volume()->f32

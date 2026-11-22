@@ -110,6 +110,13 @@ func expectNear(actual, expected: f32)
     expectVec3(bounds.extents(), {1, 2, 3})
     expectNear(bounds.volume(), 48)
     expectNear(bounds.surfaceArea(), 88)
+    expectVec3(Math.Geometry.Bounds3{{Swag.F32.Max * 0.5, 0, 0}, {Swag.F32.Max, 2, 2}}.center(),
+               {Swag.F32.Max * 0.75, 1, 1})
+    expectVec3(Math.Geometry.Bounds3{{Swag.F32.Max * 0.5, 0, 0}, {Swag.F32.Max, 2, 2}}.extents(),
+               {Swag.F32.Max * 0.25, 1, 1})
+    expectVec3(Math.Geometry.Bounds3{{-Swag.F32.Max, 0, 0}, {Swag.F32.Max, 2, 2}}.center(), {0, 1, 1})
+    expectVec3(Math.Geometry.Bounds3{{-Swag.F32.Max, 0, 0}, {Swag.F32.Max, 2, 2}}.extents(),
+               {Swag.F32.Max, 1, 1})
     Swag.require(bounds.contains({0, 0, 0}))
     Swag.require(not bounds.contains({2, 0, 0}))
     expectVec3(bounds.closestPoint({2, 0, 4}), {1, 0, 3})

@@ -519,6 +519,17 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(rects[0].y >= 39 and rects[0].y <= 41)
 }
 
+// Word gaps still compare neighboring runs when their page positions are negative.
+#test
+{
+    var page = Page.create(320, 220)
+    page.addText("alpha", -80, 40, 20, Color.fromArgb(Argb.Black))
+    page.addText("beta", -20, 40, 20, Color.fromArgb(Argb.Black))
+
+    let index = TextIndex.build(&page)
+    Swag.require(index.text == "alpha beta")
+}
+
 // Selection on the view: a drag over words takes them, a double click takes one word, and the
 // clipboard receives what the document shows.
 #test

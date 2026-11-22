@@ -117,7 +117,7 @@ impl TextIndex
         if breakBefore do
             .text += "\n"
 
-        var previousRight = 0.0'f32
+        var previousRight = seeds[first].run.rect.right()
         for index in first until last
         {
             let seed = &seeds[index]

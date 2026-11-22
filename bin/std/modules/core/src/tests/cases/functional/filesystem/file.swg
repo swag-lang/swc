@@ -69,6 +69,45 @@ using Swag, Core.Errors
     Swag.require(rejected.value() is BadParameterError)
 }
 
+// Create and Truncate reject read-only access before touching the path on both platforms.
+#test
+{
+    let missing  = CoreTests.makeFilesystemTestPath("core_file_read_only_create.tmp")
+    let existing = CoreTests.makeFilesystemTestPath("core_file_read_only_truncate.tmp")
+    defer discard catch File.delete(missing)
+    defer discard catch File.delete(existing)
+    discard expect File.writeAllText(existing, "keep this content")
+
+    for mode in [File.FileMode.Create, .Truncate]
+    {
+        var rejected: Swag.Error
+        discard catch File.open(missing, mode, .Read, .Zero) as rejected
+        Swag.require(rejected.value() is BadParameterError)
+        Swag.require(not File.exists(missing))
+
+        discard catch File.open(existing, mode, .Read, .Zero) as rejected
+        Swag.require(rejected.value() is BadParameterError)
+        Swag.require((expect File.readAllText(existing)) == "keep this content")
+    }
+}
+
+// CreateNew and OpenOrCreate can create a file through a read-only handle.
+#test
+{
+    let createNewPath    = CoreTests.makeFilesystemTestPath("core_file_read_only_create_new.tmp")
+    let openOrCreatePath = CoreTests.makeFilesystemTestPath("core_file_read_only_open_or_create.tmp")
+    defer discard catch File.delete(createNewPath)
+    defer discard catch File.delete(openOrCreatePath)
+
+    var createNew = expect File.open(createNewPath, .CreateNew, .Read, .Zero)
+    createNew.close()
+    Swag.require(File.exists(createNewPath))
+
+    var openOrCreate = expect File.open(openOrCreatePath, .OpenOrCreate, .Read, .Zero)
+    openOrCreate.close()
+    Swag.require(File.exists(openOrCreatePath))
+}
+
 // Live readers leave no idle handle and follow replacements without losing their cursor.
 #test
 {

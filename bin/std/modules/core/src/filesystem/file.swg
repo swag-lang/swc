@@ -76,9 +76,9 @@ func touch(fullName: string) fail
 // Opens a file with the requested creation, access, and sharing policy.
 //
 // Linux uses the POSIX sharing contract documented by [[Core.File.FileShare]]. New files use
-// permissions 0666 filtered by the process umask. `Create` and `Truncate` require write access
-// on Linux; invalid access/sharing flags and directory handles are rejected before ownership
-// is returned. `Append` moves the initial cursor to the end but permits later explicit seeks.
+// permissions 0666 filtered by the process umask. `Create` and `Truncate` require write access.
+// Invalid access/sharing flags and directory handles are rejected before ownership is returned.
+// `Append` moves the initial cursor to the end but permits later explicit seeks.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
     if not access.has(.Read) and not access.has(.Write) do
@@ -88,9 +88,10 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     let validShare = FileShare.ReadWrite | .Delete | .Inheritable
     if (share & ~validShare) != .Zero do
         fail BadParameterError{"file sharing contains an unknown flag"}
-
     if mode != .Open or access.has(.Write) do
         try Env.guardWrite(fullName)
+    if (mode == .Create or mode == .Truncate) and not access.has(.Write) do
+        fail BadParameterError{"creating or truncating a file requires write access"}
 
     let canRead  = access.has(.Read)
     let canWrite = access.has(.Write)

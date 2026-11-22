@@ -281,6 +281,16 @@ struct XmlPairSequencePayload
     Swag.require(normalized.value == "a\nb\nc")
 }
 
+// XML character data cannot contain the reserved `]]>` terminator.
+#test
+{
+    let invalidXml:   String = "<p><value>before]]>after</value></p>"
+    var decoder:      Serialization.Decoder'Serialization.Read.Xml
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SyntaxError)
+}
+
 // Numeric dispatch keeps the value width and leaves the following tag unread.
 func(T) xmlAssertNative(input: string, expected: T)
 {

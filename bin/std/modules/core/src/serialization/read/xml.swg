@@ -358,6 +358,13 @@ public impl Xml
             var c = .stream.peekU8()
             while c and c != '<'
             {
+                if c == ']'
+                {
+                    let remaining = .stream.remainingBytes()
+                    if remaining.count >= 3 and remaining[1] == ']' and remaining[2] == '>' do
+                        fail .getError("XML text contains the forbidden CDATA terminator")
+                }
+
                 .stream.advance()
                 if c == '\r'
                 {

@@ -44,6 +44,38 @@ internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCoun
     }
 }
 
+internal func targetMatchesImage(target: *Image,
+                                 width,
+                                 height: s32,
+                                 imageAddress,
+                                 storageAddress: u64,
+                                 ready: bool)->bool =>
+    ready and
+    target.width == width and
+    target.height == height and
+    target.pixelFormat == .BGRA8 and
+    cast(u64, target) == imageAddress and
+    cast(u64, target.pixels.storage()) == storageAddress
+
+internal func copyCachedFrameIfNeeded(target: *Image,
+                                      sourcePixels: const [*] u8,
+                                      width,
+                                      height: s32,
+                                      imageAddress,
+                                      storageAddress: u64,
+                                      ready,
+                                      copyRequested: bool)->bool
+{
+    let reusable = targetMatchesImage(target, width, height, imageAddress, storageAddress, ready)
+    if not copyRequested and reusable do
+        return false
+
+    if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
+        target[] = Image.create(width, height, .BGRA8)
+    copyFrameBytes(target.pixels.storage(), sourcePixels, target.byteCount)
+    return true
+}
+
 // One physical desktop area to capture; dimensions must be positive.
 struct SourceOptions
 {
@@ -317,23 +349,22 @@ impl Source
                         }
                     }
 
-                    let targetReusable = .x11TargetReady and
-                                         target.width == .options.width and
-                                         target.height == .options.height and
-                                         target.pixelFormat == .BGRA8 and
-                                         cast(u64, target) == .x11TargetImage and
-                                         cast(u64, target.pixels.storage()) == .x11TargetStorage
-                    if (frameFresh or hasCachedFrame) and
-                       (frameFresh or copyUnchanged or not targetReusable)
+                    if frameFresh or hasCachedFrame
                     {
-                        if target.width != .options.width or
-                           target.height != .options.height or
-                           target.pixelFormat != .BGRA8 do
-                            target[] = Image.create(.options.width, .options.height, .BGRA8)
-                        copyFrameBytes(target.pixels.storage(), cached.pixels.storage(), target.byteCount)
-                        .x11TargetImage   = cast(u64, target)
-                        .x11TargetStorage = cast(u64, target.pixels.storage())
-                        .x11TargetReady   = true
+                        let x11Copied = copyCachedFrameIfNeeded(target,
+                                                                cached.pixels.storage(),
+                                                                .options.width,
+                                                                .options.height,
+                                                                .x11TargetImage,
+                                                                .x11TargetStorage,
+                                                                .x11TargetReady,
+                                                                frameFresh or copyUnchanged)
+                        if x11Copied
+                        {
+                            .x11TargetImage   = cast(u64, target)
+                            .x11TargetStorage = cast(u64, target.pixels.storage())
+                            .x11TargetReady   = true
+                        }
                     }
 
                     if frameFresh do
@@ -359,11 +390,12 @@ impl Source
             mirroring = incremental and
                         .mirrorReady and
                         not first and
-                        target.width == .options.width and
-                        target.height == .options.height and
-                        target.pixelFormat == .BGRA8 and
-                        cast(u64, target) == .mirroredImage and
-                        cast(u64, target.pixels.storage()) == .mirroredStorage
+                        targetMatchesImage(target,
+                                           .options.width,
+                                           .options.height,
+                                           .mirroredImage,
+                                           .mirroredStorage,
+                                           true)
         }
 
         .mirrorReady = false
@@ -397,21 +429,7 @@ impl Source
             }
         }
 
-        #static if #os == Swag.TargetOs.Windows
-        {
-            let targetReusable = .windowsTargetReady and
-                                 target.width == .options.width and
-                                 target.height == .options.height and
-                                 target.pixelFormat == .BGRA8 and
-                                 cast(u64, target) == .windowsTargetImage and
-                                 cast(u64, target.pixels.storage()) == .windowsTargetStorage
-            if not fresh and not copyUnchanged and not .options.includeCursor and targetReusable
-            {
-                .mirrorReady = mirroring
-                return false
-            }
-        }
-        else
+        #static if #os == Swag.TargetOs.Linux
         {
             if not fresh and not copyUnchanged and not .options.includeCursor
             {
@@ -424,22 +442,23 @@ impl Source
         {
             if .options.includeCursor
             {
-                let cursorChanged  = try .drawCursor()
-                let outputFresh    = fresh or cursorChanged
-                let targetReusable = .cursorTargetReady and
-                                     target.width == .options.width and
-                                     target.height == .options.height and
-                                     target.pixelFormat == .BGRA8 and
-                                     cast(u64, target) == .cursorTargetImage and
-                                     cast(u64, target.pixels.storage()) == .cursorTargetStorage
-                if outputFresh or copyUnchanged or not targetReusable
+                let cursorChanged = try .drawCursor()
+                let outputFresh   = fresh or cursorChanged
+                if target.width != .options.width or
+                   target.height != .options.height or
+                   target.pixelFormat != .BGRA8 do
+                    target[] = Image.create(.options.width, .options.height, .BGRA8)
+                let outputStart  = Time.monotonicMicroseconds()
+                let cursorCopied = copyCachedFrameIfNeeded(target,
+                                                           cast(const [*]u8, unwrap .cursorPixels),
+                                                           .options.width,
+                                                           .options.height,
+                                                           .cursorTargetImage,
+                                                           .cursorTargetStorage,
+                                                           .cursorTargetReady,
+                                                           outputFresh or copyUnchanged)
+                if cursorCopied
                 {
-                    if target.width != .options.width or
-                       target.height != .options.height or
-                       target.pixelFormat != .BGRA8 do
-                        target[] = Image.create(.options.width, .options.height, .BGRA8)
-                    let outputStart = Time.monotonicMicroseconds()
-                    copyFrameBytes(target.pixels.storage(), cast(const [*] u8, unwrap .cursorPixels), target.byteCount)
                     .composeMicroseconds += Time.monotonicMicroseconds() - outputStart
                     .cursorTargetImage   = cast(u64, target)
                     .cursorTargetStorage = cast(u64, target.pixels.storage())
@@ -465,15 +484,38 @@ impl Source
            target.pixelFormat != .BGRA8 do
             target[] = Image.create(.options.width, .options.height, .BGRA8)
         let composeStart = Time.monotonicMicroseconds()
-        let destination  = target.pixels.storage()
-        let source       = .composed.pixels.storage()
-        copyFrameBytes(destination, source, target.byteCount)
-        .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+        var targetImageAddress:   u64  = 0
+        var targetStorageAddress: u64  = 0
+        var targetReady:          bool = false
         #static if #os == Swag.TargetOs.Windows
         {
-            .windowsTargetImage   = cast(u64, target)
-            .windowsTargetStorage = cast(u64, target.pixels.storage())
-            .windowsTargetReady   = true
+            targetImageAddress   = .windowsTargetImage
+            targetStorageAddress = .windowsTargetStorage
+            targetReady          = .windowsTargetReady
+        }
+
+        let outputCopied = copyCachedFrameIfNeeded(target,
+                                                   .composed.pixels.storage(),
+                                                   .options.width,
+                                                   .options.height,
+                                                   targetImageAddress,
+                                                   targetStorageAddress,
+                                                   targetReady,
+                                                   fresh or copyUnchanged)
+        if outputCopied
+        {
+            .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+            #static if #os == Swag.TargetOs.Windows
+            {
+                .windowsTargetImage   = cast(u64, target)
+                .windowsTargetStorage = cast(u64, target.pixels.storage())
+                .windowsTargetReady   = true
+            }
+        }
+        else
+        {
+            .mirrorReady = mirroring
+            return false
         }
 
         if incremental

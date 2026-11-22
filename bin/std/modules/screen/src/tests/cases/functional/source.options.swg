@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Core.Errors
+using Core, Core.Errors, Pixel
 
 private func assertInvalidSourceOptions(options: SourceOptions)
 {
@@ -69,6 +69,45 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
     var source: Source
     source.reservePartStorage(2)
     Swag.require(source.sources.capacity >= 2 and source.pictures.capacity >= 2)
+}
+
+// A replacement image cannot reuse pixels retained for a different target.
+#test
+{
+    var target = Image.create(8, 4, .BGRA8)
+    var cached = Image.create(8, 4, .BGRA8)
+    Memory.set(target.pixels.storage(), 0x00, target.byteCount)
+    Memory.set(cached.pixels.storage(), 0x37, cached.byteCount)
+    let imageAddress   = cast(u64, &target)
+    let storageAddress = cast(u64, target.pixels.storage())
+
+    Swag.require(targetMatchesImage(&target, 8, 4, imageAddress, storageAddress, true))
+    Swag.require(not copyCachedFrameIfNeeded(&target,
+                                             cached.pixels.storage(),
+                                             8,
+                                             4,
+                                             imageAddress,
+                                             storageAddress,
+                                             true,
+                                             false))
+    Swag.require(Memory.compare(target.pixels.storage(), cached.pixels.storage(), target.byteCount) != 0,
+                 "an unchanged reusable target should remain untouched")
+    Swag.require(not targetMatchesImage(&target, 8, 4, imageAddress, storageAddress + 1, true))
+    Swag.require(not targetMatchesImage(&target, 8, 4, imageAddress + 1, storageAddress, true))
+    Swag.require(not targetMatchesImage(&target, 7, 4, imageAddress, storageAddress, true))
+
+    var replacement = Image.create(8, 4, .BGRA8)
+    Memory.set(replacement.pixels.storage(), 0xAA, replacement.byteCount)
+    Swag.require(copyCachedFrameIfNeeded(&replacement,
+                                         cached.pixels.storage(),
+                                         8,
+                                         4,
+                                         imageAddress,
+                                         storageAddress,
+                                         true,
+                                         false))
+    Swag.require(Memory.compare(replacement.pixels.storage(), cached.pixels.storage(), cached.byteCount) == 0,
+                 "a replacement target should receive the cached frame")
 }
 
 // Reset clears every source and native metric without opening a display.

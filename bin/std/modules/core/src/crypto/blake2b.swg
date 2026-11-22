@@ -157,6 +157,8 @@ public impl Blake2b
     // with. Call [[Core.Hash.Blake2b.reset]] before reusing this value.
     mtd finalize(destination: [..] u8) fail
     {
+        if not .digestSize do
+            fail Errors.BadParameterError{"BLAKE2b needs an initialized sequence"}
         if destination.count != .digestSize do
             fail Errors.BadParameterError{"BLAKE2b needs a destination of the declared digest length"}
 

@@ -97,6 +97,12 @@ func assertBlake2b(data: const [..] u8, expected: string)
 #test
 {
     // The digest length is validated at both ends of the sequence.
+    var uninitialized:        Hash.Blake2b
+    var emptyOutput:          Array'u8
+    var uninitializedOutcome: Swag.Error
+    discard catch uninitialized.finalize(emptyOutput.toSlice()) as uninitializedOutcome
+    Swag.require(uninitializedOutcome.value() is Errors.BadParameterError)
+
     var emptyDigestOutcome: Swag.Error
     discard catch Hash.Blake2b.create(0) as emptyDigestOutcome
     let emptyDigest = emptyDigestOutcome.value()
@@ -149,6 +155,10 @@ func assertBlake2b(data: const [..] u8, expected: string)
 
     var digest: [32] u8
     expect hash.finalize(digest)
+    var emptyOutput:      Array'u8
+    var finalizedOutcome: Swag.Error
+    discard catch hash.finalize(emptyOutput.toSlice()) as finalizedOutcome
+    Swag.require(finalizedOutcome.value() is Errors.BadParameterError)
     let expected = hexBytes("bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319")
     Swag.require(Crypto.constantTimeEqual(digest, expected.toSlice()))
 

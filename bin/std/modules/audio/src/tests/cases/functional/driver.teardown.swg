@@ -153,7 +153,7 @@ impl IAllocator for AudioTeardownAllocator
     discard expect createNoSoundEngine()
     defer destroyEngine()
 
-    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice = expect Voice.create(&file)
     var recycledWhileLocked = false
     scope {
@@ -163,7 +163,7 @@ impl IAllocator for AudioTeardownAllocator
 
         // Wait until the update thread has taken the queued registration and destroy commands.
         var commandsPending = true
-        var attempt = 0
+        var attempt         = 0
         while attempt < 1000
         {
             attempt += 1
@@ -174,6 +174,7 @@ impl IAllocator for AudioTeardownAllocator
                 break
             Threading.Thread.sleep(1'ms)
         }
+
         Swag.require(not commandsPending, "audio update thread did not take the destroy command")
 
         // Keep waking the worker so a completed destroy reaches the visible recycler list.
@@ -192,6 +193,7 @@ impl IAllocator for AudioTeardownAllocator
                 break
         }
     }
+
     Swag.require(not recycledWhileLocked, "voice was recycled while its data mutex was held")
 
     var recycledAfterUnlock = false
@@ -209,7 +211,9 @@ impl IAllocator for AudioTeardownAllocator
         if recycledAfterUnlock do
             break
     }
+
     Swag.require(recycledAfterUnlock, "voice was not recycled after releasing its data mutex")
+}
 
 // Repeated destroy requests queue one destruction for a voice.
 #test
@@ -263,3 +267,4 @@ impl IAllocator for AudioTeardownAllocator
 
     for &thread in threads do
         thread.wait()
+}

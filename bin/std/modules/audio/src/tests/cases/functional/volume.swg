@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Swag, Core
+using Swag, Core, Core.Errors
 
 #test
 {
@@ -15,4 +15,19 @@ using Swag, Core
     audioAssertFloat(linearGainToDecibels(0.5), -6.0206, 0.0002)
     audioAssertFloat(linearGainToDecibels(0), -100)
     audioAssertFloat(linearGainToDecibels(-0.1), -100)
+}
+
+// NaN must reach the setters' finite-value validation instead of becoming silence.
+#test
+{
+    const NotANumber = cast #bit (f32, 0x7FC0_0000'u32)
+    Swag.require(not Math.isFinite(decibelsToLinearGain(NotANumber)))
+    Swag.require(not Math.isFinite(linearGainToDecibels(NotANumber)))
+
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+
+    var failure: Swag.Error
+    discard catch setOutputVolumeDb(NotANumber) as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
 }

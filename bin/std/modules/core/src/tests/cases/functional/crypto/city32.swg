@@ -16,8 +16,6 @@ func fillCity32Pattern(buffer: [..] u8)
 func assertCity32(buffer: const [..] u8, expected: u32)
 {
     Swag.require(Hash.City32.compute(buffer) == expected)
-
-    Swag.require(Hash.City32.compute(buffer) == expected)
 }
 
 #test

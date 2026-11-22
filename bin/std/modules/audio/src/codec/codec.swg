@@ -81,10 +81,10 @@ public func packetEncodingNeedsConfig(encoding: SoundFileEncoding)->bool
 
 // Returns the number of sample frames one packet of `encoding` decodes to.
 //
-// A container builds its packet index before any decoding happens, so this reads the count out
-// of the packet header rather than decoding the packet. `packet` needs to hold the header only,
-// not the whole access unit. Vorbis and Opus packets do not carry their duration in a way this
-// can read alone; a container measures them through [[Audio.PacketDurationProbe]].
+// A container builds its packet index before any decoding happens, so this reads the count from
+// the packet header rather than decoding the packet. `packet` needs to hold the header only, not
+// the whole access unit. Opus duration is in its table of contents; Vorbis duration also depends
+// on the preceding packet and is measured through [[Audio.PacketDurationProbe]].
 #[Swag.Propagate]
 public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)->u32 fail
 {
@@ -96,19 +96,24 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
     case .Dts:                return Dts.packetFrameCount(packet)
     case .Flac:               return Flac.packetFrameCount(packet)
     case .Mp3:                return Mp3.packetFrameCount(packet)
+    case .Opus:
+        let count = Opus.packetFrames(packet)
+        if not count do
+            fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+        return cast(u32, count)
     case .AdpcmMs, .AdpcmIma: fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
-    case .Vorbis, .Opus:      fail UnsupportedFormatError{"Vorbis and Opus durations need the stream configuration, not the packet alone"}
+    case .Vorbis:             fail UnsupportedFormatError{"Vorbis packet duration needs the preceding packet and stream configuration"}
     default:                  fail UnsupportedFormatError{"unsupported packetized sound encoding"}
     }
 }
 
 // Measures the duration of the packets a container indexes, in stream order.
 //
-// A Vorbis packet's duration depends on the block size of the packet before it and on the modes
-// the stream's setup header declares, and an Opus packet's on its table of contents; every other
-// packet codec states its duration in the packet itself, which [[Audio.packetFrameCount]] reads.
-// One probe serves one stream: create it from the decoder configuration the container carries,
-// then feed it every packet of the stream in order.
+// A Vorbis packet's duration depends on the block size of the preceding packet and the modes in
+// the stream's setup header. AAC, AC-3, E-AC-3, DTS, FLAC, MP3, and Opus state their duration in
+// the packet header, which [[Audio.packetFrameCount]] reads. When configured for Vorbis, one probe
+// serves one stream: create it from the decoder configuration the container carries, then feed it
+// every packet in order.
 #[Swag.NoCopy]
 public struct PacketDurationProbe
 {

@@ -95,6 +95,22 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(not Opus.packetFrames(Swag.makeSlice(&maximumPacket[0], maximumPacket.count)))
 }
 
+// The public packet-duration query reads the Opus TOC and rejects a truncated multi-frame header.
+#test
+{
+    var packet: [2] u8 = [0x98, 0]
+    Swag.require(expect packetFrameCount(.Opus, Swag.makeSlice(&packet[0], packet.count)) == 960)
+
+    packet[0] = 0x0B
+    packet[1] = 2
+    Swag.require(expect packetFrameCount(.Opus, Swag.makeSlice(&packet[0], packet.count)) == 1_920)
+
+    var truncated: [1] u8 = [0x0B]
+    var outcome: Swag.Error
+    discard catch packetFrameCount(.Opus, Swag.makeSlice(&truncated[0], truncated.count)) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
 // Stereo tones in 20 ms CELT frames: the transform layer, its allocation, spreading, and stereo
 // coding, at the fullband the music application selects.
 #test

@@ -76,15 +76,11 @@ impl AnnexBAccessUnit
             {
                 pictureCount += 1
             }
-            elif kind == 5
-            {
+
+            if kind <= 5 do
+                result.hasPicture = true
+            if kind == 5 do
                 result.isKeyFrame = true
-                result.hasPicture = true
-            }
-            elif kind == 1
-            {
-                result.hasPicture = true
-            }
 
             nals.add({start, cast(u32, size), kind})
 

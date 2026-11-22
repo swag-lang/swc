@@ -84,6 +84,16 @@ func appendAnnexPacket(result: *Array'u8, packet: const [..] u8, startCode: cons
     Swag.require(Memory.compare(converted.bytes.storage(), packet.storage(), packet.count) == 0)
 }
 
+// Slice data partition NAL types 2–4 all identify coded picture data.
+#test
+{
+    const Partitions: [15] u8 = [0, 0, 1, 0x02, 0x80,
+                                 0, 0, 1, 0x03, 0x80,
+                                 0, 0, 1, 0x04, 0x80]
+    let converted = expect H264.AnnexBAccessUnit.parse(Swag.makeSlice(&Partitions[0], Partitions.count))
+    Swag.require(converted.hasPicture and not converted.isKeyFrame)
+}
+
 // Broken delimiters, empty NAL units and partial parameter sets are rejected.
 #test
 {

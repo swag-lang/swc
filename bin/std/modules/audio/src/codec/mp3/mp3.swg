@@ -969,11 +969,17 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let frames   = try .decodeFrame(packet)
-        let produced = cast(u64, frames) * cast(u64, .channels) * #sizeof(s16)
+        let header = try readHeader(packet)
+        if packet.count < header.frameBytes do
+            fail InvalidFormatError{"MP3 frame is shorter than its header states"}
+        if header.sampleRate != .sampleRate or header.channels != .channels do
+            fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
+
+        let produced = cast(u64, header.frameSamples) * cast(u64, .channels) * #sizeof(s16)
         if destinationSize < produced do
             fail BadParameterError{"MP3 destination buffer is too small"}
 
+        let frames  = try .decodeFrame(packet)
         let samples = cast([*] s16, destination)
         var at      = 0'u64
         for index in cast(u64, frames)

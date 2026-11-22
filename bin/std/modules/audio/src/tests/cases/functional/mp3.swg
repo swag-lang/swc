@@ -42,6 +42,41 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     Swag.require(error.value() is InvalidFormatError)
 }
 
+// A too-small output buffer must not consume the packet or disturb decoder history.
+#test
+{
+    let path                        = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    var sound                       = expect SoundFile.load(path.toString())
+    let file                        = expect File.readAllBytes(path.toString())
+    let packet                      = expect sound.packet(0)
+    let encoded                     = file.toSlice()[packet.sourceOffset until packet.sourceOffset + packet.byteSize]
+    var actual:        Mp3.Codec
+    var fresh:         Mp3.Codec
+    let actualDecoder: IPacketCodec = &actual
+    let freshDecoder:  IPacketCodec = &fresh
+    expect actualDecoder.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), sound.numChannels())
+    expect freshDecoder.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), sound.numChannels())
+
+    var undersized: [2_303] s16
+    var error:      Swag.Error
+    discard catch actualDecoder.decodePacket(cast([*] void, &undersized[0]),
+                                             undersized.count * #sizeof(s16),
+                                             encoded) as error
+    Swag.require(error.value() is BadParameterError)
+
+    var actualPcm: [2_304] s16
+    var freshPcm:  [2_304] s16
+    let actualSize = expect actualDecoder.decodePacket(cast([*] void, &actualPcm[0]),
+                                                       actualPcm.count * #sizeof(s16),
+                                                       encoded)
+    let freshSize = expect freshDecoder.decodePacket(cast([*] void, &freshPcm[0]),
+                                                     freshPcm.count * #sizeof(s16),
+                                                     encoded)
+    Swag.require(actualSize == freshSize and
+                 Slice.equals(Swag.makeSlice(&actualPcm[0], actualPcm.count),
+                              Swag.makeSlice(&freshPcm[0], freshPcm.count)))
+}
+
 // MPEG-1 side information cannot claim more than 288 spectral value pairs per granule.
 #test
 {
@@ -127,7 +162,8 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     let skip     = sound.leadingTrim * cast(u64, channels)
     let wantedAt = cast(const [*] s16, wanted.storage())
     Swag.require(decoded.count > skip)
-    let count = Math.min(decoded.count - skip, wanted.count / #sizeof(s16))
+    let count = wanted.count / #sizeof(s16)
+    Swag.require(decoded.count - skip >= count)
     Swag.require(count > cast(u64, sampleRate) / 8)
 
     var energy = 0.0'f64

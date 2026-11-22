@@ -175,10 +175,11 @@ impl ConcatBuffer
         // Need to allocate a new bucket
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        let newBucket = Memory.new'ConcatBufferBucket(.allocator)
-        let bsize     = Math.max(.granularity, numBytes)
-        let allocator = .allocator
-        let allocation = Swag.catchPanic(func|newBucket, bsize, allocator|() {
+        let newBucket  = Memory.new'ConcatBufferBucket(.allocator)
+        let bsize      = Math.max(.granularity, numBytes)
+        let allocator  = .allocator
+        let allocation = Swag.catchPanic(func|newBucket, bsize, allocator|()
+        {
             newBucket.data = Memory.alloc(bsize, allocator)
         })
         if allocation.raised
@@ -186,6 +187,7 @@ impl ConcatBuffer
             Memory.delete(newBucket, .allocator)
             Swag.panic(allocation.message(), allocation.loc)
         }
+
         newBucket.size = bsize
 
         if .lastBucket

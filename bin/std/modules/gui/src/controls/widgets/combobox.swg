@@ -636,6 +636,7 @@ private impl ComboBox
             return
 
         let restoreFocus = .hasFocus() and not .hasVisibleFocus() ? .pointerFocusReturn : null
+
         // Clear the active link before notifying listeners. A close observer can itself close
         // the combo or mutate its items; those operations must not re-enter this close on the
         // same popup. Keep the captured popup alive until every observer has returned.
@@ -647,7 +648,8 @@ private impl ComboBox
 
         // Pointer-opened command lists are temporary overlays. Once dismissed they return the
         // keyboard to its previous owner instead of leaving an invisible focus on the field.
-        if not .popup and restoreFocus and
+        if not .popup and
+           restoreFocus and
            not restoreFocus.isPendingDestroy and
            restoreFocus.surface == .surface and
            restoreFocus.isEnabled() do

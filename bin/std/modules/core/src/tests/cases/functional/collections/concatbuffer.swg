@@ -8,9 +8,9 @@ struct RejectConcatBucketDataAllocator
     #[Swag.Align(16)]
     headers: [512] u8
     #[Swag.Align(16)]
-    data: [16] u8
-    headerCount: u32
-    dataCount:   u32
+    data:         [16] u8
+    headerCount:  u32
+    dataCount:    u32
     freedHeaders: u32
 }
 
@@ -21,7 +21,7 @@ impl Swag.IAllocator for RejectConcatBucketDataAllocator
         if request.size == #sizeof(ConcatBufferBucket)
         {
             request.address = &.headers[cast(u64, .headerCount) * #sizeof(ConcatBufferBucket)]
-            .headerCount += 1
+            .headerCount    += 1
         }
         elif request.size == 4
         {
@@ -137,7 +137,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 #test
 {
     var allocator: RejectConcatBucketDataAllocator
-    var buffer: ConcatBuffer
+    var buffer:    ConcatBuffer
     buffer.setAllocator(&allocator)
     buffer.setBucketSize(4)
     buffer.addBytes("abcd")

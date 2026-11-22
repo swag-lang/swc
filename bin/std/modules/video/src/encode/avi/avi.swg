@@ -186,6 +186,7 @@ private impl Encoder
     mtd const createMainHeader()->MainHeader
     {
         var result: #returntype
+
         // The main header's integer microseconds are advisory; the stream header keeps the exact ratio.
         let framePeriod = 1_000_000'u64 * cast(u64, .info.frameRate.denominator()) /
                           cast(u64, .info.frameRate.numerator())

@@ -50,7 +50,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         offset             += 2
     }
 
-    let pointCount        = contourCount ? cast(u32, contourEnds.back()) + 1 : 0
+    let pointCount = contourCount ? cast(u32, contourEnds.back()) + 1 : 0
     if offset > glyphData.count or glyphData.count - offset < 2 do
         try fault(0x14)
     let instructionLength = peekU16(glyphData, offset)
@@ -102,6 +102,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         elif (flag & 0x20) == 0 do
             coordinateBytes += 2
     }
+
     if coordinateBytes > glyphData.count - offset do
         try fault(0x14)
 

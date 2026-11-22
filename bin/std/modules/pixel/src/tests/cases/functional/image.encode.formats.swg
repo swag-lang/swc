@@ -14,8 +14,8 @@ struct MalformedImage
 
     #[Serialization.Key("byteCount")]
     byteCount: u64
-    width: s32
-    height: s32
+    width:     s32
+    height:    s32
 
     #[Serialization.Key("rowStride")]
     rowStride: s32
@@ -40,16 +40,16 @@ func makeMalformedImage()->Image
     malformed.pixels.add(2)
     malformed.pixels.add(3)
     malformed.pixels.add(4)
-    malformed.byteCount = 4
-    malformed.width = 2
-    malformed.height = 1
-    malformed.rowStride = 8
-    malformed.pixelFormat = .RGBA8
-    malformed.alphaMode = .Straight
-    malformed.bitsPerPixel = 32
+    malformed.byteCount     = 4
+    malformed.width         = 2
+    malformed.height        = 1
+    malformed.rowStride     = 8
+    malformed.pixelFormat   = .RGBA8
+    malformed.alphaMode     = .Straight
+    malformed.bitsPerPixel  = 32
     malformed.bytesPerPixel = 4
 
-    var buffer: ConcatBuffer
+    var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, malformed)
 

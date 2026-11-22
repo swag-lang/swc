@@ -6,7 +6,7 @@ using Core, Core.Errors, Pixel
 // An empty Y4M stream cannot be opened by the matching decoder, so ending one must fail.
 #test
 {
-    let rate = expect FrameRate.create(25, 1)
+    let rate   = expect FrameRate.create(25, 1)
     var bytes: ConcatBuffer
     var writer = expect Writer.createMemory("empty.y4m", &bytes, 2, 2, rate)
 

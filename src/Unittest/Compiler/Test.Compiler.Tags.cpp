@@ -297,10 +297,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_ReleasePresetsKeepFmaEnabled)
 {
-    char        arg0[] = "swc.dm";
-    char        arg1[] = "test";
-    char        arg2[] = "--build-cfg";
-    char*       argv[] = {arg0, arg1, arg2, nullptr};
+    char  arg0[] = "swc.dm";
+    char  arg1[] = "test";
+    char  arg2[] = "--build-cfg";
+    char* argv[] = {arg0, arg1, arg2, nullptr};
     for (const auto* preset : {"release", "release-safe"})
     {
         CommandLine cmdLine;

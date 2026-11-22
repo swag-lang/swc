@@ -25,7 +25,7 @@ using Core, Gui
         window.lens.close()
         host.clickWnd(window.list.options)
         Swag.require(window.page == .Options and window.optionsPage.isLocallyVisible())
-        Swag.require(not window.list.options.isLocallyVisible())
+        Swag.require(not window.list.scroll.isLocallyVisible())
         host.clickWnd(window.optionsPage.head.back)
         Swag.require(window.page == .List and window.list.options.isLocallyVisible())
     }

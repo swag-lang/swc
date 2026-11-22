@@ -16,7 +16,7 @@ struct KeyFileField
 
     sigPathsChanged: SigArray'func||(*KeyFileField)
 
-    paths: Array'String
+    paths:       Array'String
     canGenerate: bool
 }
 
@@ -47,11 +47,11 @@ impl IWnd for KeyFileField
     {
         if .remove == null do
             return
-        let room    = .clientRect()
-        let metrics = .themeMetrics()
-        let rows    = cast(f32, Math.max(1, Math.min(cast(u32, .paths.count), VisibleRows)))
-        let listH   = Math.min(.files.lineHeight() * rows + metrics.list_Padding * 2, room.height)
-        let gap     = metrics.dialog_BtnPadding
+        let room     = .clientRect()
+        let metrics  = .themeMetrics()
+        let rows     = cast(f32, Math.max(1, Math.min(cast(u32, .paths.count), VisibleRows)))
+        let listH    = Math.min(.files.lineHeight() * rows + metrics.list_Padding * 2, room.height)
+        let gap      = metrics.dialog_BtnPadding
         let actionsH = .actions.measure({}).preferred.y
         let actionsY = room.y + listH + gap
 
@@ -164,6 +164,7 @@ private impl KeyFileField
                 break
             }
         }
+
         if selected == Swag.U32.Max do
             return
         .paths.removeAtOrdered(selected)
@@ -190,17 +191,18 @@ private impl KeyFileField
                 break
             }
         }
+
         if index == Swag.U32.Max
         {
             .remove.hide()
             return
         }
 
-        let view      = .files.listView
-        let viewport  = view.paddedClientRect()
-        let lineH     = .files.lineHeight()
-        let rowY      = viewport.y + cast(f32, index) * lineH - .files.scrollWnd.scrollPosition().y
-        let buttonH   = Math.min(lineH, .themeMetrics().control_InspectorHeight)
+        let view     = .files.listView
+        let viewport = view.paddedClientRect()
+        let lineH    = .files.lineHeight()
+        let rowY     = viewport.y + cast(f32, index) * lineH - .files.scrollWnd.scrollPosition().y
+        let buttonH  = Math.min(lineH, .themeMetrics().control_InspectorHeight)
         if rowY + lineH <= viewport.y or rowY >= viewport.bottom()
         {
             .remove.hide()
@@ -227,12 +229,13 @@ impl KeyFileField
         }
 
         result.canGenerate = canGenerate
-        result.files = ListCtrl.createSimple(result)
+        result.files       = ListCtrl.createSimple(result)
         result.files.updateFlags(.StretchFirstColumn)
         result.files.sigSelectionChanged += func|field = result|(_)
         {
             field.updateRemoveButton()
         }
+
         result.files.scrollWnd.sigScrollPositionChanged += func|field = result|(_, _, _)
         {
             field.updateRemoveButton()
@@ -260,11 +263,11 @@ impl KeyFileField
         }
 
         with result.remove = IconButton.create(result.files.listView,
-                                                result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())),
-                                                {0, 0, result.themeMetrics().control_InspectorHeight, result.themeMetrics().control_InspectorHeight},
-                                                flags: .IconOnly)
+                                               result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())),
+                                               {0, 0, result.themeMetrics().control_InspectorHeight, result.themeMetrics().control_InspectorHeight},
+                                               flags: .IconOnly)
         {
-            .toolTip = appStrings().ui_RemoveKeyFile
+            .toolTip    = appStrings().ui_RemoveKeyFile
             .sigPressed += func|field = result|(_) { field.removeSelected() }
         }
 

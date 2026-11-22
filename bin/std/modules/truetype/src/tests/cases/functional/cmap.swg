@@ -315,7 +315,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     discard catch parseCMap(&faceData, false) as rejected
     Swag.require(rejected.value() != null)
 
-    cmap     = makeCmap8Fixture(true)
+    cmap = makeCmap8Fixture(true)
     writeBigU32(&cmap, groupOffset + 4, 0xD83D_D800)
     var invalidPair: FaceImpl
     invalidPair.fontData.add(cmap.toSlice())
@@ -325,7 +325,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     discard catch parseCMap(&invalidPair, false) as rejected
     Swag.require(rejected.value() != null)
 
-    cmap  = makeCmap8Fixture(true)
+    cmap = makeCmap8Fixture(true)
     writeBigU32(&cmap, groupOffset + 8, 21)
     var missingGlyph: FaceImpl
     missingGlyph.fontData.add(cmap.toSlice())

@@ -121,7 +121,7 @@ using Swag, Core, Core.Errors
 {
     var queue  = expect CaptureQueue.create(8_000, 1, 0, 8_000, blockFrames: 4_096, slots: 8, tolerance: 0)
     var feeder = CapturePcmFeeder.create(&queue)
-    var input: [8_192] s16
+    var input:    [8_192] s16
     var rejected: Swag.Error
     discard catch feeder.pushPcm16(Swag.makeSlice(&input[0], input.count), Swag.U64.Max - 5_000) as rejected
     Swag.require(rejected.value() is OverflowError)

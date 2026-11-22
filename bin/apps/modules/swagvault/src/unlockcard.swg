@@ -11,18 +11,18 @@ struct UnlockCard
 {
     late
     {
-        panel:      *FloatingPanel
-        window:     *MainWindow
-        header:     *VaultRow
-        form:       *FormLayoutCtrl
-        password:   *PasswordEdit
-        options:    *StackLayoutCtrl
-        driveLabel: *Label
-        drive:      *ComboBox
-        keyFiles:   *IconButton
-        keyFileList:*KeyFileField
-        readOnly:   *CheckButton
-        mount:      *PushButton
+        panel:       *FloatingPanel
+        window:      *MainWindow
+        header:      *VaultRow
+        form:        *FormLayoutCtrl
+        password:    *PasswordEdit
+        options:     *StackLayoutCtrl
+        driveLabel:  *Label
+        drive:       *ComboBox
+        keyFiles:    *IconButton
+        keyFileList: *KeyFileField
+        readOnly:    *CheckButton
+        mount:       *PushButton
     }
 }
 
@@ -114,7 +114,7 @@ impl UnlockCard
         let formTop   = VaultRow.Height - .panel.themeMetrics().dialog_BtnPadding
         let form      = Math.ceil(.form.measure(Math.Point{formWidth, 0}).preferred.y)
         let options   = .panel.themeMetrics().btnPush_Height
-        var keyFiles = 0'f32
+        var keyFiles  = 0'f32
         if .keyFileList.isLocallyVisible() do
             keyFiles = KeyFilesGap + .keyFileList.measure(Math.Point{formWidth, 0}).preferred.y
         return formTop + form + OptionsGap + options + keyFiles + BottomPadding

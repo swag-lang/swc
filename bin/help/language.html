@@ -4765,16 +4765,19 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>You can explicitly name both the element <span class="code-inline">value</span> and the loop <span class="code-inline">index</span> to improve readability, especially in nested loops or with complex data structures. Both are ordinary bindings; their position determines which value they receive.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SLgc">for</span> value, index <span class="SLgc">in</span> <span class="SStr">"ABC"</span>
+    <span class="SKwd">let</span> matrix: [<span class="SNum">2</span>][<span class="SNum">2</span>] <span class="STpe">s32</span> = [[<span class="SNum">10</span>, <span class="SNum">20</span>], [<span class="SNum">30</span>, <span class="SNum">40</span>]]
+    <span class="SKwd">var</span> weightedTotal      = <span class="SNum">0</span>
+
+    <span class="SLgc">for</span> row, rowIndex <span class="SLgc">in</span> matrix
     {
-        <span class="SKwd">let</span> a = index
-        <span class="SLgc">switch</span> a
+        <span class="SLgc">for</span> value, columnIndex <span class="SLgc">in</span> row
         {
-        <span class="SLgc">case</span> <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == '<span class="SFct">A</span>')
-        <span class="SLgc">case</span> <span class="SNum">1</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == '<span class="SFct">B</span>')
-        <span class="SLgc">case</span> <span class="SNum">2</span>: <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == '<span class="SFct">C</span>')
+            <span class="SKwd">let</span> weight = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, rowIndex + columnIndex + <span class="SNum">1</span>)
+            weightedTotal += value * weight
         }
     }
+
+    <span class="SNsp">Swag</span>.<span class="SFct">require</span>(weightedTotal == <span class="SNum">230</span>)
 }</span></div>
 <h3 id="_005_003_for_elements_swg_Enum-Indexed_Arrays">Enum-Indexed Arrays</h3>
 <p>When an array dimension is an enum, its index binding has that enum type. This keeps iteration and indexing type-safe without converting through an integer.</p>
@@ -11302,7 +11305,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1179</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1180</div>
 </footer>
 </section>
 </main>

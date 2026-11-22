@@ -288,7 +288,7 @@ private impl Panel
                 let line = .list.createLine(parent)
                 line.setItem(0, part, .fileIcon(entry))
                 let size = line.setItem(1, StrConv.toDisplaySize(entry.uncompressedSize))
-                size.sortKey = Format.toString("%{X016}", entry.uncompressedSize)
+                size.sortKey   = Format.toString("%{X016}", entry.uncompressedSize)
                 line.userData0 = cast(*void?, entryIndex + 1)
                 .entryLines[entryIndex] = line
             }
@@ -657,6 +657,7 @@ private impl Panel
                 viewer.list.sort(column, viewer.descending, persistent: true)
                 viewer.list.header.setSortIndicator(column, viewer.descending ? .Descending : .Ascending)
             }
+
             .sigLeftDoubleClicked += func|viewer = me|(_, _)
             {
                 viewer.previewSelectedEntry()

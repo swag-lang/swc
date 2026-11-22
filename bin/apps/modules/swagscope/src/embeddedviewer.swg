@@ -16,10 +16,10 @@ struct EmbeddedViewer
 
     late
     {
-        header:          *Wnd
-        titleLabel:      *Label
-        viewerMenu:      *IconButton
-        infoLane:        *Wnd
+        header:             *Wnd
+        titleLabel:         *Label
+        viewerMenu:         *IconButton
+        infoLane:           *Wnd
         sideSplitter:       *SplitterCtrl
         outlinePlaceholder: *Wnd
         document:           *Wnd
@@ -199,13 +199,14 @@ private impl EmbeddedViewer
     {
         if .currentSideButton
         {
-            let oldLeft = .currentSideButton.id == OutlineToggleId
-            let oldIndex = oldLeft ? 0 : 2
+            let oldLeft        = .currentSideButton.id == OutlineToggleId
+            let oldIndex       = oldLeft ? 0 : 2
             let oldPlaceholder = oldLeft ? .outlinePlaceholder : .sidePlaceholder
             .sideSplitter.items[oldIndex]!.view.hide()
             .sideSplitter.items[oldIndex]!.view = oldPlaceholder
             .sideSplitter.setPaneVisible(oldIndex, false)
         }
+
         .currentView?.hide()
         .currentActions?.hide()
         .currentInfo?.hide()
@@ -244,8 +245,8 @@ private impl EmbeddedViewer
         .currentCommands?.show()
         .currentSideButton?.show()
         let sideVisible = .currentSideButton?.isChecked orelse false
-        let left = .currentSideButton and .currentSideButton.id == OutlineToggleId
-        let paneIndex = left ? 0 : 2
+        let left        = .currentSideButton and .currentSideButton.id == OutlineToggleId
+        let paneIndex   = left ? 0 : 2
         let placeholder = left ? .outlinePlaceholder : .sidePlaceholder
         .sideSplitter.items[paneIndex]!.view = .currentSidePanel orelse placeholder
         .sideSplitter.items[paneIndex]!.view.show(sideVisible)
@@ -456,8 +457,8 @@ private impl EmbeddedViewer
             .hide()
         }
 
-        let gutter = result.themeMetrics().floating_Inset
-        let leftWidth = (owner.leftPanelWidth > 0 ? owner.leftPanelWidth : ViewerWindow.RightPanelDefaultWidth) + gutter
+        let gutter        = result.themeMetrics().floating_Inset
+        let leftWidth     = (owner.leftPanelWidth > 0 ? owner.leftPanelWidth : ViewerWindow.RightPanelDefaultWidth) + gutter
         with let leftItem = result.sideSplitter.addPane(result.outlinePlaceholder, leftWidth)
         {
             .minimumSize  = ViewerWindow.RightPanelMinWidth + gutter
@@ -508,6 +509,7 @@ private impl IWnd for EmbeddedViewer
                 else do
                     .sideSplitter.items[0]!.size = width
             }
+
             if .owner.rightPanelWidth > 0
             {
                 let width = .owner.rightPanelWidth + .themeMetrics().floating_Inset
@@ -517,6 +519,7 @@ private impl IWnd for EmbeddedViewer
                 else do
                     .sideSplitter.items[2]!.size = width
             }
+
             if .owner.leftPanelWidth > 0 or .owner.rightPanelWidth > 0 do
                 .sideSplitter.sendResizeEvent()
 

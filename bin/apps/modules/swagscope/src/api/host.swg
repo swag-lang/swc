@@ -57,8 +57,8 @@ alias ReportFinished = func(*Wnd)->Continuation
 // Chooses the side of a viewer's work where its optional panel is placed.
 enum SidePanelPlacement
 {
-    Left  // Places the panel in the left lane.
-    Right // Places the panel in the right lane.
+    Left      // Places the panel in the left lane.
+    Right     // Places the panel in the right lane.
 }
 
 // Reports that the plugin is showing content with no end of its own, such as a still picture.

@@ -117,7 +117,7 @@ func audioPcmPacketSound()->SoundFile fail
 // Streamed PCM readers reject a source that was truncated after indexing it.
 #test
 {
-    let path  = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-truncated-lazy-%.wav", Guid128.random()))
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-truncated-lazy-%.wav", Guid128.random()))
     defer discard catch File.delete(path)
     let bytes = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
     expect File.writeAllBytes(path, bytes.toSlice())

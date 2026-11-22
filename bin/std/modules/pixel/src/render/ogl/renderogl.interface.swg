@@ -104,7 +104,7 @@ impl IRenderer for RenderOgl
         {
             .native.deleteContextHandle(.nativeContext)
             .nativeContext = null
-            .deviceLost = false
+            .deviceLost    = false
             .generation.release()
         }
 

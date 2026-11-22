@@ -2,14 +2,12 @@
 
 using Swag, Core
 
-func buildBinaryType1Fixture(
-    firstCipher: const [4] u8,
-    hexEncoded: bool = false,
-    rdSeparator: string = " ",
-    firstNotDefByte: u8 = 139
-)->Array'u8
+func buildBinaryType1Fixture(firstCipher: const [4] u8,
+                             hexEncoded: bool = false,
+                             rdSeparator: string = " ",
+                             firstNotDefByte: u8 = 139)->Array'u8
 {
-    const ClearHeader: string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
+    const ClearHeader:        string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
     const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD"
     const ClearBetweenGlyphs: string = " ND\n/A 4 RD"
     const ClearPrivateSuffix: string = " ND\nend\n"
@@ -60,13 +58,14 @@ func buildBinaryType1Fixture(
     {
         program.add(encrypted.toSlice())
     }
+
     return program
 }
 
 // A binary eexec section can begin with bytes that happen to be ASCII hex digits.
 #test
 {
-    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    const BinaryPrefix:     [4] u8 = [0x80, 0x81, 0x82, 0x83]
     const HexLookingPrefix: [4] u8 = ['A', '1', 'B', '2']
 
     let binaryFont = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix).toSlice())

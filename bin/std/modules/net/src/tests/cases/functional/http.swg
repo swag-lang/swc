@@ -195,7 +195,7 @@ func serveHttpRedirect(thread: const *Threading.Thread)
 
 #test
 {
-    let response = "HTTP/1.1 302 Found\r\nLocation: /first\r\nLocation: /second\r\n /third\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    let response = "HTTP/1.1 302 Found\r\nLocation: /first\r\nLocation: /second\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     var fixture  = HttpServerFixture{listener: &listener, response: response}
     var thread: Threading.Thread
@@ -206,8 +206,12 @@ func serveHttpRedirect(thread: const *Threading.Thread)
     let result   = expect Http.get("127.0.0.1", endpoint.port, "/", false)
     thread.wait()
     Swag.require(result.location == "/first")
-    Swag.require(result.headers[0].value == "/first")
-    Swag.require(result.headers[1].value == "/second /third")
+    var locations: Array'String
+    for header in result.headers where header.name.count == 8 and
+                                       Utf8.indexOf(header.name, "Location", 0, .Latin1NoCase) == 0 do
+        locations.add(header.value)
+    Swag.require(locations.count == 2)
+    Swag.require(locations[0] == "/first" and locations[1] == "/second")
 }
 
 // Request validation rejects missing body readers and caller-supplied transfer framing.

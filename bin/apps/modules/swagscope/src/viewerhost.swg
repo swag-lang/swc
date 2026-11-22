@@ -218,6 +218,7 @@ impl Viewer.Host for ViewerPluginHost
             if savedWidth > 0 do
                 panelWidth = savedWidth
         }
+
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
 
         // The floating inset stands the panel away from the edges of the window, beside the work.

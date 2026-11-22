@@ -496,7 +496,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 #test
 {
     // Applying 10^309 directly overflows before the finite 0.1 significand can scale it back.
-    const FiniteLargeReal: [4] u8 = [0x0A, 0x1B, 0x30, 0x9F] // 0.1E309
+    const FiniteLargeReal: [4] u8 = [0x0A, 0x1B, 0x30, 0x9F]     // 0.1E309
     let parsed = expect readCffReal(FiniteLargeReal, 0)
     Swag.require(parsed.value > 9.99e307 and parsed.value < 1.01e308)
 }
@@ -514,6 +514,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
         nibbles.add(0)
         index += 1
     }
+
     nibbles.add(1)
     nibbles.add(0x0B)
     nibbles.add(4)
@@ -528,6 +529,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
         bytes.add((nibbles[index * 2] << 4) | nibbles[index * 2 + 1])
         index += 1
     }
+
     let parsed = expect readCffReal(bytes.toSlice(), 0)
     Swag.require(Math.isEqualEpsilon(parsed.value, 1.0, 0.000001))
 }
@@ -544,7 +546,7 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 #test
 {
     // A syntactically valid real whose final value exceeds f64 must fail instead of returning infinity.
-    const InfiniteReal: [3] u8 = [0x1B, 0x30, 0x9F] // 1E309
+    const InfiniteReal: [3] u8 = [0x1B, 0x30, 0x9F]     // 1E309
     var rejected: Swag.Error
     discard catch readCffReal(InfiniteReal, 0) as rejected
     Swag.require(rejected.value() != null)

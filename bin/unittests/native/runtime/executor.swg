@@ -133,9 +133,9 @@ struct ExecutorCloseProbe
 
     Swag.setWorkerCount(2)
     var started, release, closeStarted: Swag.AtomicFlag
-    var blocker: Swag.Task
+    var blocker:  Swag.Task
     var executor: Swag.Executor
-    var closer: Swag.Task
+    var closer:   Swag.Task
     executor.start()
     defer
     {

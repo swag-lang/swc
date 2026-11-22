@@ -82,8 +82,13 @@ private func parseHeader(line: string)->Header fail
         {
             if token.count and token[0] == 'A' do
                 fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
-            if token.count and (token[0] == 'W' or token[0] == 'H' or token[0] == 'F' or
-                                token[0] == 'I' or token[0] == 'C' or token[0] == 'X') do
+            if token.count and
+               (token[0] == 'W' or
+                token[0] == 'H' or
+                token[0] == 'F' or
+                token[0] == 'I' or
+                token[0] == 'C' or
+                token[0] == 'X') do
                 fail InvalidFormatError{"YUV4MPEG2 header field needs a value"}
             continue
         }

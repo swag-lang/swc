@@ -79,8 +79,8 @@ struct Application
         }
     }
 
-    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer, owned by the window thread.
-    renderingSuspended: bool        // The next paint needs a usable rendering context.
+    rendererOgl:            Pixel.RenderOgl     // Default OpenGL renderer, owned by the window thread.
+    renderingSuspended:     bool     // The next paint needs a usable rendering context.
     deterministicStreaming: bool     // Headless hosts limit streaming turns by work alone.
 
     public
@@ -851,6 +851,7 @@ private impl Application
                 .renderingSuspended = true
                 return
             }
+
             defer .renderingSuspended = false
             if not recovered do
                 return

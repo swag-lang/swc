@@ -168,7 +168,7 @@ struct ViewerWindow
     musicChoices:              Array'MusicChoice
     onlineMovies:              bool = true
     onlineMusic:               bool = true
-    leftPanelWidth:             f32
+    leftPanelWidth:            f32
     rightPanelWidth:           f32
     fileDlgState:              FileDlgState
     themeIndex:                u32  = cast(u32, AppearanceTheme.Document)
@@ -587,6 +587,7 @@ impl IWnd for ViewerWindow
                     else do
                         .mainSplitter.items[2]!.size = rightWidth
                 }
+
                 if .leftPanelWidth > 0
                 {
                     let leftWidth = .leftPanelWidth + .themeMetrics().floating_Inset
@@ -1103,8 +1104,8 @@ impl ViewerWindow
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .documentPanel.backgroundStyle = .View
             .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
-            let left = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
-            let index = left ? LeftPanelIndex : RightPanelIndex
+            let left        = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
+            let index       = left ? LeftPanelIndex : RightPanelIndex
             let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
             .mainSplitter.items[index]!.view = .currentSidePanelHost orelse placeholder
             .mainSplitter.items[index]!.view.show(.currentSidePanelButton?.isChecked orelse false)
@@ -1427,7 +1428,7 @@ impl ViewerWindow
     // otherwise only the door; the line shows on the home and on a listing.
     mtd teachHints(exploring: bool)
     {
-        let texts = appStrings()
+        let texts   = appStrings()
         let metrics = .themeMetrics()
         .hintLine.margin.w = .readingLine.isLocallyVisible() ?
                              .readingLine.position.height + metrics.floating_Inset : 0

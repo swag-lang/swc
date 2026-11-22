@@ -82,6 +82,7 @@ using Swag, Core
     {
         password.storage[index] = 'a'
     }
+
     password.byteCount = PasswordEdit.MaximumByteLength
     password.runeCount = PasswordEdit.MaximumByteLength
     var mask: Array'u8

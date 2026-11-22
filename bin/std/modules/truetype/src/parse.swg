@@ -307,10 +307,10 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             var hasPrevious     = false
             for index in groupCount
             {
-                let base       = 8208'u64 + cast(u64, index) * 12
-                let startCode  = try readU32(subTable, base)
-                let endCode    = try readU32(subTable, base + 4)
-                let startGlyph = try readU32(subTable, base + 8)
+                let base        = 8208'u64 + cast(u64, index) * 12
+                let startCode   = try readU32(subTable, base)
+                let endCode     = try readU32(subTable, base + 4)
+                let startGlyph  = try readU32(subTable, base + 8)
                 let startsInBmp = startCode <= 0xFFFF
                 let endsInBmp   = endCode <= 0xFFFF
 
@@ -330,10 +330,14 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                     let endHigh   = endCode >> 16
                     let startLow  = startCode & 0xFFFF
                     let endLow    = endCode & 0xFFFF
-                    if startHigh < 0xD800 or startHigh > 0xDBFF or
-                       endHigh < 0xD800 or endHigh > 0xDBFF or
-                       startLow < 0xDC00 or startLow > 0xDFFF or
-                       endLow < 0xDC00 or endLow > 0xDFFF do
+                    if startHigh < 0xD800 or
+                       startHigh > 0xDBFF or
+                       endHigh < 0xD800 or
+                       endHigh > 0xDBFF or
+                       startLow < 0xDC00 or
+                       startLow > 0xDFFF or
+                       endLow < 0xDC00 or
+                       endLow > 0xDFFF do
                         try fault(0x03)
                 }
 
@@ -661,6 +665,7 @@ func countFacesIn(data: const [..] u8)->u32 fail
         assertRange(data, 12, cast(u64, faceCount) * 4)
         return faceCount
     }
+
     if readU32(data, 0) == TAG_WOFF
     {
         discard readWoffDirectory(data)

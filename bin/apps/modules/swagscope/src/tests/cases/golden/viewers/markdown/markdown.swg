@@ -24,8 +24,9 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     Swag.require(not view.findText("*FIG.") and not view.findText("**The center"))
     Swag.require(not view.findText("Opening spread") and not view.findText("</div>"))
     view.clearSearchHighlight()
+    Swag.require(view.revealHeading(0))
     Testing.assertContentFits(view)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     assertScopeImageGolden(&image, golden)
 }
 

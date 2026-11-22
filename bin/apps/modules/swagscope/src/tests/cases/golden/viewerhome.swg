@@ -12,7 +12,7 @@ using Core, Pixel, Gui
 {
     let light  = true
     var host:  Testing.HeadlessHost
-    let window = homeWindow(&host, light, height: 720)
+    let window = homeWindow(&host, light, height: 720, fixedVideoPreview: true)
     var point: ViewerResumePoint
     point.file     = window.recent[0]
     point.progress = 0.38

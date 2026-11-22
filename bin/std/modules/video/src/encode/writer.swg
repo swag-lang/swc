@@ -65,15 +65,15 @@ struct Writer
 {
     internal
     {
-        sink:        ByteSink         // Bytes of the encoded stream.
-        info:        StreamInfo       // Geometry and rate the stream was opened with.
-        format:      StreamFormat     // Format claimed by the selected encoder.
-        encoder:     IEncoder?        // Encoder instance owned by this writer.
-        encoderType: const *Swag.TypeInfoStruct?     // Concrete encoder type, used to release it.
-        frames:      u64              // Number of frames appended so far.
-        isEnded:     bool             // Whether finalization was attempted and frame writes stopped.
-        isFinalized: bool             // Whether encoder finalization and sink close both succeeded.
-        finalizationError: Swag.Error // Error from the failed finalization attempt, when present.
+        sink:              ByteSink         // Bytes of the encoded stream.
+        info:              StreamInfo       // Geometry and rate the stream was opened with.
+        format:            StreamFormat     // Format claimed by the selected encoder.
+        encoder:           IEncoder?        // Encoder instance owned by this writer.
+        encoderType:       const *Swag.TypeInfoStruct?     // Concrete encoder type, used to release it.
+        frames:            u64              // Number of frames appended so far.
+        isEnded:           bool             // Whether finalization was attempted and frame writes stopped.
+        isFinalized:       bool             // Whether encoder finalization and sink close both succeeded.
+        finalizationError: Swag.Error       // Error from the failed finalization attempt, when present.
     }
 }
 
@@ -242,6 +242,7 @@ impl Writer
             .finalizationError = failure
             try .finalizationError.raise()
         }
+
         .frames += 1
     }
 
@@ -258,6 +259,7 @@ impl Writer
             try .finalizationError.raise()
             fail BadParameterError{"video writer finalization previously failed"}
         }
+
         if not .encoder do
             fail BadParameterError{"video writer has no open stream"}
 

@@ -155,8 +155,8 @@ impl ViewerWindow
             .hide()
         }
 
-        let gutter        = .themeMetrics().floating_Inset
-        let leftWidth     = (.leftPanelWidth > 0 ? .leftPanelWidth : RightPanelDefaultWidth) + gutter
+        let gutter           = .themeMetrics().floating_Inset
+        let leftWidth        = (.leftPanelWidth > 0 ? .leftPanelWidth : RightPanelDefaultWidth) + gutter
         with let outlineItem = .mainSplitter.addPane(.outlinePanelPlaceholder, leftWidth)
         {
             .minimumSize  = RightPanelMinWidth + gutter

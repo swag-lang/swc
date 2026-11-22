@@ -34,7 +34,7 @@ func requireMarkdownOutlinePalette(light: bool)
         Swag.require(outline.filterBox.themeColors().edit_Text == colors.label_Text)
         Swag.require(outline.filterBox.themeColors().edit_FocusBk == colors.edit_FocusBk)
         Swag.require(themeIndex == 0 ? view.themeColors().view_Bk == colors.view_Bk :
-                                      view.themeColors().view_Bk != colors.view_Bk)
+                     view.themeColors().view_Bk != colors.view_Bk)
     }
 }
 

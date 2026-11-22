@@ -771,14 +771,12 @@ func __setupRuntime(flags: RuntimeFlags)
     }
 
     #static if #hastag("Swag.AllocatorDiagnostics") do
-        discard installAllocator(
-            electricMode: __buildCfg.allocatorElectricMode,
-            detectLeaks: __buildCfg.allocatorLeaks,
-            captureStack: __buildCfg.allocatorCaptureStack,
-            trackAllocations: __buildCfg.allocatorTrackAllocations,
-            fillMemory: __buildCfg.allocatorFillMemory,
-            installInContext: not (flags & .FromCompiler)
-        )
+        discard installAllocator(electricMode: __buildCfg.allocatorElectricMode,
+                                 detectLeaks: __buildCfg.allocatorLeaks,
+                                 captureStack: __buildCfg.allocatorCaptureStack,
+                                 trackAllocations: __buildCfg.allocatorTrackAllocations,
+                                 fillMemory: __buildCfg.allocatorFillMemory,
+                                 installInContext: not (flags & .FromCompiler))
     else do
         discard installAllocator(installInContext: not (flags & .FromCompiler))
 

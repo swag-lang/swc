@@ -4,11 +4,11 @@ using Swag, Core
 
 func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
 {
-    writeBigU16(table, offset + 0, 1)       // PairPos format 1.
-    writeBigU16(table, offset + 2, 18)     // Coverage follows the pair set.
-    writeBigU16(table, offset + 4, 0x0004) // XAdvance in the first glyph's value record.
+    writeBigU16(table, offset + 0, 1)          // PairPos format 1.
+    writeBigU16(table, offset + 2, 18)         // Coverage follows the pair set.
+    writeBigU16(table, offset + 4, 0x0004)     // XAdvance in the first glyph's value record.
     writeBigU16(table, offset + 6, 0)
-    writeBigU16(table, offset + 8, 1)      // One pair set.
+    writeBigU16(table, offset + 8, 1)     // One pair set.
     writeBigU16(table, offset + 10, 12)
     writeBigU16(table, offset + 12, 1)     // One pair value.
     writeBigU16(table, offset + 14, 2)     // Second glyph.
@@ -29,17 +29,17 @@ func writeZeroClassPairPosition(table: *Array'u8, offset: u64)
     writeBigU16(table, offset + 12, 1)
     writeBigU16(table, offset + 14, 1)
 
-    writeBigU16(table, offset + 16, 0) // The only class-pair adjustment is zero.
-    writeBigU16(table, offset + 18, 1) // First class definition, format 1.
+    writeBigU16(table, offset + 16, 0)     // The only class-pair adjustment is zero.
+    writeBigU16(table, offset + 18, 1)     // First class definition, format 1.
     writeBigU16(table, offset + 20, 1)
     writeBigU16(table, offset + 22, 1)
     writeBigU16(table, offset + 24, 0)
-    writeBigU16(table, offset + 26, 1) // Second class definition, format 1.
+    writeBigU16(table, offset + 26, 1)     // Second class definition, format 1.
     writeBigU16(table, offset + 28, 2)
     writeBigU16(table, offset + 30, 1)
     writeBigU16(table, offset + 32, 0)
 
-    writeBigU16(table, offset + 34, 1) // Coverage format 1.
+    writeBigU16(table, offset + 34, 1)     // Coverage format 1.
     writeBigU16(table, offset + 36, 1)
     writeBigU16(table, offset + 38, 1)
 }
@@ -49,27 +49,27 @@ func makeGposKernFixture()->Array'u8
     var table: #returntype
     table.resize(96)
 
-    writeBigU16(&table, 0, 1)   // GPOS version 1.0.
-    writeBigU16(&table, 6, 10)  // FeatureList offset.
-    writeBigU16(&table, 8, 26)  // LookupList offset.
+    writeBigU16(&table, 0, 1)      // GPOS version 1.0.
+    writeBigU16(&table, 6, 10)     // FeatureList offset.
+    writeBigU16(&table, 8, 26)     // LookupList offset.
 
-    writeBigU16(&table, 10, 1) // One feature record.
+    writeBigU16(&table, 10, 1)     // One feature record.
     writeBigU32(&table, 12, TAG_KERN)
-    writeBigU16(&table, 16, 8) // Feature table offset.
-    writeBigU16(&table, 18, 0) // FeatureParams.
-    writeBigU16(&table, 20, 2) // Two lookups, deliberately listed in reverse order.
+    writeBigU16(&table, 16, 8)     // Feature table offset.
+    writeBigU16(&table, 18, 0)     // FeatureParams.
+    writeBigU16(&table, 20, 2)     // Two lookups, deliberately listed in reverse order.
     writeBigU16(&table, 22, 1)
     writeBigU16(&table, 24, 0)
 
-    writeBigU16(&table, 26, 2) // Two lookups in LookupList order.
+    writeBigU16(&table, 26, 2)     // Two lookups in LookupList order.
     writeBigU16(&table, 28, 6)
     writeBigU16(&table, 30, 38)
 
     for offset in [32, 64]
     {
         writeBigU16(&table, offset + 0, GPOS_LOOKUP_PAIR)
-        writeBigU16(&table, offset + 2, 0) // LookupFlags.
-        writeBigU16(&table, offset + 4, 1) // One subtable.
+        writeBigU16(&table, offset + 2, 0)     // LookupFlags.
+        writeBigU16(&table, offset + 4, 1)     // One subtable.
         writeBigU16(&table, offset + 6, 8)
     }
 
@@ -106,11 +106,11 @@ func makeGposKernFixture()->Array'u8
 {
     var table: Array'u8
     table.resize(26)
-    writeBigU16(&table, 10, 1) // One feature record.
+    writeBigU16(&table, 10, 1)     // One feature record.
     writeBigU32(&table, 12, TAG_KERN)
-    writeBigU16(&table, 16, 8) // Feature table offset.
-    writeBigU16(&table, 18, 0) // FeatureParams.
-    writeBigU16(&table, 20, 2) // Two lookup indices.
+    writeBigU16(&table, 16, 8)     // Feature table offset.
+    writeBigU16(&table, 18, 0)     // FeatureParams.
+    writeBigU16(&table, 20, 2)     // Two lookup indices.
     writeBigU16(&table, 22, 0)
     writeBigU16(&table, 24, Swag.U16.Max)
 

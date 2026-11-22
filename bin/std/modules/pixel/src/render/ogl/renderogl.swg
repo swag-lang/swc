@@ -733,7 +733,7 @@ impl RenderOgl
 
         .nativeContext = try .native.replaceLostContext(.contexts.toSlice(), .nativeContext)
         .initImpl()
-        .deviceLost = false
+        .deviceLost   = false
         .deviceResets += 1
         return true
     }
@@ -746,12 +746,16 @@ impl RenderOgl
         case GL_GUILTY_CONTEXT_RESET:   name = "GL_GUILTY_CONTEXT_RESET"
         case GL_INNOCENT_CONTEXT_RESET: name = "GL_INNOCENT_CONTEXT_RESET"
         case GL_UNKNOWN_CONTEXT_RESET:  name = "GL_UNKNOWN_CONTEXT_RESET"
-        default:                       name = "unrecognized status"
+        default: name = "unrecognized status"
         }
 
         let message = Format.toString("% % [%] OpenGL reset: % (0x%{X}), renderer: %\n",
-                                      Time.DateTime.now().toString(), Path.fileName(Env.executablePath()),
-                                      Env.Process.currentProcessId(), name, status, .rendererName)
+                                      Time.DateTime.now().toString(),
+                                      Path.fileName(Env.executablePath()),
+                                      Env.Process.currentProcessId(),
+                                      name,
+                                      status,
+                                      .rendererName)
         Debugger.log(message)
 
         let appData = Env.getSpecialDirectory(.UserAppData)
@@ -763,7 +767,7 @@ impl RenderOgl
             return
         }
 
-        let path = Path.combine(directory, "opengl-resets.log")
+        let path   = Path.combine(directory, "opengl-resets.log")
         var stream = catch File.open(path, .Append, .Write, .Read)
         {
             return

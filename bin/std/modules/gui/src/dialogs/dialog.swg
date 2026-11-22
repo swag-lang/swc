@@ -176,8 +176,8 @@ impl Dialog
         // The actions end the body on its own ground: no band and no rule, one gap above them.
         let metrics = .themeMetrics()
         with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view,
-                                                      "",
-                                                      Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
+                                                       "",
+                                                       Math.Rectangle{0, 0, 0, metrics.control_DialogHeight})
         {
             .spacing         = metrics.dialog_BtnPadding
             .mode            = .HorizontalEnd

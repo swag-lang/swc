@@ -70,8 +70,8 @@ impl IWnd for HintLine
         var bounds  = parent.clientRect()
         bounds.x      += .margin.x
         bounds.y      += .margin.y
-        bounds.width   = Math.max(bounds.width - .margin.x - .margin.z, 0)
-        bounds.height  = Math.max(bounds.height - .margin.y - .margin.w, 0)
+        bounds.width  = Math.max(bounds.width - .margin.x - .margin.z, 0)
+        bounds.height = Math.max(bounds.height - .margin.y - .margin.w, 0)
         let page   = parent.paddedClientRect()
         let pad    = .groundPadding()
         let height = metrics.hintLine_Height + 2 * pad.y

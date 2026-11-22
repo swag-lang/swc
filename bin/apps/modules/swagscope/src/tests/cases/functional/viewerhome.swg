@@ -10,8 +10,15 @@ func homeFixture(name: string)->String => Path.combine(testSourceRoot(#curlocati
 
 // Builds a window whose history holds six fixtures opened over the last days and two explored
 // folders, on the theme of `light`, with the application mark the home shows.
-internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)->*ViewerWindow
+internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640, fixedVideoPreview = false)->*ViewerWindow
 {
+    var fixedVideoPreviewKey: String
+    defer
+    {
+        if fixedVideoPreviewKey.count do
+            catch File.delete(fixedVideoPreviewKey)
+    }
+
     host.setup(960, height)
     shipFrame(host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
@@ -32,6 +39,16 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)
     {
         window.recent.add(homeFixture(name))
         window.recentOpened.add(HomeNow - hours[i] * Time.TicksPerHour - 8 * Time.TicksPerMinute)
+    }
+
+    if fixedVideoPreview
+    {
+        // The native video decoders can produce different preview pixels on Windows and Linux.
+        // Home's visual test owns a lossless cached preview so it checks the layout on both hosts.
+        let video = homeFixture(Names[5])
+        fixedVideoPreviewKey = expect ThumbnailCache.key(video, settings: ThumbnailSettings.capture(window, localArtworkOnly: true))
+        var image = expect Image.load(homeFixture("qrcode.png"))
+        expect ThumbnailCache.write(fixedVideoPreviewKey, &image, video)
     }
 
     let datas = Path.directoryName(homeFixture(Names[0])) orelse ""

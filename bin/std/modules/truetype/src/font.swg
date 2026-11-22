@@ -80,7 +80,7 @@ struct GlyphMetric
 
 struct GposPairLookup
 {
-    firstSubtable:  u64
+    firstSubtable: u64
     subtableCount: u32
 }
 

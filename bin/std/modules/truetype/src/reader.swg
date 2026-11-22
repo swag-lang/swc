@@ -135,8 +135,8 @@ func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
     if not unitsPerEm do
         try fault(0x17)
 
-    let scaled   = cast(s64, value) * cast(s64, ppem) * 64
-    let divisor  = cast(s64, unitsPerEm)
+    let scaled  = cast(s64, value) * cast(s64, ppem) * 64
+    let divisor = cast(s64, unitsPerEm)
     var rounded: s64
     if scaled >= 0 do
         rounded = (scaled + divisor / 2) / divisor

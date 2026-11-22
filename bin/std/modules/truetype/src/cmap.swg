@@ -358,7 +358,7 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
         return glyphIndex < faceData.face.glyphCount ? glyphIndex : 0
     }
 
-    let cmap = faceData.chosenCMap
+    let cmap       = faceData.chosenCMap
     var glyphIndex = 0'u32
     switch faceData.cmapFormat
     {

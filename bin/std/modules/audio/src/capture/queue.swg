@@ -176,7 +176,7 @@ impl CaptureQueue
         defer .mutex.unlock()
         if .lost do
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
-        let frames     = samples.count / .channels
+        let frames    = samples.count / .channels
         let placement = try capturePlacement(&.timeline, .idleSilent, frames, firstTick)
 
         if not placement.acceptedFrames do

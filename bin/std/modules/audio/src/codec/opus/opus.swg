@@ -35,9 +35,9 @@ private func frameSampleCount(config: u32)->u32
     {
         switch config & 3
         {
-        case 0: return 480
-        case 1: return 960
-        case 2: return 1_920
+        case 0:  return 480
+        case 1:  return 960
+        case 2:  return 1_920
         default: return 2_880
         }
     }

@@ -17,7 +17,7 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
     return false
 }
 
-private var reentrantCaptureEnabled = false
+private var reentrantCaptureEnabled   = false
 private var reentrantReplacementDrops = 0
 
 private struct ReentrantReplacementPayload {}
@@ -92,14 +92,14 @@ private func failReentrantCapture(owner: *Error) fail
     let baseline = allocator.stats().countAlloc
     var owner: Error
     reentrantReplacementDrops = 0
-    reentrantCaptureEnabled = false
+    reentrantCaptureEnabled   = false
     scope
     {
         catch failReentrantCapture(&owner) { owner.capture(Swag.err) }
     }
     reentrantCaptureEnabled = true
     owner.reset()
-    let replacement = owner.value()
+    let replacement     = owner.value()
     let keptReplacement = replacement is ReentrantReplacementPayload
     owner.reset()
 
@@ -116,7 +116,7 @@ private func failReentrantCapture(owner: *Error) fail
     let keptReentrantCapture = captured is ReentrantReplacementPayload
     owner.reset()
     let isEmpty = owner.isEmpty()
-    let drops = reentrantReplacementDrops
+    let drops   = reentrantReplacementDrops
     context.releaseErrorStorage()
     Swag.require(keptReplacement)
     Swag.require(keptReentrantCapture)

@@ -235,8 +235,7 @@ using Swag, Core
         Vector{-1200000000, -1200000000},
         Vector{-1200000000, 1200000000},
         Vector{1200000000, 1200000000},
-        Vector{1200000000, -1200000000}
-    ]
+        Vector{1200000000, -1200000000}]
     var tags:     [4] u8  = [1, 1, 1, 1]
     var contours: [1] s16 = [3]
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 4, 1)

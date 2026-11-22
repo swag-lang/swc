@@ -124,22 +124,22 @@ struct Explorer
 
     late
     {
-        window:     *ViewerWindow
-        header:     *Wnd
-        tools:      *StackLayoutCtrl
-        address:    *PathBar
-        title:      *Label
-        status:     *Label
-        failure:    *ViewerErrorView
-        extractAll: *IconButton
-        kindMenu:   *IconButton
-        sortMenu:   *IconButton
-        modeMenu:   *IconButton
-        filter:     *EditBox
-        list:       *ListCtrl
+        window:        *ViewerWindow
+        header:        *Wnd
+        tools:         *StackLayoutCtrl
+        address:       *PathBar
+        title:         *Label
+        status:        *Label
+        failure:       *ViewerErrorView
+        extractAll:    *IconButton
+        kindMenu:      *IconButton
+        sortMenu:      *IconButton
+        modeMenu:      *IconButton
+        filter:        *EditBox
+        list:          *ListCtrl
         archiveHeader: *Header
-        scroll:     *ScrollWnd
-        grid:       *ExplorerGrid
+        scroll:        *ScrollWnd
+        grid:          *ExplorerGrid
     }
 
     layingHeader:    bool
@@ -231,11 +231,11 @@ impl Explorer
         let sheetMargin = PageMargin - ExplorerGrid.CellInset
         with result.archiveHeader = Header.create(result)
         {
-            .dockStyle = .Top
-            .form = .Transparent
-            .padding.x = ExplorerGrid.CellInset
-            .padding.z = ExplorerGrid.CellInset
-            .ruleInset = ExplorerGrid.CellInset
+            .dockStyle   = .Top
+            .form        = .Transparent
+            .padding.x   = ExplorerGrid.CellInset
+            .padding.z   = ExplorerGrid.CellInset
+            .ruleInset   = ExplorerGrid.CellInset
             .itemPadding = ExplorerGrid.ArchiveCellInset
             .updateFlags(remove: .Separators)
             let text = appStrings()
@@ -247,6 +247,7 @@ impl Explorer
             {
                 result.sortBy(column, result.sortColumn == column and not result.descending)
             }
+
             .hide()
         }
 
@@ -541,14 +542,14 @@ impl Explorer
 
         let metrics = .themeMetrics()
         let inset   = Math.clamp(.clientRect().width / 16, metrics.floating_Inset, PageMargin)
-        .header.padding.x = inset
-        .header.padding.z = inset
-        .list.margin.x    = inset - ExplorerGrid.CellInset
-        .list.margin.z    = inset - ExplorerGrid.CellInset
+        .header.padding.x       = inset
+        .header.padding.z       = inset
+        .list.margin.x          = inset - ExplorerGrid.CellInset
+        .list.margin.z          = inset - ExplorerGrid.CellInset
         .archiveHeader.margin.x = .list.margin.x
         .archiveHeader.margin.z = .list.margin.z
-        .scroll.margin.x  = .list.margin.x
-        .scroll.margin.z  = .list.margin.z
+        .scroll.margin.x        = .list.margin.x
+        .scroll.margin.z        = .list.margin.z
         .title.hide()
         .tools.show()
         .extractAll.show(.listing.isArchive)
@@ -1156,11 +1157,11 @@ impl Explorer
         .address.breadcrumb.toolTip = text.cmd_EditLocation
         .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
         .filter.setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
-        .list.header.itemAt(0).name = text.explore_Name
-        .list.header.itemAt(1).name = text.explore_Type
-        .list.header.itemAt(2).name = text.explore_Size
-        .list.header.itemAt(3).name = text.explore_Modified
-        .list.header.itemAt(4).name = text.explore_Duration
+        .list.header.itemAt(0).name   = text.explore_Name
+        .list.header.itemAt(1).name   = text.explore_Type
+        .list.header.itemAt(2).name   = text.explore_Size
+        .list.header.itemAt(3).name   = text.explore_Modified
+        .list.header.itemAt(4).name   = text.explore_Duration
         .archiveHeader.itemAt(0).name = text.explore_Name
         .archiveHeader.itemAt(1).name = text.explore_Compression
         .archiveHeader.itemAt(2).name = text.explore_Size
@@ -3231,21 +3232,21 @@ impl ExplorerGrid
     // much the member packed, the size and the date in mono, a folder its count instead.
     mtd paintRows(painter: *Painter, first, end: u64)
     {
-        let explorer = .explorer
-        let header   = explorer.archiveHeader
-        let colors   = .themeColors()
-        let metrics  = .themeMetrics()
-        let body     = .theme().createDefaultFont(14)
-        let mono     = .theme().createDefaultFontFs(11)
-        let nameRight = header.itemPositionAt(0) + header.itemWidthAt(0)
-        let ratioX    = header.itemPositionAt(1)
-        let ratioRoom = Math.max(header.itemWidthAt(1) - 2 * ArchiveCellInset, 0)
+        let explorer   = .explorer
+        let header     = explorer.archiveHeader
+        let colors     = .themeColors()
+        let metrics    = .themeMetrics()
+        let body       = .theme().createDefaultFont(14)
+        let mono       = .theme().createDefaultFontFs(11)
+        let nameRight  = header.itemPositionAt(0) + header.itemWidthAt(0)
+        let ratioX     = header.itemPositionAt(1)
+        let ratioRoom  = Math.max(header.itemWidthAt(1) - 2 * ArchiveCellInset, 0)
         let ratioWidth = Math.min(RatioWidth, ratioRoom)
         let ratioRight = ratioX + header.itemWidthAt(1) - ArchiveCellInset
-        let sizeX     = header.itemPositionAt(2)
-        let dateX     = header.itemPositionAt(3)
-        let sizeWidth = header.itemWidthAt(2)
-        let dateWidth = header.itemWidthAt(3)
+        let sizeX      = header.itemPositionAt(2)
+        let dateX      = header.itemPositionAt(3)
+        let sizeWidth  = header.itemWidthAt(2)
+        let dateWidth  = header.itemWidthAt(3)
         painter.setAntialiased(true)
         for row in first until end
         {
@@ -3268,8 +3269,8 @@ impl ExplorerGrid
             painter.popClippingRect()
 
             // The date as briefly as a list reads it: the time today, the day this year, the date before.
-            let date = entry.when.year ? explorerFileTime(entry.when, Time.DateTime.now(), explorer.window.language) : String.from("")
-            let lineY = mono.opticalLineTop(centerY)
+            let date      = entry.when.year ? explorerFileTime(entry.when, Time.DateTime.now(), explorer.window.language) : String.from("")
+            let lineY     = mono.opticalLineTop(centerY)
             let dateRight = dateX + dateWidth - ArchiveCellInset
             painter.pushClippingRect({dateX, rect.y, dateWidth, rect.height})
             painter.drawString(dateRight - Painter.measureString(date, mono).width, lineY, date, mono, colors.faintText)

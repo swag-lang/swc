@@ -357,13 +357,14 @@ impl ViewerWindow
     {
         if .currentSidePanelButton
         {
-            let oldLeft = .currentSidePanelButton.id == OutlineToggleId
-            let oldIndex = oldLeft ? LeftPanelIndex : RightPanelIndex
+            let oldLeft        = .currentSidePanelButton.id == OutlineToggleId
+            let oldIndex       = oldLeft ? LeftPanelIndex : RightPanelIndex
             let oldPlaceholder = oldLeft ? .outlinePanelPlaceholder : .sidePanelPlaceholder
             .mainSplitter.items[oldIndex]!.view.hide()
             .mainSplitter.items[oldIndex]!.view = oldPlaceholder
             .mainSplitter.setPaneVisible(oldIndex, false)
         }
+
         .currentSidePanelHost?.hide()
         .currentSidePanelButton?.hide()
         .currentSidePanelHost   = panel
@@ -373,9 +374,9 @@ impl ViewerWindow
         .refreshExplorerCaption()
         .updateDocumentInsets()
 
-        let visible = button and button.isChecked and not .fullScreen
-        let left    = button and button.id == OutlineToggleId
-        let index   = left ? LeftPanelIndex : RightPanelIndex
+        let visible     = button and button.isChecked and not .fullScreen
+        let left        = button and button.id == OutlineToggleId
+        let index       = left ? LeftPanelIndex : RightPanelIndex
         let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
         .mainSplitter.items[index]!.view = panel orelse placeholder
         .mainSplitter.items[index]!.view.show(visible)

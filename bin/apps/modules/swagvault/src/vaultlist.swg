@@ -176,11 +176,12 @@ impl VaultList
         }
 
         let texts = appStrings()
-        result.title  = createPageTitle(result, texts.ui_VaultsTitle)
+        result.title = createPageTitle(result, texts.ui_VaultsTitle)
         with result.options = createQuietLink(result, texts.ui_OptionsLink)
         {
             .sigPressed += func|window|(_) { window.showPage(.Options) }
         }
+
         result.notice = NoticeLine.create(result)
         result.card   = UnlockCard.create(result, window)
 

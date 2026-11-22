@@ -172,8 +172,8 @@ private impl PasswordEdit
             return
         }
 
-        let erased = .eraseSelection()
-        let caret  = erased.caret
+        let erased     = .eraseSelection()
+        let caret      = erased.caret
         let byteOffset = .byteOffsetAt(caret)
         let tailSize   = .byteCount - byteOffset
         if tailSize do

@@ -11,9 +11,9 @@ using Swag, Core
 
     var glyphData: Array'u8
     glyphData.resize(17)
-    glyphData[1]  = 1       // One contour.
-    glyphData[10] = 0       // End point index zero.
-    glyphData[14] = 0x21    // On-curve, with a signed x delta and zero y delta.
+    glyphData[1]  = 1        // One contour.
+    glyphData[10] = 0        // End point index zero.
+    glyphData[14] = 0x21     // On-curve, with a signed x delta and zero y delta.
     glyphData[15] = 0x7F
     glyphData[16] = 0xFF
 
@@ -77,7 +77,7 @@ using Swag, Core
 
     glyphData.resize(15)
     glyphData[14] = 0x02
-    rejected = {}
+    rejected      = {}
     discard catch appendSimpleGlyph(&faceData, glyphData.toSlice(), 16, 16) as rejected
     Swag.require(rejected.value() != null)
 }

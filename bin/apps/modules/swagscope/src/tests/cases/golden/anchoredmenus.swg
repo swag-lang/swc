@@ -282,6 +282,6 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
 #test
 {
     var host: Testing.HeadlessHost
-    let window = homeWindow(&host, false)
+    let window = homeWindow(&host, false, fixedVideoPreview: true)
     assertScopeAnchoredMenu(&host, window, window.home.clearButton, "menus.home.clear")
 }

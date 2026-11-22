@@ -34,10 +34,10 @@ struct Encoder
 {
     internal
     {
-        info:    StreamInfo        // Geometry and rate the stream was opened with.
-        payload: Array'u8          // Scratch storage of one encoded frame.
-        options: EncodeOptions     // Chroma layout applied to every frame.
-        hasFrame: bool             // Whether at least one complete frame was written.
+        info:     StreamInfo        // Geometry and rate the stream was opened with.
+        payload:  Array'u8          // Scratch storage of one encoded frame.
+        options:  EncodeOptions     // Chroma layout applied to every frame.
+        hasFrame: bool              // Whether at least one complete frame was written.
     }
 }
 

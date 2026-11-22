@@ -150,12 +150,14 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
         try checkWoffPadding(block, previousDataEnd, metadataOffset)
         lastBlockEnd = metadataEnd
     }
+
     if privateOffset
     {
         let privatePaddingStart = metadataOffset ? metadataEnd : previousDataEnd
         try checkWoffPadding(block, privatePaddingStart, privateOffset)
         lastBlockEnd = privateEnd
     }
+
     try checkWoffPadding(block, lastBlockEnd, result.header.length)
 
     return result

@@ -34,35 +34,35 @@ struct RichEditLexerSwag
     #[Swag.Incomplete]
     enum State: s32
     {
-        Default             // Text with no more specific lexical state.
-        LineComment         // Text in a line comment.
-        Comment             // Text in a block comment.
-        Keyword             // A language keyword outside the control-flow group.
-        Declaration         // A declaration keyword such as `struct`, `func`, or `let`.
-        Control             // A control-flow keyword or operator such as `if`, `return`, or `and`.
-        Intrinsic           // A compiler intrinsic or special operator function.
-        Namespace     // Built-in `Swag` namespace.
-        Builtin       // Compiler builtin function.
-        Compiler            // A compiler constant such as `#os` or `#file`.
-        CompilerFunction   // A compiler-provided function.
-        CompilerGlobal     // A compiler-provided global value.
-        CompilerStatement  // A compiler directive or statement.
-        Modifier           // A declaration modifier such as `#test`.
-        FunctionCall       // The name of a function call.
-        FunctionSpecOp     // The name of a special operator function.
-        Type               // A built-in type name.
-        StorageModifier    // An access or storage keyword such as `public` or `readonly`.
-        UserType           // The name of a user-defined type.
-        Constant           // A built-in constant such as `true`, `false`, or `null`.
-        String             // A quoted string literal.
-        RawString          // A raw string literal.
-        Character          // A character literal.
-        Numeric            // A decimal integer literal.
-        NumericHex         // A hexadecimal integer literal.
-        NumericBin         // A binary integer literal.
-        NumericFrac        // A fractional numeric literal.
-        Attribute          // An attribute name.
-        Error              // A token the lexer marks as invalid.
+        Default               // Text with no more specific lexical state.
+        LineComment           // Text in a line comment.
+        Comment               // Text in a block comment.
+        Keyword               // A language keyword outside the control-flow group.
+        Declaration           // A declaration keyword such as `struct`, `func`, or `let`.
+        Control               // A control-flow keyword or operator such as `if`, `return`, or `and`.
+        Intrinsic             // A compiler intrinsic or special operator function.
+        Namespace             // Built-in `Swag` namespace.
+        Builtin               // Compiler builtin function.
+        Compiler              // A compiler constant such as `#os` or `#file`.
+        CompilerFunction      // A compiler-provided function.
+        CompilerGlobal        // A compiler-provided global value.
+        CompilerStatement     // A compiler directive or statement.
+        Modifier              // A declaration modifier such as `#test`.
+        FunctionCall          // The name of a function call.
+        FunctionSpecOp        // The name of a special operator function.
+        Type                  // A built-in type name.
+        StorageModifier       // An access or storage keyword such as `public` or `readonly`.
+        UserType              // The name of a user-defined type.
+        Constant              // A built-in constant such as `true`, `false`, or `null`.
+        String                // A quoted string literal.
+        RawString             // A raw string literal.
+        Character             // A character literal.
+        Numeric               // A decimal integer literal.
+        NumericHex            // A hexadecimal integer literal.
+        NumericBin            // A binary integer literal.
+        NumericFrac           // A fractional numeric literal.
+        Attribute             // An attribute name.
+        Error                 // A token the lexer marks as invalid.
     }
 
     mapStyles: [State] Style

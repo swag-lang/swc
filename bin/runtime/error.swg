@@ -62,7 +62,7 @@ namespace Swag
             if error do
                 record = __copyErrRecord(error)
             let previous = .record
-            .record      = record
+            .record = record
             __releaseErrRecord(previous)
         }
 

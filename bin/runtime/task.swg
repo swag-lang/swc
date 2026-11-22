@@ -286,8 +286,10 @@ private impl Task
             if not executor.post(&.node) do
                 Swag.panic("cannot submit work while the executor is closing", #curlocation)
         }
-        else do
+        else
+        {
             submitWork(&.node, .priority == .Background)
+        }
     }
 
     // Runs a body that cannot fail and stores its value.

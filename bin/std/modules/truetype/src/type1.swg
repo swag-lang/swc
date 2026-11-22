@@ -237,7 +237,7 @@ private func decodeEexecHex(data: const [..] u8)->Array'u8
 // non-space bytes are all hexadecimal digits — the check the format itself prescribes.
 private func isHexPrivateSection(data: const [..] u8)->bool
 {
-    var seen = 0'u32
+    var seen    = 0'u32
     let trailer = findBytes(data, 0, "cleartomark")
     let limit   = trailer < data.count ? trailer : data.count
     let bytes   = data

@@ -59,21 +59,21 @@ internal func reserveDynamicArray(arrayPointer: *void?, elementType: typeinfo?, 
     if elementBytes != 0 and newCapacity > Swag.U64.Max / elementBytes do
         Swag.panic("Array capacity exceeds addressable memory", #curlocation)
 
-    let oldSize = arrayView.capacity * elementBytes
+    let oldSize         = arrayView.capacity * elementBytes
     let doubledCapacity = arrayView.capacity <= Swag.U64.Max / 2 ? arrayView.capacity * 2 : newCapacity
-    let grownCapacity = Math.max(doubledCapacity, newCapacity)
+    let grownCapacity   = Math.max(doubledCapacity, newCapacity)
     if grownCapacity > Swag.U64.Max / elementBytes do
         Swag.panic("Array capacity exceeds addressable memory", #curlocation)
 
     let allocator = arrayView.allocator orelse Swag.getContext().allocator
-    let buffer = Memory.realloc(arrayView.buffer,
-                                grownCapacity * elementBytes,
-                                oldSize,
-                                allocator,
-                                runtimeTypeAlignment(elementBytes))
+    let buffer    = Memory.realloc(arrayView.buffer,
+                                   grownCapacity * elementBytes,
+                                   oldSize,
+                                   allocator,
+                                   runtimeTypeAlignment(elementBytes))
     arrayView.allocator = allocator
-    arrayView.buffer = cast([*] u8, buffer)
-    arrayView.capacity = grownCapacity
+    arrayView.buffer    = cast([*] u8, buffer)
+    arrayView.capacity  = grownCapacity
 }
 
 // Drops every element of the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`.

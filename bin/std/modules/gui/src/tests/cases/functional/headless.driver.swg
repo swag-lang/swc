@@ -78,7 +78,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(300, 120)
 
-    let parent = Dialog.create(&host.surface, 260, 150, title: "Parent")
+    let parent        = Dialog.create(&host.surface, 260, 150, title: "Parent")
     let parentSurface = unwrap parent.surface
     parent.addButton("Close", Dialog.BtnCancel, true)
     var stage: u32

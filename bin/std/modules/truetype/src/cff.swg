@@ -269,22 +269,23 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: #returntype
+
     // Keep f64-significant digits separate from the decimal scale so an exponent can cancel a long fraction.
-    var mantissa         = 0.0'f64
-    var exponent         = 0
-    var decimalExponent  = 0's64
+    var mantissa          = 0.0'f64
+    var exponent          = 0
+    var decimalExponent   = 0's64
     var significantDigits = 0'u32
-    var negative         = false
-    var expNegative      = false
-    var inFraction       = false
-    var inExponent       = false
-    var hasMantissaDigit = false
-    var hasExponentDigit = false
-    var hasDecimalPoint  = false
-    var hasExponent      = false
-    var hasSign          = false
-    var done             = false
-    var pos              = offset
+    var negative          = false
+    var expNegative       = false
+    var inFraction        = false
+    var inExponent        = false
+    var hasMantissaDigit  = false
+    var hasExponentDigit  = false
+    var hasDecimalPoint   = false
+    var hasExponent       = false
+    var hasSign           = false
+    var done              = false
+    var pos               = offset
 
     while not done
     {
@@ -314,7 +315,7 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                         decimalExponent -= 1
                         if significantDigits or nibble
                         {
-                            mantissa          = mantissa * 10.0 + digit
+                            mantissa = mantissa * 10.0 + digit
                             significantDigits += 1
                         }
                     }
@@ -326,7 +327,7 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                     {
                         if significantDigits or nibble
                         {
-                            mantissa          = mantissa * 10.0 + digit
+                            mantissa = mantissa * 10.0 + digit
                             significantDigits += 1
                         }
                     }
@@ -390,8 +391,10 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
         {
             try fault(0x08)
         }
-        elif decimalExponent < -341 do
+        elif decimalExponent < -341
+        {
             value = 0.0
+        }
         else
         {
             var remainingExponent = decimalExponent
@@ -402,6 +405,7 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 value *= power
                 remainingExponent -= step
             }
+
             while remainingExponent < 0
             {
                 let step  = Math.min(cast(s32, -remainingExponent), 300)
@@ -411,6 +415,7 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
             }
         }
     }
+
     if not Math.isFinite(value) do
         try fault(0x08)
 

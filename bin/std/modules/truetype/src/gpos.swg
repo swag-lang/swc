@@ -2,8 +2,8 @@ using Swag, Core
 
 // Lookup type of a pair-adjustment subtable, and of the extension wrapper that
 // lets a lookup live beyond the 64K a 16-bit offset reaches.
-const GPOS_LOOKUP_PAIR      = 2'u16
-const GPOS_LOOKUP_EXTENSION = 9'u16
+const GPOS_LOOKUP_PAIR         = 2'u16
+const GPOS_LOOKUP_EXTENSION    = 9'u16
 const GPOS_LOOKUP_BITMAP_WORDS = 1'u64 << 10
 
 // Byte size of a value record, one two-byte field per set bit of its format.
@@ -164,8 +164,8 @@ func collectKernLookups(table: const [..] u8, featureListOffset: u64)->Array'u64
         for idx in lookupCount
         {
             let lookupIndex = peekU16(table, feature + 4 + cast(u64, idx) * 2)
-            let wordIndex = cast(u64, lookupIndex) / 64
-            let bitIndex  = cast(u64, lookupIndex) % 64
+            let wordIndex   = cast(u64, lookupIndex) / 64
+            let bitIndex    = cast(u64, lookupIndex) % 64
             result[wordIndex] |= 1'u64 << bitIndex
         }
     }
@@ -235,8 +235,7 @@ func parseGpos(faceData: *FaceImpl) fail
         if pairSubtableCount do
             faceData.gposPairLookups.add({
                 firstSubtable: firstSubtable,
-                subtableCount: cast(u32, pairSubtableCount)
-            })
+                subtableCount: cast(u32, pairSubtableCount)})
     }
 
     if not faceData.gposPairSubtables.isEmpty() do
@@ -244,13 +243,11 @@ func parseGpos(faceData: *FaceImpl) fail
 }
 
 // Searches one format-1 pair set, whose records are sorted by second glyph.
-func lookupPairSet(
-    table: const [..] u8,
-    pairSet: u64,
-    rightGlyph: u16,
-    recordSize: u64,
-    advanceOffset: s32
-)->{value: s16, matched: bool}
+func lookupPairSet(table: const [..] u8,
+                   pairSet: u64,
+                   rightGlyph: u16,
+                   recordSize: u64,
+                   advanceOffset: s32)->{value: s16, matched: bool}
 {
     let pairCount = peekU16(table, pairSet)
     var left      = 0'u32

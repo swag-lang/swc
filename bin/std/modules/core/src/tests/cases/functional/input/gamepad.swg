@@ -67,3 +67,20 @@ using Swag
         Swag.require(pad.currentState.position[button] == Math.Point.Zero)
     }
 }
+
+#test
+{
+    var failure: Swag.Error
+    catch Input.Gamepad.setVibration(0, Swag.F32.NaN, 0) as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(failure.value()) == "gamepad vibration speeds must be finite")
+
+    catch Input.Gamepad.setVibration(0, 0, Swag.F32.Inf) as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(failure.value()) == "gamepad vibration speeds must be finite")
+
+    var pad: Input.Gamepad
+    catch pad.setVibration(-Swag.F32.Inf, 0) as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(failure.value()) == "gamepad vibration speeds must be finite")
+}

@@ -66,11 +66,11 @@ public impl Gamepad
     // Requires a writable device advertising FF_RUMBLE. Linux maps left to the strong motor
     // and right to the weak motor; physical placement is device-specific. Zero stops and releases
     // an owned effect. Otherwise the effect remains until updated, stopped, disconnected or Core
-    // shutdown. A native failure releases that slot's previous effect. Hotplug may renumber slots.
+    // shutdown. Non-finite speeds fail before device access. A native failure releases that
+    // slot's previous effect. Hotplug may renumber slots.
     func setVibration(padIndex: u32, left, right: f32) fail
     {
-        if not Math.isFinite(left) or not Math.isFinite(right) do
-            fail Errors.BadParameterError{"gamepad vibration speeds must be finite"}
+        try validateGamepadVibrationSpeeds(left, right)
         g_RumbleMutex.lock()
         defer g_RumbleMutex.unlock()
         if g_RumbleStopping do

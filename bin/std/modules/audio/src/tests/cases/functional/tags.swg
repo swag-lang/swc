@@ -341,6 +341,41 @@ func writeId3File(frames: const [..] u8)->String
     return fileName
 }
 
+// A parenthesized genre prefix is removed only when it contains a numeric ID3v1 reference.
+#test
+{
+    var frames: Array'u8
+    var genre:  Array'u8
+    genre.add(3'u8)
+    for byte in "(Live)Rock" do
+        genre.add(byte)
+    appendId3Frame(&frames, "TCON", genre.toSlice())
+
+    let fileName = writeId3File(frames.toSlice())
+    defer discard catch File.delete(fileName)
+    Swag.require(SoundTags.read(fileName).genre == "(Live)Rock")
+}
+
+// A malformed field after a valid title discards the whole tag instead of returning partial tags.
+#test
+{
+    var frames: Array'u8
+    var title:  Array'u8
+    title.add(3'u8)
+    for byte in "Before malformed text" do
+        title.add(byte)
+    appendId3Frame(&frames, "TIT2", title.toSlice())
+
+    var artist: Array'u8
+    artist.add(4'u8)
+    artist.add('X')
+    appendId3Frame(&frames, "TPE1", artist.toSlice())
+
+    let fileName = writeId3File(frames.toSlice())
+    defer discard catch File.delete(fileName)
+    Swag.require(SoundTags.read(fileName).isEmpty())
+}
+
 // An MP3 file embeds its sleeve in a picture frame; the front cover wins over another picture,
 // past a UTF-16 description, and a reader that does not ask for it gets no picture.
 #test

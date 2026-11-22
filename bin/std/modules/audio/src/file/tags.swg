@@ -52,9 +52,8 @@ impl SoundTags
     // block of a FLAC file. With `withPicture`, the picture the file embeds is read too; a
     // listing that only names recordings leaves it out, as it can weigh megabytes.
     //
-    // Tags only describe a recording, so a file without them, a format this reader does not
-    // know, a tag larger than 16 MiB, or one that does not decode all give empty tags rather
-    // than an error.
+    // A file without tags, an unsupported format, a malformed tag, or a tag larger than 16 MiB
+    // returns empty tags rather than an error.
     func read(fileName: string, withPicture = false)->SoundTags
     {
         var result: #returntype
@@ -74,13 +73,20 @@ impl SoundTags
                 return result
             var tag: Array'u8
             tag.resize(size)
-            if catch file.readExactAt(0, tag.toSlice()) orelse false do
-                result.decodeId3(tag.toSlice(), withPicture)
+            if catch file.readExactAt(0, tag.toSlice()) orelse false
+            {
+                var decoded: SoundTags
+                if decoded.decodeId3(tag.toSlice(), withPicture) do
+                    return decoded
+            }
+
             return result
         }
 
         if head[0] == 'f' and head[1] == 'L' and head[2] == 'a' and head[3] == 'C'
         {
+            var decoded: SoundTags
+
             // Metadata blocks follow the signature, each a one-byte type, with the last-block
             // flag in its high bit, and a 24-bit length.
             var offset = 4'u64
@@ -88,33 +94,39 @@ impl SoundTags
             {
                 var block: [4] u8
                 if not (catch file.readExactAt(offset, block) orelse false) do
-                    break
+                    return result
                 let last   = (block[0] & 0x80) != 0
                 let kind   = block[0] & 0x7F
                 let length = (cast(u64, block[1]) << 16) | (cast(u64, block[2]) << 8) | cast(u64, block[3])
                 if (kind == 4 or (kind == 6 and withPicture)) and length > TagSizeLimit do
-                    break
+                    return result
                 if kind == 4
                 {
                     var comment: Array'u8
                     comment.resize(length)
-                    if catch file.readExactAt(offset + 4, comment.toSlice()) orelse false do
-                        result.decodeVorbisComment(comment.toSlice())
+                    if not (catch file.readExactAt(offset + 4, comment.toSlice()) orelse false) do
+                        return result
+                    if not decoded.decodeVorbisComment(comment.toSlice()) do
+                        return result
                     if not withPicture do
-                        break
+                        return decoded
                 }
                 elif kind == 6 and withPicture
                 {
                     var picture: Array'u8
                     picture.resize(length)
-                    if catch file.readExactAt(offset + 4, picture.toSlice()) orelse false do
-                        result.decodeFlacPicture(picture.toSlice())
+                    if not (catch file.readExactAt(offset + 4, picture.toSlice()) orelse false) do
+                        return result
+                    if not decoded.decodeFlacPicture(picture.toSlice()) do
+                        return result
                 }
 
                 if last do
                     break
                 offset += 4 + length
             }
+
+            return decoded
         }
 
         return result
@@ -125,39 +137,70 @@ internal impl SoundTags
 {
     // Reads the text frames of a complete ID3v2 tag, header included, and its picture frames
     // with `withPicture`.
-    mtd decodeId3(tag: const [..] u8, withPicture = false)
+    mtd decodeId3(tag: const [..] u8, withPicture = false)->bool
     {
         if tag.count < Id3HeaderSize do
-            return
+            return false
         let version = tag[3]
         if version < 2 or version > 4 do
-            return
+            return false
 
         // An unsynchronised tag hides its frames behind inserted bytes; a reader that does not
         // undo the scheme would read garbage, so it reads nothing.
         let flags = tag[5]
         if (flags & 0x80) != 0 do
-            return
+            return false
 
         var offset = Id3HeaderSize
+        var tagEnd = tag.count
+        if version == 4 and (flags & 0x10) != 0
+        {
+            if tagEnd < offset + Id3HeaderSize do
+                return false
+            let footer = tag[tagEnd - Id3HeaderSize to]
+            if footer[0] != '3' or
+               footer[1] != 'D' or
+               footer[2] != 'I' or
+               footer[3] != version or
+               footer[4] != tag[4] or
+               footer[5] != flags or
+               not Slice.equals(footer[6 until 10], tag[6 until 10]) do
+                return false
+            tagEnd -= Id3HeaderSize
+        }
+
         if version >= 3 and (flags & 0x40) != 0
         {
-            if offset + 4 > tag.count do
-                return
+            if offset + 4 > tagEnd do
+                return false
             let extendedBytes = tag[offset until offset + 4]
             if version == 4 and not isSyncSafe(extendedBytes) do
-                return
+                return false
             let extended = version == 4 ? syncSafe(extendedBytes) : bigEndian(extendedBytes) + 4
+            if extended > tagEnd - offset do
+                return false
             offset += extended
         }
 
         let idSize     = version == 2 ? 3'u64 : 4'u64
         let headerSize = version == 2 ? 6'u64 : 10'u64
-        while offset + headerSize <= tag.count
+        while offset < tagEnd
         {
+            let remaining = tagEnd - offset
+            if remaining < headerSize
+            {
+                for byte in tag[offset until tagEnd] where byte != 0 do
+                    return false
+                return true
+            }
+
             let id = cast(string, tag[offset until offset + idSize])
-            if tag[offset] == 0 do
-                break
+            if tag[offset] == 0
+            {
+                for byte in tag[offset until tagEnd] where byte != 0 do
+                    return false
+                return true
+            }
 
             var size: u64
             switch version
@@ -173,119 +216,150 @@ internal impl SoundTags
             default:
                 let sizeBytes = tag[offset + 4 until offset + 8]
                 if not isSyncSafe(sizeBytes) do
-                    return
+                    return false
                 size = syncSafe(sizeBytes)
             }
 
             let body = offset + headerSize
-            if size > tag.count - body do
-                break
+            if size > tagEnd - body do
+                return false
 
             let text = tag[body until body + size]
             switch id
             {
             case "TIT2", "TT2":
+                if text.count and text[0] > 3 do
+                    return false
                 .title = textFrame(text)
 
             case "TPE1", "TP1":
+                if text.count and text[0] > 3 do
+                    return false
                 .artist = textFrame(text)
 
             case "TPE2", "TP2":
+                if text.count and text[0] > 3 do
+                    return false
                 .albumArtist = textFrame(text)
 
             case "TALB", "TAL":
+                if text.count and text[0] > 3 do
+                    return false
                 .album = textFrame(text)
 
             case "TYER", "TDRC", "TYE":
+                if text.count and text[0] > 3 do
+                    return false
                 .year = yearOf(textFrame(text))
 
             case "TRCK", "TRK":
+                if text.count and text[0] > 3 do
+                    return false
                 .track = textFrame(text)
 
             case "TPOS", "TPA":
+                if text.count and text[0] > 3 do
+                    return false
                 .disc = textFrame(text)
 
             case "TCON", "TCO":
+                if text.count and text[0] > 3 do
+                    return false
                 .genre = genreOf(textFrame(text))
 
             case "APIC", "PIC":
-                if withPicture do
-                    .decodeId3Picture(text, version == 2)
+                if withPicture and not .decodeId3Picture(text, version == 2) do
+                    return false
             }
 
             offset = body + size
         }
+
+        return true
     }
 
     // Reads one ID3 picture frame: its text encoding, the format (a MIME type, or three letters in
     // ID3v2.2), the picture type, a description, then the picture.
-    mtd decodeId3Picture(frame: const [..] u8, threeLetterFormat: bool)
+    mtd decodeId3Picture(frame: const [..] u8, threeLetterFormat: bool)->bool
     {
-        if frame.count < 2 do
-            return
+        if frame.count < 2 or frame[0] > 3 do
+            return false
         let encoding = frame[0]
         var at       = 1'u64
         if threeLetterFormat
         {
+            if frame.count < 5 do
+                return false
             at += 3
         }
         else
         {
             while at < frame.count and frame[at] != 0 do
                 at += 1
+            if at == frame.count do
+                return false
             at += 1
         }
 
         if at >= frame.count do
-            return
+            return false
         let kind = frame[at]
         at += 1
 
         // The description ends with one zero byte, or with a zero unit in UTF-16.
         if encoding == 1 or encoding == 2
         {
+            var terminated = false
             while at + 1 < frame.count and (frame[at] != 0 or frame[at + 1] != 0) do
                 at += 2
+            if at + 1 < frame.count do
+                terminated = true
+            if not terminated do
+                return false
             at += 2
         }
         else
         {
             while at < frame.count and frame[at] != 0 do
                 at += 1
+            if at == frame.count do
+                return false
             at += 1
         }
 
         if at < frame.count do
             .offerPicture(kind, frame[at to])
+        return true
     }
 
     // Reads a FLAC picture block: big-endian picture type, MIME type, description, four
     // dimensions, then the picture.
-    mtd decodeFlacPicture(block: const [..] u8)
+    mtd decodeFlacPicture(block: const [..] u8)->bool
     {
         if block.count < 8 do
-            return
+            return false
         let kind = bigEndian(block[0 until 4])
         var at   = 4'u64
         for 2
         {
             if at + 4 > block.count do
-                return
+                return false
             let length = bigEndian(block[at until at + 4])
             at += 4
             if length > block.count - at do
-                return
+                return false
             at += length
         }
 
         if at + 20 > block.count do
-            return
+            return false
         at += 16
         let length = bigEndian(block[at until at + 4])
         at += 4
         if length > block.count - at do
-            return
+            return false
         .offerPicture(cast(u8, Math.min(kind, 255)), block[at until at + length])
+        return true
     }
 
     // Keeps `bytes` as the picture when none is kept yet, or when it is the front cover and the
@@ -304,36 +378,36 @@ internal impl SoundTags
     }
 
     // Reads the title, artist, album artist, album, and date fields of a Vorbis comment block.
-    mtd decodeVorbisComment(block: const [..] u8)
+    mtd decodeVorbisComment(block: const [..] u8)->bool
     {
         var offset = 0'u64
         if offset + 4 > block.count do
-            return
+            return false
         let vendor = littleEndian(block[offset until offset + 4])
         offset += 4
         if vendor > block.count - offset do
-            return
+            return false
         offset += vendor
 
         if offset + 4 > block.count do
-            return
+            return false
         let count = littleEndian(block[offset until offset + 4])
         offset += 4
 
         for count
         {
             if offset + 4 > block.count do
-                return
+                return false
             let length = littleEndian(block[offset until offset + 4])
             offset += 4
             if length > block.count - offset do
-                return
+                return false
 
             let field = cast(string, block[offset until offset + length])
             offset += length
             let equal = Utf8.indexOf(field, "=")
             if equal == Swag.U64.Max do
-                continue
+                return false
 
             // Field names are case-insensitive ASCII.
             let key   = field[until equal]
@@ -355,6 +429,8 @@ internal impl SoundTags
             elif Utf8.compare(key, "GENRE", .Latin1NoCase) == 0 do
                 .genre = String.from(value)
         }
+
+        return offset == block.count
     }
 }
 
@@ -455,6 +531,11 @@ private func genreOf(value: String)->String
     {
         let close = Utf8.indexOf(text[at to], ")")
         if close == Swag.U64.Max do
+            break
+        var numeric = close > 1
+        for digit in text[at + 1 until at + close] where digit < '0' or digit > '9' do
+            numeric = false
+        if not numeric do
             break
         at += close + 1
     }

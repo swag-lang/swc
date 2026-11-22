@@ -54,7 +54,8 @@ struct SourceOptions
     public includeCursor: bool     // Composites the pointer over the captured desktop pixels.
 }
 
-// Cumulative acquisition costs for one [[Screen.Source]], in microseconds.
+// Cumulative capture, copy, and composition metrics for one [[Screen.Source]].
+// Time fields are measured in microseconds.
 struct SourceMetrics
 {
     public acquiredFrames:              u64     // Frames read from the native source, including pixel-identical images.
@@ -505,7 +506,7 @@ impl Source
     // The value shares the monotonic microsecond clock; zero means the backend has no presentation time.
     mtd const lastFramePresentationMicroseconds()->u64 => .lastFramePresentationTime
 
-    // Returns cumulative native and composition timing since this source was opened.
+    // Returns cumulative capture, copy, and composition metrics since this source was opened.
     mtd const metrics()->SourceMetrics
     {
         var result: SourceMetrics

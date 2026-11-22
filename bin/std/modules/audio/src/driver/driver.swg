@@ -1,5 +1,17 @@
 using Core
 
+#static if #command == Swag.CompilerCommand.Test
+{
+    enum DriverCreateFailure
+    {
+        None
+        AfterEventInit
+        AfterThreadInit
+    }
+
+    var g_DriverCreateFailure: DriverCreateFailure
+}
+
 enum UpdateCommand
 {
     Register
@@ -132,13 +144,46 @@ impl Driver
         .toRecycleVoices.allocator      = .allocationAllocator
         .buses.allocator                = .allocationAllocator
 
-        defer #fail .destroyNative()
+        defer #fail .rollbackCreate()
         try .createNative(kind)
 
         .wakeupUpdate.init()
+
+        #static if #command == Swag.CompilerCommand.Test
+        {
+            if g_DriverCreateFailure == .AfterEventInit do
+                fail BadParameterError{"injected audio driver creation failure"}
+        }
+
         try .updateTh.init(&updateThreadProc)
+
+        #static if #command == Swag.CompilerCommand.Test
+        {
+            if g_DriverCreateFailure == .AfterThreadInit do
+                fail BadParameterError{"injected audio driver creation failure"}
+        }
+
         try .updateTh.start()
         .isCreated = true
+    }
+
+    mtd rollbackCreate()
+    {
+        if .updateTh.isValid()
+        {
+            // No update can have been queued yet. Starting an empty body lets the suspended
+            // native thread release its inherited context and handle before this value resets.
+            .updateTh.userLambda = null
+            .updateTh.safeForceEnd()
+            catch .updateTh.start()
+            .updateTh.wait()
+        }
+
+        if .wakeupUpdate.isValid() do
+            .wakeupUpdate.release()
+        .destroyNative()
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     mtd destroy()

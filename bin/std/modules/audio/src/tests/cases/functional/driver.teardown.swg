@@ -12,6 +12,23 @@ struct AudioTeardownAllocator
 
 var g_AudioTeardownAllocator: AudioTeardownAllocator
 
+func verifyDriverCreateRetry(failure: DriverCreateFailure) fail
+{
+    g_DriverCreateFailure = failure
+    var outcome: Swag.Error
+    catch g_Driver.create(.NoSound) as outcome
+    g_DriverCreateFailure = .None
+
+    Swag.require(outcome.value() is Errors.BadParameterError)
+    Swag.require(not g_Driver.isCreated)
+    Swag.require(g_Driver.kind == .Default)
+    Swag.require(not g_Driver.wakeupUpdate.isValid())
+    Swag.require(not g_Driver.updateTh.isValid())
+
+    discard expect createNoSoundEngine()
+    destroyEngine()
+}
+
 struct AudioDestroyRequestProbe
 {
     voice:   *Voice
@@ -55,6 +72,13 @@ impl IAllocator for AudioTeardownAllocator
             .voiceFreed = true
         .upstream.free(request)
     }
+}
+
+// Failed engine initialization releases native resources and leaves the driver reusable.
+#test
+{
+    expect verifyDriverCreateRetry(.AfterEventInit)
+    expect verifyDriverCreateRetry(.AfterThreadInit)
 }
 
 // Parents outlive their children, including after removing an unrelated bus.
@@ -193,8 +217,8 @@ impl IAllocator for AudioTeardownAllocator
 // Concurrent destroy requests atomically elect one caller to enqueue cleanup.
 #test
 {
-    var voice: Voice
-    var probe: AudioDestroyRequestProbe = {voice: &voice}
+    var voice:   Voice
+    var probe:   AudioDestroyRequestProbe = {voice: &voice}
     var threads: [8] Threading.Thread
 
     for &thread in threads

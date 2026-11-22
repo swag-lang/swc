@@ -100,6 +100,59 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     return result
 }
 
+// A probe may end inside the last character of a file. Only a three-byte tail can be
+// incomplete, since that is the longest UTF-8 sequence minus one byte.
+private func isValidUtf8Prefix(bytes: const [..] u8)->bool
+{
+    if Utf8.isValid(bytes) do
+        return true
+
+    let count = bytes.count
+    for back in 1 to 4 where back <= count
+    {
+        let start = count - back
+        let lead  = bytes[start]
+        var size  = 0'u8
+        if lead >= 0xC2 and lead <= 0xDF do
+            size = 2
+        elif lead >= 0xE0 and lead <= 0xEF do
+            size = 3
+        elif lead >= 0xF0 and lead <= 0xF4 do
+            size = 4
+        if not size or back >= size do
+            continue
+        if not Utf8.isValid(bytes[until start]) do
+            continue
+
+        var validTail = true
+        for offset in 1 until back
+        {
+            let value = bytes[start + offset]
+            if value < 0x80 or value > 0xBF
+            {
+                validTail = false
+                break
+            }
+
+            // The second byte excludes overlong forms, surrogates, and values past MaxRune.
+            if offset == 1 and
+               ((lead == 0xE0 and value < 0xA0) or
+                (lead == 0xED and value > 0x9F) or
+                (lead == 0xF0 and value < 0x90) or
+                (lead == 0xF4 and value > 0x8F))
+            {
+                validTail = false
+                break
+            }
+        }
+
+        if validTail do
+            return true
+    }
+
+    return false
+}
+
 // Decides how `probe` spells its characters.
 //
 // A byte-order mark answers on its own. Without one the content decides, in the order a wrong
@@ -112,59 +165,6 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 // binary file also gets an answer here, so ask [[Core.Text.looksLikeText]] before showing it.
 func detectEncoding(probe: const [..] u8)->Encoding
 {
-    // A probe may end inside the last character of a file. Only a three-byte tail can be
-    // incomplete, since that is the longest UTF-8 sequence minus one byte.
-    func isValidUtf8Prefix(bytes: const [..] u8)->bool
-    {
-        if Utf8.isValid(bytes) do
-            return true
-
-        let count = bytes.count
-        for back in 1 to 4 where back <= count
-        {
-            let start = count - back
-            let lead  = bytes[start]
-            var size  = 0'u8
-            if lead >= 0xC2 and lead <= 0xDF do
-                size = 2
-            elif lead >= 0xE0 and lead <= 0xEF do
-                size = 3
-            elif lead >= 0xF0 and lead <= 0xF4 do
-                size = 4
-            if not size or back >= size do
-                continue
-            if not Utf8.isValid(bytes[until start]) do
-                continue
-
-            var validTail = true
-            for offset in 1 until back
-            {
-                let value = bytes[start + offset]
-                if value < 0x80 or value > 0xBF
-                {
-                    validTail = false
-                    break
-                }
-
-                // The second byte excludes overlong forms, surrogates, and values past MaxRune.
-                if offset == 1 and
-                   ((lead == 0xE0 and value < 0xA0) or
-                    (lead == 0xED and value > 0x9F) or
-                    (lead == 0xF0 and value < 0x90) or
-                    (lead == 0xF4 and value > 0x8F))
-                {
-                    validTail = false
-                    break
-                }
-            }
-
-            if validTail do
-                return true
-        }
-
-        return false
-    }
-
     // UTF-32 LE opens with the two bytes of UTF-16 LE, so it has to be tested first.
     for candidate in [Encoding.Utf32Le, .Utf32Be, .Utf8, .Utf16Le, .Utf16Be] where hasBom(probe, candidate) do
         return candidate
@@ -458,11 +458,14 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
 // a decoder alone never says no — an executable decodes into thousands of characters. What
 // separates text from a binary that happens to decode is the control characters: a document uses
 // tab, line feed, form feed and carriage return and nothing else below `0x20`, and it never
-// contains a null character at all.
+// contains a null character at all. Invalid UTF-8 sequences also disqualify a UTF-8 probe, though
+// an incomplete character at the very end is allowed because the probe may be a file prefix.
 func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
 {
     if not probe.count do
         return true
+    if encoding == .Utf8 and not isValidUtf8Prefix(probe) do
+        return false
 
     let text = decode(probe, encoding)
     if text.isEmpty() do

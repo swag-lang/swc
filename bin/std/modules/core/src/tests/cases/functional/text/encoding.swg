@@ -251,6 +251,13 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 {
     Swag.require(Text.looksLikeText(cast(const [..] u8, "a line\tand\r\nanother\n"), .Utf8))
 
+    let invalidUtf8: [8] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    Swag.require(not Text.looksLikeText(invalidUtf8, .Utf8))
+
+    // A file-prefix probe may stop in the final multi-byte character.
+    let partialUtf8: [3] u8 = ['a', 0xE2, 0x82]
+    Swag.require(Text.looksLikeText(partialUtf8, .Utf8))
+
     let withNul: [4] u8 = ['a', 0, 'b', 'c']
     Swag.require(not Text.looksLikeText(withNul, .Windows1252))
 

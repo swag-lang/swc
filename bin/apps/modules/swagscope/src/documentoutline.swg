@@ -218,6 +218,8 @@ impl DocumentOutline
     // Keeps a quiet outline on the document's local palette, independently of application panels.
     mtd setReadingColors(colors: string)
     {
+        .backgroundStyle = .View
+
         func apply(wnd: *Wnd, colors: string)
         {
             wnd.style.setStyleSheetColors(colors)

@@ -41,7 +41,8 @@ impl TcpStream
     // Enables or disables Nagle's algorithm for this connection.
     mtd setNoDelay(enabled: bool) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let value = enabled ? 1's32 : 0's32
         if setsockopt(.handle, IPPROTO_TCP, TCP_NODELAY, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
@@ -50,7 +51,8 @@ impl TcpStream
     // Enables or disables operating-system TCP keepalive probes for this connection.
     mtd setKeepAlive(enabled: bool) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let value = enabled ? 1's32 : 0's32
         if setsockopt(.handle, SOL_SOCKET, SO_KEEPALIVE, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
@@ -59,7 +61,8 @@ impl TcpStream
     // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
     mtd setReadTimeout(timeoutMs: u32) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         var timeout = timeoutMs
         if setsockopt(.handle, SOL_SOCKET, SO_RCVTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
@@ -68,7 +71,8 @@ impl TcpStream
     // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
     mtd setWriteTimeout(timeoutMs: u32) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         var timeout = timeoutMs
         if setsockopt(.handle, SOL_SOCKET, SO_SNDTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
@@ -102,7 +106,8 @@ impl TcpStream
     // Stops sending bytes while keeping the receive side open.
     mtd shutdownWrite() fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if shutdown(.handle, SD_SEND) == SOCKET_ERROR do
             fail NetworkError{code: WSAGetLastError()}
     }

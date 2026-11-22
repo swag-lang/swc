@@ -45,7 +45,7 @@ private func updateAccessWord(hash: *Core.Hash.Blake2b, value: u64)
 {
     var bytes: [8] u8
     for i in 8 do
-        bytes[i] = cast(u8, value >> (i * 8))
+        bytes[i] = cast(u8, (value >> (i * 8)) & 0xFF)
     hash.update(bytes)
 }
 

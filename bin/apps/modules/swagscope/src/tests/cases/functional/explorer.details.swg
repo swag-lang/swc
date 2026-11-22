@@ -29,10 +29,10 @@ using Core, Gui, Pixel
     let lastColumnRight = header.itemPositionAt(3) + header.itemWidthAt(3)
     Swag.require(lastColumnRight == explorer.grid.clientRect().width - ExplorerGrid.CellInset)
 
-    header.sigColumnClicked.call(header, 2)
+    header.sigColumnClicked.call(cast(*Wnd, header), 2'u32)
     completeExplorer(&host, explorer)
     Swag.require(header.sortColumn == 2 and header.sortDirection == .Ascending)
-    header.sigColumnClicked.call(header, 2)
+    header.sigColumnClicked.call(cast(*Wnd, header), 2'u32)
     completeExplorer(&host, explorer)
     Swag.require(header.sortColumn == 2 and header.sortDirection == .Descending)
 

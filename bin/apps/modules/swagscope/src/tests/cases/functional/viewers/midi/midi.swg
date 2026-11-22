@@ -10,9 +10,9 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
 private func appendMidiU32(bytes: *Array'u8, value: u32)
 {
     bytes.add(cast(u8, value >> 24))
-    bytes.add(cast(u8, value >> 16))
-    bytes.add(cast(u8, value >> 8))
-    bytes.add(cast(u8, value))
+    bytes.add(cast(u8, (value >> 16) & 0xFF))
+    bytes.add(cast(u8, (value >> 8) & 0xFF))
+    bytes.add(cast(u8, value & 0xFF))
 }
 
 private func appendMidiTrack(bytes: *Array'u8, events: const [..] u8)
@@ -32,11 +32,11 @@ private func writeMidiMatrixFixture(format, division: u16)->String
     bytes.add(cast(const [..] u8, "MThd"))
     bytes.add([0'u8, 0, 0, 6])
     bytes.add(cast(u8, format >> 8))
-    bytes.add(cast(u8, format))
+    bytes.add(cast(u8, format & 0xFF))
     bytes.add(cast(u8, tracks >> 8))
-    bytes.add(cast(u8, tracks))
+    bytes.add(cast(u8, tracks & 0xFF))
     bytes.add(cast(u8, division >> 8))
-    bytes.add(cast(u8, division))
+    bytes.add(cast(u8, division & 0xFF))
     appendMidiTrack(&bytes, Events)
     if format != 0 do
         appendMidiTrack(&bytes, Events)

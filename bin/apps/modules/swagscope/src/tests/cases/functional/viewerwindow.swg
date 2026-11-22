@@ -1089,8 +1089,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let gutter = window.themeMetrics().floating_Inset
     Swag.require(window.backgroundStyle == .Application and window.padding.y == 0)
     Swag.require(window.mainSplitter.dockStyle == .Center)
-    Swag.require(window.mainSplitter.items.count == 2 and window.mainSplitter.items[0]!.view == window.documentHost)
-    Swag.require(window.documentHost.position.x == 0)
+    Swag.require(window.mainSplitter.items.count == 3 and window.mainSplitter.items[ViewerWindow.DocumentPanelIndex]!.view == window.documentHost)
+    Swag.require(window.documentHost.position.x >= 0)
     Swag.require(window.appearanceButton.parent == &host.surfaceWnd and window.appearanceButton.isLocallyVisible())
     Swag.require(window.searchBar.parent == window and
                  window.searchBar.dockStyle == .None and
@@ -1495,30 +1495,30 @@ func downwardArrows(wnd: *Wnd)->u64
     let button = assume cast(*IconButton, window.currentSidePanelButton)
     window.sendCommandEvent(ViewerCommands.SidePanel)
     Swag.require(button.isChecked and not button.isLocallyVisible())
-    Swag.require(window.mainSplitter.items[1]!.view == window.currentSidePanelHost)
-    Swag.require(window.mainSplitter.items[1]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[1]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().floating_Inset)
-    window.mainSplitter.setPaneSize(1, 1)
-    Swag.require(window.mainSplitter.items[1]!.size == window.mainSplitter.items[1]!.minimumSize)
-    window.mainSplitter.setPaneSize(1, 2_000)
-    Swag.require(window.mainSplitter.items[1]!.size == window.mainSplitter.items[1]!.maximumSize)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.view == window.currentSidePanelHost)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().floating_Inset)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().floating_Inset)
+    window.mainSplitter.setPaneSize(ViewerWindow.RightPanelIndex, 1)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size == window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.minimumSize)
+    window.mainSplitter.setPaneSize(ViewerWindow.RightPanelIndex, 2_000)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size == window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.maximumSize)
 
-    window.mainSplitter.setPaneSize(1, 500)
-    let panelSize = window.mainSplitter.items[1]!.size
+    window.mainSplitter.setPaneSize(ViewerWindow.RightPanelIndex, 500)
+    let panelSize = window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size
     let state     = saveViewerState(window)
-    window.mainSplitter.setPaneSize(1, 560)
+    window.mainSplitter.setPaneSize(ViewerWindow.RightPanelIndex, 560)
     loadViewerState(window, state.toSlice())
     Swag.require(window.rightPanelWidth == panelSize - window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[1]!.size == panelSize)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size == panelSize)
 
     window.setFullScreen(true)
-    Swag.require(not window.mainSplitter.isPaneVisible(1))
+    Swag.require(not window.mainSplitter.isPaneVisible(ViewerWindow.RightPanelIndex))
     window.setFullScreen(false)
-    Swag.require(window.mainSplitter.isPaneVisible(1) and button.isChecked)
-    Swag.require(window.mainSplitter.items[1]!.size == panelSize,
+    Swag.require(window.mainSplitter.isPaneVisible(ViewerWindow.RightPanelIndex) and button.isChecked)
+    Swag.require(window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size == panelSize,
                  Format.toString("right pane width changed from % to % after full screen (splitter: %)",
                                  panelSize,
-                                 window.mainSplitter.items[1]!.size,
+                                 window.mainSplitter.items[ViewerWindow.RightPanelIndex]!.size,
                                  window.mainSplitter.position.width))
     Swag.require(Math.abs(window.currentSidePanelHost!.position.right() - window.mainSplitter.paddedClientRect().right()) <= 1)
     let divider = window.themeMetrics().splitView_BarSize

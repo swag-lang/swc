@@ -67,6 +67,26 @@ using Core
     discard catch client.write(payload) as closedWriteError
     Swag.require(closedWriteError.value() is Errors.BadParameterError)
 
+    var closedShutdownError: Swag.Error
+    discard catch client.shutdownWrite() as closedShutdownError
+    Swag.require(closedShutdownError.value() is Errors.BadParameterError)
+
+    var closedNoDelayError: Swag.Error
+    discard catch client.setNoDelay(true) as closedNoDelayError
+    Swag.require(closedNoDelayError.value() is Errors.BadParameterError)
+
+    var closedKeepAliveError: Swag.Error
+    discard catch client.setKeepAlive(true) as closedKeepAliveError
+    Swag.require(closedKeepAliveError.value() is Errors.BadParameterError)
+
+    var closedReadTimeoutError: Swag.Error
+    discard catch client.setReadTimeout(1) as closedReadTimeoutError
+    Swag.require(closedReadTimeoutError.value() is Errors.BadParameterError)
+
+    var closedWriteTimeoutError: Swag.Error
+    discard catch client.setWriteTimeout(1) as closedWriteTimeoutError
+    Swag.require(closedWriteTimeoutError.value() is Errors.BadParameterError)
+
     var unopened: TcpStream
     var unopenedReadError: Swag.Error
     discard catch unopened.read(bytes) as unopenedReadError

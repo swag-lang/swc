@@ -1,5 +1,6 @@
 #global public
 #global namespace Crypto
+#global #[Swag.Safety(.Overflow, false)]
 
 // AES-CMAC tag size in bytes.
 public const AesCmacTagSize = 16

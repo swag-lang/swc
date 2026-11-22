@@ -42,7 +42,8 @@ impl TcpStream
     // Enables or disables Nagle's algorithm for this connection.
     mtd setNoDelay(enabled: bool) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let value = enabled ? 1's32 : 0's32
         if Linux.setsockopt(cast(s32, .handle), Linux.IPPROTO_TCP, Linux.TCP_NODELAY, cast(const *void, &value), #sizeof(s32)) < 0 do
             fail NetworkError{code: Linux.errno()}
@@ -51,7 +52,8 @@ impl TcpStream
     // Enables or disables operating-system TCP keepalive probes for this connection.
     mtd setKeepAlive(enabled: bool) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let value = enabled ? 1's32 : 0's32
         if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_KEEPALIVE, cast(const *void, &value), #sizeof(s32)) < 0 do
             fail NetworkError{code: Linux.errno()}
@@ -60,7 +62,8 @@ impl TcpStream
     // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
     mtd setReadTimeout(timeoutMs: u32) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
                                     tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
         if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_RCVTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
@@ -70,7 +73,8 @@ impl TcpStream
     // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
     mtd setWriteTimeout(timeoutMs: u32) fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         let timeout = Linux.timeval{tv_sec: cast(s64, timeoutMs / 1000),
                                     tv_usec: cast(s64, (timeoutMs % 1000) * 1000)}
         if Linux.setsockopt(cast(s32, .handle), Linux.SOL_SOCKET, Linux.SO_SNDTIMEO, cast(const *void, &timeout), #sizeof(Linux.timeval)) < 0 do
@@ -117,7 +121,8 @@ impl TcpStream
     // Stops sending bytes while keeping the receive side open.
     mtd shutdownWrite() fail
     {
-        Swag.assert(.open)
+        if not .open do
+            fail Errors.BadParameterError{"TCP stream is closed"}
         if Linux.shutdown(cast(s32, .handle), Linux.SHUT_WR) < 0 do
             fail NetworkError{code: Linux.errno()}
     }

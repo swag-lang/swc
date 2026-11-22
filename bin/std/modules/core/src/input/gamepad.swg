@@ -1,7 +1,7 @@
 #global public
 #global namespace Input
 
-using Math
+using Core.Errors, Math
 
 // Tracks one gamepad and its transitions across updates.
 struct Gamepad
@@ -65,9 +65,18 @@ impl Gamepad
     // Returns the normalized analog position of `control`.
     mtd position(control: GamepadButton)->Point => .currentState.position[control]
 
-    // Sets the speeds of the left and right vibration motors, each from 0 to 1.
+    // Sets the left and right rumble speeds, clamping finite values to 0 through 1.
+    //
+    // Fails for non-finite values or when the backend cannot access or drive this gamepad.
     mtd setVibration(left, right: f32) fail
     {
+        try validateGamepadVibrationSpeeds(left, right)
         try setVibration(.index, left, right)
     }
+}
+
+internal func validateGamepadVibrationSpeeds(left, right: f32) fail
+{
+    if not Math.isFinite(left) or not Math.isFinite(right) do
+        fail Errors.BadParameterError{"gamepad vibration speeds must be finite"}
 }

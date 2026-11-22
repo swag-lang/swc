@@ -31,13 +31,24 @@ func emptyThread(_: const *Threading.Thread) {}
     probe.event.signal()
     Swag.require(expect thread.waitFor(Time.Duration.fromSeconds(1)))
     Swag.require(not thread.isValid())
+
+    expect thread.init(&emptyThread)
+    expect thread.start()
+    Swag.require(expect thread.waitFor(Time.Duration.fromSeconds(1)))
 }
 
 #test
 {
     var thread: Threading.Thread
     expect thread.init(&emptyThread)
+
+    Swag.require(not (expect thread.waitFor(Time.Duration.fromMilliseconds(0))))
     expect thread.start()
+
+    var secondStartFailure: Swag.Error
+    discard catch thread.start() as secondStartFailure
+    Swag.require(secondStartFailure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(secondStartFailure.value()) == "thread already started")
 
     Swag.require(expect thread.waitFor(Time.Duration.fromSeconds(1)))
     Swag.require(not thread.isValid())

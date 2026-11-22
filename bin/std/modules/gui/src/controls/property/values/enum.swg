@@ -68,7 +68,7 @@ internal impl Properties
             case 16: val1s = cast(const *string, unwrap item.data)[]
             }
 
-            var idxSel = 0'u64
+            var idxSel = Swag.U64.Max
             for v, idx in typeEnum.values
             {
                 switch typeEnum.rawType!.sizeof

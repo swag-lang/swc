@@ -134,7 +134,7 @@ internal impl Properties
                 prop.updateStates()
             }
             // Toggle checkbox
-            elif prop.selItem!.checkBox != null
+            elif prop.selItem and prop.selItem.checkBox != null
             {
                 prop.selItem.checkBox.toggle()
             }

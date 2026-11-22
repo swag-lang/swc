@@ -1870,6 +1870,67 @@ struct PropFilterData
     choice = PropFilterChoice.Medium
 }
 
+// An enum value outside the declared cases must not masquerade as the first choice.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessEnumData
+    cast(*u32, &data.choice)[] = 99
+
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let item = unwrap prop.items[1]
+    Swag.require(item.comboBox != null)
+    Swag.require(item.comboBox.selectedIndex == Swag.U32.Max)
+}
+
+// Double-clicking an inter-row gap clears the selection without dereferencing a missing row.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300}, .Panel)
+    prop.addStruct(data)
+    prop.edView.sendResizeEvent()
+
+    var point: Math.Point
+    var foundGap = false
+    for index in 0 until prop.items.count - 1
+    {
+        let row  = prop.items[index]!.line
+        let next = prop.items[index + 1]!.line
+        if next.position.y <= row.position.bottom() do
+            continue
+
+        let gapY = (row.position.bottom() + next.position.y) * 0.5
+        point = prop.edView.localToSurface(Math.Point{prop.edView.position.width * 0.5, gapY})
+        prop.surface!.surfaceToScreen(&point)
+        foundGap = true
+        break
+    }
+
+    Swag.require(foundGap)
+
+    let selectedRow   = prop.items[1]!.line
+    var selectedPoint = prop.edView.localToSurface(Math.Point{
+        prop.edView.position.width * 0.5,
+        selectedRow.position.y + selectedRow.position.height * 0.5})
+    prop.surface!.surfaceToScreen(&selectedPoint)
+    host.click(selectedPoint)
+    Swag.require(prop.selItem == prop.items[1])
+
+    host.click(point)
+    Swag.require(not prop.selItem)
+
+    host.doubleClick(point)
+    Swag.require(not prop.selItem)
+}
+
 struct PropFilterHost {}
 
 impl IPropertyNotify for PropFilterHost

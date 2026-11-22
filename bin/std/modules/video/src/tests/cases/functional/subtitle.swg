@@ -45,8 +45,21 @@ private func subtitleFixturePath()->String => Path.combine(testSourceRoot(#curlo
                                         "1\n00:00:02,000 --> 00:00:01,000\nInvalid cue\n") as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 
+    discard catch Subtitle.Track.decode("nonfinite.srt",
+                                        "1\nnan:00 --> 00:00:01\nInvalid cue\n") as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
     discard catch Subtitle.Track.decode("unknown.caption", "plain text") as rejected
     Swag.require(rejected.value() is UnsupportedFormatError)
+}
+
+// Container-provided cues reject times that cannot be ordered on the media timeline.
+#test
+{
+    var track = Subtitle.Track.create()
+    track.addCue(Swag.F64.NaN, 1, "NaN start")
+    track.addCue(0, Swag.F64.Inf, "Infinite end")
+    Swag.require(track.cueCount() == 0 and track.discardedCueCount() == 2)
 }
 
 // Module-owned tracks expose their text through caller-owned output storage.

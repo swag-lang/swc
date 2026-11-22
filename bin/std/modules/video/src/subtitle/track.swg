@@ -98,7 +98,14 @@ private func parseTimestamp(text: string)->f64 fail
     let seconds = try timestampNumber(parts[parts.count - 1])
     let minutes = try timestampNumber(parts[parts.count - 2])
     let hours   = parts.count == 3 ? try timestampNumber(parts[0]) : 0
-    if hours < 0 or minutes < 0 or minutes >= 60 or seconds < 0 or seconds >= 60 do
+    if not Math.isFinite(hours) or
+       not Math.isFinite(minutes) or
+       not Math.isFinite(seconds) or
+       hours < 0 or
+       minutes < 0 or
+       minutes >= 60 or
+       seconds < 0 or
+       seconds >= 60 do
         fail InvalidFormatError{"subtitle timestamp component is outside its accepted range"}
     return hours * 3_600 + minutes * 60 + seconds
 }
@@ -787,11 +794,15 @@ impl Track
 
     // Appends one decoded cue.
     //
-    // Empty text and non-positive ranges are ignored. Call [[Video.Subtitle.Track.sortCues]]
-    // after appending container cues that are not already ordered.
+    // Empty text, non-finite times, and non-positive ranges are ignored. Call
+    // [[Video.Subtitle.Track.sortCues]] after appending container cues that are not already ordered.
     mtd addCue(startSeconds, endSeconds: f64, text: string)
     {
-        if not text.count or startSeconds < 0 or endSeconds <= startSeconds
+        if not text.count or
+           not Math.isFinite(startSeconds) or
+           not Math.isFinite(endSeconds) or
+           startSeconds < 0 or
+           endSeconds <= startSeconds
         {
             .noteDiscardedCue()
             return

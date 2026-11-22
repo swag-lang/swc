@@ -253,6 +253,24 @@ using Swag, Core
     Swag.require(ed.selectedText() == "Selectable")
 }
 
+// Selecting a word uses the active cursor even when it already has a selection anchor.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    ed.setText("foo bar baz")
+    ed.setSelection({0, 0}, {0, 4})
+    ed.selectWord()
+
+    Swag.require(ed.selectedText() == "bar")
+
+    ed.setSelection({0, 11}, {0, 3})
+    ed.selectWord()
+    Swag.require(ed.selectedText() == "foo")
+}
+
 // insertText at the cursor, with undo/redo.
 #test
 {

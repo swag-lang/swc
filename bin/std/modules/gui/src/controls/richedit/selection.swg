@@ -392,9 +392,9 @@ impl RichEditCtrl
 
         if .cursorPos.charPosInLine == len do
             .cursorPos.charPosInLine -= 1
-        let cp = .cursorPos.charPosInLine ? line.chars[.selBeg.charPosInLine - 1] : 0'rune
-        let c  = .selBeg.charPosInLine == len ? 0'rune : line.chars[.selBeg.charPosInLine]
-        let cn = .cursorPos.charPosInLine != len - 1 ? line.chars[.selBeg.charPosInLine + 1] : 0'rune
+        let cp = .cursorPos.charPosInLine ? line.chars[.cursorPos.charPosInLine - 1] : 0'rune
+        let c  = .cursorPos.charPosInLine == len ? 0'rune : line.chars[.cursorPos.charPosInLine]
+        let cn = .cursorPos.charPosInLine != len - 1 ? line.chars[.cursorPos.charPosInLine + 1] : 0'rune
 
         if Unicode.isSpace(c) and
            not Unicode.isSpace(cp) and

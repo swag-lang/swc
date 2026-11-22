@@ -1,7 +1,7 @@
 // @LICENCE: Unicode-3.0
 // @ORIGIN: Unicode 17.0.0 CaseFolding.txt
 // @MODIFIED: Generated from the UCD input for Swag.
-// @NOTICE: /bin/THIRDPARTY.md#unicode-character-database
+// @NOTICE: /bin/std/modules/core/tools/data/NOTICE.md
 
 // Generated from tools/data/CaseFolding.txt by tools/generate_casefold.py.
 // Keep the mappings sorted by source code point.

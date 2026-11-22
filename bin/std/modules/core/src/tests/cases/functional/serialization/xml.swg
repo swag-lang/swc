@@ -105,6 +105,17 @@ struct XmlPairSequencePayload
     Swag.require(error.value() is Errors.SerializationError)
 }
 
+// XML string content keeps leading and trailing whitespace.
+#test
+{
+    let xml = "<payload><value>  preserve this  </value></payload>"
+
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlTextPayload(cast(const [..] u8, xml))
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value == "  preserve this  ")
+}
+
 // Unsupported dynamic sequences fail explicitly instead of returning incomplete XML.
 #test
 {

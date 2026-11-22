@@ -342,10 +342,10 @@ public impl Xml
     // Reads a native value at the current XML position.
     mtd(NT) readNative()->NT fail
     {
-        .zapBlanks()
         #static switch NT
         {
         case bool:
+            .zapBlanks()
             let val = try StrConv.parseBool(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
@@ -378,6 +378,7 @@ public impl Xml
             return result
 
         default:
+            .zapBlanks()
             var parsed: {value: NT, eat: u32, ovf: bool}
             #static switch NT
             {

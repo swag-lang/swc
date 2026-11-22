@@ -80,10 +80,14 @@ using Swag
     Swag.require(Math.moveTowards(8'f32, 10'f32, 3'f32) == 10'f32)
     Swag.require(Math.moveTowards(10'f32, 0'f32, 3'f32) == 7'f32)
     Swag.require(Math.moveTowards(10'f32, 10'f32, 3'f32) == 10'f32)
+    Swag.require(Math.moveTowards(0'f32, 10'f32, -3'f32) == -3'f32)
+    Swag.require(Math.moveTowards(10'f32, 10'f32, -3'f32) == 10'f32)
     Swag.require(Math.moveTowards(0'f64, 10'f64, 3'f64) == 3'f64)
     Swag.require(Math.moveTowards(8'f64, 10'f64, 3'f64) == 10'f64)
     Swag.require(Math.moveTowards(10'f64, 0'f64, 3'f64) == 7'f64)
     Swag.require(Math.moveTowards(10'f64, 10'f64, 3'f64) == 10'f64)
+    Swag.require(Math.moveTowards(0'f64, 10'f64, -3'f64) == -3'f64)
+    Swag.require(Math.moveTowards(10'f64, 10'f64, -3'f64) == 10'f64)
 
     var velocity = 0'f32
     let smoothed = Math.smoothDamp(0'f32, 10'f32, &velocity, 0.5'f32, 0.1'f32)

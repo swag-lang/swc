@@ -174,7 +174,8 @@ alias ConstF64 = Const'f64
 
     // Returns `current` moved toward `target` by at most `speed`.
     //
-    // The result is exactly `target` once that is within `speed`.
+    // A negative `speed` moves away from `target`. The result is exactly `target` once that is
+    // within a positive `speed`; if `current` already equals `target`, the result is unchanged.
     func moveTowards(current, target, speed: f32)->f32
     {
         let distance = target - current

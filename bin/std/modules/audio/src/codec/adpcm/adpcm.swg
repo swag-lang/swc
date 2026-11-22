@@ -63,7 +63,10 @@ internal func blockFrameCount(encoding: SoundFileEncoding, channels: u32, blockB
     case .AdpcmIma:
         if blockBytes < ImaHeaderBytes * channelCount do
             return 0
-        return 1 + (blockBytes - ImaHeaderBytes * channelCount) / (ImaGroupBytes * channelCount) * ImaGroupSamples
+        let payloadBytes      = blockBytes - ImaHeaderBytes * channelCount
+        let completeGroups    = payloadBytes / (ImaGroupBytes * channelCount)
+        let partialMonoFrames = channels == 1 ? payloadBytes % ImaGroupBytes * 2 : 0
+        return 1 + completeGroups * ImaGroupSamples + partialMonoFrames
 
     default:
         return 0
@@ -234,10 +237,11 @@ private impl Codec
             destination[channel] = cast(s16, states[channel].predictor)
         }
 
-        // After the seed sample, nibbles come in four-byte groups per channel, low nibble first.
+        // After the seed sample, full groups contain four bytes per channel. Mono also permits
+        // a shortened final group, whose available bytes each carry two more samples.
         var offset = ImaHeaderBytes * channelCount
         var frame  = 1'u64
-        while frame < frames
+        while offset + ImaGroupBytes * channelCount <= packet.count
         {
             for channel in channelCount
             {
@@ -252,6 +256,23 @@ private impl Codec
             }
 
             frame += ImaGroupSamples
+        }
+
+        if channelCount == 1
+        {
+            while offset < packet.count
+            {
+                let byte = cast(u32, packet[offset])
+                destination[frame] = states[0].expand(byte & 15)
+                frame += 1
+                if frame < frames
+                {
+                    destination[frame] = states[0].expand(byte >> 4)
+                    frame += 1
+                }
+
+                offset += 1
+            }
         }
     }
 }

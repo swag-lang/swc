@@ -207,3 +207,41 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     discard catch adpcmDecodeAll(&sound) as errOutcome
     Swag.require(errOutcome.value() is Errors.InvalidFormatError)
 }
+
+// A shortened mono IMA block still carries both samples in each remaining payload byte.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-adpcm-partial-mono-%.wav", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    var bytes: Array'u8
+    var writer = ByteStream.openWrite(&bytes)
+    writer.writeBytes(cast(const [..] u8, "RIFF"))
+    writer.writeLittleEndian(46'u32)     // File size minus the RIFF marker and size.
+    writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
+    writer.writeLittleEndian(20'u32)
+    writer.writeLittleEndian(0x11'u16)     // IMA ADPCM.
+    writer.writeLittleEndian(1'u16)        // Mono.
+    writer.writeLittleEndian(8_000'u32)
+    writer.writeLittleEndian(4_000'u32)
+    writer.writeLittleEndian(5'u16)     // Four-byte header and one payload byte.
+    writer.writeLittleEndian(4'u16)     // Four bits per sample.
+    writer.writeLittleEndian(2'u16)     // Extension bytes.
+    writer.writeLittleEndian(3'u16)     // One seed sample and two nibble samples.
+    writer.writeBytes(cast(const [..] u8, "data"))
+    writer.writeLittleEndian(5'u32)
+    writer.writeLittleEndian(0's16)       // Seed predictor.
+    writer.writeLittleEndian(0'u8)        // Initial step index.
+    writer.writeLittleEndian(0'u8)        // Reserved byte.
+    writer.writeLittleEndian(0x21'u8)     // Low nibble decodes to 1, high nibble to 4.
+    writer.writeLittleEndian(0'u8)        // RIFF padding for the odd-sized data chunk.
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    var sound = expect SoundFile.load(path.toString())
+    Swag.require(sound.sampleFrameCount() == 3)
+
+    let decoded = expect adpcmDecodeAll(&sound)
+    Swag.require(decoded.count == 3)
+    Swag.require(decoded[0] == 0 and decoded[1] == 1 and decoded[2] == 4)
+}

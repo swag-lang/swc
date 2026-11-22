@@ -41,9 +41,13 @@ impl DatagramSocket
     mtd setReadTimeout(timeoutMs: u32) fail
 
     // Joins an IPv4 or IPv6 multicast group on the selected local interface.
+    // Fails with [[Core.Errors.BadParameterError]] when the socket is closed or the group or
+    // interface is invalid, or [[Net.NetworkError]] when the system rejects the membership change.
     mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail
 
     // Leaves a multicast group previously joined with the same address and interface.
+    // Fails with [[Core.Errors.BadParameterError]] when the socket is closed or the group or
+    // interface is invalid, or [[Net.NetworkError]] when the system rejects the membership change.
     mtd leaveMulticast(group: IpAddress, options: MulticastOptions = {}) fail
 
     // Closes the socket; repeated calls do nothing.

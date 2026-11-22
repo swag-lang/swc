@@ -89,3 +89,21 @@ using Core
     Swag.require(message.count == buffer.count and message.truncated)
     Swag.require(buffer == [cast(u8, 'o'), cast(u8, 'v'), cast(u8, 'e'), cast(u8, 'r')])
 }
+
+#test
+{
+    let group = IpAddress.ipv4([239, 1, 2, 3])
+    var socket: DatagramSocket
+    var error:  Swag.Error
+    discard catch socket.joinMulticast(group) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    discard catch socket.leaveMulticast(group) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+
+    socket = expect DatagramSocket.bind({address: [0, 0, 0, 0], port: 0})
+    socket.close()
+    discard catch socket.joinMulticast(group) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    discard catch socket.leaveMulticast(group) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+}

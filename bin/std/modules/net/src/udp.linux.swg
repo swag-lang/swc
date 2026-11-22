@@ -35,12 +35,16 @@ impl DatagramSocket
     // Joins an IPv4 or IPv6 multicast group on the selected local interface.
     mtd joinMulticast(group: IpAddress, options: MulticastOptions = {}) fail
     {
+        if not .open do
+            fail Errors.BadParameterError{}
         try setMulticastMembership(.handle, group, options, true)
     }
 
     // Leaves a multicast group previously joined with the same address and interface.
     mtd leaveMulticast(group: IpAddress, options: MulticastOptions = {}) fail
     {
+        if not .open do
+            fail Errors.BadParameterError{}
         try setMulticastMembership(.handle, group, options, false)
     }
 

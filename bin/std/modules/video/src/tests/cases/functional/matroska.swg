@@ -27,6 +27,19 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(reader.subtitleTrackCount() == count)
 }
 
+// A finite Matroska duration must also fit the nanosecond timeline used for seeking.
+#test
+{
+    var layout: Matroska.Layout
+    layout.durationTicks = 1
+    expect layout.validateInfoTiming()
+
+    layout.durationTicks = Swag.F64.Max
+    var rejected: Swag.Error
+    discard catch layout.validateInfoTiming() as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
 // Explicit track display geometry, including an explicit square-pixel size, takes priority over
 // the codec's sample aspect ratio.
 #test

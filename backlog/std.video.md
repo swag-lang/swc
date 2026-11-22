@@ -545,3 +545,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: `Writer.addFrame` updates its frame count only after the encoder returns, but AVI appends its index entry and MP4 appends its sample entry before fallible sink writes. A write failure can leave encoder state ahead while later frames and finalization remain allowed.
 - Resolved: a failed frame submission now marks the writer ended and retains the original error for `end`; a closed memory sink reproduces failure after AVI and MP4 update their private index. Focused Release tests cover both containers.
 - Related: std.video.015
+
+### std.video.022 — Failed fragmented MP4 writes leave a reusable writer
+
+- Evidence: `Mp4.FragmentedWriter` can partially write media fragments or its random-access index before a sink write/flush fails. Packet counters and pending buffers are committed only after the writes, but the writer has no failed state, so another submission, flush, edit, or finalization can append to partial output.
+- Next: make the fragmented writer terminal after its first fallible output operation and add a deterministic sink failure seam for packet submission, grouped flush, and final index output.
+- Done when: the first output failure is preserved and every later mutating operation re-raises it without appending bytes; focused regressions cover video, audio, and end/index paths.
+- Related: std.video.016
+
+### std.video.023 — Matroska durations can exceed the seek timestamp range (resolved)
+
+- Evidence: `Layout.parseInfo` rejected non-finite and negative durations but accepted large finite values. `clusterBefore` and metadata configuration convert duration ticks to nanoseconds, which could overflow the supported `u64` timeline.
+- Resolved: Info timing validation now rejects durations at or beyond the representable nanosecond range; a focused boundary test verifies finite normal timing remains accepted and `F64.Max` is rejected. Release Matroska tests passed.

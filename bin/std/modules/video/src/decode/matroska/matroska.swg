@@ -1035,10 +1035,18 @@ private impl Layout
             try cursor.seek(element.end)
         }
 
+        try .validateInfoTiming()
+    }
+
+    // Reject declared durations that cannot fit the nanosecond timeline used for seeking.
+    internal mtd validateInfoTiming() fail
+    {
         if not .timestampScale or .timestampScale > cast(u64, Swag.S64.Max) do
             fail InvalidFormatError{"Matroska timestamp scale exceeds the supported range"}
         if not Math.isFinite(.durationTicks) or .durationTicks < 0 do
             fail InvalidFormatError{"Matroska duration is not finite and non-negative"}
+        if .durationTicks > 0 and .durationTicks >= cast(f64, Swag.U64.Max) / cast(f64, .timestampScale) do
+            fail InvalidFormatError{"Matroska duration exceeds the supported timestamp range"}
     }
 
     mtd parseTracks(cursor: *Cursor, tracks: Element) fail
@@ -2314,8 +2322,8 @@ private impl Decoder
         if not span do
             return
 
-        let observed = Math.max(span / (.streamSampleCount - 1), 1)
-        let declared = .info.frameRate.isValid() ? cast(u64, Math.round(1_000_000_000.0 * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()))) : 0
+        let observed  = Math.max(span / (.streamSampleCount - 1), 1)
+        let declared  = .info.frameRate.isValid() ? cast(u64, Math.round(1_000_000_000.0 * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()))) : 0
         let reference = declared ? declared : observed
         for rank in 1 until .streamSampleCount
         {
@@ -2488,6 +2496,7 @@ impl IDecoder for Decoder
                     return layout.tracks[layout.selectedVideo].videoSamples.count
                 return index
             }
+
             if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
                 return .windowBaseRank + .video.syncRankAt(index - .windowBaseRank)
             return index

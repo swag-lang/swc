@@ -3,6 +3,35 @@
 
 using Swag, Core
 
+// Only up to three zero alignment bytes may follow the final WOFF block.
+#test
+{
+    let original = loadFontBytes("arial.ttf")
+    var woff     = expect buildWoffFont(original.toSlice())
+    woff.add(0)
+    woff.add(0)
+    woff.add(0)
+    writeBigU32(&woff, 8, cast(u32, woff.count))
+    discard expect inflateWoff(woff.toSlice())
+
+    woff = expect buildWoffFont(original.toSlice())
+    woff.add(0)
+    woff.add(0)
+    woff.add(0)
+    woff.add(0)
+    writeBigU32(&woff, 8, cast(u32, woff.count))
+    var outcome: Swag.Error
+    discard catch inflateWoff(woff.toSlice()) as outcome
+    Swag.require(outcome.value() != null)
+
+    woff = expect buildWoffFont(original.toSlice())
+    woff.add(1)
+    writeBigU32(&woff, 8, cast(u32, woff.count))
+    outcome = {}
+    discard catch inflateWoff(woff.toSlice()) as outcome
+    Swag.require(outcome.value() != null)
+}
+
 // WOFF1 reconstruction preserves the face and outline even when sfnt padding bytes differ.
 #test
 {
@@ -130,6 +159,9 @@ using Swag, Core
 
     var trailingBytes: Array'u8
     trailingBytes.add(woff.toSlice())
+    trailingBytes.add(0)
+    trailingBytes.add(0)
+    trailingBytes.add(0)
     trailingBytes.add(0)
     writeBigU32(&trailingBytes, 8, cast(u32, trailingBytes.count))
     var outcome: Swag.Error

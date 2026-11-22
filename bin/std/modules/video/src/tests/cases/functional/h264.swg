@@ -3,6 +3,50 @@
 
 using Core, Core.Errors, Pixel
 
+// The first slice has covered macroblock zero in a two-macroblock picture. A second slice that
+// restarts at first_mb_in_slice zero must be rejected before it can overwrite that coverage.
+#test
+{
+    var sps: H264.Sps
+    sps.mbWidth  = 2
+    sps.mbHeight = 1
+
+    var decoder: H264.Decoder
+    decoder.sps = &sps
+    decoder.mbInfo.resize(2)
+    decoder.mbInfo[0].sliceId = 1
+
+    var secondSlice: H264.Slice
+    secondSlice.dec            = &decoder
+    secondSlice.sliceId        = 2
+    secondSlice.header.firstMb = 0
+    secondSlice.header.type    = H264.SliceTypeI
+
+    var rejected: Swag.Error
+    discard catch secondSlice.decodeData() as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
+// For picture-order type 1, delta_pic_order_cnt[1] adjusts the bottom count after the top
+// count and offset_for_top_to_bottom_field. delta_pic_order_cnt_bottom belongs to type 0.
+#test
+{
+    var sps: H264.Sps
+    sps.pocType              = 1
+    sps.log2MaxFrameNum      = 4
+    sps.offsetForTopToBottom = 2
+    sps.pocCycle.add(0)
+
+    var decoder: H264.Decoder
+    decoder.sps = &sps
+    decoder.isRefPicture = true
+
+    var header: H264.SliceHeader
+    header.frameNum  = 1
+    header.deltaPoc1 = -5
+    Swag.require(decoder.computePoc(&header) == -3)
+}
+
 // A picture of several slices is filtered by a wavefront over its macroblock rows. Two workers
 // make two lanes for four rows, so each lane has a row that waits on the other lane, and
 // `parallel for` may run the lanes one after the other: the filter must complete either way.

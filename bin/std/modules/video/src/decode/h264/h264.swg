@@ -1040,7 +1040,7 @@ impl Decoder
                 expected += sps.offsetForNonRefPic
 
             let top    = expected + header.deltaPoc0
-            let bottom = top + sps.offsetForTopToBottom + header.deltaPocBottom
+            let bottom = top + sps.offsetForTopToBottom + header.deltaPoc1
             return Math.min(top, bottom)
 
         case 2:

@@ -567,3 +567,54 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: `SoftwareRecording` advances its H.264 or AAC encoder before submitting the resulting packet. If the fragmented MP4 writer failed, the recording counters stayed unchanged while the codec state had advanced and later calls were still accepted.
 - Resolved: the recorder now retains output failures and re-raises them from later frame, audio, flush, and finalization calls. Focused Release regressions cover video and AAC packet failures.
 - Related: std.video.015, std.video.022
+
+### std.video.026 — AVI loses MPEG-4 resynchronization points without an index (resolved)
+
+- Evidence: without a usable `idx1`, AVI marked only the first MPEG-4 sample as a clean point, even when later samples began with I-VOPs.
+- Resolved: the frame-list walk now reads each coded sample through its first VOP header and records I-VOPs. A no-index fixture verifies the sync ranks and decodes the later clean point.
+
+### std.video.027 — Frame timestamps can round-trip to the preceding frame (resolved)
+
+- Evidence: at 25 fps, `frameTimestamp(29)` can be represented just below 1.16 seconds; multiplying that value back by 25 and truncating selected frame 28.
+- Resolved: `frameAtTime` checks the adjacent reconstructed frame boundaries before returning its index. The 400-frame Y4M fixture verifies the frame-29 round trip.
+
+### std.video.028 — H.264 type-1 picture order ignores the second delta (resolved)
+
+- Evidence: the slice parser reads `delta_pic_order_cnt[1]` into `deltaPoc1`, but type-1 POC calculation used `deltaPocBottom`, which belongs to type 0.
+- Resolved: the bottom order count now uses `deltaPoc1`; a direct POC regression verifies a non-zero negative delta.
+
+### std.video.029 — H.264 accepts slices that overlap macroblocks (resolved)
+
+- Evidence: picture validation counted decoded macroblocks but did not check their addresses, so duplicate slices could replace already parsed macroblocks while omitting another address.
+- Resolved: each macroblock is checked against the current picture's slice coverage before normal or skipped decode. A second slice restarting at macroblock zero is rejected.
+
+### std.video.030 — HEVC crop validation can wrap (resolved)
+
+- Evidence: visible dimensions subtracted conformance-window sums in `u32`; oversized crop values could wrap and leave an invalid picture apparently visible.
+- Resolved: crop dimensions are widened to `u64` and checked against the coded picture before any subtraction. Horizontal and vertical overflow cases are tested.
+
+### std.video.031 — MPEG-4 accepts out-of-range VOP time increments (resolved)
+
+- Evidence: a plane header accepted `timeIncrement` values equal to or greater than `timeResolution`, creating an invalid timestamp within the selected clock.
+- Resolved: the parser rejects those values; a boundary test accepts zero for a unit resolution and rejects one.
+
+### std.video.032 — Matroska Opus seek coverage uses the wrong sample rate (resolved)
+
+- Evidence: `hasAudioThrough` divided indexed Opus frames by the declared track rate, although Opus packets are decoded at 48 kHz. A default 8 kHz rate made one second of audio appear to cover six seconds.
+- Resolved: seek coverage now uses the decoded rate; a synthetic 8 kHz Opus track verifies one- and two-second queries.
+
+### std.video.033 — Matroska key-picture search overflows on large times (resolved)
+
+- Evidence: `seekKeyPicture` converted an unbounded floating-point second count to `s64` before clamping it, so a finite extreme request could wrap to the start of the film.
+- Resolved: the target is bounded to the supported signed timeline and the no-cue cluster estimate is capped at declared segment duration. A no-cue ten-minute fixture compares an extreme request with a request just past its end.
+
+### std.video.034 — RealVideo B-picture clock correction can underflow (resolved)
+
+- Evidence: an 8,192-tick clock correction subtracted up to 8.192 seconds from a container timestamp without checking the `s64` lower bound.
+- Resolved: the clock checks the subtraction before applying it; a wrapped B-picture timestamp at `S64.Min` is rejected.
+
+### std.video.035 — Matroska signed discard padding is not trimmed per packet
+
+- Evidence: negative `DiscardPadding` is ignored, and positive padding is subtracted only from the last lace even when it spans earlier audio packets. The audio packet contract exposes only stream-edge trims, so the current video module cannot skip decoded samples at an arbitrary packet edge.
+- Next: add leading and trailing decoded-frame trims to the packetized audio contract, apply them in the Matroska packet table, and verify positive and negative padding across laced and later blocks against decoded PCM references.
+- Done when: signed padding removes the stated samples from each affected block without changing the timeline of surrounding audio.

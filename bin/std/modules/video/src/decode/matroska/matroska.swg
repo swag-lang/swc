@@ -629,7 +629,7 @@ private impl Layout
     // the answer is yes. Answering no there made the window scan walk the whole file looking for
     // packets that were never going to appear: a seek in a fourteen-gigabyte film whose only
     // tracks are unsupported never returned.
-    mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
+    internal mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
     {
         if .audioTracks.isEmpty() do
             return true
@@ -638,7 +638,7 @@ private impl Layout
             let track = &.tracks[trackIndex]
             if not track.hasAudioStart or not track.audioFrameCount do
                 return false
-            let duration = cast(f64, track.audioFrameCount) * 1_000_000_000.0 / track.sampleRate
+            let duration = cast(f64, track.audioFrameCount) * 1_000_000_000.0 / track.decodedSampleRate()
             if cast(f64, track.audioStart) + duration <= cast(f64, timestampNanoseconds) do
                 return false
         }
@@ -763,7 +763,7 @@ private impl Layout
         if duration <= 0 or end <= start do
             return start
 
-        let target   = cast(f64, timestampNanoseconds)
+        let target   = Math.min(cast(f64, timestampNanoseconds), duration)
         var fraction = target / duration - ClusterSearchLead
         for ClusterSearchAttempts
         {
@@ -2607,7 +2607,8 @@ impl IKeyPictureDecoder for Decoder
         if .memoryComplete or not fileIndex do
             return false
         let layout = unwrap fileIndex.progressive
-        let target = cast(u64, Math.max(.presentationOrigin + cast(s64, Math.max(seconds, 0) * 1_000_000_000.0), 0))
+        let time   = cast(f64, .presentationOrigin) + Math.max(seconds, 0) * 1_000_000_000.0
+        let target = cast(u64, Math.min(Math.max(time, 0), cast(f64, Swag.S64.Max)))
         let bytes  = fileIndex.region.bytes()
 
         // Without a cue table the cluster comes from an offset estimated from the duration, which

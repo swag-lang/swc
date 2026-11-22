@@ -37,8 +37,11 @@ impl Clock
 
         if not .hasAnchor do
             return containerTime
-        let behind = (.anchorClock - clock + 8192) & 8191
-        return .anchorTime - cast(s64, behind) * 1_000_000
+        let behind     = (.anchorClock - clock + 8192) & 8191
+        let correction = cast(s64, behind) * 1_000_000
+        if .anchorTime < Swag.S64.Min + correction do
+            fail InvalidFormatError{"RealVideo picture timestamp is outside the supported range"}
+        return .anchorTime - correction
     }
 }
 

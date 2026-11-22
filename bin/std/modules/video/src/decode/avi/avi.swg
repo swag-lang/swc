@@ -706,10 +706,30 @@ private impl Decoder
 
     // Walks the frame list, which is what a file without a usable index leaves.
     //
-    // Only chunk headers are read, so the cost is one small read per chunk rather than a pass
-    // over the frames themselves, and no picture is decoded to reach the end of the list.
+    // Chunk headers are read once, and MPEG-4 samples are scanned only through their first plane
+    // header to recover clean points when the AVI index is absent or unusable.
     mtd walkFrames(source: *ByteSource, layout: const *Layout, dataId, compressedId: u32) fail
     {
+        func isMpeg4SyncFrame(source: *ByteSource, offset, size: u64)->bool fail
+        {
+            try source.seek(offset)
+            var startCode = 0'u32
+            var scanned   = 0'u64
+            while scanned < size
+            {
+                startCode = (startCode << 8) | cast(u32, (try source.readByte()))
+                scanned   += 1
+                if startCode == (0x0000_0100'u32 | Mpeg4.CodeVop)
+                {
+                    if scanned == size do
+                        return false
+                    return (cast(u32, (try source.readByte())) >> 6) == Mpeg4.VopIntra
+                }
+            }
+
+            return false
+        }
+
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
         {
@@ -717,7 +737,10 @@ private impl Decoder
             let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == dataId or chunk.id == compressedId
             {
-                .frames.add(FrameEntry{chunk.data, chunk.size, .frames.isEmpty()})
+                var isSync = .frames.isEmpty()
+                if .isCoded do
+                    isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size)
+                .frames.add(FrameEntry{chunk.data, chunk.size, isSync})
                 position = chunk.next
                 continue
             }
@@ -736,8 +759,14 @@ private impl Decoder
                 {
                     try source.seek(nestedPosition)
                     let nested = try readChunk(source, groupEnd)
-                    if nested.id == dataId or nested.id == compressedId do
-                        .frames.add(FrameEntry{nested.data, nested.size, .frames.isEmpty()})
+                    if nested.id == dataId or nested.id == compressedId
+                    {
+                        var isSync = .frames.isEmpty()
+                        if .isCoded do
+                            isSync = try isMpeg4SyncFrame(source, nested.data, nested.size)
+                        .frames.add(FrameEntry{nested.data, nested.size, isSync})
+                    }
+
                     nestedPosition = nested.next
                 }
 

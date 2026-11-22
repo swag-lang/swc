@@ -40,6 +40,24 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(rejected.value() is InvalidFormatError)
 }
 
+// Opus timestamps advance at its 48 kHz decoded rate even when the track declares another rate.
+#test
+{
+    var track: Matroska.Track
+    track.kind            = Matroska.AudioTrackType
+    track.codecId         = Matroska.OpusCodecId
+    track.sampleRate      = 8_000
+    track.audioStart      = 0
+    track.audioFrameCount = 48_000
+    track.hasAudioStart   = true
+
+    var layout: Matroska.Layout
+    layout.tracks.add(#move(track))
+    layout.audioTracks.add(0)
+    Swag.require(layout.hasAudioThrough(500_000_000))
+    Swag.require(not layout.hasAudioThrough(2_000_000_000))
+}
+
 // Explicit track display geometry, including an explicit square-pixel size, takes priority over
 // the codec's sample aspect ratio.
 #test
@@ -589,6 +607,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var cueless = expect Reader.open(path, pictureOnly: true)
     let picture = expect cueless.decodeKeyPicture(cueless.durationInSeconds() * 0.5)
     Swag.require(picture.width == keyed.width() and picture.height == keyed.height())
+    let lateKey = expect cueless.decodeKeyPicture(Swag.F64.Max)
+    Swag.require(lateKey.width == keyed.width() and lateKey.height == keyed.height())
+    var atEnd  = expect Reader.open(path, pictureOnly: true)
+    let endKey = expect atEnd.decodeKeyPicture(atEnd.durationInSeconds() + 1)
+    Swag.require(Memory.compare(lateKey.pixels.storage(), endKey.pixels.storage(), lateKey.pixels.count) == 0)
 }
 
 // A writer that knows every frame of a track begins with the same bytes may state them once and

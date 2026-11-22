@@ -901,6 +901,7 @@ impl Slice
                 {
                     if .mbAddr >= mbCount do
                         fail InvalidFormatError{"H.264 skip run passes the end of the picture"}
+                    try .validateUncoveredMb()
                     .resolveNeighbors()
                     try .decodeSkipMb(dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr])
                     skipRun -= 1
@@ -912,6 +913,7 @@ impl Slice
                     fail InvalidFormatError{"H.264 slice data runs past the end of the picture"}
             }
 
+            try .validateUncoveredMb()
             .resolveNeighbors()
             let mb = dec.inlineRecon ? &.scratchMb : &dec.parsedMbs[.mbAddr]
             if inter and .isCabac and .decodeSkipFlagCabac()
@@ -960,6 +962,13 @@ impl Slice
             fail InvalidFormatError{"H.264 slice data is truncated"}
         if dec.inlineRecon and .mbAddr >= mbCount do
             dec.completeInlinePicture()
+    }
+
+    // Reject overlapping slices before they overwrite a macroblock already parsed for this picture.
+    private mtd validateUncoveredMb() fail
+    {
+        if .mbInfoAt(.mbX, .mbY).sliceId != 0 do
+            fail InvalidFormatError{"H.264 picture contains overlapping slices"}
     }
 
     // Zeroes the coefficients a reconstructed macroblock may have left in the scratch record: its

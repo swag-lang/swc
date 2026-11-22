@@ -129,6 +129,19 @@ func realVideoClockPacket(timestamp, kind: u32)->[13] u8
     Swag.require(actual == 1_012_000_000)
 }
 
+// A wrapped B-picture clock cannot move an already minimal container timestamp below s64.
+#test
+{
+    var clock: RealVideo.Clock
+    let anchor = realVideoClockPacket(0, 0)
+    let behind = realVideoClockPacket(8191, 3)
+    discard expect clock.presentationTime(anchor, anchor[0 until 0], Swag.S64.Min)
+
+    var error: Swag.Error
+    discard catch clock.presentationTime(behind, behind[0 until 0], Swag.S64.Min) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // Truncated entropy data fails normally, and a decoder can restart at the next intact I picture.
 #test
 {

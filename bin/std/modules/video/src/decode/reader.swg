@@ -420,7 +420,14 @@ impl Reader
         let frame = seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())
         if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max) do
             return count ? count : Swag.U64.Max
-        return count ? Math.min(cast(u64, frame), count) : cast(u64, frame)
+
+        // Round-trip exact frame timestamps back to their index after floating-point division.
+        var index = cast(u64, frame)
+        if index and seconds < .frameTimestamp(index) do
+            index -= 1
+        elif index < Swag.U64.Max and seconds >= .frameTimestamp(index + 1) do
+            index += 1
+        return count ? Math.min(index, count) : index
     }
 
     // Returns whether this stream can be decoded without converting its pictures to RGB.

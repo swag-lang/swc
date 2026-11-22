@@ -301,6 +301,8 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
 
     try reader.marker()
     header.timeIncrement = reader.read(layer.timeIncrementBits)
+    if header.timeIncrement >= layer.timeResolution do
+        fail InvalidFormatError{"MPEG-4 plane time increment needs a value below its time resolution"}
     try reader.marker()
 
     header.coded = reader.bit() != 0

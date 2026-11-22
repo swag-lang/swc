@@ -282,6 +282,31 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
 }
 
+// MPEG-4 I-pictures remain resynchronization points when a valid AVI has no `idx1` chunk.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-mpeg4-packed.avi"))
+    var index = 0'u64
+    while index + 8 <= bytes.count and not aviHasId(bytes.toSlice(), index, "idx1") do
+        index += 1
+    Swag.require(index + 8 <= bytes.count)
+
+    // Keep the media and headers, remove the optional index, and repair the RIFF length.
+    bytes.resize(index)
+    let riffSize = cast(u32, (index - 8))
+    for byteIndex in 4 do
+        bytes[4 + cast(u64, byteIndex)] = cast(u8, ((riffSize >> cast(u32, (byteIndex * 8))) & 0xFF))
+
+    var reader = expect Reader.openMemory("packed-no-index.avi", bytes.toSlice())
+    Swag.require(reader.frameCount() == 60)
+    Swag.require(reader.syncFrameAt(1) == 28)
+    Swag.require(reader.syncFrameAt(31) == 58)
+
+    var frame: Image
+    expect reader.decodeFrameInto(&frame, 58)
+    Swag.require(frame.width == 96 and frame.height == 64)
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test
@@ -385,8 +410,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var slowWriter = expect Writer.createMemory("slow.avi", &slowBuffer, 2, 2, slowRate)
     expect slowWriter.addFrame(videoGrayImage(2, 2, 80))
     expect slowWriter.end()
-    let slowBytes   = slowBuffer.toArray()
-    let slow        = slowBytes.toSlice()
+    let slowBytes = slowBuffer.toArray()
+    let slow      = slowBytes.toSlice()
     Swag.require(aviReadU32(slow, 32) == Swag.U32.Max)
     Swag.require(aviReadU32(slow, 128) == 4_295 and aviReadU32(slow, 132) == 1)
 
@@ -395,8 +420,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var fastWriter = expect Writer.createMemory("fast.avi", &fastBuffer, 2, 2, fastRate)
     expect fastWriter.addFrame(videoGrayImage(2, 2, 80))
     expect fastWriter.end()
-    let fastBytes   = fastBuffer.toArray()
-    let fast        = fastBytes.toSlice()
+    let fastBytes = fastBuffer.toArray()
+    let fast      = fastBytes.toSlice()
     Swag.require(aviReadU32(fast, 32) == 1)
     Swag.require(aviReadU32(fast, 128) == 1 and aviReadU32(fast, 132) == Swag.U32.Max)
 }

@@ -28,6 +28,16 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 }
 
+private func assertInvalidSpsCrop(payload: const [..] u8)
+{
+    var reader: BitReader
+    reader.init(payload)
+    var sps:      Hevc.Sps
+    var rejected: Swag.Error
+    discard catch sps.read(&reader) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
 // A complete reference NAL must not let the reference check hide a truncated following length.
 #test
 {
@@ -94,6 +104,24 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
 
     assertInvalidPocLsbMinus4(PocLsbTooWide)
     assertInvalidPocLsbMinus4(PocLsbOverflow)
+}
+
+// The conformance window is rejected before oversized crop values can wrap picture dimensions.
+#test
+{
+    const CropLeftOverflow: [41] u8 = [0x01, 0x01, 0x60, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00,
+                                       0x00, 0x00, 0x1E, 0xA0, 0x30, 0x81, 0x06, 0x00, 0x00, 0x00,
+                                       0x04, 0x00, 0x00, 0x00, 0x1F, 0x96, 0x56, 0x69, 0x24, 0xCA,
+                                       0xE6, 0x80, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x0C,
+                                       0x84]
+    const CropTopOverflow: [41] u8 = [0x01, 0x01, 0x60, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00,
+                                      0x00, 0x00, 0x1E, 0xA0, 0x30, 0x81, 0x07, 0x80, 0x00, 0x00,
+                                      0x01, 0x00, 0x00, 0x00, 0x07, 0x96, 0x56, 0x69, 0x24, 0xCA,
+                                      0xE6, 0x80, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x0C,
+                                      0x84]
+
+    assertInvalidSpsCrop(CropLeftOverflow)
+    assertInvalidSpsCrop(CropTopOverflow)
 }
 
 // Prediction-weight chroma offsets stay in their eight-bit syntax domain for Main 10. The

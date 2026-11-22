@@ -118,6 +118,7 @@ func barsAssertFrame(frame: Image, index: u64)
     Swag.require(reader.frameCount() == BarsFrameCount)
     Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 16.0, 0.0001))
     Swag.require(reader.frameAtTime(Swag.F64.Max) == BarsFrameCount)
+    Swag.require(reader.frameAtTime(reader.frameTimestamp(29)) == 29)
 
     var frame: Image
     for index in reader.frameCount()

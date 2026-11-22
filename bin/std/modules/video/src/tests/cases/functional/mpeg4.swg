@@ -185,3 +185,21 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
     discard catch decoder.readPacketHeader(&reader, &header, &index) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 }
+
+// A VOP time increment ranges from zero through one less than the VOL time resolution.
+#test
+{
+    var layer: Mpeg4.Layer
+    layer.timeResolution    = 1
+    layer.timeIncrementBits = 1
+
+    var header: Mpeg4.PlaneHeader
+    var reader = Mpeg4.BitReader.create([0x14'u8])
+    expect Mpeg4.readPlaneHeader(&layer, &reader, &header)
+    Swag.require(header.timeIncrement == 0)
+
+    reader = Mpeg4.BitReader.create([0x1C'u8])
+    var rejected: Swag.Error
+    discard catch Mpeg4.readPlaneHeader(&layer, &reader, &header) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}

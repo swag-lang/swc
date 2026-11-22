@@ -427,7 +427,10 @@ impl Sps
             fail UnsupportedFormatError{"HEVC picture exceeds the supported size"}
         if .maxDecPicBuffering > 16 do
             fail InvalidFormatError{"HEVC decoded picture buffer exceeds sixteen pictures"}
-        if .visibleWidth() == 0 or .visibleHeight() == 0 do
+
+        let cropWidth  = (cast(u64, .cropLeft) + cast(u64, .cropRight)) * cast(u64, .subWidthC)
+        let cropHeight = (cast(u64, .cropTop) + cast(u64, .cropBottom)) * cast(u64, .subHeightC)
+        if cropWidth >= cast(u64, .width) or cropHeight >= cast(u64, .height) do
             fail InvalidFormatError{"HEVC conformance window leaves no visible picture"}
     }
 }

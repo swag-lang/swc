@@ -77,7 +77,8 @@ func touch(fullName: string) fail
 //
 // Linux uses the POSIX sharing contract documented by [[Core.File.FileShare]]. New files use
 // permissions 0666 filtered by the process umask. `Create` and `Truncate` require write access.
-// Invalid access/sharing flags and directory handles are rejected before ownership is returned.
+// Invalid mode, access, and sharing values fail with [[Core.Errors.BadParameterError]]. Directory
+// handles are rejected before ownership is returned.
 // `Append` moves the initial cursor to the end but permits later explicit seeks.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
@@ -88,6 +89,13 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     let validShare = FileShare.ReadWrite | .Delete | .Inheritable
     if (share & ~validShare) != .Zero do
         fail BadParameterError{"file sharing contains an unknown flag"}
+    if mode != .Append and
+       mode != .Create and
+       mode != .CreateNew and
+       mode != .Open and
+       mode != .OpenOrCreate and
+       mode != .Truncate do
+        fail BadParameterError{"file mode is invalid"}
     if mode != .Open or access.has(.Write) do
         try Env.guardWrite(fullName)
     if (mode == .Create or mode == .Truncate) and not access.has(.Write) do

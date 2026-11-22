@@ -495,6 +495,48 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
+func(T) encodeCompressedTagBin(value: T)->String
+{
+    var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    encoder.serializer.compressStream = true
+    expect encoder.writeAll(&buffer, value)
+    return buffer.toString()
+}
+
+func insertTagBinBodyByteBeforeShapeDir(bytes: String)->Array'u8
+{
+    let data   = bytes.toSlice()
+    var reader = ByteStream.openRead(data)
+    discard expect reader.readNative'u32()
+    discard expect reader.readNative'u32()
+    let schemaLength = expect reader.readVarint()
+    reader.advance(schemaLength)
+    discard expect reader.readNative'u32()
+    let shapeOffsetSeek = reader.position()
+    let shapeDirOffset  = expect reader.readNative'u64()
+    let bodyStart       = reader.position()
+    let insertAt        = bodyStart + shapeDirOffset
+
+    var result: Array'u8
+    result.add(data[0 until insertAt])
+    result.add(0xEE'u8)
+    result.add(data[insertAt until data.count])
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(shapeOffsetSeek)
+    writer.writeNative(shapeDirOffset + 1)
+    return result
+}
+
+func requireTagBinRejected(input: const [..] u8)
+{
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    discard catch decoder.readAll'TagBinPayload(input) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SerializationError)
+}
+
 // Where a field of the root struct sits inside a version 1 stream, plus the location
 // of its shape metadata.
 struct TagBinV1Field
@@ -1335,6 +1377,27 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     var errorOutcome: Swag.Error
     catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
+}
+
+// A TagBin document rejects bytes after the body or either directory.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+
+    var trailingInput: Array'u8
+    trailingInput.add(cast(const [..] u8, bytes))
+    trailingInput.add(0xEE'u8)
+    let bodyGap = insertTagBinBodyByteBeforeShapeDir(bytes)
+
+    requireTagBinRejected(trailingInput.toSlice())
+    requireTagBinRejected(bodyGap.toSlice())
+
+    let compressed = encodeCompressedTagBin(payload)
+    var trailingCompressed: Array'u8
+    trailingCompressed.add(cast(const [..] u8, compressed))
+    trailingCompressed.add(0xEE'u8)
+    requireTagBinRejected(trailingCompressed.toSlice())
 }
 
 // Ad-hoc value flags require the None bit and reject bits with no version 1 meaning.

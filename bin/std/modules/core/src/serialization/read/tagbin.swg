@@ -154,6 +154,8 @@ These type changes are supported:
 - A renamed interface implementation that declares a stable [[Core.Serialization.TypeKey]].
 - An existing complex type that becomes [[Core.Serialization.Final]].
 
+Trailing bytes after the shaped body or shape directory fail the read.
+
 These attributes are supported:
 
 - [[Core.Serialization.Version]]: the struct version, exposed while reading through [[Core.Serialization.Read.TagBin.version]].
@@ -191,6 +193,7 @@ struct TagBin
     elemStack:         Array'{ compressed: bool, tmpBuf: *Buffer? }
     tmpPool:           ArrayPtr'Buffer
     expectedRootType:  typeinfo?     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
+    shapeDirOffset:    u64           // Body offset where the shape directory begins.
 }
 
 // Counters describing what a decode had to tolerate.
@@ -842,6 +845,7 @@ private impl TagBin
         if cast(u32, flags) > cast(u32, Write.TagBinHeaderFlags.StreamCompressed) do
             fail SerializationError{"invalid TagBin header flags"}
         let shapeDirOffset = try .stream.readNative'u64()
+        .shapeDirOffset = shapeDirOffset
 
         if flags.has(.StreamCompressed)
         {
@@ -849,6 +853,8 @@ private impl TagBin
             let compressedSize   = try .stream.readNative'u64()
             if compressedSize > .remaining() do
                 fail SerializationError{"compressed body runs past the end of the stream"}
+            if compressedSize != .remaining() do
+                fail SerializationError{"compressed body does not fill the remaining stream"}
 
             if not deflateExpansionFits(uncompressedSize, compressedSize) do
                 fail SerializationError{"corrupted compressed body"}
@@ -914,6 +920,9 @@ private impl TagBin
             shapeCount -= 1
         }
 
+        if .stream.position() != .stream.length() do
+            fail SerializationError{"shape directory has trailing data"}
+
         .stream.setPosition(0)
     }
 }
@@ -951,6 +960,7 @@ impl TagBin
         .outStack.clear()
         .elemStack.clear()
         .diag = {}
+        .shapeDirOffset = 0
     }
 
     // Reads the stream header.
@@ -971,6 +981,8 @@ impl TagBin
     // Finishes reading the document.
     mtd endRoot() fail
     {
+        if .stream.position() != .shapeDirOffset do
+            fail SerializationError{"TagBin body does not end at its shape directory"}
         .expectedRootType = null
     }
 

@@ -511,7 +511,7 @@ impl Image
         swap(&.rowStride, &wb.rowStride)
     }
 
-    // Visits pixels in parallel using chunks separated by `stride` pixels.
+    // Visits pixel indexes `0`, `stride`, `2 * stride`, and so on while they remain in the image.
     //
     // `stride` must be positive. Each injected invocation receives:
     //
@@ -546,10 +546,11 @@ impl Image
             Swag.panic("image pixel storage does not match its geometry", #curlocation)
 
         let self: const *Image = me
-        let step   = cast(u64, .bytesPerPixel) * cast(u64, stride)
-        let base   = cast([*] u8, self.pixels.storage())
-        let visit  = self.pixels.count / step
-        let opaque = pixelUserData
+        let step               = cast(u64, .bytesPerPixel) * cast(u64, stride)
+        let base               = cast([*] u8, self.pixels.storage())
+        let pixelCount         = self.pixels.count / self.bytesPerPixel
+        let visit              = 1 + (pixelCount - 1) / Math.max(cast(u64, stride), 1)
+        let opaque             = pixelUserData
         parallel for |self, base, step, opaque| parIndex in visit
         {
             let pixPtr   = base + parIndex * step

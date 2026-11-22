@@ -1146,7 +1146,10 @@ impl Painter
     // Replaces the current drawing state and emits its renderer-visible changes.
     mtd setState(state: PaintState)
     {
+        let hadClippingRect = .curState.clippingRectOn
         .curState = state
+        if hadClippingRect and not .curState.clippingRectOn do
+            .newCommand(.ResetClippingRect, true).op = .ResetClippingRect
         .emitState()
     }
 

@@ -26,6 +26,18 @@ using Swag, Core
     Swag.require(text.chunks[1].under == .None)
 }
 
+// A CRLF pair remains one line break when its bytes belong to different style runs.
+#test
+{
+    var text = RichString.fromMarkup("<b>A\r</b>\nB")
+    text.compute()
+
+    var eolCount = 0
+    for &chunk in text.chunks where chunk.isEol do
+        eolCount += 1
+    Swag.require(eolCount == 1)
+}
+
 // Typed runs carry each style, and a link reports its text or the target it names.
 #test
 {

@@ -622,7 +622,7 @@ impl RichString
                     .addChunk(chunkStart, index, span)
                     chunkStart = index
                     index      += eat
-                    if c == '\r' and index < regionEnd and .text[index] == '\n' do
+                    if c == '\r' and index < length and .text[index] == '\n' do
                         index += 1
 
                     .addChunk(chunkStart, index, span, eol: true)

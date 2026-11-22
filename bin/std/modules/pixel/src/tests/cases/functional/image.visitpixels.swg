@@ -6,12 +6,15 @@ using Swag, Core
 // Pixel visits reject invalid storage and nonpositive strides before entering the loop.
 #test
 {
-    var image = Image.create(3, 2, .Gray8, [1'u8, 2, 3, 4, 5, 6])
+    var image = Image.create(5, 1, .Gray8, [1'u8, 2, 3, 4, 5])
     image.visitPixels(stride: 2)
     {
         Swag.require(index == 0 or index == 2 or index == 4)
-        Swag.require(x == cast(s32, index % 3) and y == cast(s32, index / 3))
+        Swag.require(x == cast(s32, index % 5) and y == 0)
+        pix[0] = 9
     }
+
+    Swag.require(image.pixels[0] == 9 and image.pixels[2] == 9 and image.pixels[4] == 9)
 
     let zeroStride = Swag.catchPanic(func|&image|()
     {

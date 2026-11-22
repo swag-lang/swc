@@ -165,15 +165,18 @@ private
 
     // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
     //
-    // Filled at run time with the exact expression the per-pixel path evaluated, so a lookup
-    // returns bit-identical factors. Initialization happens on the serial command path; two
-    // renderers on two threads can only race to store the same values.
+    // Filled on first use with the exact expression the per-pixel path evaluated, so a lookup
+    // returns bit-identical factors. The mutex protects concurrent renderer initialization.
     var g_FontGammaLut:      [256] f32
     var g_FontGammaLutReady: bool
+    var g_FontGammaLutMutex: Swag.Mutex
 }
 
 private func ensureFontGammaLut()
 {
+    g_FontGammaLutMutex.lock()
+    defer g_FontGammaLutMutex.unlock()
+
     if g_FontGammaLutReady do
         return
     for i in 256 do

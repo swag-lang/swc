@@ -12,6 +12,57 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     return renderer.surfaceImage()
 }
 
+private struct FontGammaThreadRun
+{
+    gate:     *Sync.Event
+    rendered: bool
+}
+
+private func renderCpuFontOnThread(thread: const *Threading.Thread)
+{
+    let run = cast(*FontGammaThreadRun, unwrap thread.userParam)
+    run.gate.wait()
+
+    var cache:  FontCache
+    let font = makeTextTestFont(&cache, 16, .Bitmap)
+    var text:   RichString = "A"
+    var format: RichStringFormat
+    format.font.regular = font
+
+    var painter: Painter
+    painter.begin()
+    painter.drawRichString({0, 0, 32, 32}, &text, format)
+    painter.end()
+
+    var renderer: RenderCpu
+    renderer.begin(32, 32)
+    let render: IRenderer = &renderer
+    discard expect render.draw(&painter)
+    render.end()
+    run.rendered = true
+}
+
+// Separate CPU renderers can initialize their bitmap-font lookup table concurrently.
+#test
+{
+    var gate: Sync.Event
+    gate.init(manual: true)
+
+    var runA:    FontGammaThreadRun = {gate: &gate}
+    var runB:    FontGammaThreadRun = {gate: &gate}
+    var threadA: Threading.Thread
+    var threadB: Threading.Thread
+    expect threadA.init(&renderCpuFontOnThread, &runA)
+    expect threadB.init(&renderCpuFontOnThread, &runB)
+    expect threadA.start()
+    expect threadB.start()
+    gate.signal()
+    threadA.wait()
+    threadB.wait()
+
+    Swag.require(runA.rendered and runB.rendered)
+}
+
 // Solid geometry reaches deterministic surface pixels without a graphics context.
 #test
 {

@@ -18,7 +18,8 @@ enum LogFlags
 // Receives the formatted messages of a [[Core.Log]].
 interface ILogWriter
 {
-    // Writes one fully formatted log message to the destination.
+    // Writes one fully formatted log message to the destination. The call is synchronous and runs
+    // while the invoking Log's lock is held; do not call any method on that same Log from here.
     mtd print(text: string)
 }
 
@@ -125,6 +126,7 @@ impl Log
     }
 
     // Writes `text`, after the configured header, to every registered writer or to the console when there is none.
+    // Writer callbacks run synchronously while this Log's lock is held and must not call back into this Log.
     //
     // `loc` is the source location the header reports; it defaults to the caller.
     mtd print(text: string, loc = #callerlocation)

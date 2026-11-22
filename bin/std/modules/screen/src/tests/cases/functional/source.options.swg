@@ -63,6 +63,14 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
     Swag.require(source.frameAgeMicroseconds() >= 60)
 }
 
+// Both arrays have room before source acquisition starts.
+#test
+{
+    var source: Source
+    source.reservePartStorage(2)
+    Swag.require(source.sources.capacity >= 2 and source.pictures.capacity >= 2)
+}
+
 // Reset clears every source and native metric without opening a display.
 #test
 {

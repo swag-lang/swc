@@ -134,10 +134,12 @@ impl Source
         result.options = options
         #static if #os == Swag.TargetOs.Windows
         {
+            let monitors = Env.getMonitors()
+            result.reservePartStorage(monitors.count)
             let right  = cast(s64, options.x) + options.width
             let bottom = cast(s64, options.y) + options.height
             var covered: u64
-            for monitor in Env.getMonitors()
+            for monitor in monitors
             {
                 let bounds     = monitor.physicalBounds
                 let left       = Math.max(cast(s64, options.x), cast(s64, bounds.x))
@@ -158,10 +160,18 @@ impl Source
         }
         else
         {
+            result.reservePartStorage(1)
             try result.addPart(options)
         }
 
         return result
+    }
+
+    // Reserves the source and image slots before native handles are acquired.
+    internal mtd reservePartStorage(count: u64)
+    {
+        .sources.reserve(count)
+        .pictures.reserve(count)
     }
 
     // Opens a source for one currently enumerated physical monitor.

@@ -3,6 +3,71 @@
 
 using Swag, Core
 
+#[Serialization.Schema("pixel.image")]
+struct MalformedImage
+{
+    #[Serialization.Key("pixels")]
+    pixels: Array'u8
+
+    #[Serialization.Key("metadata")]
+    metadata: Array'ImageMetadata
+
+    #[Serialization.Key("byteCount")]
+    byteCount: u64
+    width: s32
+    height: s32
+
+    #[Serialization.Key("rowStride")]
+    rowStride: s32
+
+    #[Serialization.Key("pixelFormat")]
+    pixelFormat: PixelFormat
+
+    #[Serialization.Key("alphaMode")]
+    alphaMode: AlphaMode
+
+    #[Serialization.Key("bitsPerPixel")]
+    bitsPerPixel: u8
+
+    #[Serialization.Key("bytesPerPixel")]
+    bytesPerPixel: u8
+}
+
+func makeMalformedImage()->Image
+{
+    var malformed: MalformedImage
+    malformed.pixels.add(1)
+    malformed.pixels.add(2)
+    malformed.pixels.add(3)
+    malformed.pixels.add(4)
+    malformed.byteCount = 4
+    malformed.width = 2
+    malformed.height = 1
+    malformed.rowStride = 8
+    malformed.pixelFormat = .RGBA8
+    malformed.alphaMode = .Straight
+    malformed.bitsPerPixel = 32
+    malformed.bytesPerPixel = 4
+
+    var buffer: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&buffer, malformed)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    return expect decoder.readAll'Image(buffer.toString().toSlice())
+}
+
+// Invalid image geometry is rejected before a format encoder reads the pixel buffer.
+#test
+{
+    let image = makeMalformedImage()
+    Swag.require(not image.isValid())
+
+    var error: Swag.Error
+    discard catch image.encode("image.bmp") as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 // Type-erased encoder options are rejected before any typed cast.
 #test
 {

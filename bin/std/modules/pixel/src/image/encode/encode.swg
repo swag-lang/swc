@@ -87,7 +87,7 @@ public impl Image
     // the image.
     mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
-        if not .pixels.buffer or .pixels.count != .byteCount do
+        if not .isValid() do
             fail InvalidFormatError{"invalid image"}
 
         let found = getEncoder(fileName)

@@ -7,10 +7,11 @@ OpenGL 1.1 entry points come from the platform library; later core and extension
 entry points are resolved from that current context. Raw `gl*` names, `GL_*`
 constants, scalar widths, and pointer shapes follow the pinned Khronos registry.
 
-On Windows, `Ogl.Platform.Win32.createContext` provides an owned WGL context.
-On Linux, `Ogl.Platform.Xcb.createContext` provides an owned EGL OpenGL 3.3
-compatibility context for an X11 window. Both initially own a rendering surface that borrows
-a [[Core.Env.Window]]; destroy that surface before its window. The Linux adapter needs
+On Windows, `Ogl.Platform.Win32.createContext` owns a WGL context and its acquired
+window device context, and borrows a [[Core.Env.Window]] that must outlive it. On
+Linux, `Ogl.Platform.Xcb.createContext` provides an owned EGL OpenGL 3.3
+compatibility context for an X11 window with an initial surface that borrows a
+[[Core.Env.Window]]; destroy that surface before its window. The Linux adapter needs
 libGL.so.1, libEGL.so.1 and EGL_EXT_platform_xcb. Linux renderers can use `Context.takeSurface` and
 `Context.createSurface` to own several window surfaces independently while sharing one context.
 Each surface must be destroyed before its window and before the context. A drawable borrowed

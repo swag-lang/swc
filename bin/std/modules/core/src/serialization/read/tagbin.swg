@@ -1159,7 +1159,11 @@ impl TagBin
         // Read the type signature.
         let crcType = try .stream.readNative'u32()
 
-        let flags = try .stream.readNative'Write.TagBinValueFlags()
+        let flags      = try .stream.readNative'Write.TagBinValueFlags()
+        let rawFlags   = cast(u8, flags)
+        let knownFlags = cast(u8, Write.TagBinValueFlags.None | .Compressed)
+        if not flags.has(.None) or (rawFlags & ~knownFlags) do
+            fail SerializationError{"serialized value flags accept only 1 or 3", field: val}
 
         try .enterElementPayload(flags.has(.Compressed), val)
 

@@ -703,6 +703,60 @@ func corruptTagBinBoolean(bytes: String, fieldName: string)->Array'u8
     return result
 }
 
+func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    var reader = ByteStream.openRead(result.toSlice())
+    discard expect reader.readNative'u32()
+    discard expect reader.readNative'u32()
+    let schemaLength = expect reader.readVarint()
+    reader.advance(schemaLength)
+    discard expect reader.readNative'u32()
+    discard expect reader.readNative'u64()
+    let bodyStart = reader.position()
+
+    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Version)
+    discard expect reader.readNative'u32()
+    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Fat)
+    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinAdHocShape)
+    let fatSeek  = expect reader.readNative'u64()
+    let fatCount = expect reader.readNative'u64()
+
+    reader.setPosition(bodyStart + fatSeek)
+    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Fat)
+    var valueSeek: u64
+    var found = false
+    for fatCount
+    {
+        let keyLength = expect reader.readVarint()
+        var key: String
+        key.reserve(keyLength)
+        expect reader.readBytes(unwrap key.buffer, keyLength)
+        key.length = keyLength
+        let offset = expect reader.readNative'u64()
+        if key == fieldName
+        {
+            valueSeek = bodyStart + offset
+            found     = true
+        }
+    }
+
+    Swag.require(found)
+
+    reader.setPosition(valueSeek)
+    let valueKeyLength = expect reader.readVarint()
+    reader.advance(valueKeyLength)
+    discard expect reader.readNative'u32()
+    let flagsSeek = reader.position()
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(flagsSeek)
+    writer.writeNative(flags)
+    return result
+}
+
 func assertCompressedBlob(values: Array'u8)->bool
 {
     if values.count != 512 do
@@ -1281,6 +1335,23 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     var errorOutcome: Swag.Error
     catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
+}
+
+// Ad-hoc value flags require the None bit and reject bits with no version 1 meaning.
+#test
+{
+    var payload: TagBinHookPayload
+    payload.direct = 42
+    let bytes = encodeTagBin(payload)
+
+    for flags in [0'u8, 2, 4, 5]
+    {
+        let patched = corruptTagBinAdHocFlags(bytes, "direct", flags)
+        var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+        var errorOutcome: Swag.Error
+        discard catch decoder.readAll'TagBinHookPayload(patched.toSlice()) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.SerializationError)
+    }
 }
 
 // Earlier experimental markers are rejected instead of being guessed from their layout.

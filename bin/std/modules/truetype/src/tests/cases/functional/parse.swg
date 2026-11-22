@@ -503,6 +503,37 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Fractional zeros and the explicit exponent can cancel even when 0.1-style accumulation underflows.
+    const FractionDigits = 400'u64
+    var nibbles: Array'u8
+    nibbles.add(0)
+    nibbles.add(0x0A)
+    var index = 0'u64
+    while index < FractionDigits
+    {
+        nibbles.add(0)
+        index += 1
+    }
+    nibbles.add(1)
+    nibbles.add(0x0B)
+    nibbles.add(4)
+    nibbles.add(0)
+    nibbles.add(1)
+    nibbles.add(0x0F)
+
+    var bytes: Array'u8
+    index = 0
+    while index < nibbles.count / 2
+    {
+        bytes.add((nibbles[index * 2] << 4) | nibbles[index * 2 + 1])
+        index += 1
+    }
+    let parsed = expect readCffReal(bytes.toSlice(), 0)
+    Swag.require(Math.isEqualEpsilon(parsed.value, 1.0, 0.000001))
+}
+
+#test
+{
     // Exponent accumulation must reject values that cannot fit its signed counter.
     const OversizedExponent: [7] u8 = [0x1B, 0x21, 0x47, 0x48, 0x36, 0x48, 0xF0]
     var rejected: Swag.Error

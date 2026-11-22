@@ -269,9 +269,11 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: #returntype
+    // Keep f64-significant digits separate from the decimal scale so an exponent can cancel a long fraction.
     var mantissa         = 0.0'f64
-    var fraction         = 0.1'f64
     var exponent         = 0
+    var decimalExponent  = 0's64
+    var significantDigits = 0'u32
     var negative         = false
     var expNegative      = false
     var inFraction       = false
@@ -306,14 +308,32 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
                 }
                 elif inFraction
                 {
-                    mantissa         += digit * fraction
-                    fraction         *= 0.1
                     hasMantissaDigit = true
+                    if significantDigits < 17
+                    {
+                        decimalExponent -= 1
+                        if significantDigits or nibble
+                        {
+                            mantissa          = mantissa * 10.0 + digit
+                            significantDigits += 1
+                        }
+                    }
                 }
                 else
                 {
-                    mantissa         = mantissa * 10.0 + digit
                     hasMantissaDigit = true
+                    if significantDigits < 17
+                    {
+                        if significantDigits or nibble
+                        {
+                            mantissa          = mantissa * 10.0 + digit
+                            significantDigits += 1
+                        }
+                    }
+                    else
+                    {
+                        decimalExponent += 1
+                    }
                 }
             }
             elif nibble == 0x0A
@@ -359,24 +379,35 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
     }
 
     var value = mantissa
-    if exponent
+    if significantDigits
     {
-        if exponent > 632
+        if expNegative do
+            decimalExponent -= cast(s64, exponent)
+        else do
+            decimalExponent += cast(s64, exponent)
+
+        if decimalExponent > 308
         {
-            if expNegative do
-                value = 0.0
-            else do
-                try fault(0x08)
+            try fault(0x08)
         }
+        elif decimalExponent < -341 do
+            value = 0.0
         else
         {
-            var remainingExponent = exponent
-            while remainingExponent
+            var remainingExponent = decimalExponent
+            while remainingExponent > 0
             {
-                let step  = Math.min(remainingExponent, 300)
+                let step  = Math.min(cast(s32, remainingExponent), 300)
                 let power = Math.pow(10.0'f64, cast(f64, step))
-                value = expNegative ? value / power : value * power
+                value *= power
                 remainingExponent -= step
+            }
+            while remainingExponent < 0
+            {
+                let step  = Math.min(cast(s32, -remainingExponent), 300)
+                let power = Math.pow(10.0'f64, cast(f64, step))
+                value /= power
+                remainingExponent += step
             }
         }
     }

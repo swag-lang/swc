@@ -57,6 +57,13 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     discard catch decoder.readNalUnit([0x80'u8, 0x01, 0x00]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 
+    // The decoder supports only layer zero, and temporal_id_plus1 cannot be zero.
+    discard catch decoder.readNalUnit([0x02'u8, 0x09, 0x00]) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+
+    discard catch decoder.readNalUnit([0x02'u8, 0x00, 0x00]) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+
     // IDR_W_RADL, temporal_id_plus1 = 1, first segment, no prior-picture flag, PPS id zero.
     discard catch decoder.readNalUnit([0x26'u8, 0x01, 0xA0]) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)

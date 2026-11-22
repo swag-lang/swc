@@ -49,8 +49,15 @@ impl Decoder
         if (payload[0] & 0x80) != 0 do
             fail InvalidFormatError{"HEVC network abstraction layer unit sets the forbidden bit"}
 
+        let layerId         = (cast(u32, payload[0] & 1) << 5) | cast(u32, (payload[1] >> 3) & 0x1F)
+        let temporalIdPlus1 = cast(u32, payload[1] & 7)
+        if layerId do
+            fail InvalidFormatError{"HEVC decoder does not support nonzero layer IDs"}
+        if not temporalIdPlus1 do
+            fail InvalidFormatError{"HEVC NAL unit needs a positive temporal_id_plus1"}
+
         let nalType    = cast(u32, (payload[0] >> 1)) & 0x3F
-        let temporalId = cast(u32, (payload[1] & 7)) - 1
+        let temporalId = temporalIdPlus1 - 1
         let body       = payload[2 until payload.count]
 
         switch nalType

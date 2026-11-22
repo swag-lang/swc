@@ -11,6 +11,7 @@ using Core, Core.Errors
 // Give each packet its raw device frame position and monotonic first-sample timestamp. An
 // [[Audio.CaptureClockDrift]] estimate adjusts [[Audio.Resampler]] as the source clock moves.
 // Converted output is timestamped on the recording clock and copied into [[Audio.CaptureQueue]].
+// Non-finite float input samples become zero before filtering.
 // On a discontinuity, the old filter tail is emitted, the filter phase restarts, and the queue
 // records a loss/restoration boundary. A mono source is duplicated into stereo; a stereo source
 // is averaged into mono. The adapter uses fixed-size input chunks and reuses its output arrays.
@@ -117,6 +118,8 @@ impl CaptureResampledFeeder
     }
 
     // Adds one native float32 packet and its first raw frame position.
+    //
+    // Non-finite samples are replaced with zero before resampling.
     mtd pushFloat32(samples: const [..] f32, firstTick: u64, sourceFrame: u64, discontinuity: bool = false) fail
     {
         if .finished or not samples.count or samples.count % .sourceChannels do
@@ -130,7 +133,9 @@ impl CaptureResampledFeeder
             .scratchOutput.clear()
             if .sourceChannels == .channels
             {
-                try .resampler.addFrames(samples[offset * .channels until (offset + count) * .channels],
+                for index in count * .channels do
+                    .scratchInput[index] = .zeroNonFinite(samples[offset * .channels + index])
+                try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels),
                                          &.scratchOutput)
             }
             else
@@ -139,16 +144,20 @@ impl CaptureResampledFeeder
                 {
                     for frame in count
                     {
-                        let value = samples[offset + frame]
+                        let value = .zeroNonFinite(samples[offset + frame])
                         .scratchInput[frame * 2]     = value
                         .scratchInput[frame * 2 + 1] = value
                     }
                 }
                 else
                 {
-                    for frame in count do
+                    for frame in count
+                    {
+                        let source = (offset + frame) * 2
                         .scratchInput[frame] = 0.5 *
-                                               (samples[(offset + frame) * 2] + samples[(offset + frame) * 2 + 1])
+                                               (.zeroNonFinite(samples[source]) +
+                                                .zeroNonFinite(samples[source + 1]))
+                    }
                 }
 
                 try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels),
@@ -216,6 +225,8 @@ impl CaptureResampledFeeder
 
 private impl CaptureResampledFeeder
 {
+    mtd const zeroNonFinite(sample: f32)->f32 => Math.isFinite(sample) ? sample : 0
+
     mtd beginPacket(firstTick: u64, sourceFrame: u64, discontinuity: bool) fail
     {
         if not .hasRun

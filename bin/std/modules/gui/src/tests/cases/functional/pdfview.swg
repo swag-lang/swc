@@ -34,6 +34,21 @@ func pdfViewImageFixture()->String
     return fileName
 }
 
+func pdfViewBlankMiddleFixture()->String
+{
+    let fileName = Testing.tempFilePath("gui-pdfview-blank-middle-", ".pdf")
+    var document = Document.create()
+    var first    = Page.create(320, 220)
+    first.addText("A", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move first)
+    document.addPage(Page.create(320, 220))
+    var last = Page.create(320, 220)
+    last.addText("B", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move last)
+    expect document.save(fileName)
+    return fileName
+}
+
 // Counts the painted pixels proving a page reached the frame: the white page ground, and
 // the dark marks of its text.
 func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
@@ -603,6 +618,32 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(view.hasSelection())
     Swag.require(view.selectionStart().pageIndex == 0 and view.selectionEnd().pageIndex == 1)
     Swag.require(view.selectedText() == "PDF viewer\nSecond page")
+}
+
+// Selecting through an empty page keeps one line feed for each page boundary.
+#test
+{
+    let fileName = pdfViewBlankMiddleFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+
+    let view = PdfView.create(&host.root)
+    view.resize(640, 420)
+    view.applyLayout()
+    expect view.open(fileName.toString())
+    view.setZoom(0.5)
+    settlePdfView(&host, view)
+
+    let scale  = view.effectiveZoom()
+    let first  = pdfPageRectOnScreen(view, 0)
+    let third  = pdfPageRectOnScreen(view, 2)
+    let start  = view.canvas.localToSurface(Math.Point{first.x + 33 * scale, first.y + 40 * scale})
+    let finish = view.canvas.localToSurface(Math.Point{third.x + 300 * scale, third.y + 40 * scale})
+    host.drag(start, finish)
+    Swag.require(view.selectionStart().pageIndex == 0 and view.selectionEnd().pageIndex == 2)
+    Swag.require(view.selectedText() == "A\n\nB")
 }
 
 // Search scans forward from the current page, wraps once around the document, and turns the

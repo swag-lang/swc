@@ -1823,13 +1823,14 @@ impl PdfView
         let last  = .selectionEnd()
         for index in first.pageIndex to last.pageIndex
         {
+            if index != first.pageIndex do
+                result.append("\n")
+
             let text  = .pageText(index)
             let start = index == first.pageIndex ? Math.min(first.offset, text.count) : 0
             let end   = index == last.pageIndex ? Math.min(last.offset, text.count) : text.count
             if end <= start do
                 continue
-            if not result.isEmpty() do
-                result.append("\n")
             result.append(text[start until end])
         }
 

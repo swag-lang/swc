@@ -83,7 +83,7 @@ impl DocumentOutline
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Transparent
+            .backgroundStyle = floatingSurface ? .Transparent : .View
             .padding         = floatingSurface ? Math.Vector4{12, 8, 12, 8} : Math.Vector4{0, 8, 0, 8}
             .toggle          = side.toggle
         }
@@ -213,23 +213,6 @@ impl DocumentOutline
     {
         let row = .rowAt(surfacePos)
         .list.listView.toolTip = row < .rowTitles.count ? .rowTitles[row].toString() : ""
-    }
-
-    // Keeps a quiet outline on the document's local palette, independently of application panels.
-    mtd setReadingColors(colors: string)
-    {
-        .backgroundStyle = .View
-
-        func apply(wnd: *Wnd, colors: string)
-        {
-            wnd.style.setStyleSheetColors(colors)
-            wnd.computeStyle()
-            for child in wnd.children do
-                apply(child, colors)
-        }
-
-        apply(me, colors)
-        .invalidate()
     }
 
     // Appends a heading with its whitespace collapsed, indented one level per enclosing heading of

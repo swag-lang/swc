@@ -376,7 +376,7 @@ impl String
     mtd replace(what: string, by: string?, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = what.count
-        if not whatLength or whatLength > .length do
+        if not whatLength or (comparisonType != .UnicodeNoCase and whatLength > .length) do
             return
         if .aliasesContent(what)
         {
@@ -394,19 +394,21 @@ impl String
 
         let byLength = by.count
 
-        var idx = Utf8.indexOf(.toString(), what, 0, comparisonType)
-        while idx != Swag.U64.Max
+        var match = Utf8.indexOfMatch(.toSlice(), what, 0, comparisonType)
+        while match.found
         {
+            var idx         = match.index
+            let matchLength = match.length
             .reserve(.length + byLength + 1)
-            Memory.copyOverlapping(unwrap .buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
+            Memory.copyOverlapping(unwrap .buffer + idx + byLength, .buffer + idx + matchLength, .length - (idx + matchLength) + 1)
             if byLength do
                 Memory.copy(.buffer + idx, by!.buffer, byLength)
-            .length -= whatLength
+            .length -= matchLength
             .length += byLength
             idx     += byLength
             if idx == .length do
                 break
-            idx = Utf8.indexOf(.toString(), what, idx, comparisonType)
+            match = Utf8.indexOfMatch(.toSlice(), what, idx, comparisonType)
         }
 
         let buffer = unwrap .buffer

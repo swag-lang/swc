@@ -299,6 +299,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     value.replace("", "ignored")
     Swag.require(assertString(value, "one , two , red "))
 
+    var unicodeReplace = String.from("k K \u212A")
+    unicodeReplace.replace("\u212A", "x", Utf8.ComparisonType.UnicodeNoCase)
+    Swag.require(assertString(unicodeReplace, "x x x"))
+
     value = "AaA"
     value.replace("a", "x", Utf8.ComparisonType.Latin1NoCase)
     Swag.require(assertString(value, "xxx"))

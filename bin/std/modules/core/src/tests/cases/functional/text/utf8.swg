@@ -533,6 +533,10 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
     Swag.require(Utf8.compare("abc", "abd") == -1)
     Swag.require(Utf8.compare("abd", "abc") == 1)
     Swag.require(Utf8.compare("Ab\u00C9", "ab\u00E9", Utf8.ComparisonType.UnicodeNoCase) == 0)
+    Swag.require(Utf8.compare("k", "\u212A", .UnicodeNoCase) == 0)
+    Swag.require(Utf8.indexOf("xk", "\u212A", comparisonType: .UnicodeNoCase) == 1)
+    Swag.require(Utf8.startsWith("kX", "\u212A", .UnicodeNoCase))
+    Swag.require(Utf8.endsWith("xk", "\u212A", .UnicodeNoCase))
 
     Swag.require(assertUtf8String(Utf8.beautifyName("httpServerURL"), "Http Server URL"))
 }

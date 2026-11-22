@@ -128,15 +128,15 @@ public impl NameMatcher
         var start = 0'u64
         while start < candidate.count
         {
-            let found = Utf8.indexOf(candidate, .query.toString(), start, comparison)
-            if found == Swag.U64.Max do
+            let match = Utf8.indexOfMatch(candidate, .query.toString(), start, comparison)
+            if not match.found do
                 return false
-            if .options.mode == .StartsWith and found do
+            if .options.mode == .StartsWith and match.index do
                 return false
-            let end = found + .query.count
-            if not .options.wholeWord or isNameWordBoundary(candidate, found, end) do
+            let end = match.index + match.length
+            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end) do
                 return true
-            start = found + 1
+            start = match.index + 1
         }
 
         return false
@@ -177,14 +177,14 @@ public impl NameMatcher
         var start = 0'u64
         while start < candidate.count
         {
-            let found = Utf8.indexOf(candidate, .query.toString(), start, comparison)
-            if found == Swag.U64.Max do
+            let match = Utf8.indexOfMatch(candidate, .query.toString(), start, comparison)
+            if not match.found do
                 break
-            if .options.mode == .StartsWith and found do
+            if .options.mode == .StartsWith and match.index do
                 break
-            let end = found + .query.count
-            if not .options.wholeWord or isNameWordBoundary(candidate, found, end) do
-                result.add(NameSpan{found, .query.count})
+            let end = match.index + match.length
+            if not .options.wholeWord or isNameWordBoundary(candidate, match.index, end) do
+                result.add(NameSpan{match.index, match.length})
             start = end
         }
 

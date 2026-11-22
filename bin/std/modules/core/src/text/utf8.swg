@@ -860,6 +860,33 @@ func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
     return indexOfAny(src, [what], startByteIndex)
 }
 
+private func matchUnicodeNoCaseAt(src: const [..] u8, start: u64, what: string)->{ found: bool, length: u64 }
+{
+    var result: #returntype
+    if start > src.count do
+        return result
+
+    var srcOffset  = start
+    var whatOffset = 0'u64
+    while whatOffset < what.count
+    {
+        if srcOffset >= src.count do
+            return result
+
+        let {c: srcRune, eat: srcEat}   = decodeRune(src[srcOffset to])
+        let {c: whatRune, eat: whatEat} = decodeRune(what[whatOffset to])
+        if Core.Unicode.toLower(srcRune) != Core.Unicode.toLower(whatRune) do
+            return result
+
+        srcOffset  += srcEat
+        whatOffset += whatEat
+    }
+
+    result.found  = true
+    result.length = srcOffset - start
+    return result
+}
+
 // Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
 //
 // `comparisonType` selects the case policy. An empty `what` is never found.
@@ -926,7 +953,9 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     }
 
     let countof = what.count
-    if not countof or countof > (length - startByteIndex) do
+    if not countof do
+        return Swag.U64.Max
+    if comparisonType != .UnicodeNoCase and countof > (length - startByteIndex) do
         return Swag.U64.Max
 
     if comparisonType == .Latin1 or comparisonType == .Unicode
@@ -941,18 +970,65 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
         return result == Swag.U64.Max ? result : startByteIndex + result
     }
 
-    var idx    = startByteIndex
-    var scan   = src.buffer + startByteIndex
-    var remain = length - startByteIndex
-    while countof <= remain
+    var idx = startByteIndex
+    while idx < length
     {
-        if compare(Swag.makeSlice(scan, countof), what, comparisonType) == 0 do
+        if matchUnicodeNoCaseAt(src, idx, what).found do
             return idx
-        scan, idx += 1
-        remain    -= 1
+        let {eat: step} = decodeRune(src[idx to])
+        idx += step
     }
 
     return Swag.U64.Max
+}
+
+// Returns the first match and the number of subject bytes it occupies. Unicode simple case
+// mappings keep one rune per rune but can change UTF-8 width, so callers that slice or replace a
+// match need this length in addition to its byte offset.
+internal func indexOfMatch(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->{ found: bool, index: u64, length: u64 }
+{
+    var result: #returntype
+    if comparisonType != .UnicodeNoCase
+    {
+        let index = indexOf(src, what, startByteIndex, comparisonType)
+        if index != Swag.U64.Max
+        {
+            result.found  = true
+            result.index  = index
+            result.length = what.count
+        }
+
+        return result
+    }
+
+    if not src.count do
+        return result
+    if startByteIndex >= src.count
+    {
+        Debug.safetyBoundCheck(startByteIndex == src.count, "index out of range")
+        return result
+    }
+
+    if not what.count do
+        return result
+
+    var index = startByteIndex
+    while index < src.count
+    {
+        let match = matchUnicodeNoCaseAt(src, index, what)
+        if match.found
+        {
+            result.found  = true
+            result.index  = index
+            result.length = match.length
+            return result
+        }
+
+        let {eat: step} = decodeRune(src[index to])
+        index += step
+    }
+
+    return result
 }
 
 // Returns the index of the first byte at or after `startByteIndex` that is one of `what`, or `Swag.U64.Max` when there is none.
@@ -1230,6 +1306,8 @@ func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonTyp
     let length = src.count
     if not length do
         return false
+    if comparisonType == .UnicodeNoCase do
+        return matchUnicodeNoCaseAt(unwrap src, 0, str).found
     let countof = str.count
     if countof > length do
         return false
@@ -1244,6 +1322,22 @@ func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.L
     let length = src.count
     if not length do
         return false
+    if comparisonType == .UnicodeNoCase
+    {
+        var start = length
+        var remainingRunes = countRunes(cast(const [..] u8, str))
+        while remainingRunes
+        {
+            if not start do
+                return false
+            let {eat} = decodeLastRune(src[until start])
+            start -= eat
+            remainingRunes -= 1
+        }
+
+        return compare(src[start to], str, comparisonType) == 0
+    }
+
     let countof = str.count
     if countof > length do
         return false

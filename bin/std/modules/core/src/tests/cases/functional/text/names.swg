@@ -57,6 +57,13 @@ using Swag
     let greekMatcher = expect Text.NameMatcher.create("Σ", {comparisonType: .UnicodeNoCase})
     Swag.require(greekMatcher.isMatch("σ"))
 
+    let widthChanging      = expect Text.NameMatcher.create("\u212A", {comparisonType: .UnicodeNoCase})
+    let widthChangingSpans = widthChanging.findAll("k K \u212A")
+    Swag.require(widthChangingSpans.count == 3)
+    Swag.require(widthChangingSpans[0].start == 0 and widthChangingSpans[0].length == 1)
+    Swag.require(widthChangingSpans[1].start == 2 and widthChangingSpans[1].length == 1)
+    Swag.require(widthChangingSpans[2].start == 4 and widthChangingSpans[2].length == 3)
+
     let overlapping  = expect Text.NameMatcher.create("ana")
     let overlapSpans = overlapping.findAll("banana")
     Swag.require(overlapSpans.count == 1 and overlapSpans[0].start == 1)

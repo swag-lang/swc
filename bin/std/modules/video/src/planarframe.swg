@@ -85,6 +85,8 @@ impl PlanarFrame
     //
     // Hand it to [[Pixel.IRenderer.addImage]] or [[Pixel.IRenderer.updateTexture]] and the
     // renderer converts where it draws, which is the whole reason a decoder produces planes.
+    // The pointers borrow this frame's storage; keep the frame alive and unchanged while the
+    // view is in use.
     mtd const view()->Pixel.YuvPlanarView
     {
         return {

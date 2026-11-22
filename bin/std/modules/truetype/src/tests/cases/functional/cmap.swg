@@ -297,6 +297,45 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(rejected.value() != null)
 }
 
+// Format-8 groups must be ordered, encode valid BMP values or surrogate pairs,
+// and map only glyphs present in the face.
+#test
+{
+    var cmap        = makeCmap8Fixture(true)
+    let groupOffset = 12'u64 + 8208 + 12
+
+    // The second group's start overlaps the first group's end.
+    writeBigU32(&cmap, groupOffset, 'C'u32)
+    writeBigU32(&cmap, groupOffset + 4, 'C'u32)
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    faceData.face.setGlyphCount(22)
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    cmap     = makeCmap8Fixture(true)
+    writeBigU32(&cmap, groupOffset + 4, 0xD83D_D800)
+    var invalidPair: FaceImpl
+    invalidPair.fontData.add(cmap.toSlice())
+    invalidPair.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    invalidPair.face.setGlyphCount(22)
+    rejected = {}
+    discard catch parseCMap(&invalidPair, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    cmap  = makeCmap8Fixture(true)
+    writeBigU32(&cmap, groupOffset + 8, 21)
+    var missingGlyph: FaceImpl
+    missingGlyph.fontData.add(cmap.toSlice())
+    missingGlyph.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    missingGlyph.face.setGlyphCount(22)
+    rejected = {}
+    discard catch parseCMap(&missingGlyph, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A declared format-12 extent may not run past the containing cmap table.
 #test
 {

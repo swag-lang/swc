@@ -414,12 +414,15 @@ tools\coverage.bat -Configuration release -Suite full
 | --- | --- | --- |
 | `fast` (default) | Ordinary standard-module and application tests, excluding `golden` and `stress` | Workstation or CI, frequent iteration |
 | `stress` | Tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Every `golden` test, using CPU references | Rendering changes and scheduled runs, on any machine |
+| `goldens` | Every `golden` test, using exact CPU references recorded in Release | Rendering changes and scheduled Release runs |
 | `parity` | Tests tagged `integration.renderer.opengl`: one scene drawn by the CPU and the GPU renderer, compared with a contrast-following tolerance | GPU machine, renderer changes and scheduled runs |
-| `full` | Ordinary, stress and golden tests together, with CPU rendering for headless fixtures | Complete functional and visual pass before integration |
+| `full` | Ordinary, stress and (in Release) golden tests, with CPU rendering for headless fixtures | Complete functional and visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
-`-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
+`-Configuration devmode|release` selects the program preset for coverage. Goldens run only in Release;
+when `full` is explicitly run in DevMode, golden-tagged tests are excluded. If no configuration is
+specified, `goldens` and `full` select Release while other suites select DevMode. An explicit
+DevMode configuration for the `goldens` suite is rejected.
 Each workspace reports elapsed wall time including compilation. Integration
 tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
@@ -430,9 +433,11 @@ contexts through the code under test.
 
 Two campaigns own what the screen looks like, and they do not overlap.
 
-**Goldens render on CPU, always.** A PNG golden is a CPU reference: only the CPU renderer draws
-the same pixels on every machine. Record and compare goldens from CPU images. A mismatch leaves
-`<name>.actual.png` to review and promote with `goldens.bat accept`.
+**Goldens render on CPU in Release.** A PNG golden is a CPU reference: only the CPU renderer draws
+the same pixels on every machine and Release is the canonical program configuration for both
+recording and comparison. DevMode does not compare against or generate golden snapshots; use it
+for functional behavior and safety checks. A Release mismatch leaves `<name>.actual.png` to review
+and promote with `goldens.bat accept`.
 
 ```text
 tools\coverage.bat -Configuration release -Suite goldens
@@ -535,7 +540,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | --- | --- |
 | `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
-| `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
+| `goldens.bat [dm] test [options...]` | Run tests tagged `golden` with the program built as Release |
 | `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
 | `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |

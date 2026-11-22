@@ -295,6 +295,26 @@ SWC_TEST_BEGIN(Compiler_DebugOptionEnablesDebugInformation)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ReleasePresetsKeepFmaEnabled)
+{
+    char        arg0[] = "swc.dm";
+    char        arg1[] = "test";
+    char        arg2[] = "--build-cfg";
+    char*       argv[] = {arg0, arg1, arg2, nullptr};
+    for (const auto* preset : {"release", "release-safe"})
+    {
+        CommandLine cmdLine;
+        argv[3] = const_cast<char*>(preset);
+        CommandLineParser parser(const_cast<Global&>(ctx.global()), cmdLine);
+        if (parser.parse(std::size(argv), argv) != Result::Continue)
+            return Result::Error;
+        if (!cmdLine.defaultBuildCfg.backend.math.fma)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ReleaseBuildDoesNotEnableDebugInformation)
 {
     CommandLine parserCmdLine;

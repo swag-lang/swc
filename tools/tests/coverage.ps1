@@ -50,12 +50,16 @@ exit /b 0
     $calls = Invoke-Launcher @('-Suite', 'fast', '-Configuration', 'release')
     Assert-Calls $calls @('std|test --test-tag !golden --test-tag !stress', 'apps|test --test-tag !golden --test-tag !stress') 'The fast pass'
 
-    # The full pass includes goldens in the same invocation as the rest of each workspace.
+    # A full Release pass includes goldens; a DevMode full pass leaves snapshots to Release.
     Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Configuration', 'release')) @('std|test -bc release ', 'apps|test -bc release ') 'The full pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Configuration', 'devmode')) @('std|test --test-tag !golden -bc devmode ', 'apps|test --test-tag !golden -bc devmode ') 'The full DevMode pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'full')) @('std|test -bc release ', 'apps|test -bc release ') 'The default full pass'
     Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Workspace', 'apps', '-Module', 'swagscope', '-Configuration', 'release')) @('apps|test swagscope -bc release ') 'The full module pass'
-    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens')) @('goldens|test') 'The golden campaign'
-    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps')) @('apps|test swagscope --test-tag golden ') 'The workspace golden campaign'
-    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps', '-Module', 'swagscope', '-TestFile', 'explorer.swg')) @('apps|test swagscope --test-tag golden --test-file explorer.swg ') 'The focused golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens')) @('goldens|test -bc release') 'The default golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Configuration', 'release')) @('goldens|test -bc release') 'The Release golden campaign'
+    $null = Invoke-Launcher @('-Suite', 'goldens', '-Configuration', 'devmode') 1
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps')) @('apps|test swagscope --test-tag golden -bc release') 'The workspace golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps', '-Module', 'swagscope', '-TestFile', 'explorer.swg')) @('apps|test swagscope --test-tag golden --test-file explorer.swg -bc release') 'The focused golden campaign'
 
     Assert-Calls (Invoke-Launcher @('-Suite', 'parity')) @('std|test pixel --test-tag integration.renderer.opengl ') 'The parity campaign'
     $null = Invoke-Launcher @('-Suite', 'gpu') 1

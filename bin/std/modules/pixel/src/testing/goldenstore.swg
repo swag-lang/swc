@@ -23,6 +23,9 @@ struct ImageGoldenOptions
 // Goldens live in 'src/tests/goldens', beside the categorized cases folder, one '.txt' file per name.
 // 'name' may contain '/' to group goldens in sub-folders.
 //
+// Golden operations are supported only in Release, where their reference output is produced.
+// DevMode tests the behavior and safety paths without comparing or generating snapshots.
+//
 // There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
 // so a new test starts by producing its reference; the file then shows up as untracked, which is
 // where it gets reviewed and committed. A name whose golden no longer matches writes the produced
@@ -30,7 +33,7 @@ struct ImageGoldenOptions
 // through [[Swag.check]]: the test goes on, so one run reports every golden it moved. Accepting
 // the new output is therefore a copy, which `tools/goldens.bat accept` does in bulk.
 //
-// These checks remain active when Pixel is built as a release dependency.
+// These checks are supported only when the program is built as Release.
 //
 // Both writes land in the module source tree, which a sandboxed run reaches only through the
 // corpus 'swc test' grants it. See [[Core.Env.grantCorpus]].
@@ -45,9 +48,15 @@ func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full,
 // Behaves exactly like [[Pixel.Testing.assertGolden]] but takes the snapshot text directly, for callers
 // that build their own normalized representation. Both sides are compared with end of lines
 // normalized to '\n', so a CRLF checkout never changes the outcome.
-// The check remains active when Pixel is built as a release dependency.
+// Snapshot checks require the Release program configuration.
 func assertGoldenText(text: string, name: string, loc = #callerlocation)
 {
+    #static if #cfg != "release"
+    {
+        Swag.check(false, "golden checks require the Release configuration", loc)
+        return
+    }
+
     let path = goldenPath(name, ".txt", loc)
 
     // No golden yet: write one and let the test pass. It is loud on purpose -- an untracked file
@@ -166,13 +175,16 @@ func assertRenderersAgree(cpu, gpu: const *Image, name: string, options: ImageGo
 // [[Pixel.Testing.assertRenderersAgree]].
 //
 // [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
-// limits default to exact comparison. The check remains active when Pixel is built as a release
-// dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add
-// into FMA, which rounds antialiased samples slightly differently: a release build also accepts
-// a channel delta of two and four pixels beyond it, for a glyph that crosses into its
-// neighbouring quarter-pixel phase.
+// limits default to exact comparison. Golden recording and comparison are supported only in
+// Release, so the reference and candidate always use the same program configuration.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
+    #static if #cfg != "release"
+    {
+        Swag.check(false, "golden checks require the Release configuration", loc)
+        return
+    }
+
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
 
@@ -196,10 +208,9 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let tolerance  = releaseGoldenOptions(options)
-    let difference = compareImages(&expected, image, tolerance)
+    let difference = compareImages(&expected, image, options)
     let actual     = actualPath(path.toString(), ".png", ".actual.png")
-    if isWithinTolerance(&difference, tolerance)
+    if isWithinTolerance(&difference, options)
     {
         // A candidate an earlier run left is stale once the golden matches again.
         discard catch File.delete(actual)
@@ -213,19 +224,6 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
     Swag.check(false, "the pixels differ from the golden", loc)
-}
-
-// Widens `options` by the rounding a release build may add to a golden recorded from devmode.
-private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions
-{
-    var result = options
-    #static if #cfg == "release"
-    {
-        result.maxChannelDelta    = Math.max(result.maxChannelDelta, 2)
-        result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
-    }
-
-    return result
 }
 
 // Levels each channel of a GPU image may be off by anywhere, for rounding in blending.

@@ -18,7 +18,7 @@ function Assert-Campaign([int]$ExitCode, [string[]]$Modules) {
     $actual = @(if (Test-Path -LiteralPath $calls) { Get-Content -LiteralPath $calls })
     $expected = @($Modules | ForEach-Object {
         $workspace, $module = $_ -split '/'
-        "$workspace dm test `"$module`" --test-tag golden --run-timeout 17 --num-cores 1"
+        "$workspace dm test `"$module`" --test-tag golden --run-timeout 17 --num-cores 1 -bc release"
     })
     if (($actual -join '|') -ne ($expected -join '|')) { throw "Unexpected module calls: $actual" }
 }

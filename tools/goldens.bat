@@ -46,7 +46,7 @@ if errorlevel 2 (
     exit /b 0
 )
 if errorlevel 1 exit /b 0
-call "%~dp0%~1.bat" %compilerArgs% test "%~nx2" --test-tag golden %arguments%
+call "%~dp0%~1.bat" %compilerArgs% test "%~nx2" --test-tag golden %arguments% -bc release
 if errorlevel 1 set "result=1"
 exit /b 0
 

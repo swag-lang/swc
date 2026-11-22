@@ -136,9 +136,11 @@ let image = cpu.surfaceImage()
 Testing.assertImageGolden(&image, "toolbar.enabled")
 ```
 
-The first run creates `goldens/toolbar.enabled.png` and passes so the new file can
-be reviewed. A mismatch fails and writes `toolbar.enabled.actual.png`. After
-reviewing both images, `tools\goldens.bat accept` promotes pending snapshots.
+Golden references are created and compared only in Release. DevMode rejects
+golden operations, and a DevMode `full` campaign excludes golden-tagged tests,
+so safety and functional runs do not compare images against Release output. A
+Release mismatch fails and writes `toolbar.enabled.actual.png`.
+After reviewing both images, `tools\goldens.bat accept` promotes pending snapshots.
 
 Use [[Pixel.Testing.assertImagesNear]] when two backends render the same scene in
 one test. It writes both images on failure. The channel-delta limit absorbs small

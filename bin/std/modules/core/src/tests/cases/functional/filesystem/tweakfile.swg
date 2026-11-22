@@ -51,6 +51,24 @@ struct TweakBeta
     Swag.require(err2 is Errors.SyntaxError)
 }
 
+// A reference to its own field is a cycle just like a multi-field reference loop.
+#test
+{
+    struct TweakSelfCycle
+    {
+        value: s32
+    }
+
+    var value: TweakSelfCycle
+    var tweak: File.TweakFile
+    tweak.registerFolder(&value)
+
+    var errorOutcome: Swag.Error
+    discard catch tweak.parse("/TweakSelfCycle\nvalue $value\n") as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SyntaxError)
+    Swag.require(value.value == 0)
+}
+
 // A reference cycle that does not pass through the first reference is reported too.
 #test
 {

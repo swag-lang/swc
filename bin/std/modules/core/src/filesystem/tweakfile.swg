@@ -248,7 +248,7 @@ impl TweakFile
             for
             {
                 var foundDependency = false
-                for index in pendingReferences.count where index != readyIndex
+                for index in pendingReferences.count
                 {
                     let candidate = pendingReferences[index]
                     if reference.folder == candidate.folder and

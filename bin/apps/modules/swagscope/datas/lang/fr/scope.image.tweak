@@ -7,6 +7,8 @@ ui_ZoomMenu Zoom…
 ui_TipTransform Orientation de l'image
 ui_TipPlay     Lire ou mettre en pause
 ui_ItemSelector Choisir une image de cet ensemble
+ui_Frame        Image de l’animation
+ui_Image        Image
 
 ui_RotateClockwise        Pivoter à droite
 ui_RotateCounterClockwise Pivoter à gauche

@@ -62,16 +62,17 @@ impl PlaybackButton
         return result
     }
 
-    // Opens the playback options above this button; each choice applies the host policy at once.
-    mtd showOptions()
+    // Opens the playback options at this button or at the visible control that represents it.
+    mtd showOptions(anchor: *IconButton? = null)
     {
-        let sheet = OptionSheet.View.create(me,
+        let opener = anchor orelse &.button
+        let sheet = OptionSheet.View.create(opener,
                                             func|button = me|(page)
                                             {
                                                 button.playback.addOptionRows(page, button.view, button.showSlideDuration)
                                             },
                                             owner: .view)
-        sheet.doModal(me, autoDestroy: true)
+        sheet.doModal(opener, autoDestroy: true)
         .refreshIcon()
     }
 

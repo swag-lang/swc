@@ -16,6 +16,8 @@ struct Texts
     ui_TipTransform:           string = "Image Orientation"               // Tooltip of the orientation menu button.
     ui_TipPlay:                string = "Play or Pause"                   // Tooltip of the animation transport button.
     ui_ItemSelector:           string = "Choose an image in this set"     // Tooltip of the independent image-set selector.
+    ui_Frame:                  string = "Frame"
+    ui_Image:                  string = "Image"
     ui_RotateClockwise:        string = "Rotate Clockwise"                // Clockwise menu action.
     ui_RotateCounterClockwise: string = "Rotate Counter-Clockwise"        // Counter-clockwise menu action.
     ui_MirrorHorizontal:       string = "Mirror Horizontally"             // Horizontal reflection menu action.

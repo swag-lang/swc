@@ -569,6 +569,44 @@ using Core, Gui, Pixel, Audio
     workspace.playScene()
     Swag.require(first.playing and first.voice != null and not first.sceneSilent)
     Swag.require(second.playing and second.sceneSilent and second.voice == null)
+    Swag.require(second.stopButton.isEnabled())
+    second.stopButton.sigPressed.call(second.stopButton)
+    Swag.require(first.playing and not second.playing and second.playbackPosition() == 0)
+    Swag.require(not second.stopButton.isEnabled())
+    second.seekSeconds(0.25)
+    Swag.require(second.stopButton.isEnabled())
+}
+
+// A narrow picture keeps its frame or item and its local commands through resizing and closing its peer.
+#test
+{
+    for name in ["viewer.animation.gif", "imageset-icons.ico"]
+    {
+        var host: Testing.HeadlessHost
+        let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth)
+        defer host.shutdown()
+        workspace.openScene([scopeTestDataPath(name), scopeTestDataPath("viewer.png")], .SideBySide)
+        openViews(&host, workspace)
+        let scene = unwrap workspace.scene()
+        let document = workspace.activeDocument()
+        let view = assume cast(*Viewers.Picture.Panel, document.currentView)
+        view.imageView.setPaused(true)
+        view.imageView.setFrameIndex(0)
+        scene.split = 0.18
+        workspace.layoutScene()
+        document.revealViewerBar()
+        Swag.require(view.optionsButton.isLocallyVisible() and not view.transformButton.isLocallyVisible())
+        for child in view.actions.children where child.isLocallyVisible() and child != view.optionsButton do
+            Swag.require(child.position.x >= 0 and child.position.right() <= view.optionsButton.position.x)
+        let strings = Viewers.Picture.texts()
+        host.activateOptionRowWhenShown(view.imageView.movie.isAnimated() ? strings.ui_Frame : strings.ui_Image, 1)
+        view.optionsButton.sigPressed.call(view.optionsButton)
+        Swag.require(view.imageView.movie.frameIndex == 1)
+        workspace.closeView(1)
+        Swag.require(document.currentView == view and view.imageView.movie.frameIndex == 1)
+        Swag.require(view.transformButton.isLocallyVisible() and view.playModeButton.isLocallyVisible())
+        Swag.require(not view.optionsButton.isLocallyVisible())
+    }
 }
 
 // Moving between maximized cells changes which track is audible even while its peers are hidden.

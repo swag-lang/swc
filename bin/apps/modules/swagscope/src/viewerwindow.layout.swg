@@ -328,6 +328,12 @@ impl ViewerWindow
                 film.commands.resize(film.commands.position.width, height)
             }
 
+            if .currentView is Viewers.Sound.Panel as sound
+            {
+                let bar = Viewers.Sound.TransportHeight + .viewerBar.padding.y + .viewerBar.padding.w
+                sound.setCompactTransport((.workspace?.isTiled() orelse false) and .clientRect().height < 3 * bar)
+            }
+
             // The dedicated comparison paints its own canvas above the two transport bars.
             let comparison = tiledVideo and (.workspace?.wantsComparisonSheet() orelse false) and
                              (.workspace?.isMediaScene() orelse false) and not .fullScreen

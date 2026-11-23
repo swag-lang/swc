@@ -68,6 +68,8 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     return try canvas.toImage()
 }
 
+const TransportHeight = 72.0
+
 private
 {
     const SeekSeconds  = 10.0
@@ -458,6 +460,7 @@ struct Panel
     late
     {
         commands:       *Wnd
+        optionsButton:  *IconButton
         playModeButton: *Viewer.PlaybackButton
         playButton:     *IconButton
         stopButton:     *IconButton
@@ -491,6 +494,7 @@ struct Panel
     engineReady:  bool
     thumbnail:    bool
     playing:      bool
+    compactTransport:  bool
     sceneSilent:       bool
     sceneManaged:      bool
     sceneToggle:       (func||()->bool)?
@@ -645,6 +649,20 @@ impl Panel
     {
         let room  = .clientRect()
         let theme = .theme()
+        var result: #returntype
+        if .compactTransport
+        {
+            // Give the waveform the middle of the cell, above the floating transport.
+            let inset = theme.metrics.floating_Inset
+            let area = Math.max(0, room.height - .stripInset())
+            result.titleSize = area >= 4 * themeActionButtonSize(&theme.metrics) ? theme.metrics.defaultFontSize + 2 : 0
+            let titleHeight = result.titleSize ? theme.createDefaultFont(result.titleSize, .Bold).height + CreditGap : 0
+            let waveHeight = Math.min(WaveHeight, area * 0.25)
+            let top = .stripInset() + Math.max(0, (area * 0.8 - titleHeight - waveHeight) * 0.5)
+            result.titleTop = top
+            result.wave = {inset, top + titleHeight, Math.max(1, room.width - 2 * inset), waveHeight}
+            return result
+        }
         let hasCredits = not .credits().isEmpty()
         var words = TitleGap + theme.createDefaultFont(TitleSize, .Bold).height
         if hasCredits do
@@ -654,7 +672,6 @@ impl Panel
         let strip = .stripInset()
         let spare = room.height - strip - CoverSize - words - WaveGap - wave - WaveBottom
 
-        var result: #returntype
         result.titleSize   = TitleSize
         result.showCredits = hasCredits
         var side   = CoverSize
@@ -701,6 +718,7 @@ impl Panel
         .forwardButton.toolTip  = texts().ui_TipForward
         .volumeSlider.toolTip   = texts().ui_TipVolume
         .muteButton.toolTip     = texts().ui_TipMute
+        .optionsButton.toolTip  = appStrings().ui_Options
         .timeline.toolTip       = texts().ui_TipSeek
         if not .opened do
             return
@@ -860,7 +878,7 @@ impl Panel
             .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
         }
 
-        .stopButton.enable(.voice != null)
+        .stopButton.enable(.playing or .playbackPosition() > 0)
         .clockSecond   = -1
         .timelinePixel = -1
         .refreshTime()
@@ -1132,6 +1150,11 @@ impl Panel
         }
 
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), defaultKey: {modifiers: .None, key: .M}, bindId: "scope.sound.mute")
+
+        entries.add(texts.cmd_PlayMode, .RepeatAll, func|view = me|()
+        {
+            view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
+        }, bindId: "scope.sound.playMode")
 
         // The rate is stepped like a film's, and the row reads the rate in force.
         let faster = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1], bindId: "scope.sound.faster")
@@ -1451,20 +1474,10 @@ impl IWnd for Panel
             .arrangeWave()
     }
 
-    // Draws the cover, and under it the name of the recording and who made it, centered.
-    //
-    // The cover is the sleeve stored beside the file, cropped square, lifted by the shadow of a
-    // floating surface. Without one it is a neutral sleeve: the rings of a record on the raised
-    // ground, as the explorer draws an album without artwork.
-    mtd impl onPaint(evt: *PaintEvent)
+    // Crop the sleeve square or draw the same record motif as the explorer for a missing cover.
+    private mtd paintCover(painter: *Painter, cover: Math.Rectangle)
     {
-        let painter = evt.paintContext.painter
-        let colors  = .themeColors()
-        let room    = .clientRect()
-        let layout  = .pageLayout()
-        let cover   = layout.cover
-
-        painter.setParams(.Antialiased)
+        let colors = .themeColors()
         .theme().drawFloatingShadow(painter, cover, CoverCorner)
         if .cover.isValid()
         {
@@ -1485,7 +1498,19 @@ impl IWnd for Panel
             painter.drawCircle(center.x, center.y, radius * 0.68, colors.line)
             painter.fillCircle(center.x, center.y, 5, colors.softText)
         }
+    }
 
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let room    = .clientRect()
+        let layout  = .pageLayout()
+        painter.setParams(.Antialiased)
+        if not layout.cover.isEmpty() do
+            .paintCover(painter, layout.cover)
+        if not layout.titleSize do
+            return
         let titleFont = .theme().createDefaultFont(layout.titleSize, .Bold)
         let textWidth = Math.max(0, room.width - 2 * .themeMetrics().floating_Inset)
         let title     = Painter.elideString(.title(), titleFont, textWidth, .deviceScale())
@@ -1559,6 +1584,12 @@ impl Panel
     // Every control starts disabled; opening the sound enables what the engine can serve.
     mtd createTransportBar()
     {
+        with .optionsButton = Viewer.createOptionsButton(.commands)
+        {
+            .dockStyle = .Right
+            .sigPressed += func|view = me|(_) { view.showCompactOptions() }
+            .hide()
+        }
         with .playModeButton = Viewer.PlaybackButton.create(.commands, me, .services.playback)
         {
             .dockStyle = .Right
@@ -1643,6 +1674,55 @@ impl Panel
         .timeline.sendToBack()
     }
 
+    mtd setCompactTransport(compact: bool)
+    {
+        if compact == .compactTransport do
+            return
+        .compactTransport = compact
+        .timeline.dockStyle = compact ? .Center : .Top
+        .timeline.margin = compact ? Math.Vector4{6, 0, 6, 0} : Math.Vector4{12, 0, 12, 8}
+        if not compact do
+            .timeline.resize(.timeline.position.width, 28, computeLayout: false)
+        .commands.resize(.commands.position.width, compact ? themeActionButtonSize(.themeMetrics()) : TransportHeight)
+        .arrangeWave()
+        .invalidate()
+    }
+
+    mtd fitTransport()
+    {
+        let width = .commands.position.width
+        let action = themeActionButtonSize(.themeMetrics())
+        let pair = action + .playModeButton.position.width + .playModeButton.margin.x
+        let sound = pair + .muteButton.position.width + .muteButton.margin.x
+        let options = .compactTransport or width < sound
+        .optionsButton.show(options)
+        .playModeButton.show(not options)
+        .timeLabel.show(.compactTransport ? width >= 440 : width >= sound + .timeLabel.position.width + .timeLabel.margin.x)
+        .muteButton.show(not .compactTransport and width >= sound)
+        .volumeSlider.show(not .compactTransport and width >= 580)
+        .stopButton.show(width >= (.compactTransport ? 260 : 520))
+        .backwardButton.show(not .compactTransport and width >= 520)
+        .forwardButton.show(not .compactTransport and width >= 520)
+    }
+
+    mtd showCompactOptions()
+    {
+        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page)
+        {
+            let text = appStrings()
+            let size = themeRowIconSize(view.themeMetrics())
+            page.addAction(text.cmd_Stop, func|view|() { view.requestPlaybackStop() }, disabled: not view.stopButton.isEnabled(),
+                           icon: view.theme().icon(.Stop, size))
+            page.addToggle(text.cmd_Mute, view.muted, func|view|(on) { view.setMuted(on) }, disabled: not view.muteButton.isEnabled(),
+                           icon: view.theme().icon(.VolumeMute, size))
+            page.addStepper(texts().ui_TipVolume, Viewer.zoomText(cast(u32, Math.round(view.volume * 100))),
+                            func|view|(step) { view.setVolume(Math.clamp(view.volume + cast(f32, step) * Viewer.VolumeStep, 0, 1)) },
+                            view.volumeSlider.isEnabled() and view.volume > 0, view.volumeSlider.isEnabled() and view.volume < 1)
+            view.services.playback.addOptionRows(page, view)
+        }, owner: me)
+        sheet.doModal(.optionsButton, autoDestroy: true)
+    }
+
     // Builds the sound panel: commands, transport bar and waveform view, then opens the file in
     // the background.
     func create(host: Viewer.Host)->*Panel
@@ -1657,25 +1737,12 @@ impl Panel
         }
 
         result.commands = host.createCommandGroup(CommandWidth)
-        result.commands.resize(CommandWidth, 72)
+        result.commands.resize(CommandWidth, TransportHeight)
         result.createTransportBar()
         result.commands.hookOnEvent = func|view = result|(_, evt)->bool
         {
-            if evt is ResizeEvent
-            {
-                let width = view.commands.position.width
-                let action = view.playButton.position.width
-                let pair   = action + view.playModeButton.position.width + view.playModeButton.margin.x
-                let sound  = pair + view.muteButton.position.width + view.muteButton.margin.x
-                view.timeLabel.show(width >= sound + view.timeLabel.position.width + view.timeLabel.margin.x)
-                view.muteButton.show(width >= sound)
-                view.playModeButton.show(width >= pair)
-                view.volumeSlider.show(width >= 580)
-                view.stopButton.show(width >= 520)
-                view.backwardButton.show(width >= 520)
-                view.forwardButton.show(width >= 520)
-            }
-
+            if evt is ResizeEvent do
+                view.fitTransport()
             return false
         }
 

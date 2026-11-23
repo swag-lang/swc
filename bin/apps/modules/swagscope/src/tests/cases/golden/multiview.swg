@@ -287,6 +287,11 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     audio.concealViewerBar()
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.mixed.compact.encre")
+    audio.revealViewerBar()
+    let controls = host.renderSettled(&host.surfaceWnd)
+    let sound = unwrap ScenePlayer.from(audio).sound
+    Swag.require(sound.waveform.surfaceRect().bottom() <= audio.viewerBar.surfaceRect().y)
+    assertScopeImageGolden(&controls, "scene.sound.controls.encre")
 }
 
 #[Swag.TestTag("golden")]

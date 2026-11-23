@@ -346,6 +346,7 @@ struct Panel
         nextButton:      *IconButton
         imageView:       *ImageView
         zoomLabel:       *IconButton
+        optionsButton:   *IconButton
         transformButton: *IconButton
         playModeButton:  *Viewer.PlaybackButton
         playButton:      *IconButton
@@ -665,12 +666,7 @@ impl Panel
         let width    = imageSetCommandWidth(.themeMetrics(), animated)
         .actions.preferredSize.x = width
         .actions.resize(width, themeActionButtonSize(.themeMetrics()))
-        .playButton.show(animated)
-        .timeline.show(animated)
-        .itemSelector.show(not animated)
-        .frameLabel.show()
-        .previousPage.show()
-        .nextPage.show()
+        .fitCommandBar()
         if animated
         {
             .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
@@ -684,7 +680,78 @@ impl Panel
         .services.chromeChanged(me)
     }
 
+    // Spend the available width on the operation that belongs to the picture: file, page or frame.
+    mtd fitCommandBar()
+    {
+        let width = .actions.position.width
+        let movie = &.imageView.movie
+        let paged = movie.frameCount > 1
+        let animated = paged and movie.isAnimated()
+        let metrics = .themeMetrics()
+        let action = themeActionButtonSize(metrics)
+        let compact = width < (paged ? imageSetCommandWidth(metrics, animated) : commandWidth(metrics))
+        let room = width - (compact ? .optionsButton.position.width : 0)
+        let stepWidth = animated ? Viewer.pageControlWidth(metrics) + 3 * action : 2 * action
+        let steps = room >= stepWidth
+        let counter = paged and steps and room >= Viewer.pageControlWidth(metrics)
+        .optionsButton.show(compact)
+        .transformButton.show(not compact)
+        .playModeButton.show(not compact)
+        .previousButton.show(not paged and steps)
+        .nextButton.show(not paged and steps)
+        .previousPage.show(paged and steps)
+        .nextPage.show(paged and steps)
+        .frameLabel.show(counter)
+        .playButton.margin.x = compact ? 0 : 10
+        .playButton.show(animated and room >= action)
+        let free = room - (steps ? 2 * action : 0) - (counter ? Viewer.PageReadoutWidth : 0) -
+                   (animated ? action + .playButton.margin.x : 0) - 12
+        .timeline.resize(compact ? Math.clamp(free, 0, 128) : 128, .timeline.position.height, computeLayout: false)
+        .timeline.show(animated and (not compact or free >= action))
+        .itemSelector.resize(compact ? Math.clamp(free, 0, ImageItemSelectorWidth) : ImageItemSelectorWidth,
+                             .itemSelector.position.height, computeLayout: false)
+        let selectItem = paged and not animated and (not compact or free >= 3 * action)
+        if .thumbnailPopup and not selectItem do
+            .itemSelector.closePopup()
+        .itemSelector.show(selectItem)
+    }
+
+    mtd showCompactOptions()
+    {
+        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page)
+        {
+            let strings = texts()
+            let movie = &view.imageView.movie
+            if movie.frameCount > 1
+            {
+                let index = movie.frameIndex
+                if movie.isAnimated() and not view.playButton.isLocallyVisible() do
+                    page.addAction(movie.isPaused ? appStrings().cmd_Play : appStrings().cmd_Pause,
+                                   func|view|() { view.toggleAnimation() },
+                                   icon: view.theme().icon(movie.isPaused ? .Play : .Pause, themeRowIconSize(view.themeMetrics())))
+                page.addStepper(movie.isAnimated() ? strings.ui_Frame : strings.ui_Image,
+                                Viewer.pageText(cast(u64, index), cast(u64, movie.frameCount)),
+                                func|view|(step) { view.turnPage(step) }, index > 0, index + 1 < movie.frameCount)
+            }
+            if not view.previousButton.isLocallyVisible() and movie.frameCount <= 1
+            {
+                page.addAction(strings.ui_TipPrevious, func|view|() { view.navigate(-1) }, disabled: not view.previousButton.isEnabled(), closesSheet: true)
+                page.addAction(strings.ui_TipNext, func|view|() { view.navigate(1) }, disabled: not view.nextButton.isEnabled(), closesSheet: true)
+            }
+            page.addAction(strings.ui_TipTransform, func|view|() { view.showTransformMenu() }, closesSheet: true,
+                           icon: view.theme().icon(.Redo, themeRowIconSize(view.themeMetrics())))
+            view.services.playback.addOptionRows(page, view, showSlideDuration: true)
+        }, owner: me)
+        sheet.doModal(.optionsButton, autoDestroy: true)
+    }
+
     mtd navigate(delta: s32) => .services.navigate(me, delta)
+
+    mtd toggleAnimation()
+    {
+        .imageView.setPaused(not .imageView.movie.isPaused)
+        .refreshFrame()
+    }
 
     mtd rotateClockwise()
     {
@@ -823,26 +890,26 @@ impl Panel
         }
 
         entries.add(lens.cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.image.zoomMenu")
-        if .playButton.isLocallyVisible()
+        if .imageView.movie.isAnimated()
         {
             entries.add(.imageView.movie.isPaused ? lens.cmd_Play : lens.cmd_Pause,
                         .imageView.movie.isPaused ? .Play : .Pause,
-                        func|view = me|()
-                        {
-                            view.imageView.setPaused(not view.imageView.movie.isPaused)
-                            view.refreshFrame()
-                        },
+                        func|view = me|() { view.toggleAnimation() },
                         defaultKey: {modifiers: .None, key: .Space},
                         bindId: "scope.image.playPause")
         }
 
-        entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|() { view.playModeButton.showOptions() }, bindId: "scope.image.playMode")
+        entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|()
+        {
+            view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
+        }, bindId: "scope.image.playMode")
     }
 
     mtd showTransformMenu()
     {
         let menu = .createTransformMenu()
-        switch menu.doModal(.transformButton, autoDestroy: true) orelse ""
+        let anchor = .optionsButton.isLocallyVisible() ? .optionsButton : .transformButton
+        switch menu.doModal(anchor, autoDestroy: true) orelse ""
         {
         case "scope.image.rotateLeft":       .rotateCounterClockwise()
         case "scope.image.rotateRight":      .rotateClockwise()
@@ -893,6 +960,7 @@ private impl IWnd for Panel
             .nextPage.toolTip        = appStrings().ui_NextPage
             .transformButton.toolTip = texts().ui_TipTransform
             .playButton.toolTip      = texts().ui_TipPlay
+            .optionsButton.toolTip   = appStrings().ui_Options
             .zoomLabel.toolTip       = texts().ui_ZoomMenu
             .refreshZoom()
             if not .facts.width.isEmpty()
@@ -1093,20 +1161,8 @@ private impl Panel
         result.createImageView()
         result.actions.hookOnEvent = func|view = result|(_, evt)->bool
         {
-            if evt is ResizeEvent
-            {
-                let paged      = view.imageView.movie.frameCount > 1
-                let width      = view.actions.position.width
-                let animated   = view.imageView.movie.isAnimated()
-                let enoughRoom = width >= imageSetCommandWidth(view.themeMetrics(), animated)
-                view.timeline.show(paged and animated and enoughRoom)
-                view.itemSelector.show(paged and not animated and enoughRoom)
-                view.previousButton.show(not paged)
-                view.nextButton.show(not paged)
-                view.transformButton.show(not paged or width >= Viewer.pageControlWidth(view.themeMetrics()) + themeDropDownButtonWidth(view.themeMetrics()) + 8)
-                view.playModeButton.show(not paged or width >= imageSetCommandWidth(view.themeMetrics(), false) - 128 - 12 + (view.imageView.movie.isAnimated() ? themeActionButtonSize(view.themeMetrics()) + 10 : 0))
-            }
-
+            if evt is ResizeEvent do
+                view.fitCommandBar()
             return false
         }
 
@@ -1133,6 +1189,12 @@ private impl Panel
     // Creates the folder navigation, the transform menu, and the play-mode menu in the command group.
     mtd createCommandBar(playback: Viewer.PlaybackApi)
     {
+        with .optionsButton = Viewer.createOptionsButton(.actions)
+        {
+            .dockStyle = .Right
+            .hide()
+            .sigPressed += func|view = me|(_) { view.showCompactOptions() }
+        }
         with .previousButton = Viewer.createActionButton(.actions, .ChevronLeft)
         {
             .dockStyle = .Left
@@ -1174,11 +1236,7 @@ private impl Panel
             .margin.x  = 10
             .toolTip   = texts().ui_TipPlay
             .hide()
-            .sigPressed += func|view = me|(_)
-            {
-                view.imageView.setPaused(not view.imageView.movie.isPaused)
-                view.refreshFrame()
-            }
+            .sigPressed += func|view = me|(_) { view.toggleAnimation() }
         }
 
         with .timeline = Slider.create(.actions, {0, 0, 128, 36})

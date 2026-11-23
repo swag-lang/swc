@@ -39,6 +39,7 @@ ui_InspectorGuid      GUID
 ui_InspectorBcd       DCB
 ui_InspectorRgba8     RGBA8
 ui_InspectorFatDateTime Date/heure FAT
+ui_InspectorFileTime FILETIME UTC
 ui_InspectorUleb128   ULEB128
 ui_InspectorSleb128   SLEB128
 ui_ReadingInvalid     invalide

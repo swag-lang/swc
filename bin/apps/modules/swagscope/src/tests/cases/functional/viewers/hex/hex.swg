@@ -512,6 +512,36 @@ internal func writeSampleFile()->String
         Swag.require(reading.value == "1980-01-01 00:01:02")
 }
 
+// FILETIME remains UTC regardless of the selected scalar byte order and rejects out-of-range ticks.
+#test
+{
+    var epoch: Array'u8
+    epoch.resize(8)
+    Swag.require(Hex.readFileTime(epoch.toSlice()) == "1601-01-01 00:00:00.000Z")
+    var overflow: Array'u8
+    overflow.resize(8)
+    for index in 8 do
+        overflow[index] = 0xFF
+    Swag.require(Hex.readFileTime(overflow.toSlice()) == Hex.texts().ui_ReadingInvalid)
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-filetime-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, epoch.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    var found = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorFileTime
+        {
+            Swag.require(reading.value == "1601-01-01 00:00:00.000Z")
+            found = true
+        }
+    }
+    Swag.require(found)
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

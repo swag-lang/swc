@@ -129,6 +129,24 @@ func readFatDateTime(bytes: const [..] u8)->String
     return value.toString(.DateTimeIso)
 }
 
+// Converts a little-endian FILETIME to UTC while rejecting dates beyond the calendar range.
+func readFileTime(bytes: const [..] u8)->String
+{
+    if bytes.count < 8 do
+        return String.from(texts().ui_ReadingInvalid)
+
+    const FileTimeEpoch = 504911232000000000'u64
+    const MaxFileTime   = 2650467743999999999'u64
+    let ticks = readScalar(bytes[until 8], false)
+    if ticks > MaxFileTime do
+        return String.from(texts().ui_ReadingInvalid)
+
+    let dateTime = Time.Timestamp.fromTicks(ticks + FileTimeEpoch).toDateTime()
+    var result = dateTime.toString(.DateTimeIsoMs)
+    result.append('Z'rune)
+    return result
+}
+
 // Converts one IEEE-754 binary16 value to binary32 without relying on host-specific half types.
 func float16ToFloat(value: u16)->f32
 {
@@ -914,6 +932,8 @@ impl Panel
                                        bytes[12], bytes[13], bytes[14], bytes[15])
             view.readings.add({texts().ui_InspectorGuid, guid, false})
         }
+        if bytes.count >= 8 do
+            view.readings.add({texts().ui_InspectorFileTime, readFileTime(bytes), false})
         let word  = readScalar(bytes[until 4], bigEndian)
         let other = readScalar(bytes[until 4], not bigEndian)
         view.readings.add({"s32", Viewer.groupThousands(Format.toString("%", signedScalar(word, 4))), false})

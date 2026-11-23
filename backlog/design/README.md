@@ -896,7 +896,8 @@ the screen to its work.
   "Unmount" stands last.
 - A locked vault rests on the ground with a faint chevron. The pointer or the keyboard raises its
   ground and names what choosing it does, "Unlock". Choosing it unfolds it in place (password,
-  drive, key files link, read-only, primary "Mount").
+  drive, key files link, read-only, primary "Mount"). The unfolded header offers an edit glyph
+  for the password, stored key files and capacity.
 - Without a vault — the first visit, and every start while privacy mode keeps no list — the page
   is the home: the mark, large and faint, gives the page its centre; a title (22, bold) says that no
   vault is there or open, and two soft lines say what a vault is, then what it keeps or that

@@ -23,10 +23,33 @@ using Core, Gui
         window.lens.open("options")
         Swag.require(lensHasEntry(window, appStrings().cmd_Options))
         window.lens.close()
+        let forward = window.list.options.surfaceRect()
         host.clickWnd(window.list.options)
         Swag.require(window.page == .Options and window.optionsPage.isLocallyVisible())
         Swag.require(not window.list.scroll.isLocallyVisible())
+        let back = window.optionsPage.head.back.surfaceRect()
+        Swag.require(forward.y == back.y and forward.height == back.height)
+        Swag.require(Math.abs(forward.right() + back.x - 2 * window.surfaceRect().horzCenter()) <= 1)
         host.clickWnd(window.optionsPage.head.back)
         Swag.require(window.page == .List and window.list.options.isLocallyVisible())
     }
+}
+
+// A scrolling list mirrors the return link even when its scrollbar takes part of the view.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, 1.25, width: 1280, height: 800)
+    fillPictureList(window)
+    for index in 8 do
+        window.vaults.add(KnownVault{Format.toString("/vaults/extra-%", index), "", false})
+    window.refreshVaults()
+    Swag.require(window.list.position.width < window.clientRect().width)
+
+    let forward = window.list.options.surfaceRect()
+    host.clickWnd(window.list.options)
+    Swag.require(window.page == .Options)
+    let back = window.optionsPage.head.back.surfaceRect()
+    Swag.require(forward.y == back.y and forward.height == back.height)
+    Swag.require(Math.abs(forward.right() + back.x - 2 * window.surfaceRect().horzCenter()) <= 1)
 }

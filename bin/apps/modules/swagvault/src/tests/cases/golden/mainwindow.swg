@@ -92,6 +92,42 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     assertSurfaceGolden(&host, window, false, "unlock")
 }
 
+// A French modification menu keeps its opener and the access fields visible at minimum size.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    host.theme.setDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    fillPictureList(window)
+    window.chooseVault("/vault.bin")
+    host.settleAnimations(window)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items.count == 3)
+        let image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "unlock.modify.encre")
+        captured[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    host.clickWnd(unwrap window.list.card.header.modify)
+    Swag.require(captured)
+}
+
 // The page that creates a vault, against `vault.create.paper`.
 #[Swag.TestTag("golden")]
 #test

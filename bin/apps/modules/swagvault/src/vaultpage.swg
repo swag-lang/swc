@@ -12,6 +12,7 @@ const PageTop         = 64'f32      // Distance from the top of the window to th
 const PageFoot        = 48'f32      // The foot of the window the hint line stands in; a centred column is centred above it.
 const ListTop         = 64'f32      // Distance from the strip to the title of the list, which has no way back above it.
 const PageTitleSize   = 40'u32      // Size of a page title.
+const PageNavGap      = 16'f32      // Air between page navigation and the title below it.
 const PageHeadGap     = 32'f32      // Air between the head of a page and what it introduces.
 const RowOutset       = 28'f32      // How far a row's ground reaches past the column on each side.
 
@@ -35,7 +36,7 @@ impl PageHead
         let back = createQuietLink(column, appStrings().ui_BackToVaults)
 
         let titleLabel = createPageTitle(column, title)
-        titleLabel.margin.y = 16
+        titleLabel.margin.y = PageNavGap
 
         var helpLabel: *Label?
         if help
@@ -105,18 +106,23 @@ func createQuietLink(parent: *Wnd, text: string)->*IconButton
     return result
 }
 
+// Returns the width, horizontal position and top shared by the page columns and navigation.
+func pageColumnBounds(roomWidth: f32)->Math.Rectangle
+{
+    let width = Math.min(PageColumnWidth, Math.max(0, roomWidth - 2 * PageGutter))
+    return {Math.round((roomWidth - width) * 0.5), PageTop, width, 0}
+}
+
 // Places `column` in `page`: centred across, at the head of the page or, when `centred`, in its
 // middle. The column is as tall as what it holds at the width it is given.
 func placePageColumn(page: *Wnd, column: *Wnd, centred = false)
 {
     let room   = page.clientRect()
-    let width  = Math.min(PageColumnWidth, Math.max(0, room.width - 2 * PageGutter))
-    let height = Math.ceil(column.measure(Math.Point{width, 0}).preferred.y)
-
-    var top = PageTop
+    var bounds = pageColumnBounds(room.width)
+    bounds.height = Math.ceil(column.measure(Math.Point{bounds.width, 0}).preferred.y)
     if centred do
-        top = Math.max(PageTop, Math.round((room.height - PageFoot - height) * 0.5))
-    column.arrange(Math.Rectangle{Math.round((room.width - width) * 0.5), top, width, height})
+        bounds.y = Math.max(bounds.y, Math.round((room.height - PageFoot - bounds.height) * 0.5))
+    column.arrange(bounds)
 
     // A new wording can change what the column holds without changing its size.
     column.applyLayout()

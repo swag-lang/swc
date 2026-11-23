@@ -53,6 +53,7 @@ struct AppStrings
     ui_ProtectHidden:  string = "Protect Hidden Volume"
     ui_MountAtStartup: string = "Mount at Startup"
     ui_Forget:         string = "Forget Vault"
+    ui_ModifyVault:     string = "Modify…"
     ui_ChangePassword: string = "Change Password…"
     ui_ChangeKeyFiles: string = "Change Key Files…"
     ui_Resize:         string = "Capacity and Camouflage…"

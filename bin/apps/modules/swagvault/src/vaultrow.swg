@@ -20,7 +20,8 @@ struct VaultRow
     }
 
     path:          String     // Container file of the vault the row shows.
-    header:        bool       // Whether the row only heads the unfolded card: no ground, no actions, no input.
+    header:        bool       // Whether the row heads the unfolded card and offers its modification menu.
+    modify:        *IconButton?
     hovered:       bool
     focused:       bool
     containerSize: u64     // Size of the container file of a locked vault, or zero when it cannot be read.
@@ -53,8 +54,7 @@ impl VaultRow
     // Air between the words of a locked row and what its right edge says.
     const OpenHintGap = 8'f32
 
-    // Creates a row of the list in `parent`, for `window`. A `header` row draws the head of the
-    // unfolded card and nothing else.
+    // Creates a row of the list in `parent`, for `window`. A `header` row heads the unfolded card.
     func create(parent: *Wnd, window: *MainWindow, header = false)->*VaultRow
     {
         with let result = Wnd.create'VaultRow(parent, Math.Rectangle{0, 0, 0, Height})
@@ -73,6 +73,17 @@ impl VaultRow
         with result.unmount = PushButton.create(result, appStrings().ui_Unmount)
         {
             .sigPressed += func|row = result|(_) { row.window.unmountVault(row.path) }
+        }
+
+        if header
+        {
+            let metrics = result.themeMetrics()
+            let size    = metrics.quiet_Height
+            let modify  = IconButton.create(result, result.theme().icon(.Edit, themeRowIconSize(metrics)),
+                                            {0, 0, size, size}, flags: .IconOnly)
+            modify.setForm(.RoundedRectangle)
+            modify.sigPressed += func|window, modify|(_) { window.showVaultEditMenu(modify) }
+            result.modify = modify
         }
 
         result.refresh()
@@ -103,6 +114,11 @@ impl VaultRow
             .showDrive(drive.mountLabel)
         .unmount.setText(appStrings().ui_Unmount)
         .unmount.enable(.window.operation.kind == .None)
+        if let modify = .modify
+        {
+            modify.toolTip = appStrings().ui_ModifyVault
+            modify.enable(not .path.isEmpty() and .window.operation.kind == .None)
+        }
 
         // A locked container says how large it is; reading it here keeps the file system out of
         // the paint.
@@ -131,13 +147,20 @@ impl VaultRow
         .open.setText(words)
     }
 
-    // Stands the actions of a mounted vault at the right of the row, centred on its height.
+    // Stands the row's actions at its right edge, centred on its height.
     mtd arrangeActions()
     {
         let room  = .clientRect()
         let right = room.right() - RowOutset
-        let gap   = .themeMetrics().dialog_BtnPadding * 2
 
+        if let modify = .modify
+        {
+            let size = modify.measure({}).preferred
+            modify.arrange(Math.Rectangle{right - size.x, Math.round(room.vertCenter() - size.y * 0.5), size.x, size.y})
+            return
+        }
+
+        let gap     = .themeMetrics().dialog_BtnPadding * 2
         let unmount = .unmount.measure({}).preferred
         let open    = .open.measure({}).preferred
         .unmount.arrange(Math.Rectangle{right - unmount.x, Math.round(room.vertCenter() - unmount.y * 0.5), unmount.x, unmount.y})
@@ -236,7 +259,9 @@ impl IWnd for VaultRow
 
         // The words stop short of what the right edge holds, so a long name never runs under it.
         var textRight = room.right() - RowOutset
-        if .open.isLocallyVisible() do
+        if let modify = .modify do
+            textRight = modify.position.x - metrics.dialog_BtnPadding
+        elif .open.isLocallyVisible() do
             textRight = .open.position.x - metrics.dialog_BtnPadding
         elif not .header do
             textRight = .paintOpenHint(painter, room)

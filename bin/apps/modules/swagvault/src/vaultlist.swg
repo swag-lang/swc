@@ -351,6 +351,12 @@ impl VaultList
         .heading.show(home)
         .welcome.show(home)
 
+        // The navigation column stays centred in the window when the list gains a scrollbar.
+        let navigation  = pageColumnBounds(.window.clientRect().width)
+        let optionsSize = .options.measure({}).preferred
+        .options.arrange(Math.Rectangle{navigation.right() - optionsSize.x - .options.margin.x,
+                                        navigation.y, optionsSize.x, optionsSize.y})
+
         let bottom = home ? .arrangeHome(x, width) : .arrangeList(x, width)
         .scroll.setScrollSize(0, bottom + BottomRoom)
     }
@@ -361,13 +367,10 @@ impl VaultList
     {
         .markRect = {}
         .ruleRect = {}
-        var y = ListTop + .stripInset()
+        var y = Math.max(ListTop + .stripInset(), .options.position.bottom() + PageNavGap)
         .title.arrange(Math.Rectangle{x, y, width, .title.position.height})
-        let optionsSize = .options.measure({}).preferred
-        let titleSize   = .title.measure({}).preferred
-        .options.arrange(Math.Rectangle{x + titleSize.x + 16, y, optionsSize.x, optionsSize.y})
 
-        // Page navigation follows the title; vault actions stay on its far edge.
+        // Vault actions stay on the far edge of the title line.
         .newVault.setForm(.Normal)
         .openFile.setForm(.Flat)
         let newSize  = .newVault.measure({}).preferred
@@ -458,9 +461,6 @@ impl VaultList
         let room   = .scroll.clientRect()
         let center = Math.round(room.width * 0.5)
         var y      = Math.max(ListTop + .stripInset(), Math.round((room.height - PageFoot - height) * 0.5))
-
-        let optionsSize = .options.measure({}).preferred
-        .options.arrange(Math.Rectangle{x + width - optionsSize.x, ListTop + .stripInset(), optionsSize.x, optionsSize.y})
 
         .markRect = Math.Rectangle{center - MarkSize * 0.5, y, MarkSize, MarkSize}
         y         += MarkSize + MarkToHeading

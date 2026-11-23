@@ -335,6 +335,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             Testing.assertContentFits(window)
             let card = &window.list.card
             Swag.require(card.panel.isLocallyVisible())
+            let modify = unwrap card.header.modify
+            Swag.require(modify.icon.isValid() and modify.flags.has(.IconOnly))
+            Swag.require(modify.toolTip == appStrings().ui_ModifyVault)
+            Swag.require(modify.position.right() <= card.header.clientRect().right() - RowOutset + 0.5)
             Swag.require(card.form.position.bottom() <= card.options.position.y + 0.5)
             Swag.require(card.mount.position.bottom() <= card.panel.position.height + 0.5)
             for child in card.options.children where child.isLocallyVisible() do
@@ -822,6 +826,30 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(Utf8.contains(window.vaultIdentity(otherPath), texts.ui_StateProtected))
 }
 
+// Each action from the unfolded card opens its dialog without mounting the vault.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let path = Testing.tempFilePath("vault-modify-", ".bin")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllText(path, "container")
+    window.openVault(path)
+
+    let modify = unwrap window.list.card.header.modify
+    Swag.require(modify.isVisible() and modify.isEnabled())
+    for id in [VaultCommands.ChangePassword, VaultCommands.ChangeKeyFiles, VaultCommands.Resize]
+    {
+        host.clickPopupMenuItemWhenShown(id)
+        host.thenClickModalButton(Dialog.BtnCancel)
+        host.clickWnd(modify)
+        Swag.require(host.autoHandled and window.operation.kind == .None)
+        Swag.require(window.chosenLockedPath() == path)
+    }
+}
+
 // Boxes contain only the change being made. Current password and key files stay on the unfolded
 // vault, where mounting, resizing, and both access changes read the same input once.
 #test
@@ -959,7 +987,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.chosenPath == PictureMountedPath and window.automaticMountTimer == null)
 }
 
-// The list opens with page navigation beside its title and vault actions at the far edge, then the
+// The list opens with page navigation above its title and vault actions at the far edge, then the
 // vaults in two groups under their labels: mounted ones first, whatever the order of the list.
 #test
 {
@@ -978,10 +1006,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(list.rows[1].path == PictureLockedPath and list.rows[2].path == PictureArchivePath)
     Swag.require(list.mountedCount == 1)
 
-    // Options follows the title; the two vault actions keep the far end of its line.
+    // Options stands above the title; the two vault actions keep the far end of its line.
     Swag.require(list.newVault.form == .Normal and list.openFile.form == .Flat)
     Swag.require(list.options.position.x > list.title.position.x)
-    Swag.require(list.options.position.y >= list.title.position.y and list.options.position.bottom() <= list.title.position.bottom())
+    Swag.require(list.options.position.bottom() < list.title.position.y)
     Swag.require(Math.abs(list.newVault.position.right() - list.title.position.right()) < 0.5)
     Swag.require(list.openFile.position.right() < list.newVault.position.x)
     Swag.require(list.newVault.position.y >= list.title.position.y and list.newVault.position.bottom() <= list.title.position.bottom())

@@ -2,10 +2,8 @@ using Core, Gui
 
 // The commands of the window.
 //
-// The window keeps no toolbar, no tab strip and no button for a change of a vault: each command is
-// an entry of its lens, found by its name, and the ones a key runs are registered as shortcuts so
-// the lens writes the key beside the entry. A row of the list offers the commands of its vault on
-// its context menu, under the same identifiers.
+// Each command is an entry of the lens, found by its name. The lens writes shortcuts beside their
+// commands. The context menu and the unfolded card offer the same commands by identifier.
 namespace VaultCommands
 {
     const Lens             = "vault.lens"
@@ -126,6 +124,17 @@ impl MainWindow
         let chosen = menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
         if chosen do
             discard .runCommand(chosen)
+    }
+
+    // Opens the modification commands from the unfolded vault's header.
+    mtd showVaultEditMenu(button: *IconButton)
+    {
+        if .chosenLockedPath().count == 0 do
+            return
+
+        let menu = MenuCtrl.createPopup(button, owner: me)
+        menu.addItems([VaultCommands.ChangePassword, VaultCommands.ChangeKeyFiles, VaultCommands.Resize])
+        discard menu.doModal(button, autoDestroy: true)
     }
 
     // Describes one command of the window for the lens and every other presenter: its name, and

@@ -372,6 +372,7 @@ struct Wnd
     releasingFocus:   bool     // Excludes this subtree while it hands the keyboard off.
     isAllocated:      bool     // Whether destruction must release this allocation.
     paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
+    paintsBehindSiblings: bool // Whether the hidden subtree is the outgoing page behind its replacement.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.
@@ -1121,12 +1122,11 @@ impl Wnd
             painter.popState()
             painter.setTransform(curTrs)
 
-            // A logically hidden transition page is a backdrop, so it is painted before every
-            // visible sibling independently of their structural order.
-            for c in .children where c.wndFlags.has(.Hidden) and c.paintsWhenHidden and not c.isPendingDestroy do
+            // An outgoing page is a backdrop. A floating surface fades in its own stacking order.
+            for c in .children where c.wndFlags.has(.Hidden) and c.paintsWhenHidden and c.paintsBehindSiblings and not c.isPendingDestroy do
                 .paintChild(bc, c)
 
-            for c in .children where not c.wndFlags.has(.Hidden) do
+            for c in .children where not c.wndFlags.has(.Hidden) or c.paintsWhenHidden and not c.paintsBehindSiblings and not c.isPendingDestroy do
                 .paintChild(bc, c)
 
             if .managedByLayout and .surface and (.surface).app.options.showLayoutRects
@@ -1292,11 +1292,12 @@ impl Wnd
     }
 
     // Keeps a logically hidden window in its parent's paint order during a visual handoff.
-    internal mtd setPaintWhenHidden(enabled: bool)
+    internal mtd setPaintWhenHidden(enabled: bool, behindSiblings = false)
     {
-        if .paintsWhenHidden == enabled do
+        if .paintsWhenHidden == enabled and .paintsBehindSiblings == behindSiblings do
             return
         .paintsWhenHidden = enabled
+        .paintsBehindSiblings = behindSiblings
         .parent?.invalidate()
     }
 

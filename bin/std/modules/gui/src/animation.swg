@@ -1010,7 +1010,7 @@ impl Animator
         if outgoing
         {
             outgoing.hide()
-            outgoing.setPaintWhenHidden(true)
+            outgoing.setPaintWhenHidden(true, behindSiblings: true)
         }
 
         incoming.show()
@@ -1113,7 +1113,7 @@ impl Animator
                            options,
                            func|target|(result)
                            {
-                               if result == .Completed and not target.isPendingDestroy
+                               if not target.isPendingDestroy and (result == .Completed or not target.isLocallyVisible())
                                {
                                    target.setPaintWhenHidden(false)
                                    target.resetPresentation()

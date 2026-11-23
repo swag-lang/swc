@@ -57,6 +57,35 @@ func linearSecond()->AnimationOptions
     return result
 }
 
+// A departing floating surface still composites above the opaque document under it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let document = Wnd.create'Wnd(&host.root, {0, 0, 320, 200})
+    document.backgroundStyle = .View
+    let overlay = FloatingPanel.create(&host.root, {80, 40, 160, 120})
+    let shown = host.render().pixelColor(160, 100)
+    discard host.app.animator.leave(overlay)
+    Swag.require(not overlay.isLocallyVisible())
+    Swag.require(host.root.windowAt(160, 100) == document)
+    host.advanceAnimations(host.theme.metrics.motion_LeaveSeconds * 0.5)
+    let leaving = host.render().pixelColor(160, 100)
+    host.finishAnimations()
+    let resting = host.render().pixelColor(160, 100)
+    Swag.require(leaving != resting and leaving != shown)
+
+    discard host.app.animator.arrive(overlay)
+    host.advanceAnimations(host.theme.metrics.motion_PageSeconds * 0.5)
+    let arriving = host.render().pixelColor(160, 100)
+    Swag.require(arriving != resting and arriving != shown)
+    host.finishAnimations()
+    Swag.require(host.render().pixelColor(160, 100) == shown)
+}
+
 // A scroll endpoint can cancel its own glide while clamping to a streamed viewport. Finishing
 // animations must retain the callback's track until its update and invalidation have returned.
 #test

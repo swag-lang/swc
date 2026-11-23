@@ -1451,6 +1451,24 @@ impl ViewerWindow
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .flags           = .HideDividers
+            .hookOnEvent = func|window = result|(_, evt)
+            {
+                if evt is PaintEvent as paint where window.currentSidePanelButton?.id == OutlineToggleId and
+                                                    (window.currentSidePanelHost?.isVisible() orelse false)
+                {
+                    // The grip still handles the cursor and dragging. Only the reading ground crosses it.
+                    if paint.kind == .After do
+                        return true
+                    if paint.kind == .Content and window.currentView
+                    {
+                        let host = window.documentHost.position
+                        let body = window.documentPanel.position
+                        let ground = window.currentView.themeColors().view_Bk
+                        paint.paintContext.painter.fillRect({0, host.y + body.y, host.x, body.height}, ground)
+                    }
+                }
+                return false
+            }
         }
 
         result.createDocumentPanel()

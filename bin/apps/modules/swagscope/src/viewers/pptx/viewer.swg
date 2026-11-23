@@ -49,6 +49,7 @@ struct Panel
         nextButton:       *IconButton
         slideLabel:       *Label
         outline:          *DocumentOutline
+        thumbnailRail:    *Wnd
         thumbnailHeading: *Label
     }
 }
@@ -235,9 +236,10 @@ private impl Panel
         let inset      = .themeMetrics().floating_Inset
         let top        = .stripInset() + inset
         let area       = .clientRect()
-        let roomWidth  = Math.max(area.width - ThumbnailRailWidth - 2 * inset, 1)
+        let railWidth  = .thumbnailRail.isLocallyVisible() ? ThumbnailRailWidth : 0
+        let roomWidth  = Math.max(area.width - railWidth - 2 * inset, 1)
         let roomHeight = Math.max(area.height - top - inset, 1)
-        var bounds     = Math.Rectangle{ThumbnailRailWidth + inset, top, roomWidth, roomHeight}
+        var bounds     = Math.Rectangle{railWidth + inset, top, roomWidth, roomHeight}
         if not .notesMode and not .textMode and not .presentation.slides[.slide].simplified
         {
             let scale = Math.min(roomWidth / .presentation.width, roomHeight / .presentation.height)
@@ -287,20 +289,20 @@ private impl Panel
 
     mtd createThumbnailRail()
     {
-        with let rail = Wnd.create'Wnd(me, {0, 0, ThumbnailRailWidth, 0})
+        with .thumbnailRail = Wnd.create'Wnd(me, {0, 0, ThumbnailRailWidth, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .View
             .preferredSize.x = ThumbnailRailWidth
         }
 
-        with .thumbnailHeading = Label.create(rail, texts().ui_Thumbnails, {0, 0, ThumbnailRailWidth, 28})
+        with .thumbnailHeading = Label.create(.thumbnailRail, texts().ui_Thumbnails, {0, 0, ThumbnailRailWidth, 28})
         {
             .dockStyle = .Top
             .setTextAlignment(.Center, .OpticalCenter)
         }
 
-        with let scroll = Wnd.create'ScrollWnd(rail, "", {})
+        with let scroll = Wnd.create'ScrollWnd(.thumbnailRail, "", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
@@ -467,6 +469,11 @@ func createPresentationViewer(host: Viewer.Host, loader: func(string)->Presentat
     host.attachView(view)
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     view.outline = DocumentOutline.create(host)
+    view.outline.toggle.sigCheckedChanged += func|view|(button)
+    {
+        view.thumbnailRail.show(not button.isChecked)
+        view.layoutSlide()
+    }
     view.outline.sigSelected += func|view|(_, index) { view.showSlide(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     view.load.start(host.fileName(), loader, view)

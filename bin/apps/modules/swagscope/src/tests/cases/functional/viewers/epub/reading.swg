@@ -30,6 +30,15 @@ using Core, Gui, Pixel, Viewers
     Swag.require(frame.pixelColor(60, 8) == dark)
     let page = panel.view.surfaceRect()
     Swag.require(frame.pixelColor(cast(s32, page.x) + 3, cast(s32, page.y) + 3).argb == Argb.White)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    frame = host.renderSettled(&host.surfaceWnd)
+    let seam = window.documentHost.surfaceRect()
+    for offset in [-4, -1, 1, 3] do
+        Swag.require(frame.pixelColor(cast(s32, seam.x) + offset, cast(s32, seam.vertCenter())).argb == Argb.White)
+    let rows = panel.outline.list.themeColors()
+    Swag.require(rows.listItem_Text.contrastRatio(panel.canvasColor) >= 4.5)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    Swag.require(panel.themeColors().view_Bk == host.theme.colors.view_Bk)
 }
 
 // Reading measure and zoom retain the current passage without losing the search highlight.

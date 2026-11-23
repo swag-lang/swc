@@ -593,7 +593,7 @@ func createViewer(host: Viewer.Host)
 
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {
-        .outline = DocumentOutline.create(host, floatingSurface: false)
+        .outline = DocumentOutline.create(host)
 
         // Subscribed before the outline reveals its heading, so the place kept is the one left.
         .outline.sigSelected += func|zoomButton|(_, _) { zoomButton.rememberPlace() }

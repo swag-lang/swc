@@ -58,10 +58,10 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
         Swag.require(zoom.outline.loaded and zoom.outline.headings.count == 2)
         window.applyLayout()
         host.settleAnimations(window)
-        let appColors = window.themeColors()
-        Swag.require(zoom.outline.list.themeColors().listItem_Text == appColors.label_Text)
-        Swag.require(zoom.outline.filterBox.themeColors().edit_Text == appColors.label_Text)
-        Swag.require(zoom.outline.filterBox.themeColors().edit_FocusBk == appColors.edit_FocusBk)
+        let colors = view.themeColors()
+        Swag.require(zoom.outline.list.themeColors().listItem_Text == colors.label_Text)
+        Swag.require(zoom.outline.filterBox.themeColors().edit_Text == colors.label_Text)
+        Swag.require(zoom.outline.filterBox.themeColors().edit_FocusBk == colors.edit_Bk)
         host.surface.setTitle("Reading quietly.md")
         var outlineImage  = host.render(&host.surfaceWnd)
         let outlineGolden = Format.toString("%.outline", golden)
@@ -103,12 +103,19 @@ func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, 
 
     let appColors = window.themeColors()
     Swag.require(view.themeColors().view_Bk != appColors.view_Bk)
-    Swag.require(outline.themeColors().view_Bk == appColors.view_Bk)
-    Swag.require(outline.list.themeColors().listItem_Text == appColors.label_Text)
-    Swag.require(outline.filterBox.themeColors().edit_Text == appColors.label_Text)
+    let colors = view.themeColors()
+    Swag.require(outline.themeColors().view_Bk == colors.view_Bk)
+    Swag.require(outline.list.themeColors().listItem_Text == colors.label_Text)
+    Swag.require(outline.filterBox.themeColors().edit_Text == colors.label_Text)
+    let rows = outline.list.themeColors()
+    Swag.require(rows.listItem_SelectedText.contrastRatio(rows.listItem_SelectedBk) >= 4.5)
     host.surface.setTitle(title)
 
     var image = host.renderSettled(window)
+    let body = window.documentPanel.position
+    let seam = window.documentHost.position.x
+    for offset in [-5, -3, -1, 0, 1] do
+        Swag.require(image.pixelColor(cast(s32, seam) + offset, cast(s32, body.vertCenter())) == colors.view_Bk)
     assertScopeImageGolden(&image, golden)
 }
 
@@ -127,7 +134,7 @@ func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, 
     assertMarkdownPlanAppearance(false,
                                  1,
                                  "GitHub.md",
-                                 "# The northern route\n\nThe reader keeps a light page in a dark workspace.\n\n## Departure\n\nA calm outline beside the text.\n\n## Arrival\n\nThe application palette stays in charge of its controls.\n",
+                                 "# The northern route\n\nThe reader keeps a light page in a dark workspace.\n\n## Departure\n\nA calm outline beside the text.\n\n## Arrival\n\nThe outline follows the reading appearance.\n",
                                  "viewer.markdown.plan.github.encre")
 }
 
@@ -137,6 +144,6 @@ func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, 
     assertMarkdownPlanAppearance(true,
                                  3,
                                  "Night.md",
-                                 "# Carnet des saisons\n\nLa page garde son apparence sombre.\n\n## Automne\n\nLes notes restent lisibles.\n\n### Première marche\n\nLe panneau suit la palette claire de l'application.\n",
+                                 "# Carnet des saisons\n\nLa page garde son apparence sombre.\n\n## Automne\n\nLes notes restent lisibles.\n\n### Première marche\n\nLe sommaire accompagne la lecture.\n",
                                  "viewer.markdown.plan.night.paper")
 }

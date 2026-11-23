@@ -3,6 +3,51 @@
 
 using Core, Pixel, Gui, Gui.Testing, Viewers
 
+// Every reader shares its canvas with the outline, including the area used to resize it.
+#test
+{
+    for file, index in ["comprehensive.md", "viewer.page.html", "viewer.epub", "viewer.odt", "viewer.docx",
+                        "viewer.field-notes.ipynb", "document-outline.pdf", "viewer.geometry.pptx", "viewer.xlsx"]
+    {
+        var host: HeadlessHost
+        let workspace = testWorkspace(&host, light: index % 2 == 0)
+        defer host.shutdown()
+        let window = workspace.primary
+        window.openFile(scopeTestDataPath(file), remember: false)
+        completeQueuedViewerFile(&host, window)
+        window.sendCommandEvent(ViewerCommands.Outline)
+        let lane = unwrap window.currentSidePanelHost
+        let outline = unwrap lane.childById("scope.outline")
+        Swag.require(lane.isVisible() and not (outline.parent is FloatingPanel), file)
+        let page = window.documentHost.surfaceRect()
+        let grip = Math.Point{page.x - 2, page.vertCenter()}
+        host.moveMouse(grip)
+        let image = host.renderSettled(&host.surfaceWnd)
+        let review = Env.variable("SWAG_SCOPE_REVIEW")
+        if not review.isEmpty() do
+            expect image.save(Path.combine(review, Format.toString("outline-%.png", file)))
+        let ground = window.currentView!.themeColors().view_Bk
+        Swag.require(image.pixelColor(cast(s32, grip.x), cast(s32, grip.y)) == ground, file)
+        Swag.require(image.pixelColor(cast(s32, lane.surfaceRect().x + 3), cast(s32, grip.y)) == ground, file)
+        host.drag(grip, {grip.x + 32, grip.y})
+        Swag.require(window.documentHost.surfaceRect().x > page.x, file)
+        if window.currentView is Viewers.PdfDocument.Panel as book
+        {
+            Swag.require(not book.thumbnailRail.isLocallyVisible())
+            book.outline!.list.selectLine(1)
+            window.sendCommandEvent(ViewerCommands.Outline)
+            Swag.require(book.thumbnailRail.isLocallyVisible() and book.pdfView.pageIndex == 1)
+        }
+        if window.currentView is Viewers.Pptx.Panel as deck
+        {
+            Swag.require(not deck.thumbnailRail.isLocallyVisible())
+            deck.showSlide(1)
+            window.sendCommandEvent(ViewerCommands.Outline)
+            Swag.require(deck.thumbnailRail.isLocallyVisible() and deck.slide == 1)
+        }
+    }
+}
+
 // Heading whitespace is normalized as Unicode, without consuming UTF-8 continuation bytes.
 #test
 {

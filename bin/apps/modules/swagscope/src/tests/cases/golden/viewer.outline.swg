@@ -83,7 +83,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.notify(.LanguageChanged)
     window.resize(880, 420)
     window.applyLayout()
-    Swag.require(outline.section!.text == "Plan" and outline.toggle.toolTip == "Plan")
+    Swag.require(outline.section.text == "Plan" and outline.toggle.toolTip == "Plan")
     Swag.require(window.outlineCaptionButton.toolTip == Format.toString("Plan (%)",
                                                                         Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O)))
     Swag.require(outline.list.selectedLine() == outline.rows[0])

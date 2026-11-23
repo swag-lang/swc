@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Gui
+using Core, Gui, Pixel
 
 // Visible strings of the document outline.
 struct DocumentOutlineStrings
@@ -8,7 +8,6 @@ struct DocumentOutlineStrings
     title:   string = "Outline"                          // Title of the panel and tooltip of its toggle.
     empty:   string = "No outline in this document."     // Status of a document without headings.
     loading: string = "Reading outline…"                 // Status while the headings are read.
-    close:   string = "Close Outline"                    // Tooltip of the close button.
     filter:  string = "Filter headings by name"          // Placeholder of the heading filter.
     noMatch: string = "No headings match."               // Status when the heading filter has no result.
 }
@@ -53,11 +52,11 @@ struct DocumentOutline
         filterBox: *EditBox
         toggle:    *IconButton
         list:      *ListCtrl
+        section:   *SectionLabel
     }
 
-    title:        *Label?
-    section:      *SectionLabel?
-    closeButton:  *IconButton?
+    canvasOwner:  *Wnd?
+    canvasGround: Color
     rows:         Array'(*ListLine)
     rowTitles:    Array'String
     levels:       Array'u32
@@ -77,7 +76,7 @@ struct DocumentOutline
 impl DocumentOutline
 {
     // Creates the outline panel and its toggle in the side lane of the viewer `host` is building.
-    func create(host: Viewer.Host, floatingSurface = true)->*DocumentOutline
+    func create(host: Viewer.Host)->*DocumentOutline
     {
         host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
@@ -85,7 +84,7 @@ impl DocumentOutline
         let side  = host.createSidePanel(276,
                                          theme.icon(.Outline, themeActionIconSize(&theme.metrics)),
                                          g_DocumentOutlineStrings.title,
-                                         floatingSurface: floatingSurface,
+                                         floatingSurface: false,
                                          placement: .Left)
         side.toggle.id = OutlineToggleId
 
@@ -93,50 +92,23 @@ impl DocumentOutline
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = floatingSurface ? Math.Vector4{12, 8, 12, 8} : Math.Vector4{0, 8, 0, 8}
+            .padding         = {0, 8, 0, 8}
             .toggle          = side.toggle
         }
 
         // An outline opened over a document marks the heading in view at once, not at the first scroll.
         result.toggle.sigCheckedChanged += func|panel = result|(button)
         {
+            panel.updateCanvasMargin()
             if button.isChecked do
                 panel.followReading()
         }
 
         let size = themeCompactButtonSize(result.themeMetrics())
 
-        with let header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, size})
+        with result.section = SectionLabel.create(result, g_DocumentOutlineStrings.title, {0, 0, 0, size})
         {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-        }
-
-        if floatingSurface
-        {
-            with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), Math.Rectangle{0, 0, size, size})
-            {
-                .dockStyle  = .Right
-                .sigPressed += func|panel = result|(_)
-                {
-                    panel.toggle.setChecked(false)
-                    panel.toggle.sigCheckedChanged.call(panel.toggle)
-                }
-            }
-
-            with result.title = Label.create(header, "", {}, null, .Ellipsis)
-            {
-                .dockStyle = .Center
-                .setTextAlignment(.Left, .Center)
-                .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
-            }
-        }
-        else
-        {
-            with result.section = SectionLabel.create(header, g_DocumentOutlineStrings.title)
-            {
-                .dockStyle = .Center
-            }
+            .dockStyle = .Top
         }
 
         with result.status = Label.create(result, "", {}, null, .WordWrap | .AutoHeight | .SecondaryText)
@@ -203,10 +175,32 @@ impl DocumentOutline
         .list.clear()
     }
 
-    // Keeps the Markdown outline on the same appearance sheet as the rendered document.
+    // The outline belongs to the page. Resolve its interactive states from the same reading inks.
     mtd setDocumentThemeColors(colors: string)
     {
-        applyOutlineThemeColors(me, colors)
+        var sheet: String = colors
+        if colors.count do
+            sheet += """
+
+                       faintText                  $label_TextFaint
+                       edit_Text                  $label_Text
+                       edit_Note                  $label_TextLight
+                       edit_Caret                 $label_Text
+                       edit_HotBk                 $edit_Bk
+                       edit_FocusBk               $edit_Bk
+                       edit_FocusBorder           $url_Text
+                       listItem_Text              $label_Text
+                       listItem_SelectedBk        $edit_SelectedBk
+                       listItem_FocusSelectedBk   $edit_SelectedBk
+                       listItem_HotBk             $edit_Bk"""
+        applyOutlineThemeColors(me, sheet)
+        if colors.count
+        {
+            let ink = .themeColors().label_Text.ensuredContrast(.themeColors().listItem_SelectedBk)
+            sheet += Format.toString("\nlistItem_SelectedText 0x%{X08}\nlistItem_FocusSelectedText 0x%{X08}", ink.argb, ink.argb)
+            applyOutlineThemeColors(.list, sheet)
+        }
+        .invalidate()
     }
 
     // Returns the row under a surface point, or `U64.Max` outside the listed headings.
@@ -327,12 +321,10 @@ impl DocumentOutline
 
     mtd refresh()
     {
-        .title?.setText(g_DocumentOutlineStrings.title)
-        .section?.setText(g_DocumentOutlineStrings.title)
+        .section.setText(g_DocumentOutlineStrings.title)
         .filterBox.setPlaceholder(g_DocumentOutlineStrings.filter)
+        .filterBox.show(not .headings.isEmpty() or .load.isPending())
         .toggle.toolTip = g_DocumentOutlineStrings.title
-        if .closeButton do
-            .closeButton.toolTip = g_DocumentOutlineStrings.close
         var statusText: String
         if not .failure.isEmpty() do
             statusText = .failure.toString()
@@ -414,6 +406,7 @@ impl DocumentOutline
 
     mtd bindHtml(view: *HtmlView)
     {
+        .setCanvasGround(unwrap view.parent, view.authoredCanvasBackground())
         .follow = func|panel = me, view|()
         {
             panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
@@ -423,6 +416,7 @@ impl DocumentOutline
         .publish(headings.toSlice())
         view.sigDocumentChanged += func|panel = me|(html)
         {
+            panel.setCanvasGround(unwrap html.parent, html.authoredCanvasBackground())
             let headings = html.headings()
             panel.publish(headings.toSlice())
         }
@@ -439,6 +433,48 @@ impl DocumentOutline
         }
     }
 
+    // Extend an authored page through its host margins while its outline is open.
+    mtd setCanvasGround(owner: *Wnd, ground: Color)
+    {
+        if .canvasGround == ground and (.canvasOwner == owner or ground.a == 0) do
+            return
+        .canvasOwner = owner
+        .canvasGround = ground
+        .updateCanvasMargin()
+        if ground.a != 255
+        {
+            .setDocumentThemeColors("")
+            return
+        }
+        let palette = ground.relativeLuminance() > 0.18 ? ThemeColors.papierPalette() : ThemeColors.encrePalette()
+        let text = palette.text.ensuredContrast(ground)
+        let muted = palette.softText.ensuredContrast(ground)
+        let field = Color.lerpRgb(ground, text, 0.05)
+        let selection = Color.lerpRgb(ground, text, 0.15)
+        let sheet = Format.toString("""view_Bk         0x%{X08}
+                                       label_Text      0x%{X08}
+                                       label_TextLight 0x%{X08}
+                                       label_TextFaint $label_TextLight
+                                       edit_Bk         0x%{X08}
+                                       edit_SelectedBk 0x%{X08}
+                                       edit_Border     $edit_SelectedBk
+                                       url_Text        $label_Text""",
+                                    ground.argb, text.argb, muted.argb, field.argb, selection.argb)
+        .setDocumentThemeColors(sheet)
+    }
+
+    private mtd updateCanvasMargin()
+    {
+        if not .canvasOwner do
+            return
+        if .toggle.isChecked and .canvasGround.a == 255 do
+            .canvasOwner.style.setStyleSheetColors(Format.toString("view_Bk 0x%{X08}", .canvasGround.argb))
+        else do
+            .canvasOwner.style.clearStyleSheetColors()
+        .canvasOwner.computeStyle()
+        .canvasOwner.invalidate()
+    }
+
     mtd bindMarkdown(view: *Markdown.View, fileName: string)
     {
         .markdownFile = fileName
@@ -452,7 +488,8 @@ impl DocumentOutline
             if button.isChecked
             {
                 panel.startMarkdown()
-                panel.filterBox.setFocus()
+                if panel.filterBox.isLocallyVisible() do
+                    panel.filterBox.setFocus()
             }
             else
             {

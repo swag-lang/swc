@@ -621,6 +621,7 @@ private impl Panel
         for entry, index in .bookmarks do
             headings.add(DocumentHeading{entry.title, entry.level, index})
         .outline.publish(headings.toSlice())
+        .thumbnailRail.show(not .outline.toggle.isChecked or .bookmarks.isEmpty())
     }
 
     // Marks in the outline the bookmark being read: the last one at or before the point standing
@@ -1242,6 +1243,10 @@ func createViewer(host: Viewer.Host)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline             = DocumentOutline.create(host)
+    view.outline.toggle.sigCheckedChanged += func|view|(button)
+    {
+        view.thumbnailRail.show(not button.isChecked or view.bookmarks.isEmpty())
+    }
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
     view.outline.follow      = func|view|() { view.followReading() }
 

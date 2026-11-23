@@ -415,6 +415,7 @@ private impl Panel
                 if panel.canvasColor != color
                 {
                     panel.canvasColor = color
+                    panel.outline.setCanvasGround(panel, color)
                     panel.services.informationChanged(panel)
                 }
             }
@@ -431,6 +432,7 @@ private impl Panel
             }
         }
 
+        .outline.setCanvasGround(me, .view.authoredCanvasBackground())
         if not .view.failureReason.isEmpty()
         {
             .services.failed(me, .view.failureReason)

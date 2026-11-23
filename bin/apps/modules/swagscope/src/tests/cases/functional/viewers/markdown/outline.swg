@@ -29,10 +29,12 @@ func requireMarkdownOutlinePalette(light: bool)
     for themeIndex in 6
     {
         MarkdownText.applyViewerStyle(view, themeIndex, 1)
-        Swag.require(outline.themeColors().view_Bk == colors.view_Bk)
-        Swag.require(outline.list.themeColors().listItem_Text == colors.label_Text)
-        Swag.require(outline.filterBox.themeColors().edit_Text == colors.label_Text)
-        Swag.require(outline.filterBox.themeColors().edit_FocusBk == colors.edit_FocusBk)
+        outline.setDocumentThemeColors(MarkdownText.viewerColors(themeIndex))
+        let page = view.themeColors()
+        Swag.require(outline.themeColors().view_Bk == page.view_Bk)
+        Swag.require(outline.list.themeColors().listItem_Text == page.label_Text)
+        Swag.require(outline.filterBox.themeColors().edit_Text == page.label_Text)
+        Swag.require(outline.filterBox.themeColors().edit_FocusBk == (themeIndex == 0 ? colors.edit_FocusBk : page.edit_Bk))
         Swag.require(themeIndex == 0 ? view.themeColors().view_Bk == colors.view_Bk :
                      view.themeColors().view_Bk != colors.view_Bk)
     }
@@ -314,7 +316,7 @@ func sectionAt(offsets: const [..] u64, reading: u64)->u64
     let view    = assume cast(*Markdown.View, session.view)
     let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
     Swag.require(zoom.statisticsLoad.isPending())
-    Swag.require(zoom.outline!.list.themeColors().listItem_Text == host.app.theme.colors.label_Text)
+    Swag.require(zoom.outline!.list.themeColors().listItem_Text == view.themeColors().label_Text)
     Swag.require(view.themeColors().view_Bk != host.app.theme.colors.view_Bk)
     completeViewerBackgroundLoad(&host, &zoom.statisticsLoad)
 }

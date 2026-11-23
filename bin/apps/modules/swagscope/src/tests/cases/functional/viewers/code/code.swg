@@ -170,7 +170,7 @@ struct CodeLanguageSample
 
     let line30000 = source.indexOf("int value30000 ")
     Swag.require(view.revealOffset(line30000, "value30000"))
-    Swag.require(view.residentStart > 0 and view.lines.numberedOffset == view.residentStart)
+    Swag.require(view.residentStart > 0 and view.lines.numberedOffset <= view.residentStart)
     Swag.require(view.lines.numberedLine == view.lines.lineAt(fileName, view.residentStart))
     Swag.require(view.lines.lineAt(fileName, line30000) == 30_001)
     Swag.require(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)

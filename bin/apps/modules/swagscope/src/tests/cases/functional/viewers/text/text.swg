@@ -72,6 +72,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(lines.lineAt(fileName, 14, .Utf16Le, 2) == 3)
     Swag.require(lines.offsetOfLine(fileName, 2, .Utf16Le, 2) == 10)
     Swag.require(lines.offsetOfLine(fileName, 9, .Utf16Le, 2) == 14)
+
+    // Counting an offset inside a line caches its real line start, not the requested byte.
+    lines.reset()
+    Swag.require(lines.lineAt(fileName, 12, .Utf16Le, 2) == 2)
+    Swag.require(lines.offsetOfLine(fileName, 2, .Utf16Le, 2) == 10)
 }
 
 // The line under the cursor is a line of the whole file, wherever the resident window starts. A
@@ -114,6 +119,38 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     view.toggleLineNumbers()
     Swag.require(view.currentLine() == 110_000)
+}
+
+// Typed byte positions and columns stay on source-character boundaries in UTF-8 and UTF-32.
+#test
+{
+    let utf8File = Testing.tempFilePath("scope-text-offset-utf8-", ".txt")
+    defer discard catch File.delete(utf8File)
+    discard expect File.writeAllBytes(utf8File, ['a'u8, 0xC3, 0xA9, 'z'u8])
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, utf8File)
+    let utf8View = assume cast(*PlainText.Panel, session.view)
+    completeTextReads(&host, utf8View)
+    Swag.require(utf8View.encoding == .Utf8)
+    Swag.require(utf8View.alignOffset(2) == 1)
+    Swag.require(utf8View.offsetOfColumn(0, 3).offset == 3)
+
+    let utf32File = Testing.tempFilePath("scope-text-offset-utf32-", ".txt")
+    defer discard catch File.delete(utf32File)
+    discard expect File.writeAllBytes(utf32File, [0'u8, 0, 0xFE, 0xFF, 0, 0, 0, 'A'u8, 0, 0, 0, 'B'u8])
+
+    var utf32Session = openTestViewer(PlainText.viewerPlugin(), &host.root, utf32File)
+    let utf32View = assume cast(*PlainText.Panel, utf32Session.view)
+    completeTextReads(&host, utf32View)
+    Swag.require(utf32View.encoding == .Utf32Be)
+    Swag.require(utf32View.alignOffset(7) == 4)
+    let second = utf32View.offsetOfColumn(4, 2)
+    Swag.require(second.offset == 8 and second.column == 2)
+
+    utf32View.fileSize = 0
+    Swag.require(utf32View.alignOffset(0) == utf32View.contentStart)
 }
 
 // Basic text numbers its lines on demand, and the choice follows the reader to the next file.
@@ -199,9 +236,13 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     Swag.require(view.hookOnChildEvent(view.editor, &resetZoom) and view.zoomPercent == 100)
     view.applyEncoding(.Utf16Le)
+    completeTextReads(&host, view)
     let changedDetails = view.detailsText()
-    let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)
-    Swag.require(changedDetails == Format.toString("UTF-16 LE · %", currentLine))
+    Swag.require(Utf8.startsWith(changedDetails.toSlice(), "UTF-16 LE"))
+    let columnReadout = Format.toString(PlainText.texts().ui_CurrentColumn, view.editor.cursorLogicalCharPos() + 1)
+    let byteReadout = Format.toString(PlainText.texts().ui_CurrentByte, Format.toString("%{X}", view.currentByteOffset()))
+    Swag.require(Utf8.contains(changedDetails.toSlice(), columnReadout.toSlice()))
+    Swag.require(Utf8.contains(changedDetails.toSlice(), byteReadout.toSlice()))
 
     // The encoding is chosen among the options, from a page that checks the one in force.
     host.activateOptionRowWhenShown(PlainText.texts().ui_Encoding)

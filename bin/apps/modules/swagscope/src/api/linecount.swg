@@ -8,12 +8,12 @@ const LineCountScanLimit = 64 * 1024 * 1024'u64     // Bytes one answer of [[Vie
 // Numbers the lines of a text file a viewer shows one window at a time, so a line-number gutter
 // keeps counting the lines of the whole file whichever window is resident.
 //
-// Each answer counts line feeds from the closest offset already numbered, so walking through a
+// Each answer counts line feeds from the closest line start already numbered, so walking through a
 // file reads every byte about once.
 struct LineCounter
 {
-    numberedOffset: u64
-    numberedLine:   u64 = 1
+    numberedOffset: u64     // Byte offset at the start of `numberedLine`.
+    numberedLine:   u64 = 1 // Exact whole-file line number at `numberedOffset`.
 }
 
 impl LineCounter
@@ -50,7 +50,7 @@ impl LineCounter
         if scan.failed or scan.atEnd do
             return 0
 
-        .numberedOffset = offset
+        .numberedOffset = scan.lineStart
         .numberedLine   = scan.line
         return scan.line
     }

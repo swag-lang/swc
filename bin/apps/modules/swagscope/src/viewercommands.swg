@@ -385,6 +385,15 @@ impl ViewerWindow
         if not .instances[.activeChoiceIndex].revealMatch do
             return
 
+        // Plain text resolves typed positions with its active decoder and line counter. Other
+        // text-like viewers keep the shared UTF-8 search path below.
+        if key == "text"
+        {
+            let view = assume cast(*Viewers.PlainText.Panel, .instances[.activeChoiceIndex].view)
+            if view.describeTypedPosition(results) do
+                return
+        }
+
         let typed: String = results.query
         let query         = Latin1.trim(typed.toString())
         if not query.count do

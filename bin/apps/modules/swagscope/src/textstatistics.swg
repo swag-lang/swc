@@ -2,9 +2,17 @@
 
 using Core
 
-// Line, word, and decoded Unicode scalar counts of one text, and how its lines end.
+enum TextStatisticsExtent
+{
+    Unknown
+    Exact
+    Sampled
+}
+
+// Byte, line, word, and decoded Unicode scalar counts of one text, and how its lines end.
 struct TextStatistics
 {
+    bytes:      u64
     lines:      u64
     words:      u64
     characters: u64
@@ -13,8 +21,10 @@ struct TextStatistics
     cr:         u64      // Lines ended by a lone carriage return.
     unended:    bool     // Whether the text stops on a line with no line break after it.
     longest:    u64      // Characters of the longest line, its line break left out.
+    longestLine: u64     // First line with the longest content, one-based; zero when there is none.
     controls:   u64      // Control characters other than a tabulation and the line breaks.
     replaced:   u64      // U+FFFD characters, which is what bytes the encoding cannot read become.
+    extent:     TextStatisticsExtent
 }
 
 impl TextStatistics
@@ -60,13 +70,15 @@ struct TextStatisticsCounter
     previousCr:         bool
     endedWithLineBreak: bool
     lineLength:         u64     // Characters of the line being read so far.
+    lineNumber:         u64 = 1
 }
 
 impl TextStatisticsCounter
 {
     // Counts `text`, the next chunk of the stream.
-    mtd append(text: string)
+    mtd append(text: string, sourceBytes: u64 = 0)
     {
+        .totals.bytes += sourceBytes
         var scan = 0'u64
         while scan < text.count
         {
@@ -78,10 +90,18 @@ impl TextStatisticsCounter
             .totals.characters += 1
             if c == '\r' or c == '\n'
             {
-                .totals.longest = Math.max(.totals.longest, .lineLength)
+                if .lineLength > .totals.longest
+                {
+                    .totals.longest     = .lineLength
+                    .totals.longestLine = .lineNumber
+                }
                 .lineLength     = 0
-                if c == '\r' or not .previousCr do
+                let startsNextLine = c == '\r' or not .previousCr
+                if startsNextLine
+                {
                     .totals.lines += 1
+                    .lineNumber  += 1
+                }
 
                 // A carriage return counts alone until the line feed that pairs it arrives,
                 // possibly in the next chunk.
@@ -125,10 +145,15 @@ impl TextStatisticsCounter
     }
 
     // Returns the counts, closing a last line that does not end with a line break.
-    mtd const finish()->TextStatistics
+    mtd const finish(extent: TextStatisticsExtent = .Unknown)->TextStatistics
     {
         var result = .totals
-        result.longest = Math.max(result.longest, .lineLength)
+        if .lineLength > result.longest
+        {
+            result.longest     = .lineLength
+            result.longestLine = .lineNumber
+        }
+        result.extent = extent
         if .sawRune and not .endedWithLineBreak
         {
             result.lines   += 1
@@ -138,7 +163,7 @@ impl TextStatisticsCounter
         return result
     }
 
-    // Counts the lines and words of a UTF-8 file, read in chunks.
+    // Counts the bytes, lines, and words of a UTF-8 file, read in chunks.
     //
     // A count asked to stop returns what it has so far; its owner no longer shows it.
     func loadUtf8(fileName: string)->TextStatistics fail
@@ -147,10 +172,12 @@ impl TextStatisticsCounter
         var counter: TextStatisticsCounter
         while not Swag.isCancelled()
         {
+            let previousPosition = try stream.position()
             let chunk = try stream.readTextChunk(256 * 1024, .Utf8)
             if chunk.isEmpty() do
-                return counter.finish()
-            counter.append(chunk)
+                return counter.finish(.Exact)
+            let position = try stream.position()
+            counter.append(chunk, position - previousPosition)
         }
 
         return counter.finish()

@@ -28,6 +28,8 @@ enum MediaInfoField
     Frames
     Pages
     Lines
+    ByteCount
+    CountExtent
     Sections
     Members
     Typeface
@@ -119,6 +121,10 @@ struct MediaInfoStrings
     frames:            string = "Frames"
     pages:             string = "Pages"
     lines:             string = "Lines"
+    byteCount:         string = "Bytes"
+    countedExtent:     string = "Counted scope"
+    exactExtent:       string = "Exact · whole file"
+    sampledExtent:     string = "Sampled"
     sections:          string = "Sections"
     members:           string = "Files"
     typeface:          string = "Typeface"
@@ -158,6 +164,7 @@ struct MediaInfoStrings
     columns:           string = "Columns"
     tracks:            string = "Tracks"
     longestLine:       string = "Longest line"
+    longestLineValue:  string = "% · line %"
     controls:          string = "Control characters"
     replacements:      string = "Unreadable characters (U+FFFD)"
     transparency:      string = "Transparency"
@@ -276,6 +283,8 @@ impl MediaInfoRow
         case .Frames:            return s.frames
         case .Pages:             return s.pages
         case .Lines:             return s.lines
+        case .ByteCount:         return s.byteCount
+        case .CountExtent:       return s.countedExtent
         case .Sections:          return s.sections
         case .Members:           return s.members
         case .Typeface:          return s.typeface
@@ -348,7 +357,7 @@ impl MediaInfoRow
     {
         switch .field
         {
-        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines,
+        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines, .ByteCount, .CountExtent,
              .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate,
              .Channels, .SampleSize, .SamplePeak, .RmsLevel, .FullScale, .Bookmarks, .UnitsPerEm,
              .Faces, .Meter, .LineEnds, .LongestLine, .ControlCharacters, .Replacements:
@@ -1001,6 +1010,12 @@ impl MediaInfoData
     {
         let s = &g_MediaInfoStrings
         .addFigure(.Lines, statistics.lines == 1 ? String.from(s.oneLine) : Format.toString(s.lineCount, statistics.lines))
+        if statistics.extent != .Unknown do
+            .addFigure(.ByteCount, Format.toString("%", statistics.bytes))
+        if statistics.extent == .Exact do
+            .add(.CountExtent, s.exactExtent)
+        elif statistics.extent == .Sampled do
+            .add(.CountExtent, s.sampledExtent)
         if withWords
         {
             .addFigure(.Custom, statistics.words == 1 ? String.from(s.oneWord) : Format.toString(s.wordCount, statistics.words))
@@ -1016,8 +1031,8 @@ impl MediaInfoData
 
         // The widest line, then what may not read as text: control characters and the U+FFFD that
         // bytes the encoding could not read become.
-        if statistics.lines > 1 do
-            .add(.LongestLine, characterCountText(statistics.longest))
+        if statistics.longestLine do
+            .add(.LongestLine, Format.toString(s.longestLineValue, characterCountText(statistics.longest), statistics.longestLine))
         if statistics.controls do
             .add(.ControlCharacters, Format.toString("%", statistics.controls))
         if statistics.replaced do

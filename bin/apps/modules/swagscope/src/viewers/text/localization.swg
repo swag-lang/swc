@@ -18,6 +18,8 @@ struct Texts
     ui_ZoomMenu:     string = "Zoom…"                  // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
     ui_CurrentLine:  string = "line %"                 // Line under the cursor, counted in the whole file.
+    ui_CurrentColumn: string = "column %"              // Unicode character column under the cursor.
+    ui_CurrentByte:   string = "byte 0x%"              // Absolute file byte offset under the cursor.
     ui_OneLine:      string = "1 line"                 // Singular line count.
     ui_Lines:        string = "% lines"                // Plural line count.
     ui_OneWord:      string = "1 word"                 // Singular word count.

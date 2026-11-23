@@ -104,6 +104,8 @@ struct Panel
     residentText:       String
     pendingMatch:       String
     pendingCaret:       bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
+    pendingCaretColumn: u64
+    pendingHasCaretColumn: bool
     pendingNavigation:  Input.Key
     retiring:           bool
     readFailed:         bool
@@ -150,12 +152,17 @@ private func countStatistics(fileName: string, start: u64, encoding: Text.Encodi
     discard catch stream.seek(.Begin, start)
 
     var counter: TextStatisticsCounter
+    counter.totals.bytes = start
     while not Swag.isCancelled()
     {
+        let previousPosition = try stream.position()
         let chunk = try stream.readTextChunk(StreamChunkSize, encoding)
-        if chunk.isEmpty() do
-            break
-        counter.append(chunk)
+        if chunk.isEmpty()
+        {
+            return counter.finish(.Exact)
+        }
+        let position = try stream.position()
+        counter.append(chunk, position - previousPosition)
     }
 
     return counter.finish()
@@ -181,12 +188,301 @@ impl Panel
     // own line index starts again at every window.
     mtd currentLine()->u64 => .windowLine ? .windowLine + .editor.cursorLogicalLineIndex() : 0
 
+    // Returns the exact source byte under the caret while its whole-file line is known.
+    mtd currentByteOffset()->u64
+    {
+        let line = .currentLine()
+        if not line do
+            return Swag.U64.Max
+        let start = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        if start == Swag.U64.Max do
+            return Swag.U64.Max
+        return .offsetOfColumn(start, .editor.cursorLogicalCharPos() + 1).offset
+    }
+
+    // Turns a one-based character column into a file byte offset without assuming UTF-8 storage.
+    // The read ends at the requested character or the first line break, whichever comes first.
+    mtd offsetOfColumn(lineStart, column: u64)->{offset: u64, column: u64}
+    {
+        if column <= 1 do
+            return {lineStart, 1}
+
+        let unit = Text.unitSize(.encoding)
+        let available = .fileSize - Math.min(lineStart, .fileSize)
+        let requested = column - 1 > (Swag.U64.Max - 8) / 4 ? Swag.U64.Max : (column - 1) * 4 + 8
+        let byteLimit = Math.min(available, requested)
+        var file = catch File.openReadLive(.fileName) { return {lineStart, 1} }
+        defer file.close()
+        discard catch file.seek(.Begin, lineStart) { return {lineStart, 1} }
+
+        var bytes: Array'u8
+        bytes.resize(byteLimit)
+        let count = catch file.read(bytes.toSlice()) { return {lineStart, 1} }
+        bytes.resize(count)
+
+        var at = 0'u64
+        var reached = 1'u64
+        while at < count
+        {
+            var width = unit
+            var lineBreak = false
+            if .encoding == .Utf8
+            {
+                let decoded = Utf8.decodeRune(bytes.toSlice()[at to])
+                width = Math.max(cast(u64, decoded.eat), 1)
+                lineBreak = decoded.c == '\n' or decoded.c == '\r'
+            }
+            elif .encoding == .Utf16Le or .encoding == .Utf16Be
+            {
+                if count - at < 2 do
+                    break
+                let first = .encoding == .Utf16Le ?
+                            cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8) :
+                            (cast(u16, bytes[at]) << 8) | cast(u16, bytes[at + 1])
+                lineBreak = first == 10 or first == 13
+                if first >= 0xD800 and first <= 0xDBFF and count - at >= 4
+                {
+                    let second = .encoding == .Utf16Le ?
+                                 cast(u16, bytes[at + 2]) | (cast(u16, bytes[at + 3]) << 8) :
+                                 (cast(u16, bytes[at + 2]) << 8) | cast(u16, bytes[at + 3])
+                    if second >= 0xDC00 and second <= 0xDFFF do
+                        width = 4
+                }
+            }
+            elif .encoding == .Utf32Le or .encoding == .Utf32Be
+            {
+                if count - at < 4 do
+                    break
+                let value = .encoding == .Utf32Le ?
+                            cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) |
+                            (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24) :
+                            (cast(u32, bytes[at]) << 24) | (cast(u32, bytes[at + 1]) << 16) |
+                            (cast(u32, bytes[at + 2]) << 8) | cast(u32, bytes[at + 3])
+                lineBreak = value == 10 or value == 13
+            }
+            else
+            {
+                lineBreak = bytes[at] == 10 or bytes[at] == 13
+            }
+
+            if lineBreak do
+                return {lineStart + at, reached}
+            at += width
+            reached += 1
+            if reached == column do
+                return {lineStart + at, reached}
+        }
+
+        return {lineStart + at, reached}
+    }
+
+    // Counts decoded characters from `lineStart` to a boundary-aligned byte offset.
+    mtd columnAtOffset(lineStart, offset: u64)->u64
+    {
+        let countLimit = Math.min(offset - Math.min(lineStart, offset), .fileSize - Math.min(lineStart, .fileSize))
+        var file = catch File.openReadLive(.fileName) { return 1 }
+        defer file.close()
+        discard catch file.seek(.Begin, lineStart) { return 1 }
+
+        var bytes: Array'u8
+        bytes.resize(countLimit)
+        let count = catch file.read(bytes.toSlice()) { return 1 }
+        bytes.resize(count)
+
+        var at = 0'u64
+        var column = 1'u64
+        while at < count
+        {
+            var width = 0'u64
+            var lineBreak = false
+            if .encoding == .Utf8
+            {
+                let decoded = Utf8.decodeRune(bytes.toSlice()[at to])
+                width = Math.max(cast(u64, decoded.eat), 1)
+                lineBreak = decoded.c == '\n' or decoded.c == '\r'
+            }
+            elif .encoding == .Utf16Le or .encoding == .Utf16Be
+            {
+                if count - at < 2 do
+                    break
+                let first = .encoding == .Utf16Le ?
+                            cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8) :
+                            (cast(u16, bytes[at]) << 8) | cast(u16, bytes[at + 1])
+                lineBreak = first == 10 or first == 13
+                var size = 2'u64
+                if first >= 0xD800 and first <= 0xDBFF and count - at >= 4
+                {
+                    let second = .encoding == .Utf16Le ?
+                                 cast(u16, bytes[at + 2]) | (cast(u16, bytes[at + 3]) << 8) :
+                                 (cast(u16, bytes[at + 2]) << 8) | cast(u16, bytes[at + 3])
+                    if second >= 0xDC00 and second <= 0xDFFF do
+                        size = 4
+                }
+                width = size
+            }
+            elif .encoding == .Utf32Le or .encoding == .Utf32Be
+            {
+                if count - at < 4 do
+                    break
+                let value = .encoding == .Utf32Le ?
+                            cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) |
+                            (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24) :
+                            (cast(u32, bytes[at]) << 24) | (cast(u32, bytes[at + 1]) << 16) |
+                            (cast(u32, bytes[at + 2]) << 8) | cast(u32, bytes[at + 3])
+                lineBreak = value == 10 or value == 13
+                width = 4
+            }
+            else
+            {
+                lineBreak = bytes[at] == 10 or bytes[at] == 13
+                width = 1
+            }
+
+            if lineBreak do
+                break
+            at += width
+            column += 1
+        }
+
+        return column
+    }
+
+    // Keeps file-offset jumps on a decoded character boundary for the active encoding.
+    mtd alignOffset(offset: u64)->u64
+    {
+        if .fileSize <= .contentStart do
+            return .contentStart
+        let target = Math.clamp(offset, .contentStart, .fileSize - 1)
+        if .encoding != .Utf8
+        {
+            let unit = Text.unitSize(.encoding)
+            return .contentStart + (target - .contentStart) / unit * unit
+        }
+
+        if target <= .contentStart do
+            return .contentStart
+        let start = Math.max(.contentStart, target > 3 ? target - 3 : 0)
+        var file = catch File.openReadLive(.fileName) { return target }
+        defer file.close()
+        discard catch file.seek(.Begin, start) { return target }
+        var bytes: [4] u8
+        let count = catch file.read(bytes) { return target }
+        for index in count where start + index <= target
+        {
+            let decoded = Utf8.decodeRune(bytes[index until count])
+            let width = Math.max(cast(u64, decoded.eat), 1)
+            if start + index + width > target do
+                return start + index
+        }
+        return target
+    }
+
+    // Adds a typed line, line/column, byte offset, or percentage jump to the text lens.
+    // False leaves non-position queries to the existing whole-file text search.
+    mtd describeTypedPosition(results: *Lens.Results)->bool
+    {
+        if results.prefix != .Line do
+            return false
+        let query = Latin1.trim(results.query.toString())
+        if not query.count do
+            return false
+
+        var separator = Swag.U64.Max
+        var digits = true
+        for value, index in query
+        {
+            if value == ':' and separator == Swag.U64.Max and index > 0 and index + 1 < query.count do
+                separator = index
+            elif not Latin1.isDigit(value) do
+                digits = false
+        }
+
+        let strings = appStrings()
+        if digits
+        {
+            let wantedText = separator == Swag.U64.Max ? query : query[0 until separator]
+            let wanted = catch StrConv.toU64(wantedText) { return false }
+            if not wanted do
+                return false
+            let start = .lines.offsetOfLine(.fileName, wanted, .encoding, .contentStart)
+            if start == Swag.U64.Max do
+                return false
+            let actualLine = .lines.lineAt(.fileName, start, .encoding, .contentStart)
+            if actualLine != wanted do
+                return false
+
+            var offset = start
+            var column = 0'u64
+            if separator != Swag.U64.Max
+            {
+                let position = .offsetOfColumn(start, catch StrConv.toU64(query[separator + 1 to]) orelse 1)
+                offset = position.offset
+                column = position.column
+            }
+            let section = results.addSection(strings.lens_InFile)
+            let title = separator == Swag.U64.Max ? Format.toString(strings.lens_GoToLine, actualLine) :
+                        Format.toString(strings.lens_GoToLineColumn, actualLine, column)
+            with let entry = section.addEntry(title)
+            {
+                .lead = separator == Swag.U64.Max ? Format.toString("%", actualLine) : Format.toString("%:%", actualLine, column)
+                let caretColumn = separator == Swag.U64.Max ? 0 : column - 1
+                .run = func|view = me, start, caretColumn|() { discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn) }
+            }
+            return true
+        }
+
+        let isOffset = Utf8.startsWith(query, "0x") or Utf8.startsWith(query, "0X") or
+                       Utf8.startsWith(query, "0d") or Utf8.startsWith(query, "0D") or
+                       query[query.count - 1] == '%'
+        if not isOffset do
+            return false
+        let target = parseFileOffset(query, 0, .fileSize)
+        if target == Swag.U64.Max do
+            return false
+        let offset = .alignOffset(target)
+        let value = Format.toString("0x%{X}", offset)
+        let line = .lines.lineAt(.fileName, offset, .encoding, .contentStart)
+        var start = offset
+        var caretColumn = 0'u64
+        var hasLine = false
+        if line
+        {
+            let lineStart = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+            if lineStart != Swag.U64.Max
+            {
+                start = lineStart
+                caretColumn = .columnAtOffset(lineStart, offset) - 1
+                hasLine = true
+            }
+        }
+        let section = results.addSection(strings.lens_InFile)
+        with let entry = section.addEntry(Viewer.jumpRowText(strings.lens_GoToOffset, value, query))
+        {
+            if hasLine
+            {
+                .run = func|view = me, start, caretColumn|() { discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn) }
+            }
+            else
+            {
+                .run = func|view = me, offset|() { discard view.revealOffset(offset, "", caret: true) }
+            }
+        }
+        return true
+    }
+
     mtd detailsText()->String
     {
         var result = String.from(.encodingName())
         let line   = .currentLine()
-        if line do
+        if .displayedEncoding == .encoding and line
+        {
             result += Format.toString(" · %", Format.toString(texts().ui_CurrentLine, line))
+            let column = .editor.cursorLogicalCharPos() + 1
+            let offset = .currentByteOffset()
+            result += Format.toString(" · %", Format.toString(texts().ui_CurrentColumn, column))
+            if offset != Swag.U64.Max do
+                result += Format.toString(" · %", Format.toString(texts().ui_CurrentByte, Format.toString("%{X}", offset)))
+        }
 
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
@@ -369,6 +665,7 @@ impl Panel
     {
         .stopTimer(&.loadTimer)
         .pendingSeek = false
+        .pendingHasCaretColumn = false
         if .read.started do
             .read.cancel()
     }
@@ -455,6 +752,11 @@ impl Panel
                     discard .editor.findText(.pendingMatch)
                 else do
                     Viewer.highlightRichEditMatch(.editor, .read.text, 0, 0)
+                if .pendingHasCaretColumn
+                {
+                    .editor.setCursorPos(.editor.cursorFromLogicalPosition(0, .pendingCaretColumn))
+                    .pendingHasCaretColumn = false
+                }
                 .pendingMatch.clear()
                 .pendingCaret = false
             }
@@ -480,8 +782,9 @@ impl Panel
             var start     = requested > RevealContextSize ? requested - RevealContextSize : 0
 
             // A file offset cannot be found again in text decoded from another encoding than
-            // UTF-8, so a place with no words to find there starts the window instead.
-            if .pendingCaret and .pendingMatch.isEmpty() and .encoding != .Utf8 do
+            // UTF-8, so a place with no words to find there starts the window instead. A typed
+            // column also starts at its line so the caret can be placed by decoded characters.
+            if .pendingHasCaretColumn or (.pendingCaret and .pendingMatch.isEmpty() and .encoding != .Utf8) do
                 start = requested
             .read.startRead(.fileName, .encoding, start, 64 * 1024, true, me)
         }
@@ -501,9 +804,10 @@ impl Panel
     // With `caret`, the caret is placed at `offset` and brought into view even without text to
     // highlight; without it, an empty `text` only loads the part of the file around `offset` and
     // leaves the view where it is.
-    mtd revealOffset(offset: u64, text: string, caret = false)->bool
+    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max)->bool
     {
         if (text.count or (caret and .encoding == .Utf8)) and
+           caretColumn == Swag.U64.Max and
            .displayedEncoding == .encoding and
            not .pendingSeek and
            not (.read.started and .read.replace) and
@@ -525,6 +829,8 @@ impl Panel
         .pendingSeekOffset = Math.min(offset, .fileSize)
         .pendingMatch      = text
         .pendingCaret      = caret
+        .pendingHasCaretColumn = caretColumn != Swag.U64.Max
+        .pendingCaretColumn = caretColumn == Swag.U64.Max ? 0 : caretColumn
         .pendingNavigation = .None
         .readFailed        = false
         .scheduleMore()
@@ -799,6 +1105,7 @@ impl Panel
         .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
         .pendingMatch.clear()
         .pendingCaret      = false
+        .pendingHasCaretColumn = false
         .pendingNavigation = .None
 
         // Returning to resident text also supersedes an in-flight replacement.

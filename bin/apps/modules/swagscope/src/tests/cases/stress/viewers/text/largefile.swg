@@ -6,6 +6,42 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("stress")]
 #test
 {
+    let fileName = Gui.Testing.tempFilePath("scope-lens-line-after-prefix-", ".txt")
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for line in 80_000
+    {
+        source += Format.toString("Line % - ", line + 1)
+        source += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+    }
+    let target = source.indexOf("Line 50000")
+    Swag.require(target > 8 * 1024 * 1024 and source.length < 64 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, source)
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true, 800, 560)
+    window.lens.open(":50000")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToLine, 50_000))
+    section.entries[0].run!()
+    window.lens.close()
+
+    let view = assume cast(*PlainText.Panel, window.currentView)
+    completeTextReads(&host, view)
+    let position = Format.toString("start %, target %, bytes %, line %",
+                                   view.residentStart,
+                                   target,
+                                   view.bytesRead,
+                                   view.currentLine())
+    Swag.require(view.residentStart <= target and target < view.bytesRead and view.currentLine() == 50_000,
+                 position)
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
     let fileName = Gui.Testing.tempFilePath("scope-large-scroll-", ".txt")
     defer discard catch File.delete(fileName)
 

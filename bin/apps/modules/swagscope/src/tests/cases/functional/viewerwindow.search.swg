@@ -136,6 +136,58 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 }
 
+// Plain-text positions use the selected decoder, and byte offsets land on a character boundary.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-lens-text-position-", ".txt")
+    defer discard catch File.delete(fileName)
+    let bytes = [0xFF'u8, 0xFE'u8,
+                 'o'u8, 0, 'n'u8, 0, 'e'u8, 0, 10, 0,
+                 0xE9, 0, '!'u8, 0, 10, 0,
+                 'l'u8, 0, 'a'u8, 0, 's'u8, 0, 't'u8, 0]
+    discard expect File.writeAllBytes(fileName, bytes)
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    let view = assume cast(*PlainText.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.encoding == .Utf16Le)
+
+    window.lens.open(":3:2")
+    host.finishAnimations()
+    let column = unwrap window.lens.results.sections[0]
+    Swag.require(column.entries[0].title == Format.toString(appStrings().lens_GoToLineColumn, 3, 2))
+    column.entries[0].run!()
+    window.lens.close()
+    completeTextReads(&host, view)
+    Swag.require(view.residentStart == 16 and view.currentLine() == 3)
+    Swag.require(view.editor.cursorLogicalCharPos() == 1)
+    Swag.require(Utf8.contains(view.detailsText().toSlice(), Format.toString(PlainText.texts().ui_CurrentColumn, 2).toSlice()))
+    Swag.require(Utf8.contains(view.detailsText().toSlice(), Format.toString(PlainText.texts().ui_CurrentByte, "12").toSlice()))
+
+    window.lens.open(":0d12")
+    host.finishAnimations()
+    let offset = unwrap window.lens.results.sections[0]
+    Swag.require(offset.entries[0].title == Viewer.jumpRowText(appStrings().lens_GoToOffset, "0xC", "0d12"))
+    offset.entries[0].run!()
+    window.lens.close()
+    completeTextReads(&host, view)
+    let offsetPosition = Format.toString("start %, line %, column %",
+                                        view.residentStart,
+                                        view.currentLine(),
+                                        view.editor.cursorLogicalCharPos())
+    Swag.require(view.residentStart == 10 and view.currentLine() == 2 and view.editor.cursorLogicalCharPos() == 1,
+                 offsetPosition)
+
+    window.lens.open(":50%")
+    host.finishAnimations()
+    let percent = unwrap window.lens.results.sections[0]
+    Swag.require(percent.entries[0].title == Viewer.jumpRowText(appStrings().lens_GoToOffset, "0xA", "50%"))
+    percent.entries[0].run!()
+    window.lens.close()
+    completeTextReads(&host, view)
+    Swag.require(view.residentStart == 10)
+}
+
 // A viewer that fails while the lens is open takes its rows with it. The lens asks the error
 // surface that replaced it, which offers none, instead of keeping commands that would run on the
 // viewer that is gone.

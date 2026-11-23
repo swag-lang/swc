@@ -14,6 +14,10 @@ depth       Bits par pixel
 frames      Images
 pages       Pages
 lines       Lignes
+byteCount   Octets
+countedExtent Portée du comptage
+exactExtent  Exact · fichier entier
+sampledExtent Échantillonné
 sections    Sections
 members     Fichiers
 typeface    Police
@@ -72,6 +76,7 @@ embedding   Incorporation
 columns     Colonnes
 tracks      Pistes
 longestLine Ligne la plus longue
+longestLineValue % · ligne %
 controls    Caractères de contrôle
 replacements Caractères illisibles (U+FFFD)
 transparency Transparence

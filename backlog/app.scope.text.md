@@ -10,17 +10,15 @@ and [std.gui.md](std.gui.md).
 
 ### app.scope.text.002 — Text navigation has no column, byte-offset, or percentage jump
 
-- Evidence: `:` and a line number in the lens move basic text and code to that line and place the
-  caret on it; `:line:column` places it on that character of the line, counted in characters from
-  1 and stopped at the line's end, the row naming the column reached. Basic text names the cursor's line in the whole file once the window is
-  counted (`Viewer.LineCounter.offsetOfLine` and `lineAt`). The lens resolves the line in the first
-  `LensFileLimit` bytes of the file by counting byte 10, so a line further down is not offered and a
-  UTF-16 or UTF-32 file is numbered wrongly; a window more than a few megabytes past the last
-  count names no line until the gutter is shown; byte offsets and percentages cannot be typed.
-- Next: let the active viewer resolve a typed line itself through its encoding-aware
-  `LineCounter`, and extend the `:` grammar with an absolute byte offset and a percentage.
-- Done when: jumps work before a full line index exists, report exact versus estimated
-  positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
+- Evidence: the text lens now accepts `:line`, `:line:column`, absolute byte offsets (`0x` or
+  `0d`), and percentages. It resolves source positions with the selected encoding, aligns offsets
+  to character boundaries, and shows line, column, and byte offset in the status readout. Tests
+  cover UTF-8/16/32 addressing, percent and byte jumps, and a line beyond the old 8 MiB lens cap.
+  `LineCounter` now caches the actual line start even when a query begins inside a line. A distant
+  target past the bounded 64 MiB line scan still has no estimated position.
+- Next: add bounded estimates for line jumps that exceed the exact `LineCounter` scan limit.
+- Done when: distant targets remain navigable without blocking a scan, the result distinguishes
+  exact from estimated positions, and the caret's line, column, and byte offset stay visible.
 
 ### app.scope.text.027 — Plain text has no bookmarks or navigation trail
 
@@ -91,14 +89,12 @@ and [std.gui.md](std.gui.md).
 
 ### app.scope.text.030 — Text statistics stop at line and word counts
 
-- Evidence: the background pass reports exact line and word totals plus decoded Unicode scalar count
-  for the selected encoding; a leading BOM is excluded. The information sheet adds the line ends
-  by kind, the characters of the longest line, the control characters other than a tabulation and
-  the line breaks, and the U+FFFD characters bytes the decoder could not read become (a literal
-  U+FFFD counts too). It still omits byte count, where the longest line is, and sampled versus
-  exact scope.
-- Next: extend the text profile with source byte, newline, line-length, decode, and control-character
-  metrics, retaining bounded background work and explicit scope.
+- Evidence: the background pass now reports source bytes, exact versus unknown extent, and the
+  longest line's number alongside the existing counts. Tests cover chunk boundaries, a trailing
+  CRLF, the empty file, and source byte accounting including a BOM. The information sheet names
+  the byte count and profile scope. Longest-line navigation, sampled profiling, progress
+  cancellation, and reconciliation with app.scope.text.003 and app.scope.text.004 remain open.
+- Next: add a source action for longest-line locations and bounded, cancellable sampled profiling.
 - Done when: every metric names its unit and exact or sampled scope, line-length extremes link
   to source, newline and decode totals reconcile with app.scope.text.003 and app.scope.text.004,
   progress can be cancelled, and profiling does not delay first content.

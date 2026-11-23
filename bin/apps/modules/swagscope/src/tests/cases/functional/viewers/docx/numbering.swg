@@ -23,6 +23,29 @@ using Core, Viewers
     Swag.require(not roman.limited and roman.tag == "ol" and roman.type == "I")
 }
 
+// A numbering instance can restart an abstract list or replace one level's style.
+#test
+{
+    let source    = """<numbering>
+        <abstractNum abstractNumId="0">
+            <lvl ilvl="0"><start val="1"/><numFmt val="decimal"/><lvlText val="%1."/></lvl>
+        </abstractNum>
+        <num numId="7"><abstractNumId val="0"/><lvlOverride ilvl="0"><startOverride val="4"/></lvlOverride></num>
+        <num numId="8"><abstractNumId val="0"/><lvlOverride ilvl="0"><lvl ilvl="0"><start val="2"/><numFmt val="lowerLetter"/><lvlText val="%1)"/></lvl></lvlOverride></num>
+        <num numId="9"><abstractNumId val="0"/><lvlOverride ilvl="0"><startOverride val="6"/><lvl ilvl="0"><start val="2"/><numFmt val="upperRoman"/><lvlText val="%1."/></lvl></lvlOverride></num>
+    </numbering>"""
+    let numbering = expect Docx.NumberingCatalog.parse(source)
+    let restarted = numbering.lookup("7", 0)
+    let replaced  = numbering.lookup("8", 0)
+    let both      = numbering.lookup("9", 0)
+    Swag.require(not restarted.limited and
+                 restarted.tag == "ol" and
+                 restarted.type == "1" and
+                 restarted.start == 4)
+    Swag.require(not replaced.limited and replaced.tag == "ol" and replaced.type == "a" and replaced.start == 2)
+    Swag.require(not both.limited and both.tag == "ol" and both.type == "I" and both.start == 6)
+}
+
 // Word bullet levels retain their common marker shape without trusting custom markup.
 #test
 {

@@ -12,6 +12,17 @@ private struct NumberLevel
     text:       String
 }
 
+private struct NumberOverride
+{
+    numberId:      String
+    level:         u8
+    startOverride: s32
+    levelStart:    s32 = -1
+    format:        String
+    text:          String
+    hasLevel:      bool
+}
+
 // The HTML list representation supported by one Word numbering level.
 struct ListStyle
 {
@@ -24,24 +35,28 @@ struct ListStyle
 // Resolves numbering IDs to a bounded, safe HTML list style.
 struct NumberingCatalog
 {
-    private levels:  Array'NumberLevel
-    private numbers: HashTable'(String, String)
-    limited:         bool
+    private levels:    Array'NumberLevel
+    private overrides: Array'NumberOverride
+    private numbers:   HashTable'(String, String)
+    limited:           bool
 }
 
 impl NumberingCatalog
 {
     func parse(source: string)->NumberingCatalog fail
     {
-        var result:       #returntype
+        var result:          #returntype
         var scan            = Package.Scanner.create(source)
-        var token:        Package.Token
+        var token:           Package.Token
         var currentAbstract = String{}
         var currentNumber   = String{}
-        var currentLevel: NumberLevel
+        var currentLevel:    NumberLevel
+        var currentOverride: NumberOverride
         var inAbstract      = false
         var inNumber        = false
         var inLevel         = false
+        var inOverride      = false
+        var inOverrideLevel = false
         var levelCount      = 0'u64
         var numberCount     = 0'u64
         var sawRoot         = false
@@ -76,6 +91,44 @@ impl NumberingCatalog
                     if numberCount > 4096 do
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
                 }
+                elif inNumber and token.isElement("lvlOverride")
+                {
+                    if inOverride do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    let level = catch StrConv.toS32(token.attribute("ilvl") orelse "") orelse -1
+                    if level < 0 or level > 8 do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    currentOverride = {numberId: currentNumber, level: cast(u8, level)}
+                    inOverride      = not token.empty
+                    if token.empty
+                    {
+                        for &item in result.overrides where item.numberId == currentOverride.numberId and item.level == currentOverride.level do
+                            fail Errors.InvalidFormatError{texts().err_Invalid}
+                        result.overrides.add(#move currentOverride)
+                    }
+                }
+                elif inOverride and token.isElement("lvl")
+                {
+                    let level = catch StrConv.toS32(token.attribute("ilvl") orelse "") orelse -1
+                    if level != cast(s32, currentOverride.level) do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    currentLevel    = {level: currentOverride.level}
+                    currentOverride.hasLevel = true
+                    inOverrideLevel = not token.empty
+                    if token.empty
+                    {
+                        currentOverride.format     = currentLevel.format
+                        currentOverride.levelStart = currentLevel.start
+                        currentOverride.text       = currentLevel.text
+                    }
+                }
+                elif inOverride and token.isElement("startOverride")
+                {
+                    let start = catch StrConv.toS32(token.attribute("val") orelse "") orelse 0
+                    if start < 1 or start > 1_000_000 or currentOverride.startOverride do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    currentOverride.startOverride = start
+                }
                 elif inAbstract and token.isElement("lvl")
                 {
                     let value = catch StrConv.toS32(token.attribute("ilvl") orelse "") orelse -1
@@ -98,7 +151,31 @@ impl NumberingCatalog
                         fail Errors.InvalidFormatError{texts().err_Invalid}
                     result.numbers.add(currentNumber, abstractId)
                 }
-                elif inNumber and (token.isElement("lvlOverride") or token.isElement("startOverride"))
+                elif inOverrideLevel and token.isElement("numFmt")
+                {
+                    currentLevel.format = token.attribute("val") orelse ""
+                }
+                elif inOverrideLevel and token.isElement("start")
+                {
+                    let start = catch StrConv.toS32(token.attribute("val") orelse "") orelse 0
+                    if start < 1 or start > 1_000_000 do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    currentLevel.start = start
+                }
+                elif inOverrideLevel and token.isElement("lvlText")
+                {
+                    currentLevel.text = token.attribute("val") orelse ""
+                }
+                elif inOverrideLevel and
+                     (token.isElement("pPr") or token.isElement("rPr") or token.isElement("lvlJc") or token.isElement("suff") or token.isElement("lvlRestart") or token.isElement("isLgl") or token.isElement("legacy") or token.isElement("lvlPicBulletId"))
+                {
+                    result.limited = true
+                }
+                elif inOverride and
+                     not inOverrideLevel and
+                     not token.isElement("lvlOverride") and
+                     not token.isElement("lvl") and
+                     not token.isElement("startOverride")
                 {
                     result.limited = true
                 }
@@ -124,7 +201,21 @@ impl NumberingCatalog
 
             if token.kind == .End or token.empty
             {
-                if token.isElement("lvl") and inLevel
+                if token.isElement("lvl") and inOverrideLevel
+                {
+                    currentOverride.format     = currentLevel.format
+                    currentOverride.levelStart = currentLevel.start
+                    currentOverride.text       = currentLevel.text
+                    inOverrideLevel            = false
+                }
+                elif token.isElement("lvlOverride") and inOverride
+                {
+                    for &item in result.overrides where item.numberId == currentOverride.numberId and item.level == currentOverride.level do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    result.overrides.add(#move currentOverride)
+                    inOverride = false
+                }
+                elif token.isElement("lvl") and inLevel
                 {
                     result.levels.add(#move currentLevel)
                     inLevel = false
@@ -140,7 +231,13 @@ impl NumberingCatalog
             }
         }
 
-        if scan.damaged or inLevel or inAbstract or inNumber or (source.count and not sawRoot) do
+        if scan.damaged or
+           inLevel or
+           inAbstract or
+           inNumber or
+           inOverride or
+           inOverrideLevel or
+           (source.count and not sawRoot) do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         return result
     }
@@ -163,9 +260,28 @@ impl NumberingCatalog
         {
             if entry.abstractId != abstractId.value or entry.level != level do
                 continue
-            found        = true
-            result.start = entry.start
-            if entry.format != "bullet"
+            found = true
+            var numberStart  = entry.start
+            var numberFormat = entry.format
+            var numberText   = entry.text
+            for &override in .overrides where override.numberId == numberId and override.level == level
+            {
+                if override.hasLevel
+                {
+                    if not override.format.isEmpty() do
+                        numberFormat = override.format
+                    if override.levelStart > 0 do
+                        numberStart = override.levelStart
+                    if not override.text.isEmpty() do
+                        numberText = override.text
+                }
+
+                if override.startOverride > 0 do
+                    numberStart = override.startOverride
+            }
+
+            result.start = numberStart
+            if numberFormat != "bullet"
             {
                 var marker: String = "%"
                 marker += cast(u8, '1'u8 + entry.level)
@@ -173,11 +289,11 @@ impl NumberingCatalog
                 markerWithPeriod += "."
                 var markerWithParenthesis = marker
                 markerWithParenthesis += ")"
-                if entry.text != markerWithPeriod and entry.text != markerWithParenthesis do
+                if numberText != markerWithPeriod and numberText != markerWithParenthesis do
                     result.limited = true
             }
 
-            switch cast(string, entry.format.toSlice())
+            switch cast(string, numberFormat.toSlice())
             {
             case "decimal":
                 result.tag  = "ol"
@@ -201,13 +317,13 @@ impl NumberingCatalog
 
             case "bullet":
                 result.tag  = "ul"
-                result.type = entry.text == "o" ? "circle" : entry.text == "▪" or entry.text == "■" ? "square" : "disc"
-                if entry.text != "•" and
-                   entry.text != "" and
-                   entry.text != "·" and
-                   entry.text != "o" and
-                   entry.text != "▪" and
-                   entry.text != "■" do
+                result.type = numberText == "o" ? "circle" : numberText == "▪" or numberText == "■" ? "square" : "disc"
+                if numberText != "•" and
+                   numberText != "" and
+                   numberText != "·" and
+                   numberText != "o" and
+                   numberText != "▪" and
+                   numberText != "■" do
                     result.limited = true
 
             default:

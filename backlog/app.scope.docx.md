@@ -5,8 +5,9 @@ Reading and inspecting Word documents in DOCX format.
 ### app.scope.docx.001 — DOCX lacks faithful page reading
 
 - Evidence: the DOCX reader retains ordered paragraphs, simple tables, bounded raster images,
-  page-break separators, numbered and bulleted list levels, and common inherited
-  paragraph/character styles. Document defaults,
+  page-break separators, numbered and bulleted list levels with per-instance starts and level
+  replacements, horizontal table-cell spans, and common inherited paragraph/character styles.
+  Footnote bold, italic, underline and strike runs are preserved. Document defaults,
   parent styles, basic theme fonts/colors, sizes, emphasis, spacing and indents are resolved;
   styled headings populate the filterable outline. Broken optional styles retain readable prose
   and a visible simplification notice. Related default header/footer text is read with a bounded

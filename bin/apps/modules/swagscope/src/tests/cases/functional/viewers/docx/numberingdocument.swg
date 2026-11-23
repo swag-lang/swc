@@ -25,3 +25,12 @@ using Core, Viewers
     Swag.require(not Utf8.contains(document.html, "</>"))
     Swag.require(Utf8.contains(document.html, "<ol type=\"1\"><li><p>Bullet item</p></li></ol>"))
 }
+
+// Number overrides restart an abstract sequence and can replace an individual level.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.numbering-overrides.docx"))
+    Swag.require(Utf8.contains(document.html, "<ol type=\"1\" start=\"4\"><li><p>Restarted first</p></li><li><p>Restarted second</p></li></ol>"))
+    Swag.require(Utf8.contains(document.html, "<ol type=\"a\" start=\"2\"><li><p>Replacement first</p></li><li><p>Replacement second</p></li></ol>"))
+    Swag.require(not document.stylesSimplified)
+}

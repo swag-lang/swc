@@ -32,6 +32,8 @@ private struct Reader
     inText:                bool
     inImage:               bool
     inSectionProperties:   bool
+    inCellProperties:      bool
+    cellTagOpen:           bool
     imageId:               String
     imageDescription:      String
     imageWidth:            u32
@@ -541,6 +543,12 @@ private impl Reader
             return
         }
 
+        if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr")
+        {
+            .sectionHtml += ">"
+            .cellTagOpen = false
+        }
+
         if .inImage
         {
             if token.isElement("extent") and not .imageWidth
@@ -594,7 +602,30 @@ private impl Reader
         }
         elif token.isElement("tc")
         {
-            .sectionHtml += "<td>"
+            .sectionHtml      += "<td"
+            .cellTagOpen      = true
+            .inCellProperties = false
+            if token.empty
+            {
+                .sectionHtml += ">"
+                .cellTagOpen = false
+            }
+        }
+        elif token.isElement("tcPr")
+        {
+            .inCellProperties = not token.empty
+        }
+        elif .inCellProperties and token.isElement("gridSpan")
+        {
+            let span = catch StrConv.toS32(token.attribute("val") orelse "") orelse 0
+            if span > 1 and span <= 63
+            {
+                .sectionHtml += Format.toString(" colspan=\"%\"", span)
+            }
+            elif span != 1
+            {
+                .document.stylesSimplified = true
+            }
         }
         elif token.isElement("p")
         {
@@ -711,23 +742,56 @@ private impl Reader
             return
         }
 
-        if token.isElement("t") do
+        if token.isElement("t")
+        {
             .inText = false
-        elif token.isElement("rPr") do
+        }
+        elif token.isElement("rPr")
+        {
             .inRunProperties = false
-        elif token.isElement("r") do
+        }
+        elif token.isElement("r")
+        {
             .finishRun()
-        elif token.isElement("pPr") do
+        }
+        elif token.isElement("pPr")
+        {
             .inParagraphProperties = false
-        elif token.isElement("numPr") do
+        }
+        elif token.isElement("numPr")
+        {
             .inNumberProperties = false
-        elif token.isElement("p") do
+        }
+        elif token.isElement("tcPr")
+        {
+            .inCellProperties = false
+            if .cellTagOpen
+            {
+                .sectionHtml += ">"
+                .cellTagOpen = false
+            }
+        }
+        elif token.isElement("p")
+        {
             .finishParagraph()
-        elif token.isElement("tc") do
+        }
+        elif token.isElement("tc")
+        {
+            if .cellTagOpen
+            {
+                .sectionHtml += ">"
+                .cellTagOpen = false
+            }
+
             .sectionHtml += "</td>"
-        elif token.isElement("tr") do
+        }
+        elif token.isElement("tr")
+        {
             .sectionHtml += "</tr>"
-        elif token.isElement("tbl") do
+        }
+        elif token.isElement("tbl")
+        {
             .sectionHtml += "</table>"
+        }
     }
 }

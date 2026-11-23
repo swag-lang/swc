@@ -69,6 +69,10 @@ struct ThemeColors
         info:       Color     // Dots and marks of something worth knowing.
         infoBk:     Color     // Tinted ground of an information notice.
         live:       Color     // Dot of something running now, such as a mounted drive.
+        removed:    Color     // Mark for material removed in a comparison.
+        removedBk:  Color     // Translucent comparison ground under a removed line.
+        added:      Color     // Mark for material added in a comparison.
+        addedBk:    Color     // Translucent comparison ground under an added line.
 
         // The glyph of each kind of file in a listing. See [[Gui.Theme.fileGlyph]].
         fileKind_Image:    Color     // Glyph of a picture in a file listing.
@@ -721,6 +725,10 @@ impl ThemeColors
         .info              = info.mark
         .infoBk            = info.ground
         .live              = live.mark
+        .removed           = critical.mark
+        .removedBk         = .removed.withAlphaF32(0.12)
+        .added             = live.mark
+        .addedBk           = .added.withAlphaF32(0.12)
         .fileKind_Image    = p.kindImage
         .fileKind_Video    = p.kindVideo
         .fileKind_Audio    = p.kindAudio

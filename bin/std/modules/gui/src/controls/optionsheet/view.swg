@@ -106,7 +106,7 @@ private struct Level
 private struct HitPart
 {
     row:  s32 = NoRow     // Row index, `HeaderFocus` for the header, or `NoRow`.
-    step: s32             // Direction of the stepper arrow under the point, or zero.
+    step: s32             // Stepper direction or one-based segment under the point, or zero.
 }
 
 private const HeaderFocus = -1's32
@@ -206,6 +206,8 @@ impl IWnd for View
         case .Return, .Space:                           .activate(.focusRow, 0)
         case .Back, .BrowserBack:                       .back()
         case .Escape:                                   .back()
+        case .Right where row and row.kind == .Segments: .moveSegment(unwrap row, 1)
+        case .Left where row and row.kind == .Segments:  .moveSegment(unwrap row, -1)
         case .Right where row and row.kind == .Stepper: .activate(.focusRow, shift ? 10 : 1)
         case .Right where row and row.kind == .Link:    .activate(.focusRow, 0)
         case .Left where row and row.kind == .Stepper:  .activate(.focusRow, shift ? -10 : -1)
@@ -704,7 +706,14 @@ private impl View
         .invalidate()
     }
 
-    // Carries out what the row at `index` does; `step` is the direction of a stepper.
+    mtd moveSegment(row: const *Row, delta: s32)
+    {
+        let current = row.selected < row.segments.count ? cast(s32, row.selected) : -1
+        let next = Math.clamp(current + delta, 0, cast(s32, row.segments.count) - 1)
+        .activate(.focusRow, next + 1)
+    }
+
+    // Carries out what the row at `index` does. `step` is a stepper direction or a one-based segment.
     mtd activate(index: s32, step: s32)
     {
         .finishMotion()
@@ -750,6 +759,14 @@ private impl View
             let toggle = unwrap row.toggle
             toggle(not row.checked)
             .refresh()
+
+        case .Segments:
+            if step > 0 and step <= row.segments.count and step - 1 != row.selected
+            {
+                let select = unwrap row.select
+                select(cast(u32, step - 1))
+                .refresh()
+            }
 
         case .Stepper:
             if step == 0 do
@@ -1008,6 +1025,12 @@ private impl View
                     result.row = cast(s32, index)
                 if row.kind == .Stepper do
                     result.step = .stepperHit(.rowRect(list, y, height), pos)
+                elif row.kind == .Segments
+                {
+                    let segments = .segmentTrack(.rowRect(list, y, height))
+                    if segments.contains(pos) do
+                        result.step = Math.min(cast(s32, row.segments.count), 1 + cast(s32, (pos.x - segments.x) * cast(f32, row.segments.count) / segments.width))
+                }
                 return result
             }
 
@@ -1175,6 +1198,11 @@ private impl View
         {
             theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fadeColor(colors.optionSheet_HotBk, opacity))
         }
+        if row.kind == .Segments
+        {
+            .paintSegments(painter, row, rect, opacity)
+            return
+        }
 
         let textColor   = fadeColor(row.disabled ? colors.popupItem_DisabledText : (row.critical ? colors.critical : (hot ? colors.popupItem_HotText : colors.popupItem_Text)), opacity)
         let valueColor  = fadeColor(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotRightText : colors.popupItem_RightText), opacity)
@@ -1246,6 +1274,34 @@ private impl View
             let half   = rect.height * 0.5
             .drawText(painter, {labelX, rect.y + 2, labelW, half}, &label, labelColor)
             .drawText(painter, {labelX, rect.y + half - 2, labelW, half}, &detail, valueColor)
+        }
+    }
+
+    mtd segmentTrack(rect: Math.Rectangle)->Math.Rectangle
+    {
+        let inset  = .themeMetrics().optionSheet_RowPadding
+        let height = Math.round(rect.height * 0.8)
+        return {rect.x + inset, Math.round(rect.vertCenter() - height * 0.5), Math.max(0, rect.width - 2 * inset), height}
+    }
+
+    mtd paintSegments(painter: *Painter, row: const *Row, rect: Math.Rectangle, opacity: f32)
+    {
+        let colors = .themeColors()
+        let rects = .themeRects()
+        let theme = .theme()
+        let track = .segmentTrack(rect)
+        theme.drawSubRect(painter, track, &rects.tabBar_RoundBk, fadeColor(colors.tabBar_RoundBk, opacity))
+        let span = track.width / cast(f32, row.segments.count)
+        let font = unwrap .font().regular
+        for name, index in row.segments
+        {
+            let part = Math.Rectangle{track.x + span * cast(f32, index) + 1, track.y + 1, span - 2, track.height - 2}
+            let selected = index == row.selected
+            if selected do
+                theme.drawSubRect(painter, part, &rects.tabItem_RoundSelected, fadeColor(colors.tabItem_RoundSelected, opacity))
+            let ink = fadeColor(selected ? colors.tabItem_SelectedText : colors.tabItem_HotText, opacity)
+            let text = Painter.elideString(name[], font, Math.max(span - 10, 0), .deviceScale())
+            painter.drawStringCenter(part.horzCenter(), part.vertCenter(), text, font, ink)
         }
     }
 

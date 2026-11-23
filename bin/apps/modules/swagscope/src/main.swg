@@ -9,19 +9,27 @@ const ApplicationId = "swagscope"
 const SurfaceId     = "swag.scope"
 
 // Selects a path without touching its drive; classification happens after the first frame.
-func viewerStartupFile(arguments: const [..] string)->String
+func viewerStartupFiles(arguments: const [..] string)->Array'String
 {
+    var result: #returntype
     if arguments.count <= 1 do
-        return {}
+        return result
 
     for argument in arguments[1 to]
     {
         let runtimeSetting = argument == "swag.sandbox" or argument == "swag.test" or Utf8.startsWith(argument, "swag.") and Utf8.contains(argument, "=")
         if not runtimeSetting and not Utf8.startsWith(argument, "--") and Path.isValidPathName(argument) do
-            return argument
+            result.add(String.from(argument))
     }
 
-    return {}
+    return result
+}
+
+// Selects the first path for callers that review a single file.
+func viewerStartupFile(arguments: const [..] string)->String
+{
+    let files = viewerStartupFiles(arguments)
+    return files.isEmpty() ? String{} : files[0]
 }
 
 // Runs the viewer review over the fixture directory it names: `--review-viewers=<directory>`.
@@ -72,7 +80,8 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     g_App.notifyThemeChanged()
     surface.setTitle(ProductName)
 
-    let window = ViewerWindow.create(surface.wnd, #move index)
+    let workspace = ViewerWorkspace.create(surface.wnd, #move index)
+    let window = workspace.primary
     window.home.useSystemPlaces = true
     window.home.refresh()
 
@@ -88,9 +97,13 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     }
     else
     {
-        let startupFile = viewerStartupFile(Env.arguments())
-        if not startupFile.isEmpty() do
-            window.queueFile(startupFile)
+        let startupFiles = viewerStartupFiles(Env.arguments())
+        if not startupFiles.isEmpty()
+        {
+            let layout = Env.hasArgument("--grid") ? sceneGrid(startupFiles.count) :
+                         (startupFiles.count == 2 ? SceneLayout.SideBySide : SceneLayout.Auto)
+            workspace.openScene(startupFiles.toSlice(), layout)
+        }
     }
 
     surface.show()

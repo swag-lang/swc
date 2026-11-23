@@ -141,14 +141,15 @@ namespace Platform.Xcb
         let createSurface = cast(Linux.eglCreatePlatformWindowSurfaceEXT_fn?, Linux.eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT".buffer))
         if not createSurface do
             fail Swag.SystemError{"EGL has no eglCreatePlatformWindowSurfaceEXT entry point"}
-        let nativeWindow = nativeWindowHandle(drawable.window)
+        var window = drawable.window
+        let nativeWindow = nativeWindowHandle(&window)
         let result       = createSurface(display, config, nativeWindow, null)
         try check(result != null ? 1 : 0, "eglCreatePlatformWindowSurfaceEXT")
         return result
     }
 
-    // EGL's generic native-window argument carries the XCB window ID as a pointer-sized value.
-    internal func nativeWindowHandle(window: u32)->*void? => cast(*void?, cast(u64, window))
+    // EGL_EXT_platform_xcb borrows the address of an xcb_window_t for surface creation.
+    internal func nativeWindowHandle(window: *u32)->*void? => cast(*void?, window)
 
     // Creates a context for an open XCB window and makes it current on its owning thread.
     //

@@ -70,6 +70,7 @@ struct ViewerWindow
         home:                        *ViewerHome
     }
 
+    workspace:          *ViewerWorkspace?
     thumbnailMode:      bool
     explorerActive:     bool
     explorerTransition: bool     // Keep the folder visible until the file viewer can replace it.
@@ -221,6 +222,7 @@ func reportViewerDetails(view: *Wnd, details: string)
 func reportViewerInformationChanged(view: *Wnd)
 {
     let window = viewerWindowFor(view)
+    window.workspace?.comparisonSheet?.refresh()
     if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view do
         return
     if view is Markdown.View do
@@ -281,6 +283,8 @@ func reportViewerLoadingChanged(view: *Wnd)
     {
         .commitViewerTransition(view)
         .updateLoadingIndicator()
+        .workspace?.refreshComparison()
+        .workspace?.updateMediaViewport(window)
     }
 }
 
@@ -326,6 +330,12 @@ impl IWnd for ViewerWindow
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
+        if .workspace
+        {
+            evt.accepted = false
+            return
+        }
+
         if evt.kind == .Leave
         {
             .dropHighlight.hide()
@@ -489,7 +499,8 @@ impl IWnd for ViewerWindow
         .showPointer()
         if .fullScreen do
             .setFullScreen(false)
-        catch .saveState()
+        if .isWorkspacePrimary() do
+            catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
@@ -514,7 +525,7 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if .thumbnailMode do
+        if .thumbnailMode or not .isWorkspacePrimary() do
             return
         catch g_App.loadState()
         .applyTheme(.themeIndex)
@@ -526,6 +537,10 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
+        if not .isWorkspacePrimary() do
+            return
+        .workspace?.serializeScenes(evt.serializer)
+
         if not evt.serializer.isReading() and .currentSidePanelHost
         {
             let splitter = assume cast(*SplitterCtrl, .currentSidePanelHost.parent)
@@ -784,19 +799,23 @@ impl ViewerWindow
 
     mtd updateOutlineCaptionState()
     {
+        if not .isWorkspaceActive() do
+            return
         let toggle = .currentSidePanelButton
         .outlineCaptionButton.setChecked(toggle and toggle.id == OutlineToggleId and toggle.isChecked)
     }
 
     mtd refreshExplorerCaption()
     {
+        if not .isWorkspaceActive() do
+            return
         .privacy.refreshIndicator()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
         .explorer?.address.show(.isExploring())
-        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge())
+        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge() and (.workspace?.scenes.count orelse 0) < 2)
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
         .forwardCaptionButton.show(exploring)
@@ -825,7 +844,10 @@ impl ViewerWindow
         .informationCaptionButton.toolTip = text.cmd_Information
         .viewerCaptionButton.toolTip      = text.lens_ViewAs
         .fullScreenCaptionButton.setChecked(.fullScreen)
-        .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible())
+        .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible() or
+                                             (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false))
+        if .workspace and .workspace.tabs != null do
+            .workspace.tabs.layoutTabs()
         if not .explorer do
             return
 
@@ -847,6 +869,11 @@ impl ViewerWindow
     {
         if .thumbnailMode do
             return
+        if not .isWorkspacePrimary()
+        {
+            try .workspace!.primary.saveState()
+            return
+        }
         let surface           = unwrap .surface
         let presentation      = surface.state
         let presentationFlags = surface.flags
@@ -940,7 +967,7 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible  = commands != null and (not .fullScreen or .viewerBarShown)
+        let visible  = commands != null and (not .fullScreen or .viewerBarShown) and not (.workspace?.isMediaScene() orelse false)
         .viewerBar.show(visible)
         if not commands do
             return
@@ -1132,91 +1159,124 @@ impl ViewerWindow
         .layoutFloatingParts()
     }
 
+    mtd isWorkspacePrimary()->bool => not .workspace or .workspace.primary == null or .workspace.primary == me
+
+    mtd isWorkspaceActive()->bool => not .workspace or .workspace.primary == null or .workspace.activeDocument() == me
+
+    mtd captionDocument()->*ViewerWindow
+    {
+        if .workspace and .workspace.primary != null do
+            return .workspace.activeDocument()
+        return me
+    }
+
     // Builds the main window around the viewer registry `index`: the document
     // and the parts floating over it, then the lens that reaches every command.
-    func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWindow
+    func create(parent: *Wnd, index: #move ViewerPluginRegistry, workspace: *ViewerWorkspace? = null)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
-        result.surface!.setView(result)
-        result.surface.minSize = {MinWidth, 420}
+        result.workspace = workspace
+        if not workspace do
+            result.surface!.setView(result)
+        result.surface!.minSize = {MinWidth, 420}
         result.backgroundStyle = .Application
         result.index           = #move index
         result.language        = Gui.ReferenceLanguage
-        result.index.attachTo(result.app())
-        with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
+        if result.isWorkspacePrimary() do
+            result.index.attachTo(result.app())
+        if result.isWorkspacePrimary()
         {
-            .toolTip    = appStrings().cmd_ReturnToExplorer
-            .sigPressed += func|window = result|(_) { window.closeFile() }
-            .hide()
-        }
+            with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
+            {
+                .toolTip    = appStrings().cmd_ReturnToExplorer
+                .sigPressed += func|window = result|(_) { window.captionDocument().closeFile() }
+                .hide()
+            }
 
-        with result.backCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.Back)
-        {
-            .toolTip    = appStrings().explore_Back
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Back) }
-            .hide()
-        }
+            with result.backCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.Back)
+            {
+                .toolTip    = appStrings().explore_Back
+                .sigPressed += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Back) }
+                .hide()
+            }
 
-        with result.forwardCaptionButton = CaptionButton.createLeading(result.surface, .ChevronRight, ViewerCommands.Forward)
-        {
-            .toolTip    = appStrings().explore_Forward
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Forward) }
-            .hide()
-        }
+            with result.forwardCaptionButton = CaptionButton.createLeading(result.surface, .ChevronRight, ViewerCommands.Forward)
+            {
+                .toolTip    = appStrings().explore_Forward
+                .sigPressed += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Forward) }
+                .hide()
+            }
 
-        with result.upCaptionButton = CaptionButton.createLeading(result.surface, .ParentFolder, ViewerCommands.Up)
-        {
-            .toolTip    = appStrings().explore_Up
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Up) }
-            .hide()
-        }
+            with result.upCaptionButton = CaptionButton.createLeading(result.surface, .ParentFolder, ViewerCommands.Up)
+            {
+                .toolTip    = appStrings().explore_Up
+                .sigPressed += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Up) }
+                .hide()
+            }
 
-        with result.refreshCaptionButton = CaptionButton.createLeading(result.surface, .Update, ViewerCommands.Refresh)
-        {
-            .toolTip    = appStrings().explore_Refresh
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Refresh) }
-            .hide()
-        }
+            with result.refreshCaptionButton = CaptionButton.createLeading(result.surface, .Update, ViewerCommands.Refresh)
+            {
+                .toolTip    = appStrings().explore_Refresh
+                .sigPressed += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Refresh) }
+                .hide()
+            }
 
-        with result.findCaptionButton = CaptionButton.createLeading(result.surface, .Search, ViewerCommands.Find)
-        {
-            .toolTip    = appStrings().ui_FilterFiles
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Find) }
-            .hide()
-        }
+            with result.findCaptionButton = CaptionButton.createLeading(result.surface, .Search, ViewerCommands.Find)
+            {
+                .toolTip    = appStrings().ui_FilterFiles
+                .sigPressed += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Find) }
+                .hide()
+            }
 
-        with result.outlineCaptionButton = CaptionButton.createLeading(result.surface, .Outline, ViewerCommands.Outline)
-        {
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Frame)
-            .sigPressed += func|window = result|(_) { window.postCommandEvent(ViewerCommands.Outline) }
-            .hide()
-        }
+            with result.outlineCaptionButton = CaptionButton.createLeading(result.surface, .Outline, ViewerCommands.Outline)
+            {
+                .updateFlags(.Toggle)
+                .setCheckIndicator(.Frame)
+                .sigPressed += func|window = result|(_) { window.captionDocument().postCommandEvent(ViewerCommands.Outline) }
+                .hide()
+            }
 
-        // Trailing actions are registered from the window controls toward the title.
-        result.createAppearanceChrome()
-        with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
-        {
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Frame)
-            .sigPressed += func|window = result|(_) { window.postCommandEvent(ViewerCommands.FullScreen) }
-        }
+            // Trailing actions are registered from the window controls toward the title.
+            result.createAppearanceChrome()
+            with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
+            {
+                .updateFlags(.Toggle)
+                .setCheckIndicator(.Frame)
+                .sigPressed += func|window = result|(_) { window.captionDocument().postCommandEvent(ViewerCommands.FullScreen) }
+            }
 
-        with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)
-        {
-            .toolTip = appStrings().cmd_Information
-            .updateFlags(.Toggle)
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
-            .hide()
-        }
+            with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)
+            {
+                .toolTip = appStrings().cmd_Information
+                .updateFlags(.Toggle)
+                .setCheckIndicator(.Frame)
+                .sigCheckedChanged += func|window = result|(_) { discard window.captionDocument().runCommand(ViewerCommands.Information) }
+                .hide()
+            }
 
-        with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
+            with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
+            {
+                .toolTip = appStrings().lens_ViewAs
+                .setIconColor(Color{})
+                .sigPressed += func|window = result|(_) { window.captionDocument().showViewerChoicesMenu() }
+                .hide()
+            }
+
+        }
+        else
         {
-            .toolTip = appStrings().lens_ViewAs
-            .setIconColor(Color{})
-            .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
-            .hide()
+            let primary = workspace!.primary
+            result.returnExplorerCaptionButton = primary.returnExplorerCaptionButton
+            result.backCaptionButton = primary.backCaptionButton
+            result.forwardCaptionButton = primary.forwardCaptionButton
+            result.upCaptionButton = primary.upCaptionButton
+            result.refreshCaptionButton = primary.refreshCaptionButton
+            result.findCaptionButton = primary.findCaptionButton
+            result.outlineCaptionButton = primary.outlineCaptionButton
+            result.appearanceButton = primary.appearanceButton
+            result.fullScreenCaptionButton = primary.fullScreenCaptionButton
+            result.informationCaptionButton = primary.informationCaptionButton
+            result.viewerCaptionButton = primary.viewerCaptionButton
         }
 
         with result.mainSplitter = SplitterCtrl.create(result)
@@ -1232,14 +1292,20 @@ impl ViewerWindow
         result.createSheetAndHint()
         result.dropHighlight = FileDropHighlight.create(result, appStrings().ui_DropTitle, "scope.drop.highlight")
         result.createLens()
-        result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
-        result.lensLauncher.captionButton.hide()
+        if result.isWorkspacePrimary()
+        {
+            result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
+            result.lensLauncher.captionButton.hide()
+        }
+        else do
+            result.lensLauncher = workspace!.primary.lensLauncher
         result.privacy.window = result
         result.privacy.createIndicator()
         result.privacyTimer = result.addTimer(250'ms)
         result.hookChildEvents()
 
-        result.applyLanguage()
+        if result.isWorkspacePrimary() do
+            result.applyLanguage()
         result.refreshArtwork()
         result.updateViewerBar()
         result.updateDocumentInsets()
@@ -1318,7 +1384,7 @@ impl ViewerWindow
     // once even when the operating system emits repeated pressed transitions while it is held.
     mtd routePlaybackKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey do
+        if .forwardingViewerKey or (.workspace?.isMediaScene() orelse false) do
             return false
         let arrowKey  = evt.key == .Left or evt.key == .Right
         let rateStep  = evt.modifiers == .Shift and arrowKey
@@ -1472,12 +1538,21 @@ impl ViewerWindow
         let surface = .surface
         if not surface do
             return
+        if not .isWorkspaceActive() do
+            return
         .refreshExplorerCaption()
 
         if .isExploring()
         {
             let path = .explorer!.listing.path
             surface.setTitle(Path.fileName(path) orelse path)
+            return
+        }
+
+        let scene = .workspace?.scene()
+        if scene and scene.views.count > 1
+        {
+            surface.setTitle(scene.name(.theme()))
             return
         }
 

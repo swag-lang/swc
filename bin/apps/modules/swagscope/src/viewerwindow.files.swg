@@ -7,6 +7,8 @@ impl ViewerWindow
     {
         if .isExploring() or .activeChoiceIndex >= .choices.count do
             return false
+        if .workspace and .workspace.isMediaScene() do
+            return true
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].edgeToEdge
     }
 
@@ -67,7 +69,8 @@ impl ViewerWindow
         .refreshReadingAppearance()
 
         // A document that takes the whole window writes its title itself, over its picture.
-        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge())
+        if .isWorkspaceActive() do
+            .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge() and (.workspace?.scenes.count orelse 0) < 2)
         .updateDocumentInsets()
         .readingLine.show(.readingLine.hasContent() and
                           .canShowReadingLine() and
@@ -81,7 +84,7 @@ impl ViewerWindow
     // Resolves the appearance from the current reader's canvas, or from the desktop.
     mtd refreshReadingAppearance()
     {
-        if .updatingReadingAppearance do
+        if .updatingReadingAppearance or not .isWorkspaceActive() do
             return
         .updatingReadingAppearance = true
         defer .updatingReadingAppearance = false
@@ -95,6 +98,12 @@ impl ViewerWindow
             documentTheme = appearanceForGround(markdown!.themeColors().view_Bk)
         elif background.a == 255 do
             documentTheme = appearanceForGround(background)
+        if .workspace and .workspace.documentCount() > 1
+        {
+            .appearanceButton.setDocumentTheme(.System)
+            .surface?.wnd.setChromePalette(null)
+            return
+        }
         .appearanceButton.setDocumentTheme(documentTheme)
 
         // A Markdown sheet also sets the inks for its own reading surface.

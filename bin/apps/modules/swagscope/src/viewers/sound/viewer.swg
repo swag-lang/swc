@@ -213,6 +213,9 @@ struct WaveformView
     samples:    Array'WaveformPoint
     readyCount: u64     // Points the builder has published so far.
     duration:   f32
+    sceneStart: f32
+    sceneSpan:  f32
+    sceneSeek:  (func||(f32))?
     progress:   f32          // Played fraction, from 0 to 1.
     loopStart:  f32 = -1     // Fraction where the looped passage starts, negative without one.
     loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
@@ -225,6 +228,15 @@ impl WaveformView
 
     // Returns how many bars stand in Arc when `progress` of the recording has been played.
     mtd playedBars(progress: f32)->f32 => Math.ceil(Math.clamp(progress, 0, 1) * cast(f32, .barCount()))
+
+    mtd setSceneAxis(start, span: f32)
+    {
+        if .sceneStart == start and .sceneSpan == span do
+            return
+        .sceneStart = start
+        .sceneSpan  = span
+        .invalidate()
+    }
 
     // Sets the played fraction, and repaints only when a bar changes color.
     mtd setProgress(progress: f32)
@@ -384,8 +396,20 @@ private impl IWnd for WaveformView
         {
             for bar in count
             {
-                let first = bar * .samples.count / count
-                let last  = Math.max((bar + 1) * .samples.count / count, first + 1)
+                var first = bar * .samples.count / count
+                var last  = (bar + 1) * .samples.count / count
+                if .sceneSpan > 0 and .duration > 0
+                {
+                    let begin = .sceneStart + .sceneSpan * cast(f32, bar) / cast(f32, count)
+                    let end   = .sceneStart + .sceneSpan * cast(f32, bar + 1) / cast(f32, count)
+                    if end <= 0 do
+                        continue
+                    if begin >= .duration do
+                        break
+                    first = cast(u64, Math.max(0, begin) / .duration * cast(f32, .samples.count))
+                    last  = cast(u64, Math.min(.duration, end) / .duration * cast(f32, .samples.count))
+                }
+                last = Math.max(last, first + 1)
                 if first >= .readyCount do
                     break
                 var level = 0'f32
@@ -411,7 +435,11 @@ private impl IWnd for WaveformView
         }
 
         let x = .surfaceToLocal(evt.surfacePos).x
-        .panel.seekSeconds(Math.clamp(x / Math.max(.clientRect().width, 1), 0, 1) * .duration)
+        let fraction = Math.clamp(x / Math.max(.clientRect().width, 1), 0, 1)
+        if .sceneSpan > 0 and .sceneSeek do
+            .sceneSeek(.sceneStart + fraction * .sceneSpan)
+        else do
+            .panel.seekSeconds(fraction * .duration)
     }
 }
 
@@ -466,6 +494,11 @@ struct Panel
     engineReady:  bool
     thumbnail:    bool
     playing:      bool
+    sceneSilent:       bool
+    sceneManaged:      bool
+    silentOrigin:      f32
+    silentClock:       Time.Stopwatch
+    keepPlayingHidden: bool
     muted:        bool
     volume:       f32 = 1
     playbackRate: f64 = 1      // Source seconds played per second; the pitch follows it.
@@ -830,7 +863,8 @@ impl Panel
             .timeline.setValueWithoutGesture(.elapsed)
         }
 
-        .waveform.setProgress(.duration > 0 ? .elapsed / .duration : 0)
+        let w = .waveform
+        w.setProgress(w.sceneSpan > 0 ? (.elapsed - w.sceneStart) / w.sceneSpan : (.duration > 0 ? .elapsed / .duration : 0))
     }
 
     mtd ensureVoice()->bool
@@ -840,7 +874,7 @@ impl Panel
         catch
         {
             .voice = try Voice.create(&.sound)
-            catch .voice.setVolume(.muted ? 0 : .volume)
+            catch .voice.setVolume(.muted or .sceneSilent ? 0 : .volume)
             if .playbackRate != 1 do
                 catch .voice.setFrequencyRatio(cast(f32, .playbackRate))
             return true
@@ -851,10 +885,20 @@ impl Panel
 
     mtd seekSeconds(seconds: f32, remember = true)
     {
-        if not .engineReady or not .ensureVoice() do
-            return
         let origin = .playbackPosition()
         let target = Math.clamp(seconds, 0, .duration)
+        if .sceneSilent
+        {
+            if remember and Math.abs(target - origin) >= 0.25 do
+                .rememberNavigation(origin)
+            .silentOrigin = target
+            .elapsed = target
+            .silentClock.restart()
+            .refreshTransport()
+            return
+        }
+        if not .engineReady or not .ensureVoice() do
+            return
         let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
         catch .voice!.seekSampleFrame(frame)
         {
@@ -1088,6 +1132,11 @@ impl Panel
     {
         if rate == .playbackRate do
             return
+        if .sceneSilent
+        {
+            .silentOrigin = .playbackPosition()
+            .silentClock.restart()
+        }
         .playbackRate = rate
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
@@ -1150,9 +1199,34 @@ impl Panel
     }
 
     // Returns where playback stands in the recording, in seconds.
-    mtd playbackPosition()->f32 => .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
+    mtd playbackPosition()->f32
+    {
+        if .sceneSilent
+        {
+            let seconds = .playing ? cast(f64, .silentClock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate : 0
+            return Math.min(.duration, .silentOrigin + cast(f32, seconds))
+        }
+        return .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
+    }
 
     mtd seekRelative(seconds: f32) => .seekSeconds(.playbackPosition() + seconds)
+
+    mtd setSceneSilent(silent: bool)
+    {
+        if .sceneSilent == silent do
+            return
+        let pos = .playbackPosition()
+        .sceneSilent = silent
+        if silent
+        {
+            if .voice do
+                catch .voice.pause()
+            .silentOrigin = pos
+            .silentClock.restart()
+        }
+        else do
+            .seekSeconds(pos, remember: false)
+    }
 
     mtd setMuted(muted: bool)
     {
@@ -1160,7 +1234,7 @@ impl Panel
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         if .voice do
-            catch .voice.setVolume(muted ? 0 : .volume)
+            catch .voice.setVolume(muted or .sceneSilent ? 0 : .volume)
     }
 
     // Sets the playback volume, from 0 to 1, and shows it on the volume slider.
@@ -1171,7 +1245,7 @@ impl Panel
         let requested = Math.clamp(volume, 0, 1)
         .volumeSlider.setValueWithoutGesture(requested)
         .volume = requested
-        if .voice and not .muted do
+        if .voice and not .muted and not .sceneSilent do
             catch .voice.setVolume(.volume)
     }
 
@@ -1179,6 +1253,16 @@ impl Panel
     // engine is ready, or when the device refuses.
     mtd togglePlayback()
     {
+        if .sceneSilent
+        {
+            .silentOrigin = .playbackPosition()
+            .playing = not .playing
+            if .playing and .silentOrigin >= .duration do
+                .silentOrigin = 0
+            .silentClock.restart()
+            .refreshTransport()
+            return
+        }
         if not .engineReady or not .ensureVoice() do
             return
 
@@ -1216,6 +1300,8 @@ impl Panel
 
         .playing = false
         .elapsed = 0
+        .silentOrigin = 0
+        .silentClock.reset()
         .refreshTransport()
     }
 
@@ -1245,7 +1331,7 @@ impl IWnd for Panel
     // hidden player pauses: neither its sound nor its end may go on behind another viewer.
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide and .playing do
+        if evt.kind == .Hide and .playing and not .keepPlayingHidden do
             .togglePlayback()
     }
 
@@ -1278,16 +1364,24 @@ impl IWnd for Panel
             return
 
         .syncWaveform()
-        if not .playing or not .voice do
+        if not .playing or (not .voice and not .sceneSilent) do
             return
-        .elapsed = cast(f32, .voice.playbackPositionSeconds())
+        .elapsed = .playbackPosition()
 
         if .followLoop() do
             return
 
         if .elapsed >= .duration
         {
-            .finishPlayback()
+            if .sceneManaged
+            {
+                .playing = false
+                .silentOrigin = .duration
+                .elapsed = .duration
+                .refreshTransport()
+            }
+            else do
+                .finishPlayback()
             return
         }
 

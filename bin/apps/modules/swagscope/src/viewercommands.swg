@@ -109,6 +109,12 @@ impl ViewerWindow
     {
         with .lens = Lens.View.create(me)
         {
+            if me.workspace
+            {
+                .wndFlags.add(.TopMost)
+                .addRestSource(func|window = me|(results) { window.describeScenes(results, atRest: true) })
+            }
+
             // In Explorer, make the folder the subject of the empty-query lens. A document keeps
             // the file and view actions at the door, ahead of viewer-specific choices and controls.
             .addRestSource(func|window = me|(results)
@@ -117,7 +123,7 @@ impl ViewerWindow
                     return
                 let section = results.addSection(appStrings().lens_Folder)
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.OpenChosen, ViewerCommands.Up, ViewerCommands.Refresh,
+                                           [ViewerCommands.OpenChosen, SceneCommands.CompareSelection, ViewerCommands.Up, ViewerCommands.Refresh,
                                             ViewerCommands.EditLocation, ViewerCommands.Back, ViewerCommands.Forward],
                                            enabledOnly: true)
             })
@@ -179,6 +185,8 @@ impl ViewerWindow
         }
 
         .appearanceButton.addToLens(.lens)
+        if .workspace do
+            .addSceneCommands()
 
         // The lens uses one chord everywhere.
         .registerKeyShortcut(.Control, .Space, ViewerCommands.Lens)
@@ -599,7 +607,7 @@ impl ViewerWindow
                     if window.isExploring() do
                         window.openExplorer(folder)
                     else do
-                        window.queueFile(file)
+                        window.openFile(file)
                 }
             }
         }
@@ -628,7 +636,7 @@ impl ViewerWindow
             {
                 .detail     = Path.directoryName(file) orelse ""
                 .monoDetail = true
-                .run        = func|window = me, file, remember|() { window.queueFile(file, remember) }
+                .run        = func|window = me, file, remember|() { window.openFile(file, remember) }
                 if me.index.namePlugin(file, &pluginIndex) do
                     .glyph = me.pluginIcon(&me.index.plugins[pluginIndex], me.themeMetrics().menuPopup_IconSize)
             }
@@ -639,6 +647,9 @@ impl ViewerWindow
     // glyph, and whether it applies, is available and is in force now.
     mtd computeCommandState(evt: *CommandStateEvent)->bool
     {
+        if .computeSceneCommand(evt) or .computeComparisonCommand(evt) or .computeMediaCommand(evt) do
+            return true
+
         let texts     = appStrings()
         let hasFile   = not .currentFile.isEmpty()
         let exploring = .isExploring()
@@ -1085,6 +1096,9 @@ impl ViewerWindow
     // Runs a window command. A path supplied by a context menu takes precedence over the selection.
     mtd runCommand(id: WndId, contextPath: string? = null)->bool
     {
+        if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id) do
+            return true
+
         let hasFile = not .currentFile.isEmpty()
         switch id
         {
@@ -1111,7 +1125,10 @@ impl ViewerWindow
             .closeFile()
 
         case ViewerCommands.Close:
-            .closeFile()
+            if .workspace and .workspace.documentCount() > 0 do
+                .workspace.closeView()
+            else do
+                .closeFile()
 
         case ViewerCommands.Dismiss:
             if .searchShown and not .isExploring() do
@@ -1278,7 +1295,7 @@ impl ViewerWindow
             explorer.chooseMusic()
 
         case ViewerCommands.OpenChosen:
-            explorer.activate(explorer.selected)
+            explorer.openSelection()
 
         case ViewerCommands.ExtractAll:
             explorer.chooseExtraction(all: true)
@@ -1330,6 +1347,11 @@ impl ViewerWindow
     // Shows the sheet of readings about the open file or the explored folder, or hides it.
     mtd toggleInformation()
     {
+        if .workspace and .workspace.wantsComparisonSheet()
+        {
+            .workspace.toggleComparisonSheet()
+            return
+        }
         if .currentFile.isEmpty() and not .isExploring()
         {
             .closeInformation()

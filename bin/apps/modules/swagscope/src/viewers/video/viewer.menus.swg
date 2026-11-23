@@ -206,7 +206,7 @@ impl Panel
         let position      = .currentSeconds()
         let wasPlaying    = .playing
         let coversRange   = soundCovers(sound, position)
-        let shouldPlay    = wasPlaying and coversRange and not .resumeAudioAfterSeek
+        let shouldPlay    = not .sceneSilent and wasPlaying and coversRange and not .resumeAudioAfterSeek
         let restoreOld    = wasPlaying and .voice != null and not .audioRangePending and not .resumeAudioAfterSeek
         let newVoice      = try Voice.create(sound)
         let oldVoice      = .voice
@@ -218,7 +218,7 @@ impl Panel
                 catch oldVoice!.play()
         }
 
-        try newVoice.setVolume(.muted ? 0 : .volume)
+        try newVoice.setVolume(.muted or .sceneSilent ? 0 : .volume)
         if .playbackRate != 1 do
             catch newVoice.setFrequencyRatio(cast(f32, .playbackRate))
         if coversRange do
@@ -305,17 +305,17 @@ impl Panel
     }
 
     // Opens playback options above their button: play mode and speed.
-    mtd showOptions()
+    mtd showOptions(anchor: *IconButton? = null)
     {
         .pointerMoved()
-        .showChoices(.optionsButton, func|view = me|(page) { view.describeOptions(page) })
+        .showChoices(anchor orelse .optionsButton, func|view = me|(page) { view.describeOptions(page) })
     }
 
     // Opens the sound and subtitle choices above their button.
-    mtd showTracks()
+    mtd showTracks(anchor: *IconButton? = null)
     {
         .pointerMoved()
-        .showChoices(.tracksButton, func|view = me|(page) { view.describeTracks(page) })
+        .showChoices(anchor orelse .tracksButton, func|view = me|(page) { view.describeTracks(page) })
     }
 
     // Describes the playback options: one row per setting, with the value in force.

@@ -259,6 +259,12 @@ struct Panel
     playing:          bool
     thumbnail:        bool
     autoPlayPending:  bool = true
+    sceneViewport:     Math.Point
+    sceneScratch:      PlanarFrame
+    sceneSeconds:      f64 = -1
+    sceneSilent:       bool
+    keepPlayingHidden: bool
+    sceneManaged: bool
     muted:            bool
     playbackRate:     f64  = 1
     optionsOpen:      bool
@@ -411,6 +417,8 @@ impl Panel
     // Returns the playback position in source seconds.
     mtd currentSeconds()->f64
     {
+        if .sceneSeconds >= 0 do
+            return .sceneSeconds
         if not .playing do
             return .elapsed
         return .elapsed + cast(f64, .clock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate
@@ -470,7 +478,7 @@ impl Panel
     // or play.
     mtd resumeAudio()
     {
-        if not .voice or not .audio
+        if .sceneSilent or not .voice or not .audio
         {
             .resumeAudioAfterSeek = false
             return
@@ -668,6 +676,29 @@ impl Panel
         .seekOverlay.showSeek(seconds)
     }
 
+    mtd setSceneSilent(silent: bool)
+    {
+        if .sceneSilent == silent do
+            return
+        .elapsed = .currentSeconds()
+        .clock.restart()
+        .sceneSilent = silent
+        if not .voice do
+            return
+        catch .voice.setVolume(.muted or .sceneSilent ? 0 : .volume)
+        if silent
+        {
+            catch .voice.pause()
+            if .playing do
+                .clock.restart()
+        }
+        elif .playing
+        {
+            .resumeAudioAfterSeek = true
+            .resumeAudio()
+        }
+    }
+
     mtd setMuted(muted: bool)
     {
         .muted = muted
@@ -675,7 +706,7 @@ impl Panel
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         .volumeSlider.enable(.audioReady and not muted)
         if .voice do
-            catch .voice.setVolume(muted ? 0 : .volume)
+            catch .voice.setVolume(muted or .sceneSilent ? 0 : .volume)
     }
 
     // Sets the playback volume, from 0 to 1.
@@ -684,7 +715,7 @@ impl Panel
         let requested = Math.clamp(volume, 0, 1)
         .volume = requested
         .volumeSlider.setValueWithoutGesture(requested)
-        if .voice and not .muted do
+        if .voice and not .muted and not .sceneSilent do
             catch .voice.setVolume(.volume)
     }
 }
@@ -709,7 +740,8 @@ private impl IWnd for Panel
             return
         }
 
-        .updatePlayback()
+        if not .sceneManaged do
+            .updatePlayback()
         if not .isPendingDestroy
         {
             if not .pendingSubtitle.isEmpty() and not .subtitleLoad.started
@@ -777,7 +809,7 @@ private impl IWnd for Panel
         if evt.kind == .Hide
         {
             .showPointer()
-            if .playing do
+            if .playing and not .keepPlayingHidden do
                 .togglePlayback()
         }
     }

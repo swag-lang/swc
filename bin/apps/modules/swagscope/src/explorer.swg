@@ -160,6 +160,7 @@ struct Explorer
     draggingFile:    bool
     previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
     generation:      u64
+    selectedFiles:   Array'u64
     selected:        u64                   = Swag.U64.Max
     pendingOpen:     u64                   = Swag.U64.Max
     temporaryFiles:  Array'ExplorerTemporary
@@ -257,6 +258,8 @@ impl Explorer
             .backgroundStyle = .View
             .margin          = Math.Vector4{sheetMargin, 0, sheetMargin, 0}
             .updateFlags(.Ellipsis | .HotTrack)
+            if result.window.workspace do
+                .setSelectionMode(.Multi)
             .addColumn(appStrings().explore_Name, 320)
             .addColumn(appStrings().explore_Type, 96)
             .addColumn(appStrings().explore_Size, 88, align: .Right)
@@ -323,7 +326,7 @@ impl Explorer
             {
                 if evt.key == .Return
                 {
-                    result.activate(result.selected)
+                    result.openSelection()
                     evt.accepted = true
                 }
             }
@@ -1449,6 +1452,13 @@ impl Explorer
     {
         if .load.started or row >= .shown.count do
             return
+        if .window.workspace and .selectionPaths().count > 1
+        {
+            let menu = MenuCtrl.createPopup(me, owner: .window)
+            menu.addItems([ViewerCommands.OpenChosen, SceneCommands.CompareSelection])
+            discard menu.doModal(position, autoDestroy: true)
+            return
+        }
         if .isThumbnailView()
         {
             .grid.select(row)
@@ -1658,6 +1668,7 @@ impl Explorer
         .entries = #move .listing.entries
         .shown.clear()
         .selected = Swag.U64.Max
+        .selectedFiles.clear()
         .showMediaInfo()
         .updateBreadcrumb()
 
@@ -2113,6 +2124,35 @@ impl Explorer
         }
 
         .requestPreview()
+    }
+
+    mtd isSelected(index: u64)->bool =>
+        .selectedFiles.isEmpty() ? .selected == index : .selectedFiles.contains(index)
+
+    mtd selectionPaths()->Array'String
+    {
+        var result: #returntype
+        if .listing.isArchive or not .window.workspace do
+            return result
+        let rows = .list.isLocallyVisible()
+        for index, row in .shown where not .entries[index].directory
+        {
+            let selected = rows ? .list.isLineSelected(cast(u32, row)) : .isSelected(index)
+            if selected do
+                result.add(.entries[index].path)
+        }
+        return result
+    }
+
+    mtd openSelection(compare = false)
+    {
+        let paths = .selectionPaths()
+        if paths.count > 1
+        {
+            .window.workspace!.openScene(paths.toSlice(), compare ? .SideBySide : .Auto, compare)
+            return
+        }
+        .activate(.selected)
     }
 
     mtd activate(index: u64)
@@ -2893,7 +2933,7 @@ impl ExplorerGrid
         var options: FileTile.Options
         options.fit         = .Contain
         options.hovered     = .hovered == row
-        options.selected    = .explorer.selected == index
+        options.selected    = .explorer.isSelected(index)
         options.showCaption = .explorer.showTileCaption
         for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
             options.nameTick = scroll.tick
@@ -3200,7 +3240,7 @@ impl ExplorerGrid
                 continue
             number += 1
             let entry   = &explorer.entries[index]
-            let chosen  = explorer.selected == index
+            let chosen  = explorer.isSelected(index)
             let centerY = place.vertCenter()
             if chosen do
                 painter.fillRoundRect(place, radius, radius, colors.selection)
@@ -3254,13 +3294,13 @@ impl ExplorerGrid
             let entry   = &explorer.entries[index]
             let rect    = Math.Rectangle{CellInset, CellInset + cast(f32, row) * .cell.y, .cell.x, .cell.y}
             let centerY = rect.vertCenter()
-            if explorer.selected == index do
+            if explorer.isSelected(index) do
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.selection)
             elif .hovered == row do
                 painter.fillRoundRect(rect, metrics.corner_Control, metrics.corner_Control, colors.raised)
 
             let glyph    = explorer.entryIcon(index, metrics.menuPopup_IconSize)
-            let glyphInk = explorer.selected == index ? colors.arc : colors.softText
+            let glyphInk = explorer.isSelected(index) ? colors.arc : colors.softText
             glyph.paint(painter, rect.x + ArchiveCellInset, Math.round(centerY - glyph.sizeY * 0.5), glyphInk)
 
             let nameX = rect.x + 36
@@ -3445,11 +3485,44 @@ impl ExplorerGrid
             .nameTimer = .addTimer(NameScrollInterval)
     }
 
-    mtd select(row: u64)
+    mtd select(row: u64, modifiers = Input.KeyModifiers.None)
     {
         if row >= .explorer.shown.count do
             return
-        .explorer.selected = .explorer.shown[row]
+        let explorer = .explorer
+        let entry = explorer.shown[row]
+        if explorer.window.workspace and not explorer.listing.isArchive and not explorer.entries[entry].directory and
+           (modifiers.has(.Control) or modifiers.has(.Shift))
+        {
+            let before = explorer.selected
+            if explorer.selectedFiles.isEmpty() and before < explorer.entries.count and not explorer.entries[before].directory do
+                explorer.selectedFiles.add(before)
+            if modifiers.has(.Shift)
+            {
+                var anchor = row
+                for index, slot in explorer.shown where index == before do
+                    anchor = slot
+                explorer.selectedFiles.clear()
+                for slot in Math.min(row, anchor) to Math.max(row, anchor)
+                {
+                    let index = explorer.shown[slot]
+                    if not explorer.entries[index].directory do
+                        explorer.selectedFiles.add(index)
+                }
+            }
+            elif explorer.selectedFiles.contains(entry)
+            {
+                explorer.selectedFiles.remove(entry)
+            }
+            else do
+                explorer.selectedFiles.add(entry)
+            explorer.selected = explorer.selectedFiles.isEmpty() ? Swag.U64.Max : explorer.selectedFiles.back()
+        }
+        else
+        {
+            explorer.selectedFiles.clear()
+            explorer.selected = entry
+        }
         .explorer.showMediaInfo()
         if .rows do
             .explorer.requestPreview()
@@ -3610,7 +3683,7 @@ impl IWnd for ExplorerGrid
         }
 
         let row = .rowAt(.surfaceToLocal(evt.surfacePos))
-        .select(row)
+        .select(row, evt.modifiers)
         .setFocus()
         if evt.kind == .DoubleClick and row < .explorer.shown.count do
             .explorer.activate(.explorer.selected)
@@ -3654,7 +3727,7 @@ impl IWnd for ExplorerGrid
             row = at
         switch evt.key
         {
-        case .Return: .explorer.activate(.explorer.selected)
+        case .Return: .explorer.openSelection()
         case .Left:   .select(row > 0 ? row - 1 : 0)
         case .Right:  .select(row + 1)
         case .Up:     .select(row >= .columns ? row - .columns : 0)

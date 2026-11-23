@@ -442,6 +442,24 @@ impl ImageView
         .zoomToFit()
     }
 
+    // Borrows the renderer texture of the picture currently presented.
+    //
+    // The view may replace the resource on its next update. Use the returned texture immediately
+    // with the same renderer. Empty views and vector drawings return an invalid texture.
+    mtd const presentationTexture()->Texture => .uploadedTexture
+
+    // Returns a bitmap of the displayed vector drawing with its longer side at most `maxSide`.
+    // The caller owns the pixels. Returns an empty image when no drawing is displayed.
+    mtd const rasterizeDrawing(maxSide: s32)->Image
+    {
+        if not .hasDrawing() or maxSide <= 0 do
+            return {}
+        let scale = Math.min(1, cast(f32, maxSide) / Math.max(.drawing.width, .drawing.height))
+        let width = Math.max(1, cast(s32, Math.round(.drawing.width * scale)))
+        let height = Math.max(1, cast(s32, Math.round(.drawing.height * scale)))
+        return .drawing.rasterize(width, height, 1)
+    }
+
     // Returns the decoded bitmap shown by the view, before rotation, mirroring, and zoom.
     //
     // This is the still image or current movie frame. Returns null for a vector drawing or an

@@ -19,6 +19,7 @@ struct ViewerReadingState
     scrolls:       Array'ViewerScrollState
     zoom:          u32  = 100
     wrapping:      bool = true
+    panelOpen:     bool
     restoring:     bool
     contentSettingsApplied: bool
     imageZoom:     f32  = 1
@@ -60,6 +61,7 @@ impl ViewerReadingState
     {
         .viewer = key
         .query  = search
+        .panelOpen = session.sidePanelButton?.isChecked orelse false
         .scrolls.clear()
         var path: Array'u32
         .captureScrolls(unwrap session.view, &path)
@@ -89,10 +91,11 @@ impl ViewerReadingState
             .imageMirrored = view.imageView.isMirrored
 
         case Viewers.Sound.Panel as view:
-            .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64, view.elapsed)
+            .seconds = cast(f64, view.playbackPosition())
             .playing = view.playing
             .volume  = view.volume
             .muted   = view.muted
+            .playbackRate = view.playbackRate
 
         case Viewers.Film.Panel as view:
             .seconds       = view.currentSeconds()
@@ -113,19 +116,19 @@ impl ViewerReadingState
         switch unwrap session.view
         {
         case Viewers.PlainText.Panel as view:
-            view.setZoom(.zoom)
+            view.setZoom(.zoom, remember: false)
             if view.wrapping != .wrapping do
                 view.toggleWrap()
 
         case Viewers.Code.Panel as view:
-            view.setZoom(.zoom)
+            view.setZoom(.zoom, remember: false)
 
         case Viewers.Html.Panel as view:
-            view.setZoom(.zoom)
+            view.setZoom(.zoom, remember: false)
         }
 
         if .viewer == "markdown" and session.info do
-            assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).applyZoom(.zoom)
+            assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).applyZoom(.zoom, remember: false)
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -167,6 +170,7 @@ impl ViewerReadingState
         case Viewers.Sound.Panel as view:
             view.setVolume(.volume)
             view.setMuted(.muted)
+            view.setPlaybackRate(.playbackRate)
             view.seekSeconds(cast(f32, .seconds))
             if view.playing != .playing do
                 view.togglePlayback()
@@ -180,6 +184,8 @@ impl ViewerReadingState
             if view.playing != .playing do
                 view.togglePlayback()
         }
+
+        session.sidePanelButton?.setChecked(.panelOpen)
 
         for saved in .scrolls
         {

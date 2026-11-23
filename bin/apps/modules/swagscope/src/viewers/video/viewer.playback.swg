@@ -15,6 +15,16 @@ impl Panel
         // A planar picture costs half of what the packed one would, so the same budget buys twice
         // the run-ahead on exactly the streams whose key pictures are the most expensive.
         .slotCount = prefetchSlotCount(.video.width(), .video.height(), .planar)
+        if .sceneViewport.x > 0 and .sceneViewport.y > 0
+        {
+            // A smaller cell can keep more frames ready for the same amount of memory.
+            const CellQueueBytes = 2 * 1024 * 1024'u64
+            let width = cast(u64, Math.min(.sceneViewport.x, cast(f32, .video.width())))
+            let height = cast(u64, Math.min(.sceneViewport.y, cast(f32, .video.height())))
+            let bytes = Math.max(1, width * height * (.planar ? 3 : 6) / 2)
+            let budget = cast(u32, Math.clamp(CellQueueBytes / bytes, PrefetchMin, PrefetchMax))
+            .slotCount = Math.min(.slotCount, budget)
+        }
         .slots.resize(.slotCount)
         .freeSlots.clear()
         for index in .slotCount do
@@ -83,15 +93,43 @@ impl Panel
     //
     // A codec that reconstructs planes hands them over as they are; one that does not produces the
     // packed picture itself. Only the queue knows which of the two a slot holds.
-    private mtd decodeIntoSlot(slot: u32, index: u64) fail
+    private mtd decodeIntoSlot(slot: u32, index: u64, viewport: Math.Point) fail
     {
+        let sourceWidth = .video.width()
+        let sourceHeight = .video.height()
+        let fit = viewport.x > 0 and viewport.y > 0 ?
+                  Math.min(viewport.x / cast(f32, sourceWidth), viewport.y / cast(f32, sourceHeight), 1) : 1
+        if .planar and fit < 1
+        {
+            try .video.decodeFramePlanesInto(&.sceneScratch, index)
+            let source = .sceneScratch.view()
+            let width = Math.max(1, cast(s32, Math.round(cast(f32, source.width) * fit)))
+            let height = Math.max(1, cast(s32, Math.round(cast(f32, source.height) * fit)))
+            let target = &.slots[cast(u64, slot)].planes
+            target.resize(width, height, source.chromaShift)
+            target.matrix = source.matrix
+            target.studioRange = source.studioRange
+            scaleScenePlane(source.luma, source.lumaStride, source.width, source.height,
+                            target.luma.toSlice(), width, height)
+            let chromaWidth = cast(s32, target.strideChroma)
+            let chromaHeight = target.chromaHeight()
+            scaleScenePlane(source.chromaB, source.chromaStride, source.chromaWidth(), source.chromaHeight(),
+                            target.chromaB.toSlice(), chromaWidth, chromaHeight)
+            scaleScenePlane(source.chromaR, source.chromaStride, source.chromaWidth(), source.chromaHeight(),
+                            target.chromaR.toSlice(), chromaWidth, chromaHeight)
+            return
+        }
         if .planar
         {
             try .video.decodeFramePlanesInto(&.slots[cast(u64, slot)].planes, index)
             return
         }
 
-        try .video.decodeFrameInto(&.slots[cast(u64, slot)].image, index)
+        let image = &.slots[cast(u64, slot)].image
+        try .video.decodeFrameInto(image, index)
+        if fit < 1 do
+            image.resize(Math.max(1, cast(s32, Math.round(cast(f32, image.width) * fit))),
+                         Math.max(1, cast(s32, Math.round(cast(f32, image.height) * fit))), .Bilinear)
     }
 
     // Decodes one queued picture, and reports whether the producer can immediately do more.
@@ -100,6 +138,7 @@ impl Panel
         var slot       = 0'u32
         var index      = 0'u64
         var generation = 0'u32
+        var viewport: Math.Point
         scope
         {
             Sync.scopedLock(&.queueLock)
@@ -116,12 +155,13 @@ impl Panel
             slot        = .freeSlots.popBack()
             index       = .nextDecode
             generation  = .generation
+            viewport    = .sceneViewport
             .nextDecode += 1
             .inFlight   += 1
         }
 
         var decodeErrorOutcome: Swag.Error
-        catch .decodeIntoSlot(slot, index) as decodeErrorOutcome
+        catch .decodeIntoSlot(slot, index, viewport) as decodeErrorOutcome
         let decodeError = decodeErrorOutcome.value()
 
         Sync.scopedLock(&.queueLock)
@@ -283,7 +323,7 @@ impl Panel
         if not count and .video.durationInSeconds() <= 0 do
             return
         let target      = count ? Math.min(index, count - 1) : index
-        let resumeAudio = .playing and .voice != null
+        let resumeAudio = .playing and .voice != null and not .sceneSilent
         .resumeAudioAfterSeek = resumeAudio
         if resumeAudio do
             catch .voice!.pause()
@@ -434,6 +474,48 @@ impl Panel
     // Returns the picture the playback clock is currently on.
     mtd clockFrame()->u64 => .video.frameAtTime(.currentSeconds())
 
+    mtd setSceneViewport(viewport: Math.Point)
+    {
+        scope
+        {
+            Sync.scopedLock(&.queueLock)
+            if .sceneViewport == viewport do
+                return
+            .sceneViewport = viewport
+        }
+        if .hasFrame and not .playing
+        {
+            .repositionTo(.frameIndex, notifyLoading: false)
+            .decodeWake.signal()
+        }
+    }
+
+    // A linked follower stays on the scene clock even while its next frame is pending.
+    mtd followSceneClock(seconds: f64)
+    {
+        let previous = .sceneSeconds
+        .sceneSeconds = seconds
+        let count = .video.frameCount()
+        let wanted = .video.frameAtTime(seconds)
+        let target = count ? Math.min(count - 1, wanted) : wanted
+        let discontinuity = previous < 0 or seconds < previous
+        if not .awaitingFrame and target != .frameIndex and (not .playing or discontinuity)
+        {
+            .repositionTo(target, notifyLoading: false)
+            .decodeWake.signal()
+        }
+    }
+
+    mtd clearSceneClock()
+    {
+        if .sceneSeconds < 0 do
+            return
+        .elapsed = .sceneSeconds
+        .sceneSeconds = -1
+        if .playing do
+            .clock.restart()
+    }
+
     // Advances presentation by at most one picture, and decides when to give up and skip.
     //
     // Presentation follows the run-ahead queue: a picture is shown once the clock reaches it,
@@ -476,7 +558,7 @@ impl Panel
 
         // A jump left the sound waiting on the queue rather than on the first picture; see
         // `RebufferPictures`. Until it fills, the clock stands where the jump put it.
-        if .resumeAudioAfterSeek and .voice and .hasFrame
+        if .resumeAudioAfterSeek and .voice and .hasFrame and not .sceneSilent
         {
             let count = .video.frameCount()
             var depth = 0'u64
@@ -494,8 +576,9 @@ impl Panel
             .resumeAudio()
         }
 
-        .followAudioClock()
-        if .followLoop() do
+        if .sceneSeconds < 0 and not .sceneSilent do
+            .followAudioClock()
+        if .sceneSeconds < 0 and .followLoop() do
             return
         if .audioRangePending and .audio and soundCovers(.audio, .currentSeconds()) do
             .resumeAudio()
@@ -528,8 +611,7 @@ impl Panel
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
-            let continuation = .services.finished(me)
-            if continuation == .Replay
+            if not .sceneManaged and .services.finished(me) == .Replay
             {
                 .restartForLoop()
                 return
@@ -549,7 +631,7 @@ impl Panel
         // A jump already asked for has not produced its picture yet. Waiting for it is not
         // falling behind, and asking for another one would restart the whole decoder over and
         // over while its pipeline fills.
-        if .anchorPending do
+        if .anchorPending or .sceneSeconds >= 0 do
             return
 
         // The queue is empty: the decoder is behind. Past the resync bound, skip to the next
@@ -565,5 +647,20 @@ impl Panel
             return
 
         .skipTo(sync)
+    }
+}
+
+private func scaleScenePlane(source: const [*] u8, stride: u64, sourceWidth, sourceHeight: s32,
+                             destination: [..] u8, width, height: s32)
+{
+    let sw = cast(u64, sourceWidth)
+    let sh = cast(u64, sourceHeight)
+    let dw = cast(u64, width)
+    let dh = cast(u64, height)
+    for y in dh
+    {
+        let row = source + Math.min((2 * y + 1) * sh / (2 * dh), sh - 1) * stride
+        for x in dw do
+            destination[y * dw + x] = row[Math.min((2 * x + 1) * sw / (2 * dw), sw - 1)]
     }
 }

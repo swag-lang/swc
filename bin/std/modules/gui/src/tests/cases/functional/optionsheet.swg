@@ -590,3 +590,35 @@ impl IWnd for SheetCommandTarget
     (unwrap page.rows[2].run)()
     Swag.require(target.mode == 0 and target.flag and target.runs == 1)
 }
+
+// An exclusive choice can be changed through the keyboard without leaving the sheet.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 520)
+    let button = IconButton.create(&host.root, host.theme.icon(.Settings, 20), {300, 440, 40, 36})
+    var selected = 1'u32
+    let sheet = OptionSheet.View.create(button, func|selected = &selected|(page)
+    {
+        page.addSegments("Time", ["Absolute", "Relative", "Leader"], selected[], func|selected|(index) { selected[] = index })
+    })
+    var driven: bool
+    host.app.sigFrame += func|sheet, selected = &selected, driven = &driven|(_)
+    {
+        if driven[] do
+            return
+        driven[] = true
+        Swag.require(sheet.page.rows[0].selected == 1)
+        var event = KeyEvent{kind: .Pressed, key: .Right}
+        sheet.sendEvent(&event)
+        Swag.require(event.accepted and selected[] == 2 and not sheet.isClosed())
+        event = {kind: .Pressed, key: .Left}
+        sheet.sendEvent(&event)
+        Swag.require(event.accepted and selected[] == 1)
+        sheet.close()
+    }
+    sheet.doModal(button, autoDestroy: true)
+    host.app.sigFrame.clear()
+    Swag.require(driven)
+    host.shutdown()
+}

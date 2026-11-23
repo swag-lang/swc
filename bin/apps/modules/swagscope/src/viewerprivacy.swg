@@ -75,6 +75,11 @@ impl ViewerPrivacy
     {
         if not .caption do
             return
+        if not .window.isWorkspaceActive()
+        {
+            .caption.hide()
+            return
+        }
         let path        = .window.isExploring() ? .window.explorer!.listing.path.toString() : .window.currentFile.toString()
         let privateMode = path.count and .policy(path).privateMode
         .caption.toolTip = appStrings().ui_PrivateVault

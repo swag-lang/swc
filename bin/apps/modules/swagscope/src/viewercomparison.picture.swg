@@ -1,0 +1,323 @@
+#global internal
+
+using Core, Gui, Pixel
+
+func pictureModeTitle(mode: PictureComparisonMode)->string
+{
+    let text = appStrings()
+    switch #complete mode
+    {
+    case .SideBySide: return text.scene_SideBySide
+    case .Curtain:    return text.scene_Curtain
+    case .OnionSkin:  return text.scene_OnionSkin
+    case .Difference: return text.scene_Difference
+    case .Flip:       return text.scene_Flip
+    }
+}
+
+struct ComparedDrawing
+{
+    source:  *ImageView?
+    image:   Image
+    texture: Texture
+}
+
+impl SceneComparison
+{
+    mtd clearComparedDrawings()
+    {
+        for &vector in .vectors
+        {
+            .app().renderer.removeTexture(&vector.texture)
+            vector[] = {}
+        }
+    }
+
+    private mtd comparisonTexture(side: u64, view: *ImageView)->Texture
+    {
+        let raster = view.presentationTexture()
+        if raster.isValid() do
+            return raster
+        let vector = &.vectors[side]
+        if vector.source != view or not vector.texture.isValid()
+        {
+            let image = view.rasterizeDrawing(2048)
+            if not image.isValid() do
+                return {}
+            .app().renderer.removeTexture(&vector.texture)
+            vector.source  = view
+            vector.texture = .app().renderer.addImage(image)
+            vector.image   = image
+        }
+
+        return vector.texture
+    }
+
+    private mtd comparisonImage(side: u64, view: *ImageView)->const *Image?
+    {
+        if let image = view.picture() do
+            return image
+        let vector = &.vectors[side]
+        return vector.source == view and vector.image.isValid() ? &vector.image : null
+    }
+
+    mtd paintPictures(painter: *Painter, area: Math.Rectangle)
+    {
+        let left   = .pictureView(0)
+        let right  = .pictureView(1)
+        let colors = .themeColors()
+        let footer = Math.Rectangle{area.x, area.bottom() - FooterHeight, area.width, FooterHeight}
+        let body   = Math.Rectangle{area.x, area.y, area.width, Math.max(area.height - FooterHeight, 0)}
+        painter.fillRect(body, Color.fromArgb(Argb.Black))
+        painter.fillRect(footer, colors.ground)
+        if not left or not right do
+            return
+
+        let pictures = [.comparisonTexture(0, left), .comparisonTexture(1, right)]
+        if not pictures[0].isValid() or not pictures[1].isValid() do
+            return
+
+        var bounds: [2] Math.Rectangle
+        for side in 2
+        {
+            let viewport = .mode == .SideBySide ?
+                           Math.Rectangle{body.x + cast(f32, side) * body.width / 2, body.y, body.width / 2, body.height} : body
+            bounds[side] = .pictureBounds(viewport, pictures[side], pictures[1 - side])
+        }
+
+        painter.pushClippingRect(body)
+        switch #complete .mode
+        {
+        case .SideBySide:
+            for side in 2
+            {
+                painter.pushClippingRect({body.x + cast(f32, side) * body.width / 2, body.y, body.width / 2, body.height})
+                painter.drawTexture(bounds[side], pictures[side])
+                painter.popClippingRect()
+            }
+
+            painter.fillRect(body.horzCenter(), body.y, 1, body.height, colors.line)
+
+        case .Curtain:
+            let x = Math.round(body.x + body.width * .separator)
+            painter.pushClippingRect({x, body.y, body.right() - x, body.height})
+            painter.drawTexture(bounds[1], pictures[1])
+            painter.popClippingRect()
+            painter.pushClippingRect({body.x, body.y, x - body.x, body.height})
+            painter.drawTexture(bounds[0], pictures[0])
+            painter.popClippingRect()
+            painter.fillRect(x, body.y, 1, body.height, Color.fromArgb(Argb.White))
+            painter.fillCircle(x, body.vertCenter(), 12, colors.raised)
+            painter.drawCircle(x, body.vertCenter(), 12, colors.arc, 1.5)
+
+        case .OnionSkin:
+            painter.drawTexture(bounds[0], pictures[0])
+            painter.drawTexture(bounds[1], pictures[1], Color.fromArgb(Argb.White).withAlphaF32(.opacity))
+
+        case .Difference:
+            let difference = .pictureDifference(pictures)
+            if difference.isValid() do
+                painter.drawTexture(.pictureBounds(body, difference, difference), difference)
+
+        case .Flip:
+            let side = .shownRight ? 1 : 0
+            painter.drawTexture(bounds[side], pictures[side])
+        }
+
+        painter.popClippingRect()
+        .paintPictureNames(painter, body)
+        .paintProbe(painter, footer, bounds, left, right)
+    }
+
+    private mtd pictureBounds(viewport: Math.Rectangle, image, other: Texture)->Math.Rectangle
+    {
+        let wide   = cast(f32, image.width)
+        let high   = cast(f32, image.height)
+        let fitW   = .pixelAligned ? cast(f32, Math.max(image.width, other.width)) : wide
+        let fitH   = .pixelAligned ? cast(f32, Math.max(image.height, other.height)) : high
+        let scale  = Math.min(viewport.width / fitW, viewport.height / fitH) * .zoom
+        let width  = wide * scale
+        let height = high * scale
+        return {viewport.horzCenter() - width / 2 + .pan.x * viewport.width,
+                viewport.vertCenter() - height / 2 + .pan.y * viewport.height, width, height}
+    }
+
+    private mtd paintPictureNames(painter: *Painter, body: Math.Rectangle)
+    {
+        if .mode == .Flip and not .flipTimer do
+            return
+        let colors = .themeColors()
+        let font   = .theme().createDefaultFont(12)
+        for side in 2 where .mode != .Flip or (side != 0) == .shownRight
+        {
+            let name: string = Path.fileName(.paths[side]) orelse .paths[side]
+            let text         = Painter.elideString(name, font, body.width / 2 - 44, .deviceScale())
+            let width        = Painter.measureString(text, font).width + 20
+            let x            = side == 0 ? body.x + 14 : body.right() - 14 - width
+            let rect         = Math.Rectangle{x, body.y + 14, width, 26}
+            let radius       = .themeMetrics().corner_Chip
+            painter.fillRoundRect(rect, radius, radius, colors.raised)
+            painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, colors.text)
+        }
+    }
+
+    private mtd paintProbe(painter: *Painter, footer: Math.Rectangle, bounds: [2] Math.Rectangle, left, right: *ImageView)
+    {
+        let a = .comparisonImage(0, left)
+        let b = .comparisonImage(1, right)
+        if not a or not b do
+            return
+        let sideBySide = .mode == .SideBySide
+        let side       = sideBySide and .pointer.x >= footer.horzCenter() ? 1 : 0
+        var pointA     = .pointer
+        var pointB     = .pointer
+        if sideBySide
+        {
+            if side == 0 do
+                pointB.x += footer.width * 0.5
+            else do
+                pointA.x -= footer.width * 0.5
+        }
+
+        if not bounds[0].contains(pointA) or not bounds[1].contains(pointB) do
+            return
+        let first  = probePixel(a, bounds[0], pointA)
+        let second = probePixel(b, bounds[1], pointB)
+        let font   = .theme().createDefaultFontFs(12)
+        painter.drawString(footer.x + .themeMetrics().floating_Inset,
+                           font.opticalLineTop(footer.vertCenter()),
+                           Format.toString("A % % % · B % % %", first.r, first.g, first.b, second.r, second.g, second.b),
+                           font,
+                           .themeColors().softText)
+    }
+
+    private mtd pictureDifference(sources: [2] Texture)->Texture
+    {
+        var frames: [2] u64
+        let scene = unwrap .workspace.scene()
+        for side in 2
+        {
+            if scene.views[side].document?.currentView is Viewers.Film.Panel as film do
+                frames[side] = film.frameIndex
+        }
+
+        if .diffTexture.isValid() and
+           .diffSources == sources and
+           .diffFrames == frames and
+           .diffAligned == .pixelAligned do
+            return .diffTexture
+
+        let width  = Math.max(sources[0].width, sources[1].width)
+        let height = Math.max(sources[0].height, sources[1].height)
+        if cast(u64, width) * cast(u64, height) > 16 * 1024 * 1024 do
+            return {}
+        let renderer = .app().renderer
+        let left     = renderer.readTexturePixels(sources[0], .RGBA8)
+        let right    = renderer.readTexturePixels(sources[1], .RGBA8)
+        if left.isEmpty() or right.isEmpty() do
+            return {}
+
+        let area    = Math.Rectangle{0, 0, cast(f32, width), cast(f32, height)}
+        let sampleA = differenceBounds(area, sources[0], .pixelAligned)
+        let sampleB = differenceBounds(area, sources[1], .pixelAligned)
+        var image   = Image.create(width, height, .RGBA8)
+        for y in height
+        {
+            for x in width
+            {
+                let point = Math.Point{cast(f32, x) + 0.5, cast(f32, y) + 0.5}
+                let a     = pictureSample(sources[0], left.toSlice(), sampleA, point)
+                let b     = pictureSample(sources[1], right.toSlice(), sampleB, point)
+                let index = (y * cast(u64, width) + x) * 4
+                image.pixels[index]     = amplifiedDifference(a.r, b.r)
+                image.pixels[index + 1] = amplifiedDifference(a.g, b.g)
+                image.pixels[index + 2] = amplifiedDifference(a.b, b.b)
+                image.pixels[index + 3] = 255
+            }
+        }
+
+        renderer.removeTexture(&.diffTexture)
+        .diffTexture = renderer.addImage(image)
+        .diffSources = sources
+        .diffFrames  = frames
+        .diffAligned = .pixelAligned
+        return .diffTexture
+    }
+
+    mtd picturePointer(evt: *MouseEvent, point: Math.Point)
+    {
+        .pointer = point
+        let body = .clientRect()
+        switch evt.kind
+        {
+        case .Accept:
+            evt.accepted = point.y >= .stripInset() and point.y < body.bottom() - FooterHeight
+
+        case .Pressed where evt.button == .Left:
+            .drag = true
+            .captureMouse()
+            if .mode == .Curtain do
+                .separator = Math.clamp(point.x / Math.max(body.width, 1), 0, 1)
+            if .mode == .SideBySide do
+                .workspace.selectView(point.x < body.horzCenter() ? 0 : 1)
+
+        case .Released where .drag:
+            .drag = false
+            .releaseMouse()
+
+        case .Move:
+            if .drag
+            {
+                if .mode == .Curtain
+                {
+                    .separator = Math.clamp(point.x / Math.max(body.width, 1), 0, 1)
+                }
+                else
+                {
+                    .pan.x += evt.delta.x / Math.max(body.width, 1)
+                    .pan.y += evt.delta.y / Math.max(body.height, 1)
+                }
+            }
+
+        case .Wheel:
+            if .mode == .OnionSkin and evt.modifiers.has(.Alt) do
+                .opacity = Math.clamp(.opacity + (evt.delta.y > 0 ? 0.05 : -0.05), 0, 1)
+            else do
+                .zoom = Math.clamp(.zoom * (evt.delta.y > 0 ? 1.25 : 0.8), 0.1, 20)
+            .refresh()
+
+        default:
+            evt.accepted = false
+        }
+
+        .invalidate()
+    }
+}
+
+private func amplifiedDifference(a, b: u8)->u8 =>
+    cast(u8, Math.min(Math.abs(cast(s32, a) - cast(s32, b)) * 4, 255))
+
+private func probePixel(image: const *Image, bounds: Math.Rectangle, point: Math.Point)->Color
+{
+    let x = cast(s32, cast(f32, image.width) * (point.x - bounds.x) / bounds.width)
+    let y = cast(s32, cast(f32, image.height) * (point.y - bounds.y) / bounds.height)
+    return image.pixelColor(x, y)
+}
+
+private func differenceBounds(area: Math.Rectangle, image: Texture, aligned: bool)->Math.Rectangle
+{
+    let width  = cast(f32, image.width)
+    let height = cast(f32, image.height)
+    let scale  = aligned ? 1.0 : Math.min(area.width / width, area.height / height)
+    return {area.horzCenter() - width * scale / 2, area.vertCenter() - height * scale / 2, width * scale, height * scale}
+}
+
+private func pictureSample(image: Texture, bytes: const [..] u8, bounds: Math.Rectangle, point: Math.Point)->Color
+{
+    if not bounds.contains(point) do
+        return {}
+    let sx    = cast(u64, cast(f32, image.width) * (point.x - bounds.x) / bounds.width)
+    let sy    = cast(u64, cast(f32, image.height) * (point.y - bounds.y) / bounds.height)
+    let index = 4 * (sy * cast(u64, image.width) + sx)
+    return Color{r: bytes[index], g: bytes[index + 1], b: bytes[index + 2], a: bytes[index + 3]}
+}

@@ -33,6 +33,8 @@ impl ViewerWindow
         .stopSlide()
         .stillView = null
 
+        if .workspace and me == .workspace.primary and not .smokeRunning do
+            .workspace.adoptPrimary(fileName)
         .pendingFile = fileName
         .pendingEmpty.clear()
         .pendingRemember      = remember
@@ -186,7 +188,7 @@ impl ViewerWindow
 
         let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() == Dialog.BtnOk do
-            .queueFile(dialog.selectedPath())
+            .openFile(dialog.selectedPath())
     }
 
     // Closes the current file and forgets its reading state, stops the slide show and the change
@@ -829,7 +831,10 @@ impl ViewerWindow
 
     mtd openFile(fileName: string, remember = true)
     {
-        .queueFile(fileName, remember)
+        if .workspace do
+            .workspace.openDocument(fileName, remember)
+        else do
+            .queueFile(fileName, remember)
     }
 
     // Opens a file whose classification has finished: watches it for changes, fills the viewer
@@ -846,6 +851,7 @@ impl ViewerWindow
         if not .fileWatchTimer do
             .fileWatchTimer = .addTimer(250'ms)
         .currentFile     = #move classified.absoluteFileName
+        .workspace?.updateDocumentPath(me)
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
         .folderFiles     = #move classified.folderFiles
@@ -892,9 +898,17 @@ impl ViewerWindow
         {
             .rememberRecent(.currentFile)
             .rememberFolder(.currentFile)
+            if .workspace and not .isWorkspacePrimary() and .privacy.mayRemember(.currentFile)
+            {
+                .workspace.primary.rememberRecent(.currentFile)
+                .workspace.primary.rememberFolder(.currentFile)
+            }
         }
 
         .applyLayout()
         .invalidate()
+        .workspace?.refreshComparison()
+        .workspace?.updateMediaViewport(me)
+        .workspace?.registerReadingLinks(me)
     }
 }

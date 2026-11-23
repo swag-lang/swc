@@ -405,7 +405,7 @@ impl ZoomButton
         return .statisticsLoad.retire()
     }
 
-    mtd applyZoom(percent: u32)
+    mtd applyZoom(percent: u32, remember = true)
     {
         let bounded = Viewer.clampZoom(percent)
         if .zoomPercent == bounded do
@@ -415,7 +415,8 @@ impl ZoomButton
         applyViewerStyle(.view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, bounded, applyColors: false)
 
         // The window saves preferences on navigation and close, outside wheel handling.
-        g_ViewerSettings.zoomPercent = bounded
+        if remember do
+            g_ViewerSettings.zoomPercent = bounded
     }
 
     // Returns the source offset of the block being read; the start of the document until one is laid out.

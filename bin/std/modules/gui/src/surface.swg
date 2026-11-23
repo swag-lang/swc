@@ -444,6 +444,22 @@ impl Surface
         .hide()
     }
 
+    // Copies a rectangle of the most recently painted frame in physical pixels. The rectangle
+    // is clipped to the surface. Returns an empty image before painting or outside its bounds.
+    mtd captureFrame(x, y, width, height: s32)->Image
+    {
+        if not .rt.colorBuffer.isValid() or width <= 0 or height <= 0 do
+            return {}
+        let left = Math.max(x, 0)
+        let top = Math.max(y, 0)
+        let right = Math.min(cast(s64, x) + width, Math.min(.rt.colorBuffer.width, .rc.width))
+        let bottom = Math.min(cast(s64, y) + height, Math.min(.rt.colorBuffer.height, .rc.height))
+        if right <= left or bottom <= top do
+            return {}
+        .app.renderer.setCurrentContext(.rc)
+        return .app.renderer.readRenderTarget(&.rt, left, top, cast(s32, right - left), cast(s32, bottom - top))
+    }
+
     // Returns the root user view displayed by the surface.
     mtd const view()->*Wnd => .wnd.view
 

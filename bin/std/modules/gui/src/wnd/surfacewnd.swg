@@ -46,6 +46,7 @@ public struct SurfaceWnd
     appearanceButton:           *AppearanceButton?      // Appearance command owner on this surface, if present.
     appearanceActionRegistered: bool                    // Whether this surface already routes appearance commands.
     stripLeadingRoom:           f32                     // Room the view's own strip controls take after the leading actions.
+    captionConcealed:           bool
     stripTrailingRoom:          f32                     // Room the view's own strip controls take before the trailing actions.
     chromePalette:              ThemePalette            // Document palette copied by setChromePalette.
     hasChromePalette:           bool                    // Whether chrome follows the document rather than the application.
@@ -433,6 +434,19 @@ impl SurfaceWnd
         .invalidate()
     }
 
+    // Conceals the large application caption during a transient presentation.
+    //
+    // The native placement and surface flags stay in force. Call with false to restore the strip,
+    // including the title and controls that were visible before it was concealed.
+    public mtd setCaptionConcealed(concealed: bool)
+    {
+        if .captionConcealed == concealed do
+            return
+        .captionConcealed = concealed
+        .sendResizeEvent()
+        .invalidate()
+    }
+
     // Matches the window glyph, title and caption controls to a document palette.
     //
     // The palette is copied and affects only the chrome, including controls recreated after a
@@ -587,7 +601,7 @@ impl SurfaceWnd
         if not srfn do
             return 0
         if srfn.flags.has(.LargeCaption) do
-            return .themeMetrics().wnd_StripHeight
+            return .captionConcealed ? 0 : .themeMetrics().wnd_StripHeight
         if srfn.flags.has(.SmallCaption) do
             return .padding.y
         return 0

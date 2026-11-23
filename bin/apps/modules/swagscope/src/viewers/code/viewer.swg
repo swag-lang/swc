@@ -414,10 +414,11 @@ impl Panel
         .editor.setFlags(.editor.flags)
     }
 
-    mtd setZoom(percent: u32)
+    mtd setZoom(percent: u32, remember = true)
     {
         .zoomPercent  = Viewer.clampZoom(percent)
-        g_ZoomPercent = .zoomPercent
+        if remember do
+            g_ZoomPercent = .zoomPercent
         .applyMeasure()
         .zoomLabel?.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()

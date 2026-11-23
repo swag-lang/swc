@@ -80,10 +80,11 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    internal mtd setZoom(percent: u32)
+    internal mtd setZoom(percent: u32, remember = true)
     {
         .zoomPercent  = Viewer.clampZoom(percent)
-        g_ZoomPercent = .zoomPercent
+        if remember do
+            g_ZoomPercent = .zoomPercent
         var style = HtmlStyle.theme()
         style.bodyFontSize    = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
         style.codeFontSize    = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))

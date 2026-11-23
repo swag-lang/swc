@@ -70,6 +70,10 @@ writes a third theme.
 | Caution | `#F2B544` on `rgba(242,181,68,.12)` | `#A36A00` on `#FBF1DC` | Warnings |
 | Live | `#4ADE80` | `#15803D` | The dot of something running now: a mounted drive |
 
+Comparisons use Removed (Critical ink) and Added (Live ink) in both palettes. Whole lines use a
+12% tint and changed characters use a 30% tint. A minus or plus in the gutter carries the meaning
+alongside the colour.
+
 Information notices use Arc. Syntax colouring keeps the shared lexical palette of
 `design-swag-identity`, deepened on Papier through `Color.ensureContrast`.
 

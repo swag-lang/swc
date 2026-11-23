@@ -292,3 +292,74 @@ options_MovieDuration Durée minimale d’un film
 options_MovieDurationHelp Les vidéos plus courtes utilisent une image locale sans recherche en ligne. Zéro accepte toute durée.
 ui_InvalidMoviePattern Saisissez une expression régulière valide pour les noms des films.
 ui_PrivateVault Contenu privé de Swag Vault
+
+scene_Scenes        Scènes · %
+scene_SceneList     Scènes
+scene_Current       la scène actuelle
+scene_SwitchHint    Ctrl Tab suivante · Ctrl Maj Tab précédente · relâcher pour ouvrir
+scene_Files         % fichiers
+scene_Videos        % vidéos
+scene_Layout        Disposition
+scene_Single        Seule
+scene_SideBySide    Côte à côte
+scene_Stacked       Empilées
+scene_Grid2         2 × 2
+scene_Grid3         3 × 3
+scene_Grid4         4 × 4
+scene_Auto          Auto
+scene_OpenBeside    Ouvrir à côté…
+scene_OpenGrid      Ouvrir des fichiers en grille…
+scene_CompareWith   Comparer avec…
+scene_Compare       Comparer
+scene_Maximize      Agrandir la vue
+scene_RestoreLayout Rétablir la disposition
+scene_Replace       Remplacer
+scene_Left          À gauche
+scene_Right         À droite
+scene_Below         En dessous
+scene_NewTab        Nouvel onglet
+scene_Curtain        Rideau
+scene_OnionSkin      Pelure d’oignon
+scene_Difference     Différence
+scene_Flip           Alterner
+scene_Identical      Identiques
+scene_ChangeCount    % / % différences
+scene_LineCount      % lignes
+scene_NextDifference Différence suivante
+scene_PreviousDifference Différence précédente
+scene_IgnoreWhitespace Ignorer les espaces
+scene_IgnoreCase     Ignorer la casse
+scene_IgnoreEndings  Ignorer les fins de ligne
+scene_Unified        Vue unifiée
+scene_Swap           Permuter les côtés
+scene_Fit            Ajuster
+scene_Pixels         Pixel pour pixel
+scene_ZoomIn         Agrandir
+scene_ZoomOut        Réduire
+scene_LoadingComparison Comparaison en cours…
+scene_Linked        Liées
+scene_LinkTime      Temps
+scene_LinkPlayback  Lecture
+scene_LinkFraming   Cadrage
+scene_LinkScroll    Défilement
+scene_Absolute      Absolu
+scene_Relative      Relatif
+scene_Leader        Meneuse
+scene_AtEnd         En fin de lecture
+scene_Shortest      Arrêter à la plus courte
+scene_Independent   Arrêter séparément
+scene_LoopLeader    Boucler sur la meneuse
+scene_AlignHere     Aligner ici
+scene_AlignSound    Aligner sur le son
+scene_Solo          Écouter la vue active
+scene_Behind        En retard
+scene_Play          Lire
+scene_Pause         Mettre en pause
+scene_AlignFailed   Le son n’a pas permis d’aligner les enregistrements.
+scene_ComparisonSheet Comparaison des fichiers
+scene_ComparisonFacts % différences sur %
+scene_Different       Différents
+scene_HintReturn    retour à la disposition
+scene_HintNavigate  vue voisine
+scene_ViewLimit    Une scène peut contenir jusqu’à 16 vues.
+scene_TabLimit     La fenêtre peut contenir jusqu’à 32 scènes.

@@ -4,7 +4,7 @@
 
 #test
 {
-    let window = 0x12345678'u32
-    let native = Ogl.Platform.Xcb.nativeWindowHandle(window)
-    Swag.require(cast(u64, native) == cast(u64, window))
+    var window = 0x12345678'u32
+    let native = Ogl.Platform.Xcb.nativeWindowHandle(&window)
+    Swag.require(cast(*u32?, native) == &window)
 }

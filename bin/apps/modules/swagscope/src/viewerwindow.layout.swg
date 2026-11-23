@@ -7,7 +7,7 @@ impl ViewerWindow
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32, button.appearanceTheme)
-            window.layoutFileInfo()
+            window.captionDocument().layoutFileInfo()
             catch window.saveState()
         }
 
@@ -186,7 +186,9 @@ impl ViewerWindow
     // and the panels beside it the floating inset away from the top as well, as the sheet stands.
     mtd updateDocumentInsets()
     {
-        let strip  = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
+        let strip  = .workspace and .workspace.documentCount() > 1 ?
+                     (.isEdgeToEdge() ? 0 : ViewerWorkspace.ViewTitleHeight) :
+                     (.fullScreen or .isEdgeToEdge() ? 0 : .stripInset())
         let top    = strip + .themeMetrics().floating_Inset
         let search = .searchBar != null and .searchBar.isLocallyVisible() ?
                      Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
@@ -208,7 +210,8 @@ impl ViewerWindow
         if .viewerBar != null
         {
             let commands     = .currentCommands
-            let keepCommands = not .fullScreen or (.infoSheet != null and .infoSheet.isLocallyVisible())
+            let keepCommands = (not .fullScreen or (.infoSheet != null and .infoSheet.isLocallyVisible())) and
+                               not (.workspace?.isMediaScene() orelse false)
             .documentPanel.margin.w = commands and keepCommands ?
                                       commands.position.height + .viewerBar.padding.y + .viewerBar.padding.w +
                                       2 * .themeMetrics().miniBar_Distance : 0

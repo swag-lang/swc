@@ -166,6 +166,12 @@ impl ViewerWindow
     // A file of the history that went missing takes the ordinary path, which offers to forget it.
     mtd resumeFile(fileName: string, fromHistory = true)
     {
+        if .workspace and not fromHistory
+        {
+            .workspace.openDocument(fileName)
+            return
+        }
+
         let point = .resumePoint(fileName)
         if not point
         {

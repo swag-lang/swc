@@ -17,6 +17,7 @@ enum RowKind
     Choice      // One value of a setting, checked when it is the value in force.
     Toggle      // A setting that is on or off, switched in place.
     Stepper     // A value stepped down or up in place.
+    Segments    // An exclusive choice presented side by side.
     Action      // A command run at once, such as resetting a setting.
     Heading     // Title of the group of rows that follows; never focused.
 }
@@ -37,12 +38,15 @@ struct Row
         canDecrease: bool           // Whether a stepper can step down.
         canIncrease: bool           // Whether a stepper can step up.
         closesSheet: bool           // Whether an action closes the sheet and runs once it is gone.
+        segments:    Array'String   // Values of a segmented choice, in display order.
+        selected:    u32            // Index of the value in force in a segmented choice.
     }
 
     open:   Builder?
     choose: (func||())?
     toggle: (func||(bool))?
     step:   (func||(s32))?
+    select: (func||(u32))?
     run:    (func||())?
 }
 
@@ -84,6 +88,25 @@ struct Page
 
 impl Page
 {
+    // Adds an exclusive choice whose labels appear side by side. `selected` is the zero-based
+    // index of the current value, or `U32.Max` when no value is selected. Selecting another value
+    // calls `choose` with its index and leaves the sheet open. Empty `labels` add no row.
+    mtd addSegments(label: string, labels: const [..] string, selected: u32, choose: func||(u32))
+    {
+        if not labels.count do
+            return
+        with var row: Row
+        {
+            .kind = .Segments
+            .label.set(label)
+            for name in labels do
+                .segments.add(name)
+            .selected = selected < labels.count ? selected : Swag.U32.Max
+            .select = choose
+        }
+        .rows.add(#move row)
+    }
+
     // Adds a row naming a setting and its current value, which opens the page `build` fills.
     //
     // The opened page is titled `label`. Its builder runs each time the page is shown, so it can

@@ -8,7 +8,17 @@ impl ViewerWindow
            .activeChoiceIndex >= .instances.count do
             return
         .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key, .searchBox.text())
+        .readingState.captureSearchSettings(me)
         .queueFile(.currentFile, remember: false, preserveReading: true)
+    }
+
+    mtd finishReadingRestore()
+    {
+        if .readingState.restoring and
+           .activeChoiceIndex < .instances.count and
+           .pendingFile.isEmpty() and
+           .readingState.restore(&.instances[.activeChoiceIndex]) do
+            .readingState.restoring = false
     }
 
     // Queues `fileName`, giving the window a chance to paint its first frame on startup.
@@ -151,7 +161,7 @@ impl ViewerWindow
             }
 
             var archive      = not classified.choices.isEmpty() and classified.choices[0].key == "archive"
-            let chosenViewer = .fileViewer(classified.absoluteFileName)
+            let chosenViewer = .preferredFileViewer(classified.absoluteFileName)
             for choice in classified.choices where choice.key == chosenViewer do
                 archive = chosenViewer == "archive"
             if not .thumbnailMode and (classified.isDirectory or archive)
@@ -781,9 +791,15 @@ impl ViewerWindow
             return
         }
 
+        let newSession = index < .instances.count and not .instances[index].view
         if not .activateChoice(index) do
             return
         .rememberFileViewer(index)
+        if newSession do
+            .workspace?.registerReadingLinks(me)
+        .workspace?.updateMediaViewport(me)
+        .workspace?.refreshComparison()
+        .workspace?.comparisonSheet?.refresh()
     }
 
     // Only explicit selector choices belong to this file's session; automatic fallbacks do not.
@@ -820,10 +836,17 @@ impl ViewerWindow
         return ""
     }
 
+    private mtd const preferredFileViewer(file: string)->string
+    {
+        if .reloading and .readingState.useSavedViewer and not .readingState.viewer.isEmpty() do
+            return .readingState.viewer
+        return .fileViewer(file)
+    }
+
     // A missing or no-longer-applicable session choice leaves the classified default in charge.
     private mtd preferredChoiceIndex()->u32
     {
-        let viewer = .fileViewer(.currentFile)
+        let viewer = .preferredFileViewer(.currentFile)
         for choice, index in .choices where choice.key == viewer do
             return cast(u32, index)
         return 0
@@ -850,7 +873,7 @@ impl ViewerWindow
         .fileWatch.ignorePending = .fileWatch.load.started
         if not .fileWatchTimer do
             .fileWatchTimer = .addTimer(250'ms)
-        .currentFile     = #move classified.absoluteFileName
+        .currentFile = #move classified.absoluteFileName
         .workspace?.updateDocumentPath(me)
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
@@ -881,14 +904,14 @@ impl ViewerWindow
             }
         }
 
+        .workspace?.updateMediaViewport(me)
         if .reloading
         {
             if .choices[selected].key == .readingState.viewer
             {
                 .readingState.applySettings(&.instances[selected])
-                discard .readingState.restore(&.instances[selected])
-                .searchBox.setText(.readingState.query, notify: false)
-                .restartSearch()
+                .readingState.restoreSearch(me)
+                .finishReadingRestore()
             }
 
             .reloading = false
@@ -908,7 +931,6 @@ impl ViewerWindow
         .applyLayout()
         .invalidate()
         .workspace?.refreshComparison()
-        .workspace?.updateMediaViewport(me)
         .workspace?.registerReadingLinks(me)
     }
 }

@@ -678,13 +678,14 @@ private impl Application
         .toDelete.add({ptr: surface, type: #typeof(surface[])})
     }
 
-    internal mtd unregisterWnd(wnd: *Wnd)
+    internal mtd unregisterWnd(wnd: *Wnd, keepActivities = false)
     {
         .animator.cancelTarget(wnd)
         .toolTip.forget(wnd)
         .clearWndInputState(wnd)
 
-        .unregisterWndTimers(wnd)
+        if not keepActivities do
+            .unregisterWndTimers(wnd)
 
         // Remove from various lists
         .frameEvents.remove(wnd)
@@ -701,6 +702,9 @@ private impl Application
                 .hotKeys.removeAtOrdered(hotKeyIndex)
             }
         }
+
+        if keepActivities do
+            return
 
         // Be sure there's no posted event for that window. Other threads can post meanwhile.
         Sync.scopedLock(&.mutexPostedEvents)

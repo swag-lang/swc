@@ -81,7 +81,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     surface.setTitle(ProductName)
 
     let workspace = ViewerWorkspace.create(surface.wnd, #move index)
-    let window = workspace.primary
+    let window    = workspace.primary
     window.home.useSystemPlaces = true
     window.home.refresh()
 
@@ -97,13 +97,10 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     }
     else
     {
-        let startupFiles = viewerStartupFiles(Env.arguments())
-        if not startupFiles.isEmpty()
-        {
-            let layout = Env.hasArgument("--grid") ? sceneGrid(startupFiles.count) :
-                         (startupFiles.count == 2 ? SceneLayout.SideBySide : SceneLayout.Auto)
-            workspace.openScene(startupFiles.toSlice(), layout)
-        }
+        workspace.startupFiles = viewerStartupFiles(Env.arguments())
+        let count = workspace.startupFiles.count
+        workspace.startupLayout = Env.hasArgument("--grid") ? sceneGrid(count) :
+                                  (count == 2 ? SceneLayout.SideBySide : SceneLayout.Auto)
     }
 
     surface.show()

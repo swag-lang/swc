@@ -13,6 +13,7 @@ struct ImageView
         using wnd: Wnd     // Embedded window behavior and presentation.
 
         sigZoomChanged:      SigArray'func||(*Wnd)     // Emitted after the effective zoom changes.
+        sigPanChanged:       SigArray'func||(*Wnd)     // Emitted after a pan gesture or explicit pan offset changes the centre.
         sigFrameChanged:     SigArray'func||(*Wnd)     // Emitted after an animation frame changes.
         sigTransformChanged: SigArray'func||(*Wnd)     // Emitted after the temporary view transform changes.
         sigDecodeFailed:     SigArray'func||(*Wnd)     // Emitted once when frame decoding fails; movie.failureReason contains the error.
@@ -353,9 +354,8 @@ impl IWnd for ImageView
                 return
             }
 
-            .panOffset   += evt.surfacePos - .lastPointer
+            .setPanOffset(.panOffset + evt.surfacePos - .lastPointer)
             .lastPointer = evt.surfacePos
-            .invalidate()
 
         case .Released where evt.button == .Left:
             if .isPanning
@@ -780,13 +780,18 @@ impl ImageView
     {
         if not .hasContent() do
             return 1
-        if not .isFitted do
-            return .zoom
+        return .isFitted ? .fittedZoom() : .zoom
+    }
 
+    // Returns the scale that fits the current content into the padded viewport.
+    //
+    // The scale uses the content's display dimensions and orientation. Returns one before
+    // content or a viewport is available.
+    mtd const fittedZoom()->f32
+    {
         let client = .paddedClientRect()
-        if client.width <= 0 or client.height <= 0 do
+        if not .hasContent() or client.width <= 0 or client.height <= 0 do
             return 1
-
         let size = .contentSize()
         return Math.min(client.width / size.width, client.height / size.height)
     }
@@ -841,7 +846,10 @@ impl ImageView
     // Like pointer panning, the offset is not clamped to the image bounds.
     mtd setPanOffset(offset: Math.Point)
     {
+        if .panOffset == offset do
+            return
         .panOffset = offset
+        .sigPanChanged.call(me)
         .invalidate()
     }
 

@@ -25,17 +25,18 @@ struct SceneView
 
 struct ViewerScene
 {
-    views:           Array'SceneView
-    layout:          SceneLayout = .Auto
-    active:          u64
-    recent:          u64
-    split:           f32         = 0.5
-    maximized:       bool
-    compared:        bool
-    linked:          bool
-    links:           SceneLinks
-    comparisonState: SceneComparisonState
-    preview:         Texture
+    views:              Array'SceneView
+    layout:             SceneLayout = .Auto
+    active:             u64
+    recent:             u64
+    split:              f32         = 0.5
+    maximized:          bool
+    compared:           bool
+    linked:             bool
+    playbackWasRunning: bool
+    links:              SceneLinks
+    comparisonState:    SceneComparisonState
+    preview:            Texture
 }
 
 impl ViewerScene
@@ -127,6 +128,8 @@ struct ViewerWorkspace
     retireTimer:      *Timer?
     restored:         Array'SavedScene
     restoredTab:      u64
+    startupFiles:     Array'String
+    startupLayout:    SceneLayout
     switchOrder:      Array'u64
     switchCursor:     u64
     switcher:         *FloatingPanel?
@@ -169,10 +172,6 @@ impl ViewerWorkspace
 
             case MouseEvent as pointer where pointer.kind == .Move or pointer.kind == .Enter:
                 workspace.noteMediaPointer()
-                if pointer.kind == .Move and
-                   pointer.target and
-                   workspace.activeDocument().isOwnerOf(pointer.target) do
-                    workspace.linkReading(workspace.activeDocument())
 
             case MouseEvent as pointer where pointer.kind == .Pressed or pointer.kind == .DoubleClick:
                 if pointer.target do
@@ -208,8 +207,12 @@ impl ViewerWorkspace
         let document = ViewerWindow.create(workspace, createViewerPluginRegistry(), workspace)
         view.document        = document
         document.focusPolicy = .Click
-        if view.readState do
+        if view.readState
+        {
             document.readingState = view.reading
+            document.readingState.useSavedViewer = true
+        }
+
         document.queueFile(view.path, remember, preserveReading: view.readState)
     }
 
@@ -278,7 +281,14 @@ impl ViewerWorkspace
         {
             let view = &scene.views[scene.active]
             view.path      = path
+            view.reading   = {}
             view.readState = false
+            view.offset    = 0
+            view.behind    = false
+            if scene.links.leader == scene.active do
+                scene.links.leader = Swag.U64.Max
+            if scene.links.solo == scene.active do
+                scene.links.solo = Swag.U64.Max
             view.document!.queueFile(path)
             .layoutScene()
             return
@@ -287,6 +297,10 @@ impl ViewerWorkspace
         if scene.views.count >= MaxViews do
             return
         let index = target == .Left ? scene.active : scene.active + 1
+        if scene.links.leader >= index and scene.links.leader < scene.views.count do
+            scene.links.leader += 1
+        if scene.links.solo >= index and scene.links.solo < scene.views.count do
+            scene.links.solo += 1
         scene.views.insertAt(index, SceneView{path: String.from(path)})
         scene.active    = index
         scene.layout    = scene.views.count == 2 ? (target == .Below ? .Stacked : .SideBySide) : .Auto
@@ -333,12 +347,15 @@ impl ViewerWorkspace
     mtd captureView(view: *SceneView)
     {
         let document = view.document
-        if not document or document.activeChoiceIndex >= document.instances.count do
+        if not document or
+           document.currentFile != view.path or
+           document.activeChoiceIndex >= document.instances.count do
             return
         let session = &document.instances[document.activeChoiceIndex]
         if not session.view or document.readingState.restoring do
             return
         view.reading.capture(session, document.choices[document.activeChoiceIndex].key, document.searchBox.text())
+        view.reading.captureSearchSettings(document)
         view.readState = true
     }
 
@@ -499,7 +516,10 @@ impl ViewerWorkspace
                     player.film.keepPlayingHidden = scene.maximized or scene.layout == .Single
                 if player.sound do
                     player.sound.keepPlayingHidden = scene.maximized or scene.layout == .Single
-                view.document.show(visible)
+                if visible do
+                    view.document.show()
+                else do
+                    view.document.hide(keepActivities: true)
                 if view.document == .primary do
                     primaryShown = visible
                 if visible
@@ -620,7 +640,7 @@ impl ViewerWorkspace
         if target < 0 or target >= cast(s64, scene.views.count) do
             return true
         if swap do
-            scene.swapViews(scene.active, cast(u64, target))
+            .swapSceneViews(scene.active, cast(u64, target))
         .selectView(cast(u64, target))
         return true
     }
@@ -637,8 +657,16 @@ impl IWnd for ViewerWorkspace
         }
 
         .primary.sendStateEvent(.Init)
-        if .scenes.isEmpty() do
-            .restoreScenes()
+        let files = #move .startupFiles
+        if not .primary.smokeRunning and .scenes.isEmpty() do
+            .restoreScenes(resume: files.isEmpty())
+        if not files.isEmpty()
+        {
+            let selected = .scene()
+            .openScene(files.toSlice(), .startupLayout)
+            if selected and selected == .scene() do
+                .resumeScene(false)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)

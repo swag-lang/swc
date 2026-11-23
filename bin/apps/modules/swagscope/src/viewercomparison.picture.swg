@@ -82,7 +82,7 @@ impl SceneComparison
         {
             let viewport = .mode == .SideBySide ?
                            Math.Rectangle{body.x + cast(f32, side) * body.width / 2, body.y, body.width / 2, body.height} : body
-            bounds[side] = .pictureBounds(viewport, pictures[side], pictures[1 - side])
+            bounds[side] = .pictureBounds(viewport, pictures[side], pictures[1 - side], side)
         }
 
         painter.pushClippingRect(body)
@@ -129,17 +129,48 @@ impl SceneComparison
         .paintProbe(painter, footer, bounds, left, right)
     }
 
-    private mtd pictureBounds(viewport: Math.Rectangle, image, other: Texture)->Math.Rectangle
+    private mtd independentRight(side: u64)->bool
+    {
+        let scene = unwrap .workspace.scene()
+        return .mode == .SideBySide and side == 1 and (not scene.linked or not scene.links.framing)
+    }
+
+    mtd pictureZoom(side: u64)->f32 => .independentRight(side) ? .rightZoom : .zoom
+
+    mtd changePictureZoom(side: u64, factor: f32)
+    {
+        let zoom = Math.clamp(.pictureZoom(side) * factor, 0.1, 20)
+        if .independentRight(side) do
+            .rightZoom = zoom
+        else do
+            .zoom = zoom
+    }
+
+    mtd synchronizePictureFraming(fromRight: bool)
+    {
+        if fromRight and .mode == .SideBySide
+        {
+            .zoom = .rightZoom
+            .pan  = .rightPan
+        }
+
+        .rightZoom = .zoom
+        .rightPan  = .pan
+        .refresh()
+    }
+
+    private mtd pictureBounds(viewport: Math.Rectangle, image, other: Texture, side = 0'u64)->Math.Rectangle
     {
         let wide   = cast(f32, image.width)
         let high   = cast(f32, image.height)
         let fitW   = .pixelAligned ? cast(f32, Math.max(image.width, other.width)) : wide
         let fitH   = .pixelAligned ? cast(f32, Math.max(image.height, other.height)) : high
-        let scale  = Math.min(viewport.width / fitW, viewport.height / fitH) * .zoom
+        let scale  = Math.min(viewport.width / fitW, viewport.height / fitH) * .pictureZoom(side)
+        let pan    = .independentRight(side) ? .rightPan : .pan
         let width  = wide * scale
         let height = high * scale
-        return {viewport.horzCenter() - width / 2 + .pan.x * viewport.width,
-                viewport.vertCenter() - height / 2 + .pan.y * viewport.height, width, height}
+        return {viewport.horzCenter() - width / 2 + pan.x * viewport.width,
+                viewport.vertCenter() - height / 2 + pan.y * viewport.height, width, height}
     }
 
     private mtd paintPictureNames(painter: *Painter, body: Math.Rectangle)
@@ -274,16 +305,30 @@ impl SceneComparison
                 }
                 else
                 {
-                    .pan.x += evt.delta.x / Math.max(body.width, 1)
-                    .pan.y += evt.delta.y / Math.max(body.height, 1)
+                    let side   = .workspace.scene()!.active
+                    let width  = .mode == .SideBySide ? body.width * 0.5 : body.width
+                    let height = body.height - FooterHeight - .stripInset()
+                    let delta  = Math.Point{evt.delta.x / Math.max(width, 1), evt.delta.y / Math.max(height, 1)}
+                    if .independentRight(side) do
+                        .rightPan += delta
+                    else do
+                        .pan += delta
                 }
             }
 
         case .Wheel:
-            if .mode == .OnionSkin and evt.modifiers.has(.Alt) do
+            if .mode == .OnionSkin and evt.modifiers.has(.Alt)
+            {
                 .opacity = Math.clamp(.opacity + (evt.delta.y > 0 ? 0.05 : -0.05), 0, 1)
-            else do
-                .zoom = Math.clamp(.zoom * (evt.delta.y > 0 ? 1.25 : 0.8), 0.1, 20)
+            }
+            else
+            {
+                let side = .mode == .SideBySide and point.x >= body.horzCenter() ? 1'u64 : 0'u64
+                if .mode == .SideBySide do
+                    .workspace.selectView(side)
+                .changePictureZoom(side, evt.delta.y > 0 ? 1.25 : 0.8)
+            }
+
             .refresh()
 
         default:

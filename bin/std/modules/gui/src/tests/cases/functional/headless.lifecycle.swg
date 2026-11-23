@@ -115,3 +115,36 @@ using Swag, Core
     Swag.require(host.app.surfaces.isEmpty())
     host.shutdown()
 }
+
+// Hidden windows can keep their activity while they remain alive.
+#test
+{
+    for keep in [false, true]
+    {
+        var ticks, notifications: u32
+        var host: Testing.HeadlessHost
+        host.setup(160, 80)
+        let child = Wnd.create'Wnd(&host.root)
+        child.hookOnEvent = func|ticks = &ticks, notifications = &notifications|(_, evt)->bool
+        {
+            if evt is TimerEvent do
+                ticks[] += 1
+            elif evt is NotifyEvent as notify where notify.kind == .KeyboardLayoutChanged do
+                notifications[] += 1
+            return false
+        }
+
+        let timer  = child.addTimer(10'ms)
+        let queued = Event.create'NotifyEvent()
+        queued.kind = .KeyboardLayoutChanged
+        child.postEvent(queued)
+        child.hide(keepActivities: keep)
+        host.fireTimer(timer)
+        Swag.require(not child.isLocallyVisible())
+        Swag.require(ticks == (keep ? 1 : 0) and notifications == ticks)
+
+        child.destroy()
+        host.fireTimer(timer)
+        Swag.require(ticks == (keep ? 1 : 0) and notifications == ticks)
+    }
+}

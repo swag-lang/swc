@@ -26,10 +26,8 @@ impl ViewerWorkspace
 
         if let image = sceneImage(document)
         {
-            image.sigZoomChanged += func|workspace, document|(_)
-            {
-                workspace.linkReading(document)
-            }
+            image.sigZoomChanged += func|workspace, document|(_) { workspace.linkReading(document) }
+            image.sigPanChanged  += func|workspace, document|(_) { workspace.linkReading(document) }
         }
     }
 
@@ -72,12 +70,14 @@ impl ViewerWorkspace
             }
             elif let source = sceneTextEditor(document)
             {
-                let pos  = source.scrollPosition()
-                let line = pos.y / Math.max(source.lineHeight(), 1)
-                for view in scene.views where view.document != document
+                let line = source.topLogicalLineNumber()
+                if line
                 {
-                    if let target = sceneTextEditor(view.document) do
-                        target.setScrollPosition({pos.x, line * target.lineHeight()})
+                    for view in scene.views where view.document != document
+                    {
+                        if let target = sceneTextEditor(view.document) do
+                            discard target.scrollToLogicalLine(line)
+                    }
                 }
             }
             elif let source = firstDocumentScroll(document.currentView)
@@ -139,16 +139,9 @@ private func linkImages(source, target: *ImageView)
     }
     else
     {
-        let sourceTexture = source.presentationTexture()
-        let targetTexture = target.presentationTexture()
-        if sourceTexture.isValid() and targetTexture.isValid()
-        {
-            let firstFit  = Math.min(from.width / cast(f32, sourceTexture.width), from.height / cast(f32, sourceTexture.height))
-            let secondFit = Math.min(into.width / cast(f32, targetTexture.width), into.height / cast(f32, targetTexture.height))
-            let zoom      = source.zoom * secondFit / Math.max(firstFit, 0.001)
-            if target.isFitted or Math.abs(target.zoom - zoom) > 0.001 do
-                target.setZoom(zoom)
-        }
+        let zoom = source.zoom * target.fittedZoom() / Math.max(source.fittedZoom(), 0.001)
+        if target.isFitted or Math.abs(target.zoom - zoom) > 0.001 do
+            target.setZoom(zoom)
     }
 
     let offset = Math.Point{

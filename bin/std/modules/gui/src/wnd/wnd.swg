@@ -862,14 +862,16 @@ impl Wnd
     }
 
     // Hides the window and releases the keyboard focus held by its subtree.
-    mtd hide()
+    //
+    // Set `keepActivities` to let this window's timers and queued events continue while hidden.
+    mtd hide(keepActivities = false)
     {
         if .wndFlags.has(.Hidden) do
             return
         .releaseFocus()
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
-        .app().unregisterWnd(me)
+        .app().unregisterWnd(me, keepActivities)
         .parent?.invalidateLayout()
         .parent!.invalidate()
     }

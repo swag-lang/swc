@@ -14,29 +14,48 @@ struct ViewerScrollState
 // Paths contain child indices, never pointers into the retired window tree.
 struct ViewerReadingState
 {
-    viewer:        String
-    query:         String
-    scrolls:       Array'ViewerScrollState
-    zoom:          u32  = 100
-    wrapping:      bool = true
-    panelOpen:     bool
-    restoring:     bool
+    viewer: String
+    query:  String
+    #[Serialization.NoSerialize]
+    useSavedViewer:         bool
+    hasSearchSettings:      bool
+    searchMatchCase:        bool
+    searchWholeWord:        bool
+    searchRegex:            bool
+    searchFilter:           bool
+    scrolls:                Array'ViewerScrollState
+    zoom:                   u32  = 100
+    wrapping:               bool = true
+    panelOpen:              bool
+    restoring:              bool
     contentSettingsApplied: bool
-    imageZoom:     f32  = 1
-    imageFitted:   bool = true
-    imagePan:      Math.Point
-    imageRotation: u32
-    imageMirrored: bool
-    pdfZoom:       f32  = 1
-    pdfZoomMode:   PdfZoomMode
-    pdfLayout:     PdfPageLayout
-    page:          u64
-    seconds:       f64
-    playing:       bool
-    muted:         bool
-    volume:        f32  = 1
-    playbackRate:  f64  = 1
-    subtitleDelay: f64
+    imageZoom:              f32  = 1
+    imageFitted:            bool = true
+    imagePan:               Math.Point
+    imageRotation:          u32
+    imageMirrored:          bool
+    pdfZoom:                f32  = 1
+    pdfZoomMode:            PdfZoomMode
+    pdfLayout:              PdfPageLayout
+    page:                   u64
+    seconds:                f64
+    playing:                bool
+    muted:                  bool
+    volume:                 f32  = 1
+    playbackRate:           f64  = 1
+    subtitleDelay:          f64
+
+    // Navigation history belongs to the document session and survives tab switches.
+    #[Serialization.NoSerialize]
+    soundBackHistory: Array'f32
+    #[Serialization.NoSerialize]
+    soundForwardHistory: Array'f32
+    #[Serialization.NoSerialize]
+    hexHistory: Array'u64
+    #[Serialization.NoSerialize]
+    hexHistoryIndex: u64 = Swag.U64.Max
+    #[Serialization.NoSerialize]
+    hexCaret: u64
 }
 
 impl ViewerReadingState
@@ -59,8 +78,8 @@ impl ViewerReadingState
     // Records what `session` shows, under the viewer `key` and the active `search`, before a reload.
     mtd capture(session: *ViewerSession, key, search: string)
     {
-        .viewer = key
-        .query  = search
+        .viewer    = key
+        .query     = search
         .panelOpen = session.sidePanelButton?.isChecked orelse false
         .scrolls.clear()
         var path: Array'u32
@@ -90,12 +109,19 @@ impl ViewerReadingState
             .imageRotation = view.imageView.rotationQuarterTurns
             .imageMirrored = view.imageView.isMirrored
 
+        case Viewers.Hex.Panel as view:
+            .hexHistory      = view.navigationHistory
+            .hexHistoryIndex = view.navigationIndex
+            .hexCaret        = view.grid.caret
+
         case Viewers.Sound.Panel as view:
-            .seconds = cast(f64, view.playbackPosition())
-            .playing = view.playing
-            .volume  = view.volume
-            .muted   = view.muted
-            .playbackRate = view.playbackRate
+            .soundBackHistory    = view.backHistory
+            .soundForwardHistory = view.forwardHistory
+            .seconds             = cast(f64, view.playbackPosition())
+            .playing             = view.playing
+            .volume              = view.volume
+            .muted               = view.muted
+            .playbackRate        = view.playbackRate
 
         case Viewers.Film.Panel as view:
             .seconds       = view.currentSeconds()
@@ -108,6 +134,29 @@ impl ViewerReadingState
 
         if key == "markdown" and session.info do
             .zoom = assume cast(*Viewers.MarkdownText.ZoomButton, session.info.children[0]).zoomPercent
+    }
+
+    mtd captureSearchSettings(window: const *ViewerWindow)
+    {
+        .hasSearchSettings = true
+        .searchMatchCase   = window.searchMatchCaseOption
+        .searchWholeWord   = window.searchWholeWordOption
+        .searchRegex       = window.searchRegexOption
+        .searchFilter      = window.searchFilterMode
+    }
+
+    mtd const restoreSearch(window: *ViewerWindow)
+    {
+        if .hasSearchSettings
+        {
+            window.searchMatchCaseOption = .searchMatchCase
+            window.searchWholeWordOption = .searchWholeWord
+            window.searchRegexOption     = .searchRegex
+            window.searchFilterMode      = .searchFilter
+        }
+
+        window.searchBox.setText(.query, notify: false)
+        window.restartSearch(keepPosition: true)
     }
 
     // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
@@ -140,8 +189,19 @@ impl ViewerReadingState
     {
         if not session.view do
             return true
-        if session.isLoading and session.isLoading() do
+        let sound = session.view is Viewers.Sound.Panel
+
+        // Sound can seek once the file opens, while the waveform builds in the background.
+        if session.view is Viewers.Sound.Panel as audio
+        {
+            if not audio.openFinished do
+                return false
+        }
+        elif session.isLoading and session.isLoading()
+        {
             return false
+        }
+
         if .contentSettingsApplied do
             return true
 
@@ -167,11 +227,18 @@ impl ViewerReadingState
                 view.imageView.setZoom(.imageZoom)
             view.imageView.setPanOffset(.imagePan)
 
+        case Viewers.Hex.Panel as view:
+            view.navigationHistory = .hexHistory
+            view.navigationIndex   = .hexHistoryIndex
+            view.grid.moveCaret(.hexCaret, false)
+
         case Viewers.Sound.Panel as view:
+            view.backHistory    = .soundBackHistory
+            view.forwardHistory = .soundForwardHistory
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.setPlaybackRate(.playbackRate)
-            view.seekSeconds(cast(f32, .seconds))
+            view.seekSeconds(cast(f32, .seconds), remember: false)
             if view.playing != .playing do
                 view.togglePlayback()
 
@@ -208,6 +275,6 @@ impl ViewerReadingState
             }
         }
 
-        return not session.isLoading or not session.isLoading()
+        return sound or not session.isLoading or not session.isLoading()
     }
 }

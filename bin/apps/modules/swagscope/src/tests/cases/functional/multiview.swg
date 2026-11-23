@@ -274,37 +274,50 @@ using Core, Gui, Pixel, Audio
 
 #test
 {
-    var host: Testing.HeadlessHost
-    let workspace = testWorkspace(&host)
-    defer host.shutdown()
-
-    let folder = Path.directoryName(scopeTestDataPath("sample.cpp")) orelse ""
-    workspace.primary.openExplorer(folder)
-    let explorer = unwrap workspace.primary.explorer
-    completeExplorer(&host, explorer)
-    explorer.setMode(.Small)
-    var first, second = Swag.U64.Max
-    for entry, row in explorer.shown
+    for compare in [false, true]
     {
-        let name: string = explorer.entries[entry].name
-        switch name
-        {
-        case "comprehensive.txt": first = row
-        case "sample.cpp":        second = row
-        }
-    }
+        var host: Testing.HeadlessHost
+        let workspace = testWorkspace(&host)
+        defer host.shutdown()
 
-    Swag.require(first < explorer.shown.count and second < explorer.shown.count)
-    explorer.grid.select(first)
-    explorer.grid.select(second, .Control)
-    Swag.require(explorer.selectionPaths().count == 2)
-    explorer.grid.select(second, .Control)
-    Swag.require(explorer.selectionPaths().count == 1)
-    explorer.grid.select(second, .Control)
-    Swag.require(workspace.primary.runCommand(SceneCommands.CompareSelection))
-    openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
-    Swag.require(scene.views.count == 2 and scene.compared and scene.linked)
+        let folder = Path.directoryName(scopeTestDataPath("sample.cpp")) orelse ""
+        workspace.primary.openExplorer(folder)
+        let explorer = unwrap workspace.primary.explorer
+        completeExplorer(&host, explorer)
+        explorer.setMode(.Small)
+        var first, second = Swag.U64.Max
+        for entry, row in explorer.shown
+        {
+            let name: string = explorer.entries[entry].name
+            switch name
+            {
+            case "comprehensive.txt": first = row
+            case "sample.cpp":        second = row
+            }
+        }
+
+        Swag.require(first < explorer.shown.count and second < explorer.shown.count)
+        explorer.grid.select(first)
+        explorer.grid.select(second, .Control)
+        Swag.require(explorer.selectionPaths().count == 2)
+        explorer.grid.select(second, .Control)
+        Swag.require(explorer.selectionPaths().count == 1)
+        explorer.grid.select(second, .Control)
+        if compare
+        {
+            Swag.require(workspace.primary.runCommand(SceneCommands.CompareSelection))
+        }
+        else
+        {
+            explorer.grid.setFocus()
+            host.keyPress(.Return)
+        }
+
+        openViews(&host, workspace)
+        let scene = unwrap workspace.scene()
+        Swag.require(scene.views.count == 2 and scene.compared == compare and scene.linked == compare)
+        Swag.require(scene.layout == (compare ? .SideBySide : .Auto))
+    }
 }
 
 #test

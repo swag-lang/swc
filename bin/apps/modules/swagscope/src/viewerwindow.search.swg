@@ -140,8 +140,9 @@ impl ViewerWindow
 
     // Searches the active viewer again for the text of the search box. Filter mode hands the query
     // to the viewer's filter; otherwise matches come from the viewer or a scan of the file, and
-    // `selectLast` selects the last one instead of the first.
-    mtd restartSearch(selectLast = false)
+    // `selectLast` selects the last one instead of the first. `keepPosition` rebuilds results
+    // for a restored document without scrolling away from its saved viewport.
+    mtd restartSearch(selectLast = false, keepPosition = false)
     {
         if .isExploring()
         {
@@ -158,9 +159,10 @@ impl ViewerWindow
         }
 
         .forgetSearch()
-        .searchSelectLast = selectLast
-        .searchQuery      = .searchBox.text()
-        .searchSpan       = Math.max(.searchQuery.length, 1)
+        .searchSelectLast   = selectLast
+        .searchKeepPosition = keepPosition
+        .searchQuery        = .searchBox.text()
+        .searchSpan         = Math.max(.searchQuery.length, 1)
         .searchError.clear()
         .refreshSearchReadout()
 
@@ -246,6 +248,7 @@ impl ViewerWindow
         let complete = instance.collectMatches!(.searchQuery, options, &.searchProgress, &.searchMatches)
         if not complete and
            not .searchSelectLast and
+           not .searchKeepPosition and
            .searchIndex >= .searchMatches.count and
            not .searchMatches.isEmpty()
         {
@@ -449,7 +452,8 @@ impl ViewerWindow
         if .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = .searchSelectLast ? .searchMatches.count - 1 : 0
-            .revealCurrentSearchMatch()
+            if not .searchKeepPosition do
+                .revealCurrentSearchMatch()
         }
 
         .refreshSearchReadout()

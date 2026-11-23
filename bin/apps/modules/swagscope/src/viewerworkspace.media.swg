@@ -349,11 +349,10 @@ impl ViewerWorkspace
         if player.sound
         {
             player.sound.sceneManaged = .isMediaScene()
-            if not player.sound.sceneManaged
-            {
+            let audible = scene.views[.audibleIndex(scene)].document
+            player.sound.setSceneSilent(player.sound.sceneManaged and document != audible)
+            if not player.sound.sceneManaged do
                 player.sound.waveform.setSceneAxis(0, 0)
-                player.sound.setSceneSilent(false)
-            }
         }
 
         if player.sound and not player.sound.waveform.sceneSeek
@@ -452,8 +451,10 @@ impl ViewerWorkspace
             return
         let selected = .scenePlayer()
         let player   = ScenePlayer.from(scene.views[.mediaLeader(scene)].document)
-        let play     = not (scene.linked and scene.links.playback ? player.isPlaying() : selected.isPlaying())
-        if scene.linked and scene.links.playback
+        let linked   = scene.linked and scene.links.playback
+        let play     = not (linked ? player.isPlaying() : selected.isPlaying())
+        scene.playbackWasRunning = linked and play and player.ready()
+        if linked
         {
             for view in scene.views do
                 ScenePlayer.from(view.document).setPlaying(play)
@@ -476,8 +477,11 @@ impl ViewerWorkspace
 
     mtd seekSceneFrom(seconds: f64, source: u64)
     {
-        let scene = unwrap .scene()
-        ScenePlayer.from(scene.views[source].document).seek(seconds)
+        let scene  = unwrap .scene()
+        let player = ScenePlayer.from(scene.views[source].document)
+        if not player.isPlaying() do
+            scene.playbackWasRunning = false
+        player.seek(seconds)
         if not scene.linked or not scene.links.time do
             return
         let relative = scene.links.mode == .Relative
@@ -532,10 +536,10 @@ impl ViewerWorkspace
 
     mtd synchronizeMedia()
     {
-        let scene = .scene()
-        if not scene or not .isMediaScene() do
+        if not .isMediaScene() do
             return
 
+        let scene       = unwrap .scene()
         let audible     = .audibleIndex(scene)
         let leaderIndex = .mediaLeader(scene)
         let leader      = ScenePlayer.from(scene.views[leaderIndex].document)
@@ -544,9 +548,11 @@ impl ViewerWorkspace
         leader.film?.updatePlayback()
         let relative = scene.links.mode == .Relative
         .refreshSoundAxes(scene, relative)
-        let origin      = relative ? scene.views[leaderIndex].offset : 0
-        let clock       = leader.seconds() - origin
-        let play        = leader.isPlaying()
+        let origin     = relative ? scene.views[leaderIndex].offset : 0
+        let clock      = leader.seconds() - origin
+        let play       = leader.isPlaying()
+        let wasPlaying = scene.playbackWasRunning
+        defer scene.playbackWasRunning = scene.linked and scene.links.playback and leader.isPlaying()
         let rate        = leader.rate()
         let leaderEnded = leader.duration() > 0 and leader.seconds() >= leader.duration()
         let independent = scene.links.end == .Independent and leaderEnded
@@ -622,7 +628,7 @@ impl ViewerWorkspace
             for view in scene.views do
                 ScenePlayer.from(view.document).setPlaying(false)
         }
-        elif scene.links.end == .LoopLeader and leaderEnded
+        elif scene.links.end == .LoopLeader and leaderEnded and (play or wasPlaying)
         {
             .seekSceneFrom(0, leaderIndex)
             for view in scene.views do

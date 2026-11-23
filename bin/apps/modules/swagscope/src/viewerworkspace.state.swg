@@ -17,6 +17,7 @@ struct SavedScene
     active:     u64
     recent:     u64
     split:      f32
+    maximized:  bool
     compared:   bool
     linked:     bool
     links:      SceneLinks
@@ -51,6 +52,7 @@ impl ViewerWorkspace
             record.layout       = scene.layout
             record.recent       = scene.recent
             record.split        = scene.split
+            record.maximized    = scene.maximized
             record.compared     = scene.compared
             record.linked       = scene.linked
             record.links        = scene.links
@@ -83,7 +85,7 @@ impl ViewerWorkspace
         catch serializer.serialize("Scope.ActiveScene", &selected)
     }
 
-    mtd restoreScenes()
+    mtd restoreScenes(resume = true)
     {
         if not .scenes.isEmpty() do
             return
@@ -107,6 +109,7 @@ impl ViewerWorkspace
             if scene.views.isEmpty() do
                 continue
             scene.active          = Math.min(record.active, scene.views.count - 1)
+            scene.maximized       = record.maximized and scene.views.count > 1
             scene.recent          = record.recent
             scene.compared        = record.compared and scene.views.count == 2
             scene.linked          = record.linked and scene.views.count > 1
@@ -119,7 +122,8 @@ impl ViewerWorkspace
         if .scenes.isEmpty() do
             return
         .active = Math.min(.restoredTab, .scenes.count - 1)
-        .resumeScene(false)
+        if resume do
+            .resumeScene(false)
     }
 }
 

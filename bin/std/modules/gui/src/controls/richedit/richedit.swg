@@ -402,6 +402,51 @@ impl RichEditCtrl
         .scrollWnd.setScrollPos(position)
     }
 
+    // Returns the one-based logical line at the top of the viewport.
+    //
+    // Wrapped continuations share their authored number. Returns zero when no resident
+    // laid-out line intersects the top.
+    mtd const topLogicalLineNumber()->u64
+    {
+        let y      = .scrollPosition().y
+        var number = .firstLineNumber
+        for line, index in .lines
+        {
+            let text = unwrap line
+            if index and not text.wordWrap do
+                number += 1
+            let bounds = text.drawingRect
+            if bounds.height > 0 and bounds.y <= y and y < bounds.bottom() do
+                return number
+        }
+
+        return 0
+    }
+
+    // Aligns logical line `number` with the top of the viewport, within scroll limits.
+    //
+    // Line numbers start at one. Returns false when the line is outside the resident layout or hidden inside a fold.
+    mtd scrollToLogicalLine(number: u64)->bool
+    {
+        if not number or number < .firstLineNumber do
+            return false
+        var current = .firstLineNumber
+        for line, index in .lines
+        {
+            let text = unwrap line
+            if index and not text.wordWrap do
+                current += 1
+            if current != number or text.wordWrap do
+                continue
+            if text.drawingRect.height <= 0 or not text.isVisible() do
+                return false
+            .setScrollPosition({.scrollPosition().x, text.drawingRect.y})
+            return true
+        }
+
+        return false
+    }
+
     // Returns the complete scrollable document rectangle.
     mtd const scrollableClientRect()->Math.Rectangle => .scrollWnd.scrollableClientRect()
 

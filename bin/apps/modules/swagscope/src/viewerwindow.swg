@@ -116,6 +116,7 @@ struct ViewerWindow
     searchMatch:             u64  = Swag.U64.Max
     searchComplete:          bool
     searchSelectLast:        bool
+    searchKeepPosition:      bool
     searchMatchCaseOption:   bool
     searchWholeWordOption:   bool
     searchRegexOption:       bool
@@ -288,6 +289,8 @@ func reportViewerLoadingChanged(view: *Wnd)
         if comparisonSheet and comparisonSheet.panel.isLocallyVisible() do
             comparisonSheet.refresh()
         .workspace?.updateMediaViewport(window)
+        if .currentView == view do
+            .finishReadingRestore()
     }
 }
 
@@ -408,12 +411,9 @@ impl IWnd for ViewerWindow
         {
             if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
                 return
-            if .readingState.restoring and .activeChoiceIndex < .instances.count
+            if .readingState.restoring
             {
-                if .searchTimer do
-                    return
-                if .readingState.restore(&.instances[.activeChoiceIndex]) do
-                    .readingState.restoring = false
+                .finishReadingRestore()
                 return
             }
 
@@ -530,7 +530,7 @@ impl IWnd for ViewerWindow
 
         if .thumbnailMode or not .isWorkspacePrimary() do
             return
-        catch g_App.loadState()
+        catch .app().loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)

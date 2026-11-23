@@ -121,8 +121,9 @@ impl ViewerWindow
             hidden = not .isExploring() or .explorer!.selectionPaths().count != 2
 
         case SceneCommands.CompareWith:
-            name   = text.scene_CompareWith
-            hidden = not scene or scene.views.count != 1
+            name     = text.scene_CompareWith
+            hidden   = not scene or .isExploring()
+            disabled = scene and scene.views.count > 1 and workspace.scenes.count >= ViewerWorkspace.MaxScenes
 
         case SceneCommands.OpenGrid:
             name = text.scene_OpenGrid
@@ -174,9 +175,10 @@ impl ViewerWindow
         switch id
         {
         case SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.OpenGrid:
-            let grid  = id == SceneCommands.OpenGrid
-            let scene = workspace.scene()
-            if not grid and (not scene or scene.views.count >= ViewerWorkspace.MaxViews) do
+            let grid    = id == SceneCommands.OpenGrid
+            let compare = id == SceneCommands.CompareWith
+            let scene   = workspace.scene()
+            if not grid and (not scene or not compare and scene.views.count >= ViewerWorkspace.MaxViews) do
                 return true
             with var options: FileDlgOptions
             {
@@ -196,10 +198,14 @@ impl ViewerWindow
                 let selected = dialog.selectedPaths()
                 workspace.openScene(selected.toSlice(), sceneGrid(selected.count))
             }
+            elif compare and scene!.views.count > 1
+            {
+                workspace.openScene([scene!.views[scene.active].path, dialog.selectedPath()], .SideBySide, compare: true)
+            }
             else
             {
                 workspace.insertDocument(dialog.selectedPath(), .Right)
-                if id == SceneCommands.CompareWith do
+                if compare do
                     workspace.toggleComparison()
             }
 

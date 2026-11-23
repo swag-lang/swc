@@ -95,7 +95,7 @@ of tabs inside a scene.
 | Open… (`Ctrl O`), or opening from the explorer | A new scene, in a new tab (the default) |
 | Dropping a file on the window | Five drop targets appear for the length of the drag |
 | Lens: Open Beside… | A view to the right of the active one, in the same scene |
-| Lens: Compare With… | A view beside the active one, in comparison mode |
+| Lens: Compare With… | A view beside the active one, in comparison mode. Inside a scene that already has several views, the comparison opens in a new tab. |
 | Explorer: several files selected, then `↵` | One scene holding them, in the Auto layout |
 | Explorer: several files selected, then Compare | The same scene, compared and linked |
 | Command line: `swagscope a b` | One scene side by side; `--grid` opens a grid |

@@ -162,17 +162,19 @@ impl ViewerWindow
             comparison.options.unified = not comparison.options.unified
 
         case ComparisonCommands.Swap:
-            scene.swapViews(0, 1)
+            workspace.swapSceneViews(0, 1)
             scene.active = 1 - scene.active
             workspace.showScene()
 
         case ComparisonCommands.Fit, ComparisonCommands.Pixels:
             comparison.pixelAligned = id == ComparisonCommands.Pixels
             comparison.pan          = {}
+            comparison.rightPan     = {}
             comparison.zoom         = 1
+            comparison.rightZoom    = 1
 
         case ComparisonCommands.ZoomIn, ComparisonCommands.ZoomOut:
-            comparison.zoom = Math.clamp(comparison.zoom * (id == ComparisonCommands.ZoomIn ? 1.25 : 0.8), 0.1, 20)
+            comparison.changePictureZoom(scene.active, id == ComparisonCommands.ZoomIn ? 1.25 : 0.8)
 
         default:
             for item, index in ComparisonCommands.PictureModes where item == id

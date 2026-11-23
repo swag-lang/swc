@@ -15,6 +15,8 @@ struct SceneComparisonState
     opacity:        f32 = 0.5
     zoom:           f32 = 1
     pan:            Math.Point
+    rightZoom:      f32 = 1
+    rightPan:       Math.Point
     pixelAligned:   bool
     shownRight:     bool
 }
@@ -142,7 +144,7 @@ impl SceneComparison
         if .isPicture()
         {
             .modeButton.setQuietText(pictureModeTitle(.mode))
-            .zoomButton.setQuietText(Viewer.zoomText(cast(u32, Math.round(.zoom * 100))))
+            .zoomButton.setQuietText(Viewer.zoomText(cast(u32, Math.round(.pictureZoom(.workspace.scene()!.active) * 100))))
             let inset = .themeMetrics().floating_Inset
             .modeButton.setPosition({area.horzCenter() - 70, area.height - FooterHeight, 140, FooterHeight}, computeLayout: false)
             .zoomButton.setPosition({area.right() - inset - 88, area.height - FooterHeight, 88, FooterHeight}, computeLayout: false)
@@ -501,6 +503,24 @@ impl ViewerWorkspace
 {
     mtd comparisonVisible()->bool => .comparison and .comparison.isLocallyVisible()
 
+    mtd swapSceneViews(first, second: u64)
+    {
+        let scene = unwrap .scene()
+        scene.swapViews(first, second)
+        if scene.views.count != 2 or scene.linked and scene.links.framing do
+            return
+        if .comparisonScene == scene and .comparison
+        {
+            swap(&.comparison.zoom, &.comparison.rightZoom)
+            swap(&.comparison.pan, &.comparison.rightPan)
+        }
+        else
+        {
+            swap(&scene.comparisonState.zoom, &scene.comparisonState.rightZoom)
+            swap(&scene.comparisonState.pan, &scene.comparisonState.rightPan)
+        }
+    }
+
     mtd toggleComparison()
     {
         let scene = .scene()
@@ -519,7 +539,7 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or not scene.compared or scene.views.count != 2 or scene.maximized
         {
-            .comparison?.hide()
+            .comparison?.hide(keepActivities: true)
             return
         }
 
@@ -537,7 +557,7 @@ impl ViewerWorkspace
             let current = view.document?.currentView
             if not current
             {
-                .comparison?.hide()
+                .comparison?.hide(keepActivities: true)
                 return
             }
 
@@ -561,8 +581,12 @@ impl ViewerWorkspace
             for view in scene.views
             {
                 let panel = assume cast(*Viewers.Binary.Panel, view.document!.currentView)
-                if not panel.loadPublished do
+                if not panel.loadPublished
+                {
+                    .comparison?.hide(keepActivities: true)
                     return
+                }
+
                 structured = structured and panel.doc.kind != .Unknown
             }
 
@@ -579,7 +603,7 @@ impl ViewerWorkspace
                 let key = document.choices[document.activeChoiceIndex].key
                 if key != "text" and key != "code" and key != "markdown"
                 {
-                    .comparison?.hide()
+                    .comparison?.hide(keepActivities: true)
                     return
                 }
             }

@@ -46,6 +46,7 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene do
             return
+        let wasFramingLinked = scene.linked and scene.links.framing
         switch id
         {
         case MediaCommands.Linked:   scene.linked = on
@@ -56,6 +57,9 @@ impl ViewerWorkspace
         default: return
         }
 
+        let framingLinked = scene.linked and scene.links.framing
+        if wasFramingLinked != framingLinked and .comparisonVisible() and .comparison!.isPicture() do
+            .comparison!.synchronizePictureFraming(fromRight: framingLinked and scene.active == 1)
         .updateMedia()
         .overlay.invalidate()
         .linkReading(.activeDocument())
@@ -90,14 +94,21 @@ impl ViewerWorkspace
 
     mtd routeSceneMediaKey(evt: *KeyEvent, source: *Wnd)->bool
     {
-        if source is EditBox or .activeDocument().lens.isOpen() or not .isMediaScene() do
+        let scene = .scene()
+        if not scene or scene.views.count < 2 or source is EditBox or .activeDocument().lens.isOpen() do
             return false
-        let scene = unwrap .scene()
+        if evt.modifiers == .None and evt.key == .L
+        {
+            .setSceneLink(MediaCommands.Linked, not scene.linked)
+            return true
+        }
+
+        if not .isMediaScene() do
+            return false
         if evt.modifiers == .None
         {
             switch evt.key
             {
-            case .L:     .setSceneLink(MediaCommands.Linked, not scene.linked)
             case .A:     .alignSceneHere()
             case .Space: .playScene()
             default:     return false

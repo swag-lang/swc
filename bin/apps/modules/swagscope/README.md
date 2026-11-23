@@ -168,14 +168,19 @@ are also available.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
-- `Word document` reads DOCX paragraphs, simple tables, page-break separators and bounded raster
-  pictures. Paragraph and character styles inherit document defaults, named parent styles and
-  basic theme fonts/colors; direct formatting can override them. Font sizes, emphasis, highlights,
-  paragraph spacing and indents are retained, and styled headings populate the filterable outline.
-  Authored colors use paper contrast; unavailable fonts use the GUI's fallback. Broken optional
-  styles keep the prose readable with a simplification notice. Unsupported images are named and
-  external image relationships are never loaded. Page/section geometry, headers, footers,
-  footnotes, comments, floating objects and complex table layout are not reproduced.
+- `Word document` reads DOCX paragraphs, numbered and bulleted lists, nested tables, grid-spanned
+  cells, vertical merges, bounded inline raster pictures, and default header/footer text. Paragraph
+  and character styles inherit document defaults, named parent styles and basic theme fonts/colors;
+  direct formatting can override them. Font sizes, emphasis, highlights, spacing and indents are
+  retained, and styled headings populate the filterable outline. Referenced footnotes and endnotes
+  open from their markers and link back to every reference; classic comments open from inline
+  references and return to their text ranges. Internal bookmarks and safe HTTP(S)/mailto links
+  navigate, while unsafe or missing links show a notice. Authored colors use paper contrast;
+  unavailable fonts use the GUI's fallback. Broken optional parts keep prose readable with a
+  simplification notice; unsupported pictures are named and external image relationships are not
+  loaded. Section pagination and geometry, repeated header/footer variants, authored
+  footnote placement, exact comment ranges, floating drawings, charts and complex table styling are
+  not reproduced.
 - `OpenDocument Text` reads ODT paragraphs, styled headings, nested lists, simple tables and
   bounded embedded raster pictures. Common and automatic styles preserve inherited typography,
   relative sizes, spacing, indents and paper colors; headings populate the filterable outline.

@@ -65,6 +65,11 @@ private impl IWnd for Panel
         .applyLayout()
         .services.showDetails(me, .document.details())
         .services.loadingChanged(me)
+
+        .view.sigLinkActivated += func(_, url)
+        {
+            Env.openUrl(url)
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

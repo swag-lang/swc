@@ -7,8 +7,6 @@ impl ViewerWindow
     {
         if .isExploring() or .activeChoiceIndex >= .choices.count do
             return false
-        if .workspace and .workspace.isMediaScene() do
-            return true
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].edgeToEdge
     }
 
@@ -19,6 +17,8 @@ impl ViewerWindow
             return true
         if .activeChoiceIndex >= .choices.count do
             return true
+        if .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false) do
+            return false
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].showReadingLine
     }
 
@@ -72,12 +72,16 @@ impl ViewerWindow
         if .isWorkspaceActive() do
             .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge() and (.workspace?.scenes.count orelse 0) < 2)
         .updateDocumentInsets()
+        let wasVisible = .readingLine.isLocallyVisible()
         .readingLine.show(.readingLine.hasContent() and
                           .canShowReadingLine() and
                           not .fullScreen and
                           not .isEdgeToEdge())
         .readingLine.computeLayout()
-        .documentHost.applyLayout()
+        if wasVisible != .readingLine.isLocallyVisible() do
+            .applyLayout()
+        else do
+            .documentHost.applyLayout()
         .layoutViewerBar()
     }
 

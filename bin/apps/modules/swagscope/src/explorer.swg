@@ -609,7 +609,7 @@ impl Explorer
         let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
         .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width * 0.7), height})
         .address.refreshPath()
-        .address.show(.isVisible())
+        .address.show(.isVisible() and .window.isWorkspaceActive())
     }
 
     // Shows the listing presentation and its thumbnail options in one compact sheet.
@@ -895,9 +895,7 @@ impl Explorer
     // Turns the online movie and music details on or off, and shows the tiles again under them.
     mtd setOnlineMedia(movies, music: bool)
     {
-        .window.onlineMovies = movies
-        .window.onlineMusic  = music
-        .refreshMediaOptions()
+        .window.applyOnlineMedia(movies, music)
         catch .window.saveState()
     }
 
@@ -993,18 +991,6 @@ impl Explorer
         .window.refreshInformation()
         .window.infoSheet.open()
         .window.sheetToggled(true)
-    }
-
-    // Leaves the sheet its room at the trailing edge while it is open, so the page never runs
-    // under it, and takes the room back once it is closed.
-    mtd fitToSheet(open: bool)
-    {
-        let metrics = .themeMetrics()
-        let room    = open ? metrics.infoSheet_Width + metrics.floating_Inset : 0
-        .padding.z = room
-        .applyLayout()
-        .grid.refreshLayout()
-        .layoutTools()
     }
 
     // Returns whether the selected filesystem item is the file now shown by the window.
@@ -2920,7 +2906,8 @@ impl ExplorerGrid
         let name  = safeMediaText(.tileName(entry))
         let facts = .reading(entry)
         let size  = .sizeText(entry)
-        let badge = entry.duration and not .posters ? formatDuration(entry.duration) : String{}
+        let hovered = .hovered == row
+        let badge   = hovered and entry.duration and not .explorer.showTileCaption and not .posters ? formatDuration(entry.duration) : String{}
         let ext   = entry.directory ? "" : (Path.extension(entry.name) orelse "")
         var content: FileTile.Content
         content.texture     = entry.texture
@@ -2932,7 +2919,7 @@ impl ExplorerGrid
         content.placeholder = ext
         var options: FileTile.Options
         options.fit         = .Contain
-        options.hovered     = .hovered == row
+        options.hovered     = hovered
         options.selected    = .explorer.isSelected(index)
         options.showCaption = .explorer.showTileCaption
         for scroll in .nameScrolls where scroll.endTick and scroll.row == row do
@@ -2966,18 +2953,18 @@ impl ExplorerGrid
 
         FileTile.paint(me, painter, tile, &content, options)
 
-        if not entry.directory
+        if hovered and not entry.directory
         {
             var pluginIndex: u64
             if .explorer.showViewerIcon and .explorer.window.index.namePlugin(entry.path, &pluginIndex)
             {
                 let metrics  = .themeMetrics()
                 let colors   = .themeColors()
-                let iconSize = metrics.menuPopup_IconSize
+                let iconSize = metrics.chevron_Size
                 let inset    = metrics.fileTile_Inset
                 let side     = iconSize + inset
                 let badge    = Math.Rectangle{tile.x + inset, tile.y + inset, side, side}
-                painter.fillRoundRect(badge, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
+                painter.fillRoundRect(badge, metrics.corner_Chip, metrics.corner_Chip, colors.surface.withAlphaF32(0.85))
                 let icon = .explorer.window.pluginIcon(&.explorer.window.index.plugins[pluginIndex], iconSize)
                 icon.paint(painter, badge.horzCenter() - icon.sizeX * 0.5, badge.vertCenter() - icon.sizeY * 0.5, colors.softText)
             }
@@ -3514,8 +3501,11 @@ impl ExplorerGrid
             {
                 explorer.selectedFiles.remove(entry)
             }
-            else do
+            else
+            {
                 explorer.selectedFiles.add(entry)
+            }
+
             explorer.selected = explorer.selectedFiles.isEmpty() ? Swag.U64.Max : explorer.selectedFiles.back()
         }
         else

@@ -174,18 +174,77 @@ using Core, Gui, Audio
     openViews(&host, workspace)
     let scene = unwrap workspace.scene()
     let original = workspace.activeDocument()
-    let last = scene.views[2].document
+    let last = unwrap scene.views[2].document
     let closeFile = workspace.closeFileButton
     Swag.require(not closeFile.isLocallyVisible())
-    host.clickWnd(workspace.closeViewButtons[1])
+    let middle = unwrap scene.views[1].document
+    Swag.require(not middle.cellCaption.isLocallyVisible())
+    var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
+    host.surface.surfaceToScreen(&pointer)
+    host.moveMouse(pointer)
+    Swag.require(middle.cellCaption.isLocallyVisible())
+    let closePoint = middle.cellCaptionClose.surfaceRect().center()
+    let target = host.surfaceWnd.windowAt(closePoint.x, closePoint.y)
+    Swag.require(target == middle.cellCaptionClose, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.cellCaption.position))
+    host.clickWnd(middle.cellCaptionClose)
     Swag.require(scene.views.count == 2 and scene.views[1].document == last)
     Swag.require(workspace.activeDocument() == original)
-    host.clickWnd(workspace.closeViewButtons[1])
+    pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
+    host.surface.surfaceToScreen(&pointer)
+    host.moveMouse(pointer)
+    host.clickWnd(last.cellCaptionClose)
     Swag.require(scene.views.count == 1 and workspace.activeDocument() == original)
-    Swag.require(closeFile.isLocallyVisible() and not workspace.closeViewButtons[0].isLocallyVisible())
+    Swag.require(scene.layout == .Single and not scene.linked and not scene.compared)
+    Swag.require(original.position == workspace.clientRect())
+    Swag.require(closeFile.isLocallyVisible() and not original.cellCaption.isLocallyVisible())
     host.clickWnd(closeFile)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isLocallyVisible())
     Swag.require(not closeFile.isLocallyVisible())
+}
+
+// Shared caption actions follow the selected file, and screen and media settings belong to the window.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.png"), scopeTestDataPath("document-outline.pdf")], .SideBySide)
+    openViews(&host, workspace)
+    let scene   = unwrap workspace.scene()
+    let picture = unwrap scene.views[0].document
+    let pdf     = unwrap scene.views[1].document
+    let outline = picture.outlineCaptionButton
+    let info    = picture.informationCaptionButton
+    Swag.require(not outline.isLocallyVisible())
+
+    workspace.selectView(1)
+    Swag.require(outline.isLocallyVisible() and Utf8.contains(outline.toolTip, "document-outline.pdf"))
+    Swag.require(Utf8.contains(pdf.viewerCaptionButton.toolTip, "document-outline.pdf"))
+    let foot = pdf.readingLine.surfaceRect()
+    let left = pdf.documentArea().x
+    host.clickWnd(outline)
+    Swag.require(pdf.currentSidePanelButton!.isChecked)
+    Swag.require(pdf.documentArea().x > left and pdf.readingLine.surfaceRect() == foot)
+
+    let area = pdf.documentArea()
+    host.clickWnd(info)
+    Swag.require(info.isChecked and pdf.infoSheet.isLocallyVisible() and not picture.infoSheet.isLocallyVisible())
+    Swag.require(pdf.documentArea() == area)
+
+    workspace.selectView(0)
+    Swag.require(not outline.isLocallyVisible() and not info.isChecked)
+    Swag.require(Utf8.contains(info.toolTip, "viewer.png"))
+    host.clickWnd(info)
+    Swag.require(picture.infoSheet.isLocallyVisible() and not pdf.infoSheet.isLocallyVisible())
+
+    workspace.selectView(1)
+    pdf.applyOnlineMedia(false, false)
+    Swag.require(not picture.onlineMovies and not picture.onlineMusic and not pdf.onlineMovies and not pdf.onlineMusic)
+    host.keyPress(.F11)
+    Swag.require(picture.fullScreen and pdf.fullScreen)
+    workspace.selectView(0)
+    host.keyPress(.F11)
+    Swag.require(not picture.fullScreen and not pdf.fullScreen and picture.fullScreenCaptionButton.isLocallyVisible())
 }
 
 #test
@@ -271,11 +330,11 @@ using Core, Gui, Audio
     Swag.require(scene.layout == .SideBySide)
 
     host.paint(&host.surfaceWnd)
-    var divider = workspace.overlay.localToSurface(workspace.overlay.divider().center())
+    var divider = workspace.localToSurface(workspace.dividerRect().center())
     host.surface.surfaceToScreen(&divider)
     host.drag(divider, divider + Math.Point{120, 0})
     Swag.require(scene.split > 0.55)
-    divider = workspace.overlay.localToSurface(workspace.overlay.divider().center())
+    divider = workspace.localToSurface(workspace.dividerRect().center())
     host.surface.surfaceToScreen(&divider)
     host.doubleClick(divider)
     Swag.require(scene.split == 0.5)

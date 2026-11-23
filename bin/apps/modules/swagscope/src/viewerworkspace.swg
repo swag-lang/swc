@@ -19,6 +19,7 @@ struct SceneView
     document:  *ViewerWindow?
     reading:   ViewerReadingState
     readState: bool
+    playMode:  Viewer.PlayMode
     offset:    f64
     behind:    bool
 }
@@ -41,6 +42,8 @@ struct ViewerScene
 
 impl ViewerScene
 {
+    mtd const visibleLayout()->SceneLayout => .maximized ? .Single : .layout
+
     mtd const dimensions(useMaximized = true)->Math.Point
     {
         if .views.count <= 1 or useMaximized and (.layout == .Single or .maximized) do
@@ -118,9 +121,11 @@ struct ViewerWorkspace
 
     late primary:         *ViewerWindow
     late tabs:            *SceneTabs
-    late overlay:         *SceneOverlay
     late divider:         *SceneDivider
     late closeFileButton: *CaptionButton
+    late mediaLinks:      *CaptionButton
+    late mediaTransport:  *CaptionButton
+    late mediaPlayPause:  *CaptionButton
 
     scenes:           ArrayPtr'ViewerScene
     closeViewButtons: Array'(*IconButton)
@@ -137,13 +142,16 @@ struct ViewerWorkspace
     switchCursor:     u64
     switcher:         *FloatingPanel?
     switchBackdrop:   *Wnd?
-    compactMedia:     bool
+    hoveredDocument:  *ViewerWindow?
+    pointerKnown:     bool
+    pointerPosition:  Math.Point
     maxHint:          *HintLine?
     maxHintTimer:     *Timer?
     comparison:       *SceneComparison?
     comparisonScene:  *ViewerScene?
     comparisonSheet:  *ComparisonSheet?
-    transport:        *SceneTransport?
+    mediaTimer:       *Timer?
+    mediaPlayKeyDown: bool
     alignSound:       SceneSoundAlignment
     dropView:         u64 = Swag.U64.Max
     readingLinksBusy: bool
@@ -159,13 +167,14 @@ impl ViewerWorkspace
     {
         let result = Wnd.create'ViewerWorkspace(parent, "scope.workspace")
         result.backgroundStyle = .Application
+        result.wndFlags.add(.AfterChildrenPaint)
         result.surface!.setView(result)
         result.primary             = ViewerWindow.create(result, #move index, result)
         result.primary.focusPolicy = .Click
         result.tabs                = SceneTabs.create(result)
-        result.overlay             = SceneOverlay.create(result)
         result.divider             = SceneDivider.create(result)
         result.createCloseFileButton()
+        result.createMediaControls()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
             switch evt
@@ -179,8 +188,8 @@ impl ViewerWorkspace
                 if not explorer or not explorer.draggingFile or not explorer.isOwnerOf(drag.target) do
                     return workspace.dropFiles(drag)
 
-            case MouseEvent as pointer where pointer.kind == .Move or pointer.kind == .Enter:
-                workspace.noteMediaPointer()
+            case MouseEvent as pointer where pointer.kind == .Move or pointer.kind == .Enter or pointer.kind == .Leave:
+                workspace.trackViewHover(pointer)
 
             case MouseEvent as pointer where pointer.kind == .Pressed or pointer.kind == .DoubleClick:
                 if pointer.target do
@@ -211,11 +220,23 @@ impl ViewerWorkspace
 
     mtd documentCount()->u64 => .scene()?.views.count orelse 0
 
+    mtd isTiled()->bool
+    {
+        let scene = .scene()
+        return scene and scene.views.count > 1 and not scene.maximized and scene.layout != .Single
+    }
+
+    mtd usesCellCaptions()->bool => .documentCount() > 1 and not .wantsComparisonSheet()
+
     func attachDocument(workspace: *ViewerWorkspace, view: *SceneView, remember: bool)
     {
         let document = ViewerWindow.create(workspace, createViewerPluginRegistry(), workspace)
         view.document        = document
         document.focusPolicy = .Click
+        document.playMode    = view.playMode
+        document.onlineMovies = workspace.primary.onlineMovies
+        document.onlineMusic  = workspace.primary.onlineMusic
+        document.applyFullScreenPresentation(workspace.primary.fullScreen)
         if view.readState
         {
             document.readingState = view.reading
@@ -256,7 +277,8 @@ impl ViewerWorkspace
 
         .suspendScene()
         var next: ViewerScene
-        next.layout   = layout
+        next.maximized = layout == .Single and paths.count > 1
+        next.layout   = next.maximized ? .Auto : layout
         next.compared = compare and paths.count == 2
         next.linked   = next.compared or paths.count > 1 and layout != .SideBySide and allMedia(.theme(), paths)
         for path in paths do
@@ -336,6 +358,7 @@ impl ViewerWorkspace
     mtd suspendScene(capturePreview = true)
     {
         .clearDropHighlight()
+        .hoveredDocument = null
         .divider.stopDrag()
         .closeSwitcher(choose: false)
         let scene = .scene()
@@ -361,8 +384,10 @@ impl ViewerWorkspace
     mtd captureView(view: *SceneView)
     {
         let document = view.document
-        if not document or
-           document.currentFile != view.path or
+        if not document do
+            return
+        view.playMode = document.playMode
+        if document.currentFile != view.path or
            document.activeChoiceIndex >= document.instances.count do
             return
         let session = &document.instances[document.activeChoiceIndex]
@@ -403,11 +428,24 @@ impl ViewerWorkspace
         if not scene or index >= scene.views.count or index == scene.active do
             return
         let previous = .activeDocument()
+        previous.explorer?.address.hide()
         previous.hideSearch()
         previous.closeInformation()
         previous.concealViewerBar()
         scene.active = index
         .showScene()
+    }
+
+    mtd closeDocument(document: *ViewerWindow)
+    {
+        let scene = .scene()
+        if not scene do
+            return
+        for view, index in scene.views where view.document == document
+        {
+            .closeView(index)
+            return
+        }
     }
 
     mtd closeView(index = Swag.U64.Max)
@@ -437,7 +475,13 @@ impl ViewerWorkspace
         scene.active       = scene.active == closing ? Math.min(closing, scene.views.count - 1) : remapClosedView(scene.active, closing)
         scene.compared     = false
         scene.maximized    = false
+        if scene.views.count == 1
+        {
+            scene.layout = .Single
+            scene.linked = false
+        }
         .showScene()
+        .showMaximizedHint(false)
         catch .primary.saveState()
     }
 
@@ -467,6 +511,8 @@ impl ViewerWorkspace
 
     mtd retireDocument(document: *ViewerWindow)
     {
+        if .isHoveredDocument(document) do
+            .hoveredDocument = null
         document.lens.close()
         if document != .primary do
             document.lens.destroy()
@@ -484,6 +530,13 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or not scene.supportsLayout(layout) do
             return
+        if layout == .Single and scene.views.count > 1
+        {
+            if not scene.maximized do
+                .toggleMaximized()
+            catch .primary.saveState()
+            return
+        }
         if scene.compared and layout != .SideBySide
         {
             .storeComparisonState()
@@ -494,6 +547,7 @@ impl ViewerWorkspace
         scene.layout    = layout
         scene.maximized = false
         .layoutScene()
+        .showMaximizedHint(false)
         catch .primary.saveState()
     }
 
@@ -503,6 +557,8 @@ impl ViewerWorkspace
         if not scene or scene.views.count < 2 do
             return
         scene.maximized = not scene.maximized
+        if scene.maximized do
+            .closeComparisonSheet()
         .layoutScene()
         .showMaximizedHint(scene.maximized)
     }
@@ -514,7 +570,9 @@ impl ViewerWorkspace
         document.refreshTitle()
         document.refreshReadingAppearance()
         .tabs.invalidate()
-        document.setFocus()
+        let focused = document.focusedWindow()
+        if focused != document and not document.isAncestorOf(focused) do
+            document.setFocus()
     }
 
     mtd layoutScene()
@@ -543,7 +601,7 @@ impl ViewerWorkspace
                 if visible
                 {
                     view.document.setPosition(.viewRect(scene, index))
-                    view.document.updateDocumentInsets()
+                    view.document.layoutFileInfo()
                     view.document.applyLayout()
                     .updateMediaViewport(view.document)
                 }
@@ -558,14 +616,15 @@ impl ViewerWorkspace
         if primaryShown and .retiring.contains(.primary) and not .primary.pendingEmpty.isEmpty() do
             .primary.continueStartup()
         .primary.show(primaryShown)
+        .focusDelegate = .activeDocument()
         .refreshCloseFileButton()
         .tabs.layoutTabs()
-        .overlay.setPosition(area, computeLayout: false)
-        .overlay.bringToFront()
-        .overlay.invalidate()
-        .divider.place(.overlay.divider())
+        .invalidate()
+        .divider.place(.dividerRect())
         .switchBackdrop?.setPosition(area, computeLayout: false)
         .refreshComparison()
+        if .pointerKnown do
+            .updateHoveredDocument(.documentAtPointer(.pointerPosition))
         .updateMedia()
         .comparisonSheet?.refresh()
     }
@@ -576,7 +635,7 @@ impl ViewerWorkspace
         if scene.views.count <= 1 do
             return body
 
-        let strip = .isMediaScene() ? 0 : .stripInset()
+        let strip = .stripInset()
         body.y      += strip
         body.height = Math.max(body.height - strip, 0)
         if scene.maximized or scene.layout == .Single do
@@ -618,8 +677,13 @@ impl ViewerWorkspace
             return
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
+            if child == view.document.cellCaptionClose do
+                return
             .selectView(index)
-            if evt.kind == .DoubleClick and (child == view.document or view.document.currentView == child or .isMediaScene()) do
+            let content = view.document.currentView
+            let picture = content and content is Viewers.Film.Panel and content.isAncestorOf(child)
+            if evt.kind == .DoubleClick and
+               (child == view.document or child == content or picture) do
                 .toggleMaximized()
             return
         }
@@ -694,19 +758,30 @@ impl IWnd for ViewerWorkspace
         .layoutScene()
     }
 
-    mtd impl onPaint(evt: *PaintEvent)
+    mtd impl onPaint(_: *PaintEvent)
     {
         .paintedScene = .scene()?.recent orelse 0
-        if .isMediaScene() do
-            evt.paintContext.painter.fillRect(.clientRect(), Color.fromArgb(Argb.Black))
+    }
+
+    mtd impl onAfterPaint(evt: *PaintEvent)
+    {
+        .paintSceneChrome(evt.paintContext.painter)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .mediaTimer
+        {
+            .synchronizeMedia()
+            .updateMediaTransport()
+            if .comparisonVisible() do
+                .comparison!.invalidate()
+            return
+        }
+
         if evt.timer == .maxHintTimer
         {
-            .maxHint?.hide()
-            .stopTimer(&.maxHintTimer)
+            .showMaximizedHint(false)
             return
         }
 
@@ -736,7 +811,27 @@ impl IWnd for ViewerWorkspace
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = .routeSceneKey(evt, me)
+        if .routeSceneKey(evt, me) do
+            return
+        let document = .activeDocument()
+        let focused  = .focusedWindow()
+        if evt.kind == .Pressed and focused != document and not document.isAncestorOf(focused)
+        {
+            if let id = document.keyShortcut(evt.modifiers, evt.key)
+            {
+                document.sendCommandEvent(id)
+                return
+            }
+        }
+
+        evt.accepted = false
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave do
+            .trackViewHover(evt)
+        evt.accepted = false
     }
 
     mtd impl onTaskEvent(evt: *TaskEvent)
@@ -760,12 +855,13 @@ impl IWnd for ViewerWorkspace
 
 private func allMedia(theme: *Theme, paths: const [..] String)->bool
 {
-    for path in paths
-    {
-        let kind = theme.fileGlyph(path[], false).index
-        if kind != cast(s32, ThemeIcons.FileVideo) and kind != cast(s32, ThemeIcons.FileAudio) do
-            return false
-    }
-
+    for path in paths where not isMediaFile(theme, path[]) do
+        return false
     return true
+}
+
+func isMediaFile(theme: *Theme, path: string)->bool
+{
+    let kind = theme.fileGlyph(path, false).index
+    return kind == cast(s32, ThemeIcons.FileVideo) or kind == cast(s32, ThemeIcons.FileAudio)
 }

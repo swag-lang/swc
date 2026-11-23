@@ -237,7 +237,7 @@ explore_File Fichier
 explore_FilterByType Filtrer par type
 explore_View Choisir la vue
 explore_Organization Organiser les vignettes
-explore_ShowViewerIcon Afficher l’icône du lecteur
+explore_ShowViewerIcon Afficher l’icône du lecteur au survol
 explore_ShowTileCaption Afficher les légendes des vignettes
 explore_ThumbnailDisplay Affichage des vignettes
 explore_FilterAll Tous les éléments
@@ -337,6 +337,7 @@ scene_Pixels         Pixel pour pixel
 scene_ZoomIn         Agrandir
 scene_ZoomOut        Réduire
 scene_LoadingComparison Comparaison en cours…
+scene_Links         Liens de lecture
 scene_Linked        Liées
 scene_LinkTime      Temps
 scene_LinkPlayback  Lecture
@@ -347,14 +348,19 @@ scene_Relative      Relatif
 scene_Leader        Meneuse
 scene_AtEnd         En fin de lecture
 scene_Shortest      Arrêter à la plus courte
-scene_Independent   Arrêter séparément
+scene_Independent   Suivre le mode de chaque vue
 scene_LoopLeader    Boucler sur la meneuse
 scene_AlignHere     Aligner ici
 scene_AlignSound    Aligner sur le son
 scene_Solo          Écouter la vue active
 scene_Behind        En retard
-scene_Play          Lire
-scene_Pause         Mettre en pause
+scene_Play          Tout lire
+scene_Pause         Tout mettre en pause
+scene_Stop          Tout arrêter
+scene_Transport     Lecture groupée
+scene_Controls      Commandes de la grille
+scene_ViewLinks     Liens entre les vues
+scene_PlayModeAll   Mode de lecture de toutes les vues
 scene_AlignFailed   Le son n’a pas permis d’aligner les enregistrements.
 scene_ComparisonSheet Comparaison des fichiers
 scene_ComparisonFacts % différences sur %

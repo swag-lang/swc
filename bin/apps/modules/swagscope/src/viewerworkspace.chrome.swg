@@ -188,27 +188,11 @@ impl IWnd for SceneTabs
     }
 }
 
-struct SceneOverlay
+impl ViewerWorkspace
 {
-    using wnd:      Wnd
-    late workspace: *ViewerWorkspace
-}
-
-impl SceneOverlay
-{
-    func create(workspace: *ViewerWorkspace)->*SceneOverlay
+    mtd dividerRect()->Math.Rectangle
     {
-        let result = Wnd.create'SceneOverlay(workspace, "scope.scene.overlay")
-        result.workspace       = workspace
-        result.backgroundStyle = .Transparent
-        // Only the divider takes pointer input. The overlay paints over the document windows.
-        result.disable()
-        return result
-    }
-
-    mtd divider()->Math.Rectangle
-    {
-        let scene = .workspace.scene()
+        let scene = .scene()
         if not scene or
            scene.views.count != 2 or
            scene.maximized or
@@ -216,7 +200,7 @@ impl SceneOverlay
            scene.compared do
             return {}
         let grid  = scene.dimensions()
-        let first = .workspace.viewRect(scene, 0)
+        let first = .viewRect(scene, 0)
         if grid.y == 1 do
             return {first.right() - 3, first.y, 7, first.height}
         if grid.x == 1 do
@@ -228,14 +212,14 @@ impl SceneOverlay
     {
         let top   = .stripInset()
         let body  = .clientRect()
-        if .workspace.comparisonVisible()
+        if .comparisonVisible()
         {
             let half   = body.width * 0.5
-            let height = Math.max(0, body.bottom() - SceneComparison.FooterHeight - top)
+            let height = Math.max(0, .comparison!.position.bottom() - SceneComparison.FooterHeight - top)
             return {body.x + cast(f32, index) * half, top, half, height}
         }
 
-        var rect  = .workspace.viewRect(scene, index)
+        var rect  = .viewRect(scene, index)
         rect.intersect({0, top, body.width, Math.max(0, body.bottom() - top)})
         return rect
     }
@@ -243,7 +227,7 @@ impl SceneOverlay
     mtd dropRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
         var rect = .cellRect(scene, index)
-        let compare = .workspace.comparison
+        let compare = .comparison
         if not compare or not compare.isLocallyVisible() or not compare.isPicture() or compare.mode != .Curtain do
             return rect
 
@@ -263,7 +247,7 @@ impl SceneOverlay
 
     mtd paintDropHighlight(painter: *Painter, scene: const *ViewerScene)
     {
-        let index = .workspace.dropView
+        let index = .dropView
         if index >= scene.views.count do
             return
         let metrics = .themeMetrics()
@@ -275,31 +259,18 @@ impl SceneOverlay
         pen.borderPos = .Inside
         painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
     }
-}
-
-impl IWnd for SceneOverlay
-{
-    mtd impl onPaint(evt: *PaintEvent)
+    mtd paintSceneChrome(painter: *Painter)
     {
-        let scene = .workspace.scene()
-        if not scene do
+        let scene = .scene()
+        if not scene or .activeDocument().lens.isOpen() do
             return
 
-        let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let font    = .theme().createDefaultFont(12)
-        let strip   = .stripInset()
-        if .workspace.mediaChromeVisible() and strip > 0
+        if scene.views.count > 1 and not .comparisonVisible()
         {
-            let shade = colors.floating_Shadow
-            let veil  = Brush.createLinearGradient(0, 0, 0, strip + 16, shade.withAlphaF32(0.75), shade.withAlphaF32(0))
-            painter.fillRect(0, 0, .clientRect().width, strip + 16, veil)
-        }
-
-        if scene.views.count > 1 and not .workspace.comparisonVisible()
-        {
-            let divider = .divider()
-            if divider.width > 0 and not .workspace.isMediaScene()
+            let divider = .dividerRect()
+            if divider.width > 0
             {
                 let vertical = scene.dimensions().y == 1
                 let line     = vertical ? Math.Rectangle{divider.x + 3, divider.y, 1, divider.height} :
@@ -307,30 +278,33 @@ impl IWnd for SceneOverlay
                 painter.fillRect(line, colors.line)
             }
 
+            let metrics  = .themeMetrics()
+            let inset    = metrics.floating_Inset
+            let relative = scene.linked and scene.links.mode == .Relative and .isMediaScene()
             for view, index in scene.views where view.document and view.document.isLocallyVisible()
             {
-                let rect         = .workspace.viewRect(scene, index)
-                let name: string = Path.fileName(view.path) orelse view.path
-                let controls     = 2 * (ViewerWorkspace.ViewTitleHeight + .themeMetrics().wnd_CaptionButtonMargin)
-                let text         = Painter.elideString(name, font, Math.max(rect.width - controls, 0), .deviceScale())
-                let active       = scene.active == index
-                if view.document.isEdgeToEdge()
-                {
-                    .workspace.paintCloseViewGround(painter, index)
-                    if .workspace.mediaChromeVisible() do
-                        .workspace.paintMediaCaption(painter, rect, view, text, active)
-                    elif index == .workspace.audibleIndex(scene) do
-                        .theme().icon(.Volume, 16).paint(painter, rect.x + 12, rect.y + 12, colors.softText)
-                    continue
-                }
-
-                let y = rect.y + ViewerWorkspace.ViewTitleHeight * 0.5
-                painter.drawStringCenter(rect.horzCenter(), y, text, font, active ? colors.text : colors.softText)
+                let rect       = .viewRect(scene, index)
+                let active     = scene.active == index
+                let hovered    = .isHoveredDocument(view.document)
                 if active
                 {
-                    let width = Painter.measureString(text, font).width
-                    painter.fillRect(rect.horzCenter() - width * 0.5, rect.y + ViewerWorkspace.ViewTitleHeight - 3, width, 2, colors.arc)
+                    let line = metrics.fileTile_RingWidth
+                    painter.fillRect(rect.x + inset, rect.y, Math.min(rect.width, 3 * inset), line, colors.arc)
                 }
+
+                if .usesCellCaptions() or not hovered and (ScenePlayer.from(view.document).film or view.document.isEdgeToEdge()) do
+                    continue
+
+                let name:    string = Path.fileName(view.path) orelse view.path
+                var caption: String = name
+                if relative do
+                    caption = Format.toString("% · %{+f2} s", name, view.offset)
+                if view.behind do
+                    caption = Format.toString("% · %", caption, appStrings().scene_Behind)
+                let room  = Math.max(0, rect.width - 2 * inset - ViewerWorkspace.ViewTitleHeight)
+                let title = Painter.elideString(caption, font, room, .deviceScale())
+                let y     = rect.y + ViewerWorkspace.ViewTitleHeight * 0.5
+                painter.drawString(rect.x + inset, font.opticalLineTop(y), title, font, hovered ? colors.softText : colors.faintText)
             }
 
             if scene.maximized
@@ -340,8 +314,7 @@ impl IWnd for SceneOverlay
                 let grid   = scene.dimensions(useMaximized: false)
                 let cols   = cast(u64, grid.x)
                 let left   = area.right() - 20 - grid.x * (size + 2)
-                let bottom = area.bottom() - 20 - grid.y * (size + 2) -
-                             (.workspace.mediaChromeVisible() ? Viewers.Film.BottomHeight : 0)
+                let bottom = area.bottom() - 20 - grid.y * (size + 2)
                 for index in cast(u64, grid.x * grid.y)
                 {
                     let x   = left + cast(f32, index % cols) * (size + 2)
@@ -433,7 +406,7 @@ impl IWnd for SceneDivider
             }
 
             let area  = .workspace.clientRect()
-            let inset = .workspace.overlay.stripInset()
+            let inset = .workspace.stripInset()
             let ratio = scene.dimensions().y == 1 ? point.x / Math.max(area.width, 1) :
                         (point.y - inset) / Math.max(area.height - inset, 1)
             scene.split = Math.clamp(ratio, 0.18, 0.82)
@@ -464,23 +437,79 @@ impl ViewerWorkspace
         let shortcut = Input.formatKeyShortcut(.Control, .W)
         let document = .activeDocument()
         .closeFileButton.toolTip = Format.toString("% (%)", appStrings().ui_CloseFile, shortcut)
-        .closeFileButton.show(.scenes.count == 1 and .documentCount() == 1 and not document.isExploring() and not document.fullScreen)
+        .closeFileButton.show(.scenes.count == 1 and
+                              .documentCount() == 1 and
+                              not document.isExploring() and
+                              not document.fullScreen)
     }
+
+    mtd trackViewHover(evt: *MouseEvent)
+    {
+        let position = evt.surfacePos
+        let moved    = not .pointerKnown or position != .pointerPosition
+        let document = .documentAtPointer(position)
+        .updateHoveredDocument(document)
+        if evt.kind == .Leave do
+            return
+        .pointerKnown    = true
+        .pointerPosition = position
+        if moved and document and document.usesTimedViewerBar() do
+            document.notePointer(position, moved: true)
+    }
+
+    mtd documentAtPointer(position: Math.Point)->*ViewerWindow?
+    {
+        let scene = .scene()
+        if scene
+        {
+            let point = .surfaceToLocal(position)
+            for view, index in scene.views where view.document and view.document.isLocallyVisible()
+            {
+                if .cellRect(scene, index).contains(point) do
+                    return view.document
+            }
+        }
+        return null
+    }
+
+    mtd updateHoveredDocument(document: *ViewerWindow?)
+    {
+        if document == .hoveredDocument do
+            return
+        let previous = .hoveredDocument
+        .hoveredDocument = document
+        .restCellChrome(previous)
+        document?.layoutCellCaption()
+        .layoutCloseViewButtons()
+        .invalidate()
+    }
+
+    private mtd restCellChrome(document: *ViewerWindow?)
+    {
+        if not document do
+            return
+        if .usesCellCaptions() and document.usesTimedViewerBar() do
+            document.concealViewerBar()
+        else do
+            document.layoutCellCaption()
+    }
+
+    mtd isHoveredDocument(document: *ViewerWindow)->bool => .hoveredDocument == document
 
     mtd layoutCloseViewButtons()
     {
-        if .overlay == null do
-            return
         let scene = .scene()
-        let count = scene and scene.views.count > 1 and not .compactMedia ? scene.views.count : 0
+        let count      = scene and scene.views.count > 1 ? scene.views.count : 0
         let metrics = .themeMetrics()
-        let pictures = .comparisonVisible() and .comparison!.isPicture()
+        let comparison = .comparisonVisible()
+        let pictures   = comparison and .comparison!.isPicture()
         while .closeViewButtons.count < count
         {
             let index     = .closeViewButtons.count
             let workspace = me
-            let button    = IconButton.create(me, .theme().icon(.WndClose, metrics.wnd_CaptionButtonGlyph), flags: .Overlay | .CenterContent)
+            let button    = IconButton.create(me, .theme().icon(.WndClose, metrics.chevron_Size), flags: .Overlay | .CenterContent)
             button.wndFlags.add(.TopMost)
+            button.focusPolicy = .None
             button.setForm(.RoundedRectangle)
             button.sigPressed += func|workspace, index|(_) { workspace.closeView(index) }
             .closeViewButtons.add(button)
@@ -488,15 +517,18 @@ impl ViewerWorkspace
 
         for button, index in .closeViewButtons
         {
-            if not scene or index >= count or not (scene.views[index].document?.isLocallyVisible() orelse false)
+            if not scene or
+               index >= count or
+               (not comparison and (.usesCellCaptions() or scene.views[index].document != .hoveredDocument)) or
+               not (scene.views[index].document?.isLocallyVisible() orelse false)
             {
                 button.hide()
                 continue
             }
 
-            let rect = .overlay.cellRect(scene, index)
+            let rect = .cellRect(scene, index)
             let size = Math.min(ViewTitleHeight, Math.min(rect.width, rect.height))
-            if size < metrics.wnd_CaptionButtonGlyph
+            if size < metrics.chevron_Size
             {
                 button.hide()
                 continue
@@ -527,7 +559,8 @@ impl ViewerWorkspace
     {
         if not show
         {
-            .maxHint?.hide()
+            if .maxHint do
+                discard .app().animator.leave(.maxHint)
             .stopTimer(&.maxHintTimer)
             return
         }
@@ -551,7 +584,7 @@ impl ViewerWorkspace
         if .dropView != Swag.U64.Max
         {
             .dropView = Swag.U64.Max
-            .overlay.invalidate()
+            .invalidate()
             .refreshComparison()
         }
 
@@ -580,10 +613,10 @@ impl ViewerWorkspace
         var index = Swag.U64.Max
         if scene and one and not onTabs
         {
-            let point = .overlay.surfaceToLocal(evt.surfacePos)
+        let point = .surfaceToLocal(evt.surfacePos)
             for view, i in scene.views where (view.document?.isLocallyVisible() orelse false)
             {
-                let rect = .overlay.dropRect(scene, i)
+                let rect = .dropRect(scene, i)
                 if not rect.isEmpty() and rect.contains(point)
                 {
                     index = i
@@ -617,8 +650,7 @@ impl ViewerWorkspace
         elif .dropView != index
         {
             .dropView = index
-            .overlay.bringToFront()
-            .overlay.invalidate()
+            .invalidate()
         }
 
         evt.effect = effect
@@ -632,6 +664,14 @@ impl ViewerWorkspace
            .switcher
         {
             .closeSwitcher(choose: true)
+            return true
+        }
+
+        if evt.kind == .Released and
+           .mediaPlayKeyDown and
+           (evt.key == .Space or evt.key == .MediaPlayPause)
+        {
+            .mediaPlayKeyDown = false
             return true
         }
 

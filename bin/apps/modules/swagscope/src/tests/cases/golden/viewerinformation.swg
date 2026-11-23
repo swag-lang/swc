@@ -12,6 +12,7 @@ using Core, Gui, Pixel, Audio
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, picturedFixture("glint-aac-mjpeg.mp4"), false, 960, 640)
     window.onlineMovies = false
+    window.concealViewerBar()
     window.toggleInformation()
     completeInformation(&host, window)
     let view = assume cast(*Viewers.Film.Panel, window.currentView)

@@ -96,8 +96,10 @@ impl ViewerWindow
     mtd queueFile(fileName: string,
                   remember = true,
                   preserveReading = false,
-                  offerForgetMissing = false)
+                  offerForgetMissing = false,
+                  autoplayScene = false)
     {
+        .sceneAutoPlay = autoplayScene
         .rememberTextBookmarkSessions()
         .captureResume()
         if .isExploring() and not preserveReading do
@@ -277,6 +279,7 @@ impl ViewerWindow
     // watch, and returns to the empty window or its explorer without choosing a control.
     mtd closeFile(forExplorer = false)
     {
+        .sceneAutoPlay = false
         .captureResume()
         .showPointer()
         .surface?.clearFocus()
@@ -306,6 +309,7 @@ impl ViewerWindow
     // classification is running, the request is kept in `pendingEmpty` until that work ends.
     mtd showEmpty(message: string)
     {
+        .sceneAutoPlay = false
         .explorerTransition = false
         .forgetSearch()
         let retired = .destroyInstances()
@@ -453,8 +457,6 @@ impl ViewerWindow
         .currentSidePanelButton?.hide()
         .currentSidePanelHost   = panel
         .currentSidePanelButton = button
-        .refreshOutlineCaption()
-        .outlineCaptionButton.show(button and button.id == OutlineToggleId and not .fullScreen)
         .refreshExplorerCaption()
         .updateDocumentInsets()
 
@@ -549,6 +551,7 @@ impl ViewerWindow
         .currentView.show()
         .currentInfo?.show()
         .currentCommands?.show()
+        .workspace?.updateMediaViewport(me)
         .updateViewerBar()
         .updateFileInfo(instance.details)
         .updateSearchAvailability()
@@ -582,6 +585,7 @@ impl ViewerWindow
                 return
             }
 
+            .sceneAutoPlay = false
             if .outgoingView or .explorerTransition
             {
                 .commitViewerTransition(errorView)
@@ -798,6 +802,7 @@ impl ViewerWindow
         // the standard error surface.
         if not next.failureReason.isEmpty()
         {
+            .sceneAutoPlay = false
             if next.view and next.retire do
                 discard next.retire()
             next.replaceWithFailure(.documentPanel)

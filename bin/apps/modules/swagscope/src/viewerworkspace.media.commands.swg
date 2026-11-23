@@ -4,6 +4,11 @@ using Core, Gui
 
 namespace MediaCommands
 {
+    const Links      = "scope.scene.links"
+    const Transport  = "scope.scene.transport"
+    const Play       = "scope.scene.play"
+    const Pause      = "scope.scene.pause"
+    const Stop       = "scope.scene.stop"
     const Linked     = "scope.scene.link"
     const Time       = "scope.scene.link.time"
     const Playback   = "scope.scene.link.playback"
@@ -16,6 +21,7 @@ namespace MediaCommands
     const Ends       = ["scope.scene.stopShortest", "scope.scene.stopIndependently", "scope.scene.loopLeader"]
     const TimeValues = [SceneTimeMode.Absolute, .Relative, .Leader]
     const EndValues  = [SceneEndMode.Shortest, .Independent, .LoopLeader]
+    const PlayModes  = ["scope.scene.playOnce", "scope.scene.repeat", "scope.scene.playFolder", "scope.scene.shuffle"]
     const Axes       = [Linked, Time, Playback, Framing, Scroll]
 }
 
@@ -36,6 +42,16 @@ func sceneEndTitle(mode: SceneEndMode)->string
     case .Shortest:    return appStrings().scene_Shortest
     case .Independent: return appStrings().scene_Independent
     case .LoopLeader:  return appStrings().scene_LoopLeader
+    }
+}
+
+func sceneEndIcon(mode: SceneEndMode)->ThemeIcons
+{
+    switch #complete mode
+    {
+    case .Shortest:    return .Stop
+    case .Independent: return .PlayOnce
+    case .LoopLeader:  return .RepeatAll
     }
 }
 
@@ -61,7 +77,7 @@ impl ViewerWorkspace
         if wasFramingLinked != framingLinked and .comparisonVisible() and .comparison!.isPicture() do
             .comparison!.synchronizePictureFraming(fromRight: framingLinked and scene.active == 1)
         .updateMedia()
-        .overlay.invalidate()
+        .invalidate()
         .linkReading(.activeDocument())
         catch .primary.saveState()
     }
@@ -73,7 +89,7 @@ impl ViewerWorkspace
         scene.linked       = true
         scene.links.time   = true
         scene.links.leader = mode == .Leader ? scene.active : Swag.U64.Max
-        .overlay.invalidate()
+        .invalidate()
         catch .primary.saveState()
     }
 
@@ -81,6 +97,7 @@ impl ViewerWorkspace
     {
         let scene = unwrap .scene()
         scene.links.end = mode
+        .synchronizeMedia()
         catch .primary.saveState()
     }
 
@@ -103,6 +120,18 @@ impl ViewerWorkspace
             return true
         }
 
+        let groupToggle = evt.modifiers == .Shift and evt.key == .Space and .hasSceneTransport()
+        let linkedToggle = evt.modifiers == .None and
+                           (evt.key == .Space or evt.key == .MediaPlayPause) and
+                           .usesLinkedTransport(scene)
+        if groupToggle or linkedToggle
+        {
+            if not .mediaPlayKeyDown do
+                .playScene(all: true)
+            .mediaPlayKeyDown = true
+            return true
+        }
+
         if not .isMediaScene() do
             return false
         if evt.modifiers == .None
@@ -110,7 +139,6 @@ impl ViewerWorkspace
             switch evt.key
             {
             case .A:     .alignSceneHere()
-            case .Space: .playScene()
             default:     return false
             }
 
@@ -153,7 +181,12 @@ impl ViewerWindow
 {
     mtd addMediaCommands()
     {
+        let group = func()->string => appStrings().scene_Transport
+        .lens.addCommands(func()->string => appStrings().lens_View, [MediaCommands.Transport])
+        .lens.addCommands(group, [MediaCommands.Play, MediaCommands.Pause, MediaCommands.Stop])
+        .lens.addCommands(group, MediaCommands.PlayModes)
         let title = func()->string => appStrings().scene_Linked
+        .lens.addCommands(title, [MediaCommands.Links])
         .lens.addCommands(title, MediaCommands.Axes)
         .lens.addCommands(title, MediaCommands.Times)
         .lens.addCommands(title, MediaCommands.Ends)
@@ -171,44 +204,77 @@ impl ViewerWindow
         var hidden       = not workspace.isMediaScene()
         var checked      = false
         var checkable    = true
+        var icon         = ThemeIcons.Link
         switch evt.id
         {
+        case MediaCommands.Transport:
+            name      = text.scene_Controls
+            icon      = .Options
+            hidden    = not scene or scene.views.count < 2
+            checkable = false
+
+        case MediaCommands.Links:
+            name      = text.scene_Links
+            checkable = false
+
+        case MediaCommands.Play, MediaCommands.Pause, MediaCommands.Stop:
+            name      = evt.id == MediaCommands.Play ? text.scene_Play : (evt.id == MediaCommands.Pause ? text.scene_Pause : text.scene_Stop)
+            icon      = evt.id == MediaCommands.Play ? .Play : (evt.id == MediaCommands.Pause ? .Pause : .Stop)
+            hidden    = not workspace.hasSceneTransport()
+            checkable = false
+
         case MediaCommands.Linked:
             name    = text.scene_Linked
             checked = scene and scene.linked
             hidden  = not scene or scene.views.count < 2
 
         case MediaCommands.Time:
+            icon    = .GoTo
             name    = text.scene_LinkTime
             checked = scene and scene.links.time
 
         case MediaCommands.Playback:
+            icon    = .Play
             name    = text.scene_LinkPlayback
             checked = scene and scene.links.playback
 
         case MediaCommands.Framing:
+            icon    = .FitView
             name    = text.scene_LinkFraming
             checked = scene and scene.links.framing
             hidden  = not scene or scene.views.count < 2
 
         case MediaCommands.Scroll:
+            icon    = .LineNumbers
             name    = text.scene_LinkScroll
             checked = scene and scene.links.scroll
             hidden  = not scene or scene.views.count < 2
 
         case MediaCommands.AlignHere:
+            icon      = .GoTo
             name      = text.scene_AlignHere
             checkable = false
 
         case MediaCommands.AlignSound:
+            icon      = .AudioTracks
             name      = text.scene_AlignSound
             checkable = false
 
         case MediaCommands.Solo:
+            icon    = .Volume
             name    = text.scene_Solo
             checked = scene and scene.links.solo == scene.active
 
         default:
+            for id, index in MediaCommands.PlayModes where id == evt.id
+            {
+                let mode = Viewer.PlayModeValues[index]
+                hidden  = not workspace.hasSceneTransport()
+                name    = Viewer.playModeText(mode)
+                icon    = Viewer.playModeIcon(mode)
+                checked = not hidden and workspace.scenePlayModeIs(mode)
+            }
+
             for id, index in MediaCommands.Times where id == evt.id
             {
                 let mode = MediaCommands.TimeValues[index]
@@ -219,6 +285,7 @@ impl ViewerWindow
             for id, index in MediaCommands.Ends where id == evt.id
             {
                 let mode = MediaCommands.EndValues[index]
+                icon    = sceneEndIcon(mode)
                 name    = sceneEndTitle(mode)
                 checked = scene and scene.links.end == mode
             }
@@ -228,7 +295,8 @@ impl ViewerWindow
             return false
         evt.name          = name
         evt.hidden        = hidden
-        evt.updatedFields |= .Name | .Hidden
+        evt.icon          = .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
+        evt.updatedFields |= .Name | .Hidden | .Icon
         if checkable
         {
             evt.checked = checked
@@ -247,6 +315,21 @@ impl ViewerWindow
             return false
         switch id
         {
+        case MediaCommands.Transport:
+            workspace.showMediaTransport()
+
+        case MediaCommands.Links:
+            if workspace.isMediaScene() do
+                workspace.showMediaLinks()
+
+        case MediaCommands.Play, MediaCommands.Pause:
+            if workspace.hasSceneTransport() do
+                workspace.setScenePlaying(id == MediaCommands.Play)
+
+        case MediaCommands.Stop:
+            if workspace.hasSceneTransport() do
+                workspace.stopScene()
+
         case MediaCommands.Linked:
             workspace.setSceneLink(id, not scene.linked)
 
@@ -272,6 +355,12 @@ impl ViewerWindow
             workspace.toggleSolo()
 
         default:
+            for item, index in MediaCommands.PlayModes where item == id and workspace.hasSceneTransport()
+            {
+                workspace.setScenePlayMode(Viewer.PlayModeValues[index])
+                return true
+            }
+
             for item, index in MediaCommands.Times where item == id
             {
                 workspace.setTimeMode(MediaCommands.TimeValues[index])

@@ -8,6 +8,7 @@ struct SavedSceneView
     reading:   ViewerReadingState
     readState: bool
     offset:    f64
+    playMode:  Viewer.PlayMode
 }
 
 struct SavedScene
@@ -21,6 +22,7 @@ struct SavedScene
     compared:   bool
     linked:     bool
     links:      SceneLinks
+    savedEndMode: bool
     comparison: SceneComparisonState
 }
 
@@ -56,6 +58,7 @@ impl ViewerWorkspace
             record.compared     = scene.compared
             record.linked       = scene.linked
             record.links        = scene.links
+            record.savedEndMode = true
             record.links.leader = Swag.U64.Max
             record.links.solo   = Swag.U64.Max
             record.comparison   = scene.comparisonState
@@ -71,7 +74,7 @@ impl ViewerWorkspace
                 if viewIndex == scene.links.solo do
                     record.links.solo = record.views.count
                 .captureView(view)
-                record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset})
+                record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode})
             }
 
             if record.views.isEmpty() do
@@ -103,17 +106,25 @@ impl ViewerWorkspace
                 if scene.views.count >= MaxViews do
                     break
                 if not view.path.isEmpty() and .primary.privacy.mayRemember(view.path) do
-                    scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset})
+                    scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode})
             }
 
             if scene.views.isEmpty() do
                 continue
             scene.active          = Math.min(record.active, scene.views.count - 1)
             scene.maximized       = record.maximized and scene.views.count > 1
+            if scene.layout == .Single and scene.views.count > 1
+            {
+                scene.layout    = .Auto
+                scene.maximized = true
+            }
             scene.recent          = record.recent
             scene.compared        = record.compared and scene.views.count == 2
             scene.linked          = record.linked and scene.views.count > 1
             scene.links           = record.links
+            // Older sessions stored Stop with Shortest as their default.
+            if not record.savedEndMode and scene.links.end == .Shortest do
+                scene.links.end = .Independent
             scene.comparisonState = record.comparison
             .activation           = Math.max(.activation, scene.recent)
             .scenes.addNew()[]    = #move scene

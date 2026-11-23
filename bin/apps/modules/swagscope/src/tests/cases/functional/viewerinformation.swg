@@ -163,6 +163,7 @@ func assertInformationParity(name: string)
         window.onlineMovies = false
         window.openFile(Path.combine(testSourceRoot(#curlocation), "datas", "glint-aac-mjpeg.mp4"), remember: false)
         completeQueuedViewerFile(&host, window)
+        window.concealViewerBar()
         window.toggleInformation()
         window.layoutFloatingParts()
         let sheet  = window.infoSheet
@@ -170,7 +171,11 @@ func assertInformationParity(name: string)
         let area   = window.documentArea()
         let inset  = window.themeMetrics().floating_Inset
         let top    = Math.max(area.y, window.stripInset())
-        Swag.require(bounds.y == top + inset and bounds.bottom() == area.bottom() - inset)
+        Swag.require(bounds.y == top + inset and bounds.bottom() + inset <= window.viewerBar.position.y)
+        window.revealViewerBar()
+        Swag.require(sheet.position == bounds and window.documentArea() == area)
+        window.concealViewerBar()
+        Swag.require(sheet.position == bounds)
         sheet.selectPage(1)
         Swag.require(sheet.position == bounds)
         for 40 do
@@ -188,6 +193,10 @@ func assertInformationParity(name: string)
         window.layoutFloatingParts()
         Swag.require(sheet.position.y == window.documentArea().y + inset)
         Swag.require(sheet.position.bottom() + inset <= window.viewerBar.position.y)
+        let fullScreenArea = window.documentArea()
+        window.closeInformation()
+        window.toggleInformation()
+        Swag.require(window.documentArea() == fullScreenArea)
     }
 }
 

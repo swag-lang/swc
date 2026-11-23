@@ -211,6 +211,7 @@ struct BottomVeil
     elapsed: String     // Time played, written first and strong.
     length:  String     // Length of the film, written after it.
     chapter: String     // The chapter played, or empty.
+    compact: bool       // A short cell uses one row for play, timeline and options.
 }
 
 impl BottomVeil
@@ -269,31 +270,64 @@ impl BottomVeil
     {
         let room  = .clientRect()
         let width = Math.max(room.width - 2 * VeilInset, 1)
-        .volumeSlider.show(width >= 580)
-        let lineY = room.bottom() - RowBottom
         let glyph = .playButton.position.width
+        let gap   = width < 300 ? .themeMetrics().miniBar_Padding : RowGap
+        let time  = Math.ceil(.timeButton.itf.measureContent({}).x)
+        let left  = room.x + VeilInset - glyph * 0.25
+        let edge  = room.right() - VeilInset + glyph * 0.25
+        if .compact
+        {
+            .volumeSlider.hide()
+            .muteButton.hide()
+            .tracksButton.hide()
+            .timeButton.hide()
+            .playButton.setPosition({left, room.y, glyph, glyph})
+            .optionsButton.setPosition({edge - glyph, room.y, glyph, glyph})
+            let start = .playButton.position.right() + gap
+            .timeline.setPosition({start, room.vertCenter() - TimelineHeight * 0.5,
+                                   Math.max(1, .optionsButton.position.x - gap - start), TimelineHeight})
+            return
+        }
+
+        let roomForExtras = edge - left - 2 * glyph - time - 2 * gap
+        .volumeSlider.show(width >= 580)
+        .muteButton.show(roomForExtras >= glyph + gap)
+        .tracksButton.show(roomForExtras >= 2 * (glyph + gap))
+        .timeButton.show(roomForExtras >= 0)
+        let lineY = room.bottom() - RowBottom
         .timeline.setPosition(Math.Rectangle{room.x + VeilInset - KnobInset,
                                              room.bottom() - TimelineBottom - TimelineHeight * 0.5,
                                              width + 2 * KnobInset,
                                              TimelineHeight})
-        .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
-        .timeButton.setPosition(Math.Rectangle{.playButton.position.right() + RowGap,
+        .playButton.setPosition(Math.Rectangle{left, lineY - glyph * 0.5, glyph, glyph})
+        .timeButton.setPosition(Math.Rectangle{.playButton.position.right() + gap,
                                                lineY - .timeButton.position.height * 0.5,
-                                               .timeButton.position.width, .timeButton.position.height})
+                                               time, .timeButton.position.height})
 
         // The right end of the row reads from the edge inwards: volume, mute, tracks and options.
-        var right = room.right() - VeilInset + glyph * 0.25
+        var right = edge
         if .volumeSlider.isLocallyVisible()
         {
             right -= RowGap + VolumeWidth
             .volumeSlider.setPosition(Math.Rectangle{right, lineY - .volumeSlider.position.height * 0.5, VolumeWidth, .volumeSlider.position.height})
         }
 
-        right -= glyph + RowGap * 0.5
+        right -= gap * 0.5
+        if .muteButton.isLocallyVisible()
+        {
+            right -= glyph
         .muteButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
-        right -= glyph + RowGap
+            right -= gap
+        }
+
+        if .tracksButton.isLocallyVisible()
+        {
+            right -= glyph
         .tracksButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
-        right -= glyph + RowGap * 0.5
+            right -= gap * 0.5
+        }
+
+        right -= glyph
         .optionsButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
     }
 }
@@ -318,7 +352,9 @@ impl IWnd for BottomVeil
 
         let x       = .timeButton.position.right() + 2 * RowGap
         let textEnd = .optionsButton.position.x
-        if not .chapter.isEmpty() and x + Painter.measureString(.chapter, words).width + RowGap < textEnd do
+        if not .compact and
+           not .chapter.isEmpty() and
+           x + Painter.measureString(.chapter, words).width + RowGap < textEnd do
             painter.drawString(x, words.opticalLineTop(lineY), .chapter, words, .themeColors().faintText)
 
         // The time under the pointer reads in a dark tip above the timeline.

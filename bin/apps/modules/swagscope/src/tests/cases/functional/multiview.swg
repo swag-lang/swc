@@ -45,10 +45,11 @@ using Core, Gui, Pixel, Audio
     Swag.require(first.currentView == text and text.zoomPercent == 145)
 
     workspace.selectView(0)
-    workspace.toggleMaximized()
+    Swag.require(first.runCommand(SceneCommands.Layouts[0]))
     Swag.require(first.isLocallyVisible() and not second.isLocallyVisible())
-    workspace.toggleMaximized()
-    Swag.require(second.isLocallyVisible())
+    Swag.require(workspace.scene()!.layout == .SideBySide and workspace.scene()!.visibleLayout() == .Single)
+    host.keyPress(.Escape)
+    Swag.require(second.isLocallyVisible() and workspace.scene()!.visibleLayout() == .SideBySide)
     Swag.require(workspace.moveView(.Right, swap: true))
     Swag.require(workspace.activeDocument() == first and workspace.scene()!.active == 1)
 
@@ -247,7 +248,7 @@ using Core, Gui, Pixel, Audio
     host.keyPress(.Right, .Control)
     for 400
     {
-        host.tickTimer(workspace.transport!.timer)
+        host.tickTimer(workspace.mediaTimer)
         if a.frameIndex == 1 and b.frameIndex == 2 do
             break
         Threading.Thread.sleep(1'ms)
@@ -257,6 +258,155 @@ using Core, Gui, Pixel, Audio
     workspace.selectView(1)
     workspace.synchronizeMedia()
     Swag.require(a.sceneSilent and not b.sceneSilent)
+}
+
+// The shortest film can stop or advance without interrupting the other cell.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    let folder = Testing.tempFilePath("scope-scene-playback-", "")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let first = expect videoPreviewFileAt(Path.combine(folder, "01.avi"), 4, 8)
+    let next  = expect videoPreviewFileAt(Path.combine(folder, "02.avi"), 32, 8)
+    let peer  = expect videoPreviewFileAt(Path.combine(folder, "03.avi"), 64, 8)
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth)
+    defer host.shutdown()
+    workspace.openScene([first, peer], .Grid2)
+    openViews(&host, workspace)
+    let scene    = unwrap workspace.scene()
+    let document = unwrap scene.views[0].document
+    let short    = unwrap ScenePlayer.from(document).film
+    let long     = unwrap ScenePlayer.from(scene.views[1].document).film
+    Swag.require(scene.linked and scene.links.end == .Independent)
+    host.setReducedMotion(false)
+    for view in scene.views
+    {
+        let pane = unwrap view.document
+        let film = unwrap ScenePlayer.from(pane).film
+        let picture = film.imageView.surfaceRect()
+        pane.concealViewerBar()
+        host.finishAnimations()
+        pane.revealViewerBar()
+        Swag.require(pane.viewerBar.isVisible() and pane.cellCaption.isVisible())
+        host.advanceAnimations(0.06)
+        let opacity = pane.viewerBar.presentationOpacity
+        Swag.require(opacity > 0 and opacity < 1 and opacity == pane.cellCaption.presentationOpacity)
+        Swag.require(pane.viewerBar.isAncestorOf(film.bottomVeil))
+        Swag.require(film.surfaceRect().contains(pane.viewerBar.surfaceRect().center()))
+        Swag.require(film.playButton.position.right() <= film.optionsButton.position.x)
+        host.fireTimer(pane.viewerBarTimer)
+        Swag.require(not pane.viewerBar.isVisible() and not pane.cellCaption.isVisible())
+        host.advanceAnimations(0.03)
+        let fading = pane.viewerBar.presentationOpacity
+        Swag.require(fading > 0 and fading < opacity and fading == pane.cellCaption.presentationOpacity)
+        pane.revealViewerBar()
+        Swag.require(pane.viewerBar.presentationOpacity == fading and pane.cellCaption.presentationOpacity == fading)
+        host.finishAnimations()
+        pane.concealViewerBar()
+        host.finishAnimations()
+        Swag.require(not pane.viewerBar.isVisible() and film.imageView.surfaceRect() == picture)
+    }
+
+    var peerPoint = long.imageView.surfaceRect().center()
+    host.surface.surfaceToScreen(&peerPoint)
+    host.moveMouse(peerPoint)
+    Swag.require(scene.views[1].document!.viewerBar.isVisible() and not document.viewerBar.isVisible())
+    document.revealViewerBar()
+    var point = short.playButton.surfaceRect().center()
+    Swag.require(host.surfaceWnd.windowAt(point.x, point.y) == short.playButton)
+    host.surface.surfaceToScreen(&point)
+    host.sendMouseEvent(short.playButton, .Pressed, point, .Left, .None)
+    host.sendMouseEvent(short.playButton, .Released, point, .Left, .None)
+    Swag.require(short.playing and not long.playing)
+    Swag.require(document.runCommand(MediaCommands.Play))
+    Swag.require(short.playing and long.playing)
+    short.requestPlaybackStop()
+    Swag.require(not short.playing and long.playing)
+    short.requestPlaybackToggle()
+    Swag.require(short.playing and long.playing)
+    host.sendMouseEvent(short.playButton, .DoubleClick, point, .Left, .None)
+    Swag.require(not scene.maximized)
+    short.elapsed = short.video.durationInSeconds()
+    var wait: Time.Stopwatch
+    wait.start()
+    while short.playing and wait.elapsedMilliseconds() < 2_000
+    {
+        workspace.synchronizeMedia()
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(not short.playing and long.playing and document.pendingFile.isEmpty())
+    host.clickWnd(workspace.mediaPlayPause)
+    Swag.require(not long.playing)
+
+    Swag.require(document.runCommand(MediaCommands.PlayModes[2]) and workspace.scenePlayModeIs(.Folder))
+    workspace.playScene()
+    short.elapsed = short.video.durationInSeconds()
+    wait.restart()
+    while short.playing and wait.elapsedMilliseconds() < 2_000
+    {
+        workspace.synchronizeMedia()
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(document.pendingFile == next and long.playing)
+    completeQueuedViewerFile(&host, document)
+    workspace.synchronizeMedia()
+    Swag.require(document.currentFile == next and scene.views[0].path == next)
+    Swag.require(ScenePlayer.from(document).isPlaying() and long.playing)
+
+    workspace.setLayout(.Grid4)
+    let film = unwrap ScenePlayer.from(document).film
+    document.revealViewerBar()
+    Swag.require(film.bottomVeil.compact and document.viewerBar.isVisible())
+    Swag.require(not document.readingLine.isLocallyVisible())
+    Swag.require(film.clientRect().height == document.clientRect().height)
+
+    workspace.closeView(1)
+    Swag.require(scene.layout == .Single and workspace.activeDocument() == document)
+    Swag.require(not film.bottomVeil.compact and not film.sceneManaged and film.sceneViewport == {})
+    Swag.require(document.readingLine.isLocallyVisible() and document.viewerBar.isVisible())
+    Swag.require(not workspace.mediaLinks.isLocallyVisible() and workspace.closeFileButton.isLocallyVisible())
+}
+
+// Group commands work in a mixed grid and leave the per-view modes editable.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let files = [scopeTestDataPath("viewer.animation.gif"), scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.wav")]
+    workspace.openScene(files, .Grid2)
+    openViews(&host, workspace)
+    let scene    = unwrap workspace.scene()
+    let animation = unwrap scene.views[0].document
+    let still     = unwrap scene.views[1].document
+    let audio     = unwrap scene.views[2].document
+    let picture   = assume cast(*Viewers.Picture.Panel, animation.currentView)
+    let sound     = unwrap ScenePlayer.from(audio).sound
+    Swag.require(picture.imageView.movie.isAnimated() and workspace.mediaTransport.isVisible() and workspace.mediaPlayPause.isVisible())
+
+    Swag.require(animation.runCommand(MediaCommands.PlayModes[3]))
+    Swag.require(workspace.scenePlayModeIs(.Shuffle))
+    Swag.require(still.slideTimer and audio.playMode == .Shuffle)
+    animation.setPlayMode(.Repeat)
+    Swag.require(not workspace.scenePlayModeIs(.Shuffle) and not workspace.scenePlayModeIs(.Repeat))
+
+    Swag.require(animation.runCommand(MediaCommands.Play))
+    Swag.require(sound.playing and not picture.imageView.movie.isPaused and still.slideTimer)
+    Swag.require(animation.runCommand(MediaCommands.Pause))
+    Swag.require(not sound.playing and picture.imageView.movie.isPaused and not still.slideTimer)
+    host.keyPress(.Space, .Shift)
+    Swag.require(sound.playing and not picture.imageView.movie.isPaused and still.slideTimer)
+    Swag.require(animation.runCommand(MediaCommands.Stop))
+    Swag.require(not sound.playing and sound.playbackPosition() == 0 and not still.slideTimer)
+    Swag.require(picture.imageView.movie.isPaused and picture.imageView.movie.frameIndex == 0)
 }
 
 #test

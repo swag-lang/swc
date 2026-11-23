@@ -266,7 +266,7 @@ impl ViewerWorkspace
     mtd wantsComparisonSheet()->bool
     {
         let scene = .scene()
-        return scene and scene.compared and scene.views.count == 2
+        return scene and scene.compared and scene.views.count == 2 and not scene.maximized
     }
 
     mtd toggleComparisonSheet()
@@ -290,7 +290,9 @@ impl ViewerWorkspace
 
     mtd closeComparisonSheet()
     {
-        if .comparisonSheet and .comparisonSheet.panel.isLocallyVisible() do
-            discard .app().animator.leave(.comparisonSheet.panel)
+        if not .comparisonSheet or not .comparisonSheet.panel.isLocallyVisible() do
+            return
+        discard .app().animator.leave(.comparisonSheet.panel)
+        .activeDocument().refreshExplorerCaption()
     }
 }

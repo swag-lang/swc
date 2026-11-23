@@ -80,6 +80,9 @@ struct ViewerWindow
         searchOverlay:               *ViewerSearchOverlay
         dropHighlight:               *FileDropHighlight
         viewerBar:                   *FloatingPanel
+        cellCaption:                 *FloatingPanel
+        cellCaptionTitle:            *Label
+        cellCaptionClose:            *IconButton
         home:                        *ViewerHome
     }
 
@@ -166,6 +169,8 @@ struct ViewerWindow
     // that reported a still picture for it to count, and the files already read in the current
     // folder round. The same round state drives shuffle choice.
     playMode:            Viewer.PlayMode
+    sceneAutoPlay:       bool
+    sceneSlidesPaused:   bool
     slideSeconds:        f32 = Viewer.SlideDefaultSeconds
     slideTimer:          *Timer?
     stillView:           *Wnd?
@@ -264,6 +269,13 @@ func reportViewerChromeChanged(view: *Wnd)
     let window = viewerWindowFor(view)
     if window.currentView != view do
         return
+    if view is Viewers.Film.Panel as film
+    {
+        if film.veilsShown do
+            window.revealViewerBar()
+        return
+    }
+
     window.layoutViewerBar()
     window.layoutFileInfo()
     window.refreshExplorerCaption()
@@ -482,7 +494,6 @@ impl IWnd for ViewerWindow
 
         if evt.timer == .viewerBarTimer
         {
-            .stopTimer(&.viewerBarTimer)
             .concealViewerBar()
             return
         }
@@ -524,7 +535,7 @@ impl IWnd for ViewerWindow
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .showPointer()
-        if .fullScreen do
+        if .fullScreen and .isWorkspacePrimary() do
             .setFullScreen(false)
         if .isWorkspacePrimary() do
             catch .saveState()
@@ -833,8 +844,19 @@ impl ViewerWindow
 
     mtd refreshOutlineCaption()
     {
-        .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
+        if not .isWorkspaceActive() do
+            return
+        let toggle = .currentSidePanelButton
+        .outlineCaptionButton.show(not .fullScreen and toggle and toggle.id == OutlineToggleId)
+        .outlineCaptionButton.toolTip = Format.toString("% (%)", .captionFileAction(outlineTitle()), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
         .updateOutlineCaptionState()
+    }
+
+    private mtd captionFileAction(action: string)->String
+    {
+        if (.workspace?.documentCount() orelse 0) > 1 and not .currentFile.isEmpty() do
+            return Format.toString("% · %", action, Path.fileName(.currentFile) orelse .currentFile)
+        return action
     }
 
     mtd updateOutlineCaptionState()
@@ -850,6 +872,7 @@ impl ViewerWindow
         if not .isWorkspaceActive() do
             return
         .privacy.refreshIndicator()
+        .refreshOutlineCaption()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
@@ -863,7 +886,7 @@ impl ViewerWindow
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.hide()
         .fullScreenCaptionButton.show(not .fullScreen)
-        .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen)
+        .informationCaptionButton.show((.isExploring() or not .currentFile.isEmpty()) and not .fullScreen)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile    = not .isExploring() and not .currentFile.isEmpty()
         .viewerCaptionButton.show((openFile or archiveFile) and not .fullScreen)
@@ -881,11 +904,11 @@ impl ViewerWindow
         .refreshCaptionButton.toolTip     = text.explore_Refresh
         .findCaptionButton.toolTip        = text.ui_FilterFiles
         .fullScreenCaptionButton.toolTip  = Format.toString("% (%)", text.cmd_FullScreen, Input.formatKeyShortcut(.None, .F11))
-        .informationCaptionButton.toolTip = text.cmd_Information
-        .viewerCaptionButton.toolTip      = text.lens_ViewAs
+        .informationCaptionButton.toolTip = (.workspace?.wantsComparisonSheet() orelse false) ?
+                                             String.from(text.scene_ComparisonSheet) : .captionFileAction(text.cmd_Information)
+        .viewerCaptionButton.toolTip      = .captionFileAction(text.lens_ViewAs)
         .fullScreenCaptionButton.setChecked(.fullScreen)
-        .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible() or
-                                             (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false))
+        .informationCaptionButton.setChecked(.informationOpen())
         if .workspace and .workspace.tabs != null
         {
             .workspace.refreshCloseFileButton()
@@ -941,9 +964,30 @@ impl ViewerWindow
     // Puts the commands of the active viewer in the floating bar, or empties it.
     mtd updateViewerBar()
     {
+        if .usesTimedViewerBar()
+        {
+            .stopTimer(&.viewerBarTimer)
+            .viewerBarShown = false
+            if .isWorkspaceActive() and not .thumbnailMode
+            {
+                .revealViewerBar()
+                return
+            }
+        }
+
         if not .currentCommands do
             .viewerBarShown = false
         .layoutViewerBar()
+    }
+
+    mtd overlaysViewerBar()->bool => .fullScreen or .usesTimedViewerBar()
+
+    mtd usesTimedViewerBar()->bool
+    {
+        if .currentView is Viewers.Film.Panel do
+            return true
+        return (.workspace?.usesCellCaptions() orelse false) and
+               (.currentView is Viewers.Sound.Panel or .currentView is Viewers.Picture.Panel)
     }
 
     // The explorer remains the place to return to while a file opened from it is being read.
@@ -967,12 +1011,17 @@ impl ViewerWindow
     // Lets the viewer's commands go when the pointer, keyboard and modal controls have left.
     mtd concealViewerBar()
     {
+        .stopTimer(&.viewerBarTimer)
         let focused = .focusedWindow()
-        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or
-                      (focused and .viewerBar.isOwnerOf(focused)) or
+        let timed    = .usesTimedViewerBar()
+        let hovering = not timed and .viewerBar.surfaceRect().contains(.pointerPosition)
+        let keyboard = (not timed or .app().focusVisible) and .viewerBar.isAncestorOf(focused)
+        let captured = .mouseCapture()
+        let held    = hovering or keyboard or .viewerBar.isAncestorOf(captured) or
+                      .cellCaption.isAncestorOf(captured) or
                       .app().isInModalLoop() or
                       .lens.isOpen()
-        if held and .viewerBarShown
+        if held and .viewerBarShown and .isVisible()
         {
             .viewerBarTimer = .addTimer(ViewerBarLinger)
             return
@@ -980,14 +1029,16 @@ impl ViewerWindow
 
         .viewerBarShown = false
         .layoutViewerBar()
-        if .fullScreen do
+        if .currentView is Viewers.Film.Panel as film do
+            film.hideVeils()
+        if .fullScreen and ((.workspace?.documentCount() orelse 0) <= 1 or .workspace!.isHoveredDocument(me)) do
             .setPointerHidden(true)
     }
 
     // Remembers where the pointer is, and brings the viewer's commands back.
-    mtd notePointer(position: Math.Point)
+    mtd notePointer(position: Math.Point, moved = false)
     {
-        if position.x == .pointerPosition.x and position.y == .pointerPosition.y do
+        if not moved and position == .pointerPosition do
             return
         .pointerPosition = position
         .showPointer()
@@ -1010,14 +1061,17 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible  = commands != null and (not .fullScreen or .viewerBarShown) and not (.workspace?.isMediaScene() orelse false)
-        .viewerBar.show(visible)
+        let compact  = .compactVideoCell()
+        let media    = .currentView is Viewers.Film.Panel or .currentView is Viewers.Sound.Panel or .currentView is Viewers.Picture.Panel
+        let visible  = commands != null and (not .overlaysViewerBar() or .viewerBarShown)
+        .showViewerOverlay(.viewerBar, visible, animate: media and commands != null)
+        .layoutCellCaption()
         if not commands do
             return
 
         let metrics = .themeMetrics()
         let area    = .documentArea()
-        let inset   = metrics.floating_Inset
+        let inset   = compact ? metrics.miniBar_Distance : metrics.floating_Inset
         let pad     = .viewerBar.padding
         let room    = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
         let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
@@ -1028,6 +1082,11 @@ impl ViewerWindow
         commands.dockStyle = .None
         commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
         commands.applyLayout()
+        if .currentView is Viewers.Film.Panel as film
+        {
+            let top = film.surfaceToLocal({0, .viewerBar.surfaceRect().y}).y
+            film.layoutAroundTransport(visible ? Math.max(0, film.clientRect().bottom() - top) : 0)
+        }
     }
 
     // Returns the rectangle the document takes in the window, below the strip and beside the
@@ -1054,8 +1113,10 @@ impl ViewerWindow
     {
         let sheetMetrics  = .themeMetrics()
         let sheetArea     = .documentArea()
-        let sheetTop      = Math.max(sheetArea.y, .stripInset()) + sheetMetrics.floating_Inset
-        let sheetBottom   = Math.max(.clientRect().bottom() - sheetArea.bottom(), 0)
+        let strip         = .stripInset()
+        let sheetTop      = Math.max(sheetArea.y, strip) + sheetMetrics.floating_Inset
+        let workBottom    = .overlaysViewerBar() and .currentCommands ? Math.min(sheetArea.bottom(), .viewerBar.position.y) : sheetArea.bottom()
+        let sheetBottom   = Math.max(.clientRect().bottom() - workBottom, 0)
         let sheetBase     = sheetTop - Math.max(sheetMetrics.floating_Inset, .stripInset())
         let bottomChanged = .infoSheet.margin.w != sheetBottom
         .infoSheet.margin.w = sheetBottom
@@ -1082,6 +1143,9 @@ impl ViewerWindow
         let inset   = metrics.floating_Inset
         let height  = themeActionButtonSize(metrics)
         var area    = .documentArea()
+        let pad       = .searchBar.padding
+        let fullWidth = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
+        let compact   = fullWidth - pad.x - pad.z < 400 and .searchNavigation.isLocallyVisible()
         var sheetBelowSearch = false
         if .infoSheet.isLocallyVisible()
         {
@@ -1092,10 +1156,8 @@ impl ViewerWindow
         }
 
         let width         = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
-        let pad           = .searchBar.padding
         let innerWidth    = Math.max(width - pad.x - pad.z, 0)
-        let top           = (.fullScreen ? 0 : .stripInset()) + inset * 0.5
-        let compact       = innerWidth < 400 and .searchNavigation.isLocallyVisible()
+        let top           = strip + inset * 0.5
         let rowY          = compact ? height + SearchGroupSpacing : 0
         let contentHeight = height + rowY
         let totalHeight   = contentHeight + pad.y + pad.w
@@ -1157,6 +1219,13 @@ impl ViewerWindow
     // previous window placement or maximized state.
     mtd setFullScreen(enabled: bool)
     {
+        let workspace = .workspace
+        if workspace and workspace.primary != me
+        {
+            workspace.primary.setFullScreen(enabled)
+            return
+        }
+
         if .fullScreen == enabled do
             return
 
@@ -1166,37 +1235,25 @@ impl ViewerWindow
             .fullScreenRestorePosition = surface.isMaximized ? surface.restoredPosition : surface.position
             .fullScreenRestoreFlags    = surface.flags
             .fullScreenWasMaximized    = surface.isMaximized
-            .fullScreen = true
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
-            .documentPanel.backgroundStyle = .View
-            .readingLine.hide()
-            .mainSplitter.setPaneVisible(LeftPanelIndex, false)
-            .mainSplitter.setPaneVisible(RightPanelIndex, false)
-            .updateDocumentInsets()
         }
         else
         {
-            .fullScreen = false
             let transitionFlags = FullScreenRemovedFlags | FullScreenAddedFlags
             let flagsToAdd      = .fullScreenRestoreFlags & transitionFlags
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
-            .documentPanel.backgroundStyle = .View
-            .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
-            let left        = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
-            let index       = left ? LeftPanelIndex : RightPanelIndex
-            let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
-            .mainSplitter.items[index]!.view = .currentSidePanelHost orelse placeholder
-            .mainSplitter.items[index]!.view.show(.currentSidePanelButton?.isChecked orelse false)
-            .mainSplitter.setPaneVisible(index, .currentSidePanelButton?.isChecked orelse false)
-            .updateDocumentInsets()
         }
 
-        .outlineCaptionButton.show(not .fullScreen and
-                                   .currentSidePanelButton and
-                                   .currentSidePanelButton.id == OutlineToggleId)
-        .refreshExplorerCaption()
-        .refreshReadingAppearance()
+        .applyFullScreenPresentation(enabled)
+        if workspace and not workspace.isPendingDestroy
+        {
+            if let scene = workspace.scene()
+            {
+                for view in scene.views where view.document and view.document != me do
+                    view.document.applyFullScreenPresentation(enabled)
+            }
+        }
 
         // Apply the chrome before changing the native size. Restore directly to the
         // desired state so the window never visits its normal bounds on the way to maximized.
@@ -1207,8 +1264,42 @@ impl ViewerWindow
         else do
             surface.showNormalAt(.fullScreenRestorePosition)
 
-        .applyLayout()
-        .layoutFloatingParts()
+        if workspace and not workspace.isPendingDestroy do
+            workspace.layoutScene()
+        else
+        {
+            .applyLayout()
+            .layoutFloatingParts()
+        }
+    }
+
+    // Updates a document's chrome for the presentation of its shared window.
+    mtd applyFullScreenPresentation(enabled: bool)
+    {
+        if .fullScreen == enabled do
+            return
+        .fullScreen = enabled
+        .documentPanel.backgroundStyle = .View
+        if enabled
+        {
+            .readingLine.hide()
+            .mainSplitter.setPaneVisible(LeftPanelIndex, false)
+            .mainSplitter.setPaneVisible(RightPanelIndex, false)
+        }
+        else
+        {
+            .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
+            let left        = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
+            let index       = left ? LeftPanelIndex : RightPanelIndex
+            let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder
+            .mainSplitter.items[index]!.view = .currentSidePanelHost orelse placeholder
+            .mainSplitter.items[index]!.view.show(.currentSidePanelButton?.isChecked orelse false)
+            .mainSplitter.setPaneVisible(index, .currentSidePanelButton?.isChecked orelse false)
+        }
+
+        .updateDocumentInsets()
+        .refreshExplorerCaption()
+        .refreshReadingAppearance()
     }
 
     mtd isWorkspacePrimary()->bool => not .workspace or .workspace.primary == null or .workspace.primary == me
@@ -1349,10 +1440,14 @@ impl ViewerWindow
             result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
             result.lensLauncher.captionButton.hide()
         }
-        else do
+        else
+        {
             result.lensLauncher = workspace!.primary.lensLauncher
+        }
+
         result.privacy.window = result
-        result.privacy.createIndicator()
+        if result.isWorkspacePrimary() do
+            result.privacy.createIndicator()
         result.privacyTimer = result.addTimer(250'ms)
         result.hookChildEvents()
 
@@ -1436,8 +1531,14 @@ impl ViewerWindow
     // once even when the operating system emits repeated pressed transitions while it is held.
     mtd routePlaybackKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey or (.workspace?.isMediaScene() orelse false) do
+        if .forwardingViewerKey do
             return false
+        if evt.kind == .Pressed and evt.key == .Tab and not evt.modifiers.has(.Control) and .usesTimedViewerBar()
+        {
+            .revealViewerBar()
+            return false
+        }
+
         let arrowKey  = evt.key == .Left or evt.key == .Right
         let rateStep  = evt.modifiers == .Shift and arrowKey
         let frameStep = evt.modifiers == .Control and arrowKey
@@ -1477,6 +1578,8 @@ impl ViewerWindow
                 return true
             let handled = .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
             .playPauseKeyDown = handled
+            if handled and .usesTimedViewerBar() do
+                .revealViewerBar()
             return handled
         }
 
@@ -1551,7 +1654,9 @@ impl ViewerWindow
         let metrics = .themeMetrics()
         .hintLine.margin.w = .readingLine.isLocallyVisible() ?
                              .readingLine.position.height + metrics.floating_Inset : 0
-        .hintLine.margin.z = exploring and .explorer ? .explorer.padding.z : 0
+        let inset = metrics.floating_Inset
+        let sheetWidth = Math.min(metrics.infoSheet_Width, Math.max(.clientRect().width - 2 * inset, 0))
+        .hintLine.margin.z = exploring and .infoSheet.isLocallyVisible() ? sheetWidth + inset : 0
         .hintLine.clearHints()
 
         // The keys of an explored page are taught while what it shows leaves its foot free: an

@@ -29,6 +29,23 @@ struct ScopeMediaOptions
 
 impl ViewerWindow
 {
+    mtd applyOnlineMedia(movies, music: bool)
+    {
+        let owner = .workspace?.primary orelse me
+        owner.onlineMovies = movies
+        owner.onlineMusic  = music
+        owner.explorer?.refreshMediaOptions()
+        if let scene = .workspace?.scene()
+        {
+            for view in scene.views where view.document and view.document != owner
+            {
+                view.document.onlineMovies = movies
+                view.document.onlineMusic  = music
+                view.document.explorer?.refreshMediaOptions()
+            }
+        }
+    }
+
     // Creates the searchable general and viewer-owned settings page for the supplied draft.
     mtd createGeneralOptionsDialog(media: *ScopeMediaOptions)->*Dialog
     {
@@ -122,14 +139,11 @@ impl ViewerWindow
             return
         }
 
-        .onlineMovies = media.onlineMovies
-        .onlineMusic  = media.onlineMusic
         Viewers.Film.g_MovieDetectionSettings = media.movieDetection
         Viewers.Film.g_MovieDetectionSettings.sanitize()
         Viewers.MarkdownText.g_ViewerSettings.sanitize()
         Viewers.Midi.g_ViewerSettings.sanitize()
-        if .explorer do
-            .explorer.refreshMediaOptions()
+        .applyOnlineMedia(media.onlineMovies, media.onlineMusic)
         catch .saveState()
         saved = true
     }

@@ -678,11 +678,12 @@ impl ViewerWindow
             return false
 
         case ViewerCommands.Information:
-            name     = texts.cmd_Information
+            let comparison = .workspace?.wantsComparisonSheet() orelse false
+            name     = comparison ? texts.scene_ComparisonSheet : texts.cmd_Information
             icon     = .commandGlyph(.Information)
             disabled = not hasFile and not exploring
             toggle   = true
-            checked  = .infoSheet.isLocallyVisible()
+            checked = .informationOpen()
 
         case ViewerCommands.GeneralOptions:
             name = texts.ui_GeneralOptions
@@ -1186,12 +1187,8 @@ impl ViewerWindow
             .findNext()
 
         case ViewerCommands.OnlineMovies, ViewerCommands.OnlineMusic:
-            if id == ViewerCommands.OnlineMovies do
-                .onlineMovies = not .onlineMovies
-            else do
-                .onlineMusic = not .onlineMusic
-            if .explorer do
-                .explorer.setOnlineMedia(.onlineMovies, .onlineMusic)
+            .applyOnlineMedia(id == ViewerCommands.OnlineMovies ? not .onlineMovies : .onlineMovies,
+                              id == ViewerCommands.OnlineMusic ? not .onlineMusic : .onlineMusic)
             catch .saveState()
             .information.request()
             .refreshInformation()
@@ -1363,6 +1360,9 @@ impl ViewerWindow
         return true
     }
 
+    mtd informationOpen()->bool => .infoSheet.isLocallyVisible() or
+                                  (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false)
+
     // Shows the sheet of readings about the open file or the explored folder, or hides it.
     mtd toggleInformation()
     {
@@ -1389,7 +1389,7 @@ impl ViewerWindow
         .sheetToggled(false)
     }
 
-    // Lets the explored page make room for the sheet beside it, or take that room back.
+    // Refreshes the sheet and its caption action while leaving the document in place.
     mtd sheetToggled(open: bool)
     {
         .refreshExplorerCaption()
@@ -1397,17 +1397,8 @@ impl ViewerWindow
             .information.request()
         else do
             .information.stop()
-        if .explorer do
-            .explorer.fitToSheet(open)
         if .isExploring() do
             .teachHints(true)
-        if .fullScreen
-        {
-            .updateDocumentInsets()
-            .documentHost.applyLayout()
-            .layoutViewerBar()
-        }
-
         .layoutSearchBar()
     }
 

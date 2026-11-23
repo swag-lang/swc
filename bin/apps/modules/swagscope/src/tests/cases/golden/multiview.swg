@@ -95,8 +95,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     workspace.alignSceneHere()
     workspace.synchronizeMedia()
     workspace.updateMedia()
-    let transport = unwrap workspace.transport
-    let sheet     = transport.createLinkSheet(transport.linkButton)
+    let sheet = workspace.createMediaLinkSheet()
     var image:    Image
     var captured: bool
     host.app.sigFrame += func|host = &host, sheet, image = &image, captured = &captured|(_)
@@ -108,10 +107,43 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
         sheet.close()
     }
 
-    sheet.doModal(transport.linkButton, autoDestroy: true)
+    sheet.doModal(&workspace.mediaLinks.button, autoDestroy: true)
     host.app.sigFrame.clear()
     Swag.require(captured)
     assertScopeImageGolden(&image, "scene.grid.encre")
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true)
+    defer host.shutdown()
+    let files = [scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.wav"), scopeTestDataPath("sample.cpp")]
+    workspace.openScene(files, .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let picture = unwrap scene.views[0].document
+    picture.revealViewerBar()
+    Swag.require(picture.cellCaption.isVisible())
+
+    var image: Image
+    var captured: bool
+    host.app.sigFrame += func|host = &host, image = &image, captured = &captured|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if captured[] or not sheet do
+            return
+        captured[] = true
+        image[]    = host.renderSettled(&host.surfaceWnd)
+        sheet.close()
+    }
+    host.clickWnd(workspace.mediaTransport)
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    assertScopeImageGolden(&image, "scene.controls.paper")
 }
 
 #[Swag.TestTag("golden")]
@@ -165,6 +197,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     {
         let film = unwrap ScenePlayer.from(view.document).film
         pinVideoFrame(film, 0)
+        view.document?.revealViewerBar()
     }
 
     workspace.activeDocument().toggleInformation()
@@ -189,11 +222,35 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     openViews(&host, workspace)
     for &view in scene.views do
         pinVideoFrame(unwrap ScenePlayer.from(view.document).film, 0)
-    workspace.transport!.lastPointerAt = 0
     workspace.playScene()
-    Swag.require(not workspace.mediaChromeVisible())
+    Swag.require(workspace.anyMediaPlaying())
+    var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
+    host.surface.surfaceToScreen(&pointer)
+    host.moveMouse(pointer)
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.playing.encre")
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let files = [scopeTestDataPath("viewer.mp4"), scopeTestDataPath("viewer.png")]
+    workspace.openScene(files, .Stacked)
+    openViews(&host, workspace)
+    let document = workspace.activeDocument()
+    let film = unwrap ScenePlayer.from(document).film
+    pinVideoFrame(film, 0)
+    document.revealViewerBar()
+    host.finishAnimations()
+    document.concealViewerBar()
+    host.advanceAnimations(document.themeMetrics().motion_LeaveSeconds * 0.4)
+    Swag.require(not document.viewerBar.isVisible() and document.viewerBar.presentationOpacity > 0)
+    let image = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.chrome.fading.paper")
 }
 
 #[Swag.TestTag("golden")]

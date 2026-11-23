@@ -20,6 +20,9 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     waitForVideoAudio(view, 2)
     view.veilsHeld = true
     pinVideoFrame(view, 5)
+    // Keep the transport still while the menus run their modal event loops.
+    view.stopTimer(&view.timer)
+    view.timeline.setBuffered(cast(f32, view.frameSeconds(19)))
     view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
     host.moveMouse(view.timeline.surfaceRect().center())
     host.finishAnimations()

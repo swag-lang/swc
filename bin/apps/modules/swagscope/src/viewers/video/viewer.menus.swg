@@ -172,7 +172,7 @@ impl Panel
 
     mtd refreshHelp()
     {
-        if .thumbnail or not .veilsShown or g_PlaybackHintUses >= 3
+        if .thumbnail or .sceneViewport != {} or not .veilsShown or g_PlaybackHintUses >= 3
         {
             .helpLine?.hide()
             return
@@ -182,6 +182,7 @@ impl Panel
         {
             .helpLine = HintLine.create(me)
             .helpLine.setGrounded(true)
+            .helpLine.margin.w = .subtitleOverlay.bottomObstruction
         }
 
         .helpLine.clearHints()
@@ -189,6 +190,38 @@ impl Panel
         .helpLine.addHint(texts().hint_Arrows, texts().hint_Seek)
         .helpLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)
         .helpLine.show()
+    }
+
+    // Keeps bottom subtitles and the playback hint above the floating transport.
+    mtd layoutAroundTransport(height: f32)
+    {
+        let inset = height > 0 ? height + .themeMetrics().miniBar_Distance : 0
+        if .transportInset == inset do
+            return
+        .transportInset = inset
+        let overlay = .subtitleOverlay
+        let animator = &.app().animator
+        if .subtitleSource == .Off
+        {
+            animator.cancel(.subtitleInsetMotion)
+            overlay.setBottomObstruction(inset)
+        }
+        else
+        {
+            let metrics = .themeMetrics()
+            let seconds = inset > overlay.bottomObstruction ? metrics.motion_PageSeconds : metrics.motion_LeaveSeconds
+            var motion: AnimationOptions
+            motion.duration = Time.Duration.fromSeconds(seconds)
+            motion.easing   = .EaseOut
+            .subtitleInsetMotion = animator.animateF32(overlay, AnimationChannel.from("Scope.Film.SubtitleInset"),
+                                                      overlay.bottomObstruction, inset,
+                                                      func|overlay|(_, value) { overlay.setBottomObstruction(value) }, motion)
+        }
+        if .helpLine and .helpLine.margin.w != inset
+        {
+            .helpLine.margin.w = inset
+            .helpLine.itf.onLayout()
+        }
     }
 
     // Replaces the active sound track without disturbing picture transport state.

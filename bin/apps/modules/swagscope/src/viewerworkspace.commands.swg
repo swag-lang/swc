@@ -110,31 +110,38 @@ impl ViewerWindow
         var disabled     = false
         var checkable    = false
         var checked      = false
+        var icon         = ThemeIcons.SelectAll
         switch evt.id
         {
         case SceneCommands.Beside:
+            icon   = .Duplicate
             name   = text.scene_OpenBeside
             hidden = not scene or scene.views.count >= ViewerWorkspace.MaxViews
 
         case SceneCommands.CompareSelection:
+            icon   = .Duplicate
             name   = text.scene_Compare
             hidden = not .isExploring() or .explorer!.selectionPaths().count != 2
 
         case SceneCommands.CompareWith:
+            icon     = .Duplicate
             name     = text.scene_CompareWith
             hidden   = not scene or .isExploring()
             disabled = scene and scene.views.count > 1 and workspace.scenes.count >= ViewerWorkspace.MaxScenes
 
         case SceneCommands.OpenGrid:
+            icon = .OpenFile
             name = text.scene_OpenGrid
 
         case SceneCommands.Compare:
+            icon      = .Duplicate
             name      = text.scene_Compare
             hidden    = not scene or scene.views.count != 2
             checkable = true
             checked   = scene and scene.compared
 
         case SceneCommands.Maximize:
+            icon   = scene and scene.maximized ? .ExitFullScreen : .FullScreen
             name   = scene and scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize
             hidden = not scene or scene.views.count < 2
 
@@ -142,11 +149,13 @@ impl ViewerWindow
             for id, index in SceneCommands.Layouts where id == evt.id
             {
                 let layout = SceneCommands.LayoutValues[index]
+                icon = layout == .Single ? .FitView :
+                       (layout == .SideBySide or layout == .Stacked ? .Duplicate : .SelectAll)
                 name      = sceneLayoutTitle(layout)
                 hidden    = not scene or scene.views.count < 2
                 disabled  = scene and not scene.supportsLayout(layout)
                 checkable = true
-                checked   = scene and scene.layout == layout
+                checked   = scene and scene.visibleLayout() == layout
                 break
             }
         }
@@ -156,7 +165,8 @@ impl ViewerWindow
         evt.name          = name
         evt.hidden        = hidden
         evt.disabled      = disabled
-        evt.updatedFields |= .Name | .Hidden | .Disabled
+        evt.icon          = .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
+        evt.updatedFields |= .Name | .Hidden | .Disabled | .Icon
         if checkable
         {
             evt.checked = checked

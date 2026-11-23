@@ -46,12 +46,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(not explorer.load.started)
     window.applyLayout()
 
-    let pageWidth     = explorer.grid.position.width
-    let scrollWidth   = explorer.scroll.position.width
-    let explorerWidth = explorer.position.width
+    let grid      = explorer.grid.position
+    let viewport  = explorer.scroll.position
     explorer.showInformation()
-    Swag.require(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
-    Swag.require(explorer.grid.position.width < pageWidth)
+    Swag.require(explorer.grid.position == grid and explorer.scroll.position == viewport)
     Swag.require(window.informationCaptionButton.isChecked)
     Swag.require(window.informationCaptionButton.isLocallyVisible())
 
@@ -60,15 +58,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(not window.informationCaptionButton.isChecked)
 
     Swag.require(not window.infoSheet.isLocallyVisible())
-    Swag.require(explorer.padding.z == 0)
-    Swag.require(Math.abs(explorer.grid.position.width - pageWidth) < 0.5,
-                 Format.toString("grid % / %, scroll % / %, explorer % / %",
-                                 pageWidth,
-                                 explorer.grid.position.width,
-                                 scrollWidth,
-                                 explorer.scroll.position.width,
-                                 explorerWidth,
-                                 explorer.position.width).toString())
+    Swag.require(explorer.grid.position == grid and explorer.scroll.position == viewport)
 }
 
 // Filtering ignores case, narrows the shown indices, and restores the full listing when cleared.

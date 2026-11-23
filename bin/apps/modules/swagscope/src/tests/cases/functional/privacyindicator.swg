@@ -56,3 +56,34 @@ using Core, Gui
     completeExplorer(&host, window.explorer)
     Swag.require(not caption.isLocallyVisible())
 }
+
+// The caption has one privacy indicator, even when several private documents are open.
+#test
+{
+    let root = Testing.tempFilePath("scope-private-grid-", "")
+    expect Directory.create(root)
+    defer catch Directory.delete(root, recurse: true)
+    let firstFile  = Path.combine(root, "first.txt")
+    let secondFile = Path.combine(root, "second.txt")
+    discard expect File.writeAllText(firstFile, "A private note.")
+    discard expect File.writeAllText(secondFile, "Another private note.")
+    var publisher: File.MountPrivacyPublisher
+    expect publisher.open(root, true)
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([firstFile, secondFile, scopeTestDataPath("viewer.srt")], .Grid2)
+    openViews(&host, workspace)
+    let second  = unwrap workspace.scene()!.views[1].document
+    let caption = unwrap workspace.primary.privacy.caption
+    Swag.require(caption.isLocallyVisible() and second.privacy.caption == null)
+
+    workspace.selectView(1)
+    Swag.require(caption.isLocallyVisible())
+    workspace.selectView(2)
+    second.privacy.refreshIndicator()
+    Swag.require(not caption.isLocallyVisible())
+    workspace.selectView(0)
+    Swag.require(caption.isLocallyVisible())
+}

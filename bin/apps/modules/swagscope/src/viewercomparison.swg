@@ -137,7 +137,20 @@ impl SceneComparison
             return
         }
 
-        let area = .workspace.clientRect()
+        var area = .workspace.clientRect()
+        if .kind == .Media
+        {
+            // Leave the players' own mini-bars below the comparison and its readings.
+            let scene = unwrap .workspace.scene()
+            for view in scene.views
+            {
+                let document = unwrap view.document
+                let bar      = document.viewerBar.surfaceRect()
+                let top      = .workspace.surfaceToLocal({bar.x, bar.y}).y
+                area.height = Math.min(area.height, Math.max(0, top - .themeMetrics().miniBar_Distance))
+            }
+        }
+
         .setPosition(area, computeLayout: false)
         .modeButton.show(.isPicture())
         .zoomButton.show(.isPicture())

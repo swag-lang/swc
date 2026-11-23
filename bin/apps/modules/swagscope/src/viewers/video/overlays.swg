@@ -97,8 +97,9 @@ struct SubtitleOverlay
 {
     using wnd: Wnd
 
-    text:     String
-    sidecars: Array'*Subtitle.Track
+    text:              String
+    sidecars:          Array'*Subtitle.Track
+    bottomObstruction: f32
 }
 
 private impl IWnd for SubtitleOverlay
@@ -127,7 +128,7 @@ private impl IWnd for SubtitleOverlay
         var y: f32
         switch g_SubtitleSettings.position
         {
-        case .Bottom: y = rect.height - inset - height
+        case .Bottom: y = rect.height - Math.max(inset, .bottomObstruction) - height
         case .Center: y = (rect.height - height) * 0.5
         case .Top:    y = inset
         }
@@ -202,6 +203,14 @@ impl SubtitleOverlay
             return
         .text.clear()
         .text += text
+        .invalidate()
+    }
+
+    mtd setBottomObstruction(height: f32)
+    {
+        if .bottomObstruction == height do
+            return
+        .bottomObstruction = height
         .invalidate()
     }
 }

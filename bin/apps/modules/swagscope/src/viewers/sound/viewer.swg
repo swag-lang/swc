@@ -496,6 +496,8 @@ struct Panel
     playing:      bool
     sceneSilent:       bool
     sceneManaged:      bool
+    sceneToggle:       (func||()->bool)?
+    sceneStop:         (func||()->bool)?
     silentOrigin:      f32
     silentClock:       Time.Stopwatch
     keepPlayingHidden: bool
@@ -1090,8 +1092,8 @@ impl Panel
             }
         }
 
-        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.sound.playPause")
-        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled(), bindId: "scope.sound.stop")
+        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.requestPlaybackToggle() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.sound.playPause")
+        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.requestPlaybackStop() }, disabled: not .stopButton.isEnabled(), bindId: "scope.sound.stop")
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, defaultKey: {modifiers: .None, key: .Left}, bindId: "scope.sound.seekBackward")
         entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, defaultKey: {modifiers: .None, key: .Right}, bindId: "scope.sound.seekForward")
         entries.add(Sound.texts().cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.sound.goToTime")
@@ -1224,8 +1226,10 @@ impl Panel
             .silentOrigin = pos
             .silentClock.restart()
         }
-        else do
+        else
+        {
             .seekSeconds(pos, remember: false)
+        }
     }
 
     mtd setMuted(muted: bool)
@@ -1251,6 +1255,18 @@ impl Panel
 
     // Pauses or plays the sound, creating its voice on first use. Does nothing until the sound
     // engine is ready, or when the device refuses.
+    mtd requestPlaybackToggle()
+    {
+        if not .sceneToggle or not .sceneToggle() do
+            .togglePlayback()
+    }
+
+    mtd requestPlaybackStop()
+    {
+        if not .sceneStop or not .sceneStop() do
+            .stopPlayback()
+    }
+
     mtd togglePlayback()
     {
         if .sceneSilent
@@ -1380,8 +1396,11 @@ impl IWnd for Panel
                 .elapsed = .duration
                 .refreshTransport()
             }
-            else do
+            else
+            {
                 .finishPlayback()
+            }
+
             return
         }
 
@@ -1485,7 +1504,7 @@ impl IWnd for Panel
 
         switch evt.key
         {
-        case .Space, .MediaPlayPause: .togglePlayback()
+        case .Space, .MediaPlayPause: .requestPlaybackToggle()
         case .Left:                   .seekRelative(-SeekSeconds)
         case .Right:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute:         .setMuted(not .muted)
@@ -1494,7 +1513,7 @@ impl IWnd for Panel
         case .Home:                   .seekSeconds(0)
         case .Oem4:                   .setLoopStart()
         case .Oem6:                   .setLoopEnd()
-        case .MediaStop:              .stopPlayback()
+        case .MediaStop:              .requestPlaybackStop()
         default:                      evt.accepted = false
         }
     }
@@ -1519,7 +1538,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts().ui_TipPlay
             .enable(false)
-            .sigPressed += func|view = me|(_) { view.togglePlayback() }
+            .sigPressed += func|view = me|(_) { view.requestPlaybackToggle() }
         }
 
         with .stopButton = Viewer.createActionButton(.commands, .Stop)
@@ -1528,7 +1547,7 @@ impl Panel
             .margin.x  = 8
             .toolTip   = texts().ui_TipStop
             .enable(false)
-            .sigPressed += func|view = me|(_) { view.stopPlayback() }
+            .sigPressed += func|view = me|(_) { view.requestPlaybackStop() }
         }
 
         with .backwardButton = Viewer.createActionButton(.commands, .SeekBackward)

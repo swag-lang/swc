@@ -140,6 +140,9 @@ using Core, Gui, Pixel, Audio
     Swag.require(not first.isPlaying() and not second.isPlaying())
     Swag.require(workspace.activeDocument().runCommand(MediaCommands.Playback))
     host.keyPress(.Space)
+    Swag.require(first.isPlaying() and not second.isPlaying())
+    workspace.stopScene()
+    host.keyPress(.Space, .Shift)
     Swag.require(first.isPlaying() and second.isPlaying())
 }
 

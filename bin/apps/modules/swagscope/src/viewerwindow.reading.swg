@@ -33,12 +33,18 @@ impl ViewerWindow
     //
     // A file that a play mode brings up is not one the reader chose, so it joins neither the
     // recent list nor the folder history.
-    mtd continueFile(mode: Viewer.PlayMode)->bool
+    mtd continueFile(mode: Viewer.PlayMode, autoplayScene = false)->bool
     {
         if .currentFile.isEmpty() do
             return false
         .trackFolderReading(mode)
-        let files = .kindSiblings()
+        var files = .kindSiblings()
+        if autoplayScene and .workspace
+        {
+            for index in reversed(files.count) where .workspace.isOpenInAnotherView(me, files[index]) do
+                files.removeAtOrdered(index)
+        }
+
         if files.count <= 1 do
             return false
 
@@ -65,7 +71,7 @@ impl ViewerWindow
             next = .pickShuffled(files.toSlice())
         }
 
-        .queueFile(next, remember: false)
+        .queueFile(next, remember: false, autoplayScene: autoplayScene)
         return true
     }
 
@@ -105,9 +111,16 @@ impl ViewerWindow
             return .Stop
         switch #complete .playMode
         {
-        case .Once:   return .Stop
-        case .Repeat: return .Replay
-        case .Folder, .Shuffle: return .continueFile(.playMode) ? .Next : .Replay
+        case .Once:
+            return .Stop
+
+        case .Repeat:
+            return .Replay
+
+        case .Folder, .Shuffle:
+            let autoplay = (view is Viewers.Film.Panel or view is Viewers.Sound.Panel) and
+                           (.workspace?.hasSceneTransport() orelse false)
+            return .continueFile(.playMode, autoplayScene: autoplay) ? .Next : .Replay
         }
     }
 
@@ -126,7 +139,7 @@ impl ViewerWindow
     mtd armSlide()
     {
         .stopSlide()
-        if not .stillView or .stillView != .currentView do
+        if .sceneSlidesPaused or not .stillView or .stillView != .currentView do
             return
         if .playMode != .Folder and .playMode != .Shuffle do
             return
@@ -148,16 +161,44 @@ impl ViewerWindow
         discard .continueFile(.playMode)
     }
 
-    mtd setPlayMode(mode: Viewer.PlayMode)
+    mtd setPlayMode(mode: Viewer.PlayMode, save = true)
     {
-        if .playMode == mode do
+        if .playMode == mode
+        {
+            if save and .sceneSlidesPaused
+            {
+                .sceneSlidesPaused = false
+                .armSlide()
+            }
             return
+        }
         .resetFolderReading()
         .playMode = mode
+        if save do
+            .sceneSlidesPaused = false
         .trackFolderReading(mode)
         .layoutViewerBar()
         .armSlide()
-        catch .saveState()
+        if save do
+            catch .saveState()
+    }
+
+    mtd setPicturePlaying(playing: bool, restart = false)
+    {
+        .sceneSlidesPaused = not playing
+        if .currentView is Viewers.Picture.Panel as picture where picture.imageView.movie.isAnimated()
+        {
+            if restart do
+                picture.imageView.setFrameIndex(0)
+            picture.imageView.setPaused(not playing)
+        }
+        if playing
+        {
+            if not .slideTimer do
+                .armSlide()
+        }
+        else do
+            .stopSlide()
     }
 
     mtd setSlideSeconds(seconds: f32)

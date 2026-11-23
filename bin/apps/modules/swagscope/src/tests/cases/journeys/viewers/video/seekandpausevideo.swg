@@ -21,6 +21,12 @@ using Core, Gui, Pixel, Viewers
         video.togglePlayback()
     Swag.require(not video.playing)
 
+    let picture = video.imageView.surfaceRect()
+    window.revealViewerBar()
+    Swag.require(window.viewerBar.isVisible() and video.imageView.surfaceRect() == picture)
+    journey.waitFor("windowed transport at rest", func|window|()->bool => not window.viewerBar.isVisible())
+    Swag.require(video.imageView.surfaceRect() == picture)
+
     video.timeline.setValue(cast(f32, video.frameSeconds(8)))
     journey.waitFor("film seek", func|video|()->bool => video.hasFrame and video.frameIndex == 8)
     video.togglePlayback()

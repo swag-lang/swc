@@ -225,7 +225,7 @@ impl ViewerWorkspace
         scene.links.mode = .Relative
         scene.links.time = true
         scene.linked     = true
-        .overlay.invalidate()
+        .invalidate()
         catch .primary.saveState()
         return true
     }

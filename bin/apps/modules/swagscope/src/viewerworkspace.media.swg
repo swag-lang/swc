@@ -12,7 +12,7 @@ struct SceneLinks
     framing:  bool = true
     scroll:   bool
     mode:     SceneTimeMode
-    end:      SceneEndMode
+    end:      SceneEndMode = .Independent
     leader:   u64  = Swag.U64.Max
     solo:     u64  = Swag.U64.Max
 }
@@ -75,6 +75,14 @@ impl ScenePlayer
             .sound!.togglePlayback()
     }
 
+    mtd stop()
+    {
+        if .film do
+            .film.stopPlayback()
+        else do
+            .sound?.stopPlayback()
+    }
+
     mtd seek(seconds: f64)
     {
         if .film do
@@ -98,192 +106,6 @@ impl ScenePlayer
         else do
             .sound?.setSceneSilent(silent)
     }
-
-    mtd setMute(muted: bool)
-    {
-        if .film do
-            .film.setMuted(muted)
-        else do
-            .sound?.setMuted(muted)
-    }
-
-    mtd setVolume(value: f32)
-    {
-        if .film do
-            .film.setVolume(value)
-        else do
-            .sound?.setVolume(value)
-    }
-}
-
-struct SceneTransport
-{
-    using wnd:       Wnd
-    late workspace:  *ViewerWorkspace
-    late veil:       *Viewers.Film.BottomVeil
-    late linkButton: *IconButton
-    timer:           *Timer?
-    lastPointerAt:   u64
-    busy:            bool
-    lastDuration:    f64 = -1
-}
-
-impl SceneTransport
-{
-    func create(workspace: *ViewerWorkspace)->*SceneTransport
-    {
-        let result = Wnd.create'SceneTransport(workspace, "scope.scene.transport")
-        result.workspace       = workspace
-        result.lastPointerAt   = Time.monotonicMicroseconds()
-        result.backgroundStyle = .Transparent
-        result.veil            = Viewers.Film.BottomVeil.create(result)
-        result.veil.dockStyle  = .Center
-        result.linkButton      = IconButton.createQuiet(result.veil, "scope.scene.links")
-        result.linkButton.setQuietText(appStrings().scene_Linked)
-        result.linkButton.sigPressed += func|transport = result|(button)
-        {
-            transport.openLinks(button)
-        }
-
-        result.veil.playButton.sigPressed += func|transport = result|(_)
-        {
-            transport.workspace.playScene()
-        }
-
-        result.veil.timeline.sigEndChange += func|transport = result|(timeline)
-        {
-            transport.workspace.seekScene(timeline.value())
-        }
-
-        result.veil.optionsButton.sigPressed += func|transport = result|(button)
-        {
-            let player = transport.workspace.scenePlayer()
-            player.film?.showOptions(button)
-        }
-
-        result.veil.timeButton.sigPressed += func|transport = result|(_)
-        {
-            let player = transport.workspace.scenePlayer()
-            if player.film do
-                player.film.promptGoToTime()
-            else do
-                player.sound?.promptGoToTime()
-        }
-
-        result.veil.tracksButton.sigPressed += func|transport = result|(button)
-        {
-            let player = transport.workspace.scenePlayer()
-            player.film?.showTracks(button)
-        }
-
-        result.veil.muteButton.sigCheckedChanged += func|transport = result|(button)
-        {
-            if not transport.busy do
-                transport.workspace.audiblePlayer().setMute(button.isChecked)
-        }
-
-        result.veil.volumeSlider.sigChanged += func|transport = result|(slider)
-        {
-            if not transport.busy do
-                transport.workspace.audiblePlayer().setVolume(slider.value())
-        }
-
-        result.veil.hide()
-        result.timer = result.addTimer(16'ms)
-        return result
-    }
-
-    mtd createLinkSheet(button: *IconButton)->*OptionSheet.View
-    {
-        let workspace = .workspace
-        let sheet     = OptionSheet.View.create(button,
-                                                func|workspace|(page) { workspace.describeLinks(page) },
-                                                owner: workspace.activeDocument())
-        sheet.wndFlags.add(.TopMost)
-        return sheet
-    }
-
-    mtd openLinks(button: *IconButton)
-    {
-        .createLinkSheet(button).doModal(button, autoDestroy: true)
-    }
-
-    mtd refresh()
-    {
-        let workspace = .workspace
-        if not workspace.isMediaScene()
-        {
-            .veil.hide()
-            .stopTimer(&.timer)
-            workspace.concealMediaCaption(false)
-            return
-        }
-
-        if not .timer do
-            .timer = .addTimer(16'ms)
-        let player   = workspace.scenePlayer()
-        let duration = player.duration()
-        let chrome   = workspace.mediaChromeVisible()
-        workspace.concealMediaCaption(not chrome)
-        .veil.show(chrome and not workspace.switcher)
-        if not .veil.isLocallyVisible() do
-            return
-
-        let area   = workspace.clientRect()
-        let bottom = workspace.comparisonVisible() ? SceneComparison.FooterHeight : 0
-        .setPosition({area.x, area.bottom() - Viewers.Film.BottomHeight - bottom, area.width, Viewers.Film.BottomHeight})
-        .bringToFront()
-        if duration != .lastDuration
-        {
-            .lastDuration = duration
-            .veil.timeline.setBounds(0, cast(f32, duration), 0.01)
-        }
-
-        .veil.timeline.enable(player.ready())
-        .veil.playButton.enable(player.ready())
-        .veil.optionsButton.enable(player.film != null)
-        .veil.tracksButton.enable(player.film != null)
-        .veil.timeButton.enable(player.ready())
-        .veil.timeButton.setTextColor(Color.fromArgb(Argb.White))
-        .veil.timeline.setValueWithoutGesture(cast(f32, player.seconds()))
-        .veil.setTime(Viewer.timeText(player.seconds()), Viewer.durationText(duration))
-        let play = player.isPlaying()
-        .veil.playButton.setIcon(.theme().icon(play ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .veil.playButton.toolTip = play ? appStrings().scene_Pause : appStrings().scene_Play
-        .linkButton.setQuietText(appStrings().scene_Linked)
-        .linkButton.setTextColor(workspace.scene()!.linked ? .themeColors().arc : .themeColors().softText)
-        let options = .veil.optionsButton.position
-        .linkButton.setPosition({options.x - 108, options.y, 100, options.height}, computeLayout: false)
-        let audible = workspace.audiblePlayer()
-        let muted   = audible.film?.muted orelse (audible.sound?.muted orelse false)
-        let volume  = audible.film?.volume orelse (audible.sound?.volume orelse 1)
-        .busy = true
-        .veil.muteButton.setChecked(muted)
-        .veil.volumeSlider.enable(not muted)
-        .veil.volumeSlider.setValueWithoutGesture(volume)
-        .busy = false
-    }
-}
-
-impl IWnd for SceneTransport
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        if not .veil.isLocallyVisible() do
-            return
-        let area  = .clientRect()
-        let ink   = Color.fromArgb(Argb.Black)
-        let shade = Brush.createLinearGradient(0, area.y, 0, area.bottom(), ink.withAlphaF32(0), ink.withAlphaF32(0.86))
-        evt.paintContext.painter.fillRect(area, shade)
-    }
-
-    mtd impl onTimerEvent(_: *TimerEvent)
-    {
-        .workspace.synchronizeMedia()
-        .refresh()
-        if .workspace.comparisonVisible() do
-            .workspace.comparison!.invalidate()
-    }
 }
 
 impl ViewerWorkspace
@@ -293,52 +115,51 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or scene.views.count < 2 do
             return false
-        for view in scene.views
-        {
-            let kind = .theme().fileGlyph(view.path, false).index
-            if kind != cast(s32, ThemeIcons.FileVideo) and kind != cast(s32, ThemeIcons.FileAudio) do
-                return false
-        }
-
+        for view in scene.views where not isMediaFile(.theme(), view.path) do
+            return false
         return true
     }
 
-    mtd mediaChromeVisible()->bool
+    mtd hasSceneTransport()->bool
     {
         let scene = .scene()
-        if not scene or not .isMediaScene() do
+        if not scene or scene.views.count < 2 do
             return false
-        return .switcher or
-               not .scenePlayer().isPlaying() or
-               not .transport or
-               Time.monotonicMicroseconds() - .transport.lastPointerAt < 2_200_000 or
-               .transport.veil.timeline.dragging or
-               .app().isInModalLoop()
+        for view in scene.views where .isScenePlaybackView(view) do
+            return true
+        return false
     }
 
-    mtd concealMediaCaption(concealed: bool)
+    private mtd isScenePlaybackView(view: const *SceneView)->bool
     {
-        if .compactMedia == concealed do
-            return
-        .compactMedia = concealed
-        .surface?.wnd.setCaptionConcealed(concealed)
-        .tabs.layoutTabs()
-        .layoutCloseViewButtons()
-        .overlay.invalidate()
+        if view.document?.currentView is Viewers.Picture.Panel do
+            return true
+        return isMediaFile(.theme(), view.path) or .theme().fileGlyph(view.path, false).index == cast(s32, ThemeIcons.FileImage)
     }
+
+    mtd usesLinkedTransport(scene: const *ViewerScene)->bool =>
+        .usesSharedEnd(scene) or (.comparisonVisible() and scene.linked and scene.links.playback and .isMediaScene())
+
+    private mtd usesSharedEnd(scene: const *ViewerScene)->bool =>
+        .isMediaScene() and
+        scene.linked and
+        scene.links.playback and
+        scene.links.end != .Independent
 
     mtd scenePlayer()->ScenePlayer => ScenePlayer.from(.activeDocument())
 
     mtd mediaLeader(scene: const *ViewerScene)->u64 =>
         scene.links.mode == .Leader and scene.links.leader < scene.views.count ? scene.links.leader : scene.active
 
-    mtd audibleIndex(scene: const *ViewerScene)->u64 =>
-        scene.links.solo < scene.views.count ? scene.links.solo : scene.active
-
-    mtd audiblePlayer()->ScenePlayer
+    mtd audibleIndex(scene: const *ViewerScene)->u64
     {
-        let scene = .scene()
-        return scene ? ScenePlayer.from(scene.views[.audibleIndex(scene)].document) : ScenePlayer{}
+        if scene.links.solo < scene.views.count do
+            return scene.links.solo
+        if isMediaFile(.theme(), scene.views[scene.active].path) do
+            return scene.active
+        for view, index in scene.views where isMediaFile(.theme(), view.path) do
+            return index
+        return scene.active
     }
 
     mtd updateMediaViewport(document: *ViewerWindow)
@@ -347,18 +168,18 @@ impl ViewerWorkspace
         let player = ScenePlayer.from(document)
         if not scene do
             return
+
+        let workspace = me
         if player.sound
         {
-            player.sound.sceneManaged = .isMediaScene()
+            player.sound.sceneManaged = .usesSharedEnd(scene)
             let audible = scene.views[.audibleIndex(scene)].document
-            player.sound.setSceneSilent(player.sound.sceneManaged and document != audible)
-            if not player.sound.sceneManaged do
+            player.sound.setSceneSilent(scene.views.count > 1 and document != audible)
+            if not .isMediaScene() do
                 player.sound.waveform.setSceneAxis(0, 0)
-        }
 
-        if player.sound and not player.sound.waveform.sceneSeek
-        {
-            let workspace = me
+            player.sound.sceneToggle = func|workspace, document|()->bool => workspace.toggleLinkedPlayback(document)
+            player.sound.sceneStop = func|workspace|()->bool => workspace.stopLinkedPlayback()
             player.sound.waveform.sceneSeek = func|workspace, document|(seconds)
             {
                 let current = workspace.scene()
@@ -377,96 +198,305 @@ impl ViewerWorkspace
             return
         for view, index in scene.views where view.document == document
         {
-            let rect  = .viewRect(scene, index)
+            let area  = document.documentPanel.clientRect()
             let scale = .deviceScale()
             let size  = scene.views.count > 1 and not scene.maximized and scene.layout != .Single ?
-                        Math.Point{rect.width * scale, rect.height * scale} : Math.Point{}
+                        Math.Point{area.width * scale, area.height * scale} : Math.Point{}
             player.film.sceneManaged = .isMediaScene()
+            player.film.sceneOwnsEnd = .usesSharedEnd(scene)
             if player.film.sceneManaged do
                 player.film.autoPlayPending = false
             else do
                 player.film.clearSceneClock()
             player.film.setSceneViewport(size)
             player.film.setSceneSilent(scene.views.count > 1 and index != .audibleIndex(scene))
+            player.film.sceneToggle = func|workspace, document|()->bool => workspace.toggleLinkedPlayback(document)
+            player.film.sceneStop   = func|workspace|()->bool => workspace.stopLinkedPlayback()
+            player.film.sceneSeek   = func|workspace, document|(seconds) { workspace.linkSceneSeek(document, seconds) }
             return
         }
+    }
+
+    mtd createMediaControls()
+    {
+        let surface = unwrap .surface
+        with .mediaPlayPause = CaptionButton.create(surface, .Play, "scope.scene.playPause")
+        {
+            .sigPressed += func|workspace = me|(_) { workspace.playScene(all: true) }
+            .hide()
+        }
+
+        with .mediaTransport = CaptionButton.create(surface, .Options, "scope.scene.controlsButton")
+        {
+            .sigPressed += func|workspace = me|(_) { workspace.showMediaTransport() }
+            .hide()
+        }
+
+        with .mediaLinks = CaptionButton.create(surface, .Link, "scope.scene.linksButton")
+        {
+            .sigPressed += func|workspace = me|(_) { workspace.showMediaLinks() }
+            .hide()
+        }
+    }
+
+    mtd createMediaLinkSheet()->*OptionSheet.View
+    {
+        let workspace = me
+        return OptionSheet.View.create(&.mediaLinks.button,
+                                       func|workspace|(page) { workspace.describeLinks(page) },
+                                       owner: .activeDocument())
+    }
+
+    mtd showMediaLinks()
+    {
+        .createMediaLinkSheet().doModal(&.mediaLinks.button, autoDestroy: true)
+    }
+
+    mtd createMediaTransportSheet()->*OptionSheet.View
+    {
+        return OptionSheet.View.create(&.mediaTransport.button,
+                                       func|workspace = me|(page) { workspace.describeTransport(page) },
+                                       owner: .activeDocument())
+    }
+
+    mtd showMediaTransport()
+    {
+        .createMediaTransportSheet().doModal(&.mediaTransport.button, autoDestroy: true)
+    }
+
+    mtd updateMediaTransport()
+    {
+        let scene = .scene()
+        var canPlay: bool
+        if scene and scene.views.count > 1
+        {
+            for view in scene.views
+            {
+                if isMediaFile(.theme(), view.path) do
+                    canPlay = true
+                elif view.document?.currentView is Viewers.Picture.Panel as picture
+                {
+                    let mode = view.document?.playMode orelse Viewer.PlayMode.Once
+                    canPlay = picture.imageView.movie.isAnimated() or mode == .Folder or mode == .Shuffle
+                }
+                if canPlay do
+                    break
+            }
+        }
+        .mediaPlayPause.show(canPlay)
+        if not canPlay do
+            return
+        let playing = .anyMediaPlaying()
+        let action  = playing ? appStrings().scene_Pause : appStrings().scene_Play
+        let title   = Format.toString("% · %", action, Input.formatKeyShortcut(.Shift, .Space))
+        let button  = .mediaPlayPause
+        if button.toolTip == title do
+            return
+        button.toolTip = title
+        button.button.setIcon(.theme().icon(playing ? .Pause : .Play, .themeMetrics().wnd_CaptionButtonGlyph))
     }
 
     mtd updateMedia()
     {
-        if .isMediaScene() and not .transport do
-            .transport = SceneTransport.create(me)
-        .transport?.refresh()
+        let media = .isMediaScene()
+        let transport = media or .hasSceneTransport()
+        .mediaLinks.toolTip = appStrings().scene_Links
+        .mediaLinks.show(media)
+        .mediaTransport.toolTip = appStrings().scene_Controls
+        .mediaTransport.show(.documentCount() > 1)
+        .updateMediaTransport()
+        if transport and not .mediaTimer do
+            .mediaTimer = .addTimer(16'ms)
+        elif not transport do
+            .stopTimer(&.mediaTimer)
     }
 
-    mtd noteMediaPointer()
+    mtd anyMediaPlaying()->bool
     {
-        if not .transport or not .isMediaScene() do
-            return
-        .transport.lastPointerAt = Time.monotonicMicroseconds()
-        .concealMediaCaption(false)
-    }
-
-    mtd paintMediaCaption(painter: *Painter, rect: Math.Rectangle, view: const *SceneView, text: string, active: bool)
-    {
-        let colors    = .themeColors()
-        let metrics   = .themeMetrics()
-        let font      = .theme().createDefaultFont(metrics.defaultFontSize)
-        let mono      = .theme().createDefaultFontFs(metrics.defaultFontSize)
-        let inset     = metrics.floating_Inset * 0.5
-        let pad       = metrics.infoSheet_LineGap * 2
-        let close     = ViewTitleHeight + metrics.wnd_CaptionButtonMargin
-        let available = Math.max(0, rect.width - 2 * inset - 2 * pad - close)
-        let scene     = unwrap .scene()
-        var formatted: String
-        if scene.linked and scene.links.mode == .Relative
+        let scene = .scene()
+        if scene
         {
-            formatted = Format.toString("%{+f2} s", view.offset)
-            if .app().language() == "fr" do
-                formatted.replace('.', ",")
+            for view in scene.views where view.document
+            {
+                let document = view.document
+                if ScenePlayer.from(document).isPlaying() or document.sceneAutoPlay or document.slideTimer do
+                    return true
+                if document.currentView is Viewers.Picture.Panel as picture where picture.imageView.movie.isAnimated() and not picture.imageView.movie.isPaused do
+                    return true
+            }
         }
 
-        let offset       = Painter.elideString(formatted, mono, available * 0.38, .deviceScale())
-        let caution      = Painter.elideString(view.behind ? appStrings().scene_Behind : "", font, available * 0.25, .deviceScale())
-        let offsetWidth  = offset.isEmpty() ? 0 : Painter.measureString(offset, mono).width + pad
-        let cautionWidth = caution.isEmpty() ? 0 : Painter.measureString(caution, font).width + pad
-        let title        = Painter.elideString(text, font, Math.max(available - offsetWidth - cautionWidth, 0), .deviceScale())
-        let titleWidth   = Painter.measureString(title, font).width
-        let chip         = Math.Rectangle{rect.x + inset, Math.max(rect.y, .stripInset()) + inset,
-                                          2 * pad + titleWidth + offsetWidth + cautionWidth, metrics.infoSheet_LineHeight}
-        let radius = metrics.corner_Chip
-        painter.fillRoundRect(chip, radius, radius, colors.raised)
-        let x = chip.x + pad
-        painter.drawString(x, font.opticalLineTop(chip.vertCenter()), title, font, colors.text)
-        if offsetWidth > 0 do
-            painter.drawString(x + titleWidth + pad, mono.opticalLineTop(chip.vertCenter()), offset, mono, colors.softText)
-        if cautionWidth > 0 do
-            painter.drawString(x + titleWidth + offsetWidth + pad, font.opticalLineTop(chip.vertCenter()), caution, font, colors.caution)
-        if active do
-            painter.drawRect({rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2}, colors.arc, 2)
+        return false
     }
 
-    mtd playScene()
+    mtd playScene(all = false)
     {
         let scene = .scene()
         if not scene do
             return
-        let selected = .scenePlayer()
-        let player   = ScenePlayer.from(scene.views[.mediaLeader(scene)].document)
-        let linked   = scene.linked and scene.links.playback
-        let play     = not (linked ? player.isPlaying() : selected.isPlaying())
-        scene.playbackWasRunning = linked and play and player.ready()
-        if linked
+        if all or scene.linked and scene.links.playback
         {
-            for view in scene.views do
-                ScenePlayer.from(view.document).setPlaying(play)
+            .setScenePlaying(not .anyMediaPlaying())
         }
         else
         {
-            selected.setPlaying(play)
+            let selected = .scenePlayer()
+            selected.setPlaying(not selected.isPlaying())
+        }
+    }
+
+    mtd setScenePlaying(playing: bool)
+    {
+        let scene = unwrap .scene()
+        scene.playbackWasRunning = playing
+        for view in scene.views where view.document and .isScenePlaybackView(view)
+        {
+            let document = view.document
+            if not isMediaFile(.theme(), view.path)
+            {
+                document.setPicturePlaying(playing)
+                continue
+            }
+            let player   = ScenePlayer.from(document)
+            if not player.film and not player.sound and document.currentView and document.pendingFile.isEmpty() and not document.outgoingView do
+                continue
+            let pending  = not player.ready() or not document.pendingFile.isEmpty() or document.outgoingView != null
+            document.sceneAutoPlay = playing and pending
+            if not playing or not pending do
+                player.setPlaying(playing)
+        }
+        .updateMediaTransport()
+    }
+
+    mtd stopScene()
+    {
+        let scene = unwrap .scene()
+        scene.playbackWasRunning = false
+        for view in scene.views where view.document and .isScenePlaybackView(view)
+        {
+            view.document.sceneAutoPlay = false
+            if not isMediaFile(.theme(), view.path)
+            {
+                view.document.setPicturePlaying(false, restart: true)
+                continue
+            }
+            ScenePlayer.from(view.document).stop()
+        }
+        .updateMediaTransport()
+    }
+
+    mtd scenePlayModeIs(mode: Viewer.PlayMode)->bool
+    {
+        let scene = unwrap .scene()
+        if scene.links.end != .Independent do
+            return false
+        for view in scene.views where .isScenePlaybackView(view)
+        {
+            let current = view.document ? view.document.playMode : view.playMode
+            if current != mode do
+                return false
+        }
+        return true
+    }
+
+    mtd setScenePlayMode(mode: Viewer.PlayMode)
+    {
+        let scene = unwrap .scene()
+        scene.links.end = .Independent
+        for &view in scene.views where .isScenePlaybackView(view)
+        {
+            view.playMode = mode
+            view.document?.setPlayMode(mode, save: false)
+        }
+        .synchronizeMedia()
+        catch .primary.saveState()
+    }
+
+    private mtd toggleLinkedPlayback(document: *ViewerWindow)->bool
+    {
+        let scene = .scene()
+        if not scene or not .usesLinkedTransport(scene) do
+            return false
+        for view in scene.views where view.document == document
+        {
+            .playScene()
+            return true
         }
 
-        .transport?.refresh()
+        return false
+    }
+
+    private mtd stopLinkedPlayback()->bool
+    {
+        let scene = .scene()
+        if not scene or not .usesLinkedTransport(scene) do
+            return false
+        .stopScene()
+        return true
+    }
+
+    mtd describeTransport(page: *OptionSheet.Page)
+    {
+        let text = appStrings()
+        let workspace = me
+        let size = themeRowIconSize(.themeMetrics())
+        let scene = unwrap .scene()
+        page.addLink(text.scene_Layout, sceneLayoutTitle(scene.visibleLayout()),
+                     func|workspace|(layouts)
+                     {
+                         let current = unwrap workspace.scene()
+                         for layout in SceneCommands.LayoutValues where current.supportsLayout(layout) do
+                             layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout,
+                                               func|workspace, layout|() { workspace.setLayout(layout) })
+                     },
+                     icon: .theme().icon(.SelectAll, size))
+        page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
+                       func|workspace|() { workspace.toggleMaximized() },
+                       icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))
+        if not .isMediaScene() do
+            page.addLink(text.scene_ViewLinks, "",
+                         func|workspace|(links) { workspace.describeLinks(links) },
+                         icon: .theme().icon(.Link, size))
+        if not .hasSceneTransport() do
+            return
+
+        page.addHeading(text.scene_Transport)
+        page.addAction(text.scene_Play, func|workspace|() { workspace.setScenePlaying(true) }, icon: .theme().icon(.Play, size))
+        page.addAction(text.scene_Pause, func|workspace|() { workspace.setScenePlaying(false) }, icon: .theme().icon(.Pause, size))
+        page.addAction(text.scene_Stop, func|workspace|() { workspace.stopScene() }, icon: .theme().icon(.Stop, size))
+        page.addHeading(text.scene_PlayModeAll)
+        for mode in Viewer.PlayModeValues do
+            page.addChoice(Viewer.playModeText(mode),
+                           .scenePlayModeIs(mode),
+                           func|workspace, mode|() { workspace.setScenePlayMode(mode) },
+                           icon: .theme().icon(Viewer.playModeIcon(mode), size))
+    }
+
+    mtd isOpenInAnotherView(document: *ViewerWindow, path: string)->bool
+    {
+        let scene = .scene()
+        if scene
+        {
+            for view in scene.views where view.document != document
+            {
+                if view.path == path or (view.document and view.document.pendingFile == path) do
+                    return true
+            }
+        }
+
+        return false
+    }
+
+    private mtd linkSceneSeek(document: *ViewerWindow, seconds: f64)
+    {
+        let scene = .scene()
+        if not scene or not .isMediaScene() or not scene.linked or not scene.links.time do
+            return
+        for view, index in scene.views where view.document == document
+        {
+            .seekLinkedViews(scene, seconds, index)
+            return
+        }
     }
 
     mtd seekScene(seconds: f64)
@@ -484,6 +514,11 @@ impl ViewerWorkspace
         if not player.isPlaying() do
             scene.playbackWasRunning = false
         player.seek(seconds)
+        .seekLinkedViews(scene, seconds, source)
+    }
+
+    private mtd seekLinkedViews(scene: const *ViewerScene, seconds: f64, source: u64)
+    {
         if not scene.linked or not scene.links.time do
             return
         let relative = scene.links.mode == .Relative
@@ -506,7 +541,7 @@ impl ViewerWorkspace
         scene.links.mode = .Relative
         scene.linked     = true
         scene.links.time = true
-        .overlay.invalidate()
+        .invalidate()
         catch .primary.saveState()
     }
 
@@ -538,15 +573,40 @@ impl ViewerWorkspace
 
     mtd synchronizeMedia()
     {
+        let scene = .scene()
+        if not scene do
+            return
+
+        // Group requests can arrive before a cell has finished opening or changing files.
+        for view in scene.views where view.document and view.document.sceneAutoPlay
+        {
+            let document = view.document
+            let player   = ScenePlayer.from(document)
+            if document.pendingFile.isEmpty() and not document.outgoingView and player.ready()
+            {
+                document.sceneAutoPlay = false
+                player.setPlaying(true)
+            }
+        }
+
         if not .isMediaScene() do
             return
 
-        let scene       = unwrap .scene()
         let audible     = .audibleIndex(scene)
         let leaderIndex = .mediaLeader(scene)
         let leader      = ScenePlayer.from(scene.views[leaderIndex].document)
+        let sharedEnd   = .usesSharedEnd(scene)
+        for view, index in scene.views
+        {
+            let player = ScenePlayer.from(view.document)
+            player.setSilent(index != audible)
+            if player.sound do
+                player.sound.sceneManaged = sharedEnd
+            if player.film do
+                player.film.sceneOwnsEnd = sharedEnd
+        }
+
         leader.film?.clearSceneClock()
-        leader.setSilent(leaderIndex != audible)
         leader.film?.updatePlayback()
         let relative = scene.links.mode == .Relative
         .refreshSoundAxes(scene, relative)
@@ -554,16 +614,19 @@ impl ViewerWorkspace
         let clock      = leader.seconds() - origin
         let play       = leader.isPlaying()
         let wasPlaying = scene.playbackWasRunning
-        defer scene.playbackWasRunning = scene.linked and scene.links.playback and leader.isPlaying()
+        let linkedPlayback = scene.linked and scene.links.playback
+        defer
+        {
+            scene!.playbackWasRunning = linkedPlayback and leader.isPlaying()
+        }
         let rate        = leader.rate()
         let leaderEnded = leader.duration() > 0 and leader.seconds() >= leader.duration()
-        let independent = scene.links.end == .Independent and leaderEnded
         var shortest    = leader.duration() - origin
         var statusChanged: bool
         defer
         {
-            if statusChanged and .mediaChromeVisible() do
-                .overlay.invalidate()
+            if statusChanged do
+                .invalidate()
         }
 
         for &view, index in scene.views
@@ -577,7 +640,6 @@ impl ViewerWorkspace
             }
 
             let player = ScenePlayer.from(view.document)
-            player.setSilent(index != audible)
             if not player.ready()
             {
                 player.film?.updatePlayback()
@@ -586,8 +648,12 @@ impl ViewerWorkspace
 
             let offset = relative ? view.offset : 0
             shortest = Math.min(shortest, player.duration() - offset)
-            if not scene.linked or independent
+
+            // Independent endings let a cell keep its own clock when another file ends or changes.
+            if not sharedEnd
             {
+                if scene.linked and scene.links.playback and play and player.isPlaying() do
+                    player.setRate(rate)
                 player.film?.clearSceneClock()
                 player.film?.updatePlayback()
                 view.behind = false
@@ -623,7 +689,7 @@ impl ViewerWorkspace
             }
         }
 
-        if not scene.linked or not scene.links.playback do
+        if not sharedEnd do
             return
         if scene.links.end == .Shortest and shortest > 0 and clock >= shortest
         {
@@ -645,11 +711,17 @@ impl ViewerWorkspace
             return
         let text      = appStrings()
         let workspace = me
+        let media     = .isMediaScene()
         page.addToggle(text.scene_Linked, scene.linked, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Linked, value) })
-        page.addToggle(text.scene_LinkTime, scene.links.time, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Time, value) })
-        page.addToggle(text.scene_LinkPlayback, scene.links.playback, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Playback, value) })
+        if media
+        {
+            page.addToggle(text.scene_LinkTime, scene.links.time, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Time, value) })
+            page.addToggle(text.scene_LinkPlayback, scene.links.playback, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Playback, value) })
+        }
         page.addToggle(text.scene_LinkFraming, scene.links.framing, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Framing, value) })
         page.addToggle(text.scene_LinkScroll, scene.links.scroll, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Scroll, value) })
+        if not media do
+            return
         page.addHeading(text.scene_LinkTime)
         page.addSegments(text.scene_LinkTime,
                          [text.scene_Absolute, text.scene_Relative, text.scene_Leader],
@@ -659,8 +731,11 @@ impl ViewerWorkspace
         page.addAction(text.scene_AlignHere, func|workspace|() { workspace.alignSceneHere() })
         page.addAction(text.scene_AlignSound, func|workspace|() { workspace.alignSceneSound() })
         page.addHeading(text.scene_AtEnd)
-        for mode in [SceneEndMode.Shortest, .Independent, .LoopLeader] do
-            page.addChoice(sceneEndTitle(mode), mode == scene.links.end, func|workspace, mode|() { workspace.setEndMode(mode) })
+        for mode in [SceneEndMode.Independent, .Shortest, .LoopLeader] do
+            page.addChoice(sceneEndTitle(mode),
+                           mode == scene.links.end,
+                           func|workspace, mode|() { workspace.setEndMode(mode) },
+                           icon: .theme().icon(sceneEndIcon(mode), themeRowIconSize(.themeMetrics())))
         page.addAction(text.scene_Solo, func|workspace|() { workspace.toggleSolo() })
     }
 }

@@ -115,6 +115,83 @@ impl ViewerWindow
             .padding = Math.Vector4{x: pad * 2, y: pad, z: pad * 2, w: pad}
             .hide()
         }
+
+        .createCellCaption()
+    }
+
+    private mtd showViewerOverlay(panel: *FloatingPanel, show: bool, animate = true)
+    {
+        if not animate
+        {
+            panel.show(show)
+            return
+        }
+        if panel.isLocallyVisible() == show do
+            return
+
+        if show
+        {
+            let travel = .themeMetrics().motion_AnchorTravel
+            discard .app().animator.arrive(panel, {0, panel == .viewerBar ? travel : -travel})
+        }
+        else do
+            discard .app().animator.leave(panel)
+    }
+
+    // Cells use the same compact caption, with media sharing the transport's reveal.
+    mtd layoutCellCaption()
+    {
+        let workspace = .workspace
+        let tiled = workspace and workspace.usesCellCaptions()
+        let revealed = tiled and (.usesTimedViewerBar() ? .viewerBarShown : workspace!.isHoveredDocument(me))
+        if not revealed or .currentFile.isEmpty() or .isExploring()
+        {
+            .showViewerOverlay(.cellCaption, false)
+            return
+        }
+
+        let metrics = .themeMetrics()
+        let inset   = metrics.miniBar_Distance
+        let pad     = metrics.miniBar_Padding
+        let size    = ViewerWorkspace.ViewTitleHeight
+        let area    = .documentArea()
+        let maxWidth = Math.min(252, area.width - 2 * inset)
+        if maxWidth < 2 * size or area.height < 3 * size
+        {
+            .showViewerOverlay(.cellCaption, false)
+            return
+        }
+
+        let name = Path.fileName(.currentFile) orelse .currentFile
+        let font = .cellCaptionTitle.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
+        let width = Math.min(maxWidth, Math.ceil(Painter.measureString(name, font).width) + size + 4 * pad)
+        if .cellCaptionTitle.text() != name do
+            .cellCaptionTitle.setText(name)
+        .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
+        .cellCaptionClose.toolTip = Format.toString("% · %", appStrings().ui_CloseFile, name)
+        .cellCaptionClose.setPosition({width - size - pad, 0, size, size}, computeLayout: false)
+        .cellCaption.setPosition({area.x + inset, Math.max(area.y, .stripInset()) + inset, width, size}, computeLayout: false)
+        .showViewerOverlay(.cellCaption, true)
+    }
+
+    private mtd createCellCaption()
+    {
+        let metrics = .themeMetrics()
+        .cellCaption = FloatingPanel.create(me, id: "scope.cell.caption")
+        .cellCaption.corner = metrics.miniBar_Corner
+        .cellCaption.wndFlags.add(.TopMost)
+        .cellCaption.hide()
+        with .cellCaptionTitle = Label.create(.cellCaption, "", flags: .SecondaryText | .Ellipsis)
+        {
+            .setTextHorizontalAlignment(.Left)
+        }
+        with .cellCaptionClose = IconButton.create(.cellCaption, .theme().icon(.WndClose, metrics.chevron_Size),
+                                                   flags: .Overlay | .CenterContent)
+        {
+            .focusPolicy = .None
+            .setForm(.RoundedRectangle)
+            .sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
+        }
     }
 
     // Builds the sheet of readings `I` opens, and the hint teaching the door while the window is
@@ -139,7 +216,7 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
         }
 
-        with .readingLine = ViewerReadingLine.create(.documentHost)
+        with .readingLine = ViewerReadingLine.create(me)
         {
             .dockStyle = .Bottom
             .margin    = Math.Vector4{me.themeMetrics().floating_Inset, 0, me.themeMetrics().floating_Inset, 4}
@@ -193,9 +270,11 @@ impl ViewerWindow
     // and the panels beside it the floating inset away from the top as well, as the sheet stands.
     mtd updateDocumentInsets()
     {
-        let strip  = .workspace and .workspace.documentCount() > 1 ?
-                     (.isEdgeToEdge() ? 0 : ViewerWorkspace.ViewTitleHeight) :
-                     (.fullScreen or .isEdgeToEdge() ? 0 : .stripInset())
+        let compact    = .compactVideoCell()
+        let tiledVideo = .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false)
+        var strip = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
+        if not .fullScreen and not .isEdgeToEdge() and (.workspace?.wantsComparisonSheet() orelse false) do
+            strip = Math.max(strip, ViewerWorkspace.ViewTitleHeight)
         let top    = strip + .themeMetrics().floating_Inset
         let search = .searchBar != null and .searchBar.isLocallyVisible() ?
                      Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
@@ -217,15 +296,31 @@ impl ViewerWindow
         if .viewerBar != null
         {
             let commands     = .currentCommands
-            let keepCommands = (not .fullScreen or (.infoSheet != null and .infoSheet.isLocallyVisible())) and
-                               not (.workspace?.isMediaScene() orelse false)
-            .documentPanel.margin.w = commands and keepCommands ?
+            if .currentView is Viewers.Film.Panel as film where film.bottomVeil.compact != compact
+            {
+                film.bottomVeil.compact = compact
+                let height = compact ? themeActionButtonSize(.themeMetrics()) : Viewers.Film.BottomHeight
+                film.commands.resize(film.commands.position.width, height)
+            }
+
+            // The dedicated comparison paints its own canvas above the two transport bars.
+            let comparison = tiledVideo and (.workspace?.wantsComparisonSheet() orelse false) and
+                             (.workspace?.isMediaScene() orelse false) and not .fullScreen
+            let clearance  = comparison ? .themeMetrics().floating_Inset : .themeMetrics().miniBar_Distance
+            .documentPanel.margin.w = commands and (comparison or not .overlaysViewerBar()) ?
                                       commands.position.height + .viewerBar.padding.y + .viewerBar.padding.w +
-                                      2 * .themeMetrics().miniBar_Distance : 0
+                                      2 * clearance : 0
         }
 
         if .currentSidePanelHost do
             .currentSidePanelHost.padding.y = top
+    }
+
+    mtd compactVideoCell()->bool
+    {
+        return .currentView is Viewers.Film.Panel and
+               (.workspace?.isTiled() orelse false) and
+               .clientRect().height < 3 * (Viewers.Film.BottomHeight + 2 * .viewerBar.padding.y)
     }
 
     private mtd hookChildEvents()

@@ -116,7 +116,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     }
 }
 
-// An album makes room for the sheet, keeps its view menu and filter, and translates its actions.
+// The sheet floats over the album while the translated tools and hints stay reachable.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -131,17 +131,19 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     window.resize(ViewerWindow.MinWidth, 680)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
+    window.applyLayout()
+    let grid       = explorer.grid
+    let cover      = grid.albumCover
+    let firstTrack = grid.places[0]
+    let tools      = explorer.tools.surfaceRect()
     explorer.selected = 0
     window.toggleInformation()
     explorer.revealFilter()
     window.applyLayout()
-    let grid = explorer.grid
     Swag.require(grid.board == .Album and explorer.modeMenu.isLocallyVisible())
-    Swag.require(grid.places[0].y > grid.albumCover.bottom())
-    Swag.require(grid.places[0].width > grid.albumText.width)
+    Swag.require(grid.albumCover == cover and grid.places[0] == firstTrack)
     Swag.require(grid.albumText.right() <= grid.clientRect().width)
-    Swag.require(window.searchGroup.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
-    Swag.require(window.searchGroup.surfaceRect().horzCenter() < window.documentArea().horzCenter())
+    Swag.require(explorer.tools.surfaceRect() == tools and window.infoSheet.surfaceRect().y >= tools.bottom())
     Swag.require(window.hintLine.isLocallyVisible())
     Swag.require(window.hintLine.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
     Swag.require(grid.playButton!.text() == appStrings().explore_Play)
@@ -265,11 +267,14 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 
     explorer.selected = 0
     showBoard(&host, window, "Videos", "Films")
+    window.applyLayout()
+    let grid = explorer.grid
+    let columns = grid.columns
+    let scrollSize = explorer.scroll.scrollSize
     explorer.showInformation()
     window.applyLayout()
     host.settleAnimations(window)
 
-    let grid = explorer.grid
     Swag.require(grid.posters and grid.tile.y > grid.tile.x)
     Swag.require(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Films, 8).toString()))
     Swag.require(window.infoSheet.beside and
@@ -278,8 +283,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
                  Utf8.contains(window.infoSheet.text(), Format.toString(appStrings().home_ResumeAt, "1:12:12").toString()))
     Swag.require(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
-    Swag.require(grid.columns == 4 and explorer.scroll.scrollSize.y <= grid.position.height,
-                 "film tiles reflowed because an unnecessary scrollbar stayed visible")
+    Swag.require(grid.columns == columns and explorer.scroll.scrollSize == scrollSize)
     Pixel.Testing.assertImageGolden(&image, "explorer.films.paper")
 }
 

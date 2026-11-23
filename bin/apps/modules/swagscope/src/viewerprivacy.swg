@@ -73,27 +73,28 @@ impl ViewerPrivacy
 
     mtd refreshIndicator()
     {
-        if not .caption do
+        if not .window.isWorkspaceActive() do
             return
-        if not .window.isWorkspaceActive()
-        {
-            .caption.hide()
+        let owner = .window.workspace?.primary orelse .window
+        let indicator = &owner.privacy
+        let caption = indicator.caption
+        if not caption do
             return
-        }
+
         let path        = .window.isExploring() ? .window.explorer!.listing.path.toString() : .window.currentFile.toString()
         let privateMode = path.count and .policy(path).privateMode
-        .caption.toolTip = appStrings().ui_PrivateVault
+        caption.toolTip = appStrings().ui_PrivateVault
         if privateMode
         {
-            if not .icons.isValid() do
-                .createIcon()
+            if not indicator.icons.isValid() do
+                indicator.createIcon()
             let size  = .window.themeMetrics().wnd_CaptionButtonGlyph
-            let width = size * cast(f32, .icons.frameWidth) / cast(f32, .icons.frameHeight)
-            .caption.button.setIcon(Icon.from(&.icons, 0, width, size))
-            .caption.setIconColor(.window.themeColors().critical)
+            let width = size * cast(f32, indicator.icons.frameWidth) / cast(f32, indicator.icons.frameHeight)
+            caption.button.setIcon(Icon.from(&indicator.icons, 0, width, size))
+            caption.setIconColor(.window.themeColors().critical)
         }
 
-        .caption.show(privateMode and not .window.fullScreen)
+        caption.show(privateMode and not .window.fullScreen)
     }
 
     mtd destroyIndicator()

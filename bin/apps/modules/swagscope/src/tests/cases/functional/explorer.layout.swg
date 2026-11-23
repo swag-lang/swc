@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// Closing the information sheet gives the tools the page width back, including after a resize.
+// The sheet leaves the Explorer tools at full width, including after a resize.
 #test
 {
     var host: Testing.HeadlessHost
@@ -21,9 +21,9 @@ using Core, Gui, Pixel
     let line      = unwrap explorer.tools.parent
     let fullRight = line.clientRect().right()
     explorer.showInformation()
-    Swag.require(explorer.padding.z > 0 and line.clientRect().right() < fullRight)
+    Swag.require(window.infoSheet.isLocallyVisible() and line.clientRect().right() == fullRight)
     window.closeInformation()
-    Swag.require(explorer.padding.z == 0 and not window.infoSheet.isLocallyVisible())
+    Swag.require(line.clientRect().right() == fullRight and not window.infoSheet.isLocallyVisible())
     Swag.require(Math.abs(explorer.tools.position.right() - line.clientRect().right()) < 0.5)
 
     window.resize(680, 420)

@@ -197,6 +197,8 @@ struct Panel
     audioTrackIndex:     u32
     audioEngineAcquired: bool
     subtitleSource:      SubtitleSource
+    transportInset:      f32
+    subtitleInsetMotion: AnimationHandle
     subtitleTrackIndex:  u32 = NoSubtitle
     subtitleReady:       bool
     subtitleLastSeconds: f64 = -1
@@ -265,6 +267,10 @@ struct Panel
     sceneSilent:       bool
     keepPlayingHidden: bool
     sceneManaged: bool
+    sceneOwnsEnd:      bool
+    sceneToggle:       (func||()->bool)?
+    sceneStop:         (func||()->bool)?
+    sceneSeek:         (func||(f64))?
     muted:            bool
     playbackRate:     f64  = 1
     optionsOpen:      bool
@@ -599,6 +605,8 @@ impl Panel
             return
         .previousSeek = .currentSeconds()
         .seekSeconds(seconds)
+        if .sceneSeek do
+            .sceneSeek(Math.clamp(seconds, 0, .video.durationInSeconds()))
     }
 
     // Starts a looped passage where playback stands; an end before it no longer holds.
@@ -776,7 +784,7 @@ private impl IWnd for Panel
             return
         }
 
-        if evt.kind == .Move do
+        if evt.kind == .Move and evt.delta != {} do
             .notePointer(evt.surfacePos, false)
         evt.accepted = false
     }
@@ -833,14 +841,14 @@ private impl IWnd for Panel
         case .C where control:                    .copyFrame()
         case .Left, .Right where control:         discard .stepFrame(evt.key == .Right)
         case .Left, .Right where shift:           .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
-        case .Space, .MediaPlayPause where plain: .togglePlayback()
+        case .Space, .MediaPlayPause where plain: .requestPlaybackToggle()
         case .Left where plain:                   .seekRelative(-SeekSeconds)
         case .Right where plain:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute where plain:         .setMuted(not .muted)
         case .Up where plain:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
         case .Down where plain:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
         case .Home where plain:                   .jumpTo(0)
-        case .MediaStop where plain:              .stopPlayback()
+        case .MediaStop where plain:              .requestPlaybackStop()
         default: evt.accepted = false
         }
 
@@ -1117,7 +1125,7 @@ private impl Panel
         {
             let strings = Film.texts()
             if ready do
-                entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.video.playPause")
+                entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.requestPlaybackToggle() }, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.video.playPause")
             entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, bindId: "scope.video.subtitles")
             entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.video.goToTime")
             if .audio and .video.audioTrackCount() > 1 do
@@ -1129,8 +1137,8 @@ private impl Panel
             return
         }
 
-        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.video.playPause")
-        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing), bindId: "scope.video.stop")
+        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.requestPlaybackToggle() }, disabled: not ready, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.video.playPause")
+        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.requestPlaybackStop() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing), bindId: "scope.video.stop")
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, disabled: not .hasFrame, defaultKey: {modifiers: .None, key: .Left}, bindId: "scope.video.seekBackward")
         entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, disabled: not .hasFrame, defaultKey: {modifiers: .None, key: .Right}, bindId: "scope.video.seekForward")
         entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, defaultKey: {modifiers: .Control, key: .Left}, bindId: "scope.video.previousFrame")
@@ -1173,7 +1181,7 @@ private impl Panel
         .playButton.enable(false)
         .playButton.sigPressed += func|view = me|(_)
         {
-            view.togglePlayback()
+            view.requestPlaybackToggle()
             view.notePlaybackGesture()
         }
 
@@ -1234,7 +1242,7 @@ private impl Panel
                 }
             }
 
-            if evt is MouseEvent as mouse where mouse.kind == .Move
+            if evt is MouseEvent as mouse where mouse.kind == .Move and mouse.delta != {}
             {
                 let target   = mouse.target
                 let overVeil = target != null and
@@ -1263,19 +1271,22 @@ private impl Panel
             return
         .pointerKnown    = true
         .pointerPosition = position
-        .pointerMoved()
+        .pointerMoved(revealTransport: false)
     }
 
-    // Shows the veils, and restarts the stillness after which they leave.
-    mtd pointerMoved()
+    // Restarts the playback hint and lets explicit actions reveal their anchor in the host.
+    mtd pointerMoved(revealTransport = true)
     {
         .showPointer()
         .veilClock.restart()
-        if .veilsShown do
-            return
-        .veilsShown = true
-        .refreshHelp()
-        .services.chromeChanged(me)
+        if not .veilsShown
+        {
+            .veilsShown = true
+            .refreshHelp()
+        }
+
+        if revealTransport do
+            .services.chromeChanged(me)
     }
 
     // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless the
@@ -1290,8 +1301,8 @@ private impl Panel
         .hideVeils()
     }
 
-    // Takes the veils away: gone at once for the hand, their picture fading out.
-    mtd hideVeils()
+    // Hides the playback hint and reports that the pointer chrome has settled.
+    internal mtd hideVeils()
     {
         if not .veilsShown do
             return

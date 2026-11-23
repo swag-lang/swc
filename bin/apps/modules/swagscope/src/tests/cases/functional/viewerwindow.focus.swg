@@ -29,3 +29,20 @@ using Swag, Gui, Viewers
 
     Swag.require(launchers == 1)
 }
+
+// A fresh workspace and a page that cleared focus both receive the first global shortcut.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let window = workspace.primary
+    Swag.require(window.home.isLocallyVisible() and window.focusedWindow() == null)
+
+    host.keyPress(.Space, .Control)
+    Swag.require(window.lens.isOpen())
+    window.lens.close()
+    host.surface.clearFocus()
+    host.keyPress(.F11)
+    Swag.require(window.fullScreen)
+}

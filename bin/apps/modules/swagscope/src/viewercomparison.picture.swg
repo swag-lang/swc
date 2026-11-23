@@ -180,7 +180,7 @@ impl SceneComparison
         let metrics = .themeMetrics()
         let inset   = metrics.floating_Inset
         let pad     = 2 * metrics.wnd_CaptionButtonMargin
-        let close   = .workspace.compactMedia ? 0 : ViewerWorkspace.ViewTitleHeight
+        let close        = ViewerWorkspace.ViewTitleHeight
         let path: string = .paths[side]
         let name    = Path.fileName(path) orelse path
         var text    = Painter.elideString(name, font, Math.max(0, body.width * 0.5 - 2 * (inset + pad) - close), .deviceScale())
@@ -210,7 +210,7 @@ impl SceneComparison
             }
 
             let header = .pictureHeader(side)
-            let close  = .workspace.compactMedia ? 0 : header.rect.height
+            let close  = header.rect.height
             painter.fillRoundRect(header.rect, radius, radius, colors.raised)
             painter.drawStringCenter(header.rect.horzCenter() - close * 0.5, header.rect.vertCenter(), header.name, font, colors.text)
         }

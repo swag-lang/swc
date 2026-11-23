@@ -419,6 +419,18 @@ impl Panel
         .decodeWake.signal()
     }
 
+    mtd requestPlaybackToggle()
+    {
+        if not .sceneToggle or not .sceneToggle() do
+            .togglePlayback()
+    }
+
+    mtd requestPlaybackStop()
+    {
+        if not .sceneStop or not .sceneStop() do
+            .stopPlayback()
+    }
+
     // Pauses or resumes playback; resuming at the last frame restarts from the beginning.
     mtd togglePlayback()
     {
@@ -611,7 +623,7 @@ impl Panel
         let count = .video.frameCount()
         if count and clock >= count and .frameIndex + 1 >= count
         {
-            if not .sceneManaged and .services.finished(me) == .Replay
+            if not .sceneOwnsEnd and .services.finished(me) == .Replay
             {
                 .restartForLoop()
                 return

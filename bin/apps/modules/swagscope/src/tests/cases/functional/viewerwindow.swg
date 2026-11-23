@@ -1159,7 +1159,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.hintLine.isLocallyVisible() and window.hintLine.hints.count == 1)
     Swag.require(window.hintLine.hints[0].key == Input.formatKeyShortcut(.Control, .Space) and window.hintLine.hints[0].text == appStrings().ui_HintLens)
     Swag.require(not window.lens.isOpen())
-    Swag.require(window.readingLine.parent == window.documentHost and not window.readingLine.isLocallyVisible())
+    Swag.require(window.readingLine.parent == window and not window.readingLine.isLocallyVisible())
     Swag.require(window.documentHost.backgroundStyle == .Transparent and window.documentPanel.backgroundStyle == .View)
     Swag.require(window.documentHost.padding.y == window.stripInset())
     Swag.require(window.documentPanel.parent == window.documentHost and window.home.parent == window.documentPanel)

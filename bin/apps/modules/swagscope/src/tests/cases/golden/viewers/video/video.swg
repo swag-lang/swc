@@ -68,8 +68,8 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     Pixel.Testing.assertImageGolden(&image, golden)
 }
 
-// Film shares the window title, bottom facts and persistent command panel. Hover adds
-// the time under the pointer without moving the picture or covering its content.
+// Film shares the window title and bottom facts. Moving the pointer shows the transport and
+// time preview over the picture without changing its bounds.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -83,12 +83,16 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
     let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
 
-    // Film uses the shared title, statistics and bottom commands.
+    // The film uses the shared title and statistics, and the transport can clear the picture.
     Swag.require(not host.surfaceWnd.titleHidden)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
     pinVideoFrame(view, 5)
+    view.stopTimer(&view.timer)
+    view.timeline.setBuffered(cast(f32, view.frameSeconds(19)))
     view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
+    window.concealViewerBar()
+    Swag.require(not window.viewerBar.isVisible())
     host.settleAnimations(window, 4)
 
     var rest = host.render(&host.surfaceWnd)

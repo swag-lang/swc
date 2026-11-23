@@ -643,6 +643,51 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     Swag.require(view.frameIndex == 0 and view.elapsed == 0)
 }
 
+// The windowed transport uses the same picture bounds at rest and while a control is in use.
+#test
+{
+    let fileName = expect videoPreviewFileAt(Testing.tempFilePath("scope-windowed-video-transport-", ".avi"))
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    defer host.shutdown()
+    let film = assume cast(*Film.Panel, window.currentView)
+    pinVideoFrame(film, 0)
+    let picture = film.imageView.surfaceRect()
+    window.concealViewerBar()
+    Swag.require(not window.viewerBar.isVisible())
+
+    var point = picture.center()
+    host.surface.surfaceToScreen(&point)
+    host.moveMouse(point)
+    Swag.require(window.viewerBar.isVisible() and film.imageView.surfaceRect() == picture)
+    Swag.require(film.surfaceRect().contains(window.viewerBar.surfaceRect().center()))
+    host.finishAnimations()
+    Swag.require(film.subtitleOverlay.bottomObstruction > 0)
+
+    var timeline = film.timeline.surfaceRect().center()
+    host.surface.surfaceToScreen(&timeline)
+    host.mouseDown(timeline)
+    Swag.require(film.timeline.dragging)
+    host.fireTimer(window.viewerBarTimer)
+    Swag.require(window.viewerBar.isVisible())
+    host.mouseUp(timeline)
+    host.fireTimer(window.viewerBarTimer)
+    Swag.require(not window.viewerBar.isVisible() and film.imageView.surfaceRect() == picture)
+    host.finishAnimations()
+    Swag.require(film.subtitleOverlay.bottomObstruction == 0)
+    host.moveMouse(timeline)
+    Swag.require(not window.viewerBar.isVisible())
+    host.moveMouse(timeline + Math.Point{1, 0})
+    Swag.require(window.viewerBar.isVisible())
+
+    host.fireTimer(window.viewerBarTimer)
+    Swag.require(not window.viewerBar.isVisible())
+    film.setFocus()
+    host.keyPress(.Tab)
+    Swag.require(window.viewerBar.isVisible())
+}
+
 // At rest nothing stands over the picture. A movement of the pointer brings the veils, a moment
 // of stillness takes them away, even when the pointer rests on them. A press on the
 // timeline seeks there, and the chips open the page of the options they name.

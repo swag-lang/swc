@@ -606,12 +606,13 @@ impl MainWindow
             .copyrightHolder = "Christophe Beaudet"
         }
 
-        // The driver that shows a vault as a drive keeps its notice where the product's own is.
+        let texts  = appStrings()
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
+        dialog.addSection(texts.ui_AboutProtection, texts.ui_AboutAlgorithms)
         #static if #os == Swag.TargetOs.Linux do
-            dialog.addSection("libfuse3", appStrings().ui_AboutLinuxRuntime)
+            dialog.addSection("libfuse3", texts.ui_AboutLinuxRuntime)
         else do
-            dialog.addSection("WinFsp", appStrings().ui_AboutThirdParty)
+            dialog.addSection("WinFsp", texts.ui_AboutThirdParty)
         discard dialog.doModal()
     }
 

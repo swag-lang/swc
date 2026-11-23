@@ -1138,7 +1138,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         Swag.require(Math.abs((list.newVault.position.x + list.openFile.position.right()) * 0.5 - center) < 1)
         Swag.require(list.ruleRect.y > list.openFile.position.bottom())
         Swag.require(Math.abs(list.ruleRect.horzCenter() - center) < 1)
-        Swag.require(list.ruleRect.y + VaultList.RuleToFoot + VaultList.FootLineGap < window.hintLine.position.y)
+        Swag.require(list.ruleRect.y + VaultList.RuleToFoot < window.hintLine.position.y)
         Testing.assertContentFits(window)
 
         let hints = window.hintLine.hints

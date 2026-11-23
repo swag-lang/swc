@@ -55,7 +55,6 @@ ui_HomeTitlePrivacy    Aucun coffre ouvert
 ui_HomeWelcome         Un coffre est un fichier chiffré qui s'ouvre comme un lecteur.
 ui_HomeKeeps           Ce qu'on y range n'est lisible que tant qu'il est monté.
 ui_HomePrivacy         Le mode vie privée ne garde aucune liste : ouvrez un coffre depuis son fichier.
-ui_HomeHidden          volumes cachés
 ui_HomeDrop            ou déposez un fichier de coffre sur la fenêtre
 ui_DropTitle           Déposez un coffre pour l'ouvrir
 ui_Mount               Monter
@@ -228,6 +227,8 @@ msg_ErrorCode            Code d'erreur : 0x%{X}
 search_Create créer coffre;nouveau conteneur
 search_Open ouvrir coffre;ouvrir conteneur
 
+ui_AboutProtection   Protection des coffres
+ui_AboutAlgorithms   ChaCha20-Poly1305 chiffre et authentifie les données du coffre. Argon2id dérive une clé à partir du mot de passe.
 ui_AboutLinuxRuntime Système de fichiers en espace utilisateur — github.com/libfuse/libfuse. Les événements de session utilisent systemd et l’inactivité du bureau utilise X.Org. Licences dans THIRDPARTY.md.
 cmd_InstallWinFsp        Installer WinFsp…
 dlg_BtnKeepPortable      Rester en mode portable

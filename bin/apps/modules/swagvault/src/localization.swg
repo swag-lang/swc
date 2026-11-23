@@ -65,14 +65,12 @@ struct AppStrings
     ui_HintNewVault:   string = "new vault"
     ui_HintOpenFile:   string = "open a file"
 
-    // The home: the window without a vault. Its second line keeps to the first one's length, and
-    // its foot follows the names of the ciphers.
+    // The home: the window without a vault and the hint for opening one by dropping a file.
     ui_HomeTitle:        string = "No vault yet"
     ui_HomeTitlePrivacy: string = "No vault open"
     ui_HomeWelcome:      string = "A vault is an encrypted file that opens as a drive."
     ui_HomeKeeps:        string = "What you keep in it can be read only while it is mounted."
     ui_HomePrivacy:      string = "Privacy mode keeps no list: open a vault from its file."
-    ui_HomeHidden:       string = "hidden volumes"
     ui_HomeDrop:         string = "or drop a vault file on the window"
     ui_DropTitle:        string = "Drop a vault to open it"
 
@@ -172,6 +170,8 @@ struct AppStrings
     ui_OuterReserve:         string = "Keep free for the outer volume"
     ui_OuterReserveHelp:     string = "Minimum space left for ordinary files. This choice only limits hidden creation; it is not stored in the outer filesystem."
     ui_Desktop:              string = "Desktop"
+    ui_AboutProtection:      string = "Vault Protection"
+    ui_AboutAlgorithms:      string = "ChaCha20-Poly1305 encrypts and authenticates vault data. Argon2id derives a key from the password."
     ui_AboutThirdParty:      string = "Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp"
     ui_AboutLinuxRuntime:    string = "Filesystem in Userspace — github.com/libfuse/libfuse. Session events use systemd; desktop idle time uses X.Org. See THIRDPARTY.md for licences."
     dlg_TitleCreate:         string = "Create a Swag Vault Container"

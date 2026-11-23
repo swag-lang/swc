@@ -17,7 +17,18 @@ using Core, Viewers
 {
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.table-merge.docx"))
     Swag.require(document.tables == 1)
-    Swag.require(Utf8.contains(document.html, "<table><tr><td rowspan=\"2\"><p>Spans two rows</p></td><td><p>Outer cell</p></td></tr><tr><td><p>Next row cell</p></td></tr></table>"), document.html)
+    Swag.require(Utf8.contains(document.html, "<td rowspan=\"10\"><p>First vertical merge</p></td>"), document.html)
+    Swag.require(Utf8.contains(document.html, "<td rowspan=\"10\"><p>Second vertical merge</p></td>"), document.html)
+    Swag.require(Utf8.contains(document.html, "<td><p>Outer cell</p></td></tr><tr><td><p>Next row cell</p></td></tr>"), document.html)
+    Swag.require(not Utf8.contains(document.details(), "some table cell merges simplified"))
+}
+
+// A vertical merge can continue across a horizontally spanned cell.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.table-merge-span.docx"))
+    Swag.require(Utf8.contains(document.html, "<td rowspan=\"2\" colspan=\"2\"><p>Vertical merge across columns</p></td>"), document.html)
+    Swag.require(Utf8.contains(document.html, "<td><p>Next row cell</p></td>"), document.html)
     Swag.require(not Utf8.contains(document.details(), "some table cell merges simplified"))
 }
 

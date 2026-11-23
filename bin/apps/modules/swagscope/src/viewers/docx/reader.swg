@@ -170,41 +170,63 @@ private impl Reader
 
         if .cellVerticalMerge == 2
         {
-            if .tableDepth == 1 and .cellColumnSpan == 1 and .cellColumn < 63 and .activeMergeRows[.cellColumn]
+            let firstColumn = cast(u32, .cellColumn)
+            let columnEnd  = firstColumn + cast(u32, .cellColumnSpan)
+            if .tableDepth == 1 and .cellColumnSpan and columnEnd <= 63 and .activeMergeRows[firstColumn]
             {
-                let origin = .activeMergeRows[.cellColumn]
-                let span   = .activeMergeSpans[.cellColumn] + 1
-                let start  = .cellTagOffset
-                .sectionHtml.remove(start, .sectionHtml.count - start)
-                let digitOffset = origin + 13
-                let oldDigits   = Format.toString("%", .activeMergeSpans[.cellColumn]).count
-                let newDigits   = Format.toString("%", span)
-                .sectionHtml.remove(digitOffset, oldDigits)
-                .sectionHtml.insert(digitOffset, newDigits)
-                let offsetChange = newDigits.count - oldDigits
-                for index in 63
+                let origin  = .activeMergeRows[firstColumn]
+                let oldSpan = .activeMergeSpans[firstColumn]
+                var valid = true
+                for column in firstColumn until columnEnd
                 {
-                    if .activeMergeRows[index] > digitOffset do .activeMergeRows[index] += offsetChange
-                    if .nextMergeRows[index] > digitOffset do .nextMergeRows[index] += offsetChange
+                    if .activeMergeRows[column] != origin or .activeMergeSpans[column] != oldSpan do
+                        valid = false
                 }
-                .nextMergeRows[.cellColumn]  = origin
-                .nextMergeSpans[.cellColumn] = span
-                .cellTagOpen                 = false
-                .skipMergedCell              = true
-                if .tableDepth and .tableDepth <= 8 do
-                    .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
-                return
+
+                if valid
+                {
+                    let span        = oldSpan + 1
+                    let start       = .cellTagOffset
+                    let digitOffset = origin + 13
+                    .sectionHtml.remove(start, .sectionHtml.count - start)
+                    let oldDigits = Format.toString("%", oldSpan).count
+                    let newDigits = Format.toString("%", span)
+                    .sectionHtml.remove(digitOffset, oldDigits)
+                    .sectionHtml.insert(digitOffset, newDigits)
+                    let offsetChange = newDigits.count - oldDigits
+                    for index in 63
+                    {
+                        if .activeMergeRows[index] > digitOffset do .activeMergeRows[index] += offsetChange
+                        if .nextMergeRows[index] > digitOffset do .nextMergeRows[index] += offsetChange
+                    }
+                    for column in firstColumn until columnEnd
+                    {
+                        .nextMergeRows[column]  = origin
+                        .nextMergeSpans[column] = span
+                    }
+
+                    .cellTagOpen = false
+                    .skipMergedCell = true
+                    if .tableDepth and .tableDepth <= 8 do
+                        .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
+                    return
+                }
             }
 
             .document.tableMergesSimplified = true
         }
         elif .cellVerticalMerge == 1
         {
-            if .tableDepth == 1 and .cellColumnSpan == 1 and .cellColumn < 63
+            let firstColumn = cast(u32, .cellColumn)
+            let columnEnd  = firstColumn + cast(u32, .cellColumnSpan)
+            if .tableDepth == 1 and .cellColumnSpan and columnEnd <= 63
             {
                 .sectionHtml.insert(.cellTagOffset + 3, " rowspan=\"1\"")
-                .nextMergeRows[.cellColumn]  = .cellTagOffset
-                .nextMergeSpans[.cellColumn] = 1
+                for column in firstColumn until columnEnd
+                {
+                    .nextMergeRows[column]  = .cellTagOffset
+                    .nextMergeSpans[column] = 1
+                }
             }
             else
             {

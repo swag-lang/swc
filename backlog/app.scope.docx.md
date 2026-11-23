@@ -47,7 +47,7 @@ remain in the shared viewer entries `app.scope.viewers.016`, `.001` and `.003`.
 ### app.scope.docx.004 — Complex DOCX tables and drawings lose structure
 
 - Evidence: simple and nested tables, bounded inline raster images, horizontal spans, authored
-  widths, vertical cell alignment and single-column vertical merges are supported. Unmatched or
+  widths, vertical cell alignment and vertical merges across column spans are supported. Unmatched or
   malformed vertical merges stay visible with a simplification notice. Borders, floating drawings,
   text boxes, shapes, charts and embedded objects are not represented faithfully.
 - Next: add Word-authored cases for table borders and floating drawings; identify text boxes, shapes,

@@ -552,6 +552,7 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
                          {
                              g_ViewerSettings.themeIndex = index
                              applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
+                             zoom.outline?.setDocumentThemeColors(viewerColors(index))
                              zoom.services.informationChanged(view)
                              catch g_App.saveState()
                          })
@@ -650,6 +651,7 @@ func createViewer(host: Viewer.Host)
     }
 
     applyViewerStyle(view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, zoomButton.zoomPercent)
+    zoomButton.outline?.setDocumentThemeColors(viewerColors(g_ViewerSettings.themeIndex))
     host.attachView(view)
     host.setDetails(texts().ui_Details)
 

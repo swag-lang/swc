@@ -34,6 +34,14 @@ private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
     return Markdown.parseHeadings(cast(string, source.toSlice()))
 }
 
+private func applyOutlineThemeColors(wnd: *Wnd, colors: string)
+{
+    wnd.style.setStyleSheetColors(colors)
+    wnd.computeStyle()
+    for child in wnd.children do
+        applyOutlineThemeColors(child, colors)
+}
+
 // One heading hierarchy shared by every document viewer, hosted beside its document.
 struct DocumentOutline
 {
@@ -84,7 +92,7 @@ impl DocumentOutline
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
             .dockStyle       = .Center
-            .backgroundStyle = floatingSurface ? .Transparent : .View
+            .backgroundStyle = .Transparent
             .padding         = floatingSurface ? Math.Vector4{12, 8, 12, 8} : Math.Vector4{0, 8, 0, 8}
             .toggle          = side.toggle
         }
@@ -193,6 +201,12 @@ impl DocumentOutline
         .rowTitles.clear()
         .levels.clear()
         .list.clear()
+    }
+
+    // Keeps the Markdown outline on the same appearance sheet as the rendered document.
+    mtd setDocumentThemeColors(colors: string)
+    {
+        applyOutlineThemeColors(me, colors)
     }
 
     // Returns the row under a surface point, or `U64.Max` outside the listed headings.

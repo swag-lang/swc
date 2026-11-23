@@ -4,6 +4,40 @@ using Core, Gui
 
 impl ViewerWorkspace
 {
+    mtd canLinkFraming()->bool
+    {
+        let scene = unwrap .scene()
+        var images: u32
+        for view in scene.views where sceneImage(view.document) do
+            images += 1
+        return images >= 2
+    }
+
+    mtd canLinkScroll()->bool
+    {
+        let scene = unwrap .scene()
+        var pages, editors, others, scrolls: u32
+        for view in scene.views
+        {
+            let content = view.document?.currentView
+            let scroll = firstDocumentScroll(content)
+            if not scroll and not (content is Viewers.PdfDocument.Panel) do
+                continue
+            if content is Viewers.PdfDocument.Panel do
+                pages += 1
+            elif sceneTextEditor(view.document) do
+                editors += 1
+            else do
+                others += 1
+            if scroll do
+                scrolls += 1
+        }
+        return pages >= 2 or editors >= 2 or others > 0 and scrolls >= 2
+    }
+
+    mtd hasViewLinks()->bool =>
+        .documentCount() > 1 and (.isMediaScene() or .canLinkFraming() or .canLinkScroll())
+
     mtd registerReadingLinks(document: *ViewerWindow)
     {
         if not document.currentView do

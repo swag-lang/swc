@@ -1254,7 +1254,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(not view.playing and not view.voice!.isPlaying())
 
     // A control of the window outside the viewer keeps the keyboard while the keys play.
-    let outside = EditBox.create(window, "", {0, 0, 120, 32})
+    let outside = Viewer.createActionButton(window, .Options)
     outside.setFocus()
     var press = KeyEvent{kind: .Pressed, key: .Space}
     Swag.require(window.hookOnChildEvent!(outside, &press))

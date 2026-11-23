@@ -196,19 +196,16 @@ impl SceneComparison
         return {header.rect.right() - size, header.rect.y, size, size}
     }
 
+    mtd showsPictureHeader(side: u64)->bool =>
+        .mode != .Flip or (.flipTimer != null and (side != 0) == .shownRight)
+
     private mtd paintPictureNames(painter: *Painter)
     {
         let colors = .themeColors()
         let font   = .theme().createDefaultFont(12)
         let radius = .themeMetrics().corner_Chip
-        for side in 2
+        for side in 2 where .showsPictureHeader(side)
         {
-            if .mode == .Flip and (not .flipTimer or (side != 0) != .shownRight)
-            {
-                .workspace.paintCloseViewGround(painter, side)
-                continue
-            }
-
             let header = .pictureHeader(side)
             let close  = header.rect.height
             painter.fillRoundRect(header.rect, radius, radius, colors.raised)
@@ -321,6 +318,8 @@ impl SceneComparison
             .releaseMouse()
 
         case .Move:
+            if .mode == .Flip and evt.delta != {} do
+                .showFlippedName()
             if .drag
             {
                 if .mode == .Curtain

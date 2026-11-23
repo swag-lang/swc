@@ -129,13 +129,15 @@ impl ViewerWindow
         if panel.isLocallyVisible() == show do
             return
 
+        let metrics  = .themeMetrics()
+        let duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
         if show
         {
-            let travel = .themeMetrics().motion_AnchorTravel
-            discard .app().animator.arrive(panel, {0, panel == .viewerBar ? travel : -travel})
+            let travel = metrics.motion_AnchorTravel
+            discard .app().animator.arrive(panel, {0, panel == .viewerBar ? travel : -travel}, duration, .EaseInOut)
         }
         else do
-            discard .app().animator.leave(panel)
+            discard .app().animator.leave(panel, duration, .EaseInOut)
     }
 
     // Cells use the same compact caption, with media sharing the transport's reveal.
@@ -144,7 +146,7 @@ impl ViewerWindow
         let workspace = .workspace
         let tiled = workspace and workspace.usesCellCaptions()
         let revealed = tiled and (.usesTimedViewerBar() ? .viewerBarShown : workspace!.isHoveredDocument(me))
-        if not revealed or .currentFile.isEmpty() or .isExploring()
+        if not revealed
         {
             .showViewerOverlay(.cellCaption, false)
             return
@@ -156,21 +158,28 @@ impl ViewerWindow
         let size    = ViewerWorkspace.ViewTitleHeight
         let area    = .documentArea()
         let maxWidth = Math.min(252, area.width - 2 * inset)
-        if maxWidth < 2 * size or area.height < 3 * size
+        if maxWidth < size or area.height < size + 2 * inset
         {
             .showViewerOverlay(.cellCaption, false)
             return
         }
 
-        let name = Path.fileName(.currentFile) orelse .currentFile
+        let exploring = .isExploring()
+        let path: string = exploring ? .explorer!.requested : (.pendingFile.isEmpty() ? .currentFile : .pendingFile)
+        let name = Path.fileName(path) orelse path
+        let compact = exploring or not name.count or maxWidth < 2 * size
         let font = .cellCaptionTitle.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
-        let width = Math.min(maxWidth, Math.ceil(Painter.measureString(name, font).width) + size + 4 * pad)
+        let width = compact ? size : Math.min(maxWidth, Math.ceil(Painter.measureString(name, font).width) + size + 4 * pad)
         if .cellCaptionTitle.text() != name do
             .cellCaptionTitle.setText(name)
-        .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
-        .cellCaptionClose.toolTip = Format.toString("% · %", appStrings().ui_CloseFile, name)
-        .cellCaptionClose.setPosition({width - size - pad, 0, size, size}, computeLayout: false)
-        .cellCaption.setPosition({area.x + inset, Math.max(area.y, .stripInset()) + inset, width, size}, computeLayout: false)
+        .cellCaptionTitle.toolTip = path
+        .cellCaptionTitle.show(not compact)
+        if not compact do
+            .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
+        .cellCaptionClose.toolTip = name.count ? Format.toString("% · %", appStrings().scene_CloseView, name) : String.from(appStrings().scene_CloseView)
+        .cellCaptionClose.setPosition({compact ? 0 : width - size - pad, 0, size, size}, computeLayout: false)
+        let x = exploring ? area.right() - width - inset : area.x + inset
+        .cellCaption.setPosition({x, Math.max(area.y, .stripInset()) + inset, width, size}, computeLayout: false)
         .showViewerOverlay(.cellCaption, true)
     }
 

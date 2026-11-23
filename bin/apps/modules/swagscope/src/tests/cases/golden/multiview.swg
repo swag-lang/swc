@@ -247,7 +247,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     document.revealViewerBar()
     host.finishAnimations()
     document.concealViewerBar()
-    host.advanceAnimations(document.themeMetrics().motion_LeaveSeconds * 0.4)
+    host.advanceAnimations(document.themeMetrics().motion_PanelSeconds * 0.4)
     Swag.require(not document.viewerBar.isVisible() and document.viewerBar.presentationOpacity > 0)
     let image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.chrome.fading.paper")
@@ -267,4 +267,24 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     workspace.toggleMaximized()
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.maximized.paper")
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth, height: 480)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("pacman_beginning.wav"), scopeTestDataPath("viewer.png"),
+                         scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.mp4")], .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let audio = unwrap scene.views[0].document
+    finishWaveform(unwrap ScenePlayer.from(audio).sound)
+    pinVideoFrame(unwrap ScenePlayer.from(scene.views[3].document).film, 0)
+    audio.concealViewerBar()
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.mixed.compact.encre")
 }

@@ -176,7 +176,8 @@ impl IWnd for SceneTabs
 
         case .Pressed where index < .items.count:
             let item = .items[index]
-            let close = Math.Rectangle{item.right(), item.y, Gap * 0.5 + 1, item.height}
+            var close = .closeRect(item)
+            close.inflate(.themeMetrics().wnd_CaptionButtonMargin)
             if evt.button == .Middle or evt.button == .Left and .showsClose(index) and close.contains(point) do
                 .workspace.closeScene(index)
             elif evt.button == .Left do
@@ -228,7 +229,17 @@ impl ViewerWorkspace
     {
         var rect = .cellRect(scene, index)
         let compare = .comparison
-        if not compare or not compare.isLocallyVisible() or not compare.isPicture() or compare.mode != .Curtain do
+        if not compare or not compare.isLocallyVisible() or not compare.isPicture() do
+            return rect
+        if compare.mode == .Flip
+        {
+            if (index != 0) != compare.shownRight do
+                return {}
+            rect.x     = 0
+            rect.width = .clientRect().width
+            return rect
+        }
+        if compare.mode != .Curtain do
             return rect
 
         let split = Math.round(.clientRect().width * compare.separator)
@@ -314,7 +325,7 @@ impl ViewerWorkspace
                 let grid   = scene.dimensions(useMaximized: false)
                 let cols   = cast(u64, grid.x)
                 let left   = area.right() - 20 - grid.x * (size + 2)
-                let bottom = area.bottom() - 20 - grid.y * (size + 2)
+                let bottom = .maximizedWorkBottom() - inset - grid.y * (size + 2)
                 for index in cast(u64, grid.x * grid.y)
                 {
                     let x   = left + cast(f32, index % cols) * (size + 2)
@@ -436,10 +447,10 @@ impl ViewerWorkspace
             return
         let shortcut = Input.formatKeyShortcut(.Control, .W)
         let document = .activeDocument()
-        .closeFileButton.toolTip = Format.toString("% (%)", appStrings().ui_CloseFile, shortcut)
+        let action = document.isExploring() ? appStrings().scene_CloseView : appStrings().ui_CloseFile
+        .closeFileButton.toolTip = Format.toString("% (%)", action, shortcut)
         .closeFileButton.show(.scenes.count == 1 and
                               .documentCount() == 1 and
-                              not document.isExploring() and
                               not document.fullScreen)
     }
 
@@ -498,9 +509,9 @@ impl ViewerWorkspace
 
     mtd layoutCloseViewButtons()
     {
-        let scene = .scene()
+        let scene      = .scene()
         let count      = scene and scene.views.count > 1 ? scene.views.count : 0
-        let metrics = .themeMetrics()
+        let metrics    = .themeMetrics()
         let comparison = .comparisonVisible()
         let pictures   = comparison and .comparison!.isPicture()
         while .closeViewButtons.count < count
@@ -519,6 +530,7 @@ impl ViewerWorkspace
         {
             if not scene or
                index >= count or
+               (pictures and not .comparison!.showsPictureHeader(index)) or
                (not comparison and (.usesCellCaptions() or scene.views[index].document != .hoveredDocument)) or
                not (scene.views[index].document?.isLocallyVisible() orelse false)
             {
@@ -536,7 +548,7 @@ impl ViewerWorkspace
 
             let path: string = scene.views[index].path
             let name = Path.fileName(path) orelse path
-            button.toolTip = Format.toString("% · %", appStrings().ui_CloseFile, name)
+            button.toolTip = Format.toString("% · %", appStrings().scene_CloseView, name)
             let bounds = pictures ? .comparison!.pictureCloseRect(index) :
                          Math.Rectangle{rect.right() - size - metrics.wnd_CaptionButtonMargin, rect.y, size, size}
             button.setPosition(bounds, computeLayout: false)
@@ -544,15 +556,22 @@ impl ViewerWorkspace
         }
     }
 
-    mtd paintCloseViewGround(painter: *Painter, index: u64)
+    private mtd maximizedWorkBottom()->f32
     {
-        if index >= .closeViewButtons.count do
-            return
-        let button = .closeViewButtons[index]
-        if not button.isLocallyVisible() do
-            return
-        let corner = .themeMetrics().corner_Chip
-        painter.fillRoundRect(button.position, corner, corner, .themeColors().raised)
+        let document = .activeDocument()
+        var bottom = document.documentArea().bottom()
+        if document.currentCommands do
+            bottom = Math.min(bottom, document.viewerBar.position.y)
+        return .surfaceToLocal(document.localToSurface(Math.Point{0, bottom})).y
+    }
+
+    mtd layoutMaximizedHint()
+    {
+        if .maxHint and (.scene()?.maximized orelse false)
+        {
+            .maxHint.margin.w = Math.max(0, .clientRect().bottom() - .maximizedWorkBottom())
+            .maxHint.itf.onLayout()
+        }
     }
 
     mtd showMaximizedHint(show: bool)
@@ -573,6 +592,8 @@ impl ViewerWorkspace
         hint.addHint(Input.formatKeyShortcut(.None, .Escape), text.scene_HintReturn)
         hint.addHint(Input.formatKeyShortcut(.Alt, .Left), text.scene_HintNavigate)
         hint.addHint(Input.formatKeyShortcut(.Control, .Space), text.ui_HintLens)
+        hint.setGrounded(true)
+        .layoutMaximizedHint()
         hint.bringToFront()
         discard .app().animator.arrive(hint)
         .stopTimer(&.maxHintTimer)
@@ -613,7 +634,7 @@ impl ViewerWorkspace
         var index = Swag.U64.Max
         if scene and one and not onTabs
         {
-        let point = .surfaceToLocal(evt.surfacePos)
+            let point = .surfaceToLocal(evt.surfacePos)
             for view, i in scene.views where (view.document?.isLocallyVisible() orelse false)
             {
                 let rect = .dropRect(scene, i)
@@ -696,15 +717,14 @@ impl ViewerWorkspace
             return true
         }
 
+        if source is EditBox or .focusedWindow() is EditBox or .activeDocument().lens.isOpen() do
+            return false
         if (evt.modifiers == .Alt or evt.modifiers == .CtrlAlt) and .moveView(evt.key, evt.modifiers == .CtrlAlt) do
             return true
         if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source) do
             return true
         let scene = .scene()
-        if scene and
-           evt.modifiers == .None and
-           not (source is EditBox) and
-           not .activeDocument().lens.isOpen()
+        if scene and evt.modifiers == .None
         {
             if evt.key == .Escape and scene.maximized and not .activeDocument().searchShown or evt.key == .F and scene.views.count > 1
             {

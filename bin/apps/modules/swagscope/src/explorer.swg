@@ -557,7 +557,13 @@ impl Explorer
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.hide()
-        let rowY = .window.stripInset() == 0 ? ToolHeight + HeaderGap : 0
+        let frame = .window.surface!.wnd
+        frame.applyLayout()
+        var room = frame.captionRoomRect()
+        room.x     += metrics.wnd_CaptionPathGap
+        room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
+        let inCaption = .window.stripInset() > 0 and not room.isEmpty()
+        let rowY      = inCaption ? 0 : ToolHeight + HeaderGap
         .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
 
@@ -592,24 +598,20 @@ impl Explorer
             .window.searchBox.setPosition({0, 0, Math.max(group.position.width - options - ViewerWindow.SearchGroupSpacing, 0), ToolHeight})
         }
 
-        let frame = .window.surface!.wnd
-        frame.applyLayout()
-        var room = frame.captionRoomRect()
-        room.x     += metrics.wnd_CaptionPathGap
-        room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
-        if room.height == 0
+        if inCaption
         {
-            room        = .window.documentArea()
-            room.x      += inset
-            room.width  = Math.max(room.width - 2 * inset, 0)
-            room.height = ToolHeight
+            let height = Math.min(ToolHeight, room.height)
+            let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width * 0.7), height})
         }
-
-        let height = Math.min(ToolHeight, room.height)
-        let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
-        .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width * 0.7), height})
+        else
+        {
+            let origin = .window.surfaceToLocal(line.localToSurface(Math.Point{}))
+            let closeRoom = (.window.workspace?.usesCellCaptions() orelse false) ? ViewerWorkspace.ViewTitleHeight + metrics.miniBar_Distance : 0
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, Math.max(0, space - closeRoom)), ToolHeight})
+        }
         .address.refreshPath()
-        .address.show(.isVisible() and .window.isWorkspaceActive())
+        .address.show(.isVisible() and (not inCaption or .window.isWorkspaceActive()))
     }
 
     // Shows the listing presentation and its thumbnail options in one compact sheet.
@@ -1189,6 +1191,8 @@ impl Explorer
         .pendingOpen     = Swag.U64.Max
         .requested       = path
         .requestedFolder = folder
+        if .window.isExploring() do
+            .window.workspace?.updateDocumentPath(.window, .sourceArchivePath(path))
         .refreshPending  = false
         if remember do
             .history.push(Format.toString("%\n%", path, folder))
@@ -2975,8 +2979,10 @@ impl ExplorerGrid
         {
             if let point = .explorer.window.resumePoint(entry.path)
             {
-                let thread = .themeMetrics().fileTile_RingWidth + 1
-                painter.fillRect(Math.Rectangle{tile.x, tile.bottom() - thread, Math.round(tile.width * point.progress), thread}, .themeColors().arc)
+                let emphasized = hovered or options.selected
+                let thread = emphasized ? .themeMetrics().fileTile_RingWidth : 1.0
+                let ink    = emphasized ? .themeColors().arc : .themeColors().arc.withAlphaF32(0.6)
+                painter.fillRect(Math.Rectangle{tile.x, tile.bottom() - thread, Math.round(tile.width * point.progress), thread}, ink)
             }
         }
     }

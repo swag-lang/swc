@@ -280,9 +280,9 @@ impl ViewerWorkspace
         next.maximized = layout == .Single and paths.count > 1
         next.layout   = next.maximized ? .Auto : layout
         next.compared = compare and paths.count == 2
-        next.linked   = next.compared or paths.count > 1 and layout != .SideBySide and allMedia(.theme(), paths)
         for path in paths do
             next.views.add({path: path[]})
+        next.linked = next.compared or paths.count > 1 and layout != .SideBySide and .allMedia(&next)
         .scenes.addNew()[] = #move next
         .active = .scenes.count - 1
 
@@ -345,20 +345,26 @@ impl ViewerWorkspace
         .showScene()
     }
 
-    mtd updateDocumentPath(document: *ViewerWindow)
+    mtd updateDocumentPath(document: *ViewerWindow, path: string)
     {
         let scene = .scene()
         if not scene do
             return
-        for &view in scene.views where view.document == document and not document.currentFile.isEmpty() do
-            view.path = document.currentFile
-        .tabs.invalidate()
+        for &view in scene.views where view.document == document and view.path != path
+        {
+            view.path      = path
+            view.readState = false
+            .tabs.layoutTabs()
+            return
+        }
     }
 
     mtd suspendScene(capturePreview = true)
     {
         .clearDropHighlight()
         .hoveredDocument = null
+        .mediaPlayKeyDown = false
+        .showMaximizedHint(false)
         .divider.stopDrag()
         .closeSwitcher(choose: false)
         let scene = .scene()
@@ -434,6 +440,8 @@ impl ViewerWorkspace
         previous.concealViewerBar()
         scene.active = index
         .showScene()
+        if .comparisonVisible() and .comparison!.mode == .Flip do
+            .comparison!.showFlippedName()
     }
 
     mtd closeDocument(document: *ViewerWindow)
@@ -534,7 +542,6 @@ impl ViewerWorkspace
         {
             if not scene.maximized do
                 .toggleMaximized()
-            catch .primary.saveState()
             return
         }
         if scene.compared and layout != .SideBySide
@@ -561,6 +568,7 @@ impl ViewerWorkspace
             .closeComparisonSheet()
         .layoutScene()
         .showMaximizedHint(scene.maximized)
+        catch .primary.saveState()
     }
 
     mtd showScene()
@@ -603,8 +611,8 @@ impl ViewerWorkspace
                     view.document.setPosition(.viewRect(scene, index))
                     view.document.layoutFileInfo()
                     view.document.applyLayout()
-                    .updateMediaViewport(view.document)
                 }
+                .updateMediaViewport(view.document)
             }
         }
         else
@@ -618,6 +626,7 @@ impl ViewerWorkspace
         .primary.show(primaryShown)
         .focusDelegate = .activeDocument()
         .refreshCloseFileButton()
+        .updateMedia()
         .tabs.layoutTabs()
         .invalidate()
         .divider.place(.dividerRect())
@@ -625,7 +634,6 @@ impl ViewerWorkspace
         .refreshComparison()
         if .pointerKnown do
             .updateHoveredDocument(.documentAtPointer(.pointerPosition))
-        .updateMedia()
         .comparisonSheet?.refresh()
     }
 
@@ -851,17 +859,4 @@ impl IWnd for ViewerWorkspace
     {
         evt.accepted = .dropFiles(evt)
     }
-}
-
-private func allMedia(theme: *Theme, paths: const [..] String)->bool
-{
-    for path in paths where not isMediaFile(theme, path[]) do
-        return false
-    return true
-}
-
-func isMediaFile(theme: *Theme, path: string)->bool
-{
-    let kind = theme.fileGlyph(path, false).index
-    return kind == cast(s32, ThemeIcons.FileVideo) or kind == cast(s32, ThemeIcons.FileAudio)
 }

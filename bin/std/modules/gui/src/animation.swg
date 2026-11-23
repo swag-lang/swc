@@ -1055,7 +1055,11 @@ impl Animator
     // `travel` is where the picture starts relative to its place: a sheet against the right edge
     // starts a little to the right of it. A surface still fading out arrives from what is on
     // screen rather than from nothing.
-    mtd arrive(target: *Wnd, travel: Math.Point = {})->AnimationHandle
+    mtd arrive(target: *Wnd, travel: Math.Point = {})->AnimationHandle =>
+        .arrive(target, travel, Time.Duration.fromSeconds(target.themeMetrics().motion_PageSeconds), .EaseOut)
+
+    // Shows a floating surface with the supplied duration and easing, respecting reduced motion.
+    mtd arrive(target: *Wnd, travel: Math.Point, duration: Time.Duration, easing: AnimationEasing)->AnimationHandle
     {
         Swag.assert(target != null)
         let opacity = AnimationChannel.from("Gui.Float.Opacity")
@@ -1071,8 +1075,8 @@ impl Animator
         }
 
         var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(target.themeMetrics().motion_PageSeconds)
-        options.easing   = .EaseOut
+        options.duration = duration
+        options.easing   = easing
 
         var group = AnimationGroup.concurrent()
         group.addF32(target, opacity, target.presentationOpacity, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
@@ -1089,7 +1093,11 @@ impl Animator
     //
     // The fade takes [[Gui.ThemeMetrics.motion_LeaveSeconds]], without travel. A hidden window
     // that is not fading is left as it is.
-    mtd leave(target: *Wnd)->AnimationHandle
+    mtd leave(target: *Wnd)->AnimationHandle =>
+        .leave(target, Time.Duration.fromSeconds(target.themeMetrics().motion_LeaveSeconds), .Linear)
+
+    // Hides a floating surface with the supplied duration and easing, respecting reduced motion.
+    mtd leave(target: *Wnd, duration: Time.Duration, easing: AnimationEasing)->AnimationHandle
     {
         Swag.assert(target != null)
         if not target.isLocallyVisible() do
@@ -1099,8 +1107,8 @@ impl Animator
         target.setPaintWhenHidden(true)
 
         var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(target.themeMetrics().motion_LeaveSeconds)
-        options.easing   = .Linear
+        options.duration = duration
+        options.easing   = easing
 
         return .animateF32(target,
                            AnimationChannel.from("Gui.Float.Opacity"),

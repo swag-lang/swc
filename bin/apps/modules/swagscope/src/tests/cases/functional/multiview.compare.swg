@@ -139,8 +139,14 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     let shownRight = comparison.shownRight
     host.keyPress(.Space)
     Swag.require(comparison.shownRight != shownRight and comparison.flipTimer != null)
+    let visible = comparison.shownRight ? 1'u64 : 0'u64
+    let scene = unwrap workspace.scene()
+    Swag.require(scene.active == visible and workspace.closeViewButtons[visible].isVisible())
+    Swag.require(not workspace.closeViewButtons[1 - visible].isVisible())
+    Swag.require(workspace.dropRect(scene, visible).width == workspace.clientRect().width)
+    Swag.require(workspace.dropRect(scene, 1 - visible).isEmpty())
     host.fireTimer(comparison.flipTimer)
-    Swag.require(comparison.flipTimer == null)
+    Swag.require(comparison.flipTimer == null and not workspace.closeViewButtons[visible].isVisible())
 
     host.keyPress(.I)
     let sheet = unwrap workspace.comparisonSheet

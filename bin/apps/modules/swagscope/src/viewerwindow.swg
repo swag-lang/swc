@@ -325,8 +325,13 @@ func reportViewerLoadingChanged(view: *Wnd)
         if comparisonSheet and comparisonSheet.panel.isLocallyVisible() do
             comparisonSheet.refresh()
         .workspace?.updateMediaViewport(window)
-        if .currentView == view do
+        if .currentView == view
+        {
+            if .sceneSlidesPaused and view is Viewers.Picture.Panel do
+                .setPicturePlaying(false)
+            .workspace?.updateMedia()
             .finishReadingRestore()
+        }
     }
 }
 
@@ -1066,6 +1071,11 @@ impl ViewerWindow
         let visible  = commands != null and (not .overlaysViewerBar() or .viewerBarShown)
         .showViewerOverlay(.viewerBar, visible, animate: media and commands != null)
         .layoutCellCaption()
+        defer
+        {
+            if .isWorkspaceActive() do
+                .workspace?.layoutMaximizedHint()
+        }
         if not commands do
             return
 
@@ -1554,7 +1564,10 @@ impl ViewerWindow
             return handled
         }
 
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed or .lens.isOpen() do
+            return false
+        let editing = evt.target is EditBox or .focusedWindow() is EditBox
+        if editing and evt.key != .MediaPlayPause and evt.key != .MediaStop and evt.key != .VolumeMute do
             return false
         if .activeChoiceIndex >= .choices.count do
             return false
@@ -1784,7 +1797,8 @@ impl ViewerWindow
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
-        .surface?.clearFocus()
+        if .isWorkspaceActive() do
+            .surface?.clearFocus()
         if not .explorer do
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
@@ -1796,7 +1810,9 @@ impl ViewerWindow
         .searchBox.setText(.explorer.filter.text(), notify: false)
         .explorer.setShown(true)
         .explorer.navigate(source)
-        .surface?.clearFocus()
+        .workspace?.updateMedia()
+        if .isWorkspaceActive() do
+            .surface?.clearFocus()
         .refreshTitle()
         .applyLayout()
     }

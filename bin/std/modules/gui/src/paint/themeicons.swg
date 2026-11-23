@@ -119,6 +119,9 @@ enum ThemeIcons
     Histogram             // Show or use the distribution of image tones.
     CenterCrop            // Keep a crop centered on the image.
     ZoomLevels            // Choose a magnification from several levels.
+    Grid                  // Arrange views in a grid.
+    Columns               // Arrange two views side by side.
+    Rows                  // Stack two views vertically.
 }
 
 // Extensions read as each kind of file, compared without case.

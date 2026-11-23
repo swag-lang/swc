@@ -507,3 +507,26 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     host.app.sigFrame.clear()
     Swag.require(rendered == 3)
 }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let left  = scopeTestDataPath("viewer.png")
+    let right = scopeTestDataPath("sample.cpp")
+    workspace.openScene([left, right], .SideBySide)
+    openViews(&host, workspace)
+    workspace.selectView(1)
+    let window   = workspace.activeDocument()
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
+    explorer.setShown(true)
+    explorer.entries.add({name: "Notes.txt", path: "Notes.txt", size: 864, attempted: true})
+    addPictured(&host, explorer, "Estuary.png", boardPicture(192, 108, 0x294263, 0x52816A), 1600)
+    showBoard(&host, window, "Research", "Field notes")
+    let rendered = host.renderSettled(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&rendered, "explorer.cell.encre")
+}

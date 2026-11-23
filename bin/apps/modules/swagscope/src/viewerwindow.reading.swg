@@ -179,8 +179,11 @@ impl ViewerWindow
         .trackFolderReading(mode)
         .layoutViewerBar()
         .armSlide()
-        if save do
+        if save
+        {
+            .workspace?.updateMedia()
             catch .saveState()
+        }
     }
 
     mtd setPicturePlaying(playing: bool, restart = false)

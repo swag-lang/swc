@@ -282,7 +282,8 @@ impl ViewerWindow
         .sceneAutoPlay = false
         .captureResume()
         .showPointer()
-        .surface?.clearFocus()
+        if .isWorkspaceActive() or .isAncestorOf(.focusedWindow()) do
+            .surface?.clearFocus()
         .explorerTransition = false
         if .explorer and .explorer.isLocallyVisible()
         {
@@ -954,7 +955,7 @@ impl ViewerWindow
         if not .fileWatchTimer do
             .fileWatchTimer = .addTimer(250'ms)
         .currentFile = #move classified.absoluteFileName
-        .workspace?.updateDocumentPath(me)
+        .workspace?.updateDocumentPath(me, .currentFile)
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
         .folderFiles     = #move classified.folderFiles

@@ -26,6 +26,7 @@ struct AppStrings
     scene_OpenGrid:      string = "Open Files in a Grid…"
     scene_CompareWith:   string = "Compare With…"
     scene_Compare:       string = "Compare"
+    scene_CloseView:     string = "Close View"
     scene_Maximize:      string = "Maximize View"
     scene_RestoreLayout: string = "Restore Layout"
     scene_Curtain:       string = "Curtain"

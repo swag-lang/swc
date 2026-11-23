@@ -226,8 +226,7 @@ impl ViewerWorkspace
             comparison.setPictureMode(.Flip)
 
         case .Space where comparison.mode == .Flip and comparison.kind == .Picture:
-            comparison.shownRight = not comparison.shownRight
-            comparison.showFlippedName()
+            .selectView(comparison.shownRight ? 0 : 1)
 
         default:
             return false

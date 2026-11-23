@@ -30,6 +30,17 @@ func sceneLayoutTitle(layout: SceneLayout)->string
     }
 }
 
+func sceneLayoutIcon(layout: SceneLayout)->ThemeIcons
+{
+    switch #complete layout
+    {
+    case .Single:                       return .FitView
+    case .SideBySide:                   return .Columns
+    case .Stacked:                      return .Rows
+    case .Auto, .Grid2, .Grid3, .Grid4: return .Grid
+    }
+}
+
 func sceneGrid(count: u64)->SceneLayout
 {
     if count <= 4 do
@@ -149,8 +160,7 @@ impl ViewerWindow
             for id, index in SceneCommands.Layouts where id == evt.id
             {
                 let layout = SceneCommands.LayoutValues[index]
-                icon = layout == .Single ? .FitView :
-                       (layout == .SideBySide or layout == .Stacked ? .Duplicate : .SelectAll)
+                icon      = sceneLayoutIcon(layout)
                 name      = sceneLayoutTitle(layout)
                 hidden    = not scene or scene.views.count < 2
                 disabled  = scene and not scene.supportsLayout(layout)

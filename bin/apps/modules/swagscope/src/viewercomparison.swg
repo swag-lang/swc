@@ -171,14 +171,19 @@ impl SceneComparison
         .mode = mode
         if mode == .Flip do
             .showFlippedName()
+        else do
+            .stopTimer(&.flipTimer)
         .refresh()
+        .workspace.layoutCloseViewButtons()
         catch .workspace.primary.saveState()
     }
 
     mtd showFlippedName()
     {
         .stopTimer(&.flipTimer)
-        .flipTimer = .addTimer(1100'ms)
+        .shownRight = .workspace.scene()!.active == 1
+        .flipTimer = .addTimer(ViewerWindow.ViewerBarLinger)
+        .workspace.layoutCloseViewButtons()
         .invalidate()
     }
 
@@ -403,6 +408,7 @@ impl IWnd for SceneComparison
         }
 
         .stopTimer(&.flipTimer)
+        .workspace.layoutCloseViewButtons()
         .invalidate()
     }
 

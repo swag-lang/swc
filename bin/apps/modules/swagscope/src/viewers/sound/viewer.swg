@@ -215,7 +215,6 @@ struct WaveformView
     duration:   f32
     sceneStart: f32
     sceneSpan:  f32
-    sceneSeek:  (func||(f32))?
     progress:   f32          // Played fraction, from 0 to 1.
     loopStart:  f32 = -1     // Fraction where the looped passage starts, negative without one.
     loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
@@ -373,7 +372,7 @@ private impl IWnd for WaveformView
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let room    = .clientRect()
-        let bars    = Math.Rectangle{room.x, room.y, room.width, WaveHeight}
+        let bars    = Math.Rectangle{room.x, room.y, room.width, Math.min(room.height, WaveHeight)}
         let center  = bars.vertCenter()
         let count   = .barCount()
         let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
@@ -417,7 +416,7 @@ private impl IWnd for WaveformView
                     level = Math.max(level, .samples[index].peak)
 
                 // A quiet slice still stands as a dot, so the row reads as one wave.
-                let height = Math.max(level * WaveHeight, BarWidth)
+                let height = Math.max(level * bars.height, BarWidth)
                 let x      = bars.x + cast(f32, bar) * (BarWidth + BarGap)
                 let color  = cast(f32, bar) < played ? colors.arc : colors.strongLine
                 painter.fillRoundRect(Math.Rectangle{x, center - height * 0.5, BarWidth, height}, BarWidth * 0.5, BarWidth * 0.5, color)
@@ -436,10 +435,8 @@ private impl IWnd for WaveformView
 
         let x = .surfaceToLocal(evt.surfacePos).x
         let fraction = Math.clamp(x / Math.max(.clientRect().width, 1), 0, 1)
-        if .sceneSpan > 0 and .sceneSeek do
-            .sceneSeek(.sceneStart + fraction * .sceneSpan)
-        else do
-            .panel.seekSeconds(fraction * .duration)
+        let seconds = .sceneSpan > 0 ? .sceneStart + fraction * .sceneSpan : fraction * .duration
+        .panel.jumpTo(seconds)
     }
 }
 
@@ -500,6 +497,7 @@ struct Panel
     sceneStop:         (func||()->bool)?
     silentOrigin:      f32
     silentClock:       Time.Stopwatch
+    sceneSeek:         (func||(f32))?
     keepPlayingHidden: bool
     muted:        bool
     volume:       f32 = 1
@@ -643,12 +641,13 @@ impl Panel
     //
     // The wave keeps to the foot of the page and the name never runs into it: a short window
     // gives up the air above the cover first.
-    mtd pageLayout()->{cover: Math.Rectangle, titleTop: f32, waveTop: f32}
+    mtd pageLayout()->{cover: Math.Rectangle, titleTop: f32, titleSize: u32, showCredits: bool, wave: Math.Rectangle}
     {
         let room  = .clientRect()
         let theme = .theme()
+        let hasCredits = not .credits().isEmpty()
         var words = TitleGap + theme.createDefaultFont(TitleSize, .Bold).height
-        if not .credits().isEmpty() do
+        if hasCredits do
             words += CreditGap + theme.createDefaultFont(CreditSize).height
 
         let wave  = WaveHeight + TimesGap + TimesHeight
@@ -656,18 +655,42 @@ impl Panel
         let spare = room.height - strip - CoverSize - words - WaveGap - wave - WaveBottom
 
         var result: #returntype
-        result.cover    = {Math.round((room.width - CoverSize) * 0.5), strip + Math.clamp(spare, MinCoverTop, CoverTop), CoverSize, CoverSize}
-        result.titleTop = result.cover.bottom() + TitleGap
-        result.waveTop  = Math.max(room.height - WaveBottom - wave, result.cover.bottom() + words + WaveGap)
+        result.titleSize   = TitleSize
+        result.showCredits = hasCredits
+        var side   = CoverSize
+        var top    = strip + Math.clamp(spare, MinCoverTop, CoverTop)
+        var gap    = TitleGap
+        var inset  = 48'f32
+        var height = wave
+        var waveY  = Math.max(room.height - WaveBottom - wave, top + side + words + WaveGap)
+        if waveY + WaveHeight > room.bottom()
+        {
+            let available = Math.max(0, room.height - strip)
+            gap    = Math.min(.themeMetrics().miniBar_Distance, available * 0.08)
+            inset  = .themeMetrics().floating_Inset
+            height = Math.min(WaveHeight, available * 0.28)
+            waveY  = room.bottom() - gap - height
+            let smallTitle = cast(f32, .themeMetrics().defaultFontSize + 2)
+            result.titleSize   = cast(u32, Math.clamp(Math.round(available * 0.075), smallTitle, cast(f32, TitleSize)))
+            result.showCredits = result.showCredits and available >= CoverSize
+            words = theme.createDefaultFont(result.titleSize, .Bold).height
+            if result.showCredits do
+                words += CreditGap + theme.createDefaultFont(CreditSize).height
+            side = Math.max(0, Math.min(Math.min(CoverSize, room.width - 2 * inset), waveY - strip - words - 3 * gap))
+            top  = strip + (waveY - strip - side - words - gap) * 0.5
+        }
+
+        result.cover    = {Math.round((room.width - side) * 0.5), top, side, side}
+        result.titleTop = result.cover.bottom() + gap
+        let width       = Math.min(WaveWidth, Math.max(room.width - 2 * inset, 1))
+        result.wave     = {Math.round((room.width - width) * 0.5), waveY, width, Math.min(height, Math.max(0, room.bottom() - waveY))}
         return result
     }
 
     // Places the wave across the lower part of the page.
     mtd arrangeWave()
     {
-        let room  = .clientRect()
-        let width = Math.min(WaveWidth, Math.max(room.width - 2 * 48, 1))
-        .waveform.setPosition(Math.Rectangle{Math.round((room.width - width) * 0.5), .pageLayout().waveTop, width, WaveHeight + TimesGap + TimesHeight})
+        .waveform.setPosition(.pageLayout().wave)
     }
 
     mtd retranslate()
@@ -943,7 +966,7 @@ impl Panel
         if .forwardHistory.count >= 128 do
             .forwardHistory.removeAtOrdered(0)
         .forwardHistory.add(.playbackPosition())
-        .seekSeconds(.backHistory.popBack(), remember: false)
+        .jumpTo(.backHistory.popBack(), remember: false)
     }
 
     mtd navigateForward()
@@ -953,7 +976,7 @@ impl Panel
         if .backHistory.count >= 128 do
             .backHistory.removeAtOrdered(0)
         .backHistory.add(.playbackPosition())
-        .seekSeconds(.forwardHistory.popBack(), remember: false)
+        .jumpTo(.forwardHistory.popBack(), remember: false)
     }
 
     // Drops cue entries that do not belong to the decoded recording's audible timeline.
@@ -989,7 +1012,7 @@ impl Panel
     mtd seekLandmark(index: u64)
     {
         if index < .landmarks.count do
-            .seekSeconds(.landmarks[index].seconds)
+            .jumpTo(.landmarks[index].seconds)
     }
 
     mtd seekPreviousLandmark()
@@ -1059,7 +1082,7 @@ impl Panel
                 return false
             }
 
-            view.seekSeconds(cast(f32, target))
+            view.jumpTo(cast(f32, target))
             return true
         }
 
@@ -1087,7 +1110,7 @@ impl Panel
             let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), cast(f64, .elapsed), cast(f64, .duration)) : -1
             if target >= 0
             {
-                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.seekSeconds(cast(f32, target)) })
+                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.jumpTo(cast(f32, target)) })
                 return
             }
         }
@@ -1211,7 +1234,15 @@ impl Panel
         return .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
     }
 
-    mtd seekRelative(seconds: f32) => .seekSeconds(.playbackPosition() + seconds)
+    // User navigation follows a linked clock. Internal seeks and loop restarts stay local.
+    mtd jumpTo(seconds: f32, remember = true)
+    {
+        .seekSeconds(seconds, remember)
+        if .sceneSeek do
+            .sceneSeek(seconds)
+    }
+
+    mtd seekRelative(seconds: f32) => .jumpTo(.playbackPosition() + seconds)
 
     mtd setSceneSilent(silent: bool)
     {
@@ -1455,16 +1486,17 @@ impl IWnd for Panel
             painter.fillCircle(center.x, center.y, 5, colors.softText)
         }
 
-        let titleFont = .theme().createDefaultFont(TitleSize, .Bold)
-        let title     = .title()
+        let titleFont = .theme().createDefaultFont(layout.titleSize, .Bold)
+        let textWidth = Math.max(0, room.width - 2 * .themeMetrics().floating_Inset)
+        let title     = Painter.elideString(.title(), titleFont, textWidth, .deviceScale())
         var y         = layout.titleTop
         painter.drawString(Math.round((room.width - Painter.measureString(title, titleFont).width) * 0.5), y, title, titleFont, colors.text)
         y += titleFont.height + CreditGap
 
-        let credits = .credits()
-        if not credits.isEmpty()
+        if layout.showCredits
         {
-            let font = .theme().createDefaultFont(CreditSize)
+            let font    = .theme().createDefaultFont(CreditSize)
+            let credits = Painter.elideString(.credits(), font, textWidth, .deviceScale())
             painter.drawString(Math.round((room.width - Painter.measureString(credits, font).width) * 0.5), y, credits, font, colors.softText)
         }
     }
@@ -1510,7 +1542,7 @@ impl IWnd for Panel
         case .M, .VolumeMute:         .setMuted(not .muted)
         case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
         case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
-        case .Home:                   .seekSeconds(0)
+        case .Home:                   .jumpTo(0)
         case .Oem4:                   .setLoopStart()
         case .Oem6:                   .setLoopEnd()
         case .MediaStop:              .requestPlaybackStop()
@@ -1603,7 +1635,7 @@ impl Panel
             .margin    = {12, 0, 12, 8}
             .toolTip   = texts().ui_TipSeek
             .enable(false)
-            .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }
+            .sigEndChange += func|view = me|(slider) { view.jumpTo(slider.value()) }
         }
 
         .timeLabel.sendToBack()
@@ -1632,7 +1664,12 @@ impl Panel
             if evt is ResizeEvent
             {
                 let width = view.commands.position.width
-                view.playModeButton.show(width >= 640)
+                let action = view.playButton.position.width
+                let pair   = action + view.playModeButton.position.width + view.playModeButton.margin.x
+                let sound  = pair + view.muteButton.position.width + view.muteButton.margin.x
+                view.timeLabel.show(width >= sound + view.timeLabel.position.width + view.timeLabel.margin.x)
+                view.muteButton.show(width >= sound)
+                view.playModeButton.show(width >= pair)
                 view.volumeSlider.show(width >= 580)
                 view.stopButton.show(width >= 520)
                 view.backwardButton.show(width >= 520)

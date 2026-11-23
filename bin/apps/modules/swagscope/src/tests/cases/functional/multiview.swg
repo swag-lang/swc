@@ -373,6 +373,59 @@ using Core, Gui, Pixel, Audio
     Swag.require(not workspace.mediaLinks.isLocallyVisible() and workspace.closeFileButton.isLocallyVisible())
 }
 
+// The viewer registry also governs group playback for formats without a media glyph.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let file = expect videoPreviewFileAt(Testing.tempFilePath("scope-mixed-chrome-", ".y4m"), 32)
+    defer catch File.delete(file)
+    let text = scopeTestDataPath("comprehensive.txt")
+    workspace.openScene([file, text], .SideBySide)
+    openViews(&host, workspace)
+
+    let document = workspace.activeDocument()
+    let film = unwrap ScenePlayer.from(document).film
+    Swag.require(film.hasFrame and not film.playing and not film.autoPlayPending)
+    Swag.require(workspace.mediaPlayPause.isLocallyVisible() and not workspace.mediaLinks.isLocallyVisible())
+    let edit = EditBox.create(document, "Find", {16, 16, 120, 28})
+    edit.setFocus()
+    let muted = film.muted
+    Swag.require(edit.hasFocus())
+    host.keyPress(.Space)
+    Swag.require(not film.playing)
+    host.keyPress(.M)
+    Swag.require(film.muted == muted)
+    host.keyPress(.F)
+    Swag.require(not workspace.scene()!.maximized and edit.hasFocus())
+    host.keyPress(.MediaPlayPause)
+    Swag.require(film.playing and edit.hasFocus())
+    host.keyPress(.MediaStop)
+    Swag.require(not film.playing and edit.hasFocus())
+    edit.hide()
+    document.setFocus()
+    Swag.require(document.runCommand(MediaCommands.Play) and film.playing)
+    Swag.require(document.runCommand(MediaCommands.Stop) and not film.playing)
+    pinVideoFrame(film, 0)
+
+    let bounds = film.imageView.surfaceRect()
+    let sample = Math.Point{bounds.horzCenter(), bounds.y + bounds.height * 0.32}
+    document.concealViewerBar()
+    let rest = host.renderSettled(&host.surfaceWnd).pixelColor(cast(s32, sample.x), cast(s32, sample.y))
+    document.revealViewerBar()
+    let shown = host.renderSettled(&host.surfaceWnd).pixelColor(cast(s32, sample.x), cast(s32, sample.y))
+    Swag.require(shown == rest and film.imageView.surfaceRect() == bounds)
+
+    Swag.require(document.runCommand(SceneCommands.Layouts[0]))
+    Swag.require(workspace.activeDocument() == document and film.imageView.surfaceRect().width > bounds.width)
+    host.keyPress(.Escape)
+    Swag.require(film.imageView.surfaceRect() == bounds)
+    workspace.closeView(1)
+    Swag.require(workspace.activeDocument() == document and document.currentView == film)
+    Swag.require(not workspace.mediaPlayPause.isLocallyVisible() and film.frameIndex == 0 and not film.playing)
+}
+
 // Group commands work in a mixed grid and leave the per-view modes editable.
 #test
 {
@@ -497,4 +550,48 @@ using Core, Gui, Pixel, Audio
     workspace.playScene()
     Swag.require(first.playing and first.voice != null and not first.sceneSilent)
     Swag.require(second.playing and second.sceneSilent and second.voice == null)
+}
+
+// Moving between maximized cells changes which track is audible even while its peers are hidden.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.wav"), scopeTestDataPath("pacman_beginning.wav"),
+                         scopeTestDataPath("viewer.png")], .Grid2)
+    openViews(&host, workspace)
+    let scene  = unwrap workspace.scene()
+    let first  = unwrap ScenePlayer.from(scene.views[0].document).sound
+    let second = unwrap ScenePlayer.from(scene.views[1].document).sound
+    workspace.setScenePlaying(true)
+    host.keyPress(.F)
+    host.keyPress(.Right, .Alt)
+    Swag.require(scene.maximized and scene.active == 1)
+    Swag.require(first.playing and first.sceneSilent and not (first.voice?.isPlaying() orelse false))
+    Swag.require(second.playing and not second.sceneSilent and second.voice != null)
+    let document = workspace.activeDocument()
+    Swag.require(workspace.maxHint!.surfaceRect().bottom() <= document.viewerBar.surfaceRect().y)
+    host.keyPress(.Escape)
+    Swag.require(not scene.maximized and first.playing and second.playing)
+}
+
+// Still pictures offer a folder play mode at rest and gain transport as soon as it can run.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.png"), scopeTestDataPath("title.png")], .SideBySide)
+    openViews(&host, workspace)
+    let document = workspace.activeDocument()
+    Swag.require(workspace.hasViewLinks() and workspace.canLinkFraming())
+    Swag.require(workspace.hasSceneTransport() and not workspace.canPlayScene())
+    Swag.require(not workspace.mediaTimer and not workspace.mediaPlayPause.isVisible())
+    Swag.require(document.runCommand(MediaCommands.PlayModes[2]))
+    Swag.require(workspace.canPlayScene() and workspace.mediaTimer and workspace.mediaPlayPause.isVisible())
+    Swag.require(document.runCommand(MediaCommands.PlayModes[0]))
+    Swag.require(not workspace.mediaPlayPause.isVisible() and not workspace.mediaTimer)
 }

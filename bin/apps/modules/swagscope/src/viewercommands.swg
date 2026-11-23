@@ -703,7 +703,8 @@ impl ViewerWindow
             hidden = not .canReturnToExplorer()
 
         case ViewerCommands.Close:
-            name   = texts.ui_CloseFile
+            let views = .workspace?.documentCount() orelse 0
+            name   = views > 1 or (exploring and views > 0) ? texts.scene_CloseView : texts.ui_CloseFile
             icon   = .commandGlyph(.WndClose)
             hidden = not hasFile and not exploring
 

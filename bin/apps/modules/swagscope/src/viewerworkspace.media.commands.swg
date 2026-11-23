@@ -114,13 +114,13 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or scene.views.count < 2 or source is EditBox or .activeDocument().lens.isOpen() do
             return false
-        if evt.modifiers == .None and evt.key == .L
+        if evt.modifiers == .None and evt.key == .L and .hasViewLinks()
         {
             .setSceneLink(MediaCommands.Linked, not scene.linked)
             return true
         }
 
-        let groupToggle = evt.modifiers == .Shift and evt.key == .Space and .hasSceneTransport()
+        let groupToggle = evt.modifiers == .Shift and evt.key == .Space and .canPlayScene()
         let linkedToggle = evt.modifiers == .None and
                            (evt.key == .Space or evt.key == .MediaPlayPause) and
                            .usesLinkedTransport(scene)
@@ -209,24 +209,25 @@ impl ViewerWindow
         {
         case MediaCommands.Transport:
             name      = text.scene_Controls
-            icon      = .Options
+            icon      = .Grid
             hidden    = not scene or scene.views.count < 2
             checkable = false
 
         case MediaCommands.Links:
-            name      = text.scene_Links
+            name      = workspace.isMediaScene() ? text.scene_Links : text.scene_ViewLinks
+            hidden    = not workspace.hasViewLinks()
             checkable = false
 
         case MediaCommands.Play, MediaCommands.Pause, MediaCommands.Stop:
             name      = evt.id == MediaCommands.Play ? text.scene_Play : (evt.id == MediaCommands.Pause ? text.scene_Pause : text.scene_Stop)
             icon      = evt.id == MediaCommands.Play ? .Play : (evt.id == MediaCommands.Pause ? .Pause : .Stop)
-            hidden    = not workspace.hasSceneTransport()
+            hidden    = not workspace.canPlayScene()
             checkable = false
 
         case MediaCommands.Linked:
             name    = text.scene_Linked
             checked = scene and scene.linked
-            hidden  = not scene or scene.views.count < 2
+            hidden  = not workspace.hasViewLinks()
 
         case MediaCommands.Time:
             icon    = .GoTo
@@ -242,13 +243,13 @@ impl ViewerWindow
             icon    = .FitView
             name    = text.scene_LinkFraming
             checked = scene and scene.links.framing
-            hidden  = not scene or scene.views.count < 2
+            hidden  = not scene or scene.views.count < 2 or not workspace.canLinkFraming()
 
         case MediaCommands.Scroll:
             icon    = .LineNumbers
             name    = text.scene_LinkScroll
             checked = scene and scene.links.scroll
-            hidden  = not scene or scene.views.count < 2
+            hidden  = not scene or scene.views.count < 2 or not workspace.canLinkScroll()
 
         case MediaCommands.AlignHere:
             icon      = .GoTo
@@ -319,15 +320,15 @@ impl ViewerWindow
             workspace.showMediaTransport()
 
         case MediaCommands.Links:
-            if workspace.isMediaScene() do
+            if workspace.hasViewLinks() do
                 workspace.showMediaLinks()
 
         case MediaCommands.Play, MediaCommands.Pause:
-            if workspace.hasSceneTransport() do
+            if workspace.canPlayScene() do
                 workspace.setScenePlaying(id == MediaCommands.Play)
 
         case MediaCommands.Stop:
-            if workspace.hasSceneTransport() do
+            if workspace.canPlayScene() do
                 workspace.stopScene()
 
         case MediaCommands.Linked:

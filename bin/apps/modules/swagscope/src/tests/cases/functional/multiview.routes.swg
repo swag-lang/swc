@@ -112,6 +112,10 @@ using Core, Gui, Audio
     var close = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.vertCenter()})
     host.surface.surfaceToScreen(&close)
     Swag.require(tabs.showsClose(workspace.active))
+    var above = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.y + 1})
+    host.surface.surfaceToScreen(&above)
+    host.click(above)
+    Swag.require(workspace.scenes.count == 3)
     host.click(close)
     Swag.require(workspace.scenes.count == 2)
 }
@@ -341,6 +345,7 @@ using Core, Gui, Audio
 
     host.keyPress(.F)
     Swag.require(scene.maximized and not scene.views[1].document!.isLocallyVisible())
+    Swag.require(workspace.maxHint!.surfaceRect().bottom() <= workspace.activeDocument().readingLine.surfaceRect().y)
     host.keyPress(.Right, .Alt)
     Swag.require(scene.active == 1 and scene.views[1].document!.isLocallyVisible())
     host.keyPress(.Escape)

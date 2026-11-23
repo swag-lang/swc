@@ -251,3 +251,31 @@ func scopedAlignmentWave(path: string, delay: u32)
     other.pdfView.showPage(2)
     Swag.require(first.pdfView.pageIndex == 2)
 }
+
+// The waveform and transport seek the same linked clock in either orientation.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth, height: 480)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("pacman_beginning.wav"), scopeTestDataPath("viewer.wav")], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let first = unwrap ScenePlayer.from(scene.views[0].document).sound
+    let other = unwrap ScenePlayer.from(scene.views[1].document).sound
+    workspace.setSceneLink(MediaCommands.Linked, true)
+    first.timeline.setValueWithoutGesture(0.25)
+    first.timeline.sigEndChange.call(first.timeline)
+    Swag.require(Math.abs(other.playbackPosition() - 0.25) < 0.02)
+    first.jumpTo(0)
+    host.clickWnd(first.waveform)
+    Swag.require(other.playbackPosition() > 0.1)
+
+    workspace.setLayout(.Grid4)
+    let layout = first.pageLayout()
+    Swag.require(layout.cover.y >= 0 and layout.cover.bottom() <= layout.titleTop)
+    Swag.require(first.waveform.position.bottom() <= first.clientRect().bottom())
+    Swag.require(first.playModeButton.isLocallyVisible() and first.playButton.position.right() <= first.playModeButton.position.x)
+}

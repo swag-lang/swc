@@ -17,12 +17,14 @@ Reading and inspecting Word documents in DOCX format.
 ### app.scope.docx.002 — DOCX footnotes lose their authored placement
 
 - Evidence: referenced footnotes are read from a bounded optional part, retain basic run emphasis,
-  and appear in first-reference order in an appendix. Their page/section placement and navigation
-  back to the reference are not preserved; endnotes are not read.
-- Next: add Word-authored footnote and endnote fixtures with repeated references, different
-  placements and a missing ID; implement navigable placement in the document flow.
-- Done when: every supported note marker navigates to its note and back, notes appear at the
-  authored page or section location, and unsupported or unresolved notes have a visible marker.
+  and appear in first-reference order in an appendix. Every marker, including repeated references,
+  opens the note and the note links back to each marker. Authored page/section placement is flattened;
+  endnotes are not read.
+- Next: add Word-authored footnote/endnote fixtures with different page/section placements and a
+  missing ID; implement endnotes and place supported notes in the document flow.
+- Done when: supported footnotes and endnotes appear at their authored page or section location,
+  each marker opens its note and each note returns to the selected marker, and unsupported or
+  unresolved notes have a visible marker.
 - Related: app.scope.viewers.009
 
 ### app.scope.docx.003 — DOCX comments are detached from their text ranges

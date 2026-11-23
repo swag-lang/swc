@@ -19,6 +19,7 @@ using Core, Gui, Viewers
     Swag.require(Docx.texts().ui_SectionLayoutSimplified == " · certaines mises en page de section sont simplifiées")
     Swag.require(Docx.texts().ui_FootnotesTitle == "Notes de bas de page")
     Swag.require(Docx.texts().ui_FootnoteOmitted == "[Note de bas de page non affichée]")
+    Swag.require(Docx.texts().ui_FootnoteReturn == "Retour à la référence %")
     Swag.require(Docx.texts().ui_CommentsTitle == "Commentaires")
     Swag.require(Docx.texts().ui_CommentOmitted == "[Commentaire non affiché]")
     Swag.require(Docx.texts().ui_CommentReturn == "Retour au passage commenté")

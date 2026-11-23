@@ -102,9 +102,9 @@ using Core, Viewers
     Swag.require(catalog.lookup("1").found and catalog.lookup("2").found)
 
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.footnotes.docx"))
-    Swag.require(Utf8.contains(document.html, "Opening <sup>2</sup> middle <sup>1</sup> ending."))
-    Swag.require(Utf8.contains(document.html, "<section><h2>Footnotes</h2><div><sup>2</sup><p>Second note appears first.</p></div>"))
-    Swag.require(Utf8.contains(document.html, "<div><sup>1</sup><p>First &amp; safely &lt;escaped&gt;&emsp;text.</p><p>A second note paragraph.</p></div></section>"))
+    Swag.require(Utf8.contains(document.html, "Opening <sup id=\"docx-footnote-ref-1\"><a href=\"#docx-footnote-2\">2</a></sup> middle <sup id=\"docx-footnote-ref-2\"><a href=\"#docx-footnote-1\">1</a></sup> ending <sup id=\"docx-footnote-ref-3\"><a href=\"#docx-footnote-2\">2</a></sup>again."))
+    Swag.require(Utf8.contains(document.html, "<section><h2>Footnotes</h2><div id=\"docx-footnote-2\"><sup>2</sup><p>Second note appears first.</p><p><a href=\"#docx-footnote-ref-1\">Return to reference 1</a></p><p><a href=\"#docx-footnote-ref-3\">Return to reference 2</a></p></div>"), document.html)
+    Swag.require(Utf8.contains(document.html, "<div id=\"docx-footnote-1\"><sup>1</sup><p>First &amp; safely &lt;escaped&gt;&emsp;text.</p><p>A second note paragraph.</p><p><a href=\"#docx-footnote-ref-2\">Return to reference 1</a></p></div></section>"))
     Swag.require(not document.footnotesSimplified)
 }
 

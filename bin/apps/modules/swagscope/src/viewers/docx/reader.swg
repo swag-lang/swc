@@ -22,62 +22,65 @@ private func bookmarkFragment(name: string)->String
 // A paragraph and its formatted runs are assembled before their HTML tags are chosen.
 private struct Reader
 {
-    document:              Document
-    images:                Package.ImageCatalog
-    numbering:             NumberingCatalog
-    footnotes:             FootnoteCatalog
-    comments:              CommentCatalog
-    sectionLayout:         PageLayout
-    sectionHtml:           String
-    sectionBreak:          String
-    paragraph:             String
-    run:                   String
-    styles:                StyleCatalog
-    theme:                 Package.OfficeTheme
-    paragraphId:           String
-    characterId:           String
-    directParagraph:       ParagraphFormat
-    paragraphFormat:       ParagraphFormat
-    baseRun:               RunFormat
-    directRun:             RunFormat
-    paragraphReady:        bool
-    inBody:                bool
-    inParagraph:           bool
-    inParagraphProperties: bool
-    inRun:                 bool
-    inRunProperties:       bool
-    inText:                bool
-    inImage:               bool
-    inSectionProperties:   bool
-    inCellProperties:      bool
-    cellTagOpen:           bool
-    cellWidthSet:          bool
-    cellAlignmentSet:      bool
-    cellStyle:             String
-    imageId:               String
-    imageDescription:      String
-    imageWidth:            u32
-    imageHeight:           u32
-    headerId:              String
-    footerId:              String
-    paragraphNumId:        String
-    paragraphNumLevel:     u8
-    inNumberProperties:    bool
-    paragraphEndsSection:  bool
-    openListIds:           Array'String
-    openListLevels:        Array'u8
-    openListTags:          Array'String
-    numberingLimited:      bool
-    paragraphHasNumPr:     bool
-    footnoteReferences:    Array'String
-    footnotesLimited:      bool
-    commentReferences:     Array'String
-    commentRangeStarts:    Array's32
-    commentRangeEnds:      Array's32
-    commentsLimited:       bool
-    bookmarkNames:         Array'String
-    bookmarkReferences:    Array'String
-    hyperlinkOpen:         bool
+    document:                 Document
+    images:                   Package.ImageCatalog
+    numbering:                NumberingCatalog
+    footnotes:                FootnoteCatalog
+    comments:                 CommentCatalog
+    sectionLayout:            PageLayout
+    sectionHtml:              String
+    sectionBreak:             String
+    paragraph:                String
+    run:                      String
+    styles:                   StyleCatalog
+    theme:                    Package.OfficeTheme
+    paragraphId:              String
+    characterId:              String
+    directParagraph:          ParagraphFormat
+    paragraphFormat:          ParagraphFormat
+    baseRun:                  RunFormat
+    directRun:                RunFormat
+    paragraphReady:           bool
+    inBody:                   bool
+    inParagraph:              bool
+    inParagraphProperties:    bool
+    inRun:                    bool
+    inRunProperties:          bool
+    inText:                   bool
+    inImage:                  bool
+    inSectionProperties:      bool
+    inCellProperties:         bool
+    cellTagOpen:              bool
+    cellWidthSet:             bool
+    cellAlignmentSet:         bool
+    cellStyle:                String
+    imageId:                  String
+    imageDescription:         String
+    imageWidth:               u32
+    imageHeight:              u32
+    headerId:                 String
+    footerId:                 String
+    paragraphNumId:           String
+    paragraphNumLevel:        u8
+    inNumberProperties:       bool
+    paragraphEndsSection:     bool
+    openListIds:              Array'String
+    openListLevels:           Array'u8
+    openListTags:             Array'String
+    numberingLimited:         bool
+    paragraphHasNumPr:        bool
+    footnoteReferences:       Array'String
+    footnoteReferenceTargets: Array'String
+    footnoteReferenceAnchors: Array'String
+    footnoteReferenceSerial:  u64
+    footnotesLimited:         bool
+    commentReferences:        Array'String
+    commentRangeStarts:       Array's32
+    commentRangeEnds:         Array's32
+    commentsLimited:          bool
+    bookmarkNames:            Array'String
+    bookmarkReferences:       Array'String
+    hyperlinkOpen:            bool
 }
 
 private impl Reader
@@ -204,11 +207,11 @@ private impl Reader
 
         let id   = Format.toString("%", numericId)
         let note = .footnotes.lookup(id.toString())
-        .appendInline("<sup>")
-        .appendInline(id.toString())
-        .appendInline("</sup>")
         if not note.found
         {
+            .appendInline("<sup>")
+            .appendInline(id.toString())
+            .appendInline("</sup>")
             .appendInline(texts().ui_FootnoteOmitted)
             .document.footnotesSimplified = true
             return
@@ -216,9 +219,36 @@ private impl Reader
 
         if note.limited or .footnotesLimited do
             .document.footnotesSimplified = true
-        for reference in .footnoteReferences where reference == id do
+        var known = false
+        for reference in .footnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0 do
+            known = true
+        var referenceOmitted = false
+        if not known and .footnoteReferences.count < 4096
+        {
+            .footnoteReferences.add(id)
+        }
+        elif not known
+        {
+            .document.footnotesSimplified = true
+            referenceOmitted = true
+        }
+
+        if .footnoteReferenceSerial >= 4096 or referenceOmitted
+        {
+            .appendInline("<sup>")
+            .appendInline(id.toString())
+            .appendInline("</sup>")
+            .document.footnotesSimplified = true
             return
-        .footnoteReferences.add(id)
+        }
+
+        .footnoteReferenceSerial += 1
+        let anchor = Format.toString("docx-footnote-ref-%", .footnoteReferenceSerial)
+        .footnoteReferenceTargets.add(id)
+        .footnoteReferenceAnchors.add(anchor)
+        .appendInline(Format.toString("<sup id=\"%\"><a href=\"#docx-footnote-%\">", anchor, id))
+        .appendInline(id.toString())
+        .appendInline("</a></sup>")
     }
 
     mtd readCommentReference(token: const *Package.Token)
@@ -386,10 +416,21 @@ private impl Reader
 
             if note.limited or .footnotesLimited do
                 .document.footnotesSimplified = true
-            result += "<div><sup>"
+            result += Format.toString("<div id=\"docx-footnote-%\"><sup>", id)
             Package.appendHtmlEscaped(&result, id.toString())
             result += "</sup>"
             result += note.html
+            var returnNumber = 0'u32
+            for target, index in .footnoteReferenceTargets
+            {
+                if Utf8.compare(target.toString(), id.toString()) != 0 do
+                    continue
+                returnNumber += 1
+                result       += Format.toString("<p><a href=\"#%\">", .footnoteReferenceAnchors[index])
+                result       += Format.toString(texts().ui_FootnoteReturn, returnNumber)
+                result       += "</a></p>"
+            }
+
             result += "</div>"
         }
 

@@ -19,6 +19,7 @@ struct Texts
     ui_SectionLayoutSimplified: string = " · some section layouts simplified"
     ui_FootnotesTitle:          string = "Footnotes"
     ui_FootnoteOmitted:         string = "[Footnote not shown]"
+    ui_FootnoteReturn:          string = "Return to reference %"
     ui_FootnotesSimplified:     string = " · some footnotes simplified"
     ui_CommentsTitle:           string = "Comments"
     ui_CommentOmitted:          string = "[Comment not shown]"

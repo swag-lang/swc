@@ -31,12 +31,12 @@ and [std.gui.md](std.gui.md).
 
 - Evidence: Basic text exposes wrap on/off, zoom and the tab stops. Basic text and Code place a tab
   stop every 2, 4 or 8 spaces, chosen in the lens when a query is typed and, for basic text, in its
-  options; the choice follows the reader from file to file within a session but is not saved and
-  is not read from the file or an `.editorconfig`. Wrapped lines follow the viewport rather than a
-  chosen column, and there is no column ruler,
+  options. Each viewer's choice now persists through window state, with unsupported stored widths
+  reset to four spaces. Width is not read from the file or an `.editorconfig`. Wrapped lines follow
+  the viewport rather than a chosen column, and there is no column ruler,
   horizontal guide, line-spacing choice, or explicit fixed-font identity to explain alignment.
-- Next: define presentation-only text layout settings shared with Code, keeping every source
-  position independent of visual lines and glyph metrics.
+- Next: define presentation-only wrap-column, line-spacing, font, and ruler settings shared with
+  Code, keeping every source position independent of visual lines and glyph metrics.
 - Done when: tab width, viewport versus fixed-column wrapping, wrap column, line spacing, font,
   and optional column ruler can be inspected and changed; invalid or mixed tabs remain diagnosable;
   horizontal scrolling is stable with wrap off; settings persist through app.scope.viewers.003;

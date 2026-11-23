@@ -14,6 +14,13 @@ private var g_Blanks: bool
 // Width of a tab stop in basic text, in spaces. The choice follows the reader from file to file.
 private var g_TabWidth: s32 = 4
 
+internal func defaultTabWidth()->s32 => g_TabWidth
+
+internal func setDefaultTabWidth(width: s32)
+{
+    g_TabWidth = width == 2 or width == 4 or width == 8 ? width : 4
+}
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -1239,6 +1246,8 @@ impl Panel
     // Sets the tab stops of the text every `width` spaces.
     mtd setTabWidth(width: s32)
     {
+        if width != 2 and width != 4 and width != 8 do
+            return
         .tabWidth  = width
         g_TabWidth = width
         .updateWrap()

@@ -29,6 +29,20 @@ internal func saveViewerState(window: *ViewerWindow, legacyViewer = false)->Stri
     return result.toString()
 }
 
+internal func saveViewerTabWidthState(textWidth, codeWidth: s32)->String
+{
+    var result:     ConcatBuffer
+    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var serializer: Serialization.Serializer
+    expect serializer.startWrite(&encoder, &result)
+    expect serializer.beginSection(.Unordered)
+    expect serializer.serialize("ViewerWindow.textTabWidth", &textWidth)
+    expect serializer.serialize("ViewerWindow.codeTabWidth", &codeWidth)
+    expect serializer.endSection()
+    expect serializer.end()
+    return result.toString()
+}
+
 // Reports whether the lens of `window` shows an entry titled `title`.
 internal func lensHasEntry(window: *ViewerWindow, title: string)->bool
 {
@@ -68,6 +82,47 @@ internal func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
         loadViewerState(window, saved.toSlice())
         Swag.require(MarkdownText.g_ViewerSettings.zoomPercent == Viewer.clampZoom(percent))
     }
+}
+
+// Text and Code tab widths round-trip independently through window state.
+#test
+{
+    let previousTextWidth = PlainText.defaultTabWidth()
+    let previousCodeWidth = Code.defaultTabWidth()
+    defer PlainText.setDefaultTabWidth(previousTextWidth)
+    defer Code.setDefaultTabWidth(previousCodeWidth)
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+
+    PlainText.setDefaultTabWidth(2)
+    Code.setDefaultTabWidth(8)
+    let saved = saveViewerState(window)
+    PlainText.setDefaultTabWidth(4)
+    Code.setDefaultTabWidth(4)
+
+    var reopenedHost: Testing.HeadlessHost
+    reopenedHost.setup(880, 560)
+    let reopened = ViewerWindow.create(&reopenedHost.surfaceWnd, createViewerPluginRegistry())
+    loadViewerState(reopened, saved.toSlice())
+    Swag.require(reopened.textTabWidth == 2 and reopened.codeTabWidth == 8)
+    Swag.require(PlainText.defaultTabWidth() == 2 and Code.defaultTabWidth() == 8)
+}
+
+// Damaged stored tab widths are reset to the supported four-space default.
+#test
+{
+    let previousTextWidth = PlainText.defaultTabWidth()
+    let previousCodeWidth = Code.defaultTabWidth()
+    defer PlainText.setDefaultTabWidth(previousTextWidth)
+    defer Code.setDefaultTabWidth(previousCodeWidth)
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let damaged = saveViewerTabWidthState(3, 16)
+    loadViewerState(window, damaged.toSlice())
+    Swag.require(window.textTabWidth == 4 and window.codeTabWidth == 4)
+    Swag.require(PlainText.defaultTabWidth() == 4 and Code.defaultTabWidth() == 4)
 }
 
 // MIDI label and keyboard-width choices round-trip with the main window and sanitize old state.

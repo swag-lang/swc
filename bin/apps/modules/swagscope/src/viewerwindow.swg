@@ -183,6 +183,8 @@ struct ViewerWindow
     internal
     {
         textBookmarkFiles: Array'ViewerTextBookmarkFile
+        textTabWidth:       s32 = 4
+        codeTabWidth:       s32 = 4
     }
     resumePoints:              Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:           Array'String     // Directories explored lately, most recent first.
@@ -586,12 +588,16 @@ impl IWnd for ViewerWindow
         if not evt.serializer.isReading()
         {
             .rememberTextBookmarkSessions()
+            .textTabWidth = Viewers.PlainText.defaultTabWidth()
+            .codeTabWidth = Viewers.Code.defaultTabWidth()
             .explorer?.rememberView()
             .privacy.sanitize()
             .captureResume()
         }
 
         .privacy.serializeState(evt.serializer)
+        catch evt.serializer.serialize("ViewerWindow.textTabWidth", &me.textTabWidth)
+        catch evt.serializer.serialize("ViewerWindow.codeTabWidth", &me.codeTabWidth)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
@@ -612,6 +618,12 @@ impl IWnd for ViewerWindow
         if evt.serializer.isReading()
         {
             Viewers.Film.g_MovieDetectionSettings.sanitize()
+            if .textTabWidth != 2 and .textTabWidth != 4 and .textTabWidth != 8 do
+                .textTabWidth = 4
+            if .codeTabWidth != 2 and .codeTabWidth != 4 and .codeTabWidth != 8 do
+                .codeTabWidth = 4
+            Viewers.PlainText.setDefaultTabWidth(.textTabWidth)
+            Viewers.Code.setDefaultTabWidth(.codeTabWidth)
             .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.Document))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)

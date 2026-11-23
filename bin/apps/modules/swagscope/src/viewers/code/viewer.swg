@@ -17,6 +17,13 @@ private var g_LineNumbers: bool = true
 // Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
 private var g_TabWidth: s32 = 4
 
+internal func defaultTabWidth()->s32 => g_TabWidth
+
+internal func setDefaultTabWidth(width: s32)
+{
+    g_TabWidth = width == 2 or width == 4 or width == 8 ? width : 4
+}
+
 // Test-only override for the directory containing per-file language choices. The application
 // uses the user-data directory; functional tests give each case an isolated temporary one.
 internal var g_CodeOverrideDirectory: String
@@ -477,6 +484,8 @@ impl Panel
     // Sets the tab stops of the source every `width` spaces.
     mtd setTabWidth(width: s32)
     {
+        if width != 2 and width != 4 and width != 8 do
+            return
         g_TabWidth = width
         .applyTabWidth()
     }

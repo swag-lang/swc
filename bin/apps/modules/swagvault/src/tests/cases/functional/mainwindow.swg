@@ -424,6 +424,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
     Swag.require(row.unmount.text() == "Unmount")
+
+    let destination = "/media/alice/a-very-long-mounted-vault-destination"
+    let drive = unwrap window.mountedDrives.find(PictureMountedPath)
+    drive.mountLabel = destination
+    window.refreshVaults()
+    Swag.require(row.open.toolTip == Format.toString(appStrings().ui_OpenDrive, destination))
+    Swag.require(Utf8.endsWith(row.open.text(), "…"))
+    Swag.require(row.open.position.width <= VaultRow.DriveMaxWidth + 1)
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -1304,8 +1312,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.openVault("C:\\vaults\\keyed")
 
     let card = &window.list.card
-    card.toggleKeyFiles()
-    Swag.require(card.keyFileList.isLocallyVisible())
+    Swag.require(card.keyFiles.arrowPosition == .RightDownward)
+    host.clickWnd(card.keyFiles)
+    Swag.require(card.keyFileList.isLocallyVisible() and card.keyFiles.arrowPosition == .RightUpward)
 
     let path = Testing.tempFilePath("vault-mount-key-", ".key")
     defer discard catch File.delete(path)
@@ -1315,10 +1324,13 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(window.unlockKeyFiles.count == 1)
     Swag.require(window.unlockKeyFiles[0] == path)
+    Swag.require(card.keyFiles.text() == Format.toString(appStrings().ui_UnlockKeyFilesCount, 1))
     Swag.require(window.mountButton.isEnabled())
     card.keyFileList.remove.sigPressed.call(cast(*Button, card.keyFileList.remove))
     Swag.require(window.unlockKeyFiles.isEmpty())
     Swag.require(card.keyFileList.isLocallyVisible())
+    host.clickWnd(card.keyFiles)
+    Swag.require(not card.keyFileList.isLocallyVisible() and card.keyFiles.arrowPosition == .RightDownward)
 }
 
 // A container dropped on the location field fills it, exactly as browsing to it would.

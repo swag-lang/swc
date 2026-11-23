@@ -249,7 +249,7 @@ impl KeyFileField
 
         with result.add = IconButton.createQuiet(result.actions, menu: false)
         {
-            .setIcon(result.theme().icon(.OpenFile, themeRowIconSize(result.themeMetrics())))
+            .setIcon(result.theme().icon(.Plus, themeRowIconSize(result.themeMetrics())))
             .setQuietText(appStrings().ui_AddKeyFiles)
             .sigPressed += func|field = result|(_) { field.chooseExisting() }
         }

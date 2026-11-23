@@ -47,8 +47,9 @@ struct AppStrings
     ui_Mount:          string = "Mount"
     ui_Unmount:        string = "Unmount"
     ui_Drive:          string = "Drive"
-    ui_KeyFilesLink:   string = "Key Files…"
+    ui_KeyFilesLink:   string = "Key Files"
     ui_KeyFilesCount:  string = "Key Files (%)…"     // '%' is how many key files are chosen.
+    ui_UnlockKeyFilesCount: string = "Key Files (%)"  // '%' is how many files the unlock card uses.
     ui_ReadOnly:       string = "Read Only"
     ui_ProtectHidden:  string = "Protect Hidden Volume"
     ui_MountAtStartup: string = "Mount at Startup"

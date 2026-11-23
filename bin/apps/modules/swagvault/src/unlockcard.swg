@@ -82,6 +82,7 @@ impl UnlockCard
             .layoutSpec.alignY = .Center
             .margin.x          = 0
             .margin.z          = metrics.dialog_BtnPadding
+            .setArrowPosition(.RightDownward)
             .sigPressed        += func|window|(_) { window.list.card.toggleKeyFiles() }
         }
 
@@ -168,9 +169,10 @@ impl UnlockCard
     {
         let texts = appStrings()
         if count do
-            .keyFiles.setText(Format.toString(texts.ui_KeyFilesCount, count))
+            .keyFiles.setText(Format.toString(texts.ui_UnlockKeyFilesCount, count))
         else do
             .keyFiles.setText(texts.ui_KeyFilesLink)
+        .keyFiles.setArrowPosition(.keyFileList.isLocallyVisible() ? .RightUpward : .RightDownward)
         .options.computeLayout()
     }
 
@@ -178,6 +180,7 @@ impl UnlockCard
     mtd toggleKeyFiles()
     {
         .keyFileList.show(not .keyFileList.isLocallyVisible())
+        .setKeyFileCount(.window.unlockKeyFiles.count)
         .window.list.unfold(.window.chosenLockedPath())
     }
 

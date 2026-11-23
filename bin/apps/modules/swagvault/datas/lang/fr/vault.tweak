@@ -61,8 +61,9 @@ ui_DropTitle           Déposez un coffre pour l'ouvrir
 ui_Mount               Monter
 ui_Unmount             Démonter
 ui_Drive               Lecteur
-ui_KeyFilesLink        Fichiers clés…
+ui_KeyFilesLink        Fichiers clés
 ui_KeyFilesCount       Fichiers clés (%)…
+ui_UnlockKeyFilesCount Fichiers clés (%)
 ui_ReadOnly            Lecture seule
 ui_ProtectHidden       Protéger le volume caché
 ui_MountAtStartup      Monter au démarrage

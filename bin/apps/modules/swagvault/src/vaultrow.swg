@@ -143,11 +143,13 @@ impl VaultRow
         if .open.measure({}).preferred.x <= DriveMaxWidth do
             return
 
-        .open.style.setFont(theme.createDefaultFont(theme.metrics.defaultFontSize), .Regular)
-        .open.setText(words)
+        let font  = theme.createDefaultFont(theme.metrics.defaultFontSize)
+        let width = DriveMaxWidth - .open.padding.x - .open.padding.z
+        .open.style.setFont(font, .Regular)
+        .open.setText(Painter.elideString(words, font, width, .deviceScale()))
     }
 
-    // Stands the row's actions at its right edge, centred on its height.
+    // Stands the edit action beside the name and the mounted actions at the centre of the row.
     mtd arrangeActions()
     {
         let room  = .clientRect()
@@ -156,7 +158,7 @@ impl VaultRow
         if let modify = .modify
         {
             let size = modify.measure({}).preferred
-            modify.arrange(Math.Rectangle{right - size.x, Math.round(room.vertCenter() - size.y * 0.5), size.x, size.y})
+            modify.arrange(Math.Rectangle{right - size.x, Math.round(room.y + NameY - size.y * 0.5), size.x, size.y})
             return
         }
 
@@ -269,14 +271,21 @@ impl IWnd for VaultRow
         if drive and not .header do
             .paintSpace(painter, room, textRight, drive)
 
-        painter.pushClippingRect(Math.Rectangle{room.x, room.y, Math.max(0, textRight - room.x), room.height})
+        let left  = room.x + TextX
+        let width = textRight - left
+        if width <= 0 do
+            return
+        painter.pushClippingRect(Math.Rectangle{left, room.y, width, room.height})
 
         let nameFont = .theme().createDefaultFont(NameFontSize, .SemiBold)
         let monoFont = .theme().createDefaultFontFs(12)
         let name     = Path.fileName(.path) orelse .path.toString()
         let identity = .window.vaultPlace(.path, .containerSize)
-        painter.drawString(room.x + TextX, nameFont.opticalLineTop(room.y + NameY), name, nameFont, colors.text)
-        painter.drawString(room.x + TextX, monoFont.opticalLineTop(room.y + IdentityY), identity, monoFont, colors.faintText)
+        let scale    = .deviceScale()
+        let title    = Painter.elideString(name, nameFont, width, scale)
+        let details  = Painter.elideString(identity, monoFont, width, scale)
+        painter.drawString(left, nameFont.opticalLineTop(room.y + NameY), title, nameFont, colors.text)
+        painter.drawString(left, monoFont.opticalLineTop(room.y + IdentityY), details, monoFont, colors.faintText)
 
         painter.popClippingRect()
     }

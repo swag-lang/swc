@@ -13,6 +13,11 @@ impl MainWindow
     mtd setStatus(message: StatusMessage)
     {
         .statusMessage = message
+        if not .statusHeadline.isEmpty() and .statusTone() != .Stopped
+        {
+            .statusHeadline.clear()
+            .statusDetail.clear()
+        }
         .refreshStatus()
     }
 
@@ -23,16 +28,15 @@ impl MainWindow
     mtd refreshStatus()
     {
         let notice = .list.notice
-        var text   = .statusText()
-        if .statusDetail.count do
-            text = Format.toString("%\n%", text, .statusDetail)
-        notice.set(text, .statusTone())
-        let shown = .statusMessage != .Ready or .statusDetail.count != 0 or notice.busy.isLocallyVisible()
-        if notice.isLocallyVisible() != shown
-        {
-            notice.show(shown)
-            .list.arrange()
-        }
+        let failed = not .statusHeadline.isEmpty()
+        if failed do
+            notice.set(.statusHeadline, .statusDetail, .Stopped)
+        elif .statusMessage == .Ready and not .statusDetail.isEmpty() do
+            notice.set(.statusDetail, "", .Idle)
+        else do
+            notice.set(.statusText(), .statusDetail, .statusTone())
+        notice.show(failed or .statusMessage != .Ready or not .statusDetail.isEmpty() or notice.busy.isLocallyVisible())
+        .list.arrange()
     }
 
     // Returns the emphasis the current status message carries.
@@ -180,7 +184,8 @@ impl MainWindow
     // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
     mtd showError(message: string, err: any? = null)
     {
-        .statusDetail = err == null ? String.from(message) : Format.toString("%\n%", message, caughtMessage(err))
+        .statusHeadline = message
+        .statusDetail   = err == null ? String{} : caughtMessage(err)
         .refreshStatus()
         if .resident.isHidden()
         {
@@ -188,9 +193,9 @@ impl MainWindow
             return
         }
 
-        if err == null do
+        if .statusDetail.isEmpty() do
             MessageDlg.error(unwrap .surface, message)
         else do
-            MessageDlg.error(unwrap .surface, Format.toString("%\n\n%", message, caughtMessage(err)))
+            MessageDlg.error(unwrap .surface, Format.toString("%\n\n%", message, .statusDetail))
     }
 }

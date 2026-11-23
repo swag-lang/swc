@@ -310,6 +310,7 @@ struct MainWindow
     preferPortableWinFsp: bool     // Skip offering installation on machines without WinFsp.
     initialized:          bool
     autoRetryAfter:       u64
+    statusHeadline:       String     // Explicit failure summary when an error dialog was shown.
     statusDetail:         String
 
     // What the notice line says, plus the two values its wording interpolates: the drive

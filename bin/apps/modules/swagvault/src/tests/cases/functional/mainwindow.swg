@@ -715,6 +715,31 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(Utf8.startsWith(window.statusText(), "Lecteur chiffré monté sur Z:"))
 }
 
+// A mount error leaves one summary and a wrapping explanation after its dialog is closed.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    fillPictureList(window)
+    window.chooseVault(PictureLockedPath)
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    window.finishMount(volumeError(.PasswordOrDamaged))
+    Swag.require(host.autoHandled)
+
+    let notice = window.list.notice
+    Swag.require(notice.isLocallyVisible() and notice.tone == .Stopped)
+    Swag.require(notice.heading.text() == appStrings().msg_MountFailed)
+    Swag.require(notice.detail.text() == appStrings().msg_ErrPasswordOrDamaged)
+    Swag.require(notice.detail.position.y >= notice.heading.position.bottom())
+    Swag.require(notice.detail.position.bottom() <= notice.position.height)
+    Swag.require(notice.measureHeight(240) > notice.position.height)
+
+    window.setStatus(.Ready)
+    Swag.require(not notice.isLocallyVisible() and not notice.detail.isLocallyVisible())
+}
+
 // A failure says its sentence in the active language, not the diagnostic the layer wrote.
 //
 // The volume layer reports an ErrorKind and an English diagnostic for whoever reads a

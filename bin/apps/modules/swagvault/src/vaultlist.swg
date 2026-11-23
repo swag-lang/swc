@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-// The one line under the title of the list that says what the latest step left behind.
+// The notice under the title of the list that says what the latest step left behind.
 //
 // It is text on the ground, not a bar: a dot in the tone of what happened — Arc while work runs,
 // critical when it stopped — and the sentence in the soft ink. While work of unknown length runs,
@@ -9,18 +9,19 @@ struct NoticeLine
 {
     using wnd: Wnd
 
-    late busy: *Spinner
-
-    text: String
+    late busy:    *Spinner
+    late heading: *Label
+    late detail:  *Label
     tone: StatusTone
 }
 
 impl NoticeLine
 {
-    const Height   = 24'f32     // Height of the line.
+    const Height   = 24'f32     // Minimum height of the first line.
     const MarkSize = 16'f32     // Width of the lane the dot or the spinner stands in.
     const DotSize  = 7'f32      // Diameter of the dot.
     const TextGap  = 8'f32      // Air between that lane and the sentence.
+    const TextLeft = MarkSize + TextGap
 
     // Creates an empty line in `parent`.
     func create(parent: *Wnd)->*NoticeLine
@@ -35,13 +36,24 @@ impl NoticeLine
             .hide()
         }
 
+        let flags = LabelFlags.WordWrap | .AutoHeight | .Ellipsis | .SecondaryText
+        result.heading = Label.create(result, "", flags: flags)
+        result.heading.setTextAlignment(.Left, .OpticalCenter)
+        result.detail = Label.create(result, "", flags: flags)
+        result.detail.setTextAlignment(.Left, .Top)
+        result.detail.hide()
+
         return result
     }
 
-    // Says `text` in the tone of what it reports.
-    mtd set(text: string, tone: StatusTone)
+    // Places the explanation below the summary when there is one.
+    mtd set(heading, detail: string, tone: StatusTone)
     {
-        .text = text
+        .heading.setText(heading)
+        .heading.updateFlags(tone == .Stopped ? .None : .SecondaryText,
+                             remove: tone == .Stopped ? .SecondaryText : .None)
+        .detail.setText(detail)
+        .detail.show(detail.count != 0)
         .tone = tone
         .invalidate()
     }
@@ -53,11 +65,29 @@ impl NoticeLine
         .invalidate()
     }
 
-    // Returns the width the line takes: the lane of its mark, and its sentence.
+    // Returns the natural width before wrapping.
     mtd measureWidth()->f32
     {
-        let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        return MarkSize + TextGap + Painter.measureString(.text, font).width
+        return TextLeft + Math.max(.heading.measure({}).preferred.x, .detail.measure({}).preferred.x)
+    }
+
+    mtd headingHeight(textWidth: f32)->f32
+        => Math.max(Height, Math.ceil(.heading.measure({textWidth, 0}).preferred.y))
+
+    mtd measureHeight(width: f32)->f32
+    {
+        let textWidth = Math.max(1, width - TextLeft)
+        let detailH   = .detail.isLocallyVisible() ? Math.ceil(.detail.measure({textWidth, 0}).preferred.y) : 0
+        return .headingHeight(textWidth) + detailH
+    }
+
+    mtd place(rect: Math.Rectangle)
+    {
+        .arrange(rect)
+        let textWidth = Math.max(1, rect.width - TextLeft)
+        let headingH  = .headingHeight(textWidth)
+        .heading.arrange({TextLeft, 0, textWidth, headingH})
+        .detail.arrange({TextLeft, headingH, textWidth, Math.max(0, rect.height - headingH)})
     }
 }
 
@@ -68,7 +98,7 @@ impl IWnd for NoticeLine
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let room    = .clientRect()
-        let centerY = room.vertCenter()
+        let centerY = room.y + Height * 0.5
 
         painter.setParams(.Antialiased)
         if not .busy.isLocallyVisible() and .tone != .Idle
@@ -76,9 +106,6 @@ impl IWnd for NoticeLine
             let dot = .tone == .Stopped ? colors.critical : colors.arc
             painter.fillCircle(room.x + MarkSize * 0.5, centerY, DotSize * 0.5, dot)
         }
-
-        let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        painter.drawString(room.x + MarkSize + TextGap, font.opticalLineTop(centerY), .text, font, colors.softText)
     }
 }
 
@@ -383,8 +410,9 @@ impl VaultList
         if .notice.isLocallyVisible()
         {
             y += NoticeGap
-            .notice.arrange(Math.Rectangle{x, y, width, NoticeLine.Height})
-            y += NoticeLine.Height
+            let height = .notice.measureHeight(width)
+            .notice.place(Math.Rectangle{x, y, width, height})
+            y += height
         }
 
         y += RowsGap
@@ -454,10 +482,12 @@ impl VaultList
         let openSize = .openFile.measure({}).preferred
         let headingH = .heading.position.height
         let welcomeH = Math.ceil(.welcome.measure(Math.Point{width, 0}).preferred.y)
-        let noticeH  = .notice.isLocallyVisible() ? NoticeGap + NoticeLine.Height : 0
+        let noticeW  = .notice.isLocallyVisible() ? Math.min(width, Math.ceil(.notice.measureWidth())) : 0
+        let noticeH  = noticeW > 0 ? .notice.measureHeight(noticeW) : 0
         let footH    = WaysToRule + RuleToFoot + FootLineGap + NoticeLine.Height * 0.5
 
-        let height = MarkSize + MarkToHeading + headingH + HeadingToWelcome + welcomeH + WelcomeToWays + newSize.y + noticeH + footH
+        let height = MarkSize + MarkToHeading + headingH + HeadingToWelcome + welcomeH + WelcomeToWays + newSize.y +
+                     (noticeH > 0 ? NoticeGap + noticeH : 0) + footH
         let room   = .scroll.clientRect()
         let center = Math.round(room.width * 0.5)
         var y      = Math.max(ListTop + .stripInset(), Math.round((room.height - PageFoot - height) * 0.5))
@@ -476,12 +506,11 @@ impl VaultList
         .openFile.arrange(Math.Rectangle{.newVault.position.right() + ActionsGap, y, openSize.x, openSize.y})
         y += newSize.y
 
-        if .notice.isLocallyVisible()
+        if noticeH > 0
         {
             y += NoticeGap
-            let noticeW = Math.min(width, Math.ceil(.notice.measureWidth()))
-            .notice.arrange(Math.Rectangle{Math.round(center - noticeW * 0.5), y, noticeW, NoticeLine.Height})
-            y += NoticeLine.Height
+            .notice.place(Math.Rectangle{Math.round(center - noticeW * 0.5), y, noticeW, noticeH})
+            y += noticeH
         }
 
         y += WaysToRule

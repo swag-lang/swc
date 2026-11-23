@@ -92,6 +92,24 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     assertSurfaceGolden(&host, window, false, "unlock")
 }
 
+// The French explanation of a failed mount stays readable at minimum window width.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    fillPictureList(window)
+    window.chooseVault("/vault.bin")
+
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    window.finishMount(volumeError(.PasswordOrDamaged))
+    assertSurfaceGolden(&host, window, true, "mount.failure")
+}
+
 // A French modification menu keeps its opener and the access fields visible at minimum size.
 #[Swag.TestTag("golden")]
 #test

@@ -10,6 +10,7 @@ impl MainWindow
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
         .operation.error.reset()
+        .statusHeadline.clear()
         .statusDetail.clear()
         .operation.timer = .addTimer(50'ms)
 

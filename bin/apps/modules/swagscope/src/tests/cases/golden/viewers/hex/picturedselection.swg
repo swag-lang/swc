@@ -30,6 +30,6 @@ using Core, Pixel, Gui, Viewers
         Swag.require(.fields[3].value == "6 · RGBA")
     }
 
-    Swag.require(view.details == "0x10 – 0x1C · 13 bytes selected")
+    Swag.require(view.details == "0.0% · value 5000 · sel 0x10–0x1C (16–28) · len 13/0xD · caret 0x10/16")
     photographViewer(&host, window, "pictured.hex")
 }

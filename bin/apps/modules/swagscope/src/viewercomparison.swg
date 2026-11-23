@@ -536,6 +536,7 @@ impl ViewerWorkspace
 
     mtd refreshComparison()
     {
+        defer .layoutCloseViewButtons()
         let scene = .scene()
         if not scene or not scene.compared or scene.views.count != 2 or scene.maximized
         {

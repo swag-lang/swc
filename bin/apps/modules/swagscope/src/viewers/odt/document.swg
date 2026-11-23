@@ -48,6 +48,9 @@ private struct Reader
     document:     Document
     paragraph:    String
     tag:          String
+    specialText:  String
+    specialDepth: u64 = Swag.U64.Max
+    specialLabel: String
     runText:      String
     run:          Docx.RunFormat
     inlines:      Array'Inline
@@ -97,7 +100,7 @@ private impl Reader
 {
     mtd checkSize() fail
     {
-        if .document.html.count + .paragraph.count + .runText.count > 32 * 1024 * 1024 or .document.paragraphs > 100_000 do
+        if .document.html.count + .paragraph.count + .runText.count + .specialText.count > 32 * 1024 * 1024 or .document.paragraphs > 100_000 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
     }
 
@@ -127,6 +130,25 @@ private impl Reader
         .ensureParagraph()
         .flushRun()
         .run.appendHtml(&.paragraph, source)
+    }
+
+    mtd finishSpecial()
+    {
+        if .specialText.isEmpty()
+        {
+            .specialLabel.clear()
+            .specialDepth = Swag.U64.Max
+            return
+        }
+
+        .paragraph += " <small>["
+        .paragraph += .specialLabel
+        .paragraph += ": "
+        Package.appendHtmlEscaped(&.paragraph, .specialText)
+        .paragraph += "]</small>"
+        .specialText.clear()
+        .specialLabel.clear()
+        .specialDepth = Swag.U64.Max
     }
 
     mtd finishParagraph()
@@ -257,19 +279,24 @@ private impl Reader
                        token.isElement("script") or
                        token.isElement("event-listeners") or
                        token.isElement("tracked-changes") or
-                       token.isElement("annotation") or
                        token.isElement("binary-data") or
                        (token.isElement("section") and (token.attribute("display") == "none" or token.attribute("is-hidden") == "true"))
                     {
                         skip = depth
                     }
-                    elif token.isElement("note") or
-                         token.isElement("object") or
+                    elif token.isElement("note") or token.isElement("annotation")
+                    {
+                        .flushRun()
+                        .specialDepth = depth
+                        .specialLabel = token.isElement("note") ? String.from(texts().ui_Footnote) : String.from(texts().ui_Comment)
+                        skip = depth
+                    }
+                    elif token.isElement("object") or
                          token.isElement("object-ole") or
                          token.isElement("plugin") or
                          token.isElement("applet")
                     {
-                        .runText += token.isElement("note") ? texts().ui_NoteOmitted : texts().ui_ObjectOmitted
+                        .runText += texts().ui_ObjectOmitted
                         .document.omitted += 1
                         skip     = depth
                     }
@@ -415,6 +442,12 @@ private impl Reader
                     }
                 }
             }
+            elif token.kind == .Text and .specialDepth != Swag.U64.Max
+            {
+                .specialText += token.text
+                if .specialText.count > 8192 do
+                    fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
             elif token.kind == .Text and body != Swag.U64.Max and skip == Swag.U64.Max
             {
                 if .titleDepth != Swag.U64.Max and not .frames.isEmpty()
@@ -433,6 +466,8 @@ private impl Reader
             {
                 if skip == depth
                 {
+                    if .specialDepth == depth do
+                        .finishSpecial()
                     skip = Swag.U64.Max
                 }
                 elif skip == Swag.U64.Max and body != Swag.U64.Max

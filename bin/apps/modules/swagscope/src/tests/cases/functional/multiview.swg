@@ -37,7 +37,7 @@ using Core, Gui, Pixel, Audio
     text.setZoom(145, remember: false)
     Swag.require(not workspace.tabs.isLocallyVisible())
 
-    workspace.insertDocument(secondPath, .Right)
+    workspace.openBeside(secondPath)
     openViews(&host, workspace)
     let second = workspace.activeDocument()
     Swag.require(second != first)
@@ -64,7 +64,7 @@ using Core, Gui, Pixel, Audio
 
     workspace.closeView()
     Swag.require(workspace.scene()!.views.count == 1)
-    Swag.require(workspace.activeDocument().currentFile == secondPath)
+    Swag.require(workspace.activeDocument().currentFile == (expect Path.absolute(secondPath)))
     workspace.closeView()
     Swag.require(workspace.scenes.count == 1 and not workspace.tabs.isLocallyVisible())
 }
@@ -160,36 +160,20 @@ using Core, Gui, Pixel, Audio
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
-    let first  = scopeTestDataPath("comprehensive.txt")
-    let second = scopeTestDataPath("sample.cpp")
-    workspace.openDocument(first)
+    let first  = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let second = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    workspace.openScene([first, second], .Stacked)
     openViews(&host, workspace)
     let original = workspace.activeDocument()
-    let path     = second.toString()
-    let target   = workspace.overlay.dropRect(.Below).center()
-    let local    = workspace.localToSurface(target)
-    let area     = host.surface.position
-    let point    = Math.Point{area.x + local.x * workspace.deviceScale(), area.y + local.y * workspace.deviceScale()}
-    let left     = workspace.overlay.dropRect(.Left)
-    let middle   = workspace.overlay.dropRect(.Replace)
-    let gap      = workspace.overlay.localToSurface(Math.Point{(left.right() + middle.x) * 0.5, middle.vertCenter()})
-    let away     = Math.Point{area.x + gap.x * workspace.deviceScale(), area.y + gap.y * workspace.deviceScale()}
-    Swag.require(host.dragFilesOver(away, [path]) == .None)
-    Swag.require(workspace.dragging and workspace.dropTarget == .None)
-    Swag.require(host.dropFiles(away, [path]) == .None)
-    Swag.require(not workspace.dragging and original.currentFile == first)
-    Swag.require(host.dragFilesOver(point, [path]) == .Copy)
-    Swag.require(workspace.dragging and workspace.dropTarget == .Below)
-    Swag.require(host.dropFiles(point, [path]) == .Copy)
-    openViews(&host, workspace)
-    Swag.require(workspace.scene()!.layout == .Stacked)
-    Swag.require(original.currentFile == first and workspace.activeDocument().currentFile == second)
+    host.keyPress(.Down, .Alt)
+    Swag.require(workspace.activeDocument().currentFile == second)
     host.keyPress(.Up, .Alt)
     Swag.require(workspace.activeDocument() == original)
     host.keyPress(.W, .Control)
     Swag.require(workspace.documentCount() == 1 and workspace.activeDocument().currentFile == second)
 }
 
+// A single scene keeps the standalone reader's document layout below its workspace caption.
 #test
 {
     let path = scopeTestDataPath("sample.cpp")
@@ -211,7 +195,10 @@ using Core, Gui, Pixel, Audio
     workspace.openDocument(path)
     openViews(&host, workspace)
     host.surface.clearFocus()
-    let actual = host.renderSettled(&host.surfaceWnd)
+    var actual = host.renderSettled(&host.surfaceWnd)
+    let strip  = cast(s32, workspace.stripInset())
+    expected.crop(0, strip, expected.width, expected.height - strip)
+    actual.crop(0, strip, actual.width, actual.height - strip)
     Pixel.Testing.assertImagesNear(&expected, &actual, "scene.single")
 }
 

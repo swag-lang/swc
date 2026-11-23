@@ -204,7 +204,7 @@ impl ViewerWindow
             }
             else
             {
-                workspace.insertDocument(dialog.selectedPath(), .Right)
+                workspace.openBeside(dialog.selectedPath())
                 if compare do
                     workspace.toggleComparison()
             }

@@ -52,8 +52,11 @@ of tabs inside a scene.
 - From the second scene on, the same centred place holds the scene names, 28 px apart. The active
   one takes the text ink and the Arc tab underline (2 px), which slides to a newly chosen tab in
   180 ms; the others stay faint. There is no tab frame, ground or separator.
-- A scene's close glyph appears only under the pointer; a middle click also closes it. `Ctrl W`
-  closes the active view, and the scene with its last view.
+- The active scene's tab has a close glyph; the other tabs show theirs under the pointer.
+  A middle click also closes the scene.
+  The caption has a separate Close File button for a single document. In a grid, each visible
+  document has its own close button beside its title. `Ctrl W` closes the active view. Closing
+  the last view closes the scene, and closing the last scene returns to recent files.
 - When the names do not fit, the row fades out toward its ends; there is no chevron or overflow
   menu. Every scene stays reachable from `Ctrl Tab` and from the lens.
 - `Ctrl Tab` opens the scene switcher, a floating surface (corner 12, floating shadow) over the
@@ -93,19 +96,19 @@ of tabs inside a scene.
 | Route | Result |
 | --- | --- |
 | Open… (`Ctrl O`), or opening from the explorer | A new scene, in a new tab (the default) |
-| Dropping a file on the window | Five drop targets appear for the length of the drag |
+| Dropping one file on a document | Replaces the document under the pointer in its current cell |
+| Dropping several files together | Opens them as a new scene in the Auto layout |
 | Lens: Open Beside… | A view to the right of the active one, in the same scene |
 | Lens: Compare With… | A view beside the active one, in comparison mode. Inside a scene that already has several views, the comparison opens in a new tab. |
 | Explorer: several files selected, then `↵` | One scene holding them, in the Auto layout |
 | Explorer: several files selected, then Compare | The same scene, compared and linked |
 | Command line: `swagscope a b` | One scene side by side; `--grid` opens a grid |
 
-![Dropping a file](imgs/drop.png)
+![Dropping a file](../../../bin/apps/modules/swagscope/src/tests/goldens/scene.drop.encre.png)
 
-While a file is dragged over the window, the work dims and five targets appear: left, right and
-below the active view, the view itself (replace), and a "nouvel onglet" (New Tab) target in the
-strip. Targets are surfaces with a hairline ring; the one under the pointer takes the Arc
-selection ground and a 2 px Arc ring. They leave as the file is dropped or the drag leaves.
+During a single file drag, an Arc outline follows the occupied cell under the pointer. Dropping
+replaces that cell's document and activates it. On the home page the same gesture opens the file.
+Dropping a file on the scene tab strip opens a new scene.
 
 ## Comparison
 

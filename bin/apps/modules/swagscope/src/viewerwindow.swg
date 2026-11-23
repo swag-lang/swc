@@ -886,8 +886,11 @@ impl ViewerWindow
         .fullScreenCaptionButton.setChecked(.fullScreen)
         .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible() or
                                              (.workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false))
-        if .workspace and .workspace.tabs != null do
+        if .workspace and .workspace.tabs != null
+        {
+            .workspace.refreshCloseFileButton()
             .workspace.tabs.layoutTabs()
+        }
         if not .explorer do
             return
 

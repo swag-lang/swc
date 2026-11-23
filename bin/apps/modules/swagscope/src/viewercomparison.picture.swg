@@ -125,7 +125,7 @@ impl SceneComparison
         }
 
         painter.popClippingRect()
-        .paintPictureNames(painter, body)
+        .paintPictureNames(painter)
         .paintProbe(painter, footer, bounds, left, right)
     }
 
@@ -173,22 +173,46 @@ impl SceneComparison
                 viewport.vertCenter() - height / 2 + pan.y * viewport.height, width, height}
     }
 
-    private mtd paintPictureNames(painter: *Painter, body: Math.Rectangle)
+    private mtd pictureHeader(side: u64)->{name: String, rect: Math.Rectangle}
     {
-        if .mode == .Flip and not .flipTimer do
-            return
+        let body    = .clientRect()
+        let font    = .theme().createDefaultFont(12)
+        let metrics = .themeMetrics()
+        let inset   = metrics.floating_Inset
+        let pad     = 2 * metrics.wnd_CaptionButtonMargin
+        let close   = .workspace.compactMedia ? 0 : ViewerWorkspace.ViewTitleHeight
+        let path: string = .paths[side]
+        let name    = Path.fileName(path) orelse path
+        var text    = Painter.elideString(name, font, Math.max(0, body.width * 0.5 - 2 * (inset + pad) - close), .deviceScale())
+        let width   = Painter.measureString(text, font).width + 2 * pad + close
+        let x       = side == 0 ? body.x + inset : body.right() - inset - width
+        return {#move text, {x, .stripInset() + inset, width, ViewerWorkspace.ViewTitleHeight}}
+    }
+
+    mtd pictureCloseRect(side: u64)->Math.Rectangle
+    {
+        let header = .pictureHeader(side)
+        let size   = header.rect.height
+        return {header.rect.right() - size, header.rect.y, size, size}
+    }
+
+    private mtd paintPictureNames(painter: *Painter)
+    {
         let colors = .themeColors()
         let font   = .theme().createDefaultFont(12)
-        for side in 2 where .mode != .Flip or (side != 0) == .shownRight
+        let radius = .themeMetrics().corner_Chip
+        for side in 2
         {
-            let name: string = Path.fileName(.paths[side]) orelse .paths[side]
-            let text         = Painter.elideString(name, font, body.width / 2 - 44, .deviceScale())
-            let width        = Painter.measureString(text, font).width + 20
-            let x            = side == 0 ? body.x + 14 : body.right() - 14 - width
-            let rect         = Math.Rectangle{x, body.y + 14, width, 26}
-            let radius       = .themeMetrics().corner_Chip
-            painter.fillRoundRect(rect, radius, radius, colors.raised)
-            painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, colors.text)
+            if .mode == .Flip and (not .flipTimer or (side != 0) != .shownRight)
+            {
+                .workspace.paintCloseViewGround(painter, side)
+                continue
+            }
+
+            let header = .pictureHeader(side)
+            let close  = .workspace.compactMedia ? 0 : header.rect.height
+            painter.fillRoundRect(header.rect, radius, radius, colors.raised)
+            painter.drawStringCenter(header.rect.horzCenter() - close * 0.5, header.rect.vertCenter(), header.name, font, colors.text)
         }
     }
 

@@ -12,6 +12,9 @@ struct SlideShape
     positioned:       bool
     hasOffset:        bool
     hasExtent:        bool
+    rotation:         f32
+    flipHorizontal:   bool
+    flipVertical:     bool
     placeholder:      bool
     placeholderKind:  String
     placeholderIndex: u32
@@ -21,11 +24,8 @@ struct SlideShape
     hasFill:          bool
     line:             String
     lineWidth:        f32
-    rotation:         f32
     round:            bool
     ellipse:          bool
-    flipHorizontal:   bool
-    flipVertical:     bool
     centered:         bool
     bodyProperties:   bool
     insetMask:        u8

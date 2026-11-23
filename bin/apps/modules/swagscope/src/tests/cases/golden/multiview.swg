@@ -136,13 +136,14 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
-    workspace.openDocument(scopeTestDataPath("sample.cpp"))
+    let files = [scopeTestDataPath("sample.cpp"), scopeTestDataPath("comprehensive.txt"),
+                 scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.srt")]
+    workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
-    let target = workspace.overlay.dropRect(.Right).center()
-    let pos    = workspace.localToSurface(target)
-    let bounds = host.surface.position
-    let point  = Math.Point{bounds.x + pos.x, bounds.y + pos.y}
-    Swag.require(host.dragFilesOver(point, [scopeTestDataPath("comprehensive.txt").toString()]) == .Copy)
+    let scene = unwrap workspace.scene()
+    var point = workspace.localToSurface(workspace.viewRect(scene, 3).center())
+    host.surface.surfaceToScreen(&point)
+    Swag.require(host.dragFilesOver(point, [scopeTestDataPath("comprehensive.md").toString()]) == .Copy)
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.drop.encre")
 }

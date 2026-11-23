@@ -84,7 +84,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(workspace.activeDocument().runCommand(ComparisonCommands.ZoomIn))
     Swag.require(comparison.pictureZoom(0) == 1.25 and comparison.pictureZoom(1) == 1.5625)
     host.keyPress(.Left, .Control | .Alt)
-    Swag.require(workspace.activeDocument().currentFile == files[1])
+    Swag.require(workspace.activeDocument().currentFile == (expect Path.absolute(files[1])))
     Swag.require(comparison.pictureZoom(0) == 1.5625 and comparison.pictureZoom(1) == 1.25)
     workspace.setSceneLink(MediaCommands.Framing, true)
     Swag.require(comparison.pictureZoom(0) == 1.5625 and comparison.pictureZoom(1) == 1.5625)
@@ -130,7 +130,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(first.sound.sceneSilent and not second.sound.sceneSilent)
     host.keyPress(.Down, .Control | .Alt)
     Swag.require(workspace.mediaLeader(scene) == 0 and workspace.audibleIndex(scene) == 0)
-    Swag.require(workspace.activeDocument().currentFile == files[0])
+    Swag.require(workspace.activeDocument().currentFile == (expect Path.absolute(files[0])))
 
     Swag.require(workspace.activeDocument().runCommand(MediaCommands.Playback))
     Swag.require(not scene.links.playback)

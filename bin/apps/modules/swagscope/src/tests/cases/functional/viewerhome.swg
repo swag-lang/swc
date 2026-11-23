@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // The fixed afternoon the home writes its times against, so the pictures do not age.
 internal const HomeNow = 17'u64 * Time.TicksPerHour + 50 * Time.TicksPerMinute + 739_000'u64 * Time.TicksPerDay
@@ -314,4 +314,36 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
     Swag.require(window.home.isLocallyVisible())
     completeViewerWindowClassification(&host, window)
     Swag.require(not window.home.isLocallyVisible() and not window.currentFile.isEmpty())
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.currentView is Markdown.View)
+    discard host.renderSettled(&host.surfaceWnd)
+}
+
+// Opening Markdown from a recent home row adopts the primary window into a workspace scene and
+// completes classification and reading before it takes the home away.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+
+    let path = scopeTestDataPath("comprehensive.md")
+    workspace.primary.recent.add(path)
+    workspace.primary.showEmpty(appStrings().ui_DropTitle)
+    Swag.require(workspace.primary.home.rows.count == 1)
+
+    // Use the native hit test, which skips disabled paint layers.
+    let button = workspace.primary.home.resumeButton
+    var point  = button.surfaceRect().center()
+    let target = unwrap host.surfaceWnd.windowAt(point.x, point.y)
+    Swag.require(target == button)
+    host.surfaceWnd.surface!.surfaceToScreen(&point)
+    host.sendMouseEvent(target, .Pressed, point, .Left, .None)
+    host.sendMouseEvent(target, .Released, point, .Left, .None)
+
+    completeQueuedViewerFile(&host, workspace.activeDocument())
+    Swag.require(workspace.activeDocument().currentView is Markdown.View)
+    let scene = unwrap workspace.scene()
+    Swag.require(scene.views.count == 1)
+    discard host.renderSettled(&host.surfaceWnd)
 }

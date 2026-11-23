@@ -1,7 +1,7 @@
 #global internal
 #global namespace Viewers.Pptx
 
-using Core
+using Core, Pixel
 
 // DrawingML colors belong to the document, independently of the application's palette.
 struct SlideTheme
@@ -51,6 +51,71 @@ impl SlideTheme
         if tint do
             return channel + (((255 - channel) * value + 50_000) / 100_000)
         return (channel * value + 50_000) / 100_000
+    }
+
+    // Resolves one DrawingML color element, including its ordered luminance transforms.
+    mtd const transformedColor(source: string)->String
+    {
+        var scan  = Package.Scanner.create(source)
+        var token: Package.Token
+        var color: String
+        var inColor = false
+        while scan.next(&token)
+        {
+            if token.kind == .Start and
+               (token.isElement("srgbClr") or token.isElement("schemeClr") or token.isElement("sysClr"))
+            {
+                inColor = not token.empty
+                if token.isElement("schemeClr")
+                {
+                    color = .color(token.attribute("val") orelse "")
+                }
+                elif token.isElement("sysClr")
+                {
+                    color = String.from(token.attribute("lastClr") orelse "")
+                }
+                else
+                {
+                    color = String.from(token.attribute("val") orelse "")
+                }
+
+                if not Package.isRgbHex(color) do
+                    return ""
+                if not inColor do
+                    break
+            }
+            elif inColor and token.kind == .Start and
+                 (token.isElement("tint") or token.isElement("shade"))
+            {
+                let amount = catch StrConv.toU32(token.attribute("val") orelse "") orelse Swag.U32.Max
+                if amount > 100_000 do
+                    return ""
+                if amount == 100_000 do
+                    continue
+
+                let number = catch StrConv.toU32(Format.toString("0x%", color)) orelse 0
+                let sourceColor = Color.fromArgb(0xFF000000 | number)
+                let hsl    = sourceColor.toHsl()
+                let value  = cast(f32, amount) / 100_000
+                let light  = token.isElement("tint") ? hsl.l + (1 - hsl.l) * value : hsl.l * value
+                var adjusted: Color
+                if hsl.s == 0
+                {
+                    let gray = cast(u32, Math.round(light * 255))
+                    adjusted = Color.fromArgb(0xFF000000 | (gray << 16) | (gray << 8) | gray)
+                }
+                else do
+                    adjusted = Color.fromHsl(hsl.h, hsl.s, light)
+                color = Format.toString("%{X02}%{X02}%{X02}", adjusted.r, adjusted.g, adjusted.b)
+            }
+            elif token.kind == .End and
+                 (token.isElement("srgbClr") or token.isElement("schemeClr") or token.isElement("sysClr")) do
+                break
+        }
+
+        if scan.damaged do
+            return ""
+        return color
     }
 
     mtd read(source: string)

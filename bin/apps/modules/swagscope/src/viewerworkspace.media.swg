@@ -323,6 +323,7 @@ impl ViewerWorkspace
         .compactMedia = concealed
         .surface?.wnd.setCaptionConcealed(concealed)
         .tabs.layoutTabs()
+        .layoutCloseViewButtons()
         .overlay.invalidate()
     }
 
@@ -414,7 +415,8 @@ impl ViewerWorkspace
         let mono      = .theme().createDefaultFontFs(metrics.defaultFontSize)
         let inset     = metrics.floating_Inset * 0.5
         let pad       = metrics.infoSheet_LineGap * 2
-        let available = Math.max(0, rect.width - 2 * inset - 2 * pad)
+        let close     = ViewTitleHeight + metrics.wnd_CaptionButtonMargin
+        let available = Math.max(0, rect.width - 2 * inset - 2 * pad - close)
         let scene     = unwrap .scene()
         var formatted: String
         if scene.linked and scene.links.mode == .Relative

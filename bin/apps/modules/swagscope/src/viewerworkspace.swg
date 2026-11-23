@@ -116,11 +116,14 @@ struct ViewerWorkspace
 {
     using wnd: Wnd
 
-    late primary: *ViewerWindow
-    late tabs:    *SceneTabs
-    late overlay: *SceneOverlay
+    late primary:         *ViewerWindow
+    late tabs:            *SceneTabs
+    late overlay:         *SceneOverlay
+    late divider:         *SceneDivider
+    late closeFileButton: *CaptionButton
 
     scenes:           ArrayPtr'ViewerScene
+    closeViewButtons: Array'(*IconButton)
     active:           u64
     activation:       u64
     paintedScene:     u64
@@ -142,9 +145,7 @@ struct ViewerWorkspace
     comparisonSheet:  *ComparisonSheet?
     transport:        *SceneTransport?
     alignSound:       SceneSoundAlignment
-    dropTarget:       SceneDropTarget
-    dragging:         bool
-    splitDrag:        bool
+    dropView:         u64 = Swag.U64.Max
     readingLinksBusy: bool
 }
 
@@ -163,12 +164,20 @@ impl ViewerWorkspace
         result.primary.focusPolicy = .Click
         result.tabs                = SceneTabs.create(result)
         result.overlay             = SceneOverlay.create(result)
+        result.divider             = SceneDivider.create(result)
+        result.createCloseFileButton()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
             switch evt
             {
             case KeyEvent as key:
                 return key.target != null and workspace.routeSceneKey(key, key.target)
+
+            case DragDropEvent as drag where drag.data.hasFiles() and workspace.documentCount() > 1:
+                // A cell owns its file drops. An explorer still ignores its own drag.
+                let explorer = workspace.activeDocument().explorer
+                if not explorer or not explorer.draggingFile or not explorer.isOwnerOf(drag.target) do
+                    return workspace.dropFiles(drag)
 
             case MouseEvent as pointer where pointer.kind == .Move or pointer.kind == .Enter:
                 workspace.noteMediaPointer()
@@ -268,42 +277,45 @@ impl ViewerWorkspace
         .resumeScene(remember)
     }
 
-    mtd insertDocument(path: string, target: SceneDropTarget)
+    mtd replaceDocument(index: u64, path: string)
     {
         let scene = .scene()
-        if not scene or target == .NewTab
-        {
-            .openDocument(path)
+        if not scene or index >= scene.views.count do
             return
-        }
+        let view = &scene.views[index]
+        let document = view.document
+        if not document do
+            return
 
-        if target == .Replace
-        {
-            let view = &scene.views[scene.active]
-            view.path      = path
-            view.reading   = {}
-            view.readState = false
-            view.offset    = 0
-            view.behind    = false
-            if scene.links.leader == scene.active do
-                scene.links.leader = Swag.U64.Max
-            if scene.links.solo == scene.active do
-                scene.links.solo = Swag.U64.Max
-            view.document!.queueFile(path)
+        view.path      = path
+        view.reading   = {}
+        view.readState = false
+        view.offset    = 0
+        view.behind    = false
+        if scene.links.leader == index do
+            scene.links.leader = Swag.U64.Max
+        if scene.links.solo == index do
+            scene.links.solo = Swag.U64.Max
+        document.queueFile(path)
+        if scene.active == index do
             .layoutScene()
-            return
-        }
+        else do
+            .selectView(index)
+    }
 
-        if scene.views.count >= MaxViews do
+    mtd openBeside(path: string)
+    {
+        let scene = .scene()
+        if not scene or scene.views.count >= MaxViews do
             return
-        let index = target == .Left ? scene.active : scene.active + 1
+        let index = scene.active + 1
         if scene.links.leader >= index and scene.links.leader < scene.views.count do
             scene.links.leader += 1
         if scene.links.solo >= index and scene.links.solo < scene.views.count do
             scene.links.solo += 1
         scene.views.insertAt(index, SceneView{path: String.from(path)})
         scene.active    = index
-        scene.layout    = scene.views.count == 2 ? (target == .Below ? .Stacked : .SideBySide) : .Auto
+        scene.layout    = scene.views.count == 2 ? .SideBySide : .Auto
         scene.maximized = false
         scene.compared  = false
         scene.linked    = false
@@ -323,6 +335,8 @@ impl ViewerWorkspace
 
     mtd suspendScene(capturePreview = true)
     {
+        .clearDropHighlight()
+        .divider.stopDrag()
         .closeSwitcher(choose: false)
         let scene = .scene()
         if not scene do
@@ -396,27 +410,31 @@ impl ViewerWorkspace
         .showScene()
     }
 
-    mtd closeView()
+    mtd closeView(index = Swag.U64.Max)
     {
         let scene = .scene()
         if not scene
         {
-            .primary.closeFile()
+            if index == Swag.U64.Max do
+                .primary.closeFile()
             return
         }
 
+        let closing = index == Swag.U64.Max ? scene.active : index
+        if closing >= scene.views.count do
+            return
         if scene.views.count == 1
         {
             .closeScene(.active)
             return
         }
 
-        let index = scene.active
-        .retireDocument(unwrap scene.views[index].document)
-        scene.views.removeAtOrdered(index)
-        scene.links.leader = remapClosedView(scene.links.leader, index)
-        scene.links.solo   = remapClosedView(scene.links.solo, index)
-        scene.active       = Math.min(index, scene.views.count - 1)
+        .clearDropHighlight()
+        .retireDocument(unwrap scene.views[closing].document)
+        scene.views.removeAtOrdered(closing)
+        scene.links.leader = remapClosedView(scene.links.leader, closing)
+        scene.links.solo   = remapClosedView(scene.links.solo, closing)
+        scene.active       = scene.active == closing ? Math.min(closing, scene.views.count - 1) : remapClosedView(scene.active, closing)
         scene.compared     = false
         scene.maximized    = false
         .showScene()
@@ -501,7 +519,7 @@ impl ViewerWorkspace
 
     mtd layoutScene()
     {
-        if .primary == null or .overlay == null do
+        if .closeFileButton == null do
             return
         let area         = .clientRect()
         let scene        = .scene()
@@ -540,10 +558,12 @@ impl ViewerWorkspace
         if primaryShown and .retiring.contains(.primary) and not .primary.pendingEmpty.isEmpty() do
             .primary.continueStartup()
         .primary.show(primaryShown)
+        .refreshCloseFileButton()
         .tabs.layoutTabs()
         .overlay.setPosition(area, computeLayout: false)
         .overlay.bringToFront()
         .overlay.invalidate()
+        .divider.place(.overlay.divider())
         .switchBackdrop?.setPosition(area, computeLayout: false)
         .refreshComparison()
         .updateMedia()

@@ -2,9 +2,6 @@
 
 using Core, Gui, Pixel
 
-enum SceneDropTarget { None, Replace, Left, Right, Below, NewTab }
-const SceneDropTargets = [SceneDropTarget.Replace, .Left, .Right, .Below, .NewTab]
-
 struct SceneTabs
 {
     using wnd:      Wnd
@@ -60,12 +57,14 @@ impl SceneTabs
         width -= Gap
         let selected = .workspace.active
         var left     = (room.width - width) * 0.5
-        if width > room.width
+        let endSpace = Gap * 0.5 + 1
+        if left < endSpace
         {
             var before: f32
             for i in selected do
                 before += .items[i].width + Gap
-            left = Math.clamp(room.width * 0.5 - before - .items[selected].width * 0.5, room.width - width, 0)
+            let first = Math.min(0, room.width - width - endSpace)
+            left = Math.clamp(room.width * 0.5 - before - .items[selected].width * 0.5, first, 0)
         }
 
         for &item in .items
@@ -108,6 +107,8 @@ impl SceneTabs
     private mtd closeRect(item: Math.Rectangle)->Math.Rectangle =>
     {item.right() + 1, item.vertCenter() - CloseSize * 0.5, CloseSize, CloseSize}
 
+    mtd showsClose(index: u64)->bool => index == .workspace.active or index == .hovered
+
     mtd hit(position: Math.Point)->u64
     {
         for rect, index in .items
@@ -137,7 +138,7 @@ impl IWnd for SceneTabs
             let edge   = Math.min(item.right(), room.width - item.x)
             let color  = active ? colors.text : colors.faintText.withAlphaF32(Math.clamp(edge / 28, 0, 1))
             painter.drawString(item.x, font.opticalLineTop(item.vertCenter()), text, font, color)
-            if index == .hovered
+            if .showsClose(index)
             {
                 let close = .closeRect(item)
                 .theme().icon(.WndClose, CloseSize).paint(painter, close.x, close.y, colors.softText)
@@ -157,7 +158,7 @@ impl IWnd for SceneTabs
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
-        evt.accepted = .workspace.dropFiles(evt)
+        evt.accepted = .workspace.dropFiles(evt, onTabs: true)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -174,7 +175,9 @@ impl IWnd for SceneTabs
             .invalidate()
 
         case .Pressed where index < .items.count:
-            if evt.button == .Middle or evt.button == .Left and index == .hovered and .closeRect(.items[index]).contains(point) do
+            let item = .items[index]
+            let close = Math.Rectangle{item.right(), item.y, Gap * 0.5 + 1, item.height}
+            if evt.button == .Middle or evt.button == .Left and .showsClose(index) and close.contains(point) do
                 .workspace.closeScene(index)
             elif evt.button == .Left do
                 .workspace.selectScene(index)
@@ -198,6 +201,8 @@ impl SceneOverlay
         let result = Wnd.create'SceneOverlay(workspace, "scope.scene.overlay")
         result.workspace       = workspace
         result.backgroundStyle = .Transparent
+        // Only the divider takes pointer input. The overlay paints over the document windows.
+        result.disable()
         return result
     }
 
@@ -219,59 +224,56 @@ impl SceneOverlay
         return {}
     }
 
-    mtd dropRect(target: SceneDropTarget)->Math.Rectangle
+    mtd cellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        let metrics = .themeMetrics()
-        let body    = .clientRect()
-        if target == .NewTab
+        let top   = .stripInset()
+        let body  = .clientRect()
+        if .workspace.comparisonVisible()
         {
-            let caption = .surface?.wnd.captionContentRect() orelse Math.Rectangle{}
-            let width   = Math.min(126, caption.width * 0.25)
-            let height  = Math.min(metrics.control_DialogHeight, caption.height)
-            let point   = .surfaceToLocal({caption.right() - width, caption.vertCenter() - height * 0.5})
-            return {point.x, point.y, width, height}
+            let half   = body.width * 0.5
+            let height = Math.max(0, body.bottom() - SceneComparison.FooterHeight - top)
+            return {body.x + cast(f32, index) * half, top, half, height}
         }
 
-        let scene = unwrap .workspace.scene()
-        var area  = .workspace.viewRect(scene, scene.active)
-        let top   = .stripInset()
-        area.intersect({0, top, body.width, Math.max(0, body.bottom() - top)})
-        let inset = Math.min(metrics.floating_Inset, Math.min(area.width, area.height) / 12)
-        let gap   = inset * 0.5
-        area.inflate(-inset)
-        let side   = Math.round(area.width * 0.21)
-        let below  = Math.round(area.height * 0.29)
-        let center = Math.Rectangle{area.x + side + gap, area.y, Math.max(0, area.width - 2 * (side + gap)), area.height}
-        switch #complete target
-        {
-        case .Left:          return {area.x, area.y, side, area.height}
-        case .Right:         return {area.right() - side, area.y, side, area.height}
-        case .Below:         return {center.x, center.bottom() - below, center.width, below}
-        case .Replace:       return {center.x, center.y, center.width, Math.max(0, center.height - below - gap)}
-        case .NewTab, .None: return {}
-        }
+        var rect  = .workspace.viewRect(scene, index)
+        rect.intersect({0, top, body.width, Math.max(0, body.bottom() - top)})
+        return rect
     }
 
-    mtd paintDropTargets(painter: *Painter, body: Math.Rectangle, font: *Font)
+    mtd dropRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        let colors = .themeColors()
-        let radius = .themeMetrics().corner_Control
-        painter.fillRect(body, colors.floating_Shadow.withAlphaF32(0.48))
-        let labels = [appStrings().scene_Replace, appStrings().scene_Left, appStrings().scene_Right,
-                      appStrings().scene_Below, appStrings().scene_NewTab]
-        for target, index in SceneDropTargets
+        var rect = .cellRect(scene, index)
+        let compare = .workspace.comparison
+        if not compare or not compare.isLocallyVisible() or not compare.isPicture() or compare.mode != .Curtain do
+            return rect
+
+        let split = Math.round(.clientRect().width * compare.separator)
+        if index == 0
         {
-            let rect = .dropRect(target)
-            if rect.width <= 0 or rect.height <= 0 do
-                continue
-            let chosen = target == .workspace.dropTarget
-            painter.fillRoundRect(rect, radius, radius, colors.raised.withAlphaF32(0.48))
-            if chosen do
-                painter.fillRoundRect(rect, radius, radius, colors.selection)
-            painter.drawRoundRect(rect, radius, radius, chosen ? colors.arc : colors.line, chosen ? 2 : 1)
-            let text = Painter.elideString(labels[index], font, Math.max(rect.width - radius * 2, 0), .deviceScale())
-            painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, chosen ? colors.text : colors.softText)
+            rect.width = split
         }
+        else
+        {
+            rect.width = rect.right() - split
+            rect.x     = split
+        }
+
+        return rect
+    }
+
+    mtd paintDropHighlight(painter: *Painter, scene: const *ViewerScene)
+    {
+        let index = .workspace.dropView
+        if index >= scene.views.count do
+            return
+        let metrics = .themeMetrics()
+        var rect    = .dropRect(scene, index)
+        rect.inflate(-metrics.wnd_CaptionButtonMargin)
+        if rect.width <= 0 or rect.height <= 0 do
+            return
+        var pen = Pen.createSolid(.themeColors().arc, metrics.focusRing_Size)
+        pen.borderPos = .Inside
+        painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
     }
 }
 
@@ -287,12 +289,11 @@ impl IWnd for SceneOverlay
         let colors  = .themeColors()
         let font    = .theme().createDefaultFont(12)
         let strip   = .stripInset()
-        let body    = Math.Rectangle{0, strip, .clientRect().width, .clientRect().height - strip}
         if .workspace.mediaChromeVisible() and strip > 0
         {
             let shade = colors.floating_Shadow
             let veil  = Brush.createLinearGradient(0, 0, 0, strip + 16, shade.withAlphaF32(0.75), shade.withAlphaF32(0))
-            painter.fillRect(0, 0, body.width, strip + 16, veil)
+            painter.fillRect(0, 0, .clientRect().width, strip + 16, veil)
         }
 
         if scene.views.count > 1 and not .workspace.comparisonVisible()
@@ -310,10 +311,12 @@ impl IWnd for SceneOverlay
             {
                 let rect         = .workspace.viewRect(scene, index)
                 let name: string = Path.fileName(view.path) orelse view.path
-                let text         = Painter.elideString(name, font, Math.max(rect.width - 24, 0), .deviceScale())
+                let controls     = 2 * (ViewerWorkspace.ViewTitleHeight + .themeMetrics().wnd_CaptionButtonMargin)
+                let text         = Painter.elideString(name, font, Math.max(rect.width - controls, 0), .deviceScale())
                 let active       = scene.active == index
                 if view.document.isEdgeToEdge()
                 {
+                    .workspace.paintCloseViewGround(painter, index)
                     if .workspace.mediaChromeVisible() do
                         .workspace.paintMediaCaption(painter, rect, view, text, active)
                     elif index == .workspace.audibleIndex(scene) do
@@ -349,38 +352,90 @@ impl IWnd for SceneOverlay
             }
         }
 
-        if .workspace.dragging do
-            .paintDropTargets(painter, body, font)
+        .paintDropHighlight(painter, scene)
+    }
+}
+
+struct SceneDivider
+{
+    using wnd:      Wnd
+    late workspace: *ViewerWorkspace
+    dragging:       bool
+}
+
+impl SceneDivider
+{
+    func create(workspace: *ViewerWorkspace)->*SceneDivider
+    {
+        let result = Wnd.create'SceneDivider(workspace, "scope.scene.divider")
+        result.workspace       = workspace
+        result.backgroundStyle = .Transparent
+        result.wndFlags.add(.TopMost)
+        return result
     }
 
+    mtd place(bounds: Math.Rectangle)
+    {
+        if bounds.isEmpty()
+        {
+            .stopDrag()
+            .hide()
+            return
+        }
+
+        .setPosition(bounds, computeLayout: false)
+        .show()
+    }
+
+    mtd stopDrag()
+    {
+        if not .dragging do
+            return
+        .dragging = false
+        if .mouseCapture() == me do
+            .releaseMouse()
+    }
+}
+
+impl IWnd for SceneDivider
+{
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let divider = .divider()
-        let point   = .surfaceToLocal(evt.surfacePos)
+        let scene = .workspace.scene()
+        let point = .workspace.surfaceToLocal(evt.surfacePos)
+        let hit   = scene and .isLocallyVisible() and .position.contains(point)
         switch evt.kind
         {
         case .Accept:
-            evt.accepted = divider.width > 0 and divider.contains(point)
+            evt.accepted = hit or .dragging and .mouseCapture() == me
 
-        case .Pressed where evt.button == .Left:
-            .workspace.splitDrag = true
+        case .Pressed where hit and evt.button == .Left:
+            .dragging = true
             .captureMouse()
 
-        case .Released where .workspace.splitDrag:
-            .workspace.splitDrag = false
-            .releaseMouse()
+        case .Released where .dragging and evt.button == .Left:
+            .stopDrag()
             catch .workspace.primary.saveState()
 
-        case .DoubleClick where evt.button == .Left:
-            let scene = unwrap .workspace.scene()
-            scene.split = 0.5
-            .workspace.layoutScene()
+        case .DoubleClick where hit and evt.button == .Left:
+            if scene
+            {
+                scene.split = 0.5
+                .workspace.layoutScene()
+            }
 
-        case .Move where .workspace.splitDrag:
-            let scene = unwrap .workspace.scene()
-            let area  = .clientRect()
+        case .Move where .dragging:
+            if not scene or .mouseCapture() != me
+            {
+                .stopDrag()
+                evt.accepted = false
+                return
+            }
+
+            let area  = .workspace.clientRect()
+            let inset = .workspace.overlay.stripInset()
             let ratio = scene.dimensions().y == 1 ? point.x / Math.max(area.width, 1) :
-                        (point.y - .stripInset()) / Math.max(area.height - .stripInset(), 1)
+                        (point.y - inset) / Math.max(area.height - inset, 1)
             scene.split = Math.clamp(ratio, 0.18, 0.82)
             .workspace.layoutScene()
 
@@ -392,6 +447,82 @@ impl IWnd for SceneOverlay
 
 impl ViewerWorkspace
 {
+    mtd createCloseFileButton()
+    {
+        let workspace = me
+        with .closeFileButton = CaptionButton.createLeading(unwrap .surface, .WndClose, ViewerCommands.Close)
+        {
+            .sigPressed += func|workspace|(_) { discard workspace.activeDocument().runCommand(ViewerCommands.Close) }
+            .hide()
+        }
+    }
+
+    mtd refreshCloseFileButton()
+    {
+        if .closeFileButton == null do
+            return
+        let shortcut = Input.formatKeyShortcut(.Control, .W)
+        let document = .activeDocument()
+        .closeFileButton.toolTip = Format.toString("% (%)", appStrings().ui_CloseFile, shortcut)
+        .closeFileButton.show(.scenes.count == 1 and .documentCount() == 1 and not document.isExploring() and not document.fullScreen)
+    }
+
+    mtd layoutCloseViewButtons()
+    {
+        if .overlay == null do
+            return
+        let scene = .scene()
+        let count = scene and scene.views.count > 1 and not .compactMedia ? scene.views.count : 0
+        let metrics = .themeMetrics()
+        let pictures = .comparisonVisible() and .comparison!.isPicture()
+        while .closeViewButtons.count < count
+        {
+            let index     = .closeViewButtons.count
+            let workspace = me
+            let button    = IconButton.create(me, .theme().icon(.WndClose, metrics.wnd_CaptionButtonGlyph), flags: .Overlay | .CenterContent)
+            button.wndFlags.add(.TopMost)
+            button.setForm(.RoundedRectangle)
+            button.sigPressed += func|workspace, index|(_) { workspace.closeView(index) }
+            .closeViewButtons.add(button)
+        }
+
+        for button, index in .closeViewButtons
+        {
+            if not scene or index >= count or not (scene.views[index].document?.isLocallyVisible() orelse false)
+            {
+                button.hide()
+                continue
+            }
+
+            let rect = .overlay.cellRect(scene, index)
+            let size = Math.min(ViewTitleHeight, Math.min(rect.width, rect.height))
+            if size < metrics.wnd_CaptionButtonGlyph
+            {
+                button.hide()
+                continue
+            }
+
+            let path: string = scene.views[index].path
+            let name = Path.fileName(path) orelse path
+            button.toolTip = Format.toString("% · %", appStrings().ui_CloseFile, name)
+            let bounds = pictures ? .comparison!.pictureCloseRect(index) :
+                         Math.Rectangle{rect.right() - size - metrics.wnd_CaptionButtonMargin, rect.y, size, size}
+            button.setPosition(bounds, computeLayout: false)
+            button.show()
+        }
+    }
+
+    mtd paintCloseViewGround(painter: *Painter, index: u64)
+    {
+        if index >= .closeViewButtons.count do
+            return
+        let button = .closeViewButtons[index]
+        if not button.isLocallyVisible() do
+            return
+        let corner = .themeMetrics().corner_Chip
+        painter.fillRoundRect(button.position, corner, corner, .themeColors().raised)
+    }
+
     mtd showMaximizedHint(show: bool)
     {
         if not show
@@ -415,74 +546,79 @@ impl ViewerWorkspace
         .maxHintTimer = .addTimer(ViewerWindow.ViewerBarLinger)
     }
 
-    private mtd clearDropTargets()
+    mtd clearDropHighlight()
     {
-        if .dragging
+        if .dropView != Swag.U64.Max
         {
-            .dragging   = false
-            .dropTarget = .None
+            .dropView = Swag.U64.Max
             .overlay.invalidate()
             .refreshComparison()
-            .updateMedia()
         }
 
         .primary.dropHighlight.hide()
     }
 
-    mtd dropFiles(evt: *DragDropEvent)->bool
+    mtd dropFiles(evt: *DragDropEvent, onTabs = false)->bool
     {
         if evt.kind == .Leave
         {
-            .clearDropTargets()
+            .clearDropHighlight()
             return true
         }
 
-        if not evt.data.hasFiles() or evt.data.files.count > MaxViews do
-            return false
         let effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
-        if effect == .None do
+        if not evt.data.hasFiles() or evt.data.files.count > MaxViews or effect == .None
+        {
+            .clearDropHighlight()
             return false
+        }
+
         .closeSwitcher(choose: false)
 
         let scene = .scene()
         let one   = evt.data.files.count == 1
-        if scene and one
+        var index = Swag.U64.Max
+        if scene and one and not onTabs
         {
             let point = .overlay.surfaceToLocal(evt.surfacePos)
-            .dragging   = true
-            .dropTarget = .None
-            for target in SceneDropTargets
+            for view, i in scene.views where (view.document?.isLocallyVisible() orelse false)
             {
-                if (target == .Left or target == .Right or target == .Below) and scene.views.count >= MaxViews do
-                    continue
-                let rect = .overlay.dropRect(target)
-                if rect.width > 0 and rect.height > 0 and rect.contains(point)
+                let rect = .overlay.dropRect(scene, i)
+                if not rect.isEmpty() and rect.contains(point)
                 {
-                    .dropTarget = target
+                    index = i
                     break
                 }
             }
 
-            .overlay.bringToFront()
-            .overlay.invalidate()
-            if .dropTarget == .None do
+            if index == Swag.U64.Max
+            {
+                .clearDropHighlight()
                 return true
-        }
-        else
-        {
-            .primary.dropHighlight.showTarget(false)
+            }
         }
 
         if evt.kind == .Drop
         {
-            let target = .dropTarget
-            .clearDropTargets()
+            .clearDropHighlight()
             if not one do
                 .openScene(evt.data.files.toSlice(), .Auto)
-            elif scene do
-                .insertDocument(evt.data.files[0], target)
+            elif index != Swag.U64.Max do
+                .replaceDocument(index, evt.data.files[0])
             else do
                 .openDocument(evt.data.files[0])
+        }
+        elif index == Swag.U64.Max
+        {
+            .clearDropHighlight()
+            if not scene do
+                .primary.dropHighlight.showTarget(false)
+        }
+        elif .dropView != index
+        {
+            .dropView = index
+            .overlay.bringToFront()
+            .overlay.invalidate()
         }
 
         evt.effect = effect

@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui
+using Core, Gui, Audio
 
 #test
 {
@@ -9,9 +9,9 @@ using Core, Gui
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
-    let first  = scopeTestDataPath("comprehensive.txt")
-    let second = scopeTestDataPath("sample.cpp")
-    let third  = scopeTestDataPath("viewer.srt")
+    let first  = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let second = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let third  = expect Path.absolute(scopeTestDataPath("viewer.srt"))
     workspace.openDocument(first)
     openViews(&host, workspace)
 
@@ -54,44 +54,138 @@ using Core, Gui
     Swag.require(grid.layout == .Grid2 and grid.views[0].path == second and grid.views[1].path == third)
 }
 
+// A drag follows the pointer between occupied cells. It leaves the active document alone
+// until the drop, and replaces only the file in the cell it lands on.
 #test
 {
-    let first  = scopeTestDataPath("comprehensive.txt")
-    let second = scopeTestDataPath("sample.cpp")
-    let path   = second.toString()
-    for target in [SceneDropTarget.Left, .Right, .Below, .Replace, .NewTab]
-    {
-        var host: Testing.HeadlessHost
-        let workspace = testWorkspace(&host)
-        defer host.shutdown()
-        workspace.openDocument(first)
-        openViews(&host, workspace)
-        let original = workspace.activeDocument()
+    let first  = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let second = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let third  = expect Path.absolute(scopeTestDataPath("viewer.srt"))
+    let replacement = expect Path.absolute(scopeTestDataPath("viewer.txt"))
+    let path = replacement.toString()
 
-        var point = workspace.overlay.localToSurface(workspace.overlay.dropRect(target).center())
-        host.surface.surfaceToScreen(&point)
-        Swag.require(host.dragFilesOver(point, [path]) == .Copy and workspace.dropTarget == target)
-        Swag.require(host.dropFiles(point, [path]) == .Copy)
-        openViews(&host, workspace)
-        let scene = unwrap workspace.scene()
-        Swag.require(workspace.activeDocument().currentFile == second and not workspace.dragging)
-        switch target
-        {
-        case .NewTab:
-            Swag.require(workspace.scenes.count == 2 and scene.views.count == 1)
-            Swag.require(workspace.scenes[0]!.views[0].path == first)
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([first, second, third], .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let original = workspace.activeDocument()
+    let target   = scene.views[1].document
 
-        case .Replace:
-            Swag.require(workspace.scenes.count == 1 and
-                         scene.views.count == 1 and
-                         workspace.activeDocument() == original)
+    var left = workspace.localToSurface(workspace.viewRect(scene, 0).center())
+    var right = workspace.localToSurface(workspace.viewRect(scene, 1).center())
+    var empty = workspace.localToSurface(workspace.viewRect(scene, 3).center())
+    host.surface.surfaceToScreen(&left)
+    host.surface.surfaceToScreen(&right)
+    host.surface.surfaceToScreen(&empty)
+    Swag.require(host.dragFilesOver(left, [path]) == .Copy and workspace.dropView == 0)
+    Swag.require(host.dragFilesOver(right, [path]) == .Copy and workspace.dropView == 1)
+    Swag.require(workspace.activeDocument() == original)
+    Swag.require(host.dragFilesOver(empty, [path]) == .None and workspace.dropView == Swag.U64.Max)
+    Swag.require(host.dropFiles(empty, [path]) == .None)
+    Swag.require(scene.views[1].path == second)
+    Swag.require(host.dragFilesOver(right, [path]) == .Copy and workspace.dropView == 1)
+    host.cancelDrag()
+    Swag.require(workspace.dropView == Swag.U64.Max and scene.views[1].path == second)
 
-        default:
-            Swag.require(workspace.scenes.count == 1 and scene.views.count == 2)
-            Swag.require(scene.layout == (target == .Below ? .Stacked : .SideBySide))
-            Swag.require(scene.views[target == .Left ? 1 : 0].document == original and original.currentFile == first)
-        }
-    }
+    Swag.require(host.dropFiles(right, [path]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(workspace.dropView == Swag.U64.Max)
+    Swag.require(workspace.scenes.count == 1 and scene.layout == .Grid2 and scene.views.count == 3)
+    Swag.require(scene.views[0].document == original and original.currentFile == first)
+    Swag.require(scene.views[1].document == target and workspace.activeDocument().currentFile == replacement)
+    Swag.require(scene.views[2].path == third)
+
+    // Several files still open together in a new scene.
+    Swag.require(host.dropFiles(right, [first.toString(), second.toString()]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(workspace.scenes.count == 2 and workspace.documentCount() == 2)
+    Swag.require(scene.views[1].path == replacement)
+
+    Swag.require(host.dropFilesOnWnd(workspace.tabs, [path]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(workspace.scenes.count == 3 and workspace.activeDocument().currentFile == replacement)
+    Swag.require(not workspace.closeFileButton.isLocallyVisible())
+    let tabs = workspace.tabs
+    let item = tabs.items[workspace.active]
+    var close = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.vertCenter()})
+    host.surface.surfaceToScreen(&close)
+    Swag.require(tabs.showsClose(workspace.active))
+    host.click(close)
+    Swag.require(workspace.scenes.count == 2)
+}
+
+// The grid owns file drops over a video, including files the standalone player can attach.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+
+    let first = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let video = scopeTestDataPath("viewer.avi")
+    let subtitles = expect Path.absolute(scopeTestDataPath("viewer.srt"))
+    workspace.openScene([first, video], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let film  = assume cast(*Viewers.Film.Panel, scene.views[1].document!.currentView)
+    waitForVideoFrame(film)
+    Swag.require(host.dropFilesOnWnd(film.imageView, [subtitles.toString()]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(scene.views[0].path == first and scene.views[1].path == subtitles)
+}
+
+// In a curtain comparison the visible side under the pointer owns the drop.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let left = expect Path.absolute(scopeTestDataPath("viewer.png"))
+    let right = expect Path.absolute(scopeTestDataPath("viewer.progressive.jpg"))
+    let replacement = expect Path.absolute(scopeTestDataPath("title.png"))
+    workspace.openScene([left, right], .SideBySide, compare: true)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let comparison = unwrap workspace.comparison
+    comparison.setPictureMode(.Curtain)
+    comparison.separator = 0.72
+
+    var point = workspace.localToSurface(Math.Point{workspace.clientRect().width * 0.6, workspace.stripInset() + 120})
+    host.surface.surfaceToScreen(&point)
+    Swag.require(host.dragFilesOver(point, [replacement.toString()]) == .Copy and workspace.dropView == 0)
+    Swag.require(host.dropFiles(point, [replacement.toString()]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(workspace.comparisonVisible() and comparison.mode == .Curtain)
+    Swag.require(scene.views[0].path == replacement and scene.views[1].path == right)
+}
+
+// The close control belongs to its visible cell. The caption takes over for the last file.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let files = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.srt")]
+    workspace.openScene(files, .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let original = workspace.activeDocument()
+    let last = scene.views[2].document
+    let closeFile = workspace.closeFileButton
+    Swag.require(not closeFile.isLocallyVisible())
+    host.clickWnd(workspace.closeViewButtons[1])
+    Swag.require(scene.views.count == 2 and scene.views[1].document == last)
+    Swag.require(workspace.activeDocument() == original)
+    host.clickWnd(workspace.closeViewButtons[1])
+    Swag.require(scene.views.count == 1 and workspace.activeDocument() == original)
+    Swag.require(closeFile.isLocallyVisible() and not workspace.closeViewButtons[0].isLocallyVisible())
+    host.clickWnd(closeFile)
+    Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isLocallyVisible())
+    Swag.require(not closeFile.isLocallyVisible())
 }
 
 #test

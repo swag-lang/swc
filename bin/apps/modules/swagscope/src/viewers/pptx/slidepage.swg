@@ -359,6 +359,28 @@ impl SlidePage
             }
             if shape.centered do
                 result += "display:flex;flex-direction:column;justify-content:center;"
+            if shape.rotation or shape.flipHorizontal or shape.flipVertical
+            {
+                var transform: String
+                if shape.rotation do
+                    transform = Format.toString("rotate(%{f4}deg)", shape.rotation)
+                if shape.flipHorizontal
+                {
+                    if not transform.isEmpty() do
+                        transform += " "
+                    transform += "scaleX(-1)"
+                }
+
+                if shape.flipVertical
+                {
+                    if not transform.isEmpty() do
+                        transform += " "
+                    transform += "scaleY(-1)"
+                }
+
+                result += Format.toString("transform-origin:50%% 50%%;transform:%;", transform)
+            }
+
             result += "\">"
             if shape.picture
             {

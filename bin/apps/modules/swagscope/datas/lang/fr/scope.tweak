@@ -318,11 +318,6 @@ scene_CompareWith   Comparer avec…
 scene_Compare       Comparer
 scene_Maximize      Agrandir la vue
 scene_RestoreLayout Rétablir la disposition
-scene_Replace       Remplacer
-scene_Left          À gauche
-scene_Right         À droite
-scene_Below         En dessous
-scene_NewTab        Nouvel onglet
 scene_Curtain        Rideau
 scene_OnionSkin      Pelure d’oignon
 scene_Difference     Différence

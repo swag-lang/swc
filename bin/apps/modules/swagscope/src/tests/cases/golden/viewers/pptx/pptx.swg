@@ -17,6 +17,13 @@ using Core, Gui, Pixel, Viewers
     picturedViewer(scopeTestDataPath("viewer.pictures.pptx"), false, "viewer.pptx.picture")
 }
 
+// Cached chart categories and values stay visible in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.chart.pptx"), false, "viewer.pptx.chart")
+}
+
 // Aligned and styled presentation text in Papier.
 #[Swag.TestTag("golden")]
 #test

@@ -184,6 +184,36 @@ def generate(output: Path) -> None:
         package(ROOT / name, members)
     package(ROOT / "viewer.damaged.pptx", [("ppt/presentation.xml", xml("<p:presentation/>"), ZIP_DEFLATED)])
 
+    chart_categories = ["North", "West", "South"]
+    def chart_series(title: str, values: list[int]) -> str:
+        title_cache = f'<c:tx><c:strRef><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{title}</c:v></c:pt></c:strCache></c:strRef></c:tx>'
+        category_cache = '<c:cat><c:strRef><c:strCache><c:ptCount val="3"/>'
+        category_cache += "".join(f'<c:pt idx="{index}"><c:v>{category}</c:v></c:pt>' for index, category in enumerate(chart_categories))
+        category_cache += "</c:strCache></c:strRef></c:cat>"
+        values_cache = '<c:val><c:numRef><c:numCache><c:ptCount val="3"/>'
+        values_cache += "".join(f'<c:pt idx="{index}"><c:v>{value}</c:v></c:pt>' for index, value in enumerate(values))
+        values_cache += "</c:numCache></c:numRef></c:val>"
+        return f"<c:ser>{title_cache}{category_cache}{values_cache}</c:ser>"
+
+    chart_xml = xml(
+        '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart><c:plotArea><c:barChart><c:barDir val="bar"/>'
+        + chart_series("Units sold", [42, 27, 35])
+        + chart_series("Revenue", [80, 50, 72])
+        + "</c:barChart></c:plotArea></c:chart></c:chartSpace>"
+    )
+    chart_slide = xml(
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:cSld><p:spTree><p:nvGrpSpPr/><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="457200" y="274320"/><a:ext cx="10972800" cy="914400"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Regional sales</a:t></a:r></a:p></p:txBody></p:sp><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="3" name="Sales chart"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="457200" y="1371600"/><a:ext cx="10972800" cy="5029200"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart r:id="rIdChart1"/></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>'
+    )
+    package(ROOT / "viewer.chart.pptx", [
+        ("[Content_Types].xml", xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>'), ZIP_DEFLATED),
+        ("_rels/.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/presentation.xml", xml('<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", chart_slide, ZIP_DEFLATED),
+        ("ppt/slides/_rels/slide1.xml.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdChart1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/charts/chart1.xml", chart_xml, ZIP_DEFLATED),
+    ])
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -196,7 +226,7 @@ def main() -> None:
         "viewer.rtf", "viewer.unicode.rtf", "viewer.table.rtf", "viewer.destinations.rtf", "viewer.damaged.rtf",
         "viewer.xlsx", "viewer.inline.xlsx", "viewer.damaged.xlsx",
         "viewer.empty-cells.xlsx", "viewer.formulas.xlsx", "viewer.sparse-rows.xlsx", "viewer.wide-column.xlsx",
-        "viewer.pptx", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx",
+        "viewer.pptx", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx", "viewer.chart.pptx",
     ]
     for name in names:
         path = args.output_dir / name

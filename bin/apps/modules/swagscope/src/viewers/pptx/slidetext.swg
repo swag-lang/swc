@@ -86,6 +86,7 @@ impl SlideText
         var runStyle:           RunStyle
         var inRunProperties = false
         var inRunFill       = false
+        var inRunColor      = false
         var alignment:          string = ""
         var paragraph:          String
         var run:                String
@@ -141,6 +142,13 @@ impl SlideText
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
                     if Package.isRgbHex(color) do
                         runStyle.color = color
+                    inRunColor = not token.empty
+                }
+                elif inRunColor and (token.isElement("tint") or token.isElement("shade"))
+                {
+                    let amount = catch StrConv.toU32(token.attribute("val") orelse "") orelse Swag.U32.Max
+                    if amount <= 100_000 do
+                        runStyle.color = theme.transformColor(runStyle.color, amount, token.isElement("tint"))
                 }
                 elif token.isElement("t")
                 {
@@ -231,6 +239,10 @@ impl SlideText
                 elif token.isElement("solidFill")
                 {
                     inRunFill = false
+                }
+                elif token.isElement("srgbClr") or token.isElement("schemeClr")
+                {
+                    inRunColor = false
                 }
                 elif token.isElement("t")
                 {

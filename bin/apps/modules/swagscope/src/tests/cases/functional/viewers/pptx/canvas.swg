@@ -86,6 +86,30 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(rotated.unsupported)
 }
 
+// DrawingML tint and shade transforms preserve the authored RGB channels at OOXML precision.
+#test
+{
+    var theme = Pptx.SlideTheme.defaults()
+    Swag.require(theme.transformColor("000000", 50_000, true) == "808080")
+    Swag.require(theme.transformColor("FFFFFF", 50_000, false) == "808080")
+    Swag.require(theme.transformColor("FF0000", 100_000, true) == "FFFFFF")
+    let tinted = expect Pptx.SlideShape.parse("""<p:sp><p:spPr><a:solidFill><a:srgbClr val="204060"><a:tint val="50000"/></a:srgbClr></a:solidFill></p:spPr></p:sp>""", &theme)
+    Swag.require(tinted.fill == "90A0B0")
+    var images: Package.ImageCatalog
+    let shadedText = expect Pptx.SlideText.parse("""<p:sp><p:txBody><a:p><a:r><a:rPr><a:solidFill><a:schemeClr val="accent1"><a:shade val="50000"/></a:schemeClr></a:solidFill></a:rPr><a:t>Shade</a:t></a:r></a:p></p:txBody></p:sp>""", &images, &theme, 960)
+    Swag.require(Utf8.contains(shadedText.html, "color:#28415F;"))
+}
+
+// Basic ellipses retain their authored position and use a circular canvas clip.
+#test
+{
+    var theme = Pptx.SlideTheme.defaults()
+    let page = expect Pptx.SlidePage.parse("""<p:sld><p:cSld><p:spTree><p:sp><p:spPr><a:xfrm><a:off x="952500" y="952500"/><a:ext cx="1905000" cy="952500"/></a:xfrm><a:prstGeom prst="ellipse"/><a:solidFill><a:srgbClr val="204060"/></a:solidFill></p:spPr></p:sp></p:spTree></p:cSld></p:sld>""", &theme)
+    Swag.require(not page.simplified and page.shapes.count == 1)
+    Swag.require(page.shapes[0].positioned and page.shapes[0].ellipse)
+    Swag.require(Utf8.contains(page.canvasHtml(960, 720), "border-radius:50%;"))
+}
+
 // Unsupported slide structures retain their reading text and are explicitly marked simplified.
 #test
 {
@@ -94,6 +118,24 @@ using Core, Gui, Gui.Testing, Viewers
     var theme = Pptx.SlideTheme.defaults()
     let page  = expect Pptx.SlidePage.parse("<p:sld><p:spTree><p:grpSp><p:graphicFrame/></p:grpSp></p:spTree></p:sld>", &theme)
     Swag.require(page.simplified)
+}
+
+// Cached bar-chart values render in the slide canvas and remain available to text readers.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.chart.pptx"))
+    let page = &presentation.slides[0]
+    Swag.require(page.shapes.count == 2, Format.toString("shape count %", page.shapes.count))
+    Swag.require(page.shapes[1].positioned, "chart bounds missing")
+    Swag.require(not page.shapes[1].unsupported, "chart marked unsupported")
+    Swag.require(not page.simplified)
+    Swag.require(page.title == "Regional sales")
+    let reading = page.readingHtml()
+    Swag.require(Utf8.contains(reading, "Units sold"))
+    Swag.require(Utf8.contains(reading, "Revenue"))
+    Swag.require(Utf8.contains(reading, "North") and Utf8.contains(reading, "42"))
+    Swag.require(Utf8.contains(reading, "West") and Utf8.contains(reading, "27"))
+    Swag.require(Utf8.contains(page.canvasHtml(presentation.width, presentation.height), "background-color:#4472C4"))
 }
 
 // XML parts are bounded trees; unclosed tags, multiple roots, entities and excess depth fail.

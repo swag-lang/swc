@@ -32,6 +32,27 @@ impl SlideTheme
         return .office.color(scheme)
     }
 
+    // Applies a DrawingML tint or shade to an RGB color. `value` uses OOXML's 100000 scale.
+    mtd const transformColor(color: string, value: u32, tint: bool)->String
+    {
+        if not Package.isRgbHex(color) do
+            return {}
+
+        let rgb = catch StrConv.toU32(Format.toString("0x%", color)) { return {} }
+        let amount = Math.min(value, 100_000)
+        let red   = .transformChannel((rgb >> 16) & 255, amount, tint)
+        let green = .transformChannel((rgb >> 8) & 255, amount, tint)
+        let blue  = .transformChannel(rgb & 255, amount, tint)
+        return Format.toString("%{X02}%{X02}%{X02}", red, green, blue)
+    }
+
+    private mtd const transformChannel(channel, value: u32, tint: bool)->u32
+    {
+        if tint do
+            return channel + (((255 - channel) * value + 50_000) / 100_000)
+        return (channel * value + 50_000) / 100_000
+    }
+
     mtd read(source: string)
     {
         .office.read(source)

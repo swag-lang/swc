@@ -17,7 +17,7 @@ struct SlidePage
 
 impl SlidePage
 {
-    func parse(source: string, theme: const *SlideTheme, images: *Package.ImageCatalog? = null, pageWidth = 960.0)->SlidePage fail
+    func parse(source: string, theme: const *SlideTheme, images: *Package.ImageCatalog? = null, pageWidth = 960.0, charts: const [..] SlideChart = [])->SlidePage fail
     {
         var result:    #returntype
         var scan         = Package.Scanner.create(source)
@@ -41,9 +41,7 @@ impl SlidePage
                     shapeName  = token.name
                 }
 
-                if token.isElement("grpSp") or
-                   token.isElement("graphicFrame") or
-                   token.isElement("cxnSp") do
+                if token.isElement("grpSp") or token.isElement("cxnSp") do
                     result.simplified = true
                 if token.isElement("bgPr")
                 {
@@ -64,7 +62,19 @@ impl SlidePage
                token.name == shapeName and
                (token.kind == .End or token.empty)
             {
-                let shape = try SlideShape.parse(source[shapeStart until scan.offset], theme, images, pageWidth)
+                let shapeSource = source[shapeStart until scan.offset]
+                var shape = try SlideShape.parse(shapeSource, theme, images, pageWidth)
+                if token.isElement("graphicFrame")
+                {
+                    if let chart = findSlideChart(charts, shapeSource)
+                    {
+                        shape.html      = chart.html.toString()
+                        shape.plainText = chart.plainText.toString()
+                    }
+                    else do
+                        result.simplified = true
+                }
+
                 if not shape.hidden
                 {
                     result.omittedImages += shape.omittedImages
@@ -131,10 +141,11 @@ impl SlidePage
         }
 
         let source = try parts.text(path)
+        let charts = try chartsForSlide(source, parts, path)
         theme.read(layoutSource)
         theme.read(source)
         var images    = try imageCatalog(parts, path)
-        var result    = try SlidePage.parse(source, &theme, &images, pageWidth)
+        var result    = try SlidePage.parse(source, &theme, &images, pageWidth, charts.toSlice())
         let notesPath = Package.relationshipPath(relations.toSlice(), "/notesSlide")
         if not notesPath.isEmpty() do
             result.notesHtml = try readSpeakerNotes(try parts.text(notesPath), &theme)
@@ -266,8 +277,14 @@ impl SlidePage
                 result += Format.toString("background-color:#%;", shape.fill)
             if not shape.line.isEmpty() do
                 result += Format.toString("border:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
-            if shape.round do
+            if shape.ellipse
+            {
+                result += "border-radius:50%;"
+            }
+            elif shape.round
+            {
                 result += Format.toString("border-radius:%{f4}vw;", Math.min(bounds.width, bounds.height) / width * 16.67)
+            }
             if shape.centered do
                 result += "display:flex;flex-direction:column;justify-content:center;"
             result += "\">"

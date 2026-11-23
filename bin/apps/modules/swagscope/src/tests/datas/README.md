@@ -98,6 +98,11 @@ inherited title bounds, static master decoration, theme colors, text boxes and a
 Its embedded photograph is reused unchanged from `viewer.pictures.pptx` and retains that
 fixture's recorded provenance and licence. No external resources are included.
 
+`viewer.chart.pptx` is a repository-authored one-slide presentation with a cached two-series
+bar chart and three shared categories. It exercises a relationship-resolved chart part without
+an embedded workbook or external resources. Regenerate it with
+`generator/generate-office-lite-fixtures.py`.
+
 `viewer.project.zip` is a reproducible, repository-authored field-survey project bundle. It has
 seven Deflate-compressed files across the root, `config/`, `data/`, `docs/` and `src/`, with
 fictional site metadata, CSV observations, a source file and a bundled MIT licence.

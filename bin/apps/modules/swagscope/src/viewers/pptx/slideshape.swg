@@ -22,6 +22,7 @@ struct SlideShape
     line:             String
     lineWidth:        f32
     round:            bool
+    ellipse:          bool
     centered:         bool
     bodyProperties:   bool
     insetMask:        u8
@@ -51,6 +52,7 @@ impl SlideShape
         var inProperties = false
         var inLine       = false
         var inFill       = false
+        var inFillColor  = false
         var inText       = false
         while scan.next(&token)
         {
@@ -135,7 +137,8 @@ impl SlideShape
                 {
                     let kind = token.attribute("prst") orelse "rect"
                     result.round = kind == "roundRect"
-                    if kind != "rect" and kind != "roundRect" do
+                    result.ellipse = kind == "ellipse"
+                    if kind != "rect" and kind != "roundRect" and kind != "ellipse" do
                         result.unsupported = true
                 }
                 elif inProperties and token.isElement("custGeom")
@@ -176,6 +179,19 @@ impl SlideShape
                         else do
                             result.fill = color
                     }
+                    inFillColor = not token.empty
+                }
+                elif inFillColor and (token.isElement("tint") or token.isElement("shade"))
+                {
+                    let amount = catch StrConv.toU32(token.attribute("val") orelse "") orelse Swag.U32.Max
+                    if amount <= 100_000 and inLine
+                    {
+                        result.line = theme.transformColor(result.line, amount, token.isElement("tint"))
+                    }
+                    elif amount <= 100_000
+                    {
+                        result.fill = theme.transformColor(result.fill, amount, token.isElement("tint"))
+                    }
                 }
             }
             elif token.kind == .End
@@ -188,6 +204,8 @@ impl SlideShape
                     inText = false
                 elif token.isElement("solidFill") do
                     inFill = false
+                elif token.isElement("srgbClr") or token.isElement("schemeClr") do
+                    inFillColor = false
                 elif token.isElement("ln") do
                     inLine = false
             }

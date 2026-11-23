@@ -121,9 +121,7 @@ impl MainWindow
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItems(VaultCommandIds)
-        let chosen = menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
-        if chosen do
-            discard .runCommand(chosen)
+        discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
     // Opens the modification commands from the unfolded vault's header.

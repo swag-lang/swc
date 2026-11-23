@@ -858,6 +858,43 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     }
 }
 
+// The context menu runs each edit once from both the resting row and the unfolded header.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+    window.privacyMode = false
+    window.applyPrivacyControl()
+
+    let path = Testing.tempFilePath("vault-context-edit-", ".bin")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllText(path, "container")
+    window.openVault(path)
+
+    func cancelFromContextMenu(host: *Testing.HeadlessHost, target: *Wnd, id: WndId)
+    {
+        host.clickPopupMenuItemWhenShown(id)
+        host.thenClickModalButton(Dialog.BtnCancel)
+        host.clickWnd(target, .Right)
+        // Any duplicate command left in the queue would open an unexpected second dialog.
+        host.pump()
+        Swag.require(host.autoHandled)
+    }
+
+    for id in [VaultCommands.ChangePassword, VaultCommands.ChangeKeyFiles, VaultCommands.Resize]
+    {
+        window.foldVault()
+        host.finishAnimations()
+        cancelFromContextMenu(&host, unwrap window.list.rowOf(path), id)
+        Swag.require(window.chosenLockedPath() == path)
+
+        host.finishAnimations()
+        cancelFromContextMenu(&host, window.list.card.header, id)
+        Swag.require(window.chosenLockedPath() == path and window.operation.kind == .None)
+    }
+}
+
 // Boxes contain only the change being made. Current password and key files stay on the unfolded
 // vault, where mounting, resizing, and both access changes read the same input once.
 #test

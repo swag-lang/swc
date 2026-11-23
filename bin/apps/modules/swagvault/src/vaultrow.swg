@@ -292,6 +292,13 @@ impl IWnd for VaultRow
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if evt.kind == .Pressed and evt.button == .Right and not .path.isEmpty()
+        {
+            .window.chooseVault(.path)
+            .window.showVaultMenu(evt.surfacePos)
+            return
+        }
+
         if .header
         {
             evt.accepted = false
@@ -310,10 +317,6 @@ impl IWnd for VaultRow
 
         case .Pressed where evt.button == .Left:
             .activateVault()
-
-        case .Pressed where evt.button == .Right:
-            .window.chooseVault(.path)
-            .window.showVaultMenu(evt.surfacePos)
 
         case .DoubleClick where evt.button == .Left:
             .window.openDrive(.path)

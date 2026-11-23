@@ -13,9 +13,9 @@ It has two scopes:
 - **The brand and the page**: the mark, the favicons, the application icon tile, the generated
   documentation, the website, the VSCode theme. This skill governs them in full.
 - **The window**: every control, widget, dialog and application under `bin/`. It follows the
-  **Silence** charter, [backlog/design/README.md](../../../backlog/design/README.md), and its
-  pictures in [backlog/design/imgs/](../../../backlog/design/imgs/). What is still left to migrate
-  is listed in [design.silence.md](../../../backlog/design/design.silence.md). The rules are split
+  **Silence** charter, [backlog/design/silence/README.md](../../../backlog/design/silence/README.md), and its
+  pictures in [backlog/design/silence/imgs/](../../../backlog/design/silence/imgs/). What is still left to migrate
+  is listed in [design.silence.md](../../../backlog/design/silence/design.silence.md). The rules are split
   between [design-swag-themes](../design-swag-themes/SKILL.md) (palettes, roles, measures, type,
   controls, property grid), [design-swag-dialogs](../design-swag-dialogs/SKILL.md) (modal boxes)
   and [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) (window chrome, shared

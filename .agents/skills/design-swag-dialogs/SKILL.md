@@ -12,13 +12,13 @@ rightmost. An error, a question, a prompt, a form, a file box and an About box d
 their content.
 
 The visual target is the Dialogs section of the Silence charter,
-[backlog/design/README.md](../../../backlog/design/README.md#dialogs), with its pictures
-[dialogs.ink](../../../backlog/design/imgs/dialogs.ink.png),
-[dialogs.paper](../../../backlog/design/imgs/dialogs.paper.png) and, for the file box in every
-mode, [dialogs.file.modes.paper](../../../backlog/design/imgs/dialogs.file.modes.paper.png) and
-[dialogs.file.modes.ink](../../../backlog/design/imgs/dialogs.file.modes.ink.png). What still
+[backlog/design/silence/README.md](../../../backlog/design/silence/README.md#dialogs), with its pictures
+[dialogs.ink](../../../backlog/design/silence/imgs/dialogs.ink.png),
+[dialogs.paper](../../../backlog/design/silence/imgs/dialogs.paper.png) and, for the file box in every
+mode, [dialogs.file.modes.paper](../../../backlog/design/silence/imgs/dialogs.file.modes.paper.png) and
+[dialogs.file.modes.ink](../../../backlog/design/silence/imgs/dialogs.file.modes.ink.png). What still
 differs from those pictures is tracked in
-[design.silence.md](../../../backlog/design/design.silence.md).
+[design.silence.md](../../../backlog/design/silence/design.silence.md).
 
 Other skills govern the parts around the box:
 
@@ -84,7 +84,7 @@ without its line in `src/lang/<tag>/gui.tweak` ships half translated, and nothin
 Do not surround referenced names, commands or values with quotation marks in a title or message,
 in any language. Use a quiet text-ink difference, or give a long name its own line. Keep the name
 readable and non-interactive; preserve quotation marks that are part of the user's actual data.
-See [References inside messages](../../../backlog/design/README.md#references-inside-messages).
+See [References inside messages](../../../backlog/design/silence/README.md#references-inside-messages).
 
 ## Give Important Messages A Status Glyph
 

@@ -8,11 +8,11 @@ description: Build, migrate, rename, review, style, package, and test official S
 Every application should be recognizable as part of Swag before its title is read, and
 recognizable by what it leaves out. The three standard applications, Swag Scope, Swag Capture,
 and Swag Vault, follow the **Silence** charter:
-[backlog/design/README.md](../../../backlog/design/README.md), with its pictures in
-[backlog/design/imgs/](../../../backlog/design/imgs/). The charter's Window chrome, Shared
+[backlog/design/silence/README.md](../../../backlog/design/silence/README.md), with its pictures in
+[backlog/design/silence/imgs/](../../../backlog/design/silence/imgs/). The charter's Window chrome, Shared
 components and Applications sections describe each screen. This skill says how an application
 is built to match them. What each application still lacks is tracked in
-[design.silence.md](../../../backlog/design/design.silence.md).
+[design.silence.md](../../../backlog/design/silence/design.silence.md).
 
 ## Establish The Change
 
@@ -128,7 +128,7 @@ bind an application like this:
 - **Keep frequent task controls beside the work.** Folder navigation, playback transport,
   editing tools and output can stay visible. Remove decorative bands and duplicate readouts;
   do not replace repeated pointer actions with repeated lens calls. Follow the charter's
-  [task walkthroughs](../../../backlog/design/README.md#direct-controls-and-task-walkthroughs).
+  [task walkthroughs](../../../backlog/design/silence/README.md#direct-controls-and-task-walkthroughs).
 - **Secondary readings, metadata and settings are asked for.** Keep the current mode, selection,
   progress, failures and next essential action understandable without an undiscovered gesture.
 - **`Ctrl Space` opens the complete lens.** An application may also open a classic command menu
@@ -144,7 +144,7 @@ bind an application like this:
 
 ### The window chrome
 
-The charter's Window chrome section, with [`scope.read`](../../../backlog/design/imgs/scope.read.png)
+The charter's Window chrome section, with [`scope.read`](../../../backlog/design/silence/imgs/scope.read.png)
 as its picture, describes the window. The toolkit's `SurfaceWnd` draws all of it: the glyph, the
 centred title and the faint window buttons. Use the existing strip for the shared Commands
 entrance; do not add a second caption band.
@@ -243,7 +243,7 @@ quick-style names.
 - **No decorative quotation marks around referenced names.** Files, folders, commands and values
   use a quiet text-ink difference in messages, titles and help, in every language. Plain-text
   surfaces write the name directly. Preserve punctuation that belongs to the actual data; see
-  [References inside messages](../../../backlog/design/README.md#references-inside-messages).
+  [References inside messages](../../../backlog/design/silence/README.md#references-inside-messages).
 - **Translations follow their own language.** French stays in sentence case ("Enregistrer comme
   image…").
 - **An ellipsis `…` marks a command that asks for more before acting.** Use the single
@@ -281,7 +281,7 @@ The same rule governs the toolkit's `Strings` and every application's reference 
 
 The charter's Applications section describes each application screen by screen, with one picture
 per screen. Build to those pictures, and check the application's entry in
-[design.silence.md](../../../backlog/design/design.silence.md) for what is known to differ. What
+[design.silence.md](../../../backlog/design/silence/design.silence.md) for what is known to differ. What
 the three share:
 
 - **Swag Scope**: the lens holds the viewers' commands, the sheet (`I`) holds the readings, and
@@ -320,7 +320,7 @@ Place one visible `Gui.AppearanceButton` immediately before the native window co
 every standard application. Its anchored option sheet offers the theme, the language and About.
 The button stays the owner of the choices and their signals. Scope also offers Match Document
 and defaults to it for new profiles. Keep viewer mode actions in the order specified by the
-[window chrome charter](../../../backlog/design/README.md#window-chrome), with an Arc frame
+[window chrome charter](../../../backlog/design/silence/README.md#window-chrome), with an Arc frame
 and fill when selected.
 
 - Register them with `appearanceButton.addToLens(lens)` once the lens exists. It answers with the

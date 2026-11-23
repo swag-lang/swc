@@ -6,7 +6,7 @@ using Swag, Core, Pixel
 // Builds the controls of the charter in the states its pictures show, one family per row:
 // buttons, icon buttons and a segment group, fields, choices, values, tabs, a list and notices.
 //
-// The wall is the contract of `backlog/design/imgs/gui.controls.ink.png` and `.paper.png`: a
+// The wall is the contract of `backlog/design/silence/imgs/gui.controls.ink.png` and `.paper.png`: a
 // change to any control's colors, corners or measures moves its row of this image.
 func buildCharterWall(host: *Testing.HeadlessHost)
 {

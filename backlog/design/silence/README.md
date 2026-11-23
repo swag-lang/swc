@@ -968,10 +968,10 @@ opacity.
 A glyph is judged at 16 physical pixels at 100 % scale, in both themes, with its pixels enlarged:
 inner marks keep 3 units from their frame, a distinguishing detail sits outside the shared shape,
 and an object is drawn by its silhouette. The rules and their reasons are in
-[design-swag-identity](../../.agents/skills/design-swag-identity/SKILL.md#draw-the-interface-icons).
+[design-swag-identity](../../../.agents/skills/design-swag-identity/SKILL.md#draw-the-interface-icons).
 
 ## Verifying a surface
 
 Every surface is judged against its picture here, in both themes, through its golden image. A
 golden that changed for a part not touched is a finding. See
-[validate-swag-changes](../../.agents/skills/validate-swag-changes/SKILL.md) for the commands.
+[validate-swag-changes](../../../.agents/skills/validate-swag-changes/SKILL.md) for the commands.

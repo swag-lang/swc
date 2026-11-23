@@ -5,8 +5,8 @@ description: Add, change, or review a GUI theme — the two Silence palettes Enc
 
 # Design Swag Themes
 
-The GUI follows one charter, **Silence**: [backlog/design/README.md](../../../backlog/design/README.md)
-and its pictures in [backlog/design/imgs/](../../../backlog/design/imgs/). The charter gives the
+The GUI follows one charter, **Silence**: [backlog/design/silence/README.md](../../../backlog/design/silence/README.md)
+and its pictures in [backlog/design/silence/imgs/](../../../backlog/design/silence/imgs/). The charter gives the
 values: Themes, Roles, Measures, Type, Controls, Property grid and Motion. This skill says where
 each value lives in the code and which rules keep the code faithful to it. Read the seven laws in
 [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence) first. If a
@@ -171,8 +171,8 @@ A section label is always `Gui.SectionLabel`. Nobody shapes their own small capi
 ## Controls
 
 The charter's Controls section and the pictures
-[gui.controls.ink](../../../backlog/design/imgs/gui.controls.ink.png) and
-[gui.controls.paper](../../../backlog/design/imgs/gui.controls.paper.png) give every control in
+[gui.controls.ink](../../../backlog/design/silence/imgs/gui.controls.ink.png) and
+[gui.controls.paper](../../../backlog/design/silence/imgs/gui.controls.paper.png) give every control in
 every state. [`controls.charter.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/controls.charter.swg)
 and its goldens hold the measurable part. Implementation notes:
 
@@ -206,8 +206,8 @@ and its goldens hold the measurable part. Implementation notes:
 ## The Property Grid
 
 The four `PropertiesKind` layouts and `PropertiesCtrl` follow the charter's Property grid section
-and its pictures, [gui.properties.kinds](../../../backlog/design/imgs/gui.properties.kinds.png)
-and [gui.properties.ctrl.paper](../../../backlog/design/imgs/gui.properties.ctrl.paper.png). In
+and its pictures, [gui.properties.kinds](../../../backlog/design/silence/imgs/gui.properties.kinds.png)
+and [gui.properties.ctrl.paper](../../../backlog/design/silence/imgs/gui.properties.ctrl.paper.png). In
 every kind:
 
 - section labels have no band behind them;

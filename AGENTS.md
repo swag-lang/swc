@@ -87,7 +87,7 @@ When the change touches a brand asset, a stylesheet, a page layout, an icon, a c
 the editor theme, also read and follow
 [design-swag-identity](.agents/skills/design-swag-identity/SKILL.md): the mark, the
 palette, and the 45 degree cut are one system. Every GUI surface under `bin/` follows the Silence
-charter in [backlog/design/README.md](backlog/design/README.md), whose six laws that skill states.
+charter in [backlog/design/silence/README.md](backlog/design/silence/README.md), whose six laws that skill states.
 
 When the change touches a GUI theme or a control's look — a palette token, a semantic color,
 a measure, the way a widget picks its colors or draws a state, the property grid's marks, or a

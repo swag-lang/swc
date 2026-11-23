@@ -181,11 +181,7 @@ impl VaultList
     const WelcomeToWays    = 28'f32
     const WaysToRule       = 44'f32
     const RuleWidth        = 400'f32
-    const RuleToFoot       = 26'f32     // From the hairline to the middle of the first line of the foot.
-    const FootLineGap      = 22'f32     // From the middle of one line of the foot to the next.
-
-    // What protects a container, named as its specifications spell it: format identifiers, not prose.
-    const CipherNames = "ChaCha20-Poly1305 · Argon2id"
+    const RuleToFoot       = 26'f32     // From the hairline to the middle of the drop hint.
 
     // Creates the page in `window`, empty.
     func create(window: *MainWindow)->*VaultList
@@ -484,7 +480,7 @@ impl VaultList
         let welcomeH = Math.ceil(.welcome.measure(Math.Point{width, 0}).preferred.y)
         let noticeW  = .notice.isLocallyVisible() ? Math.min(width, Math.ceil(.notice.measureWidth())) : 0
         let noticeH  = noticeW > 0 ? .notice.measureHeight(noticeW) : 0
-        let footH    = WaysToRule + RuleToFoot + FootLineGap + NoticeLine.Height * 0.5
+        let footH    = WaysToRule + RuleToFoot + NoticeLine.Height * 0.5
 
         let height = MarkSize + MarkToHeading + headingH + HeadingToWelcome + welcomeH + WelcomeToWays + newSize.y +
                      (noticeH > 0 ? NoticeGap + noticeH : 0) + footH
@@ -519,26 +515,18 @@ impl VaultList
         return y + footH - WaysToRule
     }
 
-    // Draws the foot of the home under its hairline: what protects a container, in faint mono, then
-    // the reminder that one can be dropped on the window.
+    // Draws the hint below the hairline on the home page.
     mtd paintHomeFoot(painter: *Painter)
     {
         let colors = .themeColors()
-        let center = .ruleRect.horzCenter()
         painter.fillRect(.ruleRect, colors.line)
 
-        func centred(painter: *Painter, center, middle: f32, text: string, font: *Font, color: Color)
-        {
-            let textW = Painter.measureString(text, font).width
-            painter.drawString(Math.round(center - textW * 0.5), font.opticalLineTop(middle), text, font, color)
-        }
-
-        let texts = appStrings()
-        let mono  = .theme().createDefaultFontFs(12)
+        let text  = appStrings().ui_HomeDrop
         let font  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        let first = .ruleRect.y + RuleToFoot
-        centred(painter, center, first, Format.toString("% · %", CipherNames, texts.ui_HomeHidden), mono, colors.faintText)
-        centred(painter, center, first + FootLineGap, texts.ui_HomeDrop, font, colors.faintText)
+        let width = Painter.measureString(text, font).width
+        let x     = Math.round(.ruleRect.horzCenter() - width * 0.5)
+        let y     = font.opticalLineTop(.ruleRect.y + RuleToFoot)
+        painter.drawString(x, y, text, font, colors.faintText)
     }
 
     // Draws the section label of a group in `rect`, and its count after it in faint mono. An empty

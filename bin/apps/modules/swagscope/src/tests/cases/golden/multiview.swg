@@ -288,3 +288,31 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.mixed.compact.encre")
 }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: ViewerWindow.MinWidth, height: 480)
+    defer host.shutdown()
+    let root = Testing.tempFilePath("scope-folder-pane-", "")
+    let folder = Path.combine(root, "Notes")
+    expect Directory.create(folder, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    workspace.openScene([scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.png")], .SideBySide)
+    openViews(&host, workspace)
+    let document = workspace.activeDocument()
+    document.openExplorer(folder)
+    let explorer = unwrap document.explorer
+    completeExplorer(&host, explorer)
+    explorer.entries.add({name: "Brief.txt", attempted: true})
+    explorer.entries.add({name: "Draft.md", attempted: true})
+    showBoard(&host, document, "Projects", "Notes")
+    explorer.listing.path = "Z:/Projects/Notes"
+    explorer.updateBreadcrumb()
+    explorer.setMode(.Names)
+    workspace.scene()!.split = 0.22
+    workspace.layoutScene()
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.folder.narrow.paper")
+}

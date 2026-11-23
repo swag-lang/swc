@@ -493,6 +493,8 @@ private impl IWnd for EmbeddedViewer
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
+        if .sideSplitter != null do
+            ViewerWindow.fitDocumentPanes(.sideSplitter, .clientRect().width)
         .layoutCommands()
     }
 

@@ -39,10 +39,9 @@ using Core, Gui
     Swag.require(explorer.shown.count == 1)
     host.keyPress(.Escape)
     Swag.require(explorer.filter.text() == "Beta" and explorer.shown.count == 1)
-    Swag.require(window.infoSheet.isLocallyVisible())
+    Swag.require(not window.infoSheet.isLocallyVisible() and explorer.grid.hasFocus())
     window.searchBox.setText("")
     Swag.require(not explorer.filter.text().count and explorer.shown.count == 3)
-    window.closeInformation()
 
     host.keyPress(.L, .Control)
     Swag.require(explorer.address.edit.hasFocus())

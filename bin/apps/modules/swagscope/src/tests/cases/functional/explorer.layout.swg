@@ -91,6 +91,7 @@ using Core, Gui, Pixel
     let bounds  = address.surfaceRect()
     Swag.require(address.isLocallyVisible() and document.surfaceRect().contains(bounds.center()))
     Swag.require(bounds.bottom() < document.searchGroup.surfaceRect().y)
+    Swag.require(not host.surfaceWnd.titleHidden and host.surfaceWnd.name == workspace.sceneName(unwrap workspace.scene()))
 
     let crumb = address.breadcrumb
     let point = crumb.localToSurface(crumb.items.backPtr().bodyRect.center())
@@ -134,4 +135,70 @@ using Core, Gui, Pixel
     Swag.require(explorer.address.isVisible() and workspace.closeFileButton.isVisible())
     host.clickWnd(workspace.closeFileButton)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isVisible())
+}
+
+// Folder controls remain reachable at the divider's narrow limit and return when space allows.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth)
+    defer host.shutdown()
+    let file = scopeTestDataPath("sample.cpp")
+    workspace.openScene([file, scopeTestDataPath("viewer.png")], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let document = workspace.activeDocument()
+    document.openExplorer(unwrap Path.directoryName(file))
+    let explorer = unwrap document.explorer
+    completeExplorer(&host, explorer)
+    scene.split = 0.18
+    workspace.layoutScene()
+    Swag.require(not explorer.kindMenu.isVisible() and not explorer.sortMenu.isVisible())
+    Swag.require(not document.searchOptionsButton.isVisible() and explorer.modeMenu.isVisible())
+    Swag.require(document.searchBox.position.width >= 60, Format.toString("cell % line % tools % field %", document.position, explorer.tools.parent!.position, explorer.tools.position, document.searchBox.position))
+    Swag.require(document.documentHost.position.width == document.clientRect().width)
+    let field = document.searchBox.surfaceRect()
+    Swag.require(field.right() <= explorer.modeMenu.surfaceRect().x)
+    explorer.setMode(.Details)
+    explorer.list.setColumnWidth(0, 284)
+    explorer.setMode(.Names)
+    Swag.require(explorer.list.scrollWnd.flags.has(.DisableHorizontal))
+    Swag.require(explorer.list.header.itemWidthForColumn(0) == explorer.list.listView.paddedClientRect().width)
+    explorer.setMode(.Details)
+    Swag.require(explorer.list.header.itemWidthForColumn(0) == 284 and not explorer.list.scrollWnd.flags.has(.DisableHorizontal))
+    host.clickWnd(document.searchBox)
+    Swag.require(document.searchBox.hasFocus())
+    host.keyPress(.F)
+    host.sendRune(.F, 'f'rune)
+    Swag.require(not scene.maximized and document.searchBox.hasFocus() and document.searchBox.text() == "f")
+    document.searchBox.setText("")
+    let sheet = OptionSheet.View.create(explorer.modeMenu, func|explorer|(page) { explorer.describeViewOptions(page) }, owner: explorer)
+    sheet.refresh()
+    Swag.require(sheet.activateRow(appStrings().explore_FilterByType))
+    Swag.require(sheet.activateRow(appStrings().explore_FilterImages))
+    Swag.require(explorer.kindFilter == .Images)
+    sheet.destroy()
+    workspace.closeView(1)
+    Swag.require(explorer.kindMenu.isVisible() and explorer.sortMenu.isVisible() and document.searchOptionsButton.isVisible())
+}
+
+// With two scenes the folder address belongs to the page, leaving each tab clickable.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let file = scopeTestDataPath("sample.cpp")
+    workspace.openDocument(file)
+    openViews(&host, workspace)
+    workspace.openDocument(scopeTestDataPath("viewer.srt"))
+    openViews(&host, workspace)
+    let document = workspace.activeDocument()
+    document.openExplorer(unwrap Path.directoryName(file))
+    let explorer = unwrap document.explorer
+    completeExplorer(&host, explorer)
+    let tabs = workspace.tabs
+    Swag.require(tabs.isVisible() and explorer.address.surfaceRect().y >= tabs.surfaceRect().bottom())
+    workspace.closeScene(0)
+    Swag.require(not tabs.isVisible() and explorer.address.surfaceRect().bottom() <= workspace.stripInset())
 }

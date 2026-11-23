@@ -107,6 +107,8 @@ struct AppStrings
     explore_DateSameYear:      string = "% · %"                       // Date and time earlier this year.
     explore_DateOtherYear:     string = "% %"                         // Date from an earlier year; date, then year.
     explore_FilterByType:      string = "Filter by type"              // Tooltip of the file-kind menu in the explorer.
+    explore_Sort:              string = "Sort files"
+    explore_ListingOptions:    string = "Folder options"
     explore_View:              string = "Choose view"                 // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"          // Tooltip of the thumbnail arrangement choice.
     explore_ShowViewerIcon:    string = "Show viewer icon on hover"

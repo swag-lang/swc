@@ -97,6 +97,11 @@ impl ViewerWorkspace
     {
         let scene = unwrap .scene()
         scene.links.end = mode
+        if mode != .Independent
+        {
+            scene.linked         = true
+            scene.links.playback = true
+        }
         .synchronizeMedia()
         catch .primary.saveState()
     }
@@ -223,6 +228,8 @@ impl ViewerWindow
             icon      = evt.id == MediaCommands.Play ? .Play : (evt.id == MediaCommands.Pause ? .Pause : .Stop)
             hidden    = not workspace.canPlayScene()
             checkable = false
+            evt.disabled = hidden or not workspace.canRunTransport(evt.id)
+            evt.updatedFields.add(.Disabled)
 
         case MediaCommands.Linked:
             name    = text.scene_Linked
@@ -288,7 +295,7 @@ impl ViewerWindow
                 let mode = MediaCommands.EndValues[index]
                 icon    = sceneEndIcon(mode)
                 name    = sceneEndTitle(mode)
-                checked = scene and scene.links.end == mode
+                checked = scene and workspace.effectiveEndMode(scene) == mode
             }
         }
 

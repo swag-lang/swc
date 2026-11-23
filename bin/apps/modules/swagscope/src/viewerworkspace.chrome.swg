@@ -48,7 +48,7 @@ impl SceneTabs
         var width: f32
         for scene in .workspace.scenes
         {
-            let name = scene!.name(.theme())
+            let name = .workspace.sceneName(unwrap scene)
             let span = Math.min(Painter.measureString(name, font).width, 220)
             .items.add({width: span, height: room.height})
             width += span + Gap
@@ -132,7 +132,7 @@ impl IWnd for SceneTabs
         let room    = .clientRect()
         for item, index in .items
         {
-            let name   = .workspace.scenes[index]!.name(.theme())
+            let name   = .workspace.sceneName(unwrap .workspace.scenes[index])
             let text   = Painter.elideString(name, font, item.width, .deviceScale())
             let active = index == .workspace.active
             let edge   = Math.min(item.right(), room.width - item.x)
@@ -445,10 +445,10 @@ impl ViewerWorkspace
     {
         if .closeFileButton == null do
             return
-        let shortcut = Input.formatKeyShortcut(.Control, .W)
         let document = .activeDocument()
+        let shortcut = document.keyShortcutName(ViewerCommands.Close)
         let action = document.isExploring() ? appStrings().scene_CloseView : appStrings().ui_CloseFile
-        .closeFileButton.toolTip = Format.toString("% (%)", action, shortcut)
+        .closeFileButton.toolTip = shortcut.isEmpty() ? String.from(action) : Format.toString("% (%)", action, shortcut)
         .closeFileButton.show(.scenes.count == 1 and
                               .documentCount() == 1 and
                               not document.fullScreen)
@@ -698,7 +698,11 @@ impl ViewerWorkspace
 
         if evt.kind != .Pressed do
             return false
-        if evt.key == .Tab and evt.modifiers.has(.Control) and .scenes.count > 1
+        let cycle = evt.key == .Tab and (evt.modifiers == .Control or evt.modifiers == .CtrlShift)
+        let document = .activeDocument()
+        if document.lens.isOpen() do
+            return cycle or (evt.modifiers != .None and document.keyShortcut(evt.modifiers, evt.key) == ViewerCommands.Close)
+        if cycle and .scenes.count > 1
         {
             .cycleSwitcher(evt.modifiers.has(.Shift))
             return true
@@ -711,27 +715,15 @@ impl ViewerWorkspace
             return true
         }
 
-        if evt.modifiers == .Control and evt.key == .W
-        {
-            .closeView()
-            return true
-        }
-
-        if source is EditBox or .focusedWindow() is EditBox or .activeDocument().lens.isOpen() do
+        if source is EditBox or .focusedWindow() is EditBox do
             return false
         if (evt.modifiers == .Alt or evt.modifiers == .CtrlAlt) and .moveView(evt.key, evt.modifiers == .CtrlAlt) do
             return true
         if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source) do
             return true
-        let scene = .scene()
-        if scene and evt.modifiers == .None
-        {
-            if evt.key == .Escape and scene.maximized and not .activeDocument().searchShown or evt.key == .F and scene.views.count > 1
-            {
-                .toggleMaximized()
-                return true
-            }
-        }
+        if (document.informationOpen() or (.scene()?.maximized orelse false)) and
+           document.keyShortcut(evt.modifiers, evt.key) == ViewerCommands.Dismiss do
+            return document.runCommand(ViewerCommands.Dismiss)
 
         return false
     }

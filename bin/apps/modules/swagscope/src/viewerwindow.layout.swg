@@ -172,7 +172,9 @@ impl ViewerWindow
         let width = compact ? size : Math.min(maxWidth, Math.ceil(Painter.measureString(name, font).width) + size + 4 * pad)
         if .cellCaptionTitle.text() != name do
             .cellCaptionTitle.setText(name)
-        .cellCaptionTitle.toolTip = path
+        let action = (workspace!.scene()?.maximized orelse false) ? appStrings().scene_RestoreLayout : appStrings().scene_Maximize
+        let shortcut = .keyShortcutName(SceneCommands.Maximize)
+        .cellCaptionTitle.toolTip = shortcut.isEmpty() ? Format.toString("%\n%", path, action) : Format.toString("%\n% (%)", path, action, shortcut)
         .cellCaptionTitle.show(not compact)
         if not compact do
             .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
@@ -273,6 +275,20 @@ impl ViewerWindow
 
         .mainSplitter.setPaneVisible(LeftPanelIndex, false)
         .mainSplitter.setPaneVisible(RightPanelIndex, false)
+    }
+
+    // A splitter inside a cell shares the available width between the document and its optional side panel.
+    func fitDocumentPanes(splitter: *SplitterCtrl, width: f32)
+    {
+        if splitter.items.count <= RightPanelIndex do
+            return
+        let metrics = splitter.themeMetrics()
+        let panel   = RightPanelMinWidth + metrics.floating_Inset
+        let room    = Math.max(0, width - metrics.splitView_BarSize)
+        let scale   = Math.min(1.0, room / (DocumentMinWidth + panel))
+        splitter.items[LeftPanelIndex]!.minimumSize     = Math.floor(panel * scale)
+        splitter.items[RightPanelIndex]!.minimumSize    = Math.floor(panel * scale)
+        splitter.items[DocumentPanelIndex]!.minimumSize = Math.floor(DocumentMinWidth * scale)
     }
 
     // Keeps the document below the strip floating over the top of the window, out of full screen,

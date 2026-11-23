@@ -710,8 +710,8 @@ impl ViewerWindow
 
         case ViewerCommands.Dismiss:
             name     = Gui.strings().dlg_Close
-            disabled = not .searchShown and
-                       not .fullScreen
+            disabled = not .informationOpen() and not (.searchShown and not .isExploring()) and
+                       not (.workspace?.scene()?.maximized orelse false) and not .fullScreen
 
         case ViewerCommands.Reload:
             name   = texts.cmd_Reload
@@ -1152,8 +1152,14 @@ impl ViewerWindow
                 .closeFile()
 
         case ViewerCommands.Dismiss:
-            if .searchShown and not .isExploring() do
+            if .workspace?.comparisonSheet?.panel.isLocallyVisible() orelse false do
+                .workspace!.closeComparisonSheet()
+            elif .infoSheet.isLocallyVisible() do
+                .closeInformation()
+            elif .searchShown and not .isExploring() do
                 .hideSearch()
+            elif .workspace?.scene()?.maximized orelse false do
+                .workspace!.toggleMaximized()
             elif .fullScreen do
                 .setFullScreen(false)
 

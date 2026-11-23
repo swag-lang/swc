@@ -196,7 +196,7 @@ impl IWnd for SceneSwitcherList
                 }
             }
 
-            let name = scene.name(.theme())
+            let name = workspace.sceneName(scene)
             painter.drawString(90, rect.y + 10, Painter.elideString(name, title, rect.width - 104, .deviceScale()), title, colors.text)
             let description = scene.views.count == 1 ? Path.lowercaseExtension(scene.views[0].path) :
                               String.from(sceneLayoutTitle(scene.layout))

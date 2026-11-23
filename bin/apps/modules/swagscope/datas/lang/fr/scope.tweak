@@ -235,6 +235,8 @@ explore_ExtractedKept %, % déjà présents conservés
 explore_ExtractFailed Tout n’a pas pu être extrait
 explore_File Fichier
 explore_FilterByType Filtrer par type
+explore_Sort Trier les fichiers
+explore_ListingOptions Options du dossier
 explore_View Choisir la vue
 explore_Organization Organiser les vignettes
 explore_ShowViewerIcon Afficher l’icône du lecteur au survol

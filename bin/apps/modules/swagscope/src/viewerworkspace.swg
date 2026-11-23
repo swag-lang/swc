@@ -86,24 +86,6 @@ impl ViewerScene
         .links.leader  = remapSwappedView(.links.leader, first, second)
         .links.solo    = remapSwappedView(.links.solo, first, second)
     }
-
-    mtd const name(theme: *Theme)->String
-    {
-        if .views.isEmpty() do
-            return ProductName
-        let first: string = Path.fileName(.views[0].path) orelse .views[0].path
-        if .views.count == 1 do
-            return first
-        if .views.count == 2
-        {
-            let second: string = Path.fileName(.views[1].path) orelse .views[1].path
-            return Format.toString("% ↔ %", first, second)
-        }
-
-        for view in .views where theme.fileGlyph(view.path, false).index != cast(s32, ThemeIcons.FileVideo) do
-            return Format.toString(appStrings().scene_Files, .views.count)
-        return Format.toString(appStrings().scene_Videos, .views.count)
-    }
 }
 
 private func remapSwappedView(index, first, second: u64)->u64 => index == first ? second : (index == second ? first : index)
@@ -193,7 +175,7 @@ impl ViewerWorkspace
 
             case MouseEvent as pointer where pointer.kind == .Pressed or pointer.kind == .DoubleClick:
                 if pointer.target do
-                    workspace.activateFromPointer(pointer.target, pointer)
+                    return workspace.activateFromPointer(pointer.target, pointer)
             }
 
             return false
@@ -216,6 +198,24 @@ impl ViewerWorkspace
         if not scene or scene.active >= scene.views.count do
             return .primary
         return scene.views[scene.active].document orelse .primary
+    }
+
+    mtd sceneName(scene: const *ViewerScene)->String
+    {
+        if scene.views.isEmpty() do
+            return ProductName
+        let first: string = Path.fileName(scene.views[0].path) orelse scene.views[0].path
+        if scene.views.count == 1 do
+            return first
+        if scene.views.count == 2
+        {
+            let second: string = Path.fileName(scene.views[1].path) orelse scene.views[1].path
+            return Format.toString("% ↔ %", first, second)
+        }
+
+        for view in scene.views where .scenePlaybackKind(view) != .Film do
+            return Format.toString(appStrings().scene_Files, scene.views.count)
+        return Format.toString(appStrings().scene_Videos, scene.views.count)
     }
 
     mtd documentCount()->u64 => .scene()?.views.count orelse 0
@@ -678,23 +678,30 @@ impl ViewerWorkspace
                 Math.round(body.y + row * (height + gap) + height) - top}
     }
 
-    mtd activateFromPointer(child: *Wnd, evt: *MouseEvent)
+    mtd activateFromPointer(child: *Wnd, evt: *MouseEvent)->bool
     {
         let scene = .scene()
         if not scene or scene.views.count < 2 or evt.button != .Left do
-            return
+            return false
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
-            if child == view.document.cellCaptionClose do
-                return
+            let document = view.document
+            if child == document.cellCaptionClose do
+                return false
             .selectView(index)
-            let content = view.document.currentView
-            let picture = content and content is Viewers.Film.Panel and content.isAncestorOf(child)
-            if evt.kind == .DoubleClick and
-               (child == view.document or child == content or picture) do
+            if evt.kind != .DoubleClick do
+                return false
+            let content = document.currentView
+            let caption = child == document.cellCaption or child == document.cellCaptionTitle
+            let frame   = ScenePlayer.from(document).film?.imageView == child
+            if child == document or child == content or caption or frame
+            {
                 .toggleMaximized()
-            return
+                return true
+            }
+            break
         }
+        return false
     }
 
     mtd moveView(key: Input.Key, swap: bool)->bool
@@ -823,7 +830,7 @@ impl IWnd for ViewerWorkspace
             return
         let document = .activeDocument()
         let focused  = .focusedWindow()
-        if evt.kind == .Pressed and focused != document and not document.isAncestorOf(focused)
+        if evt.kind == .Pressed and not document.lens.isOpen() and focused != document and not document.isAncestorOf(focused)
         {
             if let id = document.keyShortcut(evt.modifiers, evt.key)
             {

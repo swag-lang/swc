@@ -371,6 +371,7 @@ impl IWnd for ViewerWindow
         // The window is resized while it is being built, before the parts below exist.
         if .lens == null do
             return
+        ViewerWindow.fitDocumentPanes(.mainSplitter, .clientRect().width)
         .updateDocumentInsets()
         .layoutFloatingParts()
     }
@@ -421,6 +422,19 @@ impl IWnd for ViewerWindow
         {
             evt.accepted = false
             return
+        }
+
+        // An editor inserts letters on the character event. Its preceding key-down must not run a viewer shortcut.
+        if .focusedWindow() is EditBox and (evt.modifiers == .None or evt.modifiers == .Shift)
+        {
+            switch evt.key
+            {
+            case .A, .B, .C, .D, .E, .F, .G, .H, .I, .J, .K, .L, .M,
+                 .N, .O, .P, .Q, .R, .S, .T, .U, .V, .W, .X, .Y, .Z:
+                evt.accepted = true
+                return
+            default: break
+            }
         }
 
         // Commands use registered shortcuts, after the focused control has had the key.
@@ -883,7 +897,7 @@ impl ViewerWindow
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
         .explorer?.address.show(.isExploring())
-        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge() and (.workspace?.scenes.count orelse 0) < 2)
+        .surface?.wnd.showTitle(.showsCaptionTitle())
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
         .forwardCaptionButton.show(exploring)
@@ -1713,17 +1727,17 @@ impl ViewerWindow
             return
         .refreshExplorerCaption()
 
+        let scene = .workspace?.scene()
+        if scene and scene.views.count > 1
+        {
+            surface.setTitle(.workspace!.sceneName(scene))
+            return
+        }
+
         if .isExploring()
         {
             let path = .explorer!.listing.path
             surface.setTitle(Path.fileName(path) orelse path)
-            return
-        }
-
-        let scene = .workspace?.scene()
-        if scene and scene.views.count > 1
-        {
-            surface.setTitle(scene.name(.theme()))
             return
         }
 

@@ -48,6 +48,9 @@ using Core, Gui, Pixel, Audio
     Swag.require(first.runCommand(SceneCommands.Layouts[0]))
     Swag.require(first.isLocallyVisible() and not second.isLocallyVisible())
     Swag.require(workspace.scene()!.layout == .SideBySide and workspace.scene()!.visibleLayout() == .Single)
+    first.toggleInformation()
+    host.keyPress(.Escape)
+    Swag.require(not first.informationOpen() and workspace.scene()!.maximized)
     host.keyPress(.Escape)
     Swag.require(second.isLocallyVisible() and workspace.scene()!.visibleLayout() == .SideBySide)
     Swag.require(workspace.moveView(.Right, swap: true))
@@ -322,8 +325,22 @@ using Core, Gui, Pixel, Audio
     host.sendMouseEvent(short.playButton, .Pressed, point, .Left, .None)
     host.sendMouseEvent(short.playButton, .Released, point, .Left, .None)
     Swag.require(short.playing and not long.playing)
+    Swag.require(not document.sendComputeCommandStateEvent(MediaCommands.Play).disabled)
+    Swag.require(not document.sendComputeCommandStateEvent(MediaCommands.Pause).disabled)
+    var framePoint = short.imageView.surfaceRect().center()
+    host.surface.surfaceToScreen(&framePoint)
+    let fitted = short.imageView.isFitted
+    host.doubleClick(framePoint)
+    Swag.require(scene.maximized and short.imageView.isFitted == fitted)
+    document.revealViewerBar()
+    host.finishAnimations()
+    var titlePoint = document.cellCaptionTitle.surfaceRect().center()
+    host.surface.surfaceToScreen(&titlePoint)
+    host.doubleClick(titlePoint)
+    Swag.require(not scene.maximized and short.imageView.isFitted == fitted)
     Swag.require(document.runCommand(MediaCommands.Play))
     Swag.require(short.playing and long.playing)
+    Swag.require(document.sendComputeCommandStateEvent(MediaCommands.Play).disabled)
     short.requestPlaybackStop()
     Swag.require(not short.playing and long.playing)
     short.requestPlaybackToggle()
@@ -342,6 +359,8 @@ using Core, Gui, Pixel, Audio
     Swag.require(not short.playing and long.playing and document.pendingFile.isEmpty())
     host.clickWnd(workspace.mediaPlayPause)
     Swag.require(not long.playing)
+    Swag.require(document.sendComputeCommandStateEvent(MediaCommands.Pause).disabled)
+    Swag.require(not document.sendComputeCommandStateEvent(MediaCommands.Stop).disabled)
 
     Swag.require(document.runCommand(MediaCommands.PlayModes[2]) and workspace.scenePlayModeIs(.Folder))
     workspace.playScene()
@@ -594,4 +613,47 @@ using Core, Gui, Pixel, Audio
     Swag.require(workspace.canPlayScene() and workspace.mediaTimer and workspace.mediaPlayPause.isVisible())
     Swag.require(document.runCommand(MediaCommands.PlayModes[0]))
     Swag.require(not workspace.mediaPlayPause.isVisible() and not workspace.mediaTimer)
+}
+
+// The title follows the actual viewer and keeps its meaning when the scene is suspended.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let file = scopeTestDataPath("viewer.y4m")
+    workspace.openScene([file, scopeTestDataPath("viewer.avi"), scopeTestDataPath("viewer.mp4")], .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let title = Format.toString(appStrings().scene_Videos, 3)
+    Swag.require(workspace.sceneName(scene) == title and host.surfaceWnd.name == title)
+    workspace.openDocument(scopeTestDataPath("sample.cpp"))
+    openViews(&host, workspace)
+    Swag.require(not scene.views[0].document and workspace.sceneName(scene) == title)
+}
+
+// The outline, reading line and document fit the same cell throughout resizing and restore.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: ViewerWindow.MinWidth)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.field-guide.html"), scopeTestDataPath("viewer.png")], .SideBySide)
+    openViews(&host, workspace)
+    let document = workspace.activeDocument()
+    let scene = unwrap workspace.scene()
+    document.sendCommandEvent(ViewerCommands.Outline)
+    let panel = unwrap document.currentSidePanelHost
+    for split in [0.18'f32, 0.65'f32]
+    {
+        scene.split = split
+        workspace.layoutScene()
+        let body = document.surfaceRect()
+        let content = document.documentPanel.surfaceRect()
+        Swag.require(panel.isVisible() and panel.surfaceRect().x >= body.x and panel.surfaceRect().right() <= content.x)
+        Swag.require(content.width > 0 and content.right() <= body.right())
+        Swag.require(document.readingLine.surfaceRect().x == body.x + document.themeMetrics().floating_Inset)
+    }
+    workspace.closeView(1)
+    Swag.require(panel.isVisible() and document.documentPanel.surfaceRect().right() == document.surfaceRect().right())
 }

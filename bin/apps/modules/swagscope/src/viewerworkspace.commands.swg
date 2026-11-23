@@ -59,6 +59,7 @@ impl ViewerWindow
         .lens.addCommands(func()->string => appStrings().lens_View, [SceneCommands.Compare, SceneCommands.Maximize])
         .lens.addSource(.Action, func|document = me|(results) { document.describeScenes(results, atRest: false) })
         .registerKeyShortcut(.Control, .W, ViewerCommands.Close)
+        .registerKeyShortcut(.None, .F, SceneCommands.Maximize)
         .registerKeyShortcut(.Control, .Oem5, SceneCommands.Layouts[1])
         .registerKeyShortcut(.CtrlAlt, .D2, SceneCommands.Layouts[3])
         .registerKeyShortcut(.CtrlAlt, .D3, SceneCommands.Layouts[4])
@@ -98,7 +99,7 @@ impl ViewerWindow
         let scenes = results.addSection(appStrings().scene_SceneList)
         for sceneValue, index in workspace.scenes
         {
-            let name = sceneValue!.name(.theme())
+            let name = workspace.sceneName(unwrap sceneValue)
             if not atRest and not Lens.match(results.folded, name).matched do
                 continue
             with let entry = scenes.addEntry(name)

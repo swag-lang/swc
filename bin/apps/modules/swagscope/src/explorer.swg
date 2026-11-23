@@ -142,6 +142,7 @@ struct Explorer
         grid:          *ExplorerGrid
     }
 
+    detailNameWidth: f32
     layingHeader:    bool
     mode:            ExplorerMode          = .Medium
     history:         NavigationHistory
@@ -334,6 +335,8 @@ impl Explorer
 
         result.list.listView.hookOnEvent = func|result|(source, evt)->bool
         {
+            if evt is ResizeEvent and result.mode == .Names do
+                result.fitNameColumn()
             if evt is MouseEvent as mouse do
                 return result.handleFileDrag(source, mouse)
             return false
@@ -544,7 +547,7 @@ impl Explorer
         defer .layingHeader = false
 
         let metrics = .themeMetrics()
-        let inset   = Math.clamp(.clientRect().width / 16, metrics.floating_Inset, PageMargin)
+        let inset   = Math.clamp(.clientRect().width / 16, metrics.miniBar_Padding, PageMargin)
         .header.padding.x       = inset
         .header.padding.z       = inset
         .list.margin.x          = inset - ExplorerGrid.CellInset
@@ -562,13 +565,15 @@ impl Explorer
         var room = frame.captionRoomRect()
         room.x     += metrics.wnd_CaptionPathGap
         room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
-        let inCaption = .window.stripInset() > 0 and not room.isEmpty()
+        let inCaption = .window.stripInset() > 0 and (.window.workspace?.scenes.count orelse 0) < 2 and not room.isEmpty()
         let rowY      = inCaption ? 0 : ToolHeight + HeaderGap
         .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
 
         let line  = unwrap .tools.parent
         let space = line.clientRect().width
+        .sortMenu.show()
+        .kindMenu.show()
         .tools.spacing = 8
         .sortMenu.setQuietText(.sortName())
         .kindMenu.setQuietText(.filterKindName())
@@ -583,6 +588,17 @@ impl Explorer
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
+        // At split-pane widths leave room to type. The settings sheet holds the displaced actions.
+        let compact = space - width < ToolHeight * 4
+        if compact
+        {
+            .sortMenu.hide()
+            .kindMenu.hide()
+            .extractAll.hide()
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
+
+        .modeMenu.toolTip = compact ? appStrings().explore_ListingOptions : appStrings().explore_View
         let right = Math.max(space - width, 0)
         .tools.setPosition({right, rowY, width, ToolHeight})
         .tools.computeLayout()
@@ -590,12 +606,21 @@ impl Explorer
         {
             let group = .window.searchGroup
             group.setParent(line)
-            group.setPosition({0, rowY, Math.max(right - metrics.floating_Inset, 0), ToolHeight})
+            group.setPosition({0, rowY, Math.max(right - (compact ? metrics.miniBar_Padding : metrics.floating_Inset), 0), ToolHeight})
             .window.searchCloseButton.hide()
             .window.searchNavigation.hide()
-            let options = themeDropDownButtonWidth(metrics)
-            .window.searchOptionsButton.setPosition({group.position.width - options, 0, options, ToolHeight})
-            .window.searchBox.setPosition({0, 0, Math.max(group.position.width - options - ViewerWindow.SearchGroupSpacing, 0), ToolHeight})
+            .window.searchOptionsButton.show(not compact)
+            var fieldWidth = group.position.width
+            if not compact
+            {
+                let options = themeDropDownButtonWidth(metrics)
+                .window.searchOptionsButton.setPosition({fieldWidth - options, 0, options, ToolHeight})
+                fieldWidth -= options + ViewerWindow.SearchGroupSpacing
+            }
+            let placeholder = compact ? appStrings().ui_FilterMode : appStrings().ui_FilterFiles
+            if .window.searchBox.name.text != placeholder do
+                .window.searchBox.setPlaceholder(placeholder)
+            .window.searchBox.setPosition({0, 0, Math.max(fieldWidth, 0), ToolHeight})
         }
 
         if inCaption
@@ -634,6 +659,21 @@ impl Explorer
                              choices.addChoice(names[index], cast(u64, view.mode) == index, func|view, mode|() { view.setMode(mode) })
                      },
                      icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
+
+        if not .sortMenu.isLocallyVisible()
+        {
+            const SortOptions = [ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
+                                 ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending]
+            const TextOptions = [ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression]
+            let size = themeRowIconSize(.themeMetrics())
+            page.addCommandLink(text.explore_Sort, SortOptions,
+                                .window, .theme().icon(.Sort, size))
+            page.addCommandLink(text.explore_FilterByType, ViewerCommands.KindFilters, .window, .theme().icon(.Filter, size))
+            page.addCommandLink(text.ui_SearchOptions, TextOptions,
+                                .window, .theme().icon(.Search, size))
+            if .listing.isArchive do
+                page.addCommand(ViewerCommands.ExtractAll, .window)
+        }
 
         if .isThumbnailView()
         {
@@ -1950,11 +1990,32 @@ impl Explorer
         .window.teachHints(.isLocallyVisible())
     }
 
+    private mtd fitNameColumn()
+    {
+        let width = .list.listView.paddedClientRect().width
+        if width > 0 and .list.header.itemWidthForColumn(0) != width do
+            .list.header.setItemWidthForColumn(0, width)
+    }
+
     mtd setMode(mode: ExplorerMode)
     {
-        if mode != .mode do
-            .clearFileDrag()
+        let previous = .mode
         .mode = mode
+        if mode != previous
+        {
+            .clearFileDrag()
+            if mode == .Names
+            {
+                .detailNameWidth = .list.header.itemWidthForColumn(0)
+                .list.scrollWnd.updateFlags(.DisableHorizontal)
+                .fitNameColumn()
+            }
+            elif previous == .Names
+            {
+                .list.header.setItemWidthForColumn(0, .detailNameWidth)
+                .list.scrollWnd.updateFlags(remove: .DisableHorizontal)
+            }
+        }
         .refreshQuietMenus()
 
         // Archive details keep their compression readings in a dedicated column.

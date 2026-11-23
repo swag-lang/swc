@@ -367,3 +367,36 @@ using Core, Gui, Audio
     host.click(lastTab, .Middle)
     Swag.require(workspace.scenes.count == 1 and not tabs.isLocallyVisible())
 }
+
+// Scene shortcuts follow the user's bindings. The lens retains the input while it is open.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openDocument(scopeTestDataPath("viewer.srt"))
+    openViews(&host, workspace)
+    workspace.openScene([scopeTestDataPath("viewer.png"), scopeTestDataPath("sample.cpp")], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let document = workspace.activeDocument()
+    document.lens.open("grid")
+    host.keyPress(.Tab, .Control)
+    host.keyPress(.W, .Control)
+    Swag.require(document.lens.isOpen() and workspace.scene() == scene and workspace.documentCount() == 2 and not workspace.switcher)
+    host.keyPress(.Escape)
+    Swag.require(document.lens.isOpen())
+    host.keyPress(.Escape)
+    Swag.require(not document.lens.isOpen())
+    document.registerKeyShortcut(.None, .F, ViewerCommands.Information)
+    document.registerKeyShortcut(.Control, .W, ViewerCommands.Information)
+    document.registerKeyShortcut(.CtrlShift, .F8, SceneCommands.Maximize)
+    document.registerKeyShortcut(.CtrlShift, .F9, ViewerCommands.Close)
+    host.keyPress(.F)
+    host.keyPress(.W, .Control)
+    Swag.require(not scene.maximized and scene.views.count == 2)
+    host.keyPress(.F8, .CtrlShift)
+    Swag.require(scene.maximized)
+    host.keyPress(.F9, .CtrlShift)
+    Swag.require(workspace.scene() == scene and scene.views.count == 1 and not scene.maximized)
+}

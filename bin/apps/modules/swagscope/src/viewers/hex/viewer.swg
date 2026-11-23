@@ -110,6 +110,77 @@ func float16ToFloat(value: u16)->f32
     return cast #bit (f32, bits)
 }
 
+enum VarintState
+{
+    Incomplete
+    Invalid
+    Valid
+}
+
+struct VarintRead
+{
+    state: VarintState
+    value: u64
+}
+
+// Decodes one unsigned LEB128 value, rejecting values that need more than 64 bits.
+func readUleb128(bytes: const [..] u8)->VarintRead
+{
+    var result: #returntype
+    let count = Math.min(bytes.count, 10)
+    for index in count
+    {
+        let byte    = bytes[index]
+        let payload = cast(u64, byte & 0x7F)
+        if index == 9 and payload > 1
+        {
+            result.state = .Invalid
+            return result
+        }
+
+        result.value |= payload << (index * 7)
+        if not (byte & 0x80)
+        {
+            result.state = .Valid
+            return result
+        }
+    }
+
+    result.state = bytes.count >= 10 ? .Invalid : .Incomplete
+    return result
+}
+
+// Decodes one signed LEB128 value, including its sign extension and 64-bit terminal byte rules.
+func readSleb128(bytes: const [..] u8)->VarintRead
+{
+    var result: #returntype
+    let count = Math.min(bytes.count, 10)
+    for index in count
+    {
+        let byte    = bytes[index]
+        let payload = cast(u64, byte & 0x7F)
+        let shift   = index * 7
+        if index == 9 and payload != 0 and payload != 0x7F
+        {
+            result.state = .Invalid
+            return result
+        }
+
+        result.value |= payload << shift
+        if not (byte & 0x80)
+        {
+            let usedBits = shift + 7
+            if usedBits < 64 and (byte & 0x40) do
+                result.value |= Swag.U64.Max << usedBits
+            result.state = .Valid
+            return result
+        }
+    }
+
+    result.state = bytes.count >= 10 ? .Invalid : .Incomplete
+    return result
+}
+
 // Hexadecimal view of any file, whatever its size.
 //
 // The view owns the grid the bytes are read in and the compact command group the host places in
@@ -678,7 +749,7 @@ impl Panel
             return
         }
         let caret     = .grid.caret
-        let bytes     = .grid.doc.read(caret, Math.min(8'u64, .grid.doc.fileSize - caret))
+        let bytes     = .grid.doc.read(caret, Math.min(10'u64, .grid.doc.fileSize - caret))
         let bigEndian = .readingBigEndian()
         if bytes.isEmpty()
         {
@@ -737,6 +808,24 @@ impl Panel
             view.readings.add({"u16", Viewer.groupThousands(value), false})
             view.readings.add({texts().ui_InspectorFloat16,
                                Format.toString("%{g4}", float16ToFloat(cast(u16, value))), false})
+        }
+
+        let unsignedVarint = readUleb128(bytes)
+        if unsignedVarint.state != .Incomplete
+        {
+            var value = String.from(texts().ui_ReadingInvalid)
+            if unsignedVarint.state == .Valid do
+                value = Viewer.groupThousands(unsignedVarint.value)
+            view.readings.add({texts().ui_InspectorUleb128, value, false})
+        }
+        let signedVarint = readSleb128(bytes)
+        if signedVarint.state != .Incomplete
+        {
+            let signedValue = cast #bit (s64, signedVarint.value)
+            var value = String.from(texts().ui_ReadingInvalid)
+            if signedVarint.state == .Valid do
+                value = Viewer.groupThousands(Format.toString("%", signedValue))
+            view.readings.add({texts().ui_InspectorSleb128, value, false})
         }
 
         if bytes.count < 4 do

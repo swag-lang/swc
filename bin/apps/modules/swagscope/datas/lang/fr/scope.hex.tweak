@@ -34,6 +34,9 @@ ui_SearchValueError   Saisissez une valeur adaptée à la largeur et à la repr�
 ui_InspectorAt        % à 0x%
 ui_InspectorFloat16   f16
 ui_InspectorIpv4      IPv4
+ui_InspectorUleb128   ULEB128
+ui_InspectorSleb128   SLEB128
+ui_ReadingInvalid     invalide
 ui_DetailsCaret       %{f1}%% · valeur % · caret %/%
 ui_DetailsSelection   %{f1}%% · valeur % · sél. %–% (%–%) · long. %/% · caret %/%
 

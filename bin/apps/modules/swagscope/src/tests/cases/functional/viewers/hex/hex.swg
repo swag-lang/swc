@@ -300,6 +300,67 @@ internal func writeSampleFile()->String
         Swag.require(reading.label != Hex.texts().ui_InspectorIpv4)
 }
 
+// ULEB128 and SLEB128 stop at ten bytes, distinguish incomplete input from overflow, and sign-extend.
+#test
+{
+    let positive: Array'u8 = [0xE5, 0x8E, 0x26]
+    let unsigned = Hex.readUleb128(positive.toSlice())
+    let signed   = Hex.readSleb128(positive.toSlice())
+    Swag.require(unsigned.state == .Valid and unsigned.value == 624485)
+    Swag.require(signed.state == .Valid and cast #bit (s64, signed.value) == 624485)
+
+    let minusOne: Array'u8 = [0x7F]
+    let negative = Hex.readSleb128(minusOne.toSlice())
+    Swag.require(negative.state == .Valid and cast #bit (s64, negative.value) == -1)
+    let incomplete: Array'u8 = [0x80]
+    Swag.require(Hex.readUleb128(incomplete.toSlice()).state == .Incomplete)
+    Swag.require(Hex.readSleb128(incomplete.toSlice()).state == .Incomplete)
+
+    var unsignedMax: Array'u8
+    unsignedMax.resize(10)
+    for index in 9 do
+        unsignedMax[index] = 0xFF
+    unsignedMax[9] = 1
+    Swag.require(Hex.readUleb128(unsignedMax.toSlice()).value == Swag.U64.Max)
+
+    var signedMin: Array'u8
+    signedMin.resize(10)
+    for index in 9 do
+        signedMin[index] = 0x80
+    signedMin[9] = 0x7F
+    let minValue = Hex.readSleb128(signedMin.toSlice())
+    Swag.require(minValue.state == .Valid and minValue.value == 0x8000000000000000)
+
+    unsignedMax[9] = 2
+    Swag.require(Hex.readUleb128(unsignedMax.toSlice()).state == .Invalid)
+    signedMin[9] = 1
+    Swag.require(Hex.readSleb128(signedMin.toSlice()).state == .Invalid)
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-varint-", ".bin")
+    defer discard catch File.delete(fileName)
+    let encoded: Array'u8 = [0xE5, 0x8E, 0x26, 0x00]
+    expect File.writeAllBytes(fileName, encoded.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    var ulebFound = false
+    var slebFound = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorUleb128
+        {
+            Swag.require(reading.value == "624 485")
+            ulebFound = true
+        }
+        if reading.label == Hex.texts().ui_InspectorSleb128
+        {
+            Swag.require(reading.value == "624 485")
+            slebFound = true
+        }
+    }
+    Swag.require(ulebFound and slebFound)
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

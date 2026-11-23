@@ -323,8 +323,8 @@ are also available.
   reading line reports the caret or selection bounds and length in hexadecimal and decimal, the
   active value, and whole-file percentage; its tooltip retains the complete line. The inspector
   shows the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, `f16`/`f32`/`f64`,
-  dotted IPv4, and printable readings; the commands lens copies either the main value or any
-  individual reading.
+  dotted IPv4, ULEB128/SLEB128, and printable readings; the commands lens copies either the main
+  value or any individual reading.
   Go To accepts hexadecimal, `0d` decimal, percentages, `caret`, `filesize`,
   `bookmark` and `base` origins, arithmetic with parentheses, and `align(value, boundary)`. The
   leading `+` or `-` remains caret-relative. Set `base` from the commands lens; it maps a virtual

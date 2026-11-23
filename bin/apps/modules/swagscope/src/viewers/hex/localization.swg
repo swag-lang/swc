@@ -45,6 +45,9 @@ struct Texts
     ui_InspectorAt:            string = "% at 0x%"                                                                                            // What the inspector read its value as, and where; placeholders: the reading, the offset.
     ui_InspectorFloat16:       string = "f16"                                                                                                // IEEE-754 binary16 reading of the caret bytes.
     ui_InspectorIpv4:          string = "IPv4"                                                                                               // Dotted decimal address from four consecutive caret bytes.
+    ui_InspectorUleb128:       string = "ULEB128"                                                                                            // Unsigned LEB128 reading from the caret.
+    ui_InspectorSleb128:       string = "SLEB128"                                                                                            // Signed LEB128 reading from the caret.
+    ui_ReadingInvalid:         string = "invalid"                                                                                             // A domain reading whose bytes exceed its encoding rules.
     ui_DetailsCaret:           string = "%{f1}%% · value % · caret %/%"                                                                        // Whole-file percentage, active value, caret in hex and decimal.
     ui_DetailsSelection:       string = "%{f1}%% · value % · sel %–% (%–%) · len %/% · caret %/%"                                               // Percentage, value, selection bounds/length and caret in both radices.
     ui_Analysis:               string = "Analysis"                                                                                            // Heading of the byte-analysis panel.

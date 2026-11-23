@@ -84,7 +84,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Evidence: the 25 registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 180 `viewer.*` files plus two standalone font variants, checks each
+  fixture matrix now names all 189 `viewer.*` files plus two standalone font variants, checks each
   entry's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, ODT, RTF, XLSX, ODS,
   PPTX and ODP have content and
   damaged-package cases. Seven complete, openly licensed published documents plus generated
@@ -342,7 +342,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | searchable cue timeline, overlap markers, cue-aware copy/export with parser-loss counts | source/styled modes, media check | [app.scope.subtitle.002](app.scope.subtitle.md), [app.scope.subtitle.003](app.scope.subtitle.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.table.001](app.scope.table.md), [app.scope.table.002](app.scope.table.md) |
 | PDF | `.pdf` | page rendering, bookmarks, page-label navigation, five-page thumbnail rail, bounded page-range PNG export | partial pages, facing pages, region/table selection, embedded-asset inventory | [app.scope.pdf.001](app.scope.pdf.md), [app.scope.pdf.006](app.scope.pdf.md), [app.scope.pdf.009](app.scope.pdf.md), [std.gui.pdf.038](std.gui.pdf.md) |
-| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.docx.001](app.scope.docx.md) |
+| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables, pictures, numbered/bulleted lists, bounded default header/footer text, and referenced footnotes | authored pages, per-section layout, annotations and complex tables | [app.scope.docx.001](app.scope.docx.md) |
 | XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.xlsx.001](app.scope.xlsx.md) |
 | PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.pptx.001](app.scope.pptx.md) |
 | ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.odt.001](app.scope.odt.md) |

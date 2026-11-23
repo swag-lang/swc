@@ -169,11 +169,11 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     Swag.require(Utf8.contains(document.html, "padding:96.00px 96.00px 96.00px 96.00px;box-sizing:border-box;"))
 }
 
-// Real producer defaults and direct theme-tinted type retain their actual sizes and named typefaces.
+// Real producer defaults retain their sizes and typefaces; unsupported section columns are disclosed.
 #test
 {
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.poi-sample.docx"))
-    Swag.require(document.usePaperColors and not document.stylesSimplified)
+    Swag.require(document.usePaperColors and not document.stylesSimplified and document.sectionLayoutSimplified)
     for property in ["font-size:11.0pt;", "font-size:16.0pt;", "color:#548DD4;", "font-family:'Arial Black';"] do
         Swag.require(Utf8.contains(document.html, property))
 }

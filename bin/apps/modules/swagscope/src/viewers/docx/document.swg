@@ -3,49 +3,39 @@
 
 using Core
 
-// The readable body of one WordprocessingML document.
-struct Document
+func relationshipPart(relationships: const [..] Package.Relationship, id, kind: string)->String
 {
-    html:             String
-    pageWidth:        s32
-    pageHeight:       s32
-    marginTop:        s32
-    marginRight:      s32
-    marginBottom:     s32
-    marginLeft:       s32
-    marginMask:       u8
-    paragraphs:       u64
-    tables:           u64
-    omittedImages:    u64
-    usePaperColors:   bool
-    paperColor:       String
-    stylesSimplified: bool
-    properties:       Package.DocumentProperties     // What the package says of the document.
-}
-
-impl Document
-{
-    mtd const details()->String
+    for relationship in relationships
     {
-        var result = .paragraphs == 1 ? String.from(texts().ui_OneParagraph) : Format.toString(texts().ui_Details, .paragraphs)
-        if .tables do
-            result += .tables == 1 ? String.from(texts().ui_OneTable) : Format.toString(texts().ui_Tables, .tables)
-        if .omittedImages do
-            result += .omittedImages == 1 ? String.from(texts().ui_OneImageOmitted) : Format.toString(texts().ui_ImagesOmitted, .omittedImages)
-        if .stylesSimplified do
-            result += texts().ui_StylesSimplified
-        return result
+        if relationship.id == id and Utf8.endsWith(relationship.kind, kind) do
+            return relationship.path
     }
 
-    // Applies one final-section page box in CSS pixels; Word stores dimensions as twentieths of a point.
-    mtd const pageCss()->String
+    return {}
+}
+
+// The readable body of one WordprocessingML document.
+struct PageLayout
+{
+    width:        s32
+    height:       s32
+    marginTop:    s32
+    marginRight:  s32
+    marginBottom: s32
+    marginLeft:   s32
+    marginMask:   u8
+}
+
+impl PageLayout
+{
+    mtd const css()->String
     {
         var result:  #returntype
         let numbers: Globalization.NumberFormatInfo
-        if .pageWidth > 0 do
-            result += Format.toString("max-width:%px;", numbers.format(cast(f64, .pageWidth) / 15, 2))
-        if .pageHeight > 0 do
-            result += Format.toString("min-height:%px;", numbers.format(cast(f64, .pageHeight) / 15, 2))
+        if .width > 0 do
+            result += Format.toString("max-width:%px;", numbers.format(cast(f64, .width) / 15, 2))
+        if .height > 0 do
+            result += Format.toString("min-height:%px;", numbers.format(cast(f64, .height) / 15, 2))
         if .marginMask
         {
             result += "padding:"
@@ -59,11 +49,62 @@ impl Document
             result += "px;"
         }
 
-        if .pageWidth > 0 or .pageHeight > 0 or .marginMask do
+        if .width > 0 or .height > 0 or .marginMask do
             result += "box-sizing:border-box;"
-        if .pageWidth > 0 do
+        if .width > 0 do
             result += "margin-left:auto;margin-right:auto;"
         return result
+    }
+}
+
+struct Document
+{
+    html:                    String
+    headerHtml:              String
+    footerHtml:              String
+    pageWidth:               s32
+    pageHeight:              s32
+    marginTop:               s32
+    marginRight:             s32
+    marginBottom:            s32
+    marginLeft:              s32
+    marginMask:              u8
+    paragraphs:              u64
+    tables:                  u64
+    omittedImages:           u64
+    usePaperColors:          bool
+    paperColor:              String
+    stylesSimplified:        bool
+    pageElementsSimplified:  bool
+    sectionLayoutSimplified: bool
+    footnotesSimplified:     bool
+    properties:              Package.DocumentProperties     // What the package says of the document.
+}
+
+impl Document
+{
+    mtd const details()->String
+    {
+        var result = .paragraphs == 1 ? String.from(texts().ui_OneParagraph) : Format.toString(texts().ui_Details, .paragraphs)
+        if .tables do
+            result += .tables == 1 ? String.from(texts().ui_OneTable) : Format.toString(texts().ui_Tables, .tables)
+        if .omittedImages do
+            result += .omittedImages == 1 ? String.from(texts().ui_OneImageOmitted) : Format.toString(texts().ui_ImagesOmitted, .omittedImages)
+        if .stylesSimplified do
+            result += texts().ui_StylesSimplified
+        if .pageElementsSimplified do
+            result += texts().ui_PageElementsSimplified
+        if .sectionLayoutSimplified do
+            result += texts().ui_SectionLayoutSimplified
+        if .footnotesSimplified do
+            result += texts().ui_FootnotesSimplified
+        return result
+    }
+
+    // Applies one final-section page box in CSS pixels; Word stores dimensions as twentieths of a point.
+    mtd const pageCss()->String
+    {
+        return PageLayout{.pageWidth, .pageHeight, .marginTop, .marginRight, .marginBottom, .marginLeft, .marginMask}.css()
     }
 
     // Reads paragraphs and tables from the main document part without executing embedded content.
@@ -90,17 +131,33 @@ impl Document
                           styleReadError.value() != null or
                           styleParseError.value() != null or
                           (declaredStyles and styleSource.isEmpty())
-        var scan   = Package.Scanner.create(source)
+        var numberingPath = Package.relationshipPath(relations.toSlice(), "/numbering")
+        if numberingPath.isEmpty() do
+            numberingPath = "word/numbering.xml"
+        var numberingReadError:  Swag.Error
+        let numberingSource = catch parts.text(numberingPath, required: false, limit: 4 * 1024 * 1024) as numberingReadError orelse {}
+        var numberingParseError: Swag.Error
+        var numbering       = catch NumberingCatalog.parse(numberingSource) as numberingParseError orelse {}
+        var footnotesPath   = Package.relationshipPath(relations.toSlice(), "/footnotes")
+        if footnotesPath.isEmpty() do
+            footnotesPath = "word/footnotes.xml"
+        var footnotesReadError:  Swag.Error
+        let footnotesSource = catch parts.text(footnotesPath, required: false, limit: 4 * 1024 * 1024) as footnotesReadError orelse {}
+        var footnotesParseError: Swag.Error
+        var footnotes       = catch FootnoteCatalog.parse(footnotesSource) as footnotesParseError orelse {}
+        var scan            = Package.Scanner.create(source)
         var token: Package.Token
-        var images = try Package.ImageCatalog.load(fileName,
-                                                   &archive,
-                                                   "word",
-                                                   "word/_rels/document.xml.rels",
-                                                   texts().err_Invalid,
-                                                   texts().err_TooLarge)
+        var images          = try Package.ImageCatalog.load(fileName,
+                                                            &archive,
+                                                            "word",
+                                                            "word/_rels/document.xml.rels",
+                                                            texts().err_Invalid,
+                                                            texts().err_TooLarge)
         var reader = Reader{document: Document{usePaperColors: styles.loaded, stylesSimplified: limited},
-                            images: #move images, styles: #move styles, theme: #move theme}
-
+                            images: #move images, numbering: #move numbering, footnotes: #move footnotes,
+                            styles: #move styles, theme: #move theme,
+                            numberingLimited: numberingReadError.value() != null or numberingParseError.value() != null,
+                            footnotesLimited: footnotesReadError.value() != null or footnotesParseError.value() != null}
         while scan.next(&token)
         {
             if token.kind == .Start
@@ -119,14 +176,83 @@ impl Document
                     Package.appendHtmlEscaped(&reader.paragraph, token.text)
             }
 
-            if reader.document.html.count + reader.paragraph.count + reader.run.count > 32 * 1024 * 1024 do
+            if reader.document.html.count + reader.sectionHtml.count + reader.paragraph.count + reader.run.count > 32 * 1024 * 1024 do
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         }
 
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        reader.document.html += reader.footnotesHtml()
+        if reader.document.html.count > 32 * 1024 * 1024 do
+            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         var html: String = "<html>"
-        var bodyStyle    = reader.document.pageCss()
+        if not reader.headerId.isEmpty()
+        {
+            reader.document.pageElementsSimplified = true
+            let path = relationshipPart(relations.toSlice(), reader.headerId.toString(), "/header")
+            if path.isEmpty()
+            {
+                reader.document.pageElementsSimplified = true
+            }
+            else
+            {
+                var readError: Swag.Error
+                let source = catch parts.text(path, required: false, limit: 4 * 1024 * 1024) as readError orelse {}
+                if source.isEmpty() or readError.value() != null
+                {
+                    reader.document.pageElementsSimplified = true
+                }
+                else
+                {
+                    var parseError: Swag.Error
+                    let content = catch HeaderFooterReader.parse(source) as parseError orelse {}
+                    if parseError.value() != null
+                    {
+                        reader.document.pageElementsSimplified = true
+                    }
+                    else
+                    {
+                        reader.document.headerHtml = #move content.html
+                        reader.document.pageElementsSimplified = reader.document.pageElementsSimplified or content.limited
+                    }
+                }
+            }
+        }
+
+        if not reader.footerId.isEmpty()
+        {
+            reader.document.pageElementsSimplified = true
+            let path = relationshipPart(relations.toSlice(), reader.footerId.toString(), "/footer")
+            if path.isEmpty()
+            {
+                reader.document.pageElementsSimplified = true
+            }
+            else
+            {
+                var readError: Swag.Error
+                let source = catch parts.text(path, required: false, limit: 4 * 1024 * 1024) as readError orelse {}
+                if source.isEmpty() or readError.value() != null
+                {
+                    reader.document.pageElementsSimplified = true
+                }
+                else
+                {
+                    var parseError: Swag.Error
+                    let content = catch HeaderFooterReader.parse(source) as parseError orelse {}
+                    if parseError.value() != null
+                    {
+                        reader.document.pageElementsSimplified = true
+                    }
+                    else
+                    {
+                        reader.document.footerHtml = #move content.html
+                        reader.document.pageElementsSimplified = reader.document.pageElementsSimplified or content.limited
+                    }
+                }
+            }
+        }
+
+        var bodyStyle = reader.document.pageCss()
         if reader.document.usePaperColors
         {
             html += "<head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}</style></head>"
@@ -147,8 +273,24 @@ impl Document
             html += "\">"
         }
 
+        if not reader.document.headerHtml.isEmpty()
+        {
+            html += "<header>"
+            html += reader.document.headerHtml
+            html += "</header>"
+        }
+
         html += reader.document.html
+        if not reader.document.footerHtml.isEmpty()
+        {
+            html += "<footer>"
+            html += reader.document.footerHtml
+            html += "</footer>"
+        }
+
         html += "</body></html>"
+        if html.count > 32 * 1024 * 1024 do
+            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         reader.document.html = #move html
 
         reader.document.properties = Package.DocumentProperties.read(fileName, &archive)

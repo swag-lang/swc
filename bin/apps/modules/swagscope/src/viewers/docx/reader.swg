@@ -8,6 +8,11 @@ private struct Reader
 {
     document:              Document
     images:                Package.ImageCatalog
+    numbering:             NumberingCatalog
+    footnotes:             FootnoteCatalog
+    sectionLayout:         PageLayout
+    sectionHtml:           String
+    sectionBreak:          String
     paragraph:             String
     run:                   String
     styles:                StyleCatalog
@@ -27,11 +32,23 @@ private struct Reader
     inText:                bool
     inImage:               bool
     inSectionProperties:   bool
-    ignoreSectionGeometry: bool
     imageId:               String
     imageDescription:      String
     imageWidth:            u32
     imageHeight:           u32
+    headerId:              String
+    footerId:              String
+    paragraphNumId:        String
+    paragraphNumLevel:     u8
+    inNumberProperties:    bool
+    paragraphEndsSection:  bool
+    openListIds:           Array'String
+    openListLevels:        Array'u8
+    openListTags:          Array'String
+    numberingLimited:      bool
+    paragraphHasNumPr:     bool
+    footnoteReferences:    Array'String
+    footnotesLimited:      bool
 }
 
 private impl Reader
@@ -42,36 +59,83 @@ private impl Reader
         let height = catch StrConv.toS32(token.attribute("h") orelse "") orelse 0
         if width < 3600 or width > 43200 or height < 3600 or height > 43200
         {
-            .document.stylesSimplified = true
+            .document.sectionLayoutSimplified = true
             return
         }
 
-        .document.pageWidth  = width
-        .document.pageHeight = height
+        .sectionLayout.width  = width
+        .sectionLayout.height = height
     }
 
     mtd readPageMargins(token: const *Package.Token)
     {
+        let gutter = catch StrConv.toS32(token.attribute("gutter") orelse "0") orelse -1
+        if gutter != 0 do
+            .document.sectionLayoutSimplified = true
+
         let names: [4] string = ["top", "right", "bottom", "left"]
         for name, index in names
         {
             let value = catch StrConv.toS32(token.attribute(name) orelse "") orelse -1
             if value < 0 or value > 31680
             {
-                .document.stylesSimplified = true
+                .document.sectionLayoutSimplified = true
                 continue
             }
 
             switch index
             {
-            case 0: .document.marginTop = value
-            case 1: .document.marginRight = value
-            case 2: .document.marginBottom = value
-            case 3: .document.marginLeft = value
+            case 0: .sectionLayout.marginTop = value
+            case 1: .sectionLayout.marginRight = value
+            case 2: .sectionLayout.marginBottom = value
+            case 3: .sectionLayout.marginLeft = value
             }
 
-            .document.marginMask |= cast(u8, 1 << index)
+            .sectionLayout.marginMask |= cast(u8, 1 << index)
         }
+    }
+
+    mtd readSectionType(token: const *Package.Token)
+    {
+        .sectionBreak = token.attribute("val") orelse "nextPage"
+        if .sectionBreak != "nextPage" and
+           .sectionBreak != "continuous" and
+           .sectionBreak != "evenPage" and
+           .sectionBreak != "oddPage"
+        {
+            .document.sectionLayoutSimplified = true
+            .sectionBreak = "nextPage"
+        }
+        elif .sectionBreak == "evenPage" or .sectionBreak == "oddPage"
+        {
+            // A continuous HTML flow cannot preserve which physical page parity Word starts on.
+            .document.sectionLayoutSimplified = true
+        }
+    }
+
+    mtd flushSection()
+    {
+        .closeLists()
+        if .sectionHtml.count do
+            .document.html += .sectionHtml
+
+        // HtmlView exposes one flowing page box. Keep the final section's geometry on
+        // the document body and disclose that earlier section geometry is a projection.
+        if .paragraphEndsSection do
+            .document.sectionLayoutSimplified = true
+
+        .document.pageWidth    = .sectionLayout.width
+        .document.pageHeight   = .sectionLayout.height
+        .document.marginTop    = .sectionLayout.marginTop
+        .document.marginRight  = .sectionLayout.marginRight
+        .document.marginBottom = .sectionLayout.marginBottom
+        .document.marginLeft   = .sectionLayout.marginLeft
+        .document.marginMask   = .sectionLayout.marginMask
+        .sectionHtml.clear()
+        if .paragraphEndsSection and .sectionBreak != "continuous" do
+            .document.html += "<hr>"
+        .sectionBreak         = "nextPage"
+        .paragraphEndsSection = false
     }
 
     mtd appendInline(value: string)
@@ -80,6 +144,66 @@ private impl Reader
             .run += value
         else do
             .paragraph += value
+    }
+
+    mtd readFootnoteReference(token: const *Package.Token)
+    {
+        let rawId     = token.attribute("id") orelse ""
+        var idError: Swag.Error
+        let numericId = catch StrConv.toS32(rawId) as idError orelse 0
+        if rawId.count == 0 or idError.value() != null or numericId <= 0
+        {
+            .appendInline(texts().ui_FootnoteOmitted)
+            .document.footnotesSimplified = true
+            return
+        }
+
+        let id   = Format.toString("%", numericId)
+        let note = .footnotes.lookup(id.toString())
+        .appendInline("<sup>")
+        .appendInline(id.toString())
+        .appendInline("</sup>")
+        if not note.found
+        {
+            .appendInline(texts().ui_FootnoteOmitted)
+            .document.footnotesSimplified = true
+            return
+        }
+
+        if note.limited or .footnotesLimited do
+            .document.footnotesSimplified = true
+        for reference in .footnoteReferences where reference == id do
+            return
+        .footnoteReferences.add(id)
+    }
+
+    internal mtd footnotesHtml()->String
+    {
+        if not .footnoteReferences.count do
+            return {}
+        var result: String = "<section><h2>"
+        result += texts().ui_FootnotesTitle
+        result += "</h2>"
+        for id in .footnoteReferences
+        {
+            let note = .footnotes.lookup(id.toString())
+            if not note.found
+            {
+                .document.footnotesSimplified = true
+                continue
+            }
+
+            if note.limited or .footnotesLimited do
+                .document.footnotesSimplified = true
+            result += "<div><sup>"
+            Package.appendHtmlEscaped(&result, id.toString())
+            result += "</sup>"
+            result += note.html
+            result += "</div>"
+        }
+
+        result += "</section>"
+        return result
     }
 
     mtd finishImage()
@@ -195,8 +319,69 @@ private impl Reader
             return
         .finishRun()
         .prepareParagraph()
-        if .paragraphFormat.pageBefore == .On do
-            .document.html += "<hr>"
+        let isList = not .paragraphNumId.isEmpty()
+        var listStyle: ListStyle
+        if isList
+        {
+            listStyle = .numbering.lookup(.paragraphNumId.toString(), .paragraphNumLevel)
+            if listStyle.limited or .numberingLimited do
+                .document.stylesSimplified = true
+        }
+        elif .paragraphHasNumPr
+        {
+            .document.stylesSimplified = true
+        }
+
+        if .paragraphFormat.pageBefore == .On
+        {
+            .closeLists()
+            .sectionHtml += "<hr>"
+        }
+
+        if isList
+        {
+            while .openListLevels.count and .openListLevels[.openListLevels.count - 1] > .paragraphNumLevel do
+                .closeListLevel()
+
+            if .openListLevels.count and
+               .openListLevels[.openListLevels.count - 1] == .paragraphNumLevel and
+               .openListIds[.openListIds.count - 1] == .paragraphNumId
+            {
+                .sectionHtml += "</li><li>"
+            }
+            else
+            {
+                if .openListLevels.count and .openListLevels[.openListLevels.count - 1] == .paragraphNumLevel do
+                    .closeListLevel()
+                if .openListLevels.count and .paragraphNumLevel > .openListLevels[.openListLevels.count - 1] + 1
+                {
+                    .document.stylesSimplified = true
+                    .closeLists()
+                }
+
+                .sectionHtml += "<"
+                .sectionHtml += listStyle.tag
+                if not listStyle.type.isEmpty()
+                {
+                    .sectionHtml += " type=\""
+                    .sectionHtml += listStyle.type
+                    .sectionHtml += "\""
+                }
+
+                if listStyle.tag == "ol" and listStyle.start != 1 do
+                    .sectionHtml += Format.toString(" start=\"%\"", listStyle.start)
+                .sectionHtml += ">"
+                .sectionHtml += "<li>"
+                .openListIds.add(.paragraphNumId)
+                .openListLevels.add(.paragraphNumLevel)
+                .openListTags.add(listStyle.tag)
+            }
+        }
+        else
+        {
+            .closeLists()
+        }
+
         var tag: string = "p"
         switch .paragraphFormat.heading()
         {
@@ -208,25 +393,47 @@ private impl Reader
         case 6: tag = "h6"
         }
 
-        .document.html += "<"
-        .document.html += tag
+        .sectionHtml += "<"
+        .sectionHtml += tag
         let css = .paragraphFormat.css()
         if not css.isEmpty()
         {
-            .document.html += " style=\""
-            Package.appendHtmlEscaped(&.document.html, css)
-            .document.html += "\""
+            .sectionHtml += " style=\""
+            Package.appendHtmlEscaped(&.sectionHtml, css)
+            .sectionHtml += "\""
         }
 
-        .document.html += ">"
-        .document.html += .paragraph
-        .document.html += "</"
-        .document.html += tag
-        .document.html += ">"
+        .sectionHtml += ">"
+        .sectionHtml += .paragraph
+        .sectionHtml += "</"
+        .sectionHtml += tag
+        .sectionHtml += ">"
         .paragraph.clear()
-        .document.paragraphs   += 1
-        .inParagraph           = false
+        .document.paragraphs += 1
+        if isList do
+            .paragraphNumId.clear()
+        .inParagraph = false
         .inParagraphProperties = false
+        if .paragraphEndsSection do
+            .flushSection()
+    }
+
+    mtd closeListLevel()
+    {
+        if not .openListLevels.count do
+            return
+        .sectionHtml += "</li></"
+        .sectionHtml += .openListTags[.openListTags.count - 1]
+        .sectionHtml += ">"
+        .openListIds.removeAt(.openListIds.count - 1)
+        .openListLevels.removeAt(.openListLevels.count - 1)
+        .openListTags.removeAt(.openListTags.count - 1)
+    }
+
+    mtd closeLists()
+    {
+        while .openListLevels.count do
+            .closeListLevel()
     }
 
     mtd setParagraphProperty(token: const *Package.Token)
@@ -273,15 +480,16 @@ private impl Reader
         {
             if .inParagraph
             {
-                // Paragraph-level section breaks can change geometry mid-document; keep them
-                // readable and disclose that this one-layout projection is approximate.
-                .document.stylesSimplified = true
-                .inSectionProperties       = not token.empty
-                .ignoreSectionGeometry     = not token.empty
+                // Word attaches this sectPr to the paragraph that ends the current section.
+                .paragraphEndsSection = true
+                .sectionBreak         = "nextPage"
+                .inSectionProperties  = not token.empty
             }
             else
             {
                 .inSectionProperties = not token.empty
+                if token.empty do
+                    .flushSection()
             }
 
             return
@@ -289,10 +497,47 @@ private impl Reader
 
         if .inSectionProperties
         {
-            if not .ignoreSectionGeometry and token.isElement("pgSz") do
+            if token.isElement("headerReference") or token.isElement("footerReference")
+            {
+                let kind = token.isElement("headerReference") ? "header" : "footer"
+                let id   = token.attribute("id") orelse ""
+                let type = token.attribute("type") orelse "default"
+                if type != "default"
+                {
+                    .document.pageElementsSimplified = true
+                }
+                elif kind == "header"
+                {
+                    if .headerId.isEmpty() do
+                        .headerId = id
+                    elif .headerId != id do
+                        .document.pageElementsSimplified = true
+                }
+                else
+                {
+                    if .footerId.isEmpty() do
+                        .footerId = id
+                    elif .footerId != id do
+                        .document.pageElementsSimplified = true
+                }
+            }
+            elif token.isElement("pgSz")
+            {
                 .readPageSize(token)
-            elif not .ignoreSectionGeometry and token.isElement("pgMar") do
+            }
+            elif token.isElement("pgMar")
+            {
                 .readPageMargins(token)
+            }
+            elif token.isElement("type")
+            {
+                .readSectionType(token)
+            }
+            elif token.isElement("cols") or token.isElement("docGrid")
+            {
+                .document.sectionLayoutSimplified = true
+            }
+
             return
         }
 
@@ -339,29 +584,63 @@ private impl Reader
 
         if token.isElement("tbl")
         {
+            .closeLists()
             .document.tables += 1
-            .document.html   += "<table>"
+            .sectionHtml     += "<table>"
         }
         elif token.isElement("tr")
         {
-            .document.html += "<tr>"
+            .sectionHtml += "<tr>"
         }
         elif token.isElement("tc")
         {
-            .document.html += "<td>"
+            .sectionHtml += "<td>"
         }
         elif token.isElement("p")
         {
             .inParagraph = true
             .paragraphId.clear()
-            .directParagraph = {}
-            .paragraphReady  = false
+            .paragraphNumId.clear()
+            .paragraphNumLevel = 0
+            .paragraphHasNumPr = false
+            .directParagraph   = {}
+            .paragraphReady    = false
             if token.empty do
                 .finishParagraph()
         }
         elif .inParagraph and token.isElement("pPr")
         {
             .inParagraphProperties = not token.empty
+        }
+        elif .inParagraphProperties and token.isElement("numPr")
+        {
+            .inNumberProperties = not token.empty
+            .paragraphHasNumPr  = true
+        }
+        elif .inNumberProperties and token.isElement("numId")
+        {
+            let numberId = token.attribute("val") orelse ""
+            if numberId == "0"
+            {
+                .paragraphNumId.clear()
+                .paragraphHasNumPr = false
+            }
+            else
+            {
+                .paragraphNumId = numberId
+            }
+        }
+        elif .inNumberProperties and token.isElement("ilvl")
+        {
+            let level = catch StrConv.toS32(token.attribute("val") orelse "") orelse -1
+            if level >= 0 and level <= 8
+            {
+                .paragraphNumLevel = cast(u8, level)
+            }
+            else
+            {
+                .document.stylesSimplified = true
+            }
         }
         elif .inParagraphProperties
         {
@@ -379,6 +658,10 @@ private impl Reader
         elif .inRun and token.isElement("rPr")
         {
             .inRunProperties = not token.empty
+        }
+        elif .inRun and token.isElement("footnoteReference")
+        {
+            .readFootnoteReference(token)
         }
         elif .inRunProperties
         {
@@ -405,14 +688,17 @@ private impl Reader
     {
         if token.isElement("body")
         {
+            .closeLists()
+            .flushSection()
             .inBody = false
             return
         }
 
         if token.isElement("sectPr")
         {
-            .inSectionProperties   = false
-            .ignoreSectionGeometry = false
+            .inSectionProperties = false
+            if not .inParagraph do
+                .flushSection()
             return
         }
 
@@ -433,13 +719,15 @@ private impl Reader
             .finishRun()
         elif token.isElement("pPr") do
             .inParagraphProperties = false
+        elif token.isElement("numPr") do
+            .inNumberProperties = false
         elif token.isElement("p") do
             .finishParagraph()
         elif token.isElement("tc") do
-            .document.html += "</td>"
+            .sectionHtml += "</td>"
         elif token.isElement("tr") do
-            .document.html += "</tr>"
+            .sectionHtml += "</tr>"
         elif token.isElement("tbl") do
-            .document.html += "</table>"
+            .sectionHtml += "</table>"
     }
 }

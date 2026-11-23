@@ -741,6 +741,12 @@ impl Panel
 
         if bytes.count < 4 do
             return
+        let address = Format.toString("%.%.%.%",
+                                     cast(u32, bytes[0]),
+                                     cast(u32, bytes[1]),
+                                     cast(u32, bytes[2]),
+                                     cast(u32, bytes[3]))
+        view.readings.add({texts().ui_InspectorIpv4, address, false})
         let word  = readScalar(bytes[until 4], bigEndian)
         let other = readScalar(bytes[until 4], not bigEndian)
         view.readings.add({"s32", Viewer.groupThousands(Format.toString("%", signedScalar(word, 4))), false})

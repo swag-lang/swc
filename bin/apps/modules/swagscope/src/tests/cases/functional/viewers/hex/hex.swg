@@ -270,6 +270,36 @@ internal func writeSampleFile()->String
         Swag.require(line.label != Hex.texts().ui_InspectorFloat16)
 }
 
+// IPv4 preserves the four source bytes regardless of scalar byte order, and needs all four bytes.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-ipv4-", ".bin")
+    defer discard catch File.delete(fileName)
+    let address: Array'u8 = [192, 168, 1, 1]
+    expect File.writeAllBytes(fileName, address.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorIpv4 do
+        Swag.require(reading.value == "192.168.1.1", reading.value)
+
+    view.grid.setBigEndian(true)
+    view.refreshInspector()
+    var found = false
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorIpv4
+    {
+        Swag.require(reading.value == "192.168.1.1", reading.value)
+        found = true
+    }
+    Swag.require(found)
+
+    view.grid.moveCaret(1, false)
+    view.refreshInspector()
+    for reading in view.inspectorView.readings do
+        Swag.require(reading.label != Hex.texts().ui_InspectorIpv4)
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

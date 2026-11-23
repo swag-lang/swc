@@ -169,11 +169,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     with let inspector = view.inspectorView
     {
         Swag.require(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
-        Swag.require(.readings.count == 6 and .readings[0].value == "222")
+        Swag.require(.readings.count == 7 and .readings[0].value == "222")
         Swag.require(.readings[2].label == Hex.texts().ui_InspectorFloat16)
         Swag.require(.readings[2].value == Format.toString("%{g4}", Hex.float16ToFloat(0xADDE)))
-        Swag.require(.readings[3].label == "s32" and .readings[3].value == "-272 716 322")
-        Swag.require(.readings[4].label == "u32 BE" and .readings[4].value == "3 735 928 559")
+        Swag.require(.readings[3].label == Hex.texts().ui_InspectorIpv4 and .readings[3].value == "222.173.190.239")
+        Swag.require(.readings[4].label == "s32" and .readings[4].value == "-272 716 322")
+        Swag.require(.readings[5].label == "u32 BE" and .readings[5].value == "3 735 928 559")
         Swag.require(.fields.isEmpty())
     }
 

@@ -61,7 +61,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
   printable readings at 8/16/32/64-bit widths in the active byte order, plus boolean at byte width.
   The inspector now also reads IEEE-754 binary16 in the active byte order whenever two bytes remain.
   The commands lens copies the main inspected value and each available reading independently. The
-  inspector does not yet expose GUID, timestamp, IP, color, BCD, or varint readings.
+  The inspector also reads four consecutive bytes as a dotted IPv4 address, independent of scalar
+  byte order. GUID, timestamps, IPv6, color, BCD, and varint readings remain open.
 - Next: add the remaining domain readings without changing grid grouping.
 - Done when: the inspector simultaneously reports selection start/end/length and the caret as
   signed and unsigned 8/16/32/64-bit integers, hexadecimal, binary, octal, `f16`/`f32`/`f64`,

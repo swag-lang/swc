@@ -44,6 +44,7 @@ struct Texts
     ui_SearchValueError:       string = "Enter a value that fits the active width and representation."                                        // Invalid active scalar.
     ui_InspectorAt:            string = "% at 0x%"                                                                                            // What the inspector read its value as, and where; placeholders: the reading, the offset.
     ui_InspectorFloat16:       string = "f16"                                                                                                // IEEE-754 binary16 reading of the caret bytes.
+    ui_InspectorIpv4:          string = "IPv4"                                                                                               // Dotted decimal address from four consecutive caret bytes.
     ui_DetailsCaret:           string = "%{f1}%% · value % · caret %/%"                                                                        // Whole-file percentage, active value, caret in hex and decimal.
     ui_DetailsSelection:       string = "%{f1}%% · value % · sel %–% (%–%) · len %/% · caret %/%"                                               // Percentage, value, selection bounds/length and caret in both radices.
     ui_Analysis:               string = "Analysis"                                                                                            // Heading of the byte-analysis panel.

@@ -33,6 +33,7 @@ ui_SearchPatternError Utilisez des paires hexadécimales avec les jokers ??, ?A 
 ui_SearchValueError   Saisissez une valeur adaptée à la largeur et à la représentation actives.
 ui_InspectorAt        % à 0x%
 ui_InspectorFloat16   f16
+ui_InspectorIpv4      IPv4
 ui_DetailsCaret       %{f1}%% · valeur % · caret %/%
 ui_DetailsSelection   %{f1}%% · valeur % · sél. %–% (%–%) · long. %/% · caret %/%
 

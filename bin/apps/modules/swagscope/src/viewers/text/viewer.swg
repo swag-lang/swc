@@ -71,6 +71,7 @@ private
     const StreamLookAhead    = 6.0
     const ResidentWindowSize = 256 * 1024'u64
     const RevealContextSize  = 16 * 1024'u64
+    const LensHistoryLimit   = 64'u64
 
     // Bytes the window is counted over to name the cursor line when the gutter does not ask for it.
     const QuietLineCountLimit = 4 * 1024 * 1024'u64
@@ -109,6 +110,9 @@ struct Panel
     hasEstimatedLine:  bool
     estimatedLine:     u64
     pendingNavigation:  Input.Key
+    lensHistory:        Array'u64
+    lensHistoryIndex:   u64 = Swag.U64.Max
+    replayingLensHistory: bool
     retiring:           bool
     readFailed:         bool
     fileName:           String
@@ -200,6 +204,86 @@ impl Panel
         if start == Swag.U64.Max do
             return Swag.U64.Max
         return .offsetOfColumn(start, .editor.cursorLogicalCharPos() + 1).offset
+    }
+
+    // Records Lens destinations as file offsets, independent of the resident window.
+    private mtd recordLensDestination(offset, from: u64)
+    {
+        if .replayingLensHistory or offset > .fileSize do
+            return
+        let origin = Math.min(from, .fileSize)
+
+        if not .lensHistory.count
+        {
+            .lensHistory.add(origin)
+            .lensHistoryIndex = 0
+        }
+        elif .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] != origin
+        {
+            .lensHistory.resize(.lensHistoryIndex + 1)
+            .lensHistory.add(origin)
+            .lensHistoryIndex = .lensHistory.count - 1
+        }
+
+        if .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] == offset do
+            return
+        if .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count do
+            .lensHistory.resize(.lensHistoryIndex + 1)
+        .lensHistory.add(offset)
+        .lensHistoryIndex = .lensHistory.count - 1
+
+        if .lensHistory.count > LensHistoryLimit
+        {
+            .lensHistory.remove(0, .lensHistory.count - LensHistoryLimit)
+            .lensHistoryIndex = .lensHistory.count - 1
+        }
+    }
+
+    // Opens a Lens destination and records its file offset with the current caret as a return point.
+    internal mtd revealLensDestination(offset: u64,
+                                       text: string = "",
+                                       caret = true,
+                                       caretColumn = Swag.U64.Max,
+                                       estimatedLine = 0'u64)->bool
+    {
+        if offset > .fileSize do
+            return false
+        let current = .currentByteOffset()
+        let from = current == Swag.U64.Max ? .residentStart : current
+        var destination = Math.min(offset, .fileSize)
+        if caretColumn != Swag.U64.Max and caretColumn do
+            destination = .offsetOfColumn(destination, caretColumn + 1).offset
+        if not .revealOffset(offset, text, caret: caret, caretColumn: caretColumn, estimatedLine: estimatedLine) do
+            return false
+        .recordLensDestination(destination, from)
+        return true
+    }
+
+    // Returns to a recorded Lens destination, without adding another history visit.
+    private mtd navigateLensHistory(direction: s32)->bool
+    {
+        if .lensHistoryIndex == Swag.U64.Max do
+            return false
+        let next = cast(s64, .lensHistoryIndex) + direction
+        if next < 0 or next >= cast(s64, .lensHistory.count) do
+            return false
+        .replayingLensHistory = true
+        defer .replayingLensHistory = false
+        let offset = .lensHistory[cast(u64, next)]
+        if not .revealOffset(offset, "", caret: true) do
+            return false
+        .lensHistoryIndex = cast(u64, next)
+        return true
+    }
+
+    mtd handleLensHistoryKey(evt: const *KeyEvent)->bool
+    {
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            return .navigateLensHistory(-1)
+        if direction > 0 do
+            return .navigateLensHistory(1)
+        return false
     }
 
     // Turns a one-based character column into a file byte offset without assuming UTF-8 storage.
@@ -463,7 +547,7 @@ impl Panel
                 let caretColumn = separator == Swag.U64.Max ? 0 : column - 1
                 .run = func|view = me, start, caretColumn, estimated, wanted|()
                 {
-                    discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn, estimatedLine: estimated ? wanted : 0)
+                    discard view.revealLensDestination(start, "", caret: true, caretColumn: caretColumn, estimatedLine: estimated ? wanted : 0)
                 }
             }
             return true
@@ -498,11 +582,11 @@ impl Panel
         {
             if hasLine
             {
-                .run = func|view = me, start, caretColumn|() { discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn) }
+                .run = func|view = me, start, caretColumn|() { discard view.revealLensDestination(start, "", caret: true, caretColumn: caretColumn) }
             }
             else
             {
-                .run = func|view = me, offset|() { discard view.revealOffset(offset, "", caret: true) }
+                .run = func|view = me, offset|() { discard view.revealLensDestination(offset, "", caret: true) }
             }
         }
         return true
@@ -1079,7 +1163,9 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if Viewer.isZoomKey(evt) do
+        if .handleLensHistoryKey(evt) do
+            evt.accepted = true
+        elif Viewer.isZoomKey(evt) do
             .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
         elif isWrapKey(evt) do
             .toggleWrap()
@@ -1108,6 +1194,9 @@ impl Panel
         result.lineNumbers  = g_LineNumbers
         result.blanks       = g_Blanks
         result.tabWidth     = g_TabWidth
+        result.lensHistory.clear()
+        result.lensHistoryIndex = Swag.U64.Max
+        result.replayingLensHistory = false
 
         result.createReadingControls(host)
         result.createEditor()
@@ -1175,6 +1264,20 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        let canGoBack = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex > 0
+        let canGoForward = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
+        entries.add(strings.ui_Back,
+                    .ChevronLeft,
+                    func|view = me|() { discard view.navigateLensHistory(-1) },
+                    disabled: not canGoBack,
+                    defaultKey: {modifiers: .Alt, key: .Left},
+                    bindId: "scope.text.history.back")
+        entries.add(strings.ui_Forward,
+                    .ChevronRight,
+                    func|view = me|() { discard view.navigateLensHistory(1) },
+                    disabled: not canGoForward,
+                    defaultKey: {modifiers: .Alt, key: .Right},
+                    bindId: "scope.text.history.forward")
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.text.wrap")
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")
@@ -1424,12 +1527,12 @@ impl Panel
         let line = .statistics.longestLine
         let offset = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
         if offset != Swag.U64.Max do
-            return .revealOffset(offset, "", caret: true)
+            return .revealLensDestination(offset, "", caret: true)
 
         let estimate = .lines.estimateOffsetOfLine(.fileName, line, .encoding, .contentStart)
         if estimate == Swag.U64.Max do
             return false
-        return .revealOffset(estimate, "", caret: true, estimatedLine: line)
+        return .revealLensDestination(estimate, "", caret: true, estimatedLine: line)
     }
 }
 

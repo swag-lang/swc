@@ -525,6 +525,14 @@ impl ViewerWindow
         if offset > bytes.count do
             return
         let text = cast(string, bytes.toSlice()[offset until Math.min(offset + length, bytes.count)])
+        if .activeChoiceIndex < .choices.count and
+           .choices[.activeChoiceIndex].key == Viewers.PlainText.ViewerKey and
+           instance.view
+        {
+            let view = assume cast(*Viewers.PlainText.Panel, instance.view)
+            discard view.revealLensDestination(offset, text, caret: true)
+            return
+        }
         discard instance.revealMatch(Viewer.SearchMatch{0, 0, offset, length}, text)
     }
 

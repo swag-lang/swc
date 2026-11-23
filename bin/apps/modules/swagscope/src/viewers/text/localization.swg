@@ -16,6 +16,8 @@ struct Texts
     ui_TabWidth:     string = "Tab Width"              // Option placing a tab stop every 2, 4 or 8 spaces.
     ui_Encoding:     string = "Character Encoding"     // Option choosing how the bytes are read as text.
     ui_ZoomMenu:     string = "Zoom…"                  // Tooltip of the zoom value menu.
+    ui_Back:         string = "Back in Text"            // Lens command returning to the previous text destination.
+    ui_Forward:      string = "Forward in Text"         // Lens command advancing to the next text destination.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
     ui_CurrentLine:  string = "line %"                 // Line under the cursor, counted in the whole file.
     ui_CurrentColumn: string = "column %"              // Unicode character column under the cursor.

@@ -10,10 +10,12 @@ and [std.gui.md](std.gui.md).
 
 ### app.scope.text.027 — Plain text has no bookmarks or navigation trail
 
-- Evidence: a reader can jump through search results and to the file ends, but cannot mark a line,
-  revisit arbitrary investigation points, or move backward after a distant seek. Binary already
-  demonstrates a bounded row-navigation history.
-- Next: define byte-backed text locations with an optional label and a bounded back/forward trail.
+- Evidence: text now keeps a bounded 64-offset back/forward trail for explicit lens destinations,
+  with Alt+Left/Right commands. Offsets survive resident-window eviction, new jumps truncate the
+  forward branch, and the current position is preserved after manual movement. Named bookmarks,
+  bookmark management, and stale-location detection after file replacement remain absent.
+- Next: add byte-backed named bookmarks with previous/next navigation, list, rename, and clear;
+  detect stale locations after replacement and define persistence through app.scope.viewers.003.
 - Done when: bookmark current line, previous/next bookmark, back, forward, list, rename, and
   clear are keyboard reachable; locations survive streamed-window eviction; stale locations are
   detected after replacement; and persistence is an explicit part of app.scope.viewers.003.

@@ -25,7 +25,8 @@ ui_ExportPageFailed Impossible d'exporter la page PDF.
 ui_ZoomMenu Zoom…
 ui_GoToPage  Aller à la page
 ui_Thumbnails Pages
-ui_CurrentPage Page actuelle
+ui_ShowPages Afficher les vignettes des pages
+ui_Bookmarks Signets
 ui_PageRange Numéro de page entre 1 et %.
 ui_PageRangeLabels Numéro de page entre 1 et %, ou libellé de page comme %.
 ui_Continuous Continu

@@ -78,3 +78,40 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     var image = host.render(window)
     assertScopeImageGolden(&image, "viewer.pdf.page.paper")
 }
+
+// The page gallery shares the document canvas. Both the scanned sheet and the text page
+// keep their own proportions, with a frame marking the page being read.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: HeadlessHost
+    let workspace = testWorkspace(&host, width: 920, height: 550)
+    defer host.shutdown()
+    let window = workspace.primary
+    let path   = isolatedScopeFixture("viewer.mixed-text-scan.pdf")
+    defer discardIsolatedScopeFixture(path)
+    window.openFile(path, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*PdfDocument.Panel, window.currentView)
+    view.openPages()
+    settlePdfGallery(&host, view)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.pdf.pages.encre")
+}
+
+// A compact document with authored bookmarks opens directly to its searchable outline.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 820, height: 470)
+    defer host.shutdown()
+    let window = workspace.primary
+    let path   = isolatedScopeFixture("document-outline.pdf")
+    defer discardIsolatedScopeFixture(path)
+    window.openFile(path, remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.pdf.bookmarks.paper")
+}

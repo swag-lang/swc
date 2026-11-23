@@ -151,7 +151,9 @@ are also available.
   size follows the common zoom control. The hosted page keeps a reading inset at narrow widths,
   including beside the outline; authored CSS margins remain inside that inset.
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
-  document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
+  document search and zoom. The optional outline opens to the document’s bookmarks, or to page
+  thumbnails when it has none. Choose **Pages** to browse the thumbnails with the wheel and click
+  one to read that page. The grid adapts to the width of the pane. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.
 - `EPUB` reads the package manifest and spine, presents XHTML chapters in their declared order,
   keeps local CSS and images available, and offers a filterable EPUB 2/3 table of contents,

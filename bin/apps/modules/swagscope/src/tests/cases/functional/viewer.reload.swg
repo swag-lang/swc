@@ -78,8 +78,6 @@ using Core, Gui, Viewers
         .showPage(1)
     }
 
-    let panel = assume cast(*PdfDocument.Panel, window.currentView)
-    panel.thumbnailTask.wait()
     host.pump()
 
     let zoomMode = view.zoomMode

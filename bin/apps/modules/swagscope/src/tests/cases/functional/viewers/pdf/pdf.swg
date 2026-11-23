@@ -35,52 +35,57 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     return fileName
 }
 
-// A generated thousand-page document keeps only the active five-page neighborhood and follows
-// the current tile into view when the rail itself has to scroll.
+internal func settlePdfGallery(host: *HeadlessHost, view: *PdfDocument.Panel)
+{
+    view.requestThumbnails()
+    while view.thumbnailTask.isPending()
+    {
+        view.thumbnailTask.wait()
+        host.pump()
+        view.requestThumbnails()
+    }
+}
+
+// A long document can be browsed independently of the reading position. Only the visible
+// neighborhood is rendered, even when navigating straight to its last page.
 #test
 {
     let fileName = createMultipagePdfFixture(1000)
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
-    host.setup(680, 520)
-    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName)
-    let view    = assume cast(*PdfDocument.Panel, session.view)
-    completeViewerBackgroundLoad(&host, &view.load)
-    view.resize(680, 500)
-    view.applyLayout()
-    view.thumbnailTask.wait()
-    host.pump()
-    Swag.require(view.pdfView.pageCount() == 1000 and
-                 view.thumbnails.count == 5 and
-                 view.thumbnailButtons.count == 5)
-    Swag.require(view.thumbnailStart == 0 and view.thumbnailScroll.scrollSize.y == 730)
-
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let window = workspace.primary
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*PdfDocument.Panel, window.currentView)
+    Swag.require(view.pdfView.pageCount() == 1000 and not view.gallery.isVisible())
+    Swag.require(view.previewTextures.isEmpty() and not view.thumbnailTask.isPending())
+    window.sendCommandEvent(ViewerCommands.Outline)
+    Swag.require(view.gallery.isVisible() and view.pagesHeading.isVisible())
+    settlePdfGallery(&host, view)
+    Swag.require(view.thumbnailStart == 0 and view.previewTextures.count < 32)
+    let zoom = view.pdfView.effectiveZoom()
+    host.mouseWheel(view.gallery.surfaceRect().center(), -5)
+    host.settleAnimations(window)
+    Swag.require(view.gallery.scrollPos.y > 0 and view.pdfView.pageIndex == 0 and view.pdfView.effectiveZoom() == zoom)
+    view.thumbnailScroll.setScrollPos(0, 2300)
+    let anchor = view.gallery.visibleRange().first
+    window.mainSplitter.setPaneSize(0, 420)
+    let reflow = view.gallery.visibleRange()
+    Swag.require(reflow.first <= anchor and anchor < reflow.end and view.pdfView.pageIndex == 0)
     view.pdfView.showPage(999)
-    Swag.require(view.pdfView.pageIndex == 999)
-    host.pump()
-    view.thumbnailTask.wait()
-    host.pump()
-    Swag.require(view.thumbnailStart == 995)
-    for button, slot in view.thumbnailButtons
-    {
-        let pageNumber = 996 + slot
-        let expected   = pageNumber == 1000 ? Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, pageNumber) : Format.toString("%", pageNumber)
-        Swag.require(button.text() == expected, Format.toString("slot % shows '%', expected '%'.", slot, button.text(), expected))
-    }
-
-    Swag.require(view.thumbnailScroll.scrollPosition().y > 0)
-    for imageView in view.thumbnails
-    {
-        if let image = imageView.picture() do
-            Swag.require(image.isValid() and image.width <= 112 and image.height <= 112)
-        else do
-            Swag.require(false)
-    }
-
-    view.thumbnailButtons[1].button.sigPressed.call(view.thumbnailButtons[1])
-    Swag.require(view.pdfView.pageIndex == 996)
-    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 997))
-    Swag.require(view.thumbnailScroll.scrollPosition().y > 0)
+    settlePdfGallery(&host, view)
+    let range = view.gallery.visibleRange()
+    Swag.require(range.end == 1000 and view.thumbnailStart > 960 and view.previewTextures.count < 40)
+    for texture in view.previewTextures do
+        Swag.require(texture.isValid() and texture.width <= 192 and texture.height <= 192)
+    let point = view.gallery.cellRect(998).center() - view.gallery.scrollPos
+    host.click(view.gallery.localToSurface(point))
+    Swag.require(view.pdfView.pageIndex == 998)
+    host.keyPress(.Home)
+    Swag.require(view.pdfView.pageIndex == 0 and view.gallery.scrollPos.y == 0)
+    settlePdfGallery(&host, view)
 }
 
 // Exporting rasterizes one selected PDF page at the reader's stated 300 DPI without rewriting it.
@@ -232,23 +237,8 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    view.thumbnailTask.wait()
-    host.pump()
-    Swag.require(view.children.count == 2 and
-                 view.children.contains(cast(*Wnd, view.pdfView)) and
-                 view.thumbnails.count == 5 and
-                 view.thumbnailButtons.count == 5)
-    if let firstThumbnail = view.thumbnails[0].picture() do
-        Swag.require(firstThumbnail.isValid())
-    else do
-        Swag.require(false)
-    if let secondThumbnail = view.thumbnails[1].picture() do
-        Swag.require(secondThumbnail.isValid())
-    else do
-        Swag.require(false)
-    Swag.require(view.thumbnailButtons[0].isEnabled() and
-                 view.thumbnailButtons[1].isEnabled() and
-                 not view.thumbnailButtons[2].isEnabled())
+    Swag.require(view.children.count == 1 and view.children.contains(cast(*Wnd, view.pdfView)))
+    Swag.require(not view.thumbnailScroll.isVisible() and view.previewTextures.isEmpty())
     assertViewerInfoButton(view.zoomLabel)
     Swag.require(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
     Swag.require(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")
@@ -297,11 +287,6 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     pdf.showPage(1)
     Swag.require(pdf.pageIndex == 1)
     Swag.require(view.previousButton.isEnabled() and not view.nextButton.isEnabled())
-    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 2))
-    view.thumbnailButtons[0].button.sigPressed.call(view.thumbnailButtons[0])
-    Swag.require(pdf.pageIndex == 0)
-    pdf.showPage(1)
-
     let oldTip  = String.from(view.pageLabel.toolTip)
     let oldZoom = pdf.effectiveZoom()
     expect host.app.setLanguage("fr")
@@ -309,8 +294,7 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     Swag.require(view.pageLabel.toolTip == PdfDocument.texts().ui_GoToPage and view.pageLabel.toolTip != oldTip)
     Swag.require(view.previousButton.toolTip == appStrings().ui_PreviousPage and view.nextButton.toolTip == appStrings().ui_NextPage)
     Swag.require(view.zoomLabel.toolTip == PdfDocument.texts().ui_ZoomMenu)
-    Swag.require(view.thumbnailHeading.text() == PdfDocument.texts().ui_Thumbnails)
-    Swag.require(view.thumbnailButtons[1].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 2))
+    Swag.require(view.pagesHeading.text == PdfDocument.texts().ui_Thumbnails)
     Swag.require(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
@@ -320,45 +304,60 @@ internal func createMultipagePdfFixture(pageCount: u32)->String
     Testing.assertContentFits(view)
 }
 
-// The thumbnail rail follows a page jump with a bounded five-page window, and a tile click navigates.
+// Pages and bookmarks share one pane. A wider pane fits more columns and a shorter window
+// fits smaller pages without moving the document or changing the active navigation mode.
 #test
 {
-    let fileName = createMultipagePdfFixture(9)
-    defer discard catch File.delete(fileName)
-
     var host: HeadlessHost
-    host.setup(680, 520)
-    var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    let view   = assume cast(*PdfDocument.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.load)
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let window = workspace.primary
+    window.openFile(scopeTestDataPath("document-outline.pdf"), remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*PdfDocument.Panel, window.currentView)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    Swag.require(view.outline!.isVisible() and view.navigationMode.isVisible() and not view.gallery.isVisible())
+    view.navigationMode.setSelectedIndex(0)
+    Swag.require(view.gallery.isVisible() and not view.outline.isVisible())
+    window.mainSplitter.setPaneSize(0, 230)
+    let narrow = view.gallery.columns
+    window.mainSplitter.setPaneSize(0, 430)
+    Swag.require(view.gallery.columns > narrow)
+    let tall = view.gallery.cell.y
+    window.resize(window.position.width, 340)
+    window.applyLayout()
+    Swag.require(view.gallery.cell.y < tall)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    Swag.require(not view.gallery.isVisible())
+    view.openPages()
+    Swag.require(view.gallery.isVisible() and view.pdfView.pageIndex == 0)
+    view.navigationMode.setSelectedIndex(1)
+    view.outline.list.selectLine(1)
+    Swag.require(view.pdfView.pageIndex == 1 and not view.gallery.isVisible())
+    settlePdfGallery(&host, view)
+}
 
-    let directBatch = expect PdfDocument.loadThumbnailBatch(fileName, 4, 9)
-    Swag.require(directBatch.first == 4 and directBatch.images.count == 5)
-    view.thumbnailTask.wait()
-    host.pump()
-    Swag.require(view.thumbnailStart == 0 and view.thumbnails.count == 5)
-    view.resize(680, 500)
-    view.applyLayout()
-    Swag.require(view.thumbnailScroll.scrollSize.y >= 730)
-    view.pdfView.showPage(6)
-    Swag.require(view.pdfView.pageIndex == 6)
-    host.pump()
-    view.thumbnailTask.wait()
-    host.pump()
-    Swag.require(view.thumbnailStart == 4)
-    Swag.require(not view.thumbnailTask.isDone())
-    Swag.require(view.thumbnailButtons[2].text() == Format.toString("% · %", PdfDocument.texts().ui_CurrentPage, 7),
-                 Format.toString("Current thumbnail text was '%', page index is %", view.thumbnailButtons[2].text(), view.pdfView.pageIndex))
-    for imageView in view.thumbnails
-    {
-        if let image = imageView.picture() do
-            Swag.require(image.isValid() and image.width <= 112 and image.height <= 112)
-        else do
-            Swag.require(false)
-    }
-
-    view.thumbnailButtons[4].button.sigPressed.call(view.thumbnailButtons[4])
-    Swag.require(view.pdfView.pageIndex == 8)
+// In a grid the outline shortcut and thumbnail navigation belong to the active document.
+#test
+{
+    var host: HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let first  = scopeTestDataPath("viewer.mixed-text-scan.pdf")
+    let second = scopeTestDataPath("document-outline.pdf")
+    workspace.openScene([first, second], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let book  = assume cast(*PdfDocument.Panel, scene.views[0].document!.currentView)
+    let other = assume cast(*PdfDocument.Panel, scene.views[1].document!.currentView)
+    host.click(book.pdfView.surfaceRect().center())
+    host.shortcut(.O, .Control | .Shift)
+    Swag.require(book.gallery.isVisible() and not other.outline!.isVisible())
+    settlePdfGallery(&host, book)
+    host.click(book.gallery.localToSurface(book.gallery.cellRect(1).center() - book.gallery.scrollPos))
+    Swag.require(book.pdfView.pageIndex == 1 and other.pdfView.pageIndex == 0)
+    host.shortcut(.O, .Control | .Shift)
+    Swag.require(not book.gallery.isVisible() and book.pdfView.pageIndex == 1)
 }
 
 #test

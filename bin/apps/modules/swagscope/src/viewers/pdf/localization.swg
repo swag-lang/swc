@@ -31,7 +31,8 @@ struct Texts
     ui_ZoomMenu:               string = "Zoom…"                                                                            // Tooltip of the zoom value menu.
     ui_GoToPage:               string = "Go to Page"                                                                       // Title and tooltip of direct page navigation.
     ui_Thumbnails:             string = "Pages"                                                                            // Heading of the page thumbnail rail.
-    ui_CurrentPage:            string = "Current"                                                                          // Marker on the thumbnail of the page in view.
+    ui_ShowPages:              string = "Show Page Thumbnails"
+    ui_Bookmarks:              string = "Bookmarks"
     ui_PageRange:              string = "Page number from 1 to %."                                                         // Direct page navigation prompt.
     ui_PageRangeLabels:        string = "Page number from 1 to %, or a page label such as %."                              // The same, for a document that labels its pages.
     ui_Back:                   string = "Back in Document"                                                                 // Lens action that returns to the place the last jump left.

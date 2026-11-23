@@ -68,9 +68,7 @@ struct ThumbnailBatch
     images: Array'Image
 }
 
-private const ThumbnailSide       = 112'u32
-private const ThumbnailCount      = 5'u64
-private const ThumbnailSlotHeight = 146.0'f32
+private const ThumbnailSide      = 192'u32
 private const PageExportDpi       = 300'u32
 private const MaxExportPages      = 50'u64
 
@@ -177,22 +175,27 @@ func savePageRange(fileName, folder, stem: string, first, last: u64, dpi: u32)->
     return Format.toString("%–% · % DPI", first + 1, last + 1, dpi)
 }
 
-private func loadThumbnailBatch(fileName: string, first, pageCount: u64)->ThumbnailBatch fail
+private func loadThumbnailBatch(fileName: string, first, end: u64)->ThumbnailBatch
 {
     var result: #returntype
     result.first = first
-    var reader = try Pdf.Reader.open(fileName)
-    let end    = Math.min(first + ThumbnailCount, pageCount, reader.pageCount())
-    for index in first until end
+    result.images.resize(end - first)
+    var reader = catch Pdf.Reader.open(fileName) orelse Pdf.Reader{}
+    for index in first until Math.min(end, reader.pageCount())
     {
-        var page = try reader.loadPage(index)
+        if Swag.isCancelled() do
+            break
+        let page = catch reader.loadPage(index) orelse Pdf.Page{}
 
-        // Leave two pixels of headroom because the rasterizer rounds point dimensions upward.
+        if page.width <= 0 or page.height <= 0 do
+            continue
+
+        // The rasterizer rounds point dimensions upward.
         let side  = cast(f32, ThumbnailSide - 2)
-        let scale = Math.min(side / Math.max(page.width, 1), side / Math.max(page.height, 1))
-        result.images.add(try page.render({scale: scale,
-                                           maxDimension: cast(s32, ThumbnailSide),
-                                           maxPixels: cast(u64, ThumbnailSide) * ThumbnailSide}))
+        let scale = side / Math.max(page.width, page.height, 1)
+        result.images[index - first] = catch page.render({scale: scale,
+                                                         maxDimension: cast(s32, ThumbnailSide),
+                                                         maxPixels: cast(u64, ThumbnailSide) * ThumbnailSide}) orelse Image{}
     }
 
     return result
@@ -296,29 +299,34 @@ struct Panel
     pageExportDpi:    u32 = PageExportDpi
     pageExportRange:  bool
     pageExportToast:  *Toast?
-    thumbnails:       Array'(*ImageView)
-    thumbnailButtons: Array'(*PushButton)
+    previewTextures:  Array'Texture
     thumbnailStart:   u64
+    pagesSelected:    bool
 
     late
     {
         commands:         *Wnd
         info:             *Wnd
         pdfView:          *PdfView
-        thumbnailRail:    *Wnd
+        navigationMode:   *ComboBox
         thumbnailScroll:  *ScrollWnd
-        thumbnailContent: *Wnd
+        gallery:          *PageGallery
         previousButton:   *IconButton
         nextButton:       *IconButton
         exportPageButton: *IconButton
         pageLabel:        *IconButton
         zoomLabel:        *IconButton
-        thumbnailHeading: *Label
+        pagesHeading:     *SectionLabel
     }
 }
 
 private impl IWnd for Panel
 {
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        .clearThumbnails()
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
@@ -328,8 +336,7 @@ private impl IWnd for Panel
             .pageLabel.toolTip        = texts().ui_GoToPage
             .zoomLabel.toolTip        = texts().ui_ZoomMenu
             .exportPageButton.toolTip = texts().ui_ExportPageShort
-            .thumbnailHeading.setText(texts().ui_Thumbnails)
-            .refreshThumbnailSelection()
+            .translateNavigation()
             if .facts.pageCount
             {
                 .details = detailsText(&.facts)
@@ -362,8 +369,6 @@ private impl IWnd for Panel
             let loadError = loadErrorOutcome.value()
             if loadError == null do
                 .installThumbnails(&batch)
-            else do
-                .services.failed(me, Viewer.failureText(loadError))
             return
         }
 
@@ -393,7 +398,6 @@ private impl IWnd for Panel
         .refreshNavigation()
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
-        .startThumbnails(0)
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -525,10 +529,8 @@ private impl Panel
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
         .exportPageButton.enable(.pdfView.pageCount() > 0 and not .pageExporting)
         .pageLabel.setText(.pageReadout())
-        .refreshThumbnailSelection()
-        if .pdfView.pageIndex < .thumbnailStart or .pdfView.pageIndex >= .thumbnailStart + ThumbnailCount do
-            .startThumbnails(.pdfView.pageIndex)
-        .scrollThumbnailSelectionIntoView()
+        if .gallery != null and .thumbnailScroll.isVisible() do
+            .gallery.revealCurrentPage()
     }
 
     // Returns the size the pages are shown at, in percent of the size they would print at, as the
@@ -621,7 +623,7 @@ private impl Panel
         for entry, index in .bookmarks do
             headings.add(DocumentHeading{entry.title, entry.level, index})
         .outline.publish(headings.toSlice())
-        .thumbnailRail.show(not .outline.toggle.isChecked or .bookmarks.isEmpty())
+        .setNavigationMode(.bookmarks.isEmpty())
     }
 
     // Marks in the outline the bookmark being read: the last one at or before the point standing
@@ -711,6 +713,7 @@ private impl Panel
         let strings = texts()
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pdf.previous")
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pdf.next")
+        entries.add(strings.ui_ShowPages, .Grid, func|view = me|() { view.openPages() }, disabled: not .pdfView.pageCount(), bindId: "scope.pdf.thumbnails")
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, bindId: "scope.pdf.goToPage")
         entries.add(strings.ui_ExportPage, .SaveAs, func|view = me|() { view.promptExportPage() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportPage")
         entries.add(strings.ui_ExportRange, .SaveAs, func|view = me|() { view.promptExportRange() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportRange")
@@ -969,7 +972,6 @@ private impl Panel
 
         result.createPageControls()
         result.createZoomControl()
-        result.createThumbnailRail()
         result.createPageView()
         result.hookOnChildEvent = func|view = result|(_, evt)->bool
         {
@@ -1074,132 +1076,6 @@ private impl Panel
             }
         }
     }
-
-    // Builds the visible five-slot rail. The low-resolution images arrive on its worker.
-    mtd createThumbnailRail()
-    {
-        with .thumbnailRail = Wnd.create'Wnd(me, {0, 0, 152, 0})
-        {
-            .dockStyle       = .Left
-            .backgroundStyle = .View
-            .preferredSize.x = 152
-        }
-
-        with .thumbnailHeading = Label.create(.thumbnailRail, texts().ui_Thumbnails, {0, 0, 148, 28})
-        {
-            .dockStyle = .Top
-            .setTextAlignment(.Center, .OpticalCenter)
-        }
-
-        with .thumbnailScroll = Wnd.create'ScrollWnd(.thumbnailRail, "", {})
-        {
-            .dockStyle = .Center
-            .updateFlags(.TransparentBars | .DisableHorizontal)
-            .setFrameFlags(remove: .Borders)
-        }
-
-        with .thumbnailContent = .thumbnailScroll.createView'Wnd()
-        {
-            .preferredSize.y = cast(s32, ThumbnailCount) * 146
-        }
-
-        .thumbnailScroll.setScrollSize(144, cast(f32, ThumbnailCount) * 146)
-        for slot in 0 until ThumbnailCount
-        {
-            with let tile = Wnd.create'Wnd(.thumbnailContent, {0, 0, 144, 146})
-            {
-                .dockStyle       = .Top
-                .backgroundStyle = .View
-                .margin          = {4, 4, 4, 2}
-            }
-
-            with let image = ImageView.create(tile, {0, 0, 112, 110})
-            {
-                .dockStyle       = .Top
-                .backgroundStyle = .View
-            }
-
-            with let button = PushButton.create(tile, "", {0, 0, 144, 36})
-            {
-                .dockStyle  = .Bottom
-                .sigPressed += func|view = me, slot|(_)
-                {
-                    let page = view.thumbnailStart + slot
-                    if page < view.pdfView.pageCount() do
-                        view.pdfView.showPage(page)
-                }
-            }
-
-            .thumbnails.add(image)
-            .thumbnailButtons.add(button)
-        }
-    }
-
-    // Starts a new five-page low-resolution window around the requested page. The worker owns
-    // a separate reader, so thumbnail decoding never shares the view's mutable reader.
-    mtd startThumbnails(center: u64)
-    {
-        if .thumbnailTask.isPending() do
-            return
-        var first = center > 2 ? center - 2 : 0
-        if .facts.pageCount > ThumbnailCount do
-            first = Math.min(first, .facts.pageCount - ThumbnailCount)
-        .thumbnailStart = first
-        for imageView in .thumbnails do
-            imageView.clear()
-        .refreshThumbnailSelection()
-        let path  = .fileName.toString()
-        let count = .facts.pageCount
-        .thumbnailTask.submit(func|path, first, count|()->ThumbnailBatch fail => try loadThumbnailBatch(path, first, count), me.taskNotifier(&.thumbnailTask))
-    }
-
-    mtd installThumbnails(batch: *ThumbnailBatch)
-    {
-        for imageView in .thumbnails do
-            imageView.clear()
-        for offset in 0 until .thumbnails.count
-        {
-            let index = batch.first + offset
-            if offset < batch.images.count do
-                .thumbnails[offset].setImage(#move batch.images[offset])
-            else do
-                .thumbnailButtons[offset].enable(false)
-            .thumbnailButtons[offset].setText(index < .pdfView.pageCount() ? Format.toString("%", index + 1) : "")
-            .thumbnailButtons[offset].enable(index < .pdfView.pageCount())
-        }
-
-        .refreshThumbnailSelection()
-        if .pdfView.pageIndex < .thumbnailStart or .pdfView.pageIndex >= .thumbnailStart + .thumbnails.count do
-            .startThumbnails(.pdfView.pageIndex)
-        .scrollThumbnailSelectionIntoView()
-    }
-
-    mtd refreshThumbnailSelection()
-    {
-        for button, offset in .thumbnailButtons
-        {
-            let index = .thumbnailStart + offset
-            button.setText(index == .pdfView.pageIndex ? Format.toString("% · %", texts().ui_CurrentPage, index + 1) : Format.toString("%", index + 1))
-        }
-    }
-
-    // Keeps the active page's tile visible even when the five-slot rail itself needs scrolling.
-    mtd scrollThumbnailSelectionIntoView()
-    {
-        if .thumbnailButtons.isEmpty() or
-           .pdfView.pageIndex < .thumbnailStart or
-           .pdfView.pageIndex >= .thumbnailStart + .thumbnailButtons.count do
-            return
-        let slot     = cast(f32, .pdfView.pageIndex - .thumbnailStart)
-        let top      = slot * ThumbnailSlotHeight
-        let bottom   = top + ThumbnailSlotHeight
-        let visible  = .thumbnailScroll.scrollPosition().y
-        let viewport = .thumbnailScroll.clientRect().height
-        if top < visible do
-            .thumbnailScroll.setScrollPos(0, top)
-        elif bottom > visible + viewport do
-            .thumbnailScroll.setScrollPos(0, bottom - viewport)
-    }
 }
 
 // Creates the integrated PDF view.
@@ -1243,10 +1119,7 @@ func createViewer(host: Viewer.Host)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline             = DocumentOutline.create(host)
-    view.outline.toggle.sigCheckedChanged += func|view|(button)
-    {
-        view.thumbnailRail.show(not button.isChecked or view.bookmarks.isEmpty())
-    }
+    view.createPageNavigation()
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
     view.outline.follow      = func|view|() { view.followReading() }
 

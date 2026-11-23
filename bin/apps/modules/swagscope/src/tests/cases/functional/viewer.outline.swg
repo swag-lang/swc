@@ -33,10 +33,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         Swag.require(window.documentHost.surfaceRect().x > page.x, file)
         if window.currentView is Viewers.PdfDocument.Panel as book
         {
-            Swag.require(not book.thumbnailRail.isLocallyVisible())
+            Swag.require(not book.gallery.isVisible())
             book.outline!.list.selectLine(1)
             window.sendCommandEvent(ViewerCommands.Outline)
-            Swag.require(book.thumbnailRail.isLocallyVisible() and book.pdfView.pageIndex == 1)
+            Swag.require(not book.gallery.isVisible() and book.pdfView.pageIndex == 1)
         }
         if window.currentView is Viewers.Pptx.Panel as deck
         {

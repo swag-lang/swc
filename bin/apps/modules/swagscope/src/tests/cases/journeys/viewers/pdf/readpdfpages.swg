@@ -26,7 +26,12 @@ using Core, Gui, Pixel, Viewers
     let panel = assume cast(*PdfDocument.Panel, window.currentView)
     Swag.require(panel.pdfView.pageCount() == 2 and panel.pdfView.pageIndex == 0)
 
-    panel.nextButton.sigPressed.call(panel.nextButton)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    journey.waitFor("PDF page previews", func|panel|()->bool =>
+                    panel.gallery.isVisible() and panel.previewTextures.count == 2 and panel.previewTextures[1].isValid())
+    panel.gallery.choose(1)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    Swag.require(not panel.gallery.isVisible())
     journey.waitFor("second PDF page", func|panel|()->bool => panel.pdfView.pageIndex == 1)
     panel.pdfView.zoomToFitWidth()
     Swag.require(panel.pdfView.zoomMode == .FitWidth)

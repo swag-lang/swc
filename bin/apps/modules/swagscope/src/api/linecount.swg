@@ -10,8 +10,8 @@ private const LineEstimateSampleSize  = 4 * 1024'u64
 // Numbers the lines of a text file a viewer shows one window at a time, so a line-number gutter
 // keeps counting the lines of the whole file whichever window is resident.
 //
-// Each answer counts line feeds from the closest line start already numbered, so walking through a
-// file reads every byte about once.
+// Each answer counts CR, LF, and CRLF from the closest line start already numbered, so walking
+// through a file reads every byte about once.
 struct LineCounter
 {
     numberedOffset: u64     // Byte offset at the start of `numberedLine`.

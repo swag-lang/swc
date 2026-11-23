@@ -38,11 +38,16 @@ namespace VaultCommands
 
 impl MainWindow
 {
-    // The commands of the chosen vault, in the order the lens and the context menu of a row list them.
-    const VaultCommandIds = [VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.ForceUnmount, VaultCommands.OpenDrive, VaultCommands.ReadOnly,
-                             VaultCommands.ProtectHidden, VaultCommands.AtStartup, VaultCommands.ChangePassword,
-                             VaultCommands.ChangeKeyFiles, VaultCommands.Resize, VaultCommands.CreateHidden,
-                             VaultCommands.Forget, VaultCommands.Stop]
+    const VaultEditIds = [VaultCommands.ChangePassword, VaultCommands.ChangeKeyFiles, VaultCommands.Resize]
+
+    // The lens and the row's context menu draw from the same command groups.
+    const VaultCommandGroups: [5] const [..] WndId = [
+        [VaultCommands.Mount, VaultCommands.OpenDrive, VaultCommands.Unmount, VaultCommands.ForceUnmount],
+        [VaultCommands.ReadOnly, VaultCommands.ProtectHidden, VaultCommands.AtStartup],
+        VaultEditIds,
+        [VaultCommands.CreateHidden, VaultCommands.Forget],
+        [VaultCommands.Stop],
+    ]
 
     // The actions of the chosen vault the lens offers at rest; only those that apply to it now show.
     const RestVaultIds = [VaultCommands.OpenDrive, VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.Stop]
@@ -65,7 +70,8 @@ impl MainWindow
             .addCommand(func()->string => appStrings().lens_File, VaultCommands.OpenFile, func()->string => appStrings().search_Open)
             .addCommands(func()->string => appStrings().lens_File, [VaultCommands.Vaults, VaultCommands.Options, VaultCommands.ShowWindow,
                                                                     VaultCommands.UnmountAll, VaultCommands.Quit, VaultCommands.Resident, VaultCommands.SessionStartup])
-            .addCommands(func()->string => appStrings().lens_Vault, VaultCommandIds)
+            for ids in VaultCommandGroups do
+                .addCommands(func()->string => appStrings().lens_Vault, ids)
             #static if SupportsWinFspInstall do
                 .addCommands(func()->string => appStrings().lens_File, [VaultCommands.InstallWinFsp])
             .addCommands(func()->string => appStrings().lens_Privacy, [VaultCommands.PrivacyMode, VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend,
@@ -120,7 +126,20 @@ impl MainWindow
     mtd showVaultMenu(surfacePos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItems(VaultCommandIds)
+        for ids in VaultCommandGroups
+        {
+            var first = true
+            for id in ids
+            {
+                if .sendComputeCommandStateEvent(id).hidden do
+                    continue
+                if first do
+                    menu.addSeparator()
+                menu.addItem(id)
+                first = false
+            }
+        }
+
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
@@ -131,7 +150,7 @@ impl MainWindow
             return
 
         let menu = MenuCtrl.createPopup(button, owner: me)
-        menu.addItems([VaultCommands.ChangePassword, VaultCommands.ChangeKeyFiles, VaultCommands.Resize])
+        menu.addItems(VaultEditIds)
         discard menu.doModal(button, autoDestroy: true)
     }
 

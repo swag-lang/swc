@@ -146,6 +146,42 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     Swag.require(captured)
 }
 
+// Right-clicking a locked vault shows the mounting, editing, and list actions in groups.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    defer host.shutdown()
+
+    host.theme.setLight()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    fillPictureList(window)
+    host.settleAnimations(window)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items.count == 11)
+        Swag.require(menu.items[1]!.separator and menu.items[4]!.separator and menu.items[8]!.separator)
+        let image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "list.context.papier")
+        captured[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    host.clickWnd(unwrap window.list.rowOf("/vault.bin"), .Right)
+    Swag.require(captured)
+}
+
 // The page that creates a vault, against `vault.create.paper`.
 #[Swag.TestTag("golden")]
 #test

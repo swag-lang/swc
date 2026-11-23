@@ -337,7 +337,7 @@ impl Panel
         switch evt.key
         {
         case .B:
-            .promptBookmarkCurrentLine()
+            .promptBookmarkCurrentPosition()
             return true
         case .PageUp:
             return .navigateBookmark(-1)
@@ -471,7 +471,7 @@ impl Panel
         return .navigateToBookmark(found)
     }
 
-    internal mtd promptBookmarkCurrentLine()
+    internal mtd promptBookmarkCurrentPosition()
     {
         if not .canBookmarkCurrentPosition() do
             return
@@ -1530,7 +1530,7 @@ impl Panel
                     bindId: "scope.text.history.forward")
         entries.add(strings.ui_BookmarkCurrentPosition,
                     .GoTo,
-                    func|view = me|() { view.promptBookmarkCurrentLine() },
+                    func|view = me|() { view.promptBookmarkCurrentPosition() },
                     disabled: not canBookmark,
                     defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B},
                     bindId: "scope.text.bookmark.add")

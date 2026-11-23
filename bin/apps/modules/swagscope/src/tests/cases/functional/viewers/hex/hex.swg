@@ -452,6 +452,20 @@ internal func writeSampleFile()->String
         }
     }
     Swag.require(ipv6Found and guidFound and rgbaFound)
+
+    let shortName = Gui.Testing.tempFilePath("scope-hex-inspector-short-addresses-", ".bin")
+    defer discard catch File.delete(shortName)
+    var shortBytes: Array'u8
+    shortBytes.resize(15)
+    for index in shortBytes.count do
+        shortBytes[index] = cast(u8, index)
+    expect File.writeAllBytes(shortName, shortBytes.toSlice())
+    var shortHost: Testing.HeadlessHost
+    shortHost.setup(900, 600)
+    let shortView = hexTestViewer(&shortHost, shortName, 900, 560)
+    for reading in shortView.inspectorView.readings do
+        Swag.require(reading.label != Hex.texts().ui_InspectorIpv6 and
+                     reading.label != Hex.texts().ui_InspectorGuid)
 }
 
 // Packed decimal uses explicit sign nibbles and rejects malformed digits.

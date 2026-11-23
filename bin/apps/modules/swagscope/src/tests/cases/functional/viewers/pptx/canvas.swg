@@ -82,8 +82,11 @@ using Core, Gui, Gui.Testing, Viewers
     child.inherit(&parent)
     Swag.require(child.positioned and child.bounds == Math.Rectangle{0, 0, 200, 100})
     Swag.require(child.fill.isEmpty() and parent.fill == "4F81BD")
-    let rotated = expect Pptx.SlideShape.parse("""<p:sp><p:spPr><a:xfrm flipH="true"/></p:spPr></p:sp>""", &theme)
-    Swag.require(rotated.unsupported)
+    let transformed = expect Pptx.SlidePage.parse("""<p:sld><p:spTree><p:sp><p:spPr><a:xfrm rot="5400000" flipH="true"><a:off x="952500" y="952500"/><a:ext cx="1905000" cy="952500"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr></p:sp></p:spTree></p:sld>""", &theme)
+    Swag.require(not transformed.simplified and transformed.shapes[0].rotation == 90 and transformed.shapes[0].flipHorizontal)
+    Swag.require(Utf8.contains(transformed.canvasHtml(960, 720), "rotate(90.00deg) scaleX(-1)"))
+    let oversizedRotation = expect Pptx.SlideShape.parse("""<p:sp><p:spPr><a:xfrm rot="21600001"/></p:spPr></p:sp>""", &theme)
+    Swag.require(oversizedRotation.unsupported)
 }
 
 // DrawingML tint and shade transforms preserve the authored RGB channels at OOXML precision.
@@ -98,6 +101,16 @@ using Core, Gui, Gui.Testing, Viewers
     var images: Package.ImageCatalog
     let shadedText = expect Pptx.SlideText.parse("""<p:sp><p:txBody><a:p><a:r><a:rPr><a:solidFill><a:schemeClr val="accent1"><a:shade val="50000"/></a:schemeClr></a:solidFill></a:rPr><a:t>Shade</a:t></a:r></a:p></p:txBody></p:sp>""", &images, &theme, 960)
     Swag.require(Utf8.contains(shadedText.html, "color:#28415F;"))
+}
+
+// DrawingML bullet glyphs remain visible in both the slide text and its reading projection.
+#test
+{
+    var theme = Pptx.SlideTheme.defaults()
+    var images: Package.ImageCatalog
+    let bullet = expect Pptx.SlideText.parse("""<p:sp><p:txBody><a:p><a:pPr><a:buChar char="•"/></a:pPr><a:r><a:t>First point</a:t></a:r></a:p></p:txBody></p:sp>""", &images, &theme, 960)
+    Swag.require(Utf8.contains(bullet.html, "• First point"))
+    Swag.require(Utf8.startsWith(bullet.plainText, "• First point"))
 }
 
 // Basic ellipses retain their authored position and use a circular canvas clip.
@@ -136,6 +149,64 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(reading, "North") and Utf8.contains(reading, "42"))
     Swag.require(Utf8.contains(reading, "West") and Utf8.contains(reading, "27"))
     Swag.require(Utf8.contains(page.canvasHtml(presentation.width, presentation.height), "background-color:#4472C4"))
+}
+
+// A chart that mixes supported bars with an unsupported family marks its slide simplified.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.combo-chart.pptx"))
+    Swag.require(presentation.slides[0].simplified)
+}
+
+// Cached vertical columns keep their categories and values in the bounded chart canvas.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.column-chart.pptx"))
+    let page = &presentation.slides[0]
+    let html = page.canvasHtml(presentation.width, presentation.height)
+    Swag.require(not page.simplified and page.title == "Regional sales")
+    Swag.require(Utf8.contains(html, "flex-direction:column") and Utf8.contains(html, "height:6em"))
+    let reading = page.readingHtml()
+    Swag.require(Utf8.contains(reading, "North") and Utf8.contains(reading, "42"))
+    Swag.require(Utf8.contains(reading, "West") and Utf8.contains(reading, "-50"))
+}
+
+// Static table graphic frames retain bounded rows, columns, and cell text.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.table.pptx"))
+    let page = &presentation.slides[0]
+    Swag.require(not page.simplified and page.shapes.count == 2)
+    Swag.require(page.shapes[1].positioned and not page.shapes[1].unsupported)
+    Swag.require(Utf8.contains(page.shapes[1].html, "<tr>") and Utf8.contains(page.shapes[1].html, "<td"))
+    Swag.require(Utf8.contains(page.shapes[1].plainText, "Quarter") and Utf8.contains(page.shapes[1].plainText, "142"))
+    Swag.require(Utf8.contains(page.shapes[1].plainText, "Quarter\tPlan\tActual\nQ1\t120\t116"))
+    Swag.require(Utf8.contains(page.shapes[1].html, "background-color:#DDEBF7"), "table header fill missing")
+    let reading = page.readingHtml()
+    Swag.require(Utf8.contains(reading, "Quarter") and Utf8.contains(reading, "Actual"))
+    Swag.require(Utf8.contains(page.canvasHtml(presentation.width, presentation.height), "border-collapse:collapse"))
+}
+
+// Oversized table rows are rejected before they can grow the slide HTML without a bound.
+#test
+{
+    var cells: String
+    for 33 do
+        cells += "<a:tc/>"
+    let source = Format.toString("<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"100000\" cy=\"100000\"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tr>%</a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>", cells)
+    var theme = Pptx.SlideTheme.defaults()
+    var error: Swag.Error
+    discard catch Pptx.SlidePage.parse(source, &theme) as error
+    Swag.require(error.value() is Errors.UnsupportedFormatError)
+}
+
+// Merged cells are retained as readable content but reported as simplified layout.
+#test
+{
+    let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="50000"/><a:gridCol w="50000"/></a:tblGrid><a:tr><a:tc><a:tcPr><a:gridSpan val="2"/></a:tcPr></a:tc><a:tc/></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
+    var theme = Pptx.SlideTheme.defaults()
+    let page = expect Pptx.SlidePage.parse(source, &theme)
+    Swag.require(page.simplified and page.shapes.count == 1)
 }
 
 // XML parts are bounded trees; unclosed tags, multiple roots, entities and excess depth fail.

@@ -21,8 +21,11 @@ struct SlideShape
     hasFill:          bool
     line:             String
     lineWidth:        f32
+    rotation:         f32
     round:            bool
     ellipse:          bool
+    flipHorizontal:   bool
+    flipVertical:     bool
     centered:         bool
     bodyProperties:   bool
     insetMask:        u8
@@ -78,12 +81,17 @@ impl SlideShape
                 {
                     inTransform = not token.empty
                     let rotation = token.attribute("rot") orelse "0"
-                    if rotation != "0" or
-                       token.attribute("flipH") == "1" or
-                       token.attribute("flipH") == "true" or
-                       token.attribute("flipV") == "1" or
-                       token.attribute("flipV") == "true" do
+                    let rotationUnits = catch StrConv.toS64(rotation) orelse Swag.S64.Max
+                    if rotationUnits < -21_600_000 or rotationUnits > 21_600_000
+                    {
                         result.unsupported = true
+                    }
+                    else
+                    {
+                        result.rotation = cast(f32, rotationUnits) / 60_000
+                    }
+                    result.flipHorizontal = token.attribute("flipH") == "1" or token.attribute("flipH") == "true"
+                    result.flipVertical   = token.attribute("flipV") == "1" or token.attribute("flipV") == "true"
                 }
                 elif inTransform and token.isElement("off")
                 {

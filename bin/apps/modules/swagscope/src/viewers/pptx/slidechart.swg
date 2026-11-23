@@ -39,8 +39,10 @@ private impl SlideChart
         var token: Package.Token
         var inBarChart = false
         var sawBarChart = false
+        var unsupportedChartType = false
         var hasBarDirection = false
         var unsupportedBarDirection = false
+        var verticalBars = false
         var inSeries = false
         var field = ChartField.None
         var inValue = false
@@ -59,10 +61,18 @@ private impl SlideChart
                     inBarChart = true
                     sawBarChart = true
                 }
+                elif token.isElement("lineChart") or token.isElement("pieChart") or token.isElement("areaChart") or
+                     token.isElement("scatterChart") or token.isElement("doughnutChart") or token.isElement("radarChart") or
+                     token.isElement("stockChart") or token.isElement("surfaceChart") or token.isElement("bubbleChart")
+                {
+                    unsupportedChartType = true
+                }
                 elif inBarChart and token.isElement("barDir")
                 {
                     hasBarDirection = true
-                    unsupportedBarDirection = unsupportedBarDirection or token.attribute("val") != "bar"
+                    let direction = token.attribute("val")
+                    unsupportedBarDirection = unsupportedBarDirection or (direction != "bar" and direction != "col")
+                    verticalBars = direction == "col"
                 }
                 elif token.isElement("ser") and inBarChart
                 {
@@ -136,7 +146,7 @@ private impl SlideChart
                             return {}
                         }
                         let number = catch StrConv.toF64(value) { return {}; }
-                        if not Math.isFinite(number) or number < 0 or number > 1e100
+                        if not Math.isFinite(number) or number < -1e100 or number > 1e100
                         {
                             return {}
                         }
@@ -172,7 +182,7 @@ private impl SlideChart
 
         if scan.damaged do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if not sawBarChart or not hasBarDirection or unsupportedBarDirection or categories.isEmpty() or series.isEmpty()
+        if not sawBarChart or unsupportedChartType or not hasBarDirection or unsupportedBarDirection or categories.isEmpty() or series.isEmpty()
         {
             return {}
         }
@@ -181,41 +191,69 @@ private impl SlideChart
             return {}
         }
 
-        return SlideChart.render(relationshipId, categories.toSlice(), series.toSlice())
+        return SlideChart.render(relationshipId, categories.toSlice(), series.toSlice(), verticalBars)
     }
 
-    func render(relationshipId: string, categories: const [..] String, series: const [..] ChartSeries)->SlideChart
+    func render(relationshipId: string, categories: const [..] String, series: const [..] ChartSeries, verticalBars: bool)->SlideChart
     {
         var result = SlideChart{relationshipId: relationshipId}
-        var largest = 0.0'f64
+        var minimum = 0.0'f64
+        var maximum = 0.0'f64
         for item in series
         {
             for value in item.values
             {
                 let number = catch StrConv.toF64(value.toString()) orelse 0.0'f64
-                largest = Math.max(largest, Math.abs(number))
+                minimum = Math.min(minimum, number)
+                maximum = Math.max(maximum, number)
             }
         }
-        if not largest do
-            largest = 1
+        var range = maximum - minimum
+        if not range do
+            range = 1
+        let zeroPercent = Math.clamp(-minimum / range * 100, 0, 100)
+        let zeroTopEm = Math.clamp(maximum / range * 6, 0, 6)
 
-        result.html = "<div>"
+        result.html = verticalBars ? "<div style=\"height:100%;display:flex;flex-direction:column\">" : "<div>"
         for item in series
         {
             result.html += "<p><b>"
             Package.appendHtmlEscaped(&result.html, item.title)
-            result.html += "</b></p><div role=\"list\">"
+            result.html += "</b></p>"
+            if verticalBars
+            {
+                result.html += "<div role=\"list\" style=\"display:flex;flex:1;min-height:0;align-items:stretch;gap:4px\">"
+            }
+            else
+            {
+                result.html += "<div role=\"list\">"
+            }
             for category, index in categories
             {
                 let label = item.values[index].toString()
                 let number = catch StrConv.toF64(label) orelse 0.0'f64
-                let percent = Math.clamp(Math.abs(number) / largest * 100, 0, 100)
-                result.html += "<div role=\"listitem\" style=\"display:flex;align-items:center;gap:8px\"><span>"
-                Package.appendHtmlEscaped(&result.html, category.toString())
-                result.html += "</span><span style=\"display:block;height:12px;background-color:#4472C4;width:"
-                result.html += Format.toString("%{f2}%%\"></span><span>", percent)
-                Package.appendHtmlEscaped(&result.html, label)
-                result.html += "</span></div>"
+                let percent = Math.clamp(Math.abs(number) / range * 100, 0, 100)
+                let barHeightEm = percent / 100 * 6
+                let barLeftPercent = number >= 0 ? zeroPercent : zeroPercent - percent
+                let barTopEm = number >= 0 ? zeroTopEm - barHeightEm : zeroTopEm
+                if verticalBars
+                {
+                    result.html += "<div role=\"listitem\" style=\"flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px\"><span>"
+                    Package.appendHtmlEscaped(&result.html, label)
+                    result.html += "</span><span style=\"position:relative;display:block;width:100%;height:6em\"><span style=\"position:absolute;left:0;top:"
+                    result.html += Format.toString("%{f2}em;width:100%%;height:1px;background-color:#808080\"></span><span style=\"position:absolute;left:20%%;top:%{f2}em;display:block;width:60%%;height:%{f2}em;background-color:#4472C4\"></span></span><span>", zeroTopEm, barTopEm, barHeightEm)
+                    Package.appendHtmlEscaped(&result.html, category.toString())
+                    result.html += "</span></div>"
+                }
+                else
+                {
+                    result.html += "<div role=\"listitem\" style=\"display:flex;align-items:center;gap:8px\"><span>"
+                    Package.appendHtmlEscaped(&result.html, category.toString())
+                    result.html += "</span><span style=\"position:relative;display:block;flex:1;height:12px;background-color:#E8E8E8\"><span style=\"position:absolute;left:"
+                    result.html += Format.toString("%{f2}%%;top:0;width:1px;height:12px;background-color:#808080\"></span><span style=\"position:absolute;left:%{f2}%%;top:0;display:block;height:12px;width:%{f2}%%;background-color:#4472C4\"></span></span><span>", zeroPercent, barLeftPercent, percent)
+                    Package.appendHtmlEscaped(&result.html, label)
+                    result.html += "</span></div>"
+                }
                 result.plainText += category.toString()
                 result.plainText += ": "
                 result.plainText += label

@@ -71,8 +71,18 @@ impl SlidePage
                         shape.html      = chart.html.toString()
                         shape.plainText = chart.plainText.toString()
                     }
-                    else do
-                        result.simplified = true
+                    else
+                    {
+                        let table = try SlideTable.parse(shapeSource, theme, pageWidth)
+                        if not table.html.isEmpty()
+                        {
+                            shape.html      = table.html.toString()
+                            shape.plainText = table.plainText.toString()
+                            result.simplified = result.simplified or table.requiresSimplified
+                        }
+                        else do
+                            result.simplified = true
+                    }
                 }
 
                 if not shape.hidden
@@ -284,6 +294,17 @@ impl SlidePage
             elif shape.round
             {
                 result += Format.toString("border-radius:%{f4}vw;", Math.min(bounds.width, bounds.height) / width * 16.67)
+            }
+            if shape.rotation or shape.flipHorizontal or shape.flipVertical
+            {
+                result += "transform:"
+                if shape.rotation do
+                    result += Format.toString("rotate(%{f2}deg) ", shape.rotation)
+                if shape.flipHorizontal do
+                    result += "scaleX(-1) "
+                if shape.flipVertical do
+                    result += "scaleY(-1) "
+                result += ";transform-origin:center;"
             }
             if shape.centered do
                 result += "display:flex;flex-direction:column;justify-content:center;"

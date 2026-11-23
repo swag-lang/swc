@@ -24,6 +24,20 @@ using Core, Gui, Pixel, Viewers
     picturedViewer(scopeTestDataPath("viewer.chart.pptx"), false, "viewer.pptx.chart")
 }
 
+// Cached column categories and values stay visible in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.column-chart.pptx"), false, "viewer.pptx.column-chart")
+}
+
+// Table cells retain their row and column rhythm in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.table.pptx"), false, "viewer.pptx.table")
+}
+
 // Aligned and styled presentation text in Papier.
 #[Swag.TestTag("golden")]
 #test

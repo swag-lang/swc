@@ -213,6 +213,54 @@ def generate(output: Path) -> None:
         ("ppt/slides/_rels/slide1.xml.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdChart1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>'), ZIP_DEFLATED),
         ("ppt/charts/chart1.xml", chart_xml, ZIP_DEFLATED),
     ])
+    column_chart_xml = chart_xml.replace(b'<c:barDir val="bar"/>', b'<c:barDir val="col"/>').replace(b'<c:v>50</c:v>', b'<c:v>-50</c:v>')
+    package(ROOT / "viewer.column-chart.pptx", [
+        ("[Content_Types].xml", xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>'), ZIP_DEFLATED),
+        ("_rels/.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/presentation.xml", xml('<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", chart_slide, ZIP_DEFLATED),
+        ("ppt/slides/_rels/slide1.xml.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdChart1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/charts/chart1.xml", column_chart_xml, ZIP_DEFLATED),
+    ])
+    combo_chart_xml = chart_xml.replace(
+        b"</c:barChart>",
+        b"</c:barChart><c:lineChart>" + chart_series("Trend", [10, 20, 15]).encode("utf-8") + b"</c:lineChart>",
+    )
+    package(ROOT / "viewer.combo-chart.pptx", [
+        ("[Content_Types].xml", xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>'), ZIP_DEFLATED),
+        ("_rels/.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/presentation.xml", xml('<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", chart_slide, ZIP_DEFLATED),
+        ("ppt/slides/_rels/slide1.xml.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdChart1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/charts/chart1.xml", combo_chart_xml, ZIP_DEFLATED),
+    ])
+
+    table_rows = [
+        ["Quarter", "Plan", "Actual"],
+        ["Q1", "120", "116"],
+        ["Q2", "135", "142"],
+    ]
+    table_cells = ""
+    for row_index, row in enumerate(table_rows):
+        table_cells += '<a:tr h="457200">'
+        for value in row:
+            fill = '<a:solidFill><a:srgbClr val="DDEBF7"/></a:solidFill>' if row_index == 0 else ""
+            table_cells += f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{value}</a:t></a:r></a:p></a:txBody><a:tcPr>{fill}</a:tcPr></a:tc>"
+        table_cells += "</a:tr>"
+    table_slide = xml(
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr/><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="457200" y="274320"/><a:ext cx="10972800" cy="914400"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Quarterly forecast</a:t></a:r></a:p></p:txBody></p:sp><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="3" name="Forecast table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="914400" y="1371600"/><a:ext cx="10058400" cy="3657600"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"><a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId></a:tblPr><a:tblGrid><a:gridCol w="5486400"/><a:gridCol w="2286000"/><a:gridCol w="2286000"/></a:tblGrid>'
+        + table_cells
+        + "</a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>"
+    )
+    package(ROOT / "viewer.table.pptx", [
+        ("[Content_Types].xml", xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>'), ZIP_DEFLATED),
+        ("_rels/.rels", xml('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/presentation.xml", xml('<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", table_slide, ZIP_DEFLATED),
+    ])
 
 
 def main() -> None:
@@ -226,7 +274,7 @@ def main() -> None:
         "viewer.rtf", "viewer.unicode.rtf", "viewer.table.rtf", "viewer.destinations.rtf", "viewer.damaged.rtf",
         "viewer.xlsx", "viewer.inline.xlsx", "viewer.damaged.xlsx",
         "viewer.empty-cells.xlsx", "viewer.formulas.xlsx", "viewer.sparse-rows.xlsx", "viewer.wide-column.xlsx",
-        "viewer.pptx", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx", "viewer.chart.pptx",
+        "viewer.pptx", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx", "viewer.chart.pptx", "viewer.column-chart.pptx", "viewer.combo-chart.pptx", "viewer.table.pptx",
     ]
     for name in names:
         path = args.output_dir / name

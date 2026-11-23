@@ -103,6 +103,19 @@ bar chart and three shared categories. It exercises a relationship-resolved char
 an embedded workbook or external resources. Regenerate it with
 `generator/generate-office-lite-fixtures.py`.
 
+`viewer.column-chart.pptx` is the matching repository-authored presentation with a cached vertical
+column chart and a negative cached value to cover signed scaling.
+Regenerate it with `generator/generate-office-lite-fixtures.py`.
+
+`viewer.combo-chart.pptx` combines a cached bar chart with a cached line series to verify that an
+unsupported mixed chart is reported as simplified rather than partially drawn.
+Regenerate it with `generator/generate-office-lite-fixtures.py`.
+
+`viewer.table.pptx` is a repository-authored one-slide presentation with a title and a three-column,
+three-row static table graphic frame. Its unequal grid widths, filled header row, and cell text cover
+table package decoding without external assets.
+Regenerate it with `generator/generate-office-lite-fixtures.py`.
+
 `viewer.project.zip` is a reproducible, repository-authored field-survey project bundle. It has
 seven Deflate-compressed files across the root, `config/`, `data/`, `docs/` and `src/`, with
 fictional site metadata, CSV observations, a source file and a bundled MIT licence.

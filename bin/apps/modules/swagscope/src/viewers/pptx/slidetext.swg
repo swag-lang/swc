@@ -82,6 +82,7 @@ impl SlideText
         var token:              Package.Token
         var inText          = false
         var inParagraph     = false
+        var inParagraphProperties = false
         var inRun           = false
         var runStyle:           RunStyle
         var inRunProperties = false
@@ -107,6 +108,7 @@ impl SlideText
                 }
                 elif inParagraph and token.isElement("pPr")
                 {
+                    inParagraphProperties = not token.empty
                     let value = token.attribute("algn") orelse ""
                     if value == "ctr" do
                         alignment = "center"
@@ -114,6 +116,17 @@ impl SlideText
                         alignment = "right"
                     elif value == "just" or value == "dist" do
                         alignment = "justify"
+                }
+                elif inParagraphProperties and token.isElement("buChar")
+                {
+                    let value = token.attribute("char") orelse "•"
+                    if value.count > 0 and value.count <= 8
+                    {
+                        result.plainText += value
+                        result.plainText += " "
+                        Package.appendHtmlEscaped(&paragraph, value)
+                        paragraph += " "
+                    }
                 }
                 elif inParagraph and token.isElement("r")
                 {
@@ -226,6 +239,10 @@ impl SlideText
                     result.html += "</p>"
                     inParagraph = false
                     inRun       = false
+                }
+                elif token.isElement("pPr")
+                {
+                    inParagraphProperties = false
                 }
                 elif token.isElement("r")
                 {

@@ -3,6 +3,22 @@
 
 using Core
 
+// Only Word bookmark names made of ASCII letters, digits and underscores become HTML fragments.
+private func bookmarkFragment(name: string)->String
+{
+    if not name.count or name.count > 40 do
+        return {}
+    for byte, index in name
+    {
+        if byte >= 128 or (not Latin1.isLetterOrDigit(byte) and byte != '_'u8) do
+            return {}
+        if not index and not Latin1.isLetter(byte) and byte != '_'u8 do
+            return {}
+    }
+
+    return Format.toString("docx-bookmark-%", name)
+}
+
 // A paragraph and its formatted runs are assembled before their HTML tags are chosen.
 private struct Reader
 {
@@ -34,6 +50,7 @@ private struct Reader
     inSectionProperties:   bool
     inCellProperties:      bool
     cellTagOpen:           bool
+    cellWidthSet:          bool
     imageId:               String
     imageDescription:      String
     imageWidth:            u32
@@ -51,6 +68,9 @@ private struct Reader
     paragraphHasNumPr:     bool
     footnoteReferences:    Array'String
     footnotesLimited:      bool
+    bookmarkNames:         Array'String
+    bookmarkReferences:    Array'String
+    hyperlinkOpen:         bool
 }
 
 private impl Reader
@@ -177,6 +197,70 @@ private impl Reader
         for reference in .footnoteReferences where reference == id do
             return
         .footnoteReferences.add(id)
+    }
+
+    mtd readBookmark(token: const *Package.Token)
+    {
+        let name     = token.attribute("name") orelse ""
+        let fragment = bookmarkFragment(name)
+        if fragment.isEmpty()
+        {
+            .document.linksSimplified = true
+            return
+        }
+
+        for bookmark in .bookmarkNames where Utf8.compare(bookmark.toString(), name) == 0
+        {
+            .document.linksSimplified = true
+            return
+        }
+
+        if .bookmarkNames.count >= 4096
+        {
+            .document.linksSimplified = true
+            return
+        }
+
+        .bookmarkNames.add(name)
+        .appendInline(Format.toString("<a id=\"%\"></a>", fragment))
+    }
+
+    mtd startHyperlink(token: const *Package.Token)
+    {
+        if token.empty do
+            return
+        if token.attribute("r:id")
+        {
+            .document.linksSimplified = true
+            return
+        }
+
+        let name     = token.attribute("anchor") orelse ""
+        let fragment = bookmarkFragment(name)
+        if fragment.isEmpty() or .hyperlinkOpen
+        {
+            .document.linksSimplified = true
+            return
+        }
+
+        .hyperlinkOpen = true
+        var known = false
+        for reference in .bookmarkReferences where Utf8.compare(reference.toString(), name) == 0 do
+            known = true
+        if not known and .bookmarkReferences.count < 4096 do
+            .bookmarkReferences.add(name)
+        elif not known do
+            .document.linksSimplified = true
+
+        .appendInline(Format.toString("<a href=\"#%\">", fragment))
+    }
+
+    mtd finishHyperlink()
+    {
+        if not .hyperlinkOpen do
+            return
+        .appendInline("</a>")
+        .hyperlinkOpen = false
     }
 
     internal mtd footnotesHtml()->String
@@ -605,6 +689,7 @@ private impl Reader
             .sectionHtml      += "<td"
             .cellTagOpen      = true
             .inCellProperties = false
+            .cellWidthSet     = false
             if token.empty
             {
                 .sectionHtml += ">"
@@ -625,6 +710,34 @@ private impl Reader
             elif span != 1
             {
                 .document.stylesSimplified = true
+            }
+        }
+        elif .inCellProperties and token.isElement("tcW")
+        {
+            let width = catch StrConv.toS32(token.attribute("w") orelse "") orelse 0
+            let kind  = token.attribute("type") orelse "dxa"
+            if .cellWidthSet
+            {
+                .document.stylesSimplified = true
+            }
+            elif kind == "dxa" and width > 0 and width <= 43200
+            {
+                let numbers: Globalization.NumberFormatInfo
+                .sectionHtml  += Format.toString(" style=\"width:%px\"", numbers.format(cast(f64, width) / 15, 2))
+                .cellWidthSet = true
+            }
+            elif kind == "pct" and width > 0 and width <= 10000
+            {
+                let numbers: Globalization.NumberFormatInfo
+                var percent = numbers.format(cast(f64, width) / 50, 2)
+                percent       += "%"
+                .sectionHtml  += Format.toString(" style=\"width:%\"", percent)
+                .cellWidthSet = true
+            }
+            elif kind != "auto"
+            {
+                .document.stylesSimplified = true
+                .cellWidthSet = true
             }
         }
         elif token.isElement("p")
@@ -676,6 +789,14 @@ private impl Reader
         elif .inParagraphProperties
         {
             .setParagraphProperty(token)
+        }
+        elif .inParagraph and token.isElement("bookmarkStart")
+        {
+            .readBookmark(token)
+        }
+        elif .inParagraph and token.isElement("hyperlink")
+        {
+            .startHyperlink(token)
         }
         elif .inParagraph and token.isElement("r")
         {
@@ -742,7 +863,11 @@ private impl Reader
             return
         }
 
-        if token.isElement("t")
+        if token.isElement("hyperlink")
+        {
+            .finishHyperlink()
+        }
+        elif token.isElement("t")
         {
             .inText = false
         }

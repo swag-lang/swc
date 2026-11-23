@@ -20,6 +20,7 @@ struct Texts
     ui_FootnotesTitle:          string = "Footnotes"
     ui_FootnoteOmitted:         string = "[Footnote not shown]"
     ui_FootnotesSimplified:     string = " · some footnotes simplified"
+    ui_LinksSimplified:         string = " · some links simplified"
     ui_ImageOmitted:            string = "[Image not shown]"
     err_Invalid:                string = "This Word document has a damaged structure."
     err_TooLarge:               string = "This Word document is too large to open safely."

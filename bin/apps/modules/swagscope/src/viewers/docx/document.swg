@@ -78,6 +78,7 @@ struct Document
     pageElementsSimplified:  bool
     sectionLayoutSimplified: bool
     footnotesSimplified:     bool
+    linksSimplified:         bool
     properties:              Package.DocumentProperties     // What the package says of the document.
 }
 
@@ -98,6 +99,8 @@ impl Document
             result += texts().ui_SectionLayoutSimplified
         if .footnotesSimplified do
             result += texts().ui_FootnotesSimplified
+        if .linksSimplified do
+            result += texts().ui_LinksSimplified
         return result
     }
 
@@ -178,6 +181,15 @@ impl Document
 
             if reader.document.html.count + reader.sectionHtml.count + reader.paragraph.count + reader.run.count > 32 * 1024 * 1024 do
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
+        for reference in reader.bookmarkReferences
+        {
+            var found = false
+            for name in reader.bookmarkNames where Utf8.compare(name.toString(), reference.toString()) == 0 do
+                found = true
+            if not found do
+                reader.document.linksSimplified = true
         }
 
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do

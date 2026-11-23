@@ -19,6 +19,7 @@ using Core, Gui, Viewers
     Swag.require(Docx.texts().ui_SectionLayoutSimplified == " · certaines mises en page de section sont simplifiées")
     Swag.require(Docx.texts().ui_FootnotesTitle == "Notes de bas de page")
     Swag.require(Docx.texts().ui_FootnoteOmitted == "[Note de bas de page non affichée]")
+    Swag.require(Docx.texts().ui_LinksSimplified == " · certains liens sont simplifiés")
     Swag.require(Rtf.texts().ui_Name == "Document de texte enrichi")
     Swag.require(Rtf.texts().ui_ImageOmitted == "[Image non affichée]")
     Swag.require(Pptx.texts().ui_Name == "Présentation")

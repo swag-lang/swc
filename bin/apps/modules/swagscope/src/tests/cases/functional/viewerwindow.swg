@@ -421,7 +421,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     defer discard catch File.delete(wideFile)
 
     Swag.require(PlainText.Panel.supports(wideFile))
-    let probed = PlainText.Panel.probe(wideFile)
+    let probed = Viewer.probeTextFile(wideFile)
     Swag.require(probed.encoding == .Utf16Le and probed.contentStart == 2 and probed.accepted)
 
     var host: Testing.HeadlessHost
@@ -459,7 +459,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let file = writeTempFile("cp1252.txt", latin)
     defer discard catch File.delete(file)
 
-    Swag.require(PlainText.Panel.probe(file).encoding == .Windows1252)
+    Swag.require(Viewer.probeTextFile(file).encoding == .Windows1252)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)

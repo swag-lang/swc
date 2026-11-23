@@ -44,7 +44,7 @@ private func pluginProbe(content: Viewer.ProbeContent)->bool
         return false
     if not content.head.count do
         return false
-    return Panel.probeHead(content.head).accepted
+    return Viewer.probeTextHead(content.head).accepted
 }
 
 // Describes the text viewer to the host.
@@ -104,14 +104,6 @@ private func textFileIdentity(fileName: string)->String
                           Hash.hash64(info.lastWriteTime))
 }
 
-// What the head of a file says about how it spells its characters.
-struct Probe
-{
-    encoding:     Text.Encoding     // How the bytes read as characters.
-    contentStart: u64      // First byte of text, past a byte-order mark.
-    accepted:     bool     // Whether what it decodes to is text a reader should be shown.
-}
-
 // Text view available for readable content independently of the format-specific viewers.
 struct Panel
 {
@@ -127,6 +119,7 @@ struct Panel
 
     read:               Read
     residentText:       String
+    pendingMatchBytes:  u64
     pendingMatch:       String
     pendingCaret:       bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
     pendingCaretColumn: u64
@@ -177,31 +170,6 @@ struct Panel
 // Reports whether `evt` is the wrap shortcut, Ctrl+W with no other modifier. The editor's hook and
 // the panel both answer it, so the shortcut behaves the same wherever the focus is.
 private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and evt.key == .W and evt.modifiers == .Control
-
-// Counts the text statistics of `fileName` from `start` to the end, as `encoding` decodes it.
-//
-// A count asked to stop returns what it has so far; the viewer never shows those totals.
-private func countStatistics(fileName: string, start: u64, encoding: Text.Encoding)->TextStatistics fail
-{
-    var stream = try File.openReadLive(fileName)
-    discard catch stream.seek(.Begin, start)
-
-    var counter: TextStatisticsCounter
-    counter.totals.bytes = start
-    while not Swag.isCancelled()
-    {
-        let previousPosition = try stream.position()
-        let chunk = try stream.readTextChunk(StreamChunkSize, encoding)
-        if chunk.isEmpty()
-        {
-            return counter.finish(.Exact)
-        }
-        let position = try stream.position()
-        counter.append(chunk, position - previousPosition)
-    }
-
-    return counter.finish()
-}
 
 impl Panel
 {
@@ -885,7 +853,7 @@ impl Panel
         let view     = me
         let start    = .statisticsStart
         let encoding = .statisticsEncoding
-        .statisticsTask.submit(func|view, start, encoding|()->TextStatistics fail => try countStatistics(view.fileName, start, encoding),
+        .statisticsTask.submit(func|view, start, encoding|()->TextStatistics fail => try TextStatisticsCounter.countFile(view.fileName, start, encoding),
                                .taskNotifier(&.statisticsTask),
                                .Background)
     }
@@ -925,39 +893,11 @@ impl Panel
 
     mtd encodingName()->string => Viewer.encodingName(.encoding)
 
-    // Reads the head of a file once and reports how it spells its characters.
-    //
-    // A file that cannot be read reports the default probe, which accepts nothing.
-    func probe(fileName: string)->Probe
-    {
-        var stream = catch File.openReadLive(fileName) { return {} }
-
-        var bytes: Array'u8
-        bytes.resize(Viewer.ProbeHeadSize)
-        let count = catch stream.read(bytes.toSlice()) { return {} }
-        bytes.resize(count)
-        return probeHead(bytes.toSlice())
-    }
-
-    // Reports how the beginning of a file spells its characters, and whether it is text at all.
-    //
-    // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
-    // executable also decodes into characters. The encoding answers the first, and what those
-    // characters are answers the second.
-    func probeHead(head: const [..] u8)->Probe
-    {
-        var result: #returntype
-        result.encoding     = Text.detectEncoding(head)
-        result.contentStart = Text.hasBom(head, result.encoding) ? Text.bomLength(result.encoding) : 0
-        result.accepted     = Text.looksLikeText(head[result.contentStart to], result.encoding)
-        return result
-    }
-
     // Reports whether the beginning of a file reads as text.
     //
     // The basic renderer is a fallback for textual content, not an alternate spelling of every
     // binary format.
-    func supports(fileName: string)->bool => probe(fileName).accepted
+    func supports(fileName: string)->bool => Viewer.probeTextFile(fileName).accepted
 
     mtd hasMore()->bool => not .readFailed and .bytesRead < .fileSize
 
@@ -1100,12 +1040,8 @@ impl Panel
             .editor.setScrollPosition(oldPosition)
             if not .pendingMatch.isEmpty() or .pendingCaret
             {
-                if .encoding == .Utf8 do
-                    Viewer.highlightRichEditMatch(.editor, .read.text, .pendingSeekOffset - .residentStart, .pendingMatch.length)
-                elif not .pendingMatch.isEmpty() do
-                    discard .editor.findText(.pendingMatch)
-                else do
-                    Viewer.highlightRichEditMatch(.editor, .read.text, 0, 0)
+                let at = Math.max(.pendingSeekOffset, .residentStart) - .residentStart
+                Viewer.highlightSourceMatch(.editor, .residentText, at, .pendingMatchBytes, .encoding)
                 if .pendingHasCaretColumn
                 {
                     .editor.setCursorPos(.editor.cursorFromLogicalPosition(0, .pendingCaretColumn))
@@ -1135,10 +1071,8 @@ impl Panel
             let requested = Math.min(.pendingSeekOffset, .fileSize)
             var start     = requested > RevealContextSize ? requested - RevealContextSize : 0
 
-            // A file offset cannot be found again in text decoded from another encoding than
-            // UTF-8, so a place with no words to find there starts the window instead. A typed
-            // column also starts at its line so the caret can be placed by decoded characters.
-            if .pendingHasCaretColumn or (.pendingCaret and .pendingMatch.isEmpty() and .encoding != .Utf8) do
+            // A typed column is relative to the target line, so start the window at that line.
+            if .pendingHasCaretColumn do
                 start = requested
             .read.startRead(.fileName, .encoding, start, 64 * 1024, true, me)
         }
@@ -1158,21 +1092,19 @@ impl Panel
     // With `caret`, the caret is placed at `offset` and brought into view even without text to
     // highlight; without it, an empty `text` only loads the part of the file around `offset` and
     // leaves the view where it is.
-    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max, estimatedLine = 0'u64)->bool
+    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max, estimatedLine = 0'u64, matchLength = Swag.U64.Max)->bool
     {
-        if (text.count or (caret and .encoding == .Utf8)) and
+        let length = matchLength == Swag.U64.Max ? Viewer.sourceByteCount(text, .encoding) : matchLength
+        if (text.count or caret) and
            caretColumn == Swag.U64.Max and
            .displayedEncoding == .encoding and
            not .pendingSeek and
            not (.read.started and .read.replace) and
            offset >= .residentStart and
            offset <= .bytesRead and
-           text.count <= .bytesRead - offset
+           length <= .bytesRead - offset
         {
-            if .encoding == .Utf8 do
-                Viewer.highlightRichEditMatch(.editor, .residentText, offset - .residentStart, text.count)
-            else do
-                discard .editor.findText(text)
+            Viewer.highlightSourceMatch(.editor, .residentText, offset - .residentStart, length, .encoding)
             .reportStatistics()
             return true
         }
@@ -1181,6 +1113,7 @@ impl Panel
             .read.cancel()
         .pendingSeek       = true
         .pendingSeekOffset = Math.min(offset, .fileSize)
+        .pendingMatchBytes = length
         .pendingMatch      = text
         .pendingCaret      = caret
         .pendingHasCaretColumn = caretColumn != Swag.U64.Max
@@ -1418,7 +1351,7 @@ impl Panel
             .services        = host.services()
         }
 
-        let probed = probe(host.fileName())
+        let probed = Viewer.probeTextFile(host.fileName())
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
         result.lineNumbers  = g_LineNumbers
@@ -1817,7 +1750,8 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true)
+        .fileEncoding = func|view|()->Text.Encoding => view.encoding
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
         .matchBounds = func|view|(_, bounds)->bool { return view.searchBounds(bounds) }
         .clear       = func|view|() => view.clearSearch()
     }

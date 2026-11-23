@@ -99,7 +99,6 @@ impl ThumbnailRenderer
 
     mtd readText(path: string)->String fail
     {
-        var stream = try File.openReadLive(path)
-        return try stream.readUtf8Chunk(ThumbnailSourceSize)
+        return try Viewer.readTextPrefix(path, ThumbnailSourceSize)
     }
 }

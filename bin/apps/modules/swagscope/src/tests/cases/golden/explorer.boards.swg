@@ -451,7 +451,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     host.settleAnimations(window)
 
     var rendered: u32
-    host.app.sigFrame += func|host = &host, rendered = &rendered|(_)
+    host.app.sigFrame += func|host = &host, rendered = &rendered, explorer|(_)
     {
         let sheet = host.capturedOptionSheet()
         if not sheet or rendered[] == 3 do
@@ -486,14 +486,12 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
                 Pixel.Testing.assertImageGolden(&modes, "explorer.view.options.mode.paper")
                 sheet.back()
                 host.finishAnimations()
-                Swag.require(sheet.activateRow(appStrings().explore_ThumbnailDisplay))
+                Swag.require(sheet.activateRow(appStrings().explore_ShowTileCaption))
                 host.finishAnimations()
             }
             else
             {
-                Swag.require(sheet.page.rows.count == 2)
-                Swag.require(sheet.page.rows[0].kind == .Toggle and sheet.page.rows[0].checked)
-                Swag.require(sheet.page.rows[1].kind == .Toggle and sheet.page.rows[1].checked)
+                Swag.require(not explorer.showTileCaption)
                 var options = host.render(&host.surfaceWnd)
                 Pixel.Testing.assertImageGolden(&options, "explorer.view.options.display.paper")
                 sheet.close()

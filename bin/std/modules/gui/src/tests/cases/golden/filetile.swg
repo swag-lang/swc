@@ -24,6 +24,7 @@ impl IWnd for FileTileProbe
             {
             case 0:
                 content.name = "Cover"
+                content.captionIcon = .theme().fileGlyph("cover.png", false, 14)
 
             case 1:
                 content.name    = "Whole image"
@@ -40,6 +41,7 @@ impl IWnd for FileTileProbe
             case 3:
                 content.texture  = .portrait
                 content.name     = "A long <literal> name & its complete ending.png"
+                content.captionIcon = .theme().fileGlyph("photo.png", false, 14)
                 content.facts    = "Long metadata stays clear of the size"
                 options.hovered  = true
                 options.selected = true

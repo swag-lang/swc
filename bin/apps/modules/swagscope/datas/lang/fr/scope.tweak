@@ -246,9 +246,7 @@ explore_Sort Trier les fichiers
 explore_ListingOptions Options du dossier
 explore_View Choisir la vue
 explore_Organization Organiser les vignettes
-explore_ShowViewerIcon Afficher l’icône du lecteur au survol
 explore_ShowTileCaption Afficher les légendes des vignettes
-explore_ThumbnailDisplay Affichage des vignettes
 explore_FilterAll Tous les éléments
 explore_FilterVideos Vidéos
 explore_FilterImages Images
@@ -278,7 +276,7 @@ board_Automatic Automatique
 board_Grid Grille
 board_Covers Pochettes
 board_Posters Affiches
-explore_ThumbnailFraming Cadrage des vignettes
+explore_ThumbnailFraming Cadrage
 crop_Attention Recadrer selon le contenu
 crop_Entropy Recadrer par entropie
 crop_Center Centrer le recadrage

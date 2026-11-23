@@ -525,15 +525,16 @@ impl ViewerWindow
         if offset > bytes.count do
             return
         let text = cast(string, bytes.toSlice()[offset until Math.min(offset + length, bytes.count)])
+        let sourceOffset = .lensContentStart + Viewer.sourceByteCount(cast(string, bytes.toSlice()[until offset]), .lensEncoding)
         if .activeChoiceIndex < .choices.count and
            .choices[.activeChoiceIndex].key == Viewers.PlainText.ViewerKey and
            instance.view
         {
             let view = assume cast(*Viewers.PlainText.Panel, instance.view)
-            discard view.revealLensDestination(offset, text, caret: true)
+            discard view.revealLensDestination(sourceOffset, text, caret: true)
             return
         }
-        discard instance.revealMatch(Viewer.SearchMatch{0, 0, offset, length}, text)
+        discard instance.revealMatch(Viewer.SearchMatch{0, 0, sourceOffset, Viewer.sourceByteCount(text, .lensEncoding)}, text)
     }
 
     // Returns the bytes of the open file the lens searches, read once per opening of the file and
@@ -541,16 +542,30 @@ impl ViewerWindow
     // is reached by its number without counting the lines before it at every keystroke.
     mtd lensFileBytes()->const *Array'u8
     {
-        if .lensBytesFile != .currentFile
+        var encoding = Text.Encoding.Utf8
+        switch .currentView
+        {
+        case Viewers.PlainText.Panel as view: encoding = view.encoding
+        case Viewers.Code.Panel as view:      encoding = view.encoding
+        }
+        if .lensBytesFile != .currentFile or .lensEncoding != encoding
         {
             .forgetLensFile()
             .lensBytesFile = .currentFile
+            .lensEncoding = encoding
             catch
             {
                 var stream = try File.openRead(.currentFile)
                 let size   = Math.min(try stream.size(), LensFileLimit)
                 .lensBytes.resize(size)
                 .lensBytes.resize(try stream.read(.lensBytes.toSlice()))
+                .lensContentStart = Text.hasBom(.lensBytes.toSlice(), encoding) ? Text.bomLength(encoding) : 0
+                if encoding != .Utf8 or .lensContentStart
+                {
+                    let decoded = Text.decode(.lensBytes.toSlice()[.lensContentStart to], encoding)
+                    .lensBytes.clear()
+                    .lensBytes.add(decoded.toSlice())
+                }
             }
             {
                 .lensBytes.clear()
@@ -576,6 +591,7 @@ impl ViewerWindow
         .lensBytes.clear()
         .lensLineStarts.clear()
         .lensBytesFile.clear()
+        .lensContentStart = 0
     }
 
     // Answers the lens with files to open: the recent ones, the ones beside the open file, and the

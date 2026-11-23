@@ -285,7 +285,8 @@ impl ViewerWindow
         if .isWorkspaceActive() or .isAncestorOf(.focusedWindow()) do
             .surface?.clearFocus()
         .explorerTransition = false
-        if .explorer and .explorer.isLocallyVisible()
+        // A second close can arrive while the viewer is retiring, before the folder is visible.
+        if .explorer and (.explorer.isLocallyVisible() or (.explorerActive and not .pendingEmpty.isEmpty()))
         {
             if not forExplorer do
                 .explorerActive = false

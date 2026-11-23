@@ -176,7 +176,8 @@ func detectEncoding(probe: const [..] u8)->Encoding
     if not total and isValidUtf8Prefix(probe) do
         return .Utf8
 
-    if total * 4 >= probe.count
+    // One embedded NUL in a short byte string supplies no repeating code-unit pattern.
+    if total >= 2 and total * 4 >= probe.count
     {
         if zeros.odd > zeros.even * 4 do
             return .Utf16Le

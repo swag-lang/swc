@@ -166,14 +166,19 @@ impl TextStatisticsCounter
     // Counts the bytes, lines, and words of a UTF-8 file, read in chunks.
     //
     // A count asked to stop returns what it has so far; its owner no longer shows it.
-    func loadUtf8(fileName: string)->TextStatistics fail
+    func loadUtf8(fileName: string)->TextStatistics fail => try countFile(fileName, 0, .Utf8)
+
+    // Counts a file with the same decoder and BOM offset as its editor.
+    func countFile(fileName: string, start: u64, encoding: Text.Encoding)->TextStatistics fail
     {
         var stream = try File.openReadLive(fileName)
+        try stream.seek(.Begin, start)
         var counter: TextStatisticsCounter
+        counter.totals.bytes = start
         while not Swag.isCancelled()
         {
             let previousPosition = try stream.position()
-            let chunk = try stream.readTextChunk(256 * 1024, .Utf8)
+            let chunk = try stream.readTextChunk(256 * 1024, encoding)
             if chunk.isEmpty() do
                 return counter.finish(.Exact)
             let position = try stream.position()

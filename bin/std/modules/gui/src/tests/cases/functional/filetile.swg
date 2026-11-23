@@ -58,8 +58,24 @@ impl IWnd for FileTileFactsProbe
     probe.called      = false
     probe.showCaption = true
     let font = host.theme.createDefaultFontFs(host.theme.metrics.fileTile_FactsFontSize)
-    probe.tile.width = Painter.measureString("1280 x 800", font).width + 1
+    probe.tile.width = Painter.measureStringSnapped("1280 x 800", font, deviceScale: probe.deviceScale()) + 1
     probe.invalidate()
     discard host.renderSettled()
     Swag.require(not probe.called)
+}
+
+// At fractional scaling the detail ends at the tile edge and the name scrolls only in its own slot.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 180, dpiScale: 1.5)
+    let probe = Wnd.create'FileTileFactsProbe(&host.root, {0, 0, 360, 180})
+    discard host.renderSettled()
+    let mono = host.theme.createDefaultFontFs(host.theme.metrics.fileTile_FactsFontSize)
+    let width = Painter.measureStringSnapped("1280 x 800", mono, deviceScale: probe.deviceScale())
+    Swag.require(Math.isEqualEpsilon(probe.factsRect.right() + host.theme.metrics.fileTile_Inset + width, probe.tile.right(), 0.01))
+    let name = "Contact sheet.png"
+    let room = Painter.measureStringSnapped(name, nnFont(probe.font().regular), deviceScale: probe.deviceScale()) + 1
+    Swag.require(not FileTile.nameScrollTicks(probe, name, room))
+    Swag.require(FileTile.nameScrollTicks(probe, name, room, host.theme.fileGlyph(name, false, 14)) > 0)
 }

@@ -28,6 +28,7 @@ struct Content
         detail:      string  = ""     // Secondary information aligned to the end of that line.
         badge:       string  = ""     // Optional short label over the image's lower trailing corner.
         placeholder: string  = ""     // Optional extension or status below the fallback icon.
+        captionIcon: Icon    = {}     // Optional type icon beside the name, outside the preview.
     }
 }
 
@@ -67,17 +68,24 @@ func captionHeight(host: *Wnd)->f32
 
 // Returns the number of steps in one name-scroll cycle, or zero if the name fits.
 //
-// Measure the displayed name using the width of the image in logical pixels. Pass successive
+// Supply the image width in logical pixels and the same caption icon used by the tile. Pass successive
 // steps to [[Gui.FileTile.Options.nameTick]] and stop at the returned count to leave the name at rest.
-func nameScrollTicks(host: *Wnd, name: string, width: f32)->u64
+func nameScrollTicks(host: *Wnd, name: string, width: f32, captionIcon: Icon = {})->u64
 {
     if width <= 0 do
         return 0
-    let overflow = Painter.measureString(name, nnFont(host.font().regular)).width - width
+    let overflow = Painter.measureStringSnapped(name, nnFont(host.font().regular), deviceScale: host.deviceScale()) -
+                   (width - captionLead(host, captionIcon, width))
     return overflow > 0 ? nameScrollCycle(cast(u64, Math.ceil(overflow))) : 0
 }
 
 private func nameScrollCycle(distance: u64)->u64 => (distance + NameScrollPauseTicks) * 2
+
+private func captionLead(host: *Wnd, icon: Icon, width: f32)->f32
+{
+    let lead = icon.isValid() ? icon.sizeX + host.themeMetrics().iconText_Margin : 0
+    return lead < width ? lead : 0
+}
 
 // Paints one visible cell in host-local coordinates, borrowing all arguments for this call.
 //
@@ -189,9 +197,16 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
 {
     let metrics = host.themeMetrics()
     let colors  = host.themeColors()
-    let rect    = Math.Rectangle{tile.x, tile.bottom() + metrics.fileTile_NameGap, tile.width, metrics.fileTile_NameHeight}
+    var rect    = Math.Rectangle{tile.x, tile.bottom() + metrics.fileTile_NameGap, tile.width, metrics.fileTile_NameHeight}
+    let lead    = captionLead(host, content.captionIcon, rect.width)
+    if lead > 0
+    {
+        content.captionIcon.paint(painter, rect.x, Math.round(rect.vertCenter() - content.captionIcon.sizeY * 0.5), colors.softText)
+        rect.moveLeft(lead)
+    }
+
     let font    = nnFont(host.font().regular)
-    let width   = Painter.measureString(content.name, font).width
+    let width   = Painter.measureStringSnapped(content.name, font, deviceScale: host.deviceScale())
     let active  = options.hovered or options.selected
     painter.pushClippingRect(rect)
     if active and width > rect.width
@@ -224,7 +239,7 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
     painter.pushClippingRect(facts)
     if not detail.isEmpty()
     {
-        right -= Painter.measureString(detail, mono).width
+        right -= Painter.measureStringSnapped(detail, mono, deviceScale: host.deviceScale())
         painter.drawString(right, y, detail, mono, colors.faintText)
         right -= metrics.fileTile_Inset
     }

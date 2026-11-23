@@ -17,6 +17,39 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.require(window.searchTimer == null)
 }
 
+// Windows shell folder descriptions are UTF-16 INI documents. Search must select the actual occurrence.
+#test
+{
+    let file = Testing.tempFilePath("scope-music-", ".ini")
+    defer discard catch File.delete(file)
+    let prefix = "\r\n[.ShellClassInfo]\r\nInfoTip=Musique 🎵\r\n"
+    let source = Format.toString("%IconResource=shell32.dll\r\n[LocalizedFileNames]\r\nItem=shell32.dll\r\n", prefix)
+    let bytes = expect Text.encode(source, .Utf16Le, includeBom: true)
+    expect File.writeAllBytes(file, bytes.toSlice())
+    var entry = ExplorerEntry{name: "desktop.ini", path: file, size: bytes.count}
+    Swag.require(probeEntry(&entry) and entry.excerpt.contains("[.ShellClassInfo]") and entry.excerpt.contains("Musique 🎵"))
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, file, true)
+    Swag.require(window.currentView is Code.Panel)
+    let view = assume cast(*Code.Panel, window.currentView)
+    Swag.require(view.encoding == .Utf16Le and view.languageName == "Configuration")
+    window.showSearch()
+    window.searchBox.setText("shell32.dll")
+    completeFind(&host, window)
+    Swag.require(window.searchMatches.count == 2)
+    let first = expect Text.encode(Format.toString("%IconResource=", prefix), .Utf16Le, includeBom: true)
+    Swag.require(window.searchMatches[0].offset == first.count and window.searchMatches[0].length == 22)
+    Swag.require(view.editor.selectedText() == "shell32.dll")
+    host.click(window.searchNext.surfaceRect().center())
+    Swag.require(view.editor.selectedText() == "shell32.dll" and view.editor.cursorLogicalLineIndex() == 5)
+    window.lens.open(":4:5")
+    host.finishAnimations()
+    let line = unwrap window.lens.results.sections[0]
+    line.entries[0].run!()
+    window.lens.close()
+    Swag.require(view.editor.cursorLogicalLineIndex() == 3 and view.editor.cursorLogicalCharPos() == 4)
+}
+
 // Markdown and the other viewers reserve a strip for find; its arrows act on the document.
 #test
 {

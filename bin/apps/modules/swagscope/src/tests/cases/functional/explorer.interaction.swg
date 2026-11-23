@@ -235,6 +235,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(not explorer.isLocallyVisible())
 
     window.closeFile()
+    Swag.drainWork()
     host.pump()
     Swag.require(explorer.isLocallyVisible() and explorer.folder.isEmpty())
     Swag.require(explorer.listing.path == (expect Path.absolute(nested)))
@@ -253,7 +254,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     assertExplorerRenderStable(&host, window, explorer)
 
     window.closeFile()
+    Swag.drainWork()
     host.pump()
+    if window.startupTimer do
+        host.fireTimer(window.startupTimer)
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 

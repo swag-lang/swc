@@ -686,6 +686,8 @@ impl ViewerWindow
             return
         }
 
+        let decoder = .instances[.activeChoiceIndex].fileEncoding
+        .searchEncoding = decoder ? decoder() : .Utf8
         .searchTotalBytes = 0
         catch { .searchTotalBytes = try .searchStream.size() }
 
@@ -768,7 +770,8 @@ impl ViewerWindow
             return
         }
 
-        let deferSize = .searchSpan + SearchCarryMargin
+        let unit = Text.unitSize(.searchEncoding)
+        let deferSize = (.searchSpan + SearchCarryMargin) * unit
         var stableEnd = 0'u64
         if eof do
             stableEnd = .searchCarry.length
@@ -778,6 +781,8 @@ impl ViewerWindow
         var candidates: Array'Viewer.SearchMatch
         if instance.collectFileMatches and instance.view do
             instance.collectFileMatches(.searchCarry, .searchCarryBase, &candidates)
+        elif .searchEncoding != .Utf8 do
+            Viewer.collectEncodedMatches(.searchCarry, .searchQuery, .searchEncoding, .searchOptions(), .searchCarryBase, &candidates)
         else do
             Viewer.collectTextMatches(.searchCarry, .searchQuery, .searchOptions(), 0, 0, .searchCarryBase, &candidates)
         let absoluteProcessed = rangeOrigin + .searchProcessed
@@ -806,7 +811,8 @@ impl ViewerWindow
             return
         }
 
-        let retainStart = stableEnd > SearchCarryMargin ? stableEnd - SearchCarryMargin : 0
+        var retainStart = stableEnd > SearchCarryMargin * unit ? stableEnd - SearchCarryMargin * unit : 0
+        retainStart -= retainStart % unit
         .searchCarryBase += retainStart
         .searchCarry     = .searchCarry.toString()[retainStart to]
         .searchTimer     = .addTimer(1'ms)

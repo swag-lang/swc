@@ -171,7 +171,6 @@ struct Explorer
     kindFilter:      ExplorerKindFilter
     artworkSource:   ExplorerArtworkSource = .Online
     thumbnailCrop:   Image.SmartCropMode   = .Attention
-    showViewerIcon:  bool                  = true
     showTileCaption: bool                  = true
     menuPaths:       Array'String
     previewSettings: String
@@ -720,18 +719,10 @@ impl Explorer
 
         if .isThumbnailView() and .listingBoard() != .Album
         {
-            page.addLink(text.explore_ThumbnailDisplay,
-                         "",
-                         func|view = me|(options) { view.describeThumbnailDisplayOptions(options) },
-                         icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
+            page.addToggle(text.explore_ShowTileCaption, .showTileCaption,
+                           func|view = me|(show) { view.setTileCaption(show) },
+                           icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
         }
-    }
-
-    private mtd describeThumbnailDisplayOptions(page: *OptionSheet.Page)
-    {
-        let text = appStrings()
-        page.addToggle(text.explore_ShowViewerIcon, .showViewerIcon, func|view = me|(_) { view.showViewerIcon = not view.showViewerIcon; view.grid.invalidate() }, icon: .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
-        page.addToggle(text.explore_ShowTileCaption, .showTileCaption, func|view = me|(_) { view.setTileCaption(not view.showTileCaption) }, icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
     }
 
     mtd setTileCaption(show: bool)
@@ -2977,6 +2968,8 @@ impl ExplorerGrid
         var content: FileTile.Content
         content.texture     = entry.texture
         content.icon        = glyph
+        if .explorer.showTileCaption do
+            content.captionIcon = .explorer.entryIcon(index, .themeMetrics().chevron_Size)
         content.name        = name
         content.facts       = facts
         content.detail      = size
@@ -3017,23 +3010,6 @@ impl ExplorerGrid
         }
 
         FileTile.paint(me, painter, tile, &content, options)
-
-        if hovered and not entry.directory
-        {
-            var pluginIndex: u64
-            if .explorer.showViewerIcon and .explorer.window.index.namePlugin(entry.path, &pluginIndex)
-            {
-                let metrics  = .themeMetrics()
-                let colors   = .themeColors()
-                let iconSize = metrics.chevron_Size
-                let inset    = metrics.fileTile_Inset
-                let side     = iconSize + inset
-                let badge    = Math.Rectangle{tile.x + inset, tile.y + inset, side, side}
-                painter.fillRoundRect(badge, metrics.corner_Chip, metrics.corner_Chip, colors.surface.withAlphaF32(0.85))
-                let icon = .explorer.window.pluginIcon(&.explorer.window.index.plugins[pluginIndex], iconSize)
-                icon.paint(painter, badge.horzCenter() - icon.sizeX * 0.5, badge.vertCenter() - icon.sizeY * 0.5, colors.softText)
-            }
-        }
 
         // A file left in its middle carries how far it was read along the foot of its picture.
         if not entry.directory
@@ -3367,7 +3343,7 @@ impl ExplorerGrid
             let lineY     = mono.opticalLineTop(centerY)
             let dateRight = dateX + dateWidth - ArchiveCellInset
             painter.pushClippingRect({dateX, rect.y, dateWidth, rect.height})
-            painter.drawString(dateRight - Painter.measureString(date, mono).width, lineY, date, mono, colors.faintText)
+            painter.drawString(dateRight - Painter.measureStringSnapped(date, mono, deviceScale: .deviceScale()), lineY, date, mono, colors.faintText)
             painter.popClippingRect()
 
             var size: String
@@ -3399,7 +3375,7 @@ impl ExplorerGrid
 
             let sizeRight = sizeX + sizeWidth - ArchiveCellInset
             painter.pushClippingRect({sizeX, rect.y, sizeWidth, rect.height})
-            painter.drawString(sizeRight - Painter.measureString(size, mono).width, lineY, size, mono, colors.faintText)
+            painter.drawString(sizeRight - Painter.measureStringSnapped(size, mono, deviceScale: .deviceScale()), lineY, size, mono, colors.faintText)
             painter.popClippingRect()
         }
     }
@@ -3527,7 +3503,7 @@ impl ExplorerGrid
             if (row != .hovered and index != .explorer.selected) or .nameScrollRect(row).isEmpty() do
                 continue
             let name = safeMediaText(.tileName(&.explorer.entries[index]))
-            let end  = FileTile.nameScrollTicks(me, name, .tile.x)
+            let end  = FileTile.nameScrollTicks(me, name, .tile.x, .explorer.entryIcon(index, .themeMetrics().chevron_Size))
             if not end do
                 continue
 

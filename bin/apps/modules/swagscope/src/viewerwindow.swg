@@ -118,6 +118,7 @@ struct ViewerWindow
     loadingShownSince:       u64     // Monotonic microseconds at which the mark was shown; zero while it is hidden.
     choiceLoad:              ViewerChoiceLoad
     smokeTimer:              *Timer?
+    searchEncoding:          Text.Encoding
     searchStream:            File.FileStream
     searchQuery:             String
     searchToolTip:           String
@@ -218,6 +219,8 @@ struct ViewerWindow
     viewerBarShown:  bool
     lensBytes:       Array'u8      // The open file as the lens searches it, read on its first question.
     lensBytesFile:   String        // The file `lensBytes` holds.
+    lensEncoding:    Text.Encoding
+    lensContentStart: u64          // Source bytes skipped before the first decoded character.
     lensLineStarts:  Array'u64     // Offset in `lensBytes` of the start of each line.
     viewerBarTimer:  *Timer?
     pointerPosition: Math.Point

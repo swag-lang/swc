@@ -393,9 +393,11 @@ the home keeps recent files and explored folders at hand.
 The explorer keeps Back, Forward, Parent Folder and Refresh in the window chrome, with the path
 beside Filter Files, sort, kind and view in one compact row. The view menu and the lens
 share the same choices and checked state, including automatic layout, grid, covers and posters.
-Under Thumbnail Framing, Crop by Attention centers the crop on visually salient content, Crop
-by Entropy keeps more detailed edges, and Center Crop uses the middle of the source. Show Whole
-Image fits the full preview inside its tile. Each folder remembers its choice.
+Each thumbnail caption places a small type icon beside the filename. Show thumbnail captions
+switches the entire caption on or off. Under Framing, Crop by Attention centers the crop on
+visually salient content. Crop by Entropy keeps more detailed edges, and Center Crop uses the
+middle of the source. Show Whole Image fits the full preview inside its tile. Each folder
+remembers its choice.
 Counts and other statistics use the same read-only bottom line as file viewers, with the full
 text available in its tooltip. At narrow widths, secondary labels collapse to icons; an album stacks
 its cover and tracks when the information sheet needs the space beside it.

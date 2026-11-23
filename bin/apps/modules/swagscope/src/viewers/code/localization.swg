@@ -20,8 +20,8 @@ struct Texts
     ui_TabWidth:             string = "Tab Width"     // Lens commands placing a tab stop every 2, 4 or 8 spaces; the number follows.
     // Summary the host shows beside the file size. `%` takes the name of the language.
     ui_Details:           string = "% · UTF-8"
-    ui_Detection:         string = "% · UTF-8 · detected from %"
-    ui_ManualDetails:     string = "% · UTF-8 · manual language choice"
+    ui_Detection:         string = "% · % · detected from %"
+    ui_ManualDetails:     string = "% · % · manual language choice"
     ui_ExtensionEvidence: string = "extension %"
     ui_FilenameEvidence:  string = "filename %"
     ui_ShebangEvidence:   string = "interpreter line"

@@ -40,7 +40,7 @@ struct ExplorerEntry
 }
 
 // The extensions whose content a cell of the mixed board draws, compared without case.
-private const ProbeCodeExtensions     = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".css", ".sh", ".lua", ".toml", ".yaml", ".yml", ".txt"]
+private const ProbeCodeExtensions     = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".css", ".sh", ".lua", ".toml", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".properties", ".txt"]
 private const ProbeImageExtensions    = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tga", ".webp", ".qoi", ".ico"]
 private const ProbeMarkdownExtensions = [".md", ".markdown"]
 private const ProbeFontExtensions     = [".ttf", ".otf"]
@@ -109,8 +109,8 @@ func probeEntry(entry: *ExplorerEntry)->bool
     {
         catch
         {
-            let head  = try readHead(entry.path, 1024 * 1024)
-            let text  = cast(string, head.toSlice())
+            let excerpt = try Viewer.readTextPrefix(entry.path, 1024 * 1024)
+            let text = excerpt.toString()
             var lines, sections: u64
             var start = 0'u64
             var kept  = 0'u64
@@ -124,9 +124,12 @@ func probeEntry(entry: *ExplorerEntry)->bool
                     line = line[0 until line.count - 1]
                 if markdown and line.count and line[0] == '#' do
                     sections += 1
-                if kept < 8 and Utf8.isValid(cast(const [..] u8, line))
+                if kept < 8
                 {
-                    entry.excerpt += line[0 until Math.min(line.count, 80'u64)]
+                    var end = Math.min(line.count, 80'u64)
+                    while end < line.count and (line[end] & 0xC0) == 0x80 do
+                        end -= 1
+                    entry.excerpt += line[0 until end]
                     entry.excerpt += "\n"
                     kept += 1
                 }

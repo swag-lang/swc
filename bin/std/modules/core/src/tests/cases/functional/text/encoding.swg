@@ -130,6 +130,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 #test
 {
     Swag.require(Text.detectEncoding(cast(const [..] u8, "plain ascii line\n")) == .Utf8)
+    Swag.require(Text.detectEncoding([0x66'u8, 0x6F, 0x00, 0x6F]) == .Windows1252)
     Swag.require(Text.detectEncoding(cast(const [..] u8, "café naïve\n")) == .Utf8)
 
     let le: [12] u8 = ['H', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0, '!', 0]

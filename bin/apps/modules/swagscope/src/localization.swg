@@ -111,9 +111,7 @@ struct AppStrings
     explore_ListingOptions:    string = "Folder options"
     explore_View:              string = "Choose view"                 // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"          // Tooltip of the thumbnail arrangement choice.
-    explore_ShowViewerIcon:    string = "Show viewer icon on hover"
     explore_ShowTileCaption:   string = "Show thumbnail captions"
-    explore_ThumbnailDisplay:  string = "Thumbnail display"
     explore_ArtworkSection:    string = "Artwork"       // View-menu label of the media illustration source choice.
     explore_FilterAll:         string = "All items"     // Explorer file-kind filter.
     explore_FilterVideos:      string = "Videos"        // Explorer file-kind filter.
@@ -376,7 +374,7 @@ struct AppStrings
     board_Grid:               string = "Grid"                       // Organization choice arranging tiles in an even grid.
     board_Covers:             string = "Covers"                     // Organization choice arranging tiles as square covers.
     board_Posters:            string = "Posters"                    // Organization choice arranging tiles as upright posters.
-    explore_ThumbnailFraming: string = "Thumbnail Framing"          // Display menu and lens group for crop choices.
+    explore_ThumbnailFraming: string = "Framing"                    // Display menu and lens group for crop choices.
     crop_Attention:           string = "Crop by Attention"          // Center the crop on salient content.
     crop_Entropy:             string = "Crop by Entropy"            // Keep the more informative edges.
     crop_Center:              string = "Center Crop"                // Center the crop on the source.

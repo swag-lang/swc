@@ -133,6 +133,7 @@ struct SearchApi
         collectFileMatches: CollectFileMatches?       // Scans one host-owned streamed source window.
         useMatches:         UseSearchMatches?         // Borrows the active host result index.
         explainSearch:      ExplainSearch?            // Says what a complete search could not read, when the viewer knows.
+        fileEncoding:       (func||()->Text.Encoding)? // Active decoder when the host starts a text search; defaults to UTF-8.
     }
 }
 
@@ -174,6 +175,25 @@ func collectTextMatches(source: string, matcher: *Text.NameMatcher, major, minor
         result.add(SearchMatch{major, minor, baseOffset + span.start, span.length})
 }
 
+// Finds matches in decoded text and maps their ordered spans back to the original file bytes.
+internal func collectEncodedMatches(bytes, query: string, encoding: Text.Encoding, options: SearchOptions, baseOffset: u64, result: *Array'SearchMatch)
+{
+    let text = Text.decode(cast(const [..] u8, bytes), encoding)
+    let first = result.count
+    collectTextMatches(text, query, options, 0, 0, 0, result)
+    var decoded, source: u64
+    for &match in result.toSlice()[first to]
+    {
+        let begin = match.offset
+        let end = begin + match.length
+        source += sourceByteCount(text.toString()[decoded until begin], encoding)
+        match.offset = baseOffset + source
+        match.length = sourceByteCount(text.toString()[begin until end], encoding)
+        source += match.length
+        decoded = end
+    }
+}
+
 // Reports whether a non-empty regular-expression query can be compiled.
 func patternIsValid(query: string, options: SearchOptions)->bool
 {
@@ -182,6 +202,14 @@ func patternIsValid(query: string, options: SearchOptions)->bool
     var matcherError: Swag.Error
     discard catch createNameMatcher(query, options) as matcherError
     return matcherError.value() == null
+}
+
+// Selects a source-file byte range in a decoded editor window.
+func highlightSourceMatch(editor: *RichEditCtrl, decoded: string, at, length: u64, encoding: Text.Encoding)
+{
+    let begin = decodedTextOffset(decoded, at, encoding)
+    let count = decodedTextOffset(decoded[begin to], length, encoding)
+    highlightRichEditMatch(editor, decoded, begin, count)
 }
 
 // Selects an exact UTF-8 byte range in a rich editor whose text came from `source`.

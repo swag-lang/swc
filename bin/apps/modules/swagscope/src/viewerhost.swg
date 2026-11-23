@@ -21,6 +21,7 @@ struct ViewerSession
     describeSearch:      Viewer.DescribeSearch?
     prepareSearch:       Viewer.PrepareSearch?
     collectFileMatches:  Viewer.CollectFileMatches?
+    fileEncoding:        (func||()->Text.Encoding)?
     useSearchMatches:    Viewer.UseSearchMatches?
     explainSearch:       Viewer.ExplainSearch?
     isLoading:           Viewer.IsLoading?
@@ -376,6 +377,7 @@ impl Viewer.Host for ViewerPluginHost
         .session.describeSearch     = api.describe
         .session.prepareSearch      = api.prepare
         .session.collectFileMatches = api.collectFileMatches
+        .session.fileEncoding       = api.fileEncoding
         .session.useSearchMatches   = api.useMatches
         .session.explainSearch      = api.explainSearch
     }

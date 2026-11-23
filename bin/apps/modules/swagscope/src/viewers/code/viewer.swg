@@ -209,6 +209,8 @@ struct Panel
     stream:            File.FileStream
     fileName:          String
     fileSize:          u64
+    encoding:          Text.Encoding
+    contentStart:      u64
     bytesRead:         u64
     residentStart:     u64
     residentOffsetY:   f32
@@ -244,7 +246,7 @@ impl Panel
         let consumed = .bytesRead - .residentStart
         if not consumed do
             return
-        if .bytesRead >= .fileSize and not .residentStart
+        if .bytesRead >= .fileSize and .residentStart == .contentStart
         {
             .editor.setEstimatedDocumentHeight(0)
             return
@@ -253,7 +255,7 @@ impl Panel
         let loadedHeight = .editor.loadedDocumentHeight()
         if loadedHeight <= 0
         {
-            if .repositioning or not .residentStart do
+            if .repositioning or .residentStart == .contentStart do
                 .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
             if .virtualHeight > 0 do
                 .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
@@ -261,7 +263,7 @@ impl Panel
         }
 
         .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
-        if .repositioning or not .residentStart do
+        if .repositioning or .residentStart == .contentStart do
             .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
     }
@@ -284,7 +286,7 @@ impl Panel
     {
         .stream.close()
         .bytesRead = .fileSize
-        if not .residentStart do
+        if .residentStart == .contentStart do
             .editor.setEstimatedDocumentHeight(0)
     }
 
@@ -310,7 +312,7 @@ impl Panel
             return
 
         let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize)
+        let chunk       = catch .stream.readTextChunk(StreamChunkSize, .encoding)
         {
             .showReadError(Viewer.failureText(Swag.err))
             return
@@ -349,20 +351,22 @@ impl Panel
     //
     // With `caret`, the caret is placed at `offset` and brought into view even without text to
     // highlight; without it, an empty `text` only loads the part of the file around `offset`.
-    mtd revealOffset(offset: u64, text: string, caret = false)->bool
+    mtd revealOffset(offset: u64, text: string, caret = false, matchLength = Swag.U64.Max)->bool
     {
         .stopLoading()
         .pendingSeek   = false
         .repositioning = true
         defer .repositioning = false
-        let requested = Math.min(offset, .fileSize)
-        let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
+        let requested = Math.clamp(offset, .contentStart, .fileSize)
+        let unit = Text.unitSize(.encoding)
+        var start = requested - Math.min(requested - .contentStart, RevealContextSize)
+        start -= (start - .contentStart) % unit
         for adjustment in 4
         {
             .stream = catch File.openReadLive(.fileName) { return false }
-            let actual = Math.min(start + adjustment, .fileSize)
+            let actual = Math.min(start + adjustment * unit, requested)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(Viewer.ResidentWindowSize)
+            let chunk = catch .stream.readTextChunk(Viewer.ResidentWindowSize, .encoding)
             {
                 .stream.close()
                 continue
@@ -381,8 +385,11 @@ impl Panel
             .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if text.count or caret do
-                Viewer.highlightRichEditMatch(.editor, chunk, requested - actual, text.count)
+            if text.count or caret
+            {
+                let length = matchLength == Swag.U64.Max ? Viewer.sourceByteCount(text, .encoding) : matchLength
+                Viewer.highlightSourceMatch(.editor, chunk, requested - actual, length, .encoding)
+            }
             .scheduleMore()
             return true
         }
@@ -395,7 +402,7 @@ impl Panel
     // and the numbers come back with the next window that can be counted, as the text viewer does.
     mtd numberWindow()
     {
-        let line = .lines.lineAt(.fileName, .residentStart)
+        let line = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart)
         if line do
             .editor.setFirstLineNumber(line)
         if (line != 0) == .editor.flags.has(.LineNumbers) do
@@ -558,9 +565,9 @@ impl Panel
     private mtd showLanguageDetails()
     {
         if .languageEvidence == "manual selection" do
-            .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName))
+            .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName, Viewer.encodingName(.encoding)))
         else do
-            .services.showDetails(me, Format.toString(texts().ui_Detection, .languageName, .languageEvidence))
+            .services.showDetails(me, Format.toString(texts().ui_Detection, .languageName, Viewer.encodingName(.encoding), .languageEvidence))
     }
 
     // Moves `cp` to the next rune of the text; the end of a line reads as a line feed.
@@ -805,7 +812,7 @@ impl Panel
         .lexed = true
         .editor.invalidate()
         writeLanguageOverride(.fileName, language, swag)
-        .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName))
+        .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName, Viewer.encodingName(.encoding)))
     }
 
     // Follows scrolling with the resident window, routes the keys the code view answers for, and
@@ -894,7 +901,21 @@ impl Panel
         }
 
         .fileSize = size
-        if not size do
+        let probe = catch Viewer.probeTextStream(&.stream)
+        {
+            .showReadError(Viewer.failureText(Swag.err))
+            return
+        }
+        .encoding = probe.encoding
+        .contentStart = probe.contentStart
+        .residentStart = .contentStart
+        .bytesRead = .contentStart
+        catch .stream.seek(.Begin, .contentStart)
+        {
+            .showReadError(Viewer.failureText(Swag.err))
+            return
+        }
+        if size <= .contentStart do
             .finishLoading()
         else do
             .loadNextChunk()
@@ -976,7 +997,7 @@ impl Panel
         var data: MediaInfoData
         data.add(.Text, group: true)
         data.add(.Language, .languageName)
-        data.add(.Encoding, "UTF-8")
+        data.add(.Encoding, Viewer.encodingName(.encoding))
         if .hasStatistics do
             data.addTextStatistics(&.statistics, withWords: false)
         data.describe(sheet)
@@ -994,11 +1015,12 @@ func createViewer(host: Viewer.Host)
     }
 
     host.attachView(view)
-    host.setDetails(Format.toString(texts().ui_Detection, view.languageName, view.languageEvidence))
+    host.setDetails(Format.toString(texts().ui_Detection, view.languageName, Viewer.encodingName(view.encoding), view.languageEvidence))
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true)
+        .fileEncoding = func|view|()->Text.Encoding => view.encoding
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
         .matchBounds = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
         .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }
@@ -1007,7 +1029,13 @@ func createViewer(host: Viewer.Host)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
-    view.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, view)
+    view.statisticsLoad.start(host.fileName(), &countSource, view)
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null,
                        retire: func|view|()->bool => view.statisticsLoad.retire()})
+}
+
+private func countSource(fileName: string)->TextStatistics fail
+{
+    let probe = Viewer.probeTextFile(fileName)
+    return try TextStatisticsCounter.countFile(fileName, probe.contentStart, probe.encoding)
 }

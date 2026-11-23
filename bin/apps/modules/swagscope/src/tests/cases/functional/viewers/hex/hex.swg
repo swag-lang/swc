@@ -314,6 +314,10 @@ internal func writeSampleFile()->String
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     let view = hexTestViewer(&host, fileName, 900, 560)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
+    Swag.require(Hex.texts().ui_CopyValue == "Copier la valeur inspectée")
+    Swag.require(Hex.texts().ui_CopyReading == "Copier la lecture %")
 
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)

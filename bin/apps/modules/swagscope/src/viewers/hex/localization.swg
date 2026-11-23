@@ -105,6 +105,7 @@ struct Texts
     ui_CopyFormats: string = "Other Copy Formats"     // Tooltip of the compact menu for alternate selection spellings.
     ui_CopyOffset:  string = "Copy Offset %"          // Lens command copying the offset of the caret in hexadecimal.
     ui_CopyValue:   string = "Copy Inspected Value"   // Lens command copying the value shown in the inspector.
+    ui_CopyReading: string = "Copy % Reading"         // Lens command copying one inspector reading.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

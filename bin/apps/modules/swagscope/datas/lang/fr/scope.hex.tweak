@@ -95,6 +95,7 @@ ui_CopyDump      Copier le dump
 ui_CopyFormats   Autres formats de copie
 ui_CopyOffset    Copier le décalage %
 ui_CopyValue     Copier la valeur inspectée
+ui_CopyReading   Copier la lecture %
 
 ui_CopyBytesMax  Copier les % premiers en octets
 ui_CopyTextMax   Copier les % premiers en texte

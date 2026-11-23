@@ -297,6 +297,21 @@ internal func writeSampleFile()->String
     }
     Swag.require(found and Clipboard.getString() == view.inspectorView.headline and Clipboard.getString() == "42")
 
+    var f16Value = String{}
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFloat16 do
+        f16Value = reading.value
+    found = false
+    let copyF16 = Format.toString(Hex.texts().ui_CopyReading, Hex.texts().ui_InspectorFloat16)
+    for &entry in results.sections[0]!.entries where entry.title == copyF16
+    {
+        Swag.require(not entry.disabled)
+        entry.run!()
+        found = true
+    }
+    Swag.require(found, Format.toString("f16 copy row missing among % rows", results.sections[0]!.entries.count))
+    Swag.require(not f16Value.isEmpty(), "f16 inspector value missing")
+    Swag.require(Clipboard.getString() == f16Value, Format.toString("copied %, expected %", Clipboard.getString(), f16Value))
+
     view.grid.moveCaret(1, false)
     view.refreshInspector()
     Swag.require(view.inspectorView.headline == "43")

@@ -98,7 +98,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   contract, and side-by-side presentation separate.
 - Done when: several documents can remain open as tabs in one window, and switching or closing
   a tab preserves the other documents' state and outstanding-work ownership.
-- Related: std.gui.029, platform.portability.022, app.scope.003
+- Related: std.gui.029, platform.portability.022, app.scope.003, design.multiview.001
 
 ### app.scope.003 — Two documents cannot be shown side by side
 
@@ -110,7 +110,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   preserving each viewer's reading state when moving between tabs and split panes.
 - Done when: two documents remain visible and independently usable, and closing or replacing
   either pane leaves the other's state and input intact.
-- Related: app.scope.001, app.scope.hexa.003
+- Related: app.scope.001, app.scope.hexa.003, design.multiview.003
 
 ### app.scope.004 — Cold folder previews need latency profiling
 

@@ -18,9 +18,9 @@ Use the narrowest real owner. Examples include `std.truetype`, `std.pixel.image`
 `app.scope.midi`, and `compiler.command.doc`. Cross-cutting operating-system portability belongs
 in [platform.portability.md](platform.portability.md).
 
-[design/silence/](design/silence/README.md) is the one subfolder: a design campaign whose entries need their
-specification, mockups and renders beside them. It keeps the entry format of a domain file and
-disappears when its entries are done.
+[design/](design/README.md) is the one subfolder. It holds design campaigns, one folder each,
+whose entries need their specification, mockups and renders beside them. A campaign keeps the
+entry format of a domain file and its folder disappears when its entries are done.
 
 The table below is a navigation index, ordered by file name. Add or remove a row with its domain
 file. Do not add status, dates, or progress summaries to the index.
@@ -73,6 +73,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [compiler.optimization.md](compiler.optimization.md) | Transformations and performance of generated Swag programs |
 | [compiler.query.md](compiler.query.md) | Semantic queries and verified source edits |
 | [compiler.safety.md](compiler.safety.md) | Memory safety and runtime guards |
+| [design/multiview/design.multiview.md](design/multiview/design.multiview.md) | Swag Scope tabs, split views, comparison and synchronized grids |
 | [design/silence/design.silence.md](design/silence/design.silence.md) | Silence charter migration: themes, controls, dialogs and applications under `bin/` |
 | [language.design.md](language.design.md) | Swag language and syntax |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism |

@@ -19,7 +19,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Pptx)
         .create       = &createViewer
         .smokeFixture = "viewer.pptx"
-        .addSelectors(".pptx")
+        .addSelectors(".pptx;.ppsx;.pptm;.ppt;.pps;.pot;.potx;.potm")
     }
 
     return result
@@ -434,7 +434,19 @@ private impl Panel
 
 func createViewer(host: Viewer.Host)
 {
-    createPresentationViewer(host, &Presentation.load)
+    createPresentationViewer(host, &loadPresentationFile)
+}
+
+// Reject package families that share PowerPoint's brand and filename patterns but use structures
+// the Open XML slide reader cannot decode.
+func loadPresentationFile(fileName: string)->Presentation fail
+{
+    let extension = String.toLower(Path.extension(fileName))
+    if extension == ".ppt" or extension == ".pps" do
+        fail Errors.UnsupportedFormatError{texts().err_LegacyFormat}
+    if extension == ".pot" or extension == ".potx" or extension == ".potm" do
+        fail Errors.UnsupportedFormatError{texts().err_TemplateFormat}
+    return try Presentation.load(fileName)
 }
 
 impl Panel

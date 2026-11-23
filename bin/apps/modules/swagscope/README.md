@@ -234,16 +234,22 @@ are also available.
   actions and external links never execute or fetch resources.
   Read Speaker Notes in the lens opens the slide's text notes separately, retaining emphasis
   in a theme-aware reading flow. Notes-page counters, thumbnails, dates and footers stay out.
-- `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
-  raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
-  title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
-  filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
-  offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly
-  labelled simplified layout. Read Speaker Notes in the lens opens the current slide's text notes
+- `Presentation` reads `.pptx`, `.ppsx` and `.pptm` as static slide decks. VBA stays inert; legacy
+  `.ppt`/`.pps` presentations and `.pot`/`.potx`/`.potm` templates receive a format-specific
+  unsupported notice. It fits one slide at a time at its authored aspect ratio. Text boxes, bounded
+  raster pictures, solid backgrounds, common shapes, simple connectors, one-level groups, and
+  static tables keep their positions and sizes; title placeholders inherit layout/master bounds
+  and basic theme colors and text sizes. Cached bar, column, line, standard area and positive
+  single-series pie charts render with direct RGB colors on bar, column, line and area series.
+  The filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
+  offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly labelled
+  simplified layout.
+  Read Speaker Notes in the lens opens the current slide's text notes
   with emphasis and the normal slide navigation; empty notes are stated explicitly. Notes are
   capped at 1 MiB per slide and share the deck's text budget. Notes-page thumbnails, counters,
-  dates and footers stay out. Animation, charts, complex drawings, embedded media and exact font
-  reproduction remain unsupported; actions and external relationships never run.
+  dates and footers stay out. Animation, unsupported chart families, advanced drawings, embedded
+  media and exact font reproduction remain unsupported; actions and external relationships never
+  run.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a

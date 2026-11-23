@@ -113,6 +113,27 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.startsWith(bullet.plainText, "• First point"))
 }
 
+// Automatic Arabic numbering preserves starts, sequence continuation, and common suffix styles.
+#test
+{
+    var theme = Pptx.SlideTheme.defaults()
+    var images: Package.ImageCatalog
+    let numbered = expect Pptx.SlideText.parse("""
+        <p:sp><p:txBody>
+          <a:p><a:pPr><a:buAutoNum type="arabicPeriod" startAt="3"/></a:pPr><a:r><a:t>First</a:t></a:r></a:p>
+          <a:p><a:pPr><a:buAutoNum type="arabicPeriod"/></a:pPr><a:r><a:t>Second</a:t></a:r></a:p>
+          <a:p><a:pPr><a:buAutoNum type="arabicParen"/></a:pPr><a:r><a:t>Third</a:t></a:r></a:p>
+          <a:p><a:pPr><a:buAutoNum type="arabicParen" startAt="5"/></a:pPr><a:r><a:t>Fourth</a:t></a:r></a:p>
+        </p:txBody></p:sp>
+        """, &images, &theme, 960)
+    Swag.require(not numbered.requiresSimplified)
+    Swag.require(Utf8.startsWith(numbered.plainText, "3. First\n4. Second\n(1) Third\n(5) Fourth"))
+    Swag.require(Utf8.contains(numbered.html, "3. First") and Utf8.contains(numbered.html, "4. Second"))
+
+    let unsupported = expect Pptx.SlideText.parse("""<p:sp><p:txBody><a:p><a:pPr><a:buAutoNum type="romanUcPeriod"/></a:pPr><a:r><a:t>Item</a:t></a:r></a:p></p:txBody></p:sp>""", &images, &theme, 960)
+    Swag.require(unsupported.requiresSimplified and Utf8.contains(unsupported.plainText, "• Item"))
+}
+
 // Basic ellipses retain their authored position and use a circular canvas clip.
 #test
 {
@@ -148,7 +169,8 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(reading, "Revenue"))
     Swag.require(Utf8.contains(reading, "North") and Utf8.contains(reading, "42"))
     Swag.require(Utf8.contains(reading, "West") and Utf8.contains(reading, "27"))
-    Swag.require(Utf8.contains(page.canvasHtml(presentation.width, presentation.height), "background-color:#4472C4"))
+    let canvas = page.canvasHtml(presentation.width, presentation.height)
+    Swag.require(Utf8.contains(canvas, "background-color:#127F9A") and Utf8.contains(canvas, "background-color:#A65323"))
 }
 
 // A chart that mixes supported bars with an unsupported family marks its slide simplified.
@@ -181,6 +203,10 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(page.shapes[1].html, "<tr>") and Utf8.contains(page.shapes[1].html, "<td"))
     Swag.require(Utf8.contains(page.shapes[1].plainText, "Quarter") and Utf8.contains(page.shapes[1].plainText, "142"))
     Swag.require(Utf8.contains(page.shapes[1].plainText, "Quarter\tPlan\tActual\nQ1\t120\t116"))
+    Swag.require(Utf8.contains(page.shapes[1].plainText, "Outlook\t\tVerified"))
+    Swag.require(Utf8.contains(page.shapes[1].plainText, "Annual total\tFirst half\tSecond half"))
+    Swag.require(Utf8.contains(page.shapes[1].html, "colspan=\"2\""))
+    Swag.require(Utf8.contains(page.shapes[1].html, "rowspan=\"2\""))
     Swag.require(Utf8.contains(page.shapes[1].html, "background-color:#DDEBF7"), "table header fill missing")
     let reading = page.readingHtml()
     Swag.require(Utf8.contains(reading, "Quarter") and Utf8.contains(reading, "Actual"))
@@ -200,13 +226,26 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(error.value() is Errors.UnsupportedFormatError)
 }
 
-// Merged cells are retained as readable content but reported as simplified layout.
+// Horizontal DrawingML merges render as true spanning HTML cells.
 #test
 {
-    let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="50000"/><a:gridCol w="50000"/></a:tblGrid><a:tr><a:tc><a:tcPr><a:gridSpan val="2"/></a:tcPr></a:tc><a:tc/></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
+    let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="50000"/><a:gridCol w="50000"/></a:tblGrid><a:tr><a:tc><a:tcPr><a:gridSpan val="2"/></a:tcPr><a:txBody><a:p><a:r><a:t>Wide cell</a:t></a:r></a:p></a:txBody></a:tc></a:tr><a:tr><a:tc/><a:tc/></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
+    var theme = Pptx.SlideTheme.defaults()
+    let page = expect Pptx.SlidePage.parse(source, &theme)
+    Swag.require(not page.simplified and page.shapes.count == 1)
+    Swag.require(Utf8.contains(page.shapes[0].plainText, "Wide cell"))
+    Swag.require(Utf8.contains(page.shapes[0].html, "colspan=\"2\""))
+}
+
+// Orphaned vertical merge markers preserve cell text and identify the slide as simplified.
+#test
+{
+    let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tr><a:tc><a:txBody><a:p><a:r><a:t>First</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc></a:tr><a:tr><a:tc><a:txBody><a:p><a:r><a:t>Keep text</a:t></a:r></a:p></a:txBody><a:tcPr><a:vMerge val="1"/></a:tcPr></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
     var theme = Pptx.SlideTheme.defaults()
     let page = expect Pptx.SlidePage.parse(source, &theme)
     Swag.require(page.simplified and page.shapes.count == 1)
+    Swag.require(Utf8.contains(page.shapes[0].plainText, "Keep text"))
+    Swag.require(Utf8.contains(page.shapes[0].html, "Keep text"))
 }
 
 // XML parts are bounded trees; unclosed tags, multiple roots, entities and excess depth fail.

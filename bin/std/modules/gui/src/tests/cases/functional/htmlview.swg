@@ -646,6 +646,80 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.require(wide.rect.x == narrow.rect.right())
 }
 
+// A colspan cell covers the combined widths of its table columns.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 300)
+
+    var source: String = "<style>body { margin: 0 } td { padding: 4px }</style>"
+    source += "<table><tr><td id=\"span\" colspan=\"2\">A wide heading across two columns</td><td>last</td></tr>"
+    source += "<tr><td id=\"first\">short</td><td id=\"second\">a considerably longer cell</td><td id=\"third\">last</td></tr></table>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(600, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let spanning = view.layout.constBox(view.boxOfNode(view.elementById("span")))
+    let first    = view.layout.constBox(view.boxOfNode(view.elementById("first")))
+    let second   = view.layout.constBox(view.boxOfNode(view.elementById("second")))
+    let third    = view.layout.constBox(view.boxOfNode(view.elementById("third")))
+    Swag.require(spanning.rect.x == first.rect.x)
+    Swag.require(spanning.rect.width >= first.rect.width + second.rect.width - 8)
+    Swag.require(third.rect.x == second.rect.right())
+}
+
+// A rowspan cell covers the combined heights of its table rows.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 300)
+
+    var source: String = "<style>body { margin: 0 } td { padding: 4px }</style>"
+    source += "<table><tr id=\"topRow\"><td id=\"span\" rowspan=\"2\">A tall merged cell</td><td id=\"top\">Top</td></tr>"
+    source += "<tr id=\"bottomRow\"><td id=\"bottom\"><div style=\"height:80px\"></div>Bottom</td></tr></table>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(360, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let spanning = view.layout.constBox(view.boxOfNode(view.elementById("span")))
+    let topRow   = view.layout.constBox(view.boxOfNode(view.elementById("topRow")))
+    let bottomRow = view.layout.constBox(view.boxOfNode(view.elementById("bottomRow")))
+    let bottom    = view.layout.constBox(view.boxOfNode(view.elementById("bottom")))
+    Swag.require(spanning.rect.y == topRow.rect.y)
+    Swag.require(bottomRow.rect.y == topRow.rect.bottom())
+    Swag.require(bottom.rect.y == bottomRow.rect.y)
+    Swag.require(spanning.rect.bottom() == bottomRow.rect.bottom())
+    Swag.require(spanning.rect.height > topRow.rect.height)
+}
+
+// Cells beyond the logical column cap continue after the last column without overlapping it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 200)
+
+    var source: String = "<style>body { margin: 0 } td { padding: 1px }</style><table><tr>"
+    for index in 257
+    {
+        source += Format.toString("<td id=\"cell%\">x</td>", index)
+    }
+    source += "</tr></table>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(600, 200)
+    view.applyLayout()
+    view.rebuild()
+
+    let lastColumn = view.layout.constBox(view.boxOfNode(view.elementById("cell255")))
+    let overflow   = view.layout.constBox(view.boxOfNode(view.elementById("cell256")))
+    Swag.require(lastColumn.rect.width > 0 and overflow.rect.width > 0)
+    Swag.require(overflow.rect.x >= lastColumn.rect.right())
+}
+
 // A table cell aligns its contents inside the row height established by a taller sibling.
 #test
 {

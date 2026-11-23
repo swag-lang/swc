@@ -23,7 +23,10 @@ impl SlidePage
         var scan         = Package.Scanner.create(source)
         var token:     Package.Token
         var shapeStart   = Swag.U64.Max
+        var groupStart   = Swag.U64.Max
         var shapeName: String
+        var groupName: String
+        var groupDepth   = 0'u32
         var inBackground = false
         while true
         {
@@ -34,15 +37,24 @@ impl SlidePage
             {
                 if token.isElement("sld") do
                     result.showMasterShapes = token.attribute("showMasterSp") != "0" and token.attribute("showMasterSp") != "false"
-                if shapeStart == Swag.U64.Max and
+                if token.isElement("grpSp")
+                {
+                    if groupStart == Swag.U64.Max
+                    {
+                        groupStart = at
+                        groupName  = token.name
+                    }
+
+                    groupDepth += 1
+                }
+
+                if groupStart == Swag.U64.Max and shapeStart == Swag.U64.Max and
                    (token.isElement("sp") or token.isElement("pic") or token.isElement("cxnSp") or token.isElement("graphicFrame"))
                 {
                     shapeStart = at
                     shapeName  = token.name
                 }
 
-                if token.isElement("grpSp") or token.isElement("cxnSp") do
-                    result.simplified = true
                 if token.isElement("bgPr")
                 {
                     inBackground = not token.empty
@@ -58,6 +70,24 @@ impl SlidePage
 
             if token.kind == .End and token.isElement("bgPr") do
                 inBackground = false
+            if groupStart != Swag.U64.Max and token.name == groupName and
+               (token.kind == .End or token.empty)
+            {
+                groupDepth -= 1
+                if groupDepth == 0
+                {
+                    let group = try SlideGroup.parse(source[groupStart until scan.offset], theme, images, pageWidth)
+                    result.simplified = result.simplified or not group.supported
+                    for shape in group.shapes do
+                        result.omittedImages += shape.omittedImages
+                    result.shapes.add(group.shapes.toSlice())
+                    if result.shapes.count > 2048 do
+                        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    groupStart = Swag.U64.Max
+                    groupName.clear()
+                }
+            }
+
             if shapeStart != Swag.U64.Max and
                token.name == shapeName and
                (token.kind == .End or token.empty)
@@ -87,6 +117,7 @@ impl SlidePage
 
                 if not shape.hidden
                 {
+                    result.simplified = result.simplified or shape.unsupported
                     result.omittedImages += shape.omittedImages
                     result.shapes.add(shape)
                     if result.shapes.count > 2048 do
@@ -98,7 +129,7 @@ impl SlidePage
             }
         }
 
-        if scan.damaged or shapeStart != Swag.U64.Max do
+        if scan.damaged or shapeStart != Swag.U64.Max or groupStart != Swag.U64.Max do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         return result
     }
@@ -273,7 +304,7 @@ impl SlidePage
                                       bounds.height / height * 100)
             let fontPixels = cast(f32, Math.clamp(shape.fontSize, 100'u32, 40000)) / 100 * 96 / 72
             result += Format.toString("font-size:%{f4}vw;color:#%;", fontPixels / width * 100, shape.textColor)
-            if not shape.picture
+            if not shape.picture and not shape.connector
             {
                 let inset = shape.inset
                 result += Format.toString("padding:%{f4}vw %{f4}vw %{f4}vw %{f4}vw;",
@@ -285,7 +316,27 @@ impl SlidePage
 
             if not shape.fill.isEmpty() do
                 result += Format.toString("background-color:#%;", shape.fill)
-            if not shape.line.isEmpty() do
+            if shape.connector
+            {
+                if not shape.line.isEmpty()
+                {
+                    if shape.bounds.width > 0 and shape.bounds.height > 0
+                    {
+                        let lineLength = Math.sqrt(shape.bounds.width * shape.bounds.width + shape.bounds.height * shape.bounds.height)
+                        let angle = Math.toDegrees(Math.atan2(shape.bounds.height, shape.bounds.width))
+                        result += Format.toString("width:%{f4}vw;height:0;transform-origin:0 0;transform:rotate(%{f4}deg);border-top:%{f4}vw solid #%;",
+                                                  lineLength / width * 100,
+                                                  angle,
+                                                  shape.lineWidth / width * 100,
+                                                  shape.line)
+                    }
+                    elif shape.bounds.height == 0 do
+                        result += Format.toString("border-top:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
+                    else do
+                        result += Format.toString("border-left:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
+                }
+            }
+            elif not shape.line.isEmpty() do
                 result += Format.toString("border:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
             if shape.ellipse
             {
@@ -295,7 +346,7 @@ impl SlidePage
             {
                 result += Format.toString("border-radius:%{f4}vw;", Math.min(bounds.width, bounds.height) / width * 16.67)
             }
-            if shape.rotation or shape.flipHorizontal or shape.flipVertical
+            if not shape.connector and (shape.rotation or shape.flipHorizontal or shape.flipVertical)
             {
                 result += "transform:"
                 if shape.rotation do

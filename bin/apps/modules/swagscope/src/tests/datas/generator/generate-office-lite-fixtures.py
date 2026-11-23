@@ -186,6 +186,21 @@ def generate(output: Path) -> None:
         ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships><Relationship Id="rslide1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/><Relationship Id="rslide2" Type="{PPT_REL_TYPE}" Target="slides/slide2.xml"/></Relationships>'), ZIP_DEFLATED),
         ("ppt/slides/slide1.xml", slide("First &amp; final"), ZIP_DEFLATED),
     ])
+    ppsx_content_types = xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>')
+    package(ROOT / "viewer.ppsx", [
+        ("[Content_Types].xml", ppsx_content_types, ZIP_DEFLATED),
+        ("ppt/presentation.xml", presentation('<p:sldId r:id="rslide1"/>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships><Relationship Id="rslide1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", slide("Read-only slideshow"), ZIP_DEFLATED),
+    ])
+    pptm_content_types = xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="bin" ContentType="application/vnd.ms-office.vbaProject"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>')
+    package(ROOT / "viewer.macros.pptm", [
+        ("[Content_Types].xml", pptm_content_types, ZIP_DEFLATED),
+        ("ppt/presentation.xml", presentation('<p:sldId r:id="rslide1"/>'), ZIP_DEFLATED),
+        ("ppt/_rels/presentation.xml.rels", xml(f'<Relationships><Relationship Id="rslide1" Type="{PPT_REL_TYPE}" Target="slides/slide1.xml"/><Relationship Id="rVba" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="vbaProject.bin"/></Relationships>'), ZIP_DEFLATED),
+        ("ppt/slides/slide1.xml", slide("Macro stays inert"), ZIP_DEFLATED),
+        ("ppt/vbaProject.bin", b"VBA project bytes are never loaded or executed", ZIP_DEFLATED),
+    ])
     formatted_slide1 = xml('<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:pPr algn="r"/><a:r><a:t>First &amp; final</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>')
     formatted_slide2 = xml('<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:pPr algn="ctr"/><a:r><a:rPr b="1"/><a:t>Opens first</a:t></a:r><a:r><a:rPr i="1"/><a:t> styled</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>')
     slide1_with_picture = xml('<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>Opens first</a:t></a:r></a:p></p:txBody></p:sp><p:pic/></p:spTree></p:cSld></p:sld>')
@@ -202,7 +217,7 @@ def generate(output: Path) -> None:
     package(ROOT / "viewer.damaged.pptx", [("ppt/presentation.xml", xml("<p:presentation/>"), ZIP_DEFLATED)])
 
     chart_categories = ["North", "West", "South"]
-    def chart_series(title: str, values: list[int]) -> str:
+    def chart_series(title: str, values: list[int], color: str) -> str:
         title_cache = f'<c:tx><c:strRef><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{title}</c:v></c:pt></c:strCache></c:strRef></c:tx>'
         category_cache = '<c:cat><c:strRef><c:strCache><c:ptCount val="3"/>'
         category_cache += "".join(f'<c:pt idx="{index}"><c:v>{category}</c:v></c:pt>' for index, category in enumerate(chart_categories))
@@ -210,12 +225,13 @@ def generate(output: Path) -> None:
         values_cache = '<c:val><c:numRef><c:numCache><c:ptCount val="3"/>'
         values_cache += "".join(f'<c:pt idx="{index}"><c:v>{value}</c:v></c:pt>' for index, value in enumerate(values))
         values_cache += "</c:numCache></c:numRef></c:val>"
-        return f"<c:ser>{title_cache}{category_cache}{values_cache}</c:ser>"
+        properties = f'<c:spPr><a:solidFill><a:srgbClr val="{color}"/></a:solidFill></c:spPr>'
+        return f"<c:ser>{title_cache}{properties}{category_cache}{values_cache}</c:ser>"
 
     chart_xml = xml(
-        '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart><c:plotArea><c:barChart><c:barDir val="bar"/>'
-        + chart_series("Units sold", [42, 27, 35])
-        + chart_series("Revenue", [80, 50, 72])
+        '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><c:chart><c:plotArea><c:barChart><c:barDir val="bar"/>'
+        + chart_series("Units sold", [42, 27, 35], "127F9A")
+        + chart_series("Revenue", [80, 50, 72], "A65323")
         + "</c:barChart></c:plotArea></c:chart></c:chartSpace>"
     )
     chart_slide = xml(
@@ -242,7 +258,7 @@ def generate(output: Path) -> None:
     ])
     combo_chart_xml = chart_xml.replace(
         b"</c:barChart>",
-        b"</c:barChart><c:lineChart>" + chart_series("Trend", [10, 20, 15]).encode("utf-8") + b"</c:lineChart>",
+        b"</c:barChart><c:lineChart>" + chart_series("Trend", [10, 20, 15], "227755").encode("utf-8") + b"</c:lineChart>",
     )
     package(ROOT / "viewer.combo-chart.pptx", [
         ("[Content_Types].xml", xml('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/><Override PartName="/ppt/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>'), ZIP_DEFLATED),
@@ -258,13 +274,28 @@ def generate(output: Path) -> None:
         ["Quarter", "Plan", "Actual"],
         ["Q1", "120", "116"],
         ["Q2", "135", "142"],
+        ["Outlook", "Within range", "Verified"],
+        ["Annual total", "First half", "Second half"],
+        ["", "1200", "1280"],
     ]
     table_cells = ""
     for row_index, row in enumerate(table_rows):
         table_cells += '<a:tr h="457200">'
-        for value in row:
-            fill = '<a:solidFill><a:srgbClr val="DDEBF7"/></a:solidFill>' if row_index == 0 else ""
-            table_cells += f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{value}</a:t></a:r></a:p></a:txBody><a:tcPr>{fill}</a:tcPr></a:tc>"
+        if row_index == 3:
+            table_cells += '<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Outlook</a:t></a:r></a:p></a:txBody><a:tcPr gridSpan="2"/></a:tc>'
+            table_cells += '<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Verified</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>'
+        elif row_index == 4:
+            table_cells += '<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Annual total</a:t></a:r></a:p></a:txBody><a:tcPr rowSpan="2"/></a:tc>'
+            for value in row[1:]:
+                table_cells += f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{value}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>"
+        elif row_index == 5:
+            table_cells += '<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p/></a:txBody><a:tcPr><a:vMerge val="1"/></a:tcPr></a:tc>'
+            for value in row[1:]:
+                table_cells += f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{value}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>"
+        else:
+            for value in row:
+                fill = '<a:solidFill><a:srgbClr val="DDEBF7"/></a:solidFill>' if row_index == 0 else ""
+                table_cells += f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{value}</a:t></a:r></a:p></a:txBody><a:tcPr>{fill}</a:tcPr></a:tc>"
         table_cells += "</a:tr>"
     table_slide = xml(
         '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr/><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="457200" y="274320"/><a:ext cx="10972800" cy="914400"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Quarterly forecast</a:t></a:r></a:p></p:txBody></p:sp><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="3" name="Forecast table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="914400" y="1371600"/><a:ext cx="10058400" cy="3657600"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"><a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId></a:tblPr><a:tblGrid><a:gridCol w="5486400"/><a:gridCol w="2286000"/><a:gridCol w="2286000"/></a:tblGrid>'
@@ -291,7 +322,7 @@ def main() -> None:
         "viewer.rtf", "viewer.unicode.rtf", "viewer.table.rtf", "viewer.destinations.rtf", "viewer.damaged.rtf",
         "viewer.xlsx", "viewer.inline.xlsx", "viewer.damaged.xlsx",
         "viewer.empty-cells.xlsx", "viewer.formulas.xlsx", "viewer.sparse-rows.xlsx", "viewer.wide-column.xlsx",
-        "viewer.pptx", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx", "viewer.chart.pptx", "viewer.column-chart.pptx", "viewer.combo-chart.pptx", "viewer.table.pptx",
+        "viewer.pptx", "viewer.ppsx", "viewer.macros.pptm", "viewer.formatted.pptx", "viewer.slides.pptx", "viewer.damaged.pptx", "viewer.chart.pptx", "viewer.column-chart.pptx", "viewer.combo-chart.pptx", "viewer.table.pptx",
     ]
     for name in names:
         path = args.output_dir / name

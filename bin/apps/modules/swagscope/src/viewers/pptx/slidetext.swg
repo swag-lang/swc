@@ -9,6 +9,7 @@ struct SlideText
     html:          String
     plainText:     String
     omittedImages: u64
+    requiresSimplified: bool
 }
 
 private struct RunStyle
@@ -83,6 +84,12 @@ impl SlideText
         var inText          = false
         var inParagraph     = false
         var inParagraphProperties = false
+        var currentAutoNum = false
+        var currentAutoNumType: String
+        var currentAutoNumValue = 0'u32
+        var previousAutoNum = false
+        var previousAutoNumType: String
+        var nextAutoNumValue = 1'u32
         var inRun           = false
         var runStyle:           RunStyle
         var inRunProperties = false
@@ -105,6 +112,9 @@ impl SlideText
                     inParagraph = true
                     paragraph.clear()
                     alignment = ""
+                    currentAutoNum = false
+                    currentAutoNumType.clear()
+                    currentAutoNumValue = 0
                 }
                 elif inParagraph and token.isElement("pPr")
                 {
@@ -126,6 +136,49 @@ impl SlideText
                         result.plainText += " "
                         Package.appendHtmlEscaped(&paragraph, value)
                         paragraph += " "
+                    }
+                }
+                elif inParagraphProperties and token.isElement("buAutoNum")
+                {
+                    let type = token.attribute("type") orelse "arabicPeriod"
+                    if type == "arabicPeriod" or type == "arabicParen" or type == "arabicParenR" or type == "arabicPlain"
+                    {
+                        currentAutoNum = true
+                        currentAutoNumType = String.from(type)
+                        if let startAt = token.attribute("startAt")
+                        {
+                            currentAutoNumValue = catch StrConv.toU32(startAt) orelse 1
+                        }
+                        elif previousAutoNum and previousAutoNumType == type
+                        {
+                            currentAutoNumValue = nextAutoNumValue
+                        }
+                        else
+                        {
+                            currentAutoNumValue = 1
+                        }
+
+                        if currentAutoNumValue == 0 or currentAutoNumValue > 1_000_000 do
+                            currentAutoNumValue = 1
+                        nextAutoNumValue = currentAutoNumValue + 1
+                        let number = Format.toString("%", currentAutoNumValue)
+                        var label: String
+                        if type == "arabicParen" do
+                            label += "("
+                        label += number
+                        if type == "arabicPeriod" do
+                            label += "."
+                        elif type == "arabicParen" or type == "arabicParenR" do
+                            label += ")"
+                        label += " "
+                        result.plainText += label
+                        Package.appendHtmlEscaped(&paragraph, label)
+                    }
+                    else
+                    {
+                        result.requiresSimplified = true
+                        result.plainText += "• "
+                        paragraph += "• "
                     }
                 }
                 elif inParagraph and token.isElement("r")
@@ -237,6 +290,8 @@ impl SlideText
                     result.html += ">"
                     result.html += paragraph
                     result.html += "</p>"
+                    previousAutoNum = currentAutoNum
+                    previousAutoNumType = currentAutoNum ? currentAutoNumType : ""
                     inParagraph = false
                     inRun       = false
                 }

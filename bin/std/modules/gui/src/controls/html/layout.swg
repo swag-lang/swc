@@ -74,6 +74,17 @@ struct HtmlIntrinsicWidths
     max: f32
 }
 
+struct HtmlTableCellPlacement
+{
+    box:                  u32
+    row:                  u64
+    column:               u64
+    columnSpan:           u64
+    rowSpan:              u64
+    overflowed:           bool
+    overflowColumnOffset: u64
+}
+
 // The margin box one float occupies, and the side it is tucked against.
 struct HtmlFloatBand
 {
@@ -2489,6 +2500,24 @@ private impl HtmlLayout
         return Math.max(y - contentY, 0)
     }
 
+    mtd const tableColumnSpan(cell: u32)->u64
+    {
+        let node = .boxes[cell].node
+        if node == HtmlNoNode do
+            return 1
+        let value = catch StrConv.toU64(.document.attribute(node, "colspan")) { return 1; }
+        return Math.clamp(value, 1'u64, 64'u64)
+    }
+
+    mtd const tableRowSpan(cell: u32)->u64
+    {
+        let node = .boxes[cell].node
+        if node == HtmlNoNode do
+            return 1
+        let value = catch StrConv.toU64(.document.attribute(node, "rowspan")) { return 1; }
+        return Math.clamp(value, 1'u64, 64'u64)
+    }
+
     // Lays a table out, sizing its columns from what their cells need.
     mtd layoutTable(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
@@ -2497,8 +2526,56 @@ private impl HtmlLayout
             return 0
 
         var columns = 0'u64
+        var tableRowCount = 0'u64
         for row in rows where .boxes[row].kind == .TableRow do
-            columns = Math.max(columns, .boxes[row].children.count)
+            tableRowCount += 1
+        var placements: Array'HtmlTableCellPlacement
+        var occupiedRows: Array'u64
+        occupiedRows.resize(256)
+        var rowIndex = 0'u64
+        for row in rows where .boxes[row].kind == .TableRow
+        {
+            var overflowColumnCount = 0'u64
+            for cell in .boxes[row].children
+            {
+                let columnSpan = .tableColumnSpan(cell)
+                var column     = 0'u64
+                var found      = false
+                var overflowed = false
+                var overflowColumnOffset = 0'u64
+                while column + columnSpan <= 256 and not found
+                {
+                    var overlaps = false
+                    for offset in 0 until columnSpan
+                    {
+                        if occupiedRows[column + offset] do
+                            overlaps = true
+                    }
+                    if overlaps do
+                        column += 1
+                    else do
+                        found = true
+                }
+
+                if not found
+                {
+                    column = 256 - columnSpan
+                    overflowed = true
+                    overflowColumnOffset = overflowColumnCount
+                    overflowColumnCount += columnSpan
+                }
+                let span = Math.min(columnSpan, 256 - column)
+                let rowSpan = Math.min(.tableRowSpan(cell), Math.min(64, tableRowCount - rowIndex))
+                placements.add(HtmlTableCellPlacement{cell, rowIndex, column, span, rowSpan, overflowed, overflowColumnOffset})
+                for offset in 0 until span do
+                    occupiedRows[column + offset] = Math.max(occupiedRows[column + offset], rowSpan)
+                columns = Math.max(columns, column + span)
+            }
+
+            for index in 256 where occupiedRows[index] > 0 do
+                occupiedRows[index] -= 1
+            rowIndex += 1
+        }
         if not columns do
             return .layoutBlockChildren(box, contentX, contentY, contentWidth, containing)
 
@@ -2507,14 +2584,33 @@ private impl HtmlLayout
         minimums.resize(columns)
         maximums.resize(columns)
 
+        var placementIndex = 0'u64
         for row in rows where .boxes[row].kind == .TableRow
         {
-            let cells = .boxes[row].children
-            for index in cells.count
+            for cell in .boxes[row].children
             {
-                let intrinsic = .intrinsicWidths(cells[index])
-                minimums[index] = Math.max(minimums[index], intrinsic.min)
-                maximums[index] = Math.max(maximums[index], intrinsic.max)
+                let placement = placements[placementIndex]
+                let column    = placement.column
+                let span      = placement.columnSpan
+                let intrinsic = .intrinsicWidths(cell)
+                var currentMinimum = 0.0'f32
+                var currentMaximum = 0.0'f32
+                for offset in 0 until span
+                {
+                    currentMinimum += minimums[column + offset]
+                    currentMaximum += maximums[column + offset]
+                }
+
+                let minimumShare = Math.max(intrinsic.min - currentMinimum, 0) / cast(f32, span)
+                let maximumShare = Math.max(intrinsic.max - currentMaximum, 0) / cast(f32, span)
+                for offset in 0 until span
+                {
+                    minimums[column + offset] += minimumShare
+                    maximums[column + offset] += maximumShare
+                    maximums[column + offset] = Math.max(maximums[column + offset], minimums[column + offset])
+                }
+
+                placementIndex += 1
             }
         }
 
@@ -2544,7 +2640,50 @@ private impl HtmlLayout
                 widths[index] = minimums[index] + (range > 0 ? room * (maximums[index] - minimums[index]) / range : 0)
         }
 
+        var rowHeights: Array'f32
+        rowHeights.resize(rowIndex)
+        placementIndex = 0
+        for row in rows where .boxes[row].kind == .TableRow
+        {
+            for _ in .boxes[row].children
+            {
+                let placement = placements[placementIndex]
+                var cellWidth = 0.0'f32
+                for offset in 0 until placement.columnSpan do
+                    cellWidth += widths[placement.column + offset]
+                var cellX = contentX
+                if placement.overflowed
+                {
+                    for column in columns do
+                        cellX += widths[column]
+                    cellX += widths[columns - 1] * cast(f32, placement.overflowColumnOffset)
+                }
+                else
+                {
+                    for column in placement.column do
+                        cellX += widths[column]
+                }
+                .layoutBlockBox(placement.box, cellX, contentY, cellWidth, containing)
+                if placement.rowSpan == 1 do
+                    rowHeights[placement.row] = Math.max(rowHeights[placement.row], .boxes[placement.box].rect.height)
+                placementIndex += 1
+            }
+        }
+
+        for placement in placements where placement.rowSpan > 1
+        {
+            var height = 0.0'f32
+            for offset in 0 until placement.rowSpan do
+                height += rowHeights[placement.row + offset]
+            let naturalHeight = .boxes[placement.box].rect.height
+            let extra = Math.max(naturalHeight - height, 0) / cast(f32, placement.rowSpan)
+            for offset in 0 until placement.rowSpan do
+                rowHeights[placement.row + offset] += extra
+        }
+
         var y = contentY
+        var tableRowIndex = 0'u64
+        placementIndex = 0
         for row in rows
         {
             if .boxes[row].kind != .TableRow
@@ -2554,33 +2693,51 @@ private impl HtmlLayout
                 continue
             }
 
-            var x      = contentX
-            var height = 0.0'f32
+            let height = rowHeights[tableRowIndex]
             let cells  = .boxes[row].children
-            for index in cells.count
+            for cell in cells
             {
-                .layoutBlockBox(cells[index], x, y, widths[index], containing)
-                height = Math.max(height, .boxes[cells[index]].rect.height)
-                x      += widths[index]
-            }
+                let placement = placements[placementIndex]
+                var cellWidth = 0.0'f32
+                for offset in 0 until placement.columnSpan do
+                    cellWidth += widths[placement.column + offset]
+                var cellX = contentX
+                if placement.overflowed
+                {
+                    for column in columns do
+                        cellX += widths[column]
+                    cellX += widths[columns - 1] * cast(f32, placement.overflowColumnOffset)
+                }
+                else
+                {
+                    for column in placement.column do
+                        cellX += widths[column]
+                }
+                .layoutBlockBox(cell, cellX, y, cellWidth, containing)
+                let naturalHeight = .boxes[cell].rect.height
+                var cellHeight = height
+                if placement.rowSpan > 1
+                {
+                    cellHeight = 0
+                    for offset in 0 until placement.rowSpan do
+                        cellHeight += rowHeights[placement.row + offset]
+                }
+                .boxes[cell].rect.height    = cellHeight
+                .boxes[cell].content.height = Math.max(cellHeight - .verticalExtra(cell, contentWidth), 0)
 
-            for index in cells.count
-            {
-                let naturalHeight = .boxes[cells[index]].rect.height
-                .boxes[cells[index]].rect.height    = height
-                .boxes[cells[index]].content.height = Math.max(height - .verticalExtra(cells[index], contentWidth), 0)
-
-                let extra = height - naturalHeight
-                let align = .styles[.boxes[cells[index]].style].verticalAlign
+                let extra = cellHeight - naturalHeight
+                let align = .styles[.boxes[cell].style].verticalAlign
                 if align == .Middle do
-                    .translateContents(cells[index], 0, extra * 0.5)
+                    .translateContents(cell, 0, extra * 0.5)
                 elif align == .Bottom or align == .TextBottom do
-                    .translateContents(cells[index], 0, extra)
+                    .translateContents(cell, 0, extra)
+                placementIndex += 1
             }
 
             .boxes[row].rect    = Math.Rectangle{contentX, y, contentWidth, height}
             .boxes[row].content = .boxes[row].rect
             y += height
+            tableRowIndex += 1
         }
 
         return Math.max(y - contentY, 0)

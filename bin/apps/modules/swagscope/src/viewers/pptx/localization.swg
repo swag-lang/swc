@@ -23,6 +23,8 @@ struct Texts
     ui_ImageOmitted: string = "[Image not shown]"
     err_Invalid:     string = "This presentation has a damaged structure."
     err_TooLarge:    string = "This presentation is too large to open safely."
+    err_LegacyFormat: string = "Legacy PowerPoint .ppt and .pps files are not supported; open a .pptx, .ppsx, or .pptm file."
+    err_TemplateFormat: string = "PowerPoint template files are not supported."
 }
 
 private const FrenchStringsName = "lang/fr/scope.pptx.tweak"

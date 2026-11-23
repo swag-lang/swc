@@ -9,7 +9,7 @@ directory may retain older names when those files serve a particular screenshot 
 The executable fixture matrix includes every `viewer.*` file in this directory and is
 [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg). It checks that every listed
 file exists and selects the expected reader. The image cases also decode their payloads;
-format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX, ODS, PPTX and ODP content and negative cases. The
+format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX, ODS, PPTX/PPSX/PPTM and ODP content and negative cases. The
 registry smoke opens one file for each viewer. A selector check alone does not prove that every
 legal variation of a format can be read.
 
@@ -99,12 +99,12 @@ Its embedded photograph is reused unchanged from `viewer.pictures.pptx` and reta
 fixture's recorded provenance and licence. No external resources are included.
 
 `viewer.chart.pptx` is a repository-authored one-slide presentation with a cached two-series
-bar chart and three shared categories. It exercises a relationship-resolved chart part without
-an embedded workbook or external resources. Regenerate it with
+bar chart, direct RGB series colors and three shared categories. It exercises a relationship-resolved
+chart part without an embedded workbook or external resources. Regenerate it with
 `generator/generate-office-lite-fixtures.py`.
 
 `viewer.column-chart.pptx` is the matching repository-authored presentation with a cached vertical
-column chart and a negative cached value to cover signed scaling.
+column chart, direct RGB series colors and a negative cached value to cover signed scaling.
 Regenerate it with `generator/generate-office-lite-fixtures.py`.
 
 `viewer.combo-chart.pptx` combines a cached bar chart with a cached line series to verify that an
@@ -112,9 +112,23 @@ unsupported mixed chart is reported as simplified rather than partially drawn.
 Regenerate it with `generator/generate-office-lite-fixtures.py`.
 
 `viewer.table.pptx` is a repository-authored one-slide presentation with a title and a three-column,
-three-row static table graphic frame. Its unequal grid widths, filled header row, and cell text cover
-table package decoding without external assets.
+six-row static table graphic frame. Its filled header, horizontally merged summary cell, vertically
+merged annual total cell, and cell text cover table package decoding without external assets.
 Regenerate it with `generator/generate-office-lite-fixtures.py`.
+
+`viewer.line-chart.pptx`, `viewer.smooth-line-chart.pptx`, `viewer.area-chart.pptx`, and
+`viewer.stacked-area-chart.pptx` are
+repository-authored one-slide presentations with two cached series and four shared categories.
+The line chart uses standard straight segments and direct RGB series colors; the smoothed line
+chart and stacked area chart exercise simplified output for smoothed and stacked forms; the area
+chart covers standard filled areas. None includes an embedded workbook or external resources.
+Regenerate them with
+`generator/generate-line-chart-fixtures.py`.
+
+`viewer.pie-chart.pptx` is a repository-authored cached single-series pie chart with four positive
+categories. The companion multiple-series, negative-value, and mixed-family packages exercise the
+simplified fallback. None includes an embedded workbook or external resources. Regenerate all four
+with `generator/generate-pie-chart-fixtures.py`.
 
 `viewer.project.zip` is a reproducible, repository-authored field-survey project bundle. It has
 seven Deflate-compressed files across the root, `config/`, `data/`, `docs/` and `src/`, with

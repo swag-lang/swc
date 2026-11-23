@@ -31,6 +31,8 @@ struct SlideShape
     insetMask:        u8
     inset:            Math.Vector4 = {9.6, 4.8, 9.6, 4.8}
     picture:          bool
+    connector:        bool
+    connectorLine:    bool
     unsupported:      bool
     hidden:           bool
     omittedImages:    u64
@@ -63,6 +65,8 @@ impl SlideShape
             {
                 if token.isElement("pic") do
                     result.picture = true
+                if token.isElement("cxnSp") do
+                    result.connector = true
                 if token.isElement("ph")
                 {
                     result.placeholder      = true
@@ -146,7 +150,8 @@ impl SlideShape
                     let kind = token.attribute("prst") orelse "rect"
                     result.round = kind == "roundRect"
                     result.ellipse = kind == "ellipse"
-                    if kind != "rect" and kind != "roundRect" and kind != "ellipse" do
+                    result.connectorLine = result.connector and kind == "line"
+                    if kind != "rect" and kind != "roundRect" and kind != "ellipse" and not result.connectorLine do
                         result.unsupported = true
                 }
                 elif inProperties and token.isElement("custGeom")
@@ -157,6 +162,15 @@ impl SlideShape
                 {
                     inLine = not token.empty
                     result.lineWidth = Math.max(emuValue(&token, "w"), 1)
+                }
+                elif inLine and (token.isElement("headEnd") or token.isElement("tailEnd")) and
+                     token.attribute("type") != null and token.attribute("type") != "none"
+                {
+                    result.unsupported = true
+                }
+                elif inLine and token.isElement("prstDash") and token.attribute("val") != "solid"
+                {
+                    result.unsupported = true
                 }
                 elif inProperties and token.isElement("noFill")
                 {
@@ -221,13 +235,26 @@ impl SlideShape
 
         if scan.damaged do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        result.positioned = result.hasOffset and result.hasExtent
+        if result.connector
+        {
+            let horizontal = result.bounds.width > 0 and result.bounds.height == 0
+            let vertical   = result.bounds.width == 0 and result.bounds.height > 0
+            let diagonal   = result.bounds.width > 0 and result.bounds.height > 0
+            let simpleTransform = not result.rotation and not result.flipHorizontal and not result.flipVertical
+            result.positioned = result.hasOffset and simpleTransform and (horizontal or vertical or diagonal)
+            result.unsupported = result.unsupported or not result.connectorLine or not result.positioned or result.line.isEmpty()
+        }
+        else
+        {
+            result.positioned = result.hasOffset and result.hasExtent
+        }
         if images
         {
             let text = try SlideText.parse(source, images, theme, pageWidth)
             result.html          = text.html
             result.plainText     = text.plainText
             result.omittedImages = text.omittedImages
+            result.unsupported  = result.unsupported or text.requiresSimplified
         }
 
         return result

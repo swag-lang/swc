@@ -56,6 +56,9 @@ struct ViewerReadingState
     hexHistoryIndex: u64 = Swag.U64.Max
     #[Serialization.NoSerialize]
     hexCaret: u64
+    textBookmarks: Array'Viewers.PlainText.Bookmark
+    textBookmarkIdentity: String
+    textBookmarksPersistable: bool = true
 }
 
 impl ViewerReadingState
@@ -82,6 +85,8 @@ impl ViewerReadingState
         .query     = search
         .panelOpen = session.sidePanelButton?.isChecked orelse false
         .scrolls.clear()
+        .textBookmarks.clear()
+        .textBookmarkIdentity = ""
         var path: Array'u32
         .captureScrolls(unwrap session.view, &path)
         switch session.view
@@ -89,6 +94,10 @@ impl ViewerReadingState
         case Viewers.PlainText.Panel as view:
             .zoom     = view.zoomPercent
             .wrapping = view.wrapping
+            for bookmark in view.bookmarks do
+                .textBookmarks.add(bookmark)
+            .textBookmarkIdentity = view.bookmarkIdentity
+            .textBookmarksPersistable = view.bookmarksPersistable
 
         case Viewers.Code.Panel as view:
             .zoom = view.zoomPercent
@@ -215,6 +224,10 @@ impl ViewerReadingState
             view.pdfView.setZoom(.pdfZoom)
             view.pdfView.setZoomMode(.pdfZoomMode)
             view.pdfView.showPage(.page)
+
+        case Viewers.PlainText.Panel as view:
+            view.restoreBookmarks(.textBookmarks.toSlice(), .textBookmarkIdentity)
+            view.bookmarksPersistable = .textBookmarksPersistable
 
         case Viewers.Picture.Panel as view:
             if .imageMirrored do

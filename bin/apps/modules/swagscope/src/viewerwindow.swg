@@ -14,6 +14,18 @@ struct ViewerFolderHistory
     file:   String
 }
 
+// The durable bookmark registry is a bounded least-recently-stored list.
+internal const ViewerTextBookmarkFileLimit = 64'u64
+internal const ViewerTextBookmarkLimit     = 64'u64
+
+// The durable text bookmarks kept for one file identity.
+internal struct ViewerTextBookmarkFile
+{
+    path:      String
+    identity:  String
+    bookmarks: Array'Viewers.PlainText.Bookmark
+}
+
 // Returns the application window that hosts `view`.
 func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType'ViewerWindow()
 
@@ -168,6 +180,10 @@ struct ViewerWindow
     recent:                    Array'String
     recentOpened:              Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
     folderHistory:             Array'ViewerFolderHistory
+    internal
+    {
+        textBookmarkFiles: Array'ViewerTextBookmarkFile
+    }
     resumePoints:              Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:           Array'String     // Directories explored lately, most recent first.
     folderViews:               Array'ExplorerFolderState
@@ -569,6 +585,7 @@ impl IWnd for ViewerWindow
 
         if not evt.serializer.isReading()
         {
+            .rememberTextBookmarkSessions()
             .explorer?.rememberView()
             .privacy.sanitize()
             .captureResume()

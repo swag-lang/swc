@@ -1,5 +1,76 @@
 impl ViewerWindow
 {
+    // Copies bookmarks from every text session before the host discards or persists them.
+    internal mtd rememberTextBookmarkSessions()
+    {
+        for instance in .instances
+        {
+            if instance.view is Viewers.PlainText.Panel as view do
+                .rememberTextBookmarks(view)
+        }
+    }
+
+    private mtd rememberTextBookmarks(view: *Viewers.PlainText.Panel)
+    {
+        if not view.bookmarksPersistable do
+            return
+        var path = catch Path.absolute(view.fileName) { return; }
+        Path.normalize(&path)
+
+        .privacy.track(path)
+        .storeTextBookmarkFile(path, view.bookmarkIdentity, view.bookmarks.toSlice())
+    }
+
+    internal mtd storeTextBookmarkFile(path: string, identity: string, bookmarks: const [..] Viewers.PlainText.Bookmark)
+    {
+        if not path.count or not identity.count do
+            return
+        var found = Swag.U64.Max
+        for record, index in .textBookmarkFiles where Path.equals(record.path, path) do
+            found = index
+
+        if not bookmarks.count
+        {
+            if found != Swag.U64.Max do
+                .textBookmarkFiles.removeAtOrdered(found)
+            return
+        }
+
+        var record: ViewerTextBookmarkFile
+        record.path = String.from(path)
+        record.identity = String.from(identity)
+        let first = bookmarks.count > ViewerTextBookmarkLimit ? bookmarks.count - ViewerTextBookmarkLimit : 0
+        for index in first until bookmarks.count do
+            record.bookmarks.add(bookmarks[index])
+
+        if found != Swag.U64.Max
+        {
+            .textBookmarkFiles.removeAtOrdered(found)
+        }
+        elif .textBookmarkFiles.count >= ViewerTextBookmarkFileLimit
+        {
+            .textBookmarkFiles.removeAtOrdered(0)
+        }
+        .textBookmarkFiles.add(#move record)
+    }
+
+    // Restores by path so changed metadata remains visible as a stale bookmark for the user.
+    private mtd restoreTextBookmarks(view: *Viewers.PlainText.Panel)
+    {
+        var path = catch Path.absolute(view.fileName) { return; }
+        Path.normalize(&path)
+        if not .privacy.mayRemember(path)
+        {
+            view.bookmarksPersistable = false
+            return
+        }
+        for record in .textBookmarkFiles where Path.equals(record.path, path)
+        {
+            view.restoreBookmarks(record.bookmarks.toSlice(), record.identity)
+            return
+        }
+    }
+
     // Reloads the current path while retaining the active reading session.
     mtd reloadCurrentFile()
     {
@@ -27,6 +98,7 @@ impl ViewerWindow
                   preserveReading = false,
                   offerForgetMissing = false)
     {
+        .rememberTextBookmarkSessions()
         .captureResume()
         if .isExploring() and not preserveReading do
             .explorerTransition = true
@@ -737,6 +809,9 @@ impl ViewerWindow
             next.destroyWindows()
             return false
         }
+
+        if next.view is Viewers.PlainText.Panel as textView do
+            .restoreTextBookmarks(textView)
 
         if not .retireActiveLoadingChoice(index)
         {

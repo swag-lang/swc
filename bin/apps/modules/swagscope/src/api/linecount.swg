@@ -31,8 +31,9 @@ impl LineCounter
     // `encoding` from byte `contentStart` on, or zero when the file cannot be read there or the
     // answer would read more than `scanLimit` bytes.
     //
-    // `offset` must lie on a unit boundary of `encoding` counted from `contentStart`, as any
-    // window a text reader decodes from does.
+    // CR, LF, and CRLF each end one line; bytes in a line ending belong to the preceding line.
+    // `offset` must lie on a unit boundary of `encoding` counted from `contentStart`, as any window
+    // a text reader decodes from does.
     mtd lineAt(fileName: string, offset: u64, encoding = Text.Encoding.Utf8, contentStart = 0'u64, scanLimit = LineCountScanLimit)->u64
     {
         var start = contentStart
@@ -48,7 +49,8 @@ impl LineCounter
         if offset - start > scanLimit do
             return 0
 
-        let scan = .scan(fileName, encoding, start, line, offset, Swag.U64.Max)
+        let readLimit = start > Swag.U64.Max - scanLimit ? Swag.U64.Max : start + scanLimit
+        let scan = .scan(fileName, encoding, start, line, offset, Swag.U64.Max, readLimit)
         if scan.failed or scan.atEnd do
             return 0
 
@@ -59,7 +61,8 @@ impl LineCounter
 
     // Returns the offset of the first byte of line `line` of `fileName`, whose text is encoded as
     // `encoding` from byte `contentStart` on. A line past the last one answers the start of the
-    // last line, as a typed position past the end names the end.
+    // last line, as a typed position past the end names the end. CR, LF, and CRLF each end one
+    // line, and the returned offset follows the complete line ending.
     //
     // Returns `Swag.U64.Max` when `line` is zero, the file cannot be read, or the answer would read
     // more than [[Viewer.LineCountScanLimit]] past the closest line already numbered.
@@ -81,7 +84,8 @@ impl LineCounter
         if line == startLine do
             return start
 
-        let scan = .scan(fileName, encoding, start, startLine, start + LineCountScanLimit, line)
+        let readLimit = start > Swag.U64.Max - LineCountScanLimit ? Swag.U64.Max : start + LineCountScanLimit
+        let scan = .scan(fileName, encoding, start, startLine, readLimit, line, readLimit)
         if scan.failed or (scan.line != line and not scan.atEnd) do
             return Swag.U64.Max
 
@@ -94,7 +98,7 @@ impl LineCounter
     //
     // The estimate samples at most 64 KiB in sixteen evenly spaced windows. It does not change
     // the exact line anchor. Returns [[Swag.U64.Max]] when the file cannot be sampled or the
-    // samples contain no line feeds, so the caller can distinguish an unavailable estimate.
+    // samples contain no line breaks, so the caller can distinguish an unavailable estimate.
     mtd estimateOffsetOfLine(fileName: string, line: u64, encoding = Text.Encoding.Utf8, contentStart = 0'u64)->u64
     {
         if not line do
@@ -118,7 +122,7 @@ impl LineCounter
         let lastStart = fileSize - sampleSize
         let intervals = LineEstimateSampleCount - 1
         var sampledBytes = 0'u64
-        var sampledLineFeeds = 0'u64
+        var sampledLineBreaks = 0'u64
         var buffer: Array'u8
         buffer.resize(sampleSize)
 
@@ -134,24 +138,21 @@ impl LineCounter
             sampledBytes += count
 
             var at = 0'u64
+            var previousCr = false
             while at < count
             {
-                if buffer[at + feedIndex] == '\n'
-                {
-                    var feed = true
-                    for byte in unit where byte != feedIndex and buffer[at + byte] != 0 do
-                        feed = false
-                    if feed do
-                        sampledLineFeeds += 1
-                }
+                let marker = encodedLineBreak(buffer, at, unit, feedIndex)
+                if marker == '\r' or (marker == '\n' and not previousCr) do
+                    sampledLineBreaks += 1
+                previousCr = marker == '\r'
 
                 at += unit
             }
         }
 
-        if not sampledLineFeeds do
+        if not sampledLineBreaks do
             return Swag.U64.Max
-        let bytesPerLine = Math.max(sampledBytes / sampledLineFeeds, unit)
+        let bytesPerLine = Math.max(sampledBytes / sampledLineBreaks, unit)
         let countedLines = available / bytesPerLine
         let estimatedLines = countedLines == Swag.U64.Max ? countedLines : countedLines + 1
         let uncertainty = Math.max(8, estimatedLines / 20)
@@ -166,7 +167,7 @@ impl LineCounter
     }
 }
 
-// Where a line-feed count of a [[Viewer.LineCounter]] stopped.
+// Where a line-break count of a [[Viewer.LineCounter]] stopped.
 private struct LineScan
 {
     line:      u64      // Number of the line the scan stopped in.
@@ -177,13 +178,13 @@ private struct LineScan
 
 impl LineCounter
 {
-    // Counts the line feeds of `fileName` from `start`, which begins line `line`, and stops at
+    // Counts the line breaks of `fileName` from `start`, which begins line `line`, and stops at
     // byte `limit`, at the end of the file, or as soon as line `target` begins, whichever comes
     // first.
     //
-    // A line feed is one unit holding 10 in the encoding's byte order, never a byte that happens
-    // to be 10 inside a wider character.
-    private mtd const scan(fileName: string, encoding: Text.Encoding, start, line, limit, target: u64)->LineScan
+    // CR, LF, and CRLF each end one line. A marker is one encoded unit, never a byte that happens
+    // to be 10 or 13 inside a wider character.
+    private mtd const scan(fileName: string, encoding: Text.Encoding, start, line, limit, target, readLimit: u64)->LineScan
     {
         var result: #returntype
         result.line      = line
@@ -200,11 +201,18 @@ impl LineCounter
 
         let unit      = Text.unitSize(encoding)
         let feedIndex = encoding == .Utf16Be or encoding == .Utf32Be ? unit - 1 : 0
+        let fileSize  = catch file.size()
+        {
+            result.failed = true
+            return result
+        }
 
         let chunkSize = 64 * 1024'u64
         var buffer: Array'u8
         buffer.resize(chunkSize)
         var position = start
+        var pendingCr = false
+        var pendingCrEnd = start
         while position < limit and result.line < target
         {
             let wanted = Math.min(limit - position, chunkSize)
@@ -217,7 +225,7 @@ impl LineCounter
             if not count
             {
                 result.atEnd = true
-                return result
+                break
             }
 
             if count % unit
@@ -229,16 +237,34 @@ impl LineCounter
             var index = 0'u64
             while index < count and result.line < target
             {
-                if buffer[index + feedIndex] == '\n'
+                let marker = encodedLineBreak(buffer, index, unit, feedIndex)
+                if pendingCr
                 {
-                    var feed = true
-                    for byte in unit where byte != feedIndex and buffer[index + byte] != 0 do
-                        feed = false
-                    if feed
+                    if marker == '\n'
                     {
                         result.line      += 1
                         result.lineStart = position + index + unit
+                        pendingCr = false
+                        index += unit
+                        continue
                     }
+
+                    result.line      += 1
+                    result.lineStart = pendingCrEnd
+                    pendingCr = false
+                    if result.line >= target do
+                        break
+                }
+
+                if marker == '\r'
+                {
+                    pendingCr = true
+                    pendingCrEnd = position + index + unit
+                }
+                elif marker == '\n'
+                {
+                    result.line      += 1
+                    result.lineStart = position + index + unit
                 }
 
                 index += unit
@@ -247,6 +273,48 @@ impl LineCounter
             position += count
         }
 
+        // A CR starts a line break unless the next encoded unit is LF. At a requested byte
+        // boundary, inspect the following unit so offsets between CR and LF remain on the old line.
+        if pendingCr and result.line < target
+        {
+            var pairedWithLf = false
+            if pendingCrEnd == limit and limit < fileSize
+            {
+                if readLimit - limit < unit
+                {
+                    result.failed = true
+                    return result
+                }
+                discard catch file.seek(.Begin, limit)
+                var lookahead: Array'u8
+                lookahead.resize(unit)
+                let lookaheadCount = catch file.read(lookahead.toSlice())
+                {
+                    result.failed = true
+                    return result
+                }
+                pairedWithLf = lookaheadCount == unit and encodedLineBreak(lookahead, 0, unit, feedIndex) == '\n'
+            }
+
+            if not pairedWithLf
+            {
+                result.line      += 1
+                result.lineStart = pendingCrEnd
+            }
+        }
+
         return result
     }
+}
+
+// Returns the ASCII CR or LF marker in one encoded text unit, or zero for any other unit.
+private func encodedLineBreak(bytes: Array'u8, at, unit, markerIndex: u64)->u8
+{
+    let marker = bytes[at + markerIndex]
+    if marker != '\r' and marker != '\n' do
+        return 0
+
+    for byte in unit where byte != markerIndex and bytes[at + byte] != 0 do
+        return 0
+    return marker
 }

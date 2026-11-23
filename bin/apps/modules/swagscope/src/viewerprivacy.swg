@@ -156,6 +156,20 @@ impl ViewerPrivacy
         return false
     }
 
+    // Removes durable bookmarks and blocks the current panels from re-adding this activation.
+    private mtd forgetTextBookmarks(path: string)
+    {
+        for index in reversed(.window.textBookmarkFiles.count) where
+            Path.equals(.window.textBookmarkFiles[index].path, path) do
+            .window.textBookmarkFiles.removeAtOrdered(index)
+
+        for instance in .window.instances
+        {
+            if instance.view is Viewers.PlainText.Panel as view where Path.equals(view.fileName, path) do
+                view.bookmarksPersistable = false
+        }
+    }
+
     // Reconcile before every persistence boundary as well as while the window is idle.
     // Polling existing publications never reopens the user's files or folders.
     mtd refresh()->bool
@@ -191,6 +205,7 @@ impl ViewerPrivacy
         // Every alias and extracted member of the same mount belongs to the activation.
         for &source in .sources where source.forget
         {
+            .forgetTextBookmarks(source.path)
             for &other in .sources where other.policy.channel == source.policy.channel do
                 other.forget = true
             .queueCacheClear(source.policy.channel)
@@ -387,6 +402,7 @@ impl ViewerPrivacy
         var views   = window.folderViews
         var music   = window.musicChoices
         var resume  = window.resumePoints
+        var textBookmarkFiles = window.textBookmarkFiles
         var dialog  = window.fileDlgState
         if not serializer.isReading()
         {
@@ -407,6 +423,16 @@ impl ViewerPrivacy
                 music.removeAtOrdered(index)
             for index in reversed(resume.count) where not .mayPersist(resume[index].file) do
                 resume.removeAtOrdered(index)
+            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit do
+                textBookmarkFiles.removeAtOrdered(0)
+            for &record in textBookmarkFiles
+            {
+                while record.bookmarks.count > ViewerTextBookmarkLimit do
+                    record.bookmarks.removeAtOrdered(0)
+                .track(record.path)
+            }
+            for index in reversed(textBookmarkFiles.count) where not .mayPersist(textBookmarkFiles[index].path) do
+                textBookmarkFiles.removeAtOrdered(index)
             if not .mayPersist(dialog.currentFolder) do
                 dialog.currentFolder.clear()
             for index in reversed(dialog.recentFolders.count) where not .mayPersist(dialog.recentFolders[index]) do
@@ -421,13 +447,27 @@ impl ViewerPrivacy
         catch serializer.serialize("ViewerWindow.exploredFolders", &folders)
         catch serializer.serialize("ViewerWindow.folderViews", &views)
         catch serializer.serialize("ViewerWindow.musicChoices", &music)
+        catch serializer.serialize("ViewerWindow.textBookmarkFiles", &textBookmarkFiles)
         if serializer.isReading()
         {
+            for index in reversed(textBookmarkFiles.count) where
+                textBookmarkFiles[index].path.isEmpty() or textBookmarkFiles[index].identity.isEmpty() or
+                textBookmarkFiles[index].bookmarks.isEmpty() do
+                textBookmarkFiles.removeAtOrdered(index)
+            while textBookmarkFiles.count > ViewerTextBookmarkFileLimit do
+                textBookmarkFiles.removeAtOrdered(0)
+            for &record in textBookmarkFiles
+            {
+                while record.bookmarks.count > ViewerTextBookmarkLimit do
+                    record.bookmarks.removeAtOrdered(0)
+            }
+
             window.fileDlgState    = #move dialog
             window.recent          = #move recent
             window.recentOpened    = #move opened
             window.folderHistory   = #move history
             window.resumePoints    = #move resume
+            window.textBookmarkFiles = #move textBookmarkFiles
             window.exploredFolders = #move folders
             window.folderViews     = #move views
             window.musicChoices    = #move music

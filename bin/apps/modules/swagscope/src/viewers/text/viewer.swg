@@ -72,12 +72,32 @@ private
     const ResidentWindowSize = 256 * 1024'u64
     const RevealContextSize  = 16 * 1024'u64
     const LensHistoryLimit   = 64'u64
+    const BookmarkNameLimit  = 128'u64
 
     // Bytes the window is counted over to name the cursor line when the gutter does not ask for it.
     const QuietLineCountLimit = 4 * 1024 * 1024'u64
 
     // The encodings offered in the action bar, in the order the selector lists them.
     const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
+}
+
+// A session bookmark survives replacement of the resident text window.
+internal struct Bookmark
+{
+    label:  String
+    line:   u64
+    offset: u64
+}
+
+private func textFileIdentity(fileName: string)->String
+{
+    let absolute = catch Path.absolute(fileName) { return "" }
+    let info     = catch File.info(absolute) { return "" }
+    return Format.toString("%\n%\n%\n%",
+                          absolute,
+                          info.size,
+                          Hash.hash64(info.creationTime),
+                          Hash.hash64(info.lastWriteTime))
 }
 
 // What the head of a file says about how it spells its characters.
@@ -110,9 +130,14 @@ struct Panel
     hasEstimatedLine:  bool
     estimatedLine:     u64
     pendingNavigation:  Input.Key
-    lensHistory:        Array'u64
-    lensHistoryIndex:   u64 = Swag.U64.Max
-    replayingLensHistory: bool
+    internal lensHistory: Array'u64
+    internal lensHistoryIndex: u64 = Swag.U64.Max
+    internal replayingLensHistory: bool
+    fileIdentity:       String
+    internal bookmarkIdentity: String
+    internal bookmarks: Array'Bookmark
+    internal bookmarksStale: bool
+    internal bookmarksPersistable: bool = true
     retiring:           bool
     readFailed:         bool
     fileName:           String
@@ -284,6 +309,201 @@ impl Panel
         if direction > 0 do
             return .navigateLensHistory(1)
         return false
+    }
+
+    mtd handleBookmarkKey(evt: const *KeyEvent)->bool
+    {
+        if evt.kind != .Pressed do
+            return false
+        let modifiers = Input.KeyModifiers.Control | .Shift
+        if evt.modifiers != modifiers do
+            return false
+        switch evt.key
+        {
+        case .B:
+            .promptBookmarkCurrentLine()
+            return true
+        case .PageUp:
+            return .navigateBookmark(-1)
+        case .PageDown:
+            return .navigateBookmark(1)
+        default:
+            return false
+        }
+    }
+
+    mtd refreshBookmarkStaleness()->bool
+    {
+        if .bookmarks.isEmpty()
+        {
+            .bookmarksStale = false
+            return false
+        }
+        let currentIdentity = textFileIdentity(.fileName)
+        .bookmarksStale = currentIdentity.isEmpty() or currentIdentity != .bookmarkIdentity
+        return .bookmarksStale
+    }
+
+    mtd canBookmarkCurrentLine()->bool
+    {
+        if not .currentLine() or
+           .bookmarks.count >= ViewerTextBookmarkLimit or
+           .fileIdentity.isEmpty() or
+           .refreshBookmarkStaleness() or
+           textFileIdentity(.fileName) != .fileIdentity do
+            return false
+        return .lines.offsetOfLine(.fileName, .currentLine(), .encoding, .contentStart) != Swag.U64.Max
+    }
+
+    // Stores one named line after the current file and its exact line start are checked.
+    internal mtd addCurrentLineBookmark(label: string)->bool
+    {
+        if not .canBookmarkCurrentLine() do
+            return false
+        let line = .currentLine()
+        let offset = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        return .storeBookmark(label, line, offset)
+    }
+
+    // Adds a bookmark at a known exact line start; shared by the lens prompt and focused tests.
+    internal mtd storeBookmark(label: string, line, offset: u64)->bool
+    {
+        let name = Latin1.trim(label)
+        if name.count == 0 or name.count > BookmarkNameLimit or
+           not line or offset > .fileSize or .bookmarks.count >= ViewerTextBookmarkLimit or
+           .fileIdentity.isEmpty() or .refreshBookmarkStaleness() or
+           textFileIdentity(.fileName) != .fileIdentity do
+            return false
+        for bookmark in .bookmarks where Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0 do
+            return false
+
+        if .bookmarks.isEmpty() do
+            .bookmarkIdentity = .fileIdentity
+        .bookmarks.add(Bookmark{String.from(name), line, offset})
+        .bookmarksStale = false
+        return true
+    }
+
+    internal mtd restoreBookmarks(saved: const [..] Bookmark, identity: string)
+    {
+        .bookmarks.clear()
+        for bookmark in saved do
+            .bookmarks.add(bookmark)
+        .bookmarkIdentity = identity
+        discard .refreshBookmarkStaleness()
+    }
+
+    internal mtd renameBookmark(index: u64, label: string)->bool
+    {
+        if index >= .bookmarks.count do
+            return false
+        let name = Latin1.trim(label)
+        if name.count == 0 or name.count > BookmarkNameLimit do
+            return false
+        for bookmark, other in .bookmarks where other != index and
+                                                Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0 do
+            return false
+        .bookmarks[index].label = String.from(name)
+        return true
+    }
+
+    mtd navigateToBookmark(index: u64)->bool
+    {
+        if index >= .bookmarks.count or .refreshBookmarkStaleness() do
+            return false
+        return .revealLensDestination(.bookmarks[index].offset)
+    }
+
+    mtd bookmarkIndexInDirection(direction: s32)->u64
+    {
+        if .bookmarks.isEmpty() or .refreshBookmarkStaleness() do
+            return Swag.U64.Max
+        let current = .currentLine()
+        if not current do
+            return Swag.U64.Max
+        var found = Swag.U64.Max
+        if direction < 0
+        {
+            var best = 0'u64
+            for bookmark, index in .bookmarks where bookmark.line < current and
+                                                       (found == Swag.U64.Max or bookmark.line > best)
+            {
+                found = index
+                best = bookmark.line
+            }
+        }
+        else
+        {
+            var best = Swag.U64.Max
+            for bookmark, index in .bookmarks where bookmark.line > current and
+                                                       (found == Swag.U64.Max or bookmark.line < best)
+            {
+                found = index
+                best = bookmark.line
+            }
+        }
+        return found
+    }
+
+    mtd navigateBookmark(direction: s32)->bool
+    {
+        let found = .bookmarkIndexInDirection(direction)
+        if found == Swag.U64.Max do
+            return false
+        return .navigateToBookmark(found)
+    }
+
+    internal mtd promptBookmarkCurrentLine()
+    {
+        if not .canBookmarkCurrentLine() do
+            return
+        let strings = texts()
+        let dialog = EditDlg.createSingleLine(unwrap .surface,
+                                              {title: strings.ui_BookmarkCurrentLine,
+                                               message: strings.ui_BookmarkNameHint,
+                                               text: Format.toString(strings.ui_BookmarkDefaultName, .currentLine()),
+                                               confirmButtonText: strings.ui_BookmarkAdd})
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        if not .addCurrentLineBookmark(dialog.text()) do
+            MessageDlg.error(.surface,
+                             strings.ui_BookmarkNameInvalid,
+                             options: {title: strings.ui_BookmarkCurrentLine})
+    }
+
+    internal mtd promptRenameBookmark(index: u64)
+    {
+        if index >= .bookmarks.count do
+            return
+        let strings = texts()
+        let dialog = EditDlg.createSingleLine(unwrap .surface,
+                                              {title: Format.toString(strings.ui_RenameBookmark, .bookmarks[index].label),
+                                               message: strings.ui_BookmarkNameHint,
+                                               text: .bookmarks[index].label,
+                                               confirmButtonText: strings.ui_Rename})
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        if not .renameBookmark(index, dialog.text()) do
+            MessageDlg.error(.surface,
+                             strings.ui_BookmarkNameInvalid,
+                             options: {title: Format.toString(strings.ui_RenameBookmark, .bookmarks[index].label)})
+    }
+
+    internal mtd clearBookmarks()
+    {
+        .bookmarks.clear()
+        .bookmarkIdentity = .fileIdentity
+        .bookmarksStale = false
+    }
+
+    internal mtd confirmClearBookmarks()
+    {
+        if .bookmarks.isEmpty() do
+            return
+        var options: MessageDlgOptions
+        options.title = texts().ui_ClearBookmarks
+        if MessageDlg.confirm(unwrap .surface, texts().ui_ClearBookmarksMessage, options: options) == Dialog.BtnYes do
+            .clearBookmarks()
     }
 
     // Turns a one-based character column into a file byte offset without assuming UTF-8 storage.
@@ -1165,6 +1385,8 @@ impl IWnd for Panel
     {
         if .handleLensHistoryKey(evt) do
             evt.accepted = true
+        elif .handleBookmarkKey(evt) do
+            evt.accepted = true
         elif Viewer.isZoomKey(evt) do
             .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
         elif isWrapKey(evt) do
@@ -1194,6 +1416,8 @@ impl Panel
         result.lineNumbers  = g_LineNumbers
         result.blanks       = g_Blanks
         result.tabWidth     = g_TabWidth
+        result.fileIdentity = textFileIdentity(host.fileName())
+        result.bookmarkIdentity = result.fileIdentity
         result.lensHistory.clear()
         result.lensHistoryIndex = Swag.U64.Max
         result.replayingLensHistory = false
@@ -1264,8 +1488,13 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        discard .refreshBookmarkStaleness()
         let canGoBack = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex > 0
         let canGoForward = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
+        let bookmarkIsStale = .bookmarksStale
+        let canBookmark = .canBookmarkCurrentLine()
+        let canBookmarkBack = not bookmarkIsStale and .bookmarkIndexInDirection(-1) != Swag.U64.Max
+        let canBookmarkForward = not bookmarkIsStale and .bookmarkIndexInDirection(1) != Swag.U64.Max
         entries.add(strings.ui_Back,
                     .ChevronLeft,
                     func|view = me|() { discard view.navigateLensHistory(-1) },
@@ -1278,6 +1507,46 @@ impl Panel
                     disabled: not canGoForward,
                     defaultKey: {modifiers: .Alt, key: .Right},
                     bindId: "scope.text.history.forward")
+        entries.add(strings.ui_BookmarkCurrentLine,
+                    .GoTo,
+                    func|view = me|() { view.promptBookmarkCurrentLine() },
+                    disabled: not canBookmark,
+                    defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B},
+                    bindId: "scope.text.bookmark.add")
+        entries.add(strings.ui_PreviousBookmark,
+                    .ChevronLeft,
+                    func|view = me|() { discard view.navigateBookmark(-1) },
+                    disabled: not canBookmarkBack,
+                    defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .PageUp},
+                    bindId: "scope.text.bookmark.previous")
+        entries.add(strings.ui_NextBookmark,
+                    .ChevronRight,
+                    func|view = me|() { discard view.navigateBookmark(1) },
+                    disabled: not canBookmarkForward,
+                    defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .PageDown},
+                    bindId: "scope.text.bookmark.next")
+        entries.add(strings.ui_ClearBookmarks,
+                    .Edit,
+                    func|view = me|() { view.confirmClearBookmarks() },
+                    disabled: .bookmarks.isEmpty(),
+                    bindId: "scope.text.bookmark.clear")
+        for bookmark, index in .bookmarks
+        {
+            let name = bookmark.label
+            let line = bookmark.line
+            let stale = bookmarkIsStale
+            let destination = entries.add(name,
+                                          .GoTo,
+                                          func|view = me, index|() { discard view.navigateToBookmark(index) },
+                                          disabled: stale)
+            if destination do
+                destination.detail = stale ? strings.ui_BookmarkStale : Format.toString(strings.ui_BookmarkLine, line)
+
+            entries.add(Format.toString(strings.ui_RenameBookmark, name),
+                        .Edit,
+                        func|view = me, index|() { view.promptRenameBookmark(index) },
+                        bindId: Format.toString("scope.text.bookmark.rename.%", index))
+        }
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.text.wrap")
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")

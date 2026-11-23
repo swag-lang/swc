@@ -111,13 +111,16 @@ using Core, Gui, Pixel
     window.queueFile(file)
     completeQueuedViewerFile(&host, window)
     Swag.require(window.recent.contains(window.currentFile))
+    let textView = assume cast(*PlainText.Panel, window.currentView)
+    let lineStart = textView.lines.offsetOfLine(file, 1, textView.encoding, textView.contentStart)
+    Swag.require(textView.storeBookmark("Private bookmark", 1, lineStart))
     window.rememberExplored(root)
     window.fileDlgState.currentFolder = root
     window.fileDlgState.recentFolders.add(root)
     window.musicChoices.add({path: window.currentFile, id: "test-release"})
     window.privacy.sanitize()
     let before = saveViewerState(window)
-    Swag.require(Utf8.contains(before, "private-document.txt"))
+    Swag.require(Utf8.contains(before, "private-document.txt") and Utf8.contains(before, "Private bookmark"))
 
     publisher.setPrivateMode(true)
     host.fireTimer(window.privacyTimer)
@@ -128,7 +131,8 @@ using Core, Gui, Pixel
     Swag.require(window.privacy.selectedMusicId(&match) == "test-release")
     Swag.require(window.fileDlgState.currentFolder.isEmpty() and window.fileDlgState.recentFolders.isEmpty())
     let privateState = saveViewerState(window)
-    Swag.require(not Utf8.contains(privateState, "private-document.txt"))
+    Swag.require(not Utf8.contains(privateState, "private-document.txt") and
+                 not Utf8.contains(privateState, "Private bookmark"))
 
     publisher.setPrivateMode(false)
     host.fireTimer(window.privacyTimer)
@@ -142,6 +146,27 @@ using Core, Gui, Pixel
     // Saving also reconciles changes, without depending on the next timer tick.
     let afterCycle = saveViewerState(window)
     Swag.require(window.recent.isEmpty() and not Utf8.contains(afterCycle, "private-document.txt"))
+    Swag.require(not Utf8.contains(afterCycle, "Private bookmark") and window.textBookmarkFiles.isEmpty())
+
+    // A public-mode reload keeps the old private activation non-persistable.
+    window.reloadCurrentFile()
+    completeQueuedViewerFile(&host, window)
+    discard window.readingState.restore(&window.instances[window.activeChoiceIndex])
+    let reloadedView = assume cast(*PlainText.Panel, window.currentView)
+    Swag.require(reloadedView.bookmarks.count == 1)
+    Swag.require(not reloadedView.bookmarksPersistable)
+    let reloadedState = saveViewerState(window)
+    Swag.require(not Utf8.contains(reloadedState, "Private bookmark") and window.textBookmarkFiles.isEmpty())
+
+    // A newly created public session may persist a fresh bookmark for the same path.
+    window.openFile(file, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let reopenedView = assume cast(*PlainText.Panel, window.currentView)
+    Swag.require(reopenedView.bookmarksPersistable)
+    let reopenedLine = reopenedView.lines.offsetOfLine(file, 1, reopenedView.encoding, reopenedView.contentStart)
+    Swag.require(reopenedView.storeBookmark("Public bookmark", 1, reopenedLine))
+    let publicState = saveViewerState(window)
+    Swag.require(Utf8.contains(publicState, "Public bookmark"))
 }
 
 // Folder exploration, extracted archive members and a late save after unmount retain the

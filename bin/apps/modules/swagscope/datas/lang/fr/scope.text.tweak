@@ -9,6 +9,19 @@ ui_Encoding  Encodage des caractères
 ui_ZoomMenu Zoom…
 ui_Back     Retour dans le texte
 ui_Forward  Avancer dans le texte
+ui_BookmarkCurrentLine Marquer la ligne actuelle
+ui_BookmarkNameHint Choisissez un nom unique pour cette ligne.
+ui_BookmarkDefaultName Ligne %
+ui_BookmarkAdd Marquer
+ui_PreviousBookmark Marque-page précédent
+ui_NextBookmark Marque-page suivant
+ui_ClearBookmarks Effacer les marque-pages
+ui_ClearBookmarksMessage Effacer tous les marque-pages de ce fichier texte ?
+ui_RenameBookmark Renommer le marque-page %
+ui_Rename Renommer
+ui_BookmarkLine Ligne %
+ui_BookmarkStale Fichier modifié
+ui_BookmarkNameInvalid Les noms doivent être uniques, non vides et comporter au plus 128 caractères.
 ui_NotText   Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
 ui_CurrentLine ligne %
 ui_CurrentColumn colonne %

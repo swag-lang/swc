@@ -8,17 +8,23 @@ bounded large-file work. Shared viewer search lives in
 Engine work lives in [std.gui.markdown.md](std.gui.markdown.md), [std.gui.html.md](std.gui.html.md),
 and [std.gui.md](std.gui.md).
 
-### app.scope.text.027 — Plain text has no bookmarks or navigation trail
+### app.scope.text.027 — Text navigation needs durable bookmark storage
 
 - Evidence: text now keeps a bounded 64-offset back/forward trail for explicit lens destinations,
   with Alt+Left/Right commands. Offsets survive resident-window eviction, new jumps truncate the
-  forward branch, and the current position is preserved after manual movement. Named bookmarks,
-  bookmark management, and stale-location detection after file replacement remain absent.
-- Next: add byte-backed named bookmarks with previous/next navigation, list, rename, and clear;
-  detect stale locations after replacement and define persistence through app.scope.viewers.003.
+  forward branch, and the current position is preserved after manual movement. Named bookmarks
+  support previous/next navigation, listing, rename, and clear; they are bounded to 64, stored as
+  file byte offsets, transferred during viewer reload, and persisted through the existing viewer
+  state serializer for up to 64 files whose paths pass `ViewerPrivacy.mayPersist`. They are marked
+  stale when path, size, creation time, or last-write time changes; a stale bookmark remains listed
+  for rename or clear. Replacements preserving those metadata values may evade stale detection,
+  and adding a bookmark is unavailable when the exact current line is unknown.
+- Next: improve stale detection for replacements that preserve the file's path and metadata, and
+  allow adding a bookmark when the exact current line is unknown.
 - Done when: bookmark current line, previous/next bookmark, back, forward, list, rename, and
-  clear are keyboard reachable; locations survive streamed-window eviction; stale locations are
-  detected after replacement; and persistence is an explicit part of app.scope.viewers.003.
+  clear are keyboard reachable; locations survive streamed-window eviction; replacements that
+  preserve path and metadata are still detected as stale; and bookmarks persist across restarts
+  through the viewer state serializer.
 - Related: app.scope.viewers.003, app.scope.viewers.005
 
 ### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler
@@ -97,8 +103,9 @@ and [std.gui.md](std.gui.md).
 - Evidence: basic text and code can mark every space with a dot and every tabulation with a line
   to its stop (`RichEditFlags.DrawBlanks`), without moving the text. The information sheet names
   the line ends, each convention with its count when they are mixed, and says when the last line
-  of a text broken into lines has no break after it. Line ends are not marked in the text itself,
-  and control characters and a BOM are still invisible.
+  of a text broken into lines has no break after it. Whole-file line numbering now counts CR, LF,
+  and CRLF once each, including CRLF split across a read chunk. Line ends are not marked in the
+  text itself, and control characters and a BOM are still invisible.
 - Next: extend the blank marks with line-end and control-character marks drawn over the text's
   own advance, without injecting decoration into selectable text.
 - Done when: mixed newline kinds and invalid/control bytes are distinguishable and copy returns

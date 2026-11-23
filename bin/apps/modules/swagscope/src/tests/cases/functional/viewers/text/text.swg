@@ -85,6 +85,96 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(lines.numberedOffset == anchorOffset and lines.numberedLine == anchorLine)
 }
 
+// Whole-file line navigation treats CR, LF, and CRLF as one line ending each.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-line-endings-", ".txt")
+    defer discard catch File.delete(fileName)
+    let bytes = ['a'u8, '\r'u8, 'b'u8, '\r'u8, '\n'u8, 'c'u8, '\n'u8, 'd'u8, '\r'u8, 'e'u8]
+    discard expect File.writeAllBytes(fileName, bytes)
+
+    var lines: Viewer.LineCounter
+    Swag.require(lines.offsetOfLine(fileName, 1) == 0)
+    Swag.require(lines.offsetOfLine(fileName, 2) == 2)
+    Swag.require(lines.offsetOfLine(fileName, 3) == 5)
+    Swag.require(lines.offsetOfLine(fileName, 4) == 7)
+    Swag.require(lines.offsetOfLine(fileName, 5) == 9)
+    Swag.require(lines.lineAt(fileName, 1) == 1)
+    Swag.require(lines.lineAt(fileName, 2) == 2)
+    Swag.require(lines.lineAt(fileName, 4) == 2)
+    Swag.require(lines.lineAt(fileName, 5) == 3)
+    Swag.require(lines.lineAt(fileName, 8) == 4)
+    Swag.require(lines.lineAt(fileName, 9) == 5)
+
+    // A CR at the exact scan limit needs one more unit of lookahead to distinguish CR from CRLF.
+    lines.reset()
+    Swag.require(lines.lineAt(fileName, 2, .Utf8, 0, 2) == 0)
+    lines.reset()
+    Swag.require(lines.lineAt(fileName, 2, .Utf8, 0, 3) == 2)
+
+    let utf16File = Testing.tempFilePath("scope-text-line-endings-utf16-", ".txt")
+    defer discard catch File.delete(utf16File)
+    // UTF-16 LE: U+0D00, CR, U+0A00, CRLF, U+000A.
+    let utf16Bytes = [0x00'u8, 0x0D, 0x0D, 0, 0x00, 0x0A, 0x0D, 0, 0x0A, 0, 0x0A, 0]
+    discard expect File.writeAllBytes(utf16File, utf16Bytes)
+    lines.reset()
+    Swag.require(lines.offsetOfLine(utf16File, 2, .Utf16Le) == 4)
+    Swag.require(lines.offsetOfLine(utf16File, 3, .Utf16Le) == 10)
+    Swag.require(lines.lineAt(utf16File, 2, .Utf16Le) == 1)
+    Swag.require(lines.lineAt(utf16File, 4, .Utf16Le) == 2)
+    Swag.require(lines.lineAt(utf16File, 10, .Utf16Le) == 3)
+
+    // A final CR starts an empty last line, including for requests beyond EOF.
+    let trailingCrFile = Testing.tempFilePath("scope-text-trailing-cr-", ".txt")
+    defer discard catch File.delete(trailingCrFile)
+    discard expect File.writeAllBytes(trailingCrFile, ['x'u8, '\r'u8])
+    lines.reset()
+    Swag.require(lines.offsetOfLine(trailingCrFile, 2) == 2)
+    Swag.require(lines.offsetOfLine(trailingCrFile, 8) == 2)
+    Swag.require(lines.lineAt(trailingCrFile, 2) == 2)
+}
+
+// CRLF remains one ending when its two encoded units straddle a read chunk.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-split-crlf-", ".txt")
+    defer discard catch File.delete(fileName)
+    var bytes: Array'u8
+    bytes.resize(65_538)
+    for i in 65_535 do
+        bytes[i] = 'x'
+    bytes[65_535] = '\r'
+    bytes[65_536] = '\n'
+    bytes[65_537] = 'z'
+    discard expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var lines: Viewer.LineCounter
+    Swag.require(lines.lineAt(fileName, 65_537) == 2)
+    Swag.require(lines.offsetOfLine(fileName, 2) == 65_537)
+
+    // UTF-16 LE has its CR unit at the end of the same read chunk.
+    let wideFile = Testing.tempFilePath("scope-text-split-crlf-utf16-", ".txt")
+    defer discard catch File.delete(wideFile)
+    var wideBytes: Array'u8
+    wideBytes.resize(65_540)
+    for i in 32_767
+    {
+        wideBytes[i * 2] = 'x'
+        wideBytes[i * 2 + 1] = 0
+    }
+    wideBytes[65_534] = 0x0D
+    wideBytes[65_535] = 0
+    wideBytes[65_536] = 0x0A
+    wideBytes[65_537] = 0
+    wideBytes[65_538] = 'z'
+    wideBytes[65_539] = 0
+    discard expect File.writeAllBytes(wideFile, wideBytes.toSlice())
+
+    lines.reset()
+    Swag.require(lines.lineAt(wideFile, 65_538, .Utf16Le) == 2)
+    Swag.require(lines.offsetOfLine(wideFile, 2, .Utf16Le) == 65_538)
+}
+
 // The line under the cursor is a line of the whole file, wherever the resident window starts. A
 // window whose preceding lines would take a pause to count names no line rather than one of its
 // own, until the reader numbers the lines.

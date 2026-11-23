@@ -11,8 +11,9 @@ remain in the shared viewer entries `app.scope.viewers.016`, `.001` and `.003`.
 - Evidence: the reader uses the last section's page box, turns page breaks into separators, and
   shows related default header/footer text once. It detects page and continuous section boundaries
   but does not repeat first/even headers or preserve each section's geometry.
-- Next: add a Word-authored fixture with changing page sizes and margins, all four section-break
-  kinds, and default/first/even header/footer variants. Use it to build section-aware page layout.
+- Next: add a Word-authored fixture with changing page sizes and margins, `nextPage`, `continuous`,
+  `evenPage`, `oddPage` and `nextColumn` breaks, plus default/first/even header/footer variants.
+  Implement paginated section layout and disclose column breaks until the reader represents columns.
 - Done when: next-page, continuous, even-page and odd-page breaks and each supported page box affect
   the rendered surface; the right header/footer variant appears on the corresponding page; and
   unsupported section properties are disclosed at the affected section.

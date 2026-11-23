@@ -2,6 +2,10 @@
 
 Reading and inspecting Word documents in DOCX format.
 
+Feature completion means closing the four DOCX outcomes below and meeting DOCX-specific corpus and
+resource checks in `app.scope.viewers.009`. Whole-file search, streamed selection and per-file state
+remain in the shared viewer entries `app.scope.viewers.016`, `.001` and `.003`.
+
 ### app.scope.docx.001 — DOCX section layout is flattened into one flow
 
 - Evidence: the reader uses the last section's page box, turns page breaks into separators, and

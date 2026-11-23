@@ -106,6 +106,8 @@ struct Panel
     pendingCaret:       bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
     pendingCaretColumn: u64
     pendingHasCaretColumn: bool
+    hasEstimatedLine:  bool
+    estimatedLine:     u64
     pendingNavigation:  Input.Key
     retiring:           bool
     readFailed:         bool
@@ -404,12 +406,44 @@ impl Panel
             let wanted = catch StrConv.toU64(wantedText) { return false }
             if not wanted do
                 return false
-            let start = .lines.offsetOfLine(.fileName, wanted, .encoding, .contentStart)
-            if start == Swag.U64.Max do
-                return false
-            let actualLine = .lines.lineAt(.fileName, start, .encoding, .contentStart)
-            if actualLine != wanted do
-                return false
+            let sample = .lines.estimateOffsetOfLine(.fileName, wanted, .encoding, .contentStart)
+            var start = Swag.U64.Max
+            var estimated = false
+            if sample != Swag.U64.Max
+            {
+                let anchor = wanted >= .lines.numberedLine ? .lines.numberedOffset : .contentStart
+                let distance = sample >= anchor ? sample - anchor : anchor - sample
+                if distance > Viewer.LineCountScanLimit
+                {
+                    start = sample
+                    estimated = true
+                }
+            }
+
+            if start == Swag.U64.Max
+            {
+                start = .lines.offsetOfLine(.fileName, wanted, .encoding, .contentStart)
+                if start == Swag.U64.Max
+                {
+                    if sample == Swag.U64.Max do
+                        return false
+                    start = sample
+                    estimated = true
+                }
+                else
+                {
+                    let actualLine = .lines.lineAt(.fileName, start, .encoding, .contentStart)
+                    if actualLine != wanted do
+                        return false
+                }
+            }
+
+            if estimated
+            {
+                if start == Swag.U64.Max do
+                    return false
+                start = .alignOffset(start)
+            }
 
             var offset = start
             var column = 0'u64
@@ -420,13 +454,17 @@ impl Panel
                 column = position.column
             }
             let section = results.addSection(strings.lens_InFile)
-            let title = separator == Swag.U64.Max ? Format.toString(strings.lens_GoToLine, actualLine) :
-                        Format.toString(strings.lens_GoToLineColumn, actualLine, column)
+            let lineTitle = separator == Swag.U64.Max ? Format.toString(strings.lens_GoToLine, wanted) :
+                            Format.toString(strings.lens_GoToLineColumn, wanted, column)
+            let title = estimated ? Format.toString("% · %", lineTitle, texts().ui_Estimated) : lineTitle
             with let entry = section.addEntry(title)
             {
-                .lead = separator == Swag.U64.Max ? Format.toString("%", actualLine) : Format.toString("%:%", actualLine, column)
+                .lead = separator == Swag.U64.Max ? Format.toString("%", wanted) : Format.toString("%:%", wanted, column)
                 let caretColumn = separator == Swag.U64.Max ? 0 : column - 1
-                .run = func|view = me, start, caretColumn|() { discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn) }
+                .run = func|view = me, start, caretColumn, estimated, wanted|()
+                {
+                    discard view.revealOffset(start, "", caret: true, caretColumn: caretColumn, estimatedLine: estimated ? wanted : 0)
+                }
             }
             return true
         }
@@ -482,6 +520,12 @@ impl Panel
             result += Format.toString(" · %", Format.toString(texts().ui_CurrentColumn, column))
             if offset != Swag.U64.Max do
                 result += Format.toString(" · %", Format.toString(texts().ui_CurrentByte, Format.toString("%{X}", offset)))
+        }
+        elif .displayedEncoding == .encoding and .hasEstimatedLine
+        {
+            result += Format.toString(" · %", Format.toString(texts().ui_EstimatedLine, .estimatedLine))
+            result += Format.toString(" · %", Format.toString(texts().ui_CurrentColumn, .editor.cursorLogicalCharPos() + 1))
+            result += Format.toString(" · %", Format.toString(texts().ui_EstimatedOffset, Format.toString("%{X}", .residentStart)))
         }
 
         // Statistics describe the byte interpretation that produced them. Switching encoding
@@ -804,7 +848,7 @@ impl Panel
     // With `caret`, the caret is placed at `offset` and brought into view even without text to
     // highlight; without it, an empty `text` only loads the part of the file around `offset` and
     // leaves the view where it is.
-    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max)->bool
+    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max, estimatedLine = 0'u64)->bool
     {
         if (text.count or (caret and .encoding == .Utf8)) and
            caretColumn == Swag.U64.Max and
@@ -831,6 +875,8 @@ impl Panel
         .pendingCaret      = caret
         .pendingHasCaretColumn = caretColumn != Swag.U64.Max
         .pendingCaretColumn = caretColumn == Swag.U64.Max ? 0 : caretColumn
+        .hasEstimatedLine = estimatedLine != 0
+        .estimatedLine = estimatedLine
         .pendingNavigation = .None
         .readFailed        = false
         .scheduleMore()
@@ -862,8 +908,12 @@ impl Panel
     {
         let limit = .lineNumbers ? Viewer.LineCountScanLimit : QuietLineCountLimit
         .windowLine = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart, limit)
-        if .windowLine do
+        if .windowLine
+        {
+            .hasEstimatedLine = false
+            .estimatedLine    = 0
             .editor.setFirstLineNumber(.windowLine)
+        }
 
         .updateWrap()
     }
@@ -1350,9 +1400,36 @@ impl Panel
         var data: MediaInfoData
         data.add(.Text, group: true)
         data.add(.Encoding, .encodingName())
-        if .hasStatistics and .statisticsEncoding == .encoding and .statisticsStart == .contentStart do
+        var longestLine = 0'u64
+        if .hasStatistics and .statisticsEncoding == .encoding and .statisticsStart == .contentStart
+        {
             data.addTextStatistics(&.statistics)
+            longestLine = .statistics.longestLine
+        }
         data.describe(sheet)
+        if longestLine do
+            sheet.addLink(Format.toString(appStrings().lens_GoToLine, longestLine), ViewerCommands.TextLongestLine)
+    }
+
+    // Reveals the current longest line when its information-sheet command is received.
+    mtd revealLongestLine()->bool
+    {
+        if not .isLocallyVisible() or
+           not .hasStatistics or
+           .statisticsEncoding != .encoding or
+           .statisticsStart != .contentStart or
+           not .statistics.longestLine do
+            return false
+
+        let line = .statistics.longestLine
+        let offset = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        if offset != Swag.U64.Max do
+            return .revealOffset(offset, "", caret: true)
+
+        let estimate = .lines.estimateOffsetOfLine(.fileName, line, .encoding, .contentStart)
+        if estimate == Swag.U64.Max do
+            return false
+        return .revealOffset(estimate, "", caret: true, estimatedLine: line)
     }
 }
 

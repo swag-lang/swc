@@ -77,6 +77,12 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     lines.reset()
     Swag.require(lines.lineAt(fileName, 12, .Utf16Le, 2) == 2)
     Swag.require(lines.offsetOfLine(fileName, 2, .Utf16Le, 2) == 10)
+
+    let anchorOffset = lines.numberedOffset
+    let anchorLine = lines.numberedLine
+    Swag.require(lines.estimateOffsetOfLine(fileName, 3, .Utf16Le, 2) == 14)
+    Swag.require(lines.estimateOffsetOfLine(fileName, 100, .Utf16Le, 2) == Swag.U64.Max)
+    Swag.require(lines.numberedOffset == anchorOffset and lines.numberedLine == anchorLine)
 }
 
 // The line under the cursor is a line of the whole file, wherever the resident window starts. A

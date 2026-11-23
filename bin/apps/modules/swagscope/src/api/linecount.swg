@@ -4,6 +4,8 @@
 using Core
 
 const LineCountScanLimit = 64 * 1024 * 1024'u64     // Bytes one answer of [[Viewer.LineCounter]] may read.
+private const LineEstimateSampleCount = 16'u64
+private const LineEstimateSampleSize  = 4 * 1024'u64
 
 // Numbers the lines of a text file a viewer shows one window at a time, so a line-number gutter
 // keeps counting the lines of the whole file whichever window is resident.
@@ -86,6 +88,81 @@ impl LineCounter
         .numberedOffset = scan.lineStart
         .numberedLine   = scan.line
         return scan.lineStart
+    }
+
+    // Estimates a byte offset for a line when an exact scan is too costly.
+    //
+    // The estimate samples at most 64 KiB in sixteen evenly spaced windows. It does not change
+    // the exact line anchor. Returns [[Swag.U64.Max]] when the file cannot be sampled or the
+    // samples contain no line feeds, so the caller can distinguish an unavailable estimate.
+    mtd estimateOffsetOfLine(fileName: string, line: u64, encoding = Text.Encoding.Utf8, contentStart = 0'u64)->u64
+    {
+        if not line do
+            return Swag.U64.Max
+        if line == 1 do
+            return contentStart
+
+        var file = catch File.openReadLive(fileName) { return Swag.U64.Max }
+        defer file.close()
+        let fileSize = catch file.size() { return Swag.U64.Max }
+        if fileSize <= contentStart do
+            return Swag.U64.Max
+
+        let available = fileSize - contentStart
+        let unit = Text.unitSize(encoding)
+        let sampleSize = Math.min(LineEstimateSampleSize, available / unit * unit)
+        if not sampleSize do
+            return Swag.U64.Max
+
+        let feedIndex = encoding == .Utf16Be or encoding == .Utf32Be ? unit - 1 : 0
+        let lastStart = fileSize - sampleSize
+        let intervals = LineEstimateSampleCount - 1
+        var sampledBytes = 0'u64
+        var sampledLineFeeds = 0'u64
+        var buffer: Array'u8
+        buffer.resize(sampleSize)
+
+        for sample in LineEstimateSampleCount
+        {
+            let span = lastStart - contentStart
+            let relative = span / intervals * sample + span % intervals * sample / intervals
+            let start = contentStart + relative / unit * unit
+            discard catch file.seek(.Begin, start) { return Swag.U64.Max }
+            let count = catch file.read(buffer.toSlice()) { return Swag.U64.Max }
+            if count % unit do
+                return Swag.U64.Max
+            sampledBytes += count
+
+            var at = 0'u64
+            while at < count
+            {
+                if buffer[at + feedIndex] == '\n'
+                {
+                    var feed = true
+                    for byte in unit where byte != feedIndex and buffer[at + byte] != 0 do
+                        feed = false
+                    if feed do
+                        sampledLineFeeds += 1
+                }
+
+                at += unit
+            }
+        }
+
+        if not sampledLineFeeds do
+            return Swag.U64.Max
+        let bytesPerLine = Math.max(sampledBytes / sampledLineFeeds, unit)
+        let countedLines = available / bytesPerLine
+        let estimatedLines = countedLines == Swag.U64.Max ? countedLines : countedLines + 1
+        let uncertainty = Math.max(8, estimatedLines / 20)
+        if line > estimatedLines and line - estimatedLines > uncertainty do
+            return Swag.U64.Max
+
+        let lineDelta = line - 1
+        let lastOffset = available - 1
+        let relativeOffset = lineDelta > lastOffset / bytesPerLine ? lastOffset : lineDelta * bytesPerLine
+        let offset = contentStart + relativeOffset
+        return contentStart + (offset - contentStart) / unit * unit
     }
 }
 

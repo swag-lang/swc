@@ -20,6 +20,9 @@ struct Texts
     ui_CurrentLine:  string = "line %"                 // Line under the cursor, counted in the whole file.
     ui_CurrentColumn: string = "column %"              // Unicode character column under the cursor.
     ui_CurrentByte:   string = "byte 0x%"              // Absolute file byte offset under the cursor.
+    ui_Estimated:     string = "estimated"             // Marks a lens destination inferred from sampled line lengths.
+    ui_EstimatedLine: string = "about line %"           // Estimated whole-file line near the cursor.
+    ui_EstimatedOffset: string = "near byte 0x%"        // Estimated line destination byte offset.
     ui_OneLine:      string = "1 line"                 // Singular line count.
     ui_Lines:        string = "% lines"                // Plural line count.
     ui_OneWord:      string = "1 word"                 // Singular word count.

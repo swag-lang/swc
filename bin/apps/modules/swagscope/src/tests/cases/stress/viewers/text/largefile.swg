@@ -42,6 +42,46 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("stress")]
 #test
 {
+    let fileName = Gui.Testing.tempFilePath("scope-lens-estimated-line-", ".txt")
+    defer discard catch File.delete(fileName)
+
+    var file = expect File.openWrite(fileName)
+    for batch in 500
+    {
+        var lines: String
+        for line in 1_000
+        {
+            let number = batch * 1_000 + line + 1
+            lines += Format.toString("Line % - ", number)
+            lines += "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+        }
+        expect file.writeAll(lines)
+    }
+    let fileSize = expect file.size()
+    file.close()
+    Swag.require(fileSize > 64 * 1024 * 1024)
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true, 800, 560)
+    window.lens.open(":500000")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    let estimatedTitle = Format.toString("% · %",
+                                         Format.toString(appStrings().lens_GoToLine, 500_000),
+                                         PlainText.texts().ui_Estimated)
+    Swag.require(section.entries[0].title == estimatedTitle)
+    section.entries[0].run!()
+    window.lens.close()
+
+    let view = assume cast(*PlainText.Panel, window.currentView)
+    completeTextReads(&host, view)
+    Swag.require(view.hasEstimatedLine and view.estimatedLine == 500_000)
+    Swag.require(Utf8.contains(view.detailsText().toSlice(), Format.toString(PlainText.texts().ui_EstimatedLine, 500_000).toSlice()))
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
     let fileName = Gui.Testing.tempFilePath("scope-large-scroll-", ".txt")
     defer discard catch File.delete(fileName)
 

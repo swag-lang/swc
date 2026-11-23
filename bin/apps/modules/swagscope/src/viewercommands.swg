@@ -74,6 +74,7 @@ namespace ViewerCommands
     const AlbumShuffle      = "scope.explore.album.shuffle"
     const ArtworkOnline     = "scope.explore.artwork.online"
     const ArtworkLocal      = "scope.explore.artwork.local"
+    const TextLongestLine    = "scope.text.longestLine"
 
     // Each family is ordered like its matching Explorer enum.
     const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
@@ -1111,6 +1112,16 @@ impl ViewerWindow
 
         case ViewerCommands.Information:
             .toggleInformation()
+
+        case ViewerCommands.TextLongestLine:
+            if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
+                return false
+            let instance = &.instances[.activeChoiceIndex]
+            if not instance.view or instance.view != .currentView or
+               .choices[.activeChoiceIndex].key != Viewers.PlainText.ViewerKey do
+                return false
+            let view = assume cast(*Viewers.PlainText.Panel, instance.view)
+            return view.revealLongestLine()
 
         case ViewerCommands.GeneralOptions:
             .showGeneralOptions()

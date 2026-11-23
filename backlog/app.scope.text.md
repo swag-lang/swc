@@ -8,18 +8,6 @@ bounded large-file work. Shared viewer search lives in
 Engine work lives in [std.gui.markdown.md](std.gui.markdown.md), [std.gui.html.md](std.gui.html.md),
 and [std.gui.md](std.gui.md).
 
-### app.scope.text.002 — Text navigation has no column, byte-offset, or percentage jump
-
-- Evidence: the text lens now accepts `:line`, `:line:column`, absolute byte offsets (`0x` or
-  `0d`), and percentages. It resolves source positions with the selected encoding, aligns offsets
-  to character boundaries, and shows line, column, and byte offset in the status readout. Tests
-  cover UTF-8/16/32 addressing, percent and byte jumps, and a line beyond the old 8 MiB lens cap.
-  `LineCounter` now caches the actual line start even when a query begins inside a line. A distant
-  target past the bounded 64 MiB line scan still has no estimated position.
-- Next: add bounded estimates for line jumps that exceed the exact `LineCounter` scan limit.
-- Done when: distant targets remain navigable without blocking a scan, the result distinguishes
-  exact from estimated positions, and the caret's line, column, and byte offset stay visible.
-
 ### app.scope.text.027 — Plain text has no bookmarks or navigation trail
 
 - Evidence: a reader can jump through search results and to the file ends, but cannot mark a line,
@@ -91,10 +79,12 @@ and [std.gui.md](std.gui.md).
 
 - Evidence: the background pass now reports source bytes, exact versus unknown extent, and the
   longest line's number alongside the existing counts. Tests cover chunk boundaries, a trailing
-  CRLF, the empty file, and source byte accounting including a BOM. The information sheet names
-  the byte count and profile scope. Longest-line navigation, sampled profiling, progress
-  cancellation, and reconciliation with app.scope.text.003 and app.scope.text.004 remain open.
-- Next: add a source action for longest-line locations and bounded, cancellable sampled profiling.
+  CRLF, the empty file, source byte accounting including a BOM, and following the longest-line
+  link back to its source; destinations beyond the exact scan limit are marked as estimates from
+  bounded samples. Sampled profiling, user-visible progress cancellation, and reconciliation with
+  app.scope.text.003 and app.scope.text.004 remain open.
+- Next: expose bounded sampled profiling with progress that can be cancelled, then reconcile its
+  newline and decode totals with app.scope.text.003 and app.scope.text.004.
 - Done when: every metric names its unit and exact or sampled scope, line-length extremes link
   to source, newline and decode totals reconcile with app.scope.text.003 and app.scope.text.004,
   progress can be cancelled, and profiling does not delay first content.

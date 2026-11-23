@@ -11,6 +11,9 @@ ui_NotText   Ce fichier ne contient pas de texte lisible. Choisissez Hexadécima
 ui_CurrentLine ligne %
 ui_CurrentColumn colonne %
 ui_CurrentByte octet 0x%
+ui_Estimated estimé
+ui_EstimatedLine vers la ligne %
+ui_EstimatedOffset près de l’octet 0x%
 ui_OneLine   1 ligne
 ui_Lines     % lignes
 ui_OneWord   1 mot

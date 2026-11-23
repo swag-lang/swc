@@ -37,12 +37,12 @@ struct Panel
     using navigation: DocumentPageNavigation
     previews:         Array'Layer
 
+    using steps: Viewer.PageSteps
+
     late
     {
         status:           *Label
-        previousButton:   *IconButton
-        nextButton:       *IconButton
-        slideLabel:       *Label
+        slideLabel:       *IconButton
         outline:          *DocumentOutline
     }
 }
@@ -125,14 +125,13 @@ private impl Panel
     mtd refreshNavigation()
     {
         let count = .presentation.slides.count
-        .previousButton.enable(.slide < count and .slide > 0)
-        .nextButton.enable(.slide < count and .slide + 1 < count)
-        .slideLabel.setText(Viewer.pageText(.slide, count))
+        if .steps.updateSteps(.slide, count) do
+            .services.chromeChanged(me)
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
         if .slide >= count do
             return
-        var detail = Format.toString(texts().ui_CurrentSlide, .slide + 1, count)
+        var detail = String.from(texts().ui_Name)
         if .notesMode do
             detail += Format.toString(" · %", texts().ui_NotesMode)
         elif .textMode do
@@ -286,6 +285,7 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        .steps.addPageJump(entries, "scope.pptx.goToPage")
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: .slide == 0 or .slide >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pptx.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: .slide >= .presentation.slides.count or .slide + 1 >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pptx.next")
         entries.add(texts().ui_ShowThumbnails, .Grid, func|view = me|() { view.openPages() }, disabled: .presentation.slides.isEmpty(), bindId: "scope.pptx.thumbnails")
@@ -304,23 +304,10 @@ private impl Panel
         }
 
         let controls = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        with result.previousButton = Viewer.createPageStep(controls, -1)
-        {
-            .sigPressed += func|view = result|(_) { view.turn(-1) }
-        }
+        result.slideLabel = result.steps.create(controls, "scope.pptx.page", .Slide,
+            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSlide(index) })
 
-        result.slideLabel = Viewer.createPageLabel(controls)
-        with result.nextButton = Viewer.createPageStep(controls, 1)
-        {
-            .sigPressed += func|view = result|(_) { view.turn(1) }
-        }
-
-        with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .View
-            .setTextAlignment(.Center, .Center)
-        }
+        result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
 
         result.hookOnChildEvent = func|result|(_, evt)
         {

@@ -345,8 +345,7 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.list.header.items[2]!.name.text == Format.toString(Table.texts().ui_Column, 3))
 
     // Structure and selection facts share the bottom reading line in the active language.
-    Swag.require(Utf8.contains(view.facts.text(), Table.texts().ui_Row))
-    Swag.require(Utf8.contains(view.facts.text(), Table.texts().ui_SemicolonKind))
+    Swag.require(Utf8.contains(details, Table.texts().ui_Row))
     Swag.require(Utf8.contains(details, Table.texts().ui_SemicolonKind) and Utf8.contains(details, "UTF-8"))
     Swag.require(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
@@ -464,4 +463,20 @@ using Core, Pixel, Gui, Viewers
     view.sortBy(2)
     let reversed = window.instances[window.activeChoiceIndex].details.toString()
     Swag.require(Utf8.contains(reversed, Format.toString(Table.texts().ui_RowAt, 2).toString()), reversed)
+}
+
+// Wide reading margins yield to the columns in a narrow cell and return when there is room.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1200, 500)
+    var document = expect Table.parseDocument("Name,Category,Measure,Sample\nNorth,Survey,120,May\n", ',')
+    let view = Table.Panel.createDocument(&host.root, #move document)
+    let columns = view.list.header.contentWidth()
+    view.resize(columns + 2 * Table.PageMargin + 40, 420)
+    Swag.require(view.padding.x == Table.PageMargin and view.padding.z == Table.PageMargin)
+    view.resize(columns, 260)
+    Swag.require(view.padding.x == view.themeMetrics().floating_Inset and view.padding.z == view.padding.x)
+    view.resize(columns + 2 * Table.PageMargin + 40, 420)
+    Swag.require(view.padding.x == Table.PageMargin and view.padding.z == Table.PageMargin)
 }

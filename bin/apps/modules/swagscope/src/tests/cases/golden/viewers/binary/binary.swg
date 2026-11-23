@@ -92,12 +92,16 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
 
     // The bars are photographed over the structure tree: the report page would show the name of
     // the temporary fixture through their corners.
-    assume cast(*Binary.Panel, window.currentView).showPage(false)
+    let view = assume cast(*Binary.Panel, window.currentView)
+    view.showPage(false)
 
     // Nothing floats over the report until it is asked for: the find bar by its key, the
     // viewer's commands by the pointer.
     Swag.require(window.currentActions == null)
-    Swag.require(not window.searchBar.isLocallyVisible() and window.viewerBar.isLocallyVisible())
+    Swag.require(not window.searchBar.isLocallyVisible() and not window.viewerBar.isLocallyVisible())
+    view.list.selectLine(0)
+    view.list.selectLine(1)
+    Swag.require(view.backButton.isEnabled())
     window.showSearch()
     window.revealViewerBar()
     Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())

@@ -276,7 +276,6 @@ func reportViewerChromeChanged(view: *Wnd)
         return
     }
 
-    window.layoutViewerBar()
     window.layoutFileInfo()
     window.refreshExplorerCaption()
     window.applyLayout()
@@ -1079,7 +1078,7 @@ impl ViewerWindow
     // the commands ask and never wider than the document.
     mtd layoutViewerBar()
     {
-        let commands = .currentCommands
+        let commands = visibleViewerCommands(.currentCommands)
         let compact  = .compactVideoCell()
         let media    = .currentView is Viewers.Film.Panel or .currentView is Viewers.Sound.Panel or .currentView is Viewers.Picture.Panel
         let visible  = commands != null and (not .overlaysViewerBar() or .viewerBarShown)
@@ -1139,7 +1138,7 @@ impl ViewerWindow
         let sheetArea     = .documentArea()
         let strip         = .stripInset()
         let sheetTop      = Math.max(sheetArea.y, strip) + sheetMetrics.floating_Inset
-        let workBottom    = .overlaysViewerBar() and .currentCommands ? Math.min(sheetArea.bottom(), .viewerBar.position.y) : sheetArea.bottom()
+        let workBottom    = .overlaysViewerBar() and visibleViewerCommands(.currentCommands) ? Math.min(sheetArea.bottom(), .viewerBar.position.y) : sheetArea.bottom()
         let sheetBottom   = Math.max(.clientRect().bottom() - workBottom, 0)
         let sheetBase     = sheetTop - Math.max(sheetMetrics.floating_Inset, .stripInset())
         let bottomChanged = .infoSheet.margin.w != sheetBottom

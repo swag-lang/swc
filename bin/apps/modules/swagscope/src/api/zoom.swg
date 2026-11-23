@@ -31,18 +31,28 @@ func zoomOut(percent: u32)->u32 => percent > MinZoom + ZoomStep ? percent - Zoom
 // the level in use, `100 %` until the viewer sets one. The caller connects what pressing it does.
 func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)->*IconButton
 {
-    with let result = IconButton.create(info, {}, Math.Rectangle{0, 0, width, 32}, id, .CenterContent)
+    let button = IconButton.create(info, {}, Math.Rectangle{0, 0, width, 32}, id)
+    configureZoomButton(button, toolTip)
+    return button
+}
+
+// Applies the shared zoom button's appearance and keyboard behavior to specialized reader controls.
+func configureZoomButton(button: *IconButton, toolTip: string, percent = 100'u32)
+{
+    with button
     {
-        .dockStyle = .Right
-        .margin    = {ZoomButtonInset, 0, ZoomButtonInset, 0}
-        .toolTip   = toolTip
-        .setText(zoomText(100))
+        .dockStyle   = .Right
+        .margin      = {ZoomButtonInset, 0, ZoomButtonInset, 0}
+        .padding     = .themeMetrics().btnIcon_Padding
+        .focusPolicy = .Tab
+        .wndFlags    |= .ActivatesOnKey | .FocusRing
+        .toolTip     = toolTip
+        .updateFlags(.CenterContent)
+        .setText(zoomText(percent))
         .setArrowPosition(.RightUpward)
         .setForm(.Rectangle)
-        .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
+        .style.setFont(button.theme().createDefaultFontFs(11), .Regular)
     }
-
-    return result
 }
 
 // Reports whether `key` is a zoom shortcut: Ctrl with plus or minus steps the zoom, Ctrl with 0
@@ -81,6 +91,17 @@ func zoomAfterKey(key: const *KeyEvent, percent: u32)->u32
     case .Add, .OemPlus:       return zoomIn(percent)
     case .Subtract, .OemMinus: return zoomOut(percent)
     default: return 100
+    }
+}
+
+// Returns the requested text size for a key or wheel gesture, or zero to leave the event to the reader.
+func requestedZoom(evt: IEvent, current: u32)->u32
+{
+    switch evt
+    {
+    case KeyEvent as key where isZoomKey(key):         return zoomAfterKey(key, current)
+    case MouseEvent as mouse where isZoomWheel(mouse): return zoomAfterWheel(mouse, current)
+    default: return 0
     }
 }
 

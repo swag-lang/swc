@@ -200,3 +200,15 @@ impl BackgroundLoad
         .task.wait()
     }
 }
+
+// Creates a centered loading message that fills its parent until the reader has content.
+func createLoadingLabel(parent: *Wnd, message: string)->*Label
+{
+    with let label = Label.create(parent, message, {}, null, .WordWrap)
+    {
+        .dockStyle       = .Center
+        .backgroundStyle = .View
+        .setTextAlignment(.Center, .Center)
+    }
+    return label
+}

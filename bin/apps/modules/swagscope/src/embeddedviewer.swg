@@ -280,7 +280,7 @@ private impl EmbeddedViewer
         let bar = .commandBar
         if not bar do
             return
-        let commands = .currentCommands
+        let commands = visibleViewerCommands(.currentCommands)
         bar.show(commands != null)
         let reserve = commands ? commands.position.height + bar.padding.y + bar.padding.w + 2 * .themeMetrics().miniBar_Distance : 0
         if .sideSplitter.margin.w != reserve

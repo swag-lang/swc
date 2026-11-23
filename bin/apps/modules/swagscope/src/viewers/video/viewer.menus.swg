@@ -106,43 +106,13 @@ impl Panel
     // Capture the relative origin before opening the modal: playback may continue behind it.
     mtd createTimeDialog()->*EditDlg
     {
-        let origin   = .currentSeconds()
-        let duration = .video.durationInSeconds()
-        let initial  = Viewer.timeText(origin)
-        with var options: EditDlgOptions
+        let strings = texts()
+        return Viewer.createTimeDialog(me, .currentSeconds(), .video.durationInSeconds(), strings.cmd_GoToTime,
+                                       strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target)
         {
-            .title   = texts().cmd_GoToTime
-            .message = texts().ui_TimeHelp
-            .text    = initial
-            .confirmButtonText = texts().ui_Go
-        }
-
-        let dialog = EditDlg.createSingleLine(unwrap .surface, options)
-        let check  = func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
-        {
-            let valid = Viewer.parseTimeAddress(edit.text(), origin, duration) >= 0
-            dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
-            return valid ? .Valid : .InvalidVisible
-        }
-
-        dialog.edit!.setValidator(check)
-        dialog.validateResult = func|view = me, dialog, origin, duration|(_, result)->bool
-        {
-            if result != Dialog.BtnOk do
-                return true
-            let target = Viewer.parseTimeAddress(dialog.text(), origin, duration)
-            if target < 0
-            {
-                discard dialog.edit!.revalidate()
-                return false
-            }
-
             view.jumpTo(target)
             view.notePlaybackGesture()
-            return true
-        }
-
-        return dialog
+        })
     }
 
     mtd promptGoToTime()

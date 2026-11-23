@@ -236,14 +236,11 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
     result.typeFace = try TypeFace.createAt(result.cacheKey, result.bytes.toSlice(), selectedMember)
 
-    let style = result.face.styleName.isEmpty() ? texts().ui_Regular : result.face.styleName.toString()
-    if result.faceCount == 1 do
-        result.details = Format.toString(texts().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
-    else do
-        result.details = Format.toString(texts().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, result.faceCount)
     let unreadable = collectionCount - result.faceCount
     if unreadable do
-        result.details += Format.toString(" · %", Format.toString(texts().ui_UnreadableFaces, unreadable, collectionCount))
+        result.details = Format.toString(texts().ui_UnreadableFaces, unreadable, collectionCount)
+    elif collectionCount > 1 do
+        result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
     var start = 0x20'u32
     result.glyphCharacters.resize(result.face.glyphCount)
     for glyphIndex in result.face.glyphCount
@@ -359,12 +356,12 @@ struct Panel
 {
     using wnd: Wnd
 
+    using steps: Viewer.PageSteps
+
     late
     {
         commands:       *Wnd
         sampleEdit:     *EditBox
-        previousButton: *IconButton
-        nextButton:     *IconButton
         pageLabel:      *IconButton
         faceButton:     *PushButton
         document:       *DocumentView
@@ -481,24 +478,41 @@ private impl Panel
         .pageLabel.enable(not .document.pageStarts.isEmpty())
         .previousButton.enable(.document.pageIndex > 0)
         .nextButton.enable(.document.hasNext)
-        .pageLabel.setText(Viewer.pageText(.document.pageIndex, .document.pageStarts.count))
-        .pageLabel.toolTip = Format.toString("% · U+%{X04}–U+%{X04}", texts().ui_CharacterRange, .document.pageStart, .document.pageEnd)
+        if .steps.showSteps(.document.pageStarts.count > 1)
+        {
+            .commands.preferredSize.x = CommandWidth - (.counter.isLocallyVisible() ? 0 : Viewer.pageControlWidth(.themeMetrics()))
+            .sampleEdit.margin.x = .counter.isLocallyVisible() or .faceButton.isLocallyVisible() ? 16 : 0
+            .services.chromeChanged(me)
+        }
+        .steps.setPageRange(.document.pageIndex, .document.pageStarts.count)
+        .pageLabel.toolTip = Format.toString("% · U+%{X04}–U+%{X04}", appStrings().ui_GoToPage, .document.pageStart, .document.pageEnd)
+    }
+
+    mtd updateSample()
+    {
+        let replaceSample = .sampleEdit.text() == .sampleDefault.toString()
+        .sampleDefault = .document != null ? .document.defaultSample(texts().ui_DefaultSample) : String.from(texts().ui_DefaultSample)
+        let size = .themeMetrics().defaultFontSize
+        let font = .document != null and .sampleDefault != texts().ui_DefaultSample ?
+                   .app().renderer.fontCache().createFont(.document.typeFace, size) : .theme().createDefaultFont(size)
+        .sampleEdit.style.setFont(font, .Regular)
+        if replaceSample do
+            .sampleEdit.setText(.sampleDefault)
     }
 
     mtd retranslate()
     {
-        let replaceSample = .sampleEdit.text() == .sampleDefault.toString()
-        .sampleDefault = texts().ui_DefaultSample
-        if replaceSample do
-            .sampleEdit.setText(.sampleDefault)
-
+        .updateSample()
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
         .faceButton.setText(.faceNames.isEmpty() ? texts().ui_Faces : .faceNames[.faceIndex])
         .faceButton.toolTip     = texts().ui_ChooseFace
         .previousButton.toolTip = appStrings().ui_PreviousPage
         .nextButton.toolTip     = appStrings().ui_NextPage
-        if .document != null do
+        if .document != null
+        {
+            .refreshPageCommands()
             .document.invalidate()
+        }
     }
 
     mtd showFaceMenu()
@@ -564,16 +578,11 @@ private impl Panel
         }
 
         .document.replaceFace(face, typeFace)
+        .document.prepareSpecimen()
+        .updateSample()
         ownsFace   = false
         .faceIndex = index
         .facts     = facts
-        let style = face.styleName.isEmpty() ? texts().ui_Regular : face.styleName.toString()
-        .details = Format.toString(texts().ui_DetailsCollection,
-                                   face.familyName,
-                                   style,
-                                   face.glyphCount,
-                                   face.unitsPerEm,
-                                   .faceCount)
         .faceButton.setText(.faceNames[index])
         try saveFaceSelection(.fileName, .selectionIdentity, memberIndex)
         .refreshPageCommands()
@@ -585,6 +594,8 @@ private impl Panel
     internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
+        .steps.addPageJump(entries, "scope.font.goToPage")
+        entries.add(strings.ui_CharacterRange, .GoTo, func|view = me|() { view.showRangeMenu() }, disabled: .document == null, bindId: "scope.font.range")
         entries.add(strings.ui_EditSample,
                     .Edit,
                     func|view = me|()
@@ -775,6 +786,8 @@ private impl IWnd for Panel
         .document.pageStarts      = #move content.pageStarts
         .document.glyphCharacters = #move content.glyphCharacters
         .document.glyphNames      = #move content.glyphNames
+        .document.prepareSpecimen()
+        .updateSample()
         .document.sigMarked       += func|view = me|(_) { view.services.informationChanged(view) }
         content.face              = null
         .details                  = #move content.details
@@ -787,7 +800,7 @@ private impl IWnd for Panel
         .faceIndex                = content.selectedFaceIndex
         .faceButton.enable(.faceCount > 1)
         .faceButton.show(.faceCount > 1)
-        .faceButton.setText(.faceNames[0])
+        .faceButton.setText(.faceNames[.faceIndex])
         .refreshPageCommands()
         .applyLayout()
 
@@ -852,32 +865,19 @@ impl Panel
             }
         }
 
-        with .previousButton = Viewer.createPageStep(.commands, -1)
+        let turn = func|view = me|(dir: s32)
         {
-            .dockStyle = .Left
-            .enable(false)
-            .sigPressed += func|view = me|(_)
-            {
+            if dir < 0 do
                 view.document.previousPage()
-                view.refreshPageCommands()
-            }
-        }
-
-        with .pageLabel = Viewer.createPageReadout(.commands, "scope.font.range", texts().ui_CharacterRange)
-        {
-            .enable(false)
-            .sigPressed += func|view = me|(_) { view.showRangeMenu() }
-        }
-
-        with .nextButton = Viewer.createPageStep(.commands, 1)
-        {
-            .enable(false)
-            .sigPressed += func|view = me|(_)
-            {
+            else do
                 view.document.nextPage()
-                view.refreshPageCommands()
-            }
+            view.refreshPageCommands()
         }
+        .pageLabel = .steps.create(.commands, "scope.font.page", .Page, turn,
+                                   func|view = me|(index) { view.jumpToBlock(view.document.pageStarts[index]) })
+        .previousButton.enable(false)
+        .nextButton.enable(false)
+        .pageLabel.enable(false)
 
         with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
@@ -900,7 +900,7 @@ impl Panel
     // leading its identity: how many glyphs it draws, then its style and its design grid.
     mtd describeInformation(sheet: *InfoSheet)
     {
-        if .details.isEmpty() do
+        if .document == null do
             return
         let face = .document.face
         if not face or face.familyName.isEmpty() do

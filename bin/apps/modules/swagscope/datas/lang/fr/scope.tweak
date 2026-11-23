@@ -24,6 +24,13 @@ ui_MenuOpenWith     Ouvrir avec une autre application…
 ui_MenuCopyPath     Copier le chemin complet
 ui_MenuCopyName     Copier le nom du fichier
 ui_MenuForget       Retirer ce fichier de l'historique
+ui_GoToPage Aller à la page
+ui_GoToChapter Aller au chapitre
+ui_GoToSlide Aller à la diapositive
+ui_GoToSheet Aller à la feuille
+ui_GoToFrame Aller à l’image
+ui_PageNumberRange Saisissez un numéro de 1 à %.
+ui_PageNumberOrLabel Saisissez un numéro de 1 à %, ou un libellé comme %.
 ui_PreviousPage Page précédente
 ui_NextPage Page suivante
 ui_SpeedNormal Normale

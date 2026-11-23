@@ -478,10 +478,7 @@ impl DocumentOutline
     mtd bindMarkdown(view: *Markdown.View, fileName: string)
     {
         .markdownFile = fileName
-        .follow       = func|panel = me, view|()
-        {
-            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
-        }
+        .trackMarkdown(view)
 
         .toggle.sigCheckedChanged += func|panel = me, view|(button)
         {
@@ -496,7 +493,12 @@ impl DocumentOutline
                 view.setFocus()
             }
         }
+    }
 
+    // Follows headings in a Markdown view, including notebooks rendered from an in-memory document.
+    mtd trackMarkdown(view: *Markdown.View)
+    {
+        .follow = func|panel = me, view|() { panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1) }
         .sigSelected += func|view|(_, offset)
         {
             discard view.revealHeading(offset)

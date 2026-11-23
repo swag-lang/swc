@@ -21,17 +21,17 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     document.hide()
     let foot   = createTestViewerFoot(&host.root)
     let layout = foot.readings
-    layout.details.setText("PDF · 2 pages")
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: foot.commands, infoParent: layout)
     Swag.require(result.view != null and result.info != null)
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
+    layout.details.setText(view.details)
     host.root.applyLayout()
     layout.computeLayout()
     standTestCommands(foot, unwrap result.commands)
 
-    Swag.require(result.info.position.width == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.position.width == Viewer.ZoomSlotWidth + themeActionButtonSize(view.themeMetrics()))
     Swag.require(view.previousButton.position.right() <= view.pageLabel.position.x)
     Swag.require(view.pageLabel.position.right() <= view.nextButton.position.x)
     Swag.require(view.nextButton.surfaceRect().bottom() <= view.zoomLabel.surfaceRect().y)

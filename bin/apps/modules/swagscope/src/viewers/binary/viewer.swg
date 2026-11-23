@@ -348,6 +348,13 @@ impl Panel
     {
         .backButton.enable(.historyIndex != Swag.U64.Max and .historyIndex != 0)
         .forwardButton.enable(.historyIndex != Swag.U64.Max and .historyIndex + 1 < .history.count)
+        let available = .backButton.isEnabled() or .forwardButton.isEnabled()
+        if .backButton.isLocallyVisible() != available
+        {
+            .backButton.show(available)
+            .forwardButton.show(available)
+            .services.chromeChanged(me)
+        }
     }
 
     // Moves `direction` steps through the rows selected so far, and returns whether a row was selected.
@@ -1119,6 +1126,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuBack
             .enable(false)
+            .hide()
             .sigPressed += func|view = me|(_) { discard view.navigateHistory(-1) }
         }
 
@@ -1127,6 +1135,7 @@ impl Panel
             .dockStyle = .Left
             .toolTip   = texts.ui_MenuForward
             .enable(false)
+            .hide()
             .sigPressed += func|view = me|(_) { discard view.navigateHistory(1) }
         }
     }

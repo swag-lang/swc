@@ -122,7 +122,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     view.autoPlayPending = false
     waitForVideoFrame(view)
     Swag.require(view.video.frameCount() == 0 and Math.isEqualEpsilon(view.video.frameRate().framesPerSecond(), 25, 0.01))
-    Swag.require(Utf8.contains(view.details, " · 25.00 fps · "), view.details)
+    Swag.require(Utf8.contains(view.details, " · 25.00 fps"), view.details)
     let information = videoInformationText(view, &host.root)
     Swag.require(Utf8.contains(information, "Frame rate\n25") and not Utf8.contains(information, "1000"), information)
 }
@@ -603,7 +603,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
 
     // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
     Swag.require(not view.planar)
-    Swag.require(view.details.indexOf("160 × ") != Swag.U64.Max and view.details.indexOf(" fps · 0:01") != Swag.U64.Max)
+    Swag.require(view.details.indexOf("160 × ") != Swag.U64.Max and view.details.indexOf(" fps") != Swag.U64.Max)
     Swag.require(view.timeText() == "0:00 / 0:01")
 
     view.seekFrame(2)

@@ -33,5 +33,5 @@ using Core, Gui, Viewers
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.odt"), false)
     Swag.require(window.choices[window.activeChoiceIndex].key == "odt")
     let panel = assume cast(*Odt.Panel, window.currentView)
-    Swag.require(panel.view != null and panel.outline.headings.count == 4)
+    Swag.require(panel.view != null and panel.outline!.headings.count == 4)
 }

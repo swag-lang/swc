@@ -211,11 +211,11 @@ struct Panel
     retiring:           bool
     retryTimer:         *Timer?
 
+    using steps: Viewer.PageSteps
+
     late
     {
         status:         *Label
-        previousButton: *IconButton
-        nextButton:     *IconButton
         pageLabel:      *IconButton
     }
 }
@@ -305,11 +305,10 @@ private impl Panel
     {
         let page    = .pendingPage != Swag.U64.Max ? .pendingPage : .activePage
         let hasPage = page != Swag.U64.Max
-        .previousButton.enable(hasPage and page > 0)
-        .nextButton.enable(hasPage and page + 1 < .book.pages.count)
-        .pageLabel.setText(hasPage ? Viewer.pageText(page, .book.pages.count) : "")
+        if .steps.updateSteps(page, .book.pages.count) do
+            .services.chromeChanged(me)
         if hasPage do
-            .services.showDetails(me, Format.toString(texts().ui_Details, page + 1, .book.pages.count))
+            .services.showDetails(me, texts().ui_Name)
     }
 
     internal mtd turn(delta: s32)
@@ -326,36 +325,6 @@ private impl Panel
     mtd toggleReadingDirection()
     {
         .rightToLeft = not .rightToLeft
-    }
-
-    internal mtd goToTypedPage(text: string)->bool
-    {
-        var parseErrorOutcome: Swag.Error
-        var parsed: #decltype(expect StrConv.parseU64(text))
-        catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
-        let parseError = parseErrorOutcome.value()
-        if parseError != null or
-           parsed.eat != text.count or
-           parsed.ovf or
-           not parsed.value or
-           parsed.value > .book.pages.count do
-            return false
-        .showPage(parsed.value - 1)
-        return true
-    }
-
-    mtd promptGoToPage()
-    {
-        if not .surface or .book.pages.isEmpty() do
-            return
-        var options: EditDlgOptions
-        options.title   = texts().ui_GoToPage
-        options.message = Format.toString(texts().ui_PageRange, .book.pages.count).toString()
-        options.text    = Format.toString("%", .activePage + 1).toString()
-        let dialog = EditDlg.createSingleLine(.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
-            return
-        discard .goToTypedPage(dialog.text())
     }
 
     mtd showPage(index: u64)
@@ -474,7 +443,7 @@ private impl Panel
         let forward = .rightToLeft ? Input.Key.Left : .Right
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, back), bindId: "scope.comic.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, forward), bindId: "scope.comic.next")
-        entries.add(texts().ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, disabled: .book.pages.isEmpty(), bindId: "scope.comic.goToPage")
+        .steps.addPageJump(entries, "scope.comic.goToPage")
         entries.add(texts().ui_RightToLeft, .Sort, func|view = me|() { view.toggleReadingDirection() }, checked: .rightToLeft, bindId: "scope.comic.rightToLeft")
     }
 
@@ -505,37 +474,13 @@ private impl Panel
             .services        = services
         }
 
-        let info       = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        let actionSize = themeActionButtonSize(result.themeMetrics())
-        with result.previousButton = Viewer.createPageStep(info, -1)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = appStrings().ui_PreviousPage
-            .sigPressed      += func|view = result|(_) { view.turn(-1) }
-        }
-
-        with result.pageLabel = Viewer.createPageReadout(info, "scope.comic.page", texts().ui_GoToPage)
-        {
-            .sigPressed += func|view = result|(_) { view.promptGoToPage() }
-        }
-
-        with result.nextButton = Viewer.createPageStep(info, 1)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = appStrings().ui_NextPage
-            .sigPressed      += func|view = result|(_) { view.turn(1) }
-        }
+        let info = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
+        result.pageLabel = result.steps.create(info, "scope.comic.page", .Page,
+            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showPage(index) })
 
         result.embedded = host.createEmbedded(result, host.createInfoGroup(256))
-        with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .wndFlags        |= .TopMost
-            .backgroundStyle = .View
-            .setTextAlignment(.Center, .Center)
-        }
+        result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
+        result.status.wndFlags |= .TopMost
 
         result.hookOnChildEvent = func|result|(_, evt)
         {

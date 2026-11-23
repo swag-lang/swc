@@ -164,19 +164,14 @@ private impl Panel
     {
         .hookOnChildEvent = func|viewer = me|(_, evt)
         {
-            switch evt
+            let zoom = Viewer.requestedZoom(evt, viewer.zoomPercent)
+            if zoom
             {
-            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
-                viewer.setZoom(Viewer.zoomAfterKey(keyEvt, viewer.zoomPercent))
+                viewer.setZoom(zoom)
                 return true
-
-            case MouseEvent as mouse where Viewer.isZoomWheel(mouse):
-                viewer.setZoom(Viewer.zoomAfterWheel(mouse, viewer.zoomPercent))
-                return true
-
-            default:
-                return false
             }
+
+            return false
         }
     }
 }

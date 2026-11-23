@@ -42,12 +42,12 @@ struct Panel
     visible:          Array'u64
     showHidden:       bool
 
+    using steps: Viewer.PageSteps
+
     late
     {
         status:         *Label
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        sheetLabel:     *Label
+        sheetLabel:     *IconButton
         outline:        *DocumentOutline
     }
 }
@@ -96,16 +96,19 @@ private impl Panel
         var position = Swag.U64.Max
         for index, ordinal in .visible where index == .sheet do
             position = ordinal
-        .previousButton.enable(position < .visible.count and position > 0)
-        .nextButton.enable(position < .visible.count and position + 1 < .visible.count)
-        .sheetLabel.setText(Viewer.pageText(position, .visible.count))
+        if .steps.updateSteps(position, .visible.count) do
+            .services.chromeChanged(me)
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
         if .sheet < .workbook.sheets.count
         {
             var details = .workbook.sheets[.sheet].details()
-            if .grid and .grid.hasSelection do
-                details += Format.toString(" · %", .grid.selected.label())
+            if .grid
+            {
+                details = Format.toString("% · %", .workbook.sheets[.sheet].name, details)
+                if .grid.hasSelection do
+                    details += Format.toString(" · %", .grid.selected.label())
+            }
             .services.showDetails(me, details)
         }
         else
@@ -202,14 +205,7 @@ private impl Panel
             {
                 .dockStyle       = .Center
                 .backgroundStyle = .Transparent
-                .margin          = {inset, .stripInset() + inset, inset, .themeMetrics().miniBar_ButtonSize + 2 * inset}
-            }
-
-            with let title = Label.create(.gridHost, sheet.name, {0, 0, 0, 40}, null, .Ellipsis)
-            {
-                .dockStyle = .Top
-                .setTextAlignment(.Left, .Top)
-                .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
+                .margin          = {inset, .stripInset() + inset, inset, inset}
             }
 
             .grid = Grid.create(.gridHost, sheet, &.workbook.styles, .showHiddenRanges)
@@ -302,6 +298,7 @@ private impl Panel
             return
         }
 
+        .steps.addPageJump(entries, "scope.xlsx.goToPage")
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.xlsx.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.xlsx.next")
         if .workbook.hiddenSheets do
@@ -324,23 +321,10 @@ private impl Panel
         }
 
         let controls = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        with result.previousButton = Viewer.createPageStep(controls, -1)
-        {
-            .sigPressed += func|view = result|(_) { view.turn(-1) }
-        }
+        result.sheetLabel = result.steps.create(controls, "scope.xlsx.page", .Sheet,
+            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSheet(view.visible[index]) })
 
-        result.sheetLabel = Viewer.createPageLabel(controls)
-        with result.nextButton = Viewer.createPageStep(controls, 1)
-        {
-            .sigPressed += func|view = result|(_) { view.turn(1) }
-        }
-
-        with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .View
-            .setTextAlignment(.Center, .Center)
-        }
+        result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
 
         result.hookOnChildEvent = func|result|(_, evt)
         {

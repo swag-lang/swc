@@ -183,12 +183,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const StreamChunkSize = 16 * 1024'u64
-
-    // Viewport heights of text kept loaded from the top of the visible one: it and five more.
-    const StreamLookAhead    = 6.0
-    const ResidentWindowSize = 256 * 1024'u64
-    const RevealContextSize  = 64 * 1024'u64
+    const StreamChunkSize   = 16 * 1024'u64
+    const RevealContextSize = 64 * 1024'u64
 }
 
 // The source-code viewer: a read-only editor colored by the Swag lexer or the generic one,
@@ -239,17 +235,7 @@ impl Panel
     mtd hasMore()->bool => .stream.isOpen() and .bytesRead < .fileSize
 
     mtd needsMore()->bool
-    {
-        if not .hasMore() do
-            return false
-        if .pauseStreaming do
-            return false
-        if .bytesRead - .residentStart >= ResidentWindowSize do
-            return false
-        let viewport     = .editor.paddedClientRect()
-        let loadedHeight = .editor.loadedDocumentHeight()
-        return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * StreamLookAhead >= .residentOffsetY + loadedHeight
-    }
+        => .hasMore() and not .pauseStreaming and Viewer.needsMoreText(.editor, .bytesRead - .residentStart, .residentOffsetY)
 
     // Extrapolates the full document height from the bytes read so far and places the resident
     // window within it, so the scroll bar spans the whole file while only part of it is loaded.
@@ -318,7 +304,7 @@ impl Panel
     // not text.
     mtd loadNextChunk()
     {
-        if .bytesRead - .residentStart >= ResidentWindowSize do
+        if .bytesRead - .residentStart >= Viewer.ResidentWindowSize do
             return
         if not .hasMore() do
             return
@@ -376,7 +362,7 @@ impl Panel
             .stream = catch File.openReadLive(.fileName) { return false }
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(ResidentWindowSize)
+            let chunk = catch .stream.readUtf8Chunk(Viewer.ResidentWindowSize)
             {
                 .stream.close()
                 continue
@@ -697,11 +683,11 @@ impl Panel
         let residentEnd = .residentOffsetY + residentHeight
         let before      = .residentStart > 0 and
                           newPosition.y < oldPosition.y and
-                          newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+                          newPosition.y < .residentOffsetY + viewport.height * Viewer.StreamLookAhead
         let after = .hasMore() and
-                    .bytesRead - .residentStart >= ResidentWindowSize and
+                    .bytesRead - .residentStart >= Viewer.ResidentWindowSize and
                     newPosition.y > oldPosition.y and
-                    newPosition.y + viewport.height * StreamLookAhead > residentEnd
+                    newPosition.y + viewport.height * Viewer.StreamLookAhead > residentEnd
         let outside = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .virtualHeight > 0 and (before or after or outside)
         if .pendingSeek
@@ -833,24 +819,17 @@ impl Panel
 
         .hookOnChildEvent = func|view = me|(_, evt)
         {
+            let zoom = Viewer.requestedZoom(evt, view.zoomPercent)
+            if zoom
+            {
+                view.setZoom(zoom)
+                return true
+            }
+
             switch evt
             {
             case PaintEvent as paintEvt:
-
-                // Caret placement and wrapping publish scroll corrections during paint. They
-                // must not reload the text whose lines the renderer is currently traversing.
-                let previous = view.repositioning
-                view.repositioning = true
-                defer view.repositioning = previous
-                paintEvt.target!.processEvent(evt)
-                return true
-
-            case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
-                view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
-                return true
-
-            case MouseEvent as mouse where Viewer.isZoomWheel(mouse):
-                view.setZoom(Viewer.zoomAfterWheel(mouse, view.zoomPercent))
+                Viewer.paintResidentText(paintEvt, &view.repositioning)
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and

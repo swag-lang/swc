@@ -20,7 +20,6 @@ struct DocumentPageNavigation
         navigationMode:  *ComboBox
         thumbnailScroll: *ScrollWnd
         gallery:         *PageGallery
-        pagesHeading:    *SectionLabel
         selectPage:      func||(u64)
         preparePreviews: func||()
         paintPreview:    func||(*PaintContext, u64, Math.Rectangle)
@@ -49,13 +48,6 @@ impl DocumentPageNavigation
             .sigChanged += func|panel = me|(_, index) { panel.setNavigationMode(index == 0) }
         }
 
-        with .pagesHeading = SectionLabel.create(parent, pages, {0, 0, 0, height})
-        {
-            .dockStyle = .Top
-            .margin.y  = 8
-            .sendToBack()
-        }
-
         with .thumbnailScroll = Wnd.create'ScrollWnd(parent)
         {
             .dockStyle       = .Center
@@ -80,7 +72,6 @@ impl DocumentPageNavigation
 
     mtd translateNavigation(pages, headings: string)
     {
-        .pagesHeading.setText(pages)
         .navigationMode.clear()
         .navigationMode.addItem(pages)
         .navigationMode.addItem(headings)
@@ -92,11 +83,13 @@ impl DocumentPageNavigation
         .pagesSelected = pages or .outlinePanel.headings.isEmpty()
         .navigationMode.setSelectedIndex(.pagesSelected ? 0 : 1, notify: false)
         .navigationMode.show(not .outlinePanel.headings.isEmpty())
-        .pagesHeading.show(.outlinePanel.headings.isEmpty())
         .outlinePanel.section.hide()
         .outlinePanel.show(not .pagesSelected)
         .thumbnailScroll.show(.pagesSelected)
-        .outlinePanel.parent!.applyLayout()
+        let lane = unwrap .outlinePanel.parent
+        if lane.parent is ViewerSidePanelHost as side do
+            side.setDocumentAlignment(.outlinePanel.headings.isEmpty())
+        lane.applyLayout()
         if .pagesSelected and .thumbnailScroll.isVisible() do
             .gallery.revealCurrentPage()
     }

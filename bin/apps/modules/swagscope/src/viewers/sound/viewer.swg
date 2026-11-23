@@ -599,8 +599,7 @@ impl Panel
         .details = Format.toString(texts().ui_Details,
                                    .sound.sampleRateHz(),
                                    channelCountText(.sound.numChannels()),
-                                   .sound.sampleStorageBits(),
-                                   durationText(.duration))
+                                   .sound.sampleStorageBits())
 
         // An adjusted rate and a looped passage are part of what the reader hears, so the summary
         // declares them.
@@ -1071,40 +1070,9 @@ impl Panel
     // Capturing the origin keeps relative jumps stable while a modal is open over active playback.
     mtd createTimeDialog()->*EditDlg
     {
-        let origin   = cast(f64, .playbackPosition())
-        let duration = cast(f64, .duration)
-        let initial  = Viewer.timeText(origin)
-        with var options: EditDlgOptions
-        {
-            .title   = texts().cmd_GoToTime
-            .message = texts().ui_TimeHelp
-            .text    = initial
-            .confirmButtonText = texts().ui_Go
-        }
-
-        let dialog = EditDlg.createSingleLine(unwrap .surface, options)
-        dialog.edit!.setValidator(func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
-        {
-            let valid = Viewer.parseTimeAddress(edit.text(), origin, duration) >= 0
-            dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
-            return valid ? .Valid : .InvalidVisible
-        })
-        dialog.validateResult = func|view = me, dialog, origin, duration|(_, result)->bool
-        {
-            if result != Dialog.BtnOk do
-                return true
-            let target = Viewer.parseTimeAddress(dialog.text(), origin, duration)
-            if target < 0
-            {
-                discard dialog.edit!.revalidate()
-                return false
-            }
-
-            view.jumpTo(cast(f32, target))
-            return true
-        }
-
-        return dialog
+        let strings = texts()
+        return Viewer.createTimeDialog(me, .playbackPosition(), .duration, strings.cmd_GoToTime,
+                                       strings.ui_TimeHelp, strings.ui_TimeError, strings.ui_Go, func(view, target) { view.jumpTo(cast(f32, target)) })
     }
 
     // Opens the prompt only for a playable recording; seeking leaves its paused/playing state in force.

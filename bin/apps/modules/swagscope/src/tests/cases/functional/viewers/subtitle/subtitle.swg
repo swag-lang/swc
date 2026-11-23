@@ -39,7 +39,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     Swag.require(view.revealCue(0) and view.minimumCueDuration == 0 and view.currentCue == 0)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.identity().contains("2 sous-titres"))
+    Swag.require(view.identity() == "Sous-titre 1 / 2 · SubRip")
 }
 
 // A generated field report exercises an entire WebVTT transcript, metadata blocks and speaker tags.
@@ -49,7 +49,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
     var host: Testing.HeadlessHost
     host.setup(820, 520)
     var result = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
-    Swag.require(result.details == "12 cues")
+    Swag.require(result.details == "12 cues · WebVTT")
 
     let view = assume cast(*Captions.Panel, result.view)
     view.dockStyle = .Center
@@ -186,7 +186,7 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
                  result.revealMatch != null and
                  result.searchBounds != null and
                  result.clearSearch != null)
-    Swag.require(result.details == "2 cues")
+    Swag.require(result.details == "2 cues · SubRip")
 
     let view = assume cast(*Captions.Panel, result.view)
     view.dockStyle = .Center
@@ -338,10 +338,10 @@ func subtitleViewerFixturePath()->String => scopeTestDataPath("viewer.srt")
 
     let sheet = view.sheet
     let font  = sheet.wordsFont()
-    let width = Math.max(1, sheet.column().width - Captions.CueSheet.WordsX - Captions.CueSheet.WordsRight)
+    let width = Math.max(1, sheet.column().width - sheet.wordsOrigin.x - Captions.CueSheet.WordsRight)
     let words = view.track!.cueContent(0)
     let row   = &sheet.rows[0]
-    Swag.require(row.lines.count > 2)
+    Swag.require(row.lines.count > 1 and sheet.wordsOrigin.x > Captions.CueSheet.TimesX and sheet.wordsOrigin.y == 0)
     for line, index in row.lines
     {
         Swag.require(Painter.measureString(words[line.start until line.end], font).width <= width)

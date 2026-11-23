@@ -185,7 +185,7 @@ using Core, Pixel, Gui, Viewers
             continue
         }
 
-        Swag.require(Utf8.startsWith(shown.toString(), view.details.toString()), name)
+        Swag.require(shown == view.itemText(), name)
         Swag.require(Utf8.contains(shown.toString(), Format.toString("% × %", info.width, info.height).toString()), shown.toString())
         if info.kind == .Texture and info.layer do
             Swag.require(Utf8.contains(shown.toString(), Format.toString(Picture.texts().ui_ItemLayer, info.layer).toString()), shown.toString())

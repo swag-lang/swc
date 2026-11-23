@@ -115,9 +115,7 @@ private const NormalizedExportLimit = 64 * 1024 * 1024'u64
 /*
 The cues of a subtitle file as a reading list, after `scope.subtitle`.
 
-The name of the file heads a measured column, with a mono line under it: how many cues, how long,
-in which syntax. Each cue is a row: its number, its time range in mono, and its words beside them,
-wrapped to the column. The current cue stands on the selection ground. The list scrolls under the
+The transcript begins with its numbered and timed cues. Words wrap inside the reading column. The current cue stands on the selection ground. The list scrolls under the
 strip; only the rows in view are set.
 */
 struct CueSheet
@@ -128,17 +126,13 @@ struct CueSheet
 
     rows:        Array'CueRow
     layoutWidth: f32
-    headHeight:  f32
+    wordsOrigin: Math.Point
 }
 
 impl CueSheet
 {
     const ColumnWidth  = 800'f32     // Width of the reading column.
     const Gutter       = 32'f32      // Least air between the column and an edge of the window.
-    const HeadAir      = 32'f32      // Air between the strip and the name of the file.
-    const TitleSize    = 28'u32      // Size of the name of the file.
-    const IdentityGap  = 8'f32       // Air between the name and its mono line.
-    const RowsGap      = 28'f32      // Air between the mono line and the first row.
     const RowPadding   = 16'f32      // Air above and below the words of a row.
     const NumberX      = 16'f32      // Where the number of a cue starts, in the column.
     const TimesX       = 64'f32      // Where its time range starts.
@@ -151,7 +145,6 @@ impl CueSheet
 
     mtd wordsFont()->*Font => .theme().createDefaultFont(WordsSize)
     mtd monoFont()->*Font  => .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
-    mtd titleFont()->*Font => .theme().createDefaultFont(TitleSize, .Bold)
 
     mtd column()->Math.Rectangle
     {
@@ -213,11 +206,14 @@ impl CueSheet
             return
 
         let column = .column()
-        let words  = Math.max(1, column.width - WordsX - WordsRight)
+        let timestamp = Format.toString("→ %", clockText(.panel.duration))
+        let timeRight = TimesX + Painter.measureString(timestamp, .monoFont()).width + RowPadding
+        .wordsOrigin = column.width < timeRight + 136 ?
+                       Math.Point{NumberX, TimesHeight + RowPadding} :
+                       Math.Point{Math.max(timeRight, Math.min(column.width * 0.34, WordsX)), 0}
+        let words = Math.max(1, column.width - .wordsOrigin.x - WordsRight)
         .layoutWidth = .clientRect().width
-        .headHeight  = .panel.stripInset() + HeadAir + .titleFont().height + IdentityGap + .monoFont().height + RowsGap
-
-        var y = .headHeight
+        var y = .panel.stripInset() + .themeMetrics().floating_Inset
         .rows.resize(.panel.track!.cueCount())
         for &row, index in .rows
         {
@@ -232,7 +228,7 @@ impl CueSheet
 
             .wrapCue(index, words, &row.lines)
             row.top    = y
-            row.height = Math.max(TimesHeight, cast(f32, row.lines.count) * WordsLeading) + 2 * RowPadding
+            row.height = Math.max(TimesHeight, .wordsOrigin.y + cast(f32, row.lines.count) * WordsLeading) + 2 * RowPadding
             y          += row.height
         }
 
@@ -284,26 +280,14 @@ impl CueSheet
         let row    = &.rows[match.cue]
         for line, index in row.lines where match.offset >= line.start and match.offset <= line.end
         {
-            let x     = column.x + WordsX + Painter.measureString(words[line.start until match.offset], font).width
+            let x     = column.x + .wordsOrigin.x + Painter.measureString(words[line.start until match.offset], font).width
             let end   = Math.min(match.offset + match.length, line.end)
             let width = Painter.measureString(words[match.offset until end], font).width
-            let top   = row.top + RowPadding + cast(f32, index) * WordsLeading
+            let top   = row.top + RowPadding + .wordsOrigin.y + cast(f32, index) * WordsLeading
             return Math.Rectangle{x, top, width, WordsLeading}
         }
 
         return result
-    }
-
-    // Writes the name of the file and its mono line at the head of the column.
-    mtd paintHead(painter: *Painter, column: Math.Rectangle)
-    {
-        let colors = .themeColors()
-        let title  = .titleFont()
-        let mono   = .monoFont()
-        var y      = .panel.stripInset() + HeadAir
-        painter.drawString(column.x, y, Path.fileName(.panel.fileName) orelse .panel.fileName, title, colors.text)
-        y += title.height + IdentityGap
-        painter.drawString(column.x, y, .panel.identity(), mono, colors.faintText)
     }
 
     // Writes row `index`: the selection ground of the current cue, its number, its time range and
@@ -337,8 +321,8 @@ impl CueSheet
         let text = track.cueContent(index)
         for line, lineIndex in .rows[index].lines
         {
-            let y = top + cast(f32, lineIndex) * WordsLeading + (WordsLeading - words.height) * 0.5
-            painter.drawString(band.x + WordsX, y, text[line.start until line.end], words, colors.text)
+            let y = top + .wordsOrigin.y + cast(f32, lineIndex) * WordsLeading + (WordsLeading - words.height) * 0.5
+            painter.drawString(band.x + .wordsOrigin.x, y, text[line.start until line.end], words, colors.text)
         }
     }
 }
@@ -351,8 +335,6 @@ impl IWnd for CueSheet
             .relayout()
 
         let painter = evt.paintContext.painter
-        let column  = .column()
-        .paintHead(painter, column)
 
         // The list is set in document coordinates; only the rows in view are written. The rows
         // follow one another down the list, so a binary search finds the first one that reaches
@@ -593,10 +575,10 @@ impl IWnd for Panel
 
 impl Panel
 {
-    // Returns the mono line under the name: how many cues, how long, in which syntax.
+    // The transcript starts with its cues. The reading line identifies the selection, format and active filter.
     mtd identity()->String
     {
-        var result = Format.toString("% · % · %", cueCountText(.track!.cueCount()), Viewer.durationText(.duration), formatText(.track.sourceFormat()))
+        var result = Format.toString("% · %", .cuePosition(), formatText(.track!.sourceFormat()))
         if .minimumCueDuration > 0 do
             result += Format.toString(" · %", Format.toString(texts().ui_FilterMarker, .minimumCueDuration))
         return result
@@ -630,7 +612,7 @@ impl Panel
     // spelled as every clock of Swag Scope spells one.
     mtd refreshReadings()
     {
-        .services.showDetails(me, .cuePosition())
+        .services.showDetails(me, .identity())
         let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : Viewer.timeText(.track!.cueStartTime(.currentCue))
         .timeButton.setQuietText(time)
         .services.chromeChanged(me)
@@ -1144,7 +1126,7 @@ func createViewer(host: Viewer.Host)
     {
         let view = try Panel.create(host)
         host.attachView(view)
-        host.setDetails(cueCountText(view.track!.cueCount()))
+        host.setDetails(view.identity())
         host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
         host.setSearch(Viewer.searchApi(view))

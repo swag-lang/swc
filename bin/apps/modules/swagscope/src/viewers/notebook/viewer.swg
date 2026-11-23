@@ -277,35 +277,29 @@ private func markdownSafe(source: string)->String
     return result
 }
 
+// The first two lines cover both ATX and underlined headings.
+private func startsWithHeading(source: string)->bool
+{
+    let text = Latin1.trim(source)
+    let firstBreak = Utf8.indexOf(text, '\n'rune)
+    let end = firstBreak < text.count ? Math.min(Utf8.indexOf(text, '\n'rune, firstBreak + 1), text.count) : text.count
+    let headings = Markdown.parseHeadings(text[until end])
+    return not headings.isEmpty() and headings[0].sourceOffset == 0
+}
+
 // Converts decoded notebook cells into a reader document. Rich output and all executable content
 // are deliberately represented as source notices; no kernel, widget, script, or resource runs.
 func renderMarkdown(document: const *Document)->String
 {
     var result: #returntype
-    result += Format.toString("# Notebook · nbformat %\n\n", document.nbformat)
-    var metadata: String
-    if not document.metadata.kernelspec.displayName.isEmpty() do
-        metadata += Format.toString("Kernel: %\n", boundedText(document.metadata.kernelspec.displayName.toString()))
-    if not document.metadata.kernelspec.name.isEmpty() do
-        metadata += Format.toString("Kernel identifier: %\n", boundedText(document.metadata.kernelspec.name.toString()))
-    if not document.metadata.kernelspec.language.isEmpty() do
-        metadata += Format.toString("Kernel language: %\n", boundedText(document.metadata.kernelspec.language.toString()))
-    if not document.metadata.languageInfo.name.isEmpty() do
-        metadata += Format.toString("Language: %\n", boundedText(document.metadata.languageInfo.name.toString()))
-    if not document.metadata.languageInfo.version.isEmpty() do
-        metadata += Format.toString("Language version: %\n", boundedText(document.metadata.languageInfo.version.toString()))
-    if metadata.count do
-        result += "**Notebook metadata**\n\n"
-    result += fenced(metadata.toString())
-    result += "\n\n"
-
     for cell, index in document.cells
     {
         let number = index + 1
         if cell.cellType == "markdown"
         {
-            result += Format.toString("## Markdown cell %\n\n", number)
             let source = markdownSafe(boundedText(joinLines(cell.source).toString()).toString())
+            if not startsWithHeading(source.toString()) do
+                result += Format.toString("## Markdown cell %\n\n", number)
             result += source
             result += "\n\n"
             continue
@@ -361,6 +355,21 @@ func renderMarkdown(document: const *Document)->String
         let source = boundedText(joinLines(cell.source).toString())
         result += Format.toString("## % cell % · source\n\n%\n\n", cell.cellType, number, fenced(source.toString()))
     }
+
+    var metadata = Format.toString("nbformat: %\n", document.nbformat)
+    if not document.metadata.kernelspec.displayName.isEmpty() do
+        metadata += Format.toString("Kernel: %\n", boundedText(document.metadata.kernelspec.displayName.toString()))
+    if not document.metadata.kernelspec.name.isEmpty() do
+        metadata += Format.toString("Kernel identifier: %\n", boundedText(document.metadata.kernelspec.name.toString()))
+    if not document.metadata.kernelspec.language.isEmpty() do
+        metadata += Format.toString("Kernel language: %\n", boundedText(document.metadata.kernelspec.language.toString()))
+    if not document.metadata.languageInfo.name.isEmpty() do
+        metadata += Format.toString("Language: %\n", boundedText(document.metadata.languageInfo.name.toString()))
+    if not document.metadata.languageInfo.version.isEmpty() do
+        metadata += Format.toString("Language version: %\n", boundedText(document.metadata.languageInfo.version.toString()))
+    result += "## Notebook metadata\n\n"
+    result += fenced(metadata.toString())
+    result += "\n\n"
 
     return result
 }
@@ -427,9 +436,7 @@ func createViewer(host: Viewer.Host)
     let outline  = DocumentOutline.create(host)
     let headings = Markdown.parseHeadings(rendered.toString())
     outline.publish(headings.toSlice())
-    outline.follow      = func|panel = outline, document = view|() { panel.markReading(document.readingOffset(), atEnd: document.readingProgress() >= 1) }
-    outline.sigSelected += func|document = view|(_, offset) { discard document.revealHeading(offset) }
-    view.sigScrolled    += func|panel = outline|(_) { panel.followOpenReading() }
+    outline.trackMarkdown(view)
 
-    host.setDetails("Notebook · code is not executed; active MIME outputs are omitted")
+    host.setDetails(document.cells.count == 1 ? texts().ui_OneCell : Format.toString(texts().ui_Cells, document.cells.count).toString())
 }

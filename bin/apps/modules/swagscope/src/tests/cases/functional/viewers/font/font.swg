@@ -145,6 +145,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let view   = assume cast(*Typeface.Panel, window.instances[window.activeChoiceIndex].view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(view.document.hasCharacter('日'), view.details)
+    Swag.require(not view.document.specimenMark.isEmpty() and view.document.specimenMark != "Aa")
+    Swag.require(view.sampleEdit.text().count != 0 and view.sampleEdit.text() != Typeface.texts().ui_DefaultSample)
 }
 
 // A damaged CFF table reports a loading error while Binary and Hex remain available.
@@ -184,8 +186,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.require(view.pageLabel.arrowPosition == .RightUpward)
-    Swag.require(view.details.indexOf("Swag Scope Arabic Fixture") != Swag.U64.Max)
+    Swag.require(view.pageLabel.arrowPosition == .None)
+    Swag.require(view.document.face!.familyName == "Swag Scope Arabic Fixture" and view.details.isEmpty())
     Swag.require(view.document.hasCharacter('ع'))
     let firstStart = view.document.pageStart
     view.document.nextPage()

@@ -248,11 +248,6 @@ func paperText(size: Math.Point)->String
 func detailsText(facts: const *DocumentFacts)->String
 {
     var result: #returntype = "PDF"
-    result += " · "
-    if facts.pageCount == 1 do
-        result += texts().ui_OnePage
-    else do
-        result += Format.toString(texts().ui_Pages, facts.pageCount)
     if facts.pageSize.x > 0 and facts.pageSize.y > 0
     {
         result += " · "
@@ -303,13 +298,13 @@ struct Panel
     thumbnailStart:   u64
     using navigation: DocumentPageNavigation
 
+    using steps: Viewer.PageSteps
+
     late
     {
         commands:         *Wnd
         info:             *Wnd
         pdfView:          *PdfView
-        previousButton:   *IconButton
-        nextButton:       *IconButton
         exportPageButton: *IconButton
         pageLabel:        *IconButton
         zoomLabel:        *IconButton
@@ -329,10 +324,10 @@ private impl IWnd for Panel
         {
             .previousButton.toolTip   = appStrings().ui_PreviousPage
             .nextButton.toolTip       = appStrings().ui_NextPage
-            .pageLabel.toolTip        = texts().ui_GoToPage
             .zoomLabel.toolTip        = texts().ui_ZoomMenu
             .exportPageButton.toolTip = texts().ui_ExportPageShort
             .translateNavigation(texts().ui_Thumbnails, texts().ui_Bookmarks)
+            .refreshNavigation()
             if .facts.pageCount
             {
                 .details = detailsText(&.facts)
@@ -521,8 +516,8 @@ private impl Panel
 
     mtd refreshNavigation()
     {
-        .previousButton.enable(.pdfView.pageIndex > 0)
-        .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
+        if .steps.updateSteps(.pdfView.pageIndex, .pdfView.pageCount()) do
+            .services.chromeChanged(me)
         .exportPageButton.enable(.pdfView.pageCount() > 0 and not .pageExporting)
         .pageLabel.setText(.pageReadout())
         .navigation.pageCount   = .pdfView.pageCount()
@@ -566,49 +561,6 @@ private impl Panel
         if label.count and label.count + position.length + 3 <= LabelledLimit do
             return Format.toString("% (%)", label, position)
         return Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount())
-    }
-
-    // Moves to the page `text` names: its position, counted from one, or else the label the
-    // document gives it, compared without case.
-    internal mtd goToTypedPage(text: string)->bool
-    {
-        let index = .typedPageIndex(text)
-        if index == Swag.U64.Max do
-            return false
-        .history.visit(.pdfView.readingPosition())
-        .pdfView.showPage(index)
-        return true
-    }
-
-    // Returns the index of the page `text` names, its position counted from one or else the label
-    // the document gives it, compared without case; `U64.Max` when it names none.
-    internal mtd typedPageIndex(text: string)->u64
-    {
-        let typed        = Latin1.trim(text)
-        var isPageNumber = typed.count > 0
-        for character in typed where not Latin1.isDigit(character)
-        {
-            isPageNumber = false
-            break
-        }
-
-        if not isPageNumber
-        {
-            for label, index in .pageLabels where Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
-                return index
-        }
-
-        var parseErrorOutcome: Swag.Error
-        var parsed: #decltype(expect StrConv.parseU64(typed))
-        catch { parsed = try StrConv.parseU64(typed) } as parseErrorOutcome
-        let parseError = parseErrorOutcome.value()
-        if parseError != null or
-           parsed.eat != typed.count or
-           parsed.ovf or
-           not parsed.value or
-           parsed.value > .pdfView.pageCount() do
-            return Swag.U64.Max
-        return parsed.value - 1
     }
 
     // Lists the bookmarks in the outline, each addressed by its index, so the outline can filter
@@ -712,7 +664,7 @@ private impl Panel
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pdf.previous")
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pdf.next")
         entries.add(strings.ui_ShowPages, .Grid, func|view = me|() { view.openPages() }, disabled: not .pdfView.pageCount(), bindId: "scope.pdf.thumbnails")
-        entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() }, bindId: "scope.pdf.goToPage")
+        .steps.addPageJump(entries, "scope.pdf.goToPage")
         entries.add(strings.ui_ExportPage, .SaveAs, func|view = me|() { view.promptExportPage() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportPage")
         entries.add(strings.ui_ExportRange, .SaveAs, func|view = me|() { view.promptExportRange() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportRange")
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.pdf.back")
@@ -731,28 +683,6 @@ private impl Panel
         // The commands of the page's context menu, so none of them needs a right click.
         entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.pdf.copyText")
         entries.add(strings.ui_SelectPage, .SelectAll, func|view = me|() { view.pdfView.selectAll() }, disabled: not .pdfView.pageCount(), defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.pdf.selectPage")
-    }
-
-    mtd promptGoToPage()
-    {
-        if not .surface or not .pdfView.pageCount() do
-            return
-        var options: EditDlgOptions
-        options.title   = texts().ui_GoToPage
-        options.message = Format.toString(texts().ui_PageRange, .pdfView.pageCount()).toString()
-        options.text    = Format.toString("%", .pdfView.pageIndex + 1).toString()
-        let label = .pageLabelOf(.pdfView.pageIndex)
-        if label.count
-        {
-            options.message = Format.toString(texts().ui_PageRangeLabels, .pdfView.pageCount(), label).toString()
-            options.text    = label
-        }
-
-        let dialog = EditDlg.createSingleLine(.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
-            return
-        let typed = dialog.text()
-        discard .goToTypedPage(typed)
     }
 
     mtd promptExportPage()
@@ -997,29 +927,27 @@ private impl Panel
     // Creates the previous-page, page-number, and next-page controls at the start of the information group.
     mtd createPageControls()
     {
-        let actionSize = themeActionButtonSize(.themeMetrics())
-        with .previousButton = Viewer.createPageStep(.commands, -1)
+        let turn = func|view = me|(dir: s32)
         {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Previous
-            .sigPressed      += func|view = me|(_) { view.pdfView.previousPage() }
+            if dir < 0 do
+                view.pdfView.previousPage()
+            else do
+                view.pdfView.nextPage()
+        }
+        .pageLabel = .steps.create(.commands, "scope.pdf.page", .Page, turn, func|view = me|(index)
+        {
+            view.history.visit(view.pdfView.readingPosition())
+            view.pdfView.showPage(index)
+        })
+        .steps.labelAt = func|view = me|(index)->string => view.pageLabelOf(index)
+        .steps.resolveLabel = func|view = me|(typed)->u64
+        {
+            for label, index in view.pageLabels where not label.isEmpty() and Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
+                return index
+            return Swag.U64.Max
         }
 
-        with .pageLabel = Viewer.createPageReadout(.commands, "scope.pdf.page", texts().ui_GoToPage)
-        {
-            .sigPressed += func|view = me|(_) { view.promptGoToPage() }
-        }
-
-        with .nextButton = Viewer.createPageStep(.commands, 1)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Next
-            .sigPressed      += func|view = me|(_) { view.pdfView.nextPage() }
-        }
-
-        with .exportPageButton = Viewer.createActionButton(.commands, .SaveAs)
+        with .exportPageButton = Viewer.createActionButton(.info, .SaveAs)
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_ExportPageShort
@@ -1111,9 +1039,9 @@ impl Panel
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()
-    let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
     let metrics  = host.contentParent().themeMetrics()
-    let commands = host.createCommandGroup(Viewer.pageControlWidth(metrics) + themeActionButtonSize(metrics) + 8)
+    let info     = host.createInfoGroup(Viewer.ZoomSlotWidth + themeActionButtonSize(metrics))
+    let commands = host.createCommandGroup(Viewer.pageControlWidth(metrics))
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline             = DocumentOutline.create(host)

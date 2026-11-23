@@ -173,7 +173,15 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.arabic.ttf"), true)
     let view   = assume cast(*Typeface.Panel, window.currentView)
-    assertScopeAnchoredMenu(&host, window, view.pageLabel, "menus.font.range.paper")
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Font", host.theme)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries where entry.title == Typeface.texts().ui_CharacterRange
+    {
+        assertScopeAnchoredMenuWith(&host, window, "menus.font.range.paper", unwrap entry.run)
+        return
+    }
+    Swag.require(false, "Character range missing from font commands")
 }
 
 #[Swag.TestTag("golden")]

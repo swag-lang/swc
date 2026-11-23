@@ -38,7 +38,7 @@ using Core, Gui, Pixel, Viewers
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.docx"), false, 1040, 720)
     let view   = assume cast(*Docx.Panel, window.currentView)
-    Swag.require(view.outline.headings.count == 3)
+    Swag.require(view.outline!.headings.count == 3)
     window.sendCommandEvent(ViewerCommands.Outline)
     window.applyLayout()
     host.finishAnimations()

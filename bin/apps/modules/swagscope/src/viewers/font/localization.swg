@@ -56,9 +56,8 @@ struct Texts
     ui_EmbedEditable:     string = "editable"
     ui_EmbedNoSubset:     string = "no subsetting"
     ui_EmbedBitmap:       string = "bitmaps only"
-    ui_Metrics:           string = "% · % glyphs · % UPM"
-    ui_DetailsSingle:     string = "% · % · % glyphs · % UPM"
-    ui_DetailsCollection: string = "% · % · % glyphs · % UPM · % faces"
+    ui_Metrics:           string = "% glyphs · % UPM"
+    ui_CollectionFaces:   string = "% faces"
 }
 
 private const FrenchStringsName = "lang/fr/scope.font.tweak"

@@ -249,6 +249,13 @@ struct AppStrings
     ui_MenuCopyPath:                   string = "Copy Full Path"                              // Panel menu entry copying the complete file name.
     ui_MenuCopyName:                   string = "Copy File Name"                              // Panel menu entry copying the final path component.
     ui_MenuForget:                     string = "Remove This File from the History"           // Panel menu entry dropping one file from the recent list.
+    ui_GoToPage:                       string = "Go to Page"
+    ui_GoToChapter:                    string = "Go to Chapter"
+    ui_GoToSlide:                      string = "Go to Slide"
+    ui_GoToSheet:                      string = "Go to Sheet"
+    ui_GoToFrame:                      string = "Go to Frame"
+    ui_PageNumberRange:                string = "Enter a number from 1 to %."
+    ui_PageNumberOrLabel:              string = "Enter a number from 1 to %, or a label such as %."
     ui_PreviousPage:                   string = "Previous Page"
     ui_NextPage:                       string = "Next Page"
     ui_SpeedNormal:                    string = "Normal"     // The source playback rate of a medium.

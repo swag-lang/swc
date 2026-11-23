@@ -338,6 +338,8 @@ struct Panel
     details:   String
     facts:     ViewerFacts
 
+    frameSteps: Viewer.PageSteps
+
     late
     {
         actions:         *Wnd
@@ -352,9 +354,7 @@ struct Panel
         playButton:      *IconButton
         timeline:        *Slider
         itemSelector:    *ComboBox
-        previousPage:    *IconButton
-        nextPage:        *IconButton
-        frameLabel:      *Label
+        frameLabel:      *IconButton
     }
 
     services:                   Viewer.HostServices
@@ -428,7 +428,7 @@ impl Panel
             return result
         }
 
-        result = Format.toString("% × %", info.width, info.height)
+        result = Format.toString("% × % px", info.width, info.height)
         if info.kind == .Texture
         {
             if info.level do
@@ -444,11 +444,13 @@ impl Panel
         return result
     }
 
-    // Returns the summary of the picture, followed by what the image set says of the item in view.
+    // Independent pages report the dimensions of the displayed image. An animated frame can add its delay.
     mtd shownDetails()->String
     {
         let item = .itemText()
-        return item.isEmpty() ? String.from(.details) : Format.toString("% · %", .details, item)
+        if item.isEmpty() do
+            return String.from(.details)
+        return .imageView.movie.isAnimated() ? Format.toString("% · %", .details, item) : item
     }
 
     // Updates the frame controls of an animation, and ends the cycle the first time the movie
@@ -467,10 +469,11 @@ impl Panel
 
         if movie.isAnimated() do
             .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
-        .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
+        .frameSteps.unit = movie.isAnimated() ? .Frame : .Page
+        .frameSteps.setPageRange(cast(u64, movie.frameIndex), cast(u64, movie.frameCount))
         .refreshItemSelector()
-        .previousPage.enable(movie.frameIndex > 0)
-        .nextPage.enable(movie.frameIndex + 1 < movie.frameCount)
+        .frameSteps.previousButton.enable(movie.frameIndex > 0)
+        .frameSteps.nextButton.enable(movie.frameIndex + 1 < movie.frameCount)
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
 
         // The movie records elapsed cycles independently of frame seeks and encoded loop limits.
@@ -699,8 +702,8 @@ impl Panel
         .playModeButton.show(not compact)
         .previousButton.show(not paged and steps)
         .nextButton.show(not paged and steps)
-        .previousPage.show(paged and steps)
-        .nextPage.show(paged and steps)
+        .frameSteps.previousButton.show(paged and steps)
+        .frameSteps.nextButton.show(paged and steps)
         .frameLabel.show(counter)
         .playButton.margin.x = compact ? 0 : 10
         .playButton.show(animated and room >= action)
@@ -885,8 +888,9 @@ impl Panel
             // An animation steps by frames, an image set by pages.
             let info      = .imageView.movie.frameInfo()
             let animation = info and info.kind == .Animation
-            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.image.previousPage")
-            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.image.nextPage")
+            .frameSteps.addPageJump(entries, "scope.image.goToPage")
+            entries.add(animation ? lens.cmd_PreviousFrame : lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .frameSteps.previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.image.previousPage")
+            entries.add(animation ? lens.cmd_NextFrame : lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .frameSteps.nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.image.nextPage")
         }
 
         entries.add(lens.cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.image.zoomMenu")
@@ -956,8 +960,8 @@ private impl IWnd for Panel
         {
             .previousButton.toolTip  = texts().ui_TipPrevious
             .nextButton.toolTip      = texts().ui_TipNext
-            .previousPage.toolTip    = appStrings().ui_PreviousPage
-            .nextPage.toolTip        = appStrings().ui_NextPage
+            .frameSteps.previousButton.toolTip    = appStrings().ui_PreviousPage
+            .frameSteps.nextButton.toolTip        = appStrings().ui_NextPage
             .transformButton.toolTip = texts().ui_TipTransform
             .playButton.toolTip      = texts().ui_TipPlay
             .optionsButton.toolTip   = appStrings().ui_Options
@@ -1286,32 +1290,16 @@ private impl Panel
             }
         }
 
-        with .previousPage = Viewer.createPageStep(.actions, -1)
-        {
-            .hide()
-            .sigPressed += func|view = me|(_) { view.turnPage(-1) }
-        }
-
-        with .frameLabel = Label.create(.actions, "", {0, 0, Viewer.PageReadoutWidth, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Left
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .setTextAlignment(.Center, .OpticalCenter)
-            .hide()
-        }
-
-        with .nextPage = Viewer.createPageStep(.actions, 1)
-        {
-            .hide()
-            .sigPressed += func|view = me|(_) { view.turnPage(1) }
-        }
+        .frameLabel = .frameSteps.create(.actions, "scope.image.page", .Page,
+            func|view = me|(dir) { view.turnPage(dir) }, func|view = me|(index) { view.imageView.setFrameIndex(cast(s32, index)) })
+        discard .frameSteps.showSteps(false)
 
         .timeline.sendToBack()
         .itemSelector.sendToBack()
         .playButton.sendToBack()
-        .nextPage.sendToBack()
+        .frameSteps.nextButton.sendToBack()
         .frameLabel.sendToBack()
-        .previousPage.sendToBack()
+        .frameSteps.previousButton.sendToBack()
     }
 
     // Changes the existing image-set page or animation frame without wrapping at its ends.

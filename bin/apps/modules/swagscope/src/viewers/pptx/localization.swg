@@ -14,7 +14,6 @@ struct Texts
     ui_ReadText:     string = "Read Slide Text"
     ui_TextMode:     string = "text view"
     ui_Simplified:   string = "simplified layout"
-    ui_CurrentSlide: string = "Presentation · slide % of %"
     ui_Name:         string = "Presentation"
     ui_Preparing:    string = "Preparing presentation…"
     ui_Details:      string = "Presentation · % slides · % images not shown"

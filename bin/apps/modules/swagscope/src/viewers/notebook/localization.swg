@@ -5,6 +5,8 @@ using Core, Gui
 
 struct Texts
 {
+    ui_OneCell:   string = "1 cell"
+    ui_Cells:     string = "% cells"
     ui_Search:    string = "Search cells and outputs"
     ui_SearchTip: string = "Search visible cell source and plain-text outputs. Prefix with source: or output: to choose one."
 }

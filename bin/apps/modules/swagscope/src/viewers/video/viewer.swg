@@ -976,7 +976,7 @@ private impl Panel
         if not .video.isOpen() do
             return {}
         let rate = .video.frameRate().framesPerSecond()
-        return Format.toString("% × % · %{f2} fps · %", .video.width(), .video.height(), rate, Viewer.durationText(.video.durationInSeconds()))
+        return Format.toString("% × % · %{f2} fps", .video.width(), .video.height(), rate)
     }
 
     // Publishes the reader opened by the background worker and starts picture production.

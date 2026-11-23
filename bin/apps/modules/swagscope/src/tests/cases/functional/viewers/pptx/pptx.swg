@@ -61,6 +61,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(window.choices[window.activeChoiceIndex].key == "pptx")
     let view = assume cast(*Pptx.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.view != null and view.presentation.slides.count == 1)
+    Swag.require(not window.viewerBar.isLocallyVisible() and window.documentPanel.margin.w == 0)
 }
 
 // Macro-free PowerPoint Slide Show packages use the same inert, read-only slide reader.
@@ -97,6 +98,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.gallery.isVisible() and view.previews[0].contentTarget and view.previews[1].contentTarget)
     view.showSlide(1)
     Swag.require(view.slide == 1 and view.navigation.currentPage == 1)
+    Swag.require(view.slideLabel.text() == "2 / 2" and not Utf8.contains(window.readingLine.details.text(), "2 of 2"))
 }
 
 // An embedded slide picture appears inline in the declared slide order.
@@ -192,7 +194,9 @@ using Core, Gui, Gui.Testing, Viewers
             deck.showNotes()
             host.click(deck.view!.surfaceRect().center())
             host.shortcut(.O, .Control | .Shift)
-            Swag.require(deck.gallery.isVisible() and deck.pagesHeading.isVisible() and not deck.navigationMode.isVisible())
+            Swag.require(deck.gallery.isVisible() and not deck.navigationMode.isVisible())
+            Swag.require(deck.thumbnailScroll.position.y == deck.outlinePanel.parent!.paddedClientRect().y)
+            Swag.require(deck.thumbnailScroll.surfaceRect().y <= window.documentPanel.surfaceRect().y + window.themeMetrics().floating_Inset)
             let reading = deck.view.position
             host.mouseWheel(deck.gallery.surfaceRect().center(), -6)
             host.settleAnimations(&host.surfaceWnd)

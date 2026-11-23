@@ -19,7 +19,6 @@ struct Texts
     ui_Previous:            string = "Previous Chapter"
     ui_Next:                string = "Next Chapter"
     ui_Preparing:           string = "Preparing book…"
-    ui_Details:             string = "EPUB · chapter % of %"
     err_Invalid:            string = "This EPUB book has a damaged structure."
     err_TooLarge:           string = "This EPUB book is too large to open safely."
     err_UnsupportedChapter: string = "This EPUB book has a chapter format that cannot be read."

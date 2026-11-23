@@ -43,9 +43,8 @@ struct Texts
     word_Channel:          string = "channel"                          // One audio channel.
     word_Channels:         string = "channels"                         // Several audio channels.
 
-    // Summary the host shows beside the file size: sample rate, channel count with its noun,
-    // sample width, then the duration.
-    ui_Details: string = "% Hz · % · % bit · %"
+    // Sample rate, channel count and sample width supplement the clock in the transport.
+    ui_Details: string = "% Hz · % · % bit"
 }
 
 private const FrenchStringsName = "lang/fr/scope.sound.tweak"

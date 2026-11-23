@@ -83,13 +83,13 @@ using Core, Gui, Viewers
     host.keyPress(.PageDown, .Control)
     Swag.require(image.imageView.movie.frameIndex == 1 and image.frameLabel.text() == Viewer.pageText(1, count))
     image.imageView.setFrameIndex(cast(s32, count) - 1)
-    Swag.require(not image.nextPage.isEnabled())
+    Swag.require(not image.frameSteps.nextButton.isEnabled())
     host.keyPress(.PageDown, .Control)
     Swag.require(image.imageView.movie.frameIndex == cast(s32, count) - 1)
     window.currentCommands!.resize(240, window.currentCommands.position.height)
     window.currentCommands.applyLayout()
-    Swag.require(image.previousPage.isLocallyVisible() and image.nextPage.isLocallyVisible())
-    Swag.require(image.nextPage.position.right() <= 240)
+    Swag.require(image.frameSteps.previousButton.isLocallyVisible() and image.frameSteps.nextButton.isLocallyVisible())
+    Swag.require(image.frameSteps.nextButton.position.right() <= 240)
 }
 
 // Packaged reading surfaces share one footer and the same page controls as PDF and images.
@@ -128,5 +128,39 @@ using Core, Gui, Viewers
             let epub = assume cast(*Epub.Panel, view)
             Swag.require(epub.chapter == 1 and epub.chapterLabel.text() == "2 / 2")
         }
+    }
+}
+
+// The same address control accepts numbers, rejects out-of-range input and navigates the reader.
+// A sheet number counts only the sheets the reader can currently visit.
+#test
+{
+    for file in ["viewer.geometry.pptx", "viewer.odp", "viewer.navigation.xlsx", "viewer.ods", "viewer.epub", "viewer.comic.cbz", "imageset-pages-raw.tiff"]
+    {
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, scopeTestDataPath(file), false)
+        var steps: *Viewer.PageSteps?
+        switch window.currentView
+        {
+        case Pptx.Panel as deck:       steps = &deck.steps
+        case Xlsx.Panel as book:       steps = &book.steps
+        case Epub.Panel as book:       steps = &book.steps
+        case Comic.Panel as book:      steps = &book.steps
+        case Picture.Panel as picture: steps = &picture.frameSteps
+        }
+        Swag.require(steps != null and steps.totalSteps > 1, file)
+        let control = steps.counter
+        Swag.require(control.arrowPosition == .None and control.focusPolicy == .Tab and control.wndFlags.has(.ActivatesOnKey))
+        Swag.require(control.position.width == Viewer.PageReadoutWidth and control.toolTip.count)
+        let dialog = steps.createPageDialog()
+        let validate = unwrap dialog.validateResult
+        let next = steps.ordinal == 0 ? 1'u64 : 0'u64
+        dialog.setText("0")
+        Swag.require(dialog.edit!.revalidate() == .InvalidVisible and not validate(dialog, Dialog.BtnOk))
+        dialog.setText(Format.toString("%", next + 1))
+        Swag.require(dialog.edit.revalidate() == .Valid and validate(dialog, Dialog.BtnOk))
+        dialog.surface!.destroy()
+        completeQueuedViewerFile(&host, window)
+        Swag.require(steps.ordinal == next and control.text() == Viewer.pageText(next, steps.totalSteps), file)
     }
 }

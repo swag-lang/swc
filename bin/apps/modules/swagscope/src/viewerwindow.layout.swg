@@ -300,7 +300,6 @@ impl ViewerWindow
         var strip = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
         if not .fullScreen and not .isEdgeToEdge() and (.workspace?.wantsComparisonSheet() orelse false) do
             strip = Math.max(strip, ViewerWorkspace.ViewTitleHeight)
-        let top    = strip + .themeMetrics().floating_Inset
         let search = .searchBar != null and .searchBar.isLocallyVisible() ?
                      Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
         .documentHost.padding = Math.Vector4{0, strip + search, 0, 0}
@@ -320,7 +319,7 @@ impl ViewerWindow
 
         if .viewerBar != null
         {
-            let commands     = .currentCommands
+            let commands     = visibleViewerCommands(.currentCommands)
             if .currentView is Viewers.Film.Panel as film where film.bottomVeil.compact != compact
             {
                 film.bottomVeil.compact = compact
@@ -343,8 +342,8 @@ impl ViewerWindow
                                       2 * clearance : 0
         }
 
-        if .currentSidePanelHost do
-            .currentSidePanelHost.padding.y = top
+        if .currentSidePanelHost is ViewerSidePanelHost as side do
+            side.placeBelowStrip(strip)
     }
 
     mtd compactVideoCell()->bool

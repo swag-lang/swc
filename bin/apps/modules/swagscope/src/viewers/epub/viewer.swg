@@ -149,13 +149,13 @@ struct Panel
     canvasColor:     Color
     searchSkipped:   bool
 
+    using steps: Viewer.PageSteps
+
     late
     {
         outline:        *DocumentOutline
         status:         *Label
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        chapterLabel:   *Label
+        chapterLabel:   *IconButton
         zoomLabel:      *IconButton
     }
 }
@@ -198,12 +198,8 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
-        {
-            .previousButton.toolTip = texts().ui_Previous
-            .nextButton.toolTip     = texts().ui_Next
+        if evt.kind == .LanguageChanged do
             .refreshNavigation()
-        }
 
         .wnd.IWnd.onNotifyEvent(evt)
     }
@@ -238,12 +234,13 @@ private impl Panel
 
     mtd refreshNavigation()
     {
+        .previousButton.toolTip = texts().ui_Previous
+        .nextButton.toolTip     = texts().ui_Next
         let hasChapter = .chapter < .book.chapters.count
-        .previousButton.enable(hasChapter and .chapter > 0)
-        .nextButton.enable(hasChapter and .chapter + 1 < .book.chapters.count)
-        .chapterLabel.setText(hasChapter ? Viewer.pageText(.chapter, .book.chapters.count) : "")
+        if .steps.updateSteps(.chapter, .book.chapters.count) do
+            .services.chromeChanged(me)
         if hasChapter do
-            .services.showDetails(me, Format.toString(texts().ui_Details, .chapter + 1, .book.chapters.count))
+            .services.showDetails(me, .book.metadata.title.isEmpty() ? texts().ui_Name : .book.metadata.title.toString())
     }
 
     internal mtd turn(delta: s32)
@@ -636,6 +633,7 @@ private impl Panel
                         bindId: "scope.epub.goToBookmark")
         }
 
+        .steps.addPageJump(entries, "scope.epub.goToPage")
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.epub.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.epub.next")
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
@@ -658,24 +656,9 @@ private impl Panel
             .services        = host.services()
         }
 
-        let info       = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        let actionSize = themeActionButtonSize(result.themeMetrics())
-        with result.previousButton = Viewer.createPageStep(info, -1)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Previous
-            .sigPressed      += func|view = result|(_) { view.turn(-1) }
-        }
-
-        result.chapterLabel = Viewer.createPageLabel(info)
-        with result.nextButton = Viewer.createPageStep(info, 1)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Next
-            .sigPressed      += func|view = result|(_) { view.turn(1) }
-        }
+        let info = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
+        result.chapterLabel = result.steps.create(info, "scope.epub.page", .Chapter,
+            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showChapter(index) })
 
         with result.zoomLabel = Viewer.createZoomButton(host.createInfoGroup(Viewer.ZoomSlotWidth), "scope.epub.zoom", appStrings().cmd_ZoomMenu)
         {
@@ -683,12 +666,7 @@ private impl Panel
         }
 
         result.zoomLabel.setText(Viewer.zoomText(result.zoomPercent))
-        with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .View
-            .setTextAlignment(.Center, .Center)
-        }
+        result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
 
         result.hookOnChildEvent = func|result|(_, evt)
         {
@@ -702,17 +680,12 @@ private impl Panel
                     result.turn(direction)
                     return true
                 }
-
-                if Viewer.isZoomKey(key)
-                {
-                    result.setZoom(Viewer.zoomAfterKey(key, result.zoomPercent))
-                    return true
-                }
             }
 
-            if evt is MouseEvent as mouse where Viewer.isZoomWheel(mouse)
+            let zoom = Viewer.requestedZoom(evt, result.zoomPercent)
+            if zoom
             {
-                result.setZoom(Viewer.zoomAfterWheel(mouse, result.zoomPercent))
+                result.setZoom(zoom)
                 return true
             }
 

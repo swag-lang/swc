@@ -20,6 +20,7 @@ using Core, Gui, Gui.Testing, Viewers
     let window = openFramedViewerWindow(&host, scopeTestDataPath("viewer.navigation.xlsx"), false)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
     Swag.require(view.sheet == 2 and view.visible.count == 2 and view.sheetLabel.text() == "2 / 2")
+    Swag.require(view.gridHost!.children.count == 1 and Utf8.contains(window.readingLine.details.text(), "Notes & plans"))
     Swag.require(not view.nextButton.isEnabled() and view.previousButton.isEnabled())
     var page = KeyEvent{kind: .Pressed, key: .PageUp}
     Swag.require(not view.hookOnChildEvent!(unwrap view.grid, &page) and view.sheet == 2)
@@ -48,10 +49,12 @@ using Core, Gui, Gui.Testing, Viewers
     var host: HeadlessHost
     let window = openFramedViewerWindow(&host, path, true)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
+    Swag.require(not window.viewerBar.isLocallyVisible() and window.documentPanel.margin.w == 0)
     Swag.require(view.grid == null and view.visible.isEmpty() and view.status.text() == Xlsx.texts().ui_AllHidden)
     Swag.require(not view.previousButton.isEnabled() and not view.nextButton.isEnabled())
     view.setShowHidden(true)
     Swag.require(view.grid != null and view.sheet == 0 and view.visible.count == 2)
+    Swag.require(window.viewerBar.isLocallyVisible() and view.gridHost!.margin.w == view.themeMetrics().floating_Inset)
     view.setShowHidden(false)
     Swag.require(view.grid == null and view.sheet == Swag.U64.Max)
 }

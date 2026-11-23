@@ -470,15 +470,8 @@ impl ZoomButton
         with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
-            .dockStyle   = .Right
-            .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
-            .toolTip     = texts().ui_ZoomMenu
-            .updateFlags(.CenterContent)
-            .setText(Viewer.zoomText(.zoomPercent))
-            .setArrowPosition(.RightUpward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
+            Viewer.configureZoomButton(result, texts().ui_ZoomMenu, .zoomPercent)
             .sigPressed += func(button) { button.showZoomMenu() }
         }
 
@@ -585,10 +578,9 @@ func createViewer(host: Viewer.Host)
         return
     }
 
-    let actionGroup = host.createActionGroup(themeDropDownButtonWidth(view.themeMetrics()))
+    let actionGroup = host.createActionGroup(Viewer.InfoOptionsWidth)
     actionGroup.dockStyle = .Right
-    actionGroup.margin.z  = 12
-    let optionsButton = Viewer.createOptionsButton(actionGroup)
+    let optionsButton = Viewer.createInfoOptionsButton(actionGroup)
     optionsButton.dockStyle = .Right
 
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
@@ -621,17 +613,16 @@ func createViewer(host: Viewer.Host)
 
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)
     {
+        let zoom = Viewer.requestedZoom(evt, zoomButton.zoomPercent)
+        if zoom
+        {
+            zoomButton.applyZoom(zoom)
+            return true
+        }
+
         switch evt
         {
-        case KeyEvent as key where Viewer.isZoomKey(key):
-            zoomButton.applyZoom(Viewer.zoomAfterKey(key, zoomButton.zoomPercent))
-            return true
-
         case KeyEvent as key where zoomButton.handleHistoryKey(key):
-            return true
-
-        case MouseEvent as mouse where Viewer.isZoomWheel(mouse):
-            zoomButton.applyZoom(Viewer.zoomAfterWheel(mouse, zoomButton.zoomPercent))
             return true
 
         case NotifyEvent as notification where notification.kind == .LanguageChanged:

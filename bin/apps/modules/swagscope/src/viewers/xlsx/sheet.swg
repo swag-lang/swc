@@ -118,7 +118,7 @@ impl Sheet
 {
     mtd const details()->String
     {
-        var result = Format.toString(.cells == 1 ? texts().ui_Cell : texts().ui_Cells, .name, .cells)
+        var result = Format.toString(.cells == 1 ? texts().ui_Cell : texts().ui_Cells, .cells)
         if .omittedFormats do
             result += Format.toString(texts().ui_FormatsOmitted, .omittedFormats)
         if .simplifiedStyles do

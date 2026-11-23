@@ -2,3 +2,6 @@
 
 ui_Search    Rechercher dans les cellules et sorties
 ui_SearchTip Rechercher dans le texte visible des cellules et les sorties en texte brut. Préfixer par source: ou sortie: pour choisir.
+
+ui_OneCell "1 cellule"
+ui_Cells "% cellules"

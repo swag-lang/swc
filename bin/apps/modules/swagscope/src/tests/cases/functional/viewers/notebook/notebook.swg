@@ -22,12 +22,13 @@ using Core, Gui, Viewers
 {
     let source   = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
     let document = expect Notebook.parseNotebook(source)
-    let rendered = Notebook.renderMarkdown(&document).toString()
-    Swag.require(Utf8.contains(rendered, "## Markdown cell 1") and
+    let reading = Notebook.renderMarkdown(&document)
+    let rendered = reading.toString()
+    Swag.require(Utf8.startsWith(rendered, "# Wetland survey") and
                  Utf8.contains(rendered, "## Code cell 2 · In [4]") and
                  Utf8.contains(rendered, "Kernel: Python 3") and
                  Utf8.contains(rendered, "north-marsh,6.8,14.2") and
-                 Utf8.contains(rendered, "ValueError"))
+                 Utf8.contains(rendered, "ValueError"), rendered)
     Swag.require(Utf8.contains(rendered, "Rich output omitted") and
                  Utf8.contains(rendered, "not rendered, executed or fetched"))
     Swag.require(not Utf8.contains(rendered, "<img") and
@@ -39,7 +40,8 @@ using Core, Gui, Viewers
 #test
 {
     let document = expect Notebook.parseNotebook("{\"cells\":[],\"metadata\":{\"kernelspec\":{\"display_name\":\"<script>alert(1)</script>\",\"name\":\"py```\",\"language\":\"python\"},\"language_info\":{\"name\":\"Python\",\"version\":\"3.13\"}},\"nbformat\":4}")
-    let rendered = Notebook.renderMarkdown(&document).toString()
+    let reading = Notebook.renderMarkdown(&document)
+    let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "Kernel: <script>alert(1)</script>") and
                  Utf8.contains(rendered, "Kernel identifier: py```") and
                  Utf8.contains(rendered, "````text") and
@@ -66,7 +68,8 @@ using Core, Gui, Viewers
 #test
 {
     let document = expect Notebook.parseNotebook("{\"cells\":[{\"cell_type\":\"code\",\"source\":[\"snippet = ```\\n<script>alert(1)</script>\"]}],\"nbformat\":4}")
-    let rendered = Notebook.renderMarkdown(&document).toString()
+    let reading = Notebook.renderMarkdown(&document)
+    let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "````text") and Utf8.contains(rendered, "<script>alert(1)</script>"))
 }
 
@@ -79,7 +82,8 @@ using Core, Gui, Viewers
     Swag.require(output.data.textPlain.count == 3 and
                  Notebook.joinLines(output.data.textPlain).toString() == "station  readings  median_ph\nnorth    3         6.9\nsouth    2         7.1\n")
 
-    let rendered = Notebook.renderMarkdown(&document).toString()
+    let reading = Notebook.renderMarkdown(&document)
+    let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "north    3         6.9") and
                  Utf8.contains(rendered, "Rich output omitted") and
                  Utf8.contains(rendered, "not rendered, executed or fetched"))
@@ -104,7 +108,7 @@ using Core, Gui, Viewers
     let fileName = scopeTestDataPath("viewer.field-notes.ipynb")
     let result   = openTestViewer(Notebook.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.require(result.view != null and result.view is Markdown.View)
-    Swag.require(Utf8.contains(result.details, "code is not executed"))
+    Swag.require(result.details == "3 cells")
 }
 
 // Notebook Markdown headings from both authored cells and the rendered cell labels navigate to
@@ -115,15 +119,15 @@ using Core, Gui, Viewers
     let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.field-notes.ipynb"), false)
     let view    = assume cast(*Markdown.View, window.currentView)
     let outline = assume cast(*DocumentOutline, window.currentSidePanelHost!.children[0].children[0])
-    Swag.require(outline.rows.count >= 5 and outline.rowTitles[2].toString() == "Wetland survey")
+    Swag.require(outline.rows.count >= 4 and outline.rowTitles[0].toString() == "Wetland survey")
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
 
-    outline.list.selectLine(3)     // The code cell heading is an outline destination too.
-    let codeCell = outline.headings[3].sourceOffset
+    outline.list.selectLine(1)     // The code cell heading is an outline destination too.
+    let codeCell = outline.headings[1].sourceOffset
     Swag.require(view.readingOffset() == codeCell)
-    outline.list.selectLine(2)     // An authored Markdown heading remains navigable after sanitization.
-    Swag.require(view.readingOffset() == outline.headings[2].sourceOffset)
+    outline.list.selectLine(0)     // An authored Markdown heading remains navigable after sanitization.
+    Swag.require(view.readingOffset() == outline.headings[0].sourceOffset)
 }
 
 #test

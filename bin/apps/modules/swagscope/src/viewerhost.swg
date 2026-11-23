@@ -105,6 +105,37 @@ struct ViewerPluginHost
     window:          *ViewerWindow?
 }
 
+// The host clears the title strip. A panel with its own leading space can align to the document.
+struct ViewerSidePanelHost
+{
+    using wnd: Wnd
+    alignToDocument: bool
+    strip: f32
+    positioned: bool
+}
+
+impl ViewerSidePanelHost
+{
+    mtd placeBelowStrip(height: f32)
+    {
+        .strip = height
+        .positioned = true
+        .padding.y = height + (.alignToDocument ? 0 : .themeMetrics().floating_Inset)
+    }
+
+    mtd setDocumentAlignment(enabled: bool)
+    {
+        if enabled == .alignToDocument do
+            return
+        .alignToDocument = enabled
+        if .positioned
+        {
+            .placeBelowStrip(.strip)
+            .applyLayout()
+        }
+    }
+}
+
 // One group a viewer contributes to the information band, sized to what it actually shows.
 //
 // The band lays the general details and this group out as one right-aligned run, so a group
@@ -222,7 +253,7 @@ impl Viewer.Host for ViewerPluginHost
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
 
         // The floating inset stands the panel away from the edges of the window, beside the work.
-        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
+        with .session.sidePanelHost = Wnd.create'ViewerSidePanelHost(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
         {
             .dockStyle       = .None
             .backgroundStyle = .Transparent
@@ -360,4 +391,15 @@ impl Viewer.Host for ViewerPluginHost
         .session.needsLoadingOverlay = api.needsLoadingOverlay
         .session.retire    = api.retire
     }
+}
+
+// A reader with no visible commands gives the whole command-bar area back to the document.
+func visibleViewerCommands(commands: *Wnd?)->*Wnd?
+{
+    if commands
+    {
+        for child in commands.children where child.isLocallyVisible() do
+            return commands
+    }
+    return null
 }

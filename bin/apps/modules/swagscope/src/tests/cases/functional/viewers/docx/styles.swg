@@ -184,13 +184,14 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     var host: Gui.Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.docx"), false)
     let view   = assume cast(*Docx.Panel, window.currentView)
-    Swag.require(view.outline.headings.count == 3)
-    Swag.require(view.outline.headings[0].title == "A little room for words")
-    Swag.require(view.outline.headings[0].level == 1 and view.outline.headings[1].level == 2)
+    let outline = unwrap view.outline
+    Swag.require(outline.headings.count == 3)
+    Swag.require(outline.headings[0].title == "A little room for words")
+    Swag.require(outline.headings[0].level == 1 and outline.headings[1].level == 2)
     Swag.require(not view.view!.documentStyle.followTheme)
-    view.outline.setFilter("good things")
-    Swag.require(view.outline.rows.count == 1)
-    view.outline.list.selectLine(0)
+    outline.setFilter("good things")
+    Swag.require(outline.rows.count == 1)
+    outline.list.selectLine(0)
     Swag.require(view.view != null)
 }
 

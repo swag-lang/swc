@@ -35,91 +35,15 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// The reading page around one RTF body.
-struct Panel
-{
-    using wnd: Wnd
-
-    document:    Document
-    load:        Viewer.BackgroundLoad'Document
-    services:    Viewer.HostServices
-    view:        *HtmlView?
-    late status: *Label
-}
-
-private impl IWnd for Panel
-{
-    mtd impl onTaskEvent(evt: *TaskEvent)
-    {
-        if not .load.claim(evt)
-        {
-            evt.accepted = false
-            return
-        }
-
-        let failure = .load.finish(&.document)
-        if not failure.isEmpty()
-        {
-            .services.failed(me, failure)
-            return
-        }
-
-        var style = HtmlStyle.theme()
-        style.maxContentWidth = 680
-        style.followTheme     = not .document.paper
-        with .view = HtmlView.createText(me, .document.html, style)
-        {
-            .dockStyle = .Center
-            .margin    = {.themeMetrics().floating_Inset, 0, .themeMetrics().floating_Inset, 0}
-        }
-
-        .status.hide()
-        .applyLayout()
-        .showDetails()
-        .services.loadingChanged(me)
-    }
-
-    mtd impl onNotifyEvent(evt: *NotifyEvent)
-    {
-        if evt.kind == .LanguageChanged and .document.paragraphs do
-            .showDetails()
-        .wnd.IWnd.onNotifyEvent(evt)
-    }
-}
-
-private impl Panel
-{
-    internal mtd retire()->bool => .load.retire()
-
-    mtd showDetails()
-    {
-        .services.showDetails(me, .document.details())
-    }
-
-    func create(host: Viewer.Host)->*Panel
-    {
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.rtf")
-        {
-            .backgroundStyle = .View
-            .services        = host.services()
-        }
-
-        with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .View
-            .setTextAlignment(.Center, .Center)
-        }
-
-        result.load.start(host.fileName(), &Document.load, result)
-        result.applyLayout()
-        return result
-    }
-}
+alias Panel = RichDocumentPage'Document
 
 func createViewer(host: Viewer.Host)
 {
-    let view = Panel.create(host)
-    host.attachView(view)
-    host.setLifecycle(Viewer.loadLifecycle(view))
+    discard Panel.create(host, "scope.rtf", texts().ui_Preparing, func(doc)->HtmlStyle
+    {
+        var style = HtmlStyle.theme()
+        style.maxContentWidth = 680
+        style.followTheme = not doc.paper
+        return style
+    }, withOutline: false)
 }

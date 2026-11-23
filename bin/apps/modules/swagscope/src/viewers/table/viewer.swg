@@ -362,9 +362,8 @@ func detectDelimiter(fileName, text: string)->u8
     return result
 }
 
-// The air between the table and the edges of the window, and the height of its title and facts.
+// The air between the table and the edges of the window, as the columns fit their content.
 const PageMargin = 112.0
-const HeadHeight = 72.0
 
 // What the values of one column add up to: how many cells are empty and, over those reading as
 // quantities, their range and their sum.
@@ -632,15 +631,8 @@ struct Panel
 {
     using wnd: Wnd
 
-    late
-    {
-        list:  *ListCtrl
-        head:  *Wnd
-        title: *Label
-        facts: *Label
-    }
+    late list: *ListCtrl
 
-    fileName: String
     kinds:    Array'ColumnKind
     profiles: Array'ColumnProfile     // What each column holds, counted the first time the sheet asks.
     built:    bool     // Whether the parts exist: a resize reaches the panel while it is built.
@@ -784,8 +776,6 @@ private impl Panel
         }
 
         .list.header.fitHeight()
-        .title.setText(Path.fileName(.fileName) orelse "")
-        .title.hide()
 
         .order.clear()
         .rowLines.clear()
@@ -803,6 +793,17 @@ private impl Panel
     {
         if .list.header.items.isEmpty() do
             return
+        // Keep the broad reading margin when the columns fit. A narrow cell spends its width on data.
+        let inset  = .themeMetrics().floating_Inset
+        let spare  = .clientRect().width - .list.header.contentWidth()
+        let margin = Math.clamp(Math.floor(spare / 2), inset, PageMargin)
+        if .padding.x != margin
+        {
+            .padding.x = margin
+            .padding.z = margin
+            .applyLayout()
+        }
+
         let textLeft = .list.header.surfaceRect().x + .list.header.itemPositionForColumn(0) + .list.header.itemPadding
         let delta    = Math.round(textLeft - .localToSurface(Math.Point{.padding.x, 0}).x)
         if delta != 0
@@ -986,9 +987,7 @@ private impl Panel
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
-        .facts.setText(Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter)))
-
-        var foot: String = .facts.text()
+        var foot = Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter))
         if .list.focusIndex < .document.rows.count
         {
             let row = &.document.rows[.documentRow(.list.focusIndex)]
@@ -1073,30 +1072,6 @@ private impl Panel
         let result = Wnd.create'Panel(parent, "scope.table")
         result.backgroundStyle = .View
         result.padding         = Math.Vector4{PageMargin, 24, PageMargin, 0}
-
-        // The page: the file's name as its title, then a mono line of what it holds.
-        with result.head = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, HeadHeight})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-            .hide()
-        }
-
-        with result.facts = Label.create(result.head, "", Math.Rectangle{0, 0, 0, 24}, null, .Ellipsis)
-        {
-            .dockStyle = .Bottom
-            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
-            .style.addStyleSheetColors("label_Text $label_TextFaint")
-            .setTextAlignment(.Left, .OpticalCenter)
-        }
-
-        with result.title = Label.create(result.head, "", {}, null, .Ellipsis)
-        {
-            .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFont(28, .Bold), .Regular)
-            .setTextAlignment(.Left, .Bottom)
-            .hide()
-        }
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
@@ -1231,7 +1206,6 @@ impl Panel
         with let result = Panel.createBase(parent)
         {
             .services = services
-            .fileName = fileName
             .load.start(fileName, &loadDocument, result)
         }
 

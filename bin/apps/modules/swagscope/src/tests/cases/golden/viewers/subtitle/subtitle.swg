@@ -3,8 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-// The reading list in the window, against `scope.subtitle`: the name and its mono line, the cues
-// as rows of a number, a time range and the words, the current one on the selection ground.
+// The wide transcript keeps the current cue, its time range and its words on the same row.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -18,4 +17,22 @@ using Core, Pixel, Gui, Viewers
 
     var image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.subtitle.ink")
+}
+
+// A narrow transcript stacks the words below the clock. The adjoining specimen uses its own script.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 740, height: 560)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.reading.srt"), openTypeFixturePath()], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let transcript = assume cast(*Captions.Panel, scene.views[0].document!.currentView)
+    let font = assume cast(*Typeface.Panel, scene.views[1].document!.currentView)
+    Swag.require(transcript.sheet.wordsOrigin.y >= Captions.CueSheet.TimesHeight)
+    Swag.require(font.document.specimenMark.count and font.document.specimenMark != "Aa")
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.subtitle.font.compact.paper")
 }

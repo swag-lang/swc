@@ -1203,6 +1203,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // never wider than the document, and leave once the pointer rests.
     window.resize(ViewerWindow.MinWidth, 680)
     let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 2_000, 36})
+    let action = Viewer.createActionButton(widestCommands, .ChevronRight)
     widestCommands.preferredSize.x = 2_000
     window.currentCommands         = widestCommands
     window.notePointer({20, 20})
@@ -1218,6 +1219,9 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.viewerBar.isLocallyVisible() and not window.app().isCursorHidden())
     window.notePointer({21, 20})
     Swag.require(not window.app().isCursorHidden())
+    action.hide()
+    window.layoutFileInfo()
+    Swag.require(not window.viewerBar.isLocallyVisible() and window.documentPanel.margin.w == 0)
     window.currentCommands = null
     widestCommands.destroy()
     window.updateViewerBar()

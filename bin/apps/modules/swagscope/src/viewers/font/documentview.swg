@@ -95,6 +95,7 @@ struct DocumentCell
 // have been measured; a constant would work for one face and let a tall one overlap.
 struct DocumentLayout
 {
+    markSize, nameSize: u32
     wide:         bool        // Whether the specimen stands in two columns beside the name.
     aaTop:        f32         // Top of the large "Aa".
     tabsTop:      f32         // Top of the style tabs.
@@ -140,6 +141,8 @@ struct DocumentView
     fontBytes: Array'u8
     face:      *Face?
 
+    specimenGlyphs:  Array'rune
+    specimenMark:    String
     cells:           Array'DocumentCell
     layout:          DocumentLayout
     pageStarts:      Array'u32
@@ -212,6 +215,67 @@ private impl DocumentView
     // the view would only duplicate `SampleSizes` in a second place.
     mtd sampleFont(size: u32)->*Font => .app().renderer.fontCache().createFont(.typeFace, size)
 
+    // Choose examples from the face itself, including faces that have no Latin letters.
+    internal mtd prepareSpecimen()
+    {
+        .specimenGlyphs.clear()
+        let latinMark = .face!.hasChar('A') and .face.hasChar('a')
+        if latinMark
+        {
+            for glyph in RowGlyphs where .face.hasChar(glyph) do
+                .specimenGlyphs.add(glyph)
+        }
+        else
+        {
+            for glyph in .glyphCharacters where Unicode.isLetter(glyph)
+            {
+                .specimenGlyphs.add(glyph)
+                if .specimenGlyphs.count == RowGlyphs.count do
+                    break
+            }
+        }
+        if .specimenGlyphs.isEmpty()
+        {
+            for glyph in .glyphCharacters where glyph > 0x20 and not Unicode.isSpace(glyph)
+            {
+                .specimenGlyphs.add(glyph)
+                if .specimenGlyphs.count == RowGlyphs.count do
+                    break
+            }
+        }
+
+        .specimenMark.clear()
+        if latinMark do
+            .specimenMark = "Aa"
+        else
+        {
+            for glyph in .specimenGlyphs.toSlice()[until Math.min(.specimenGlyphs.count, 2)] do
+                .specimenMark.append(glyph)
+        }
+        .refreshLayout()
+    }
+
+    internal mtd defaultSample(suggested: string)->String
+    {
+        var letters, mapped: u32
+        Utf8.visitRunes(suggested)
+        {
+            if Unicode.isLetterOrDigit(c)
+            {
+                letters += 1
+                if .face!.hasChar(c) do
+                    mapped += 1
+            }
+        }
+        if mapped * 2 >= letters or .specimenGlyphs.isEmpty() do
+            return String.from(suggested)
+
+        var result: String
+        for glyph in .specimenGlyphs do
+            result.append(glyph)
+        return result
+    }
+
     // Paints the specimen page: a large "Aa" in the face, the family's name over its identity and
     // its style as a tab, the row of glyphs with the chosen one on the Arc ground and its code,
     // then the sample text at each of `SampleSizes`, each led by its size in mono — beside that
@@ -223,12 +287,13 @@ private impl DocumentView
         let style  = .face.styleName.isEmpty() ? texts().ui_Regular : .face.styleName.toString()
         let left   = ContentInset
 
-        painter.drawString(left - 4, .layout.aaTop, "Aa", .sampleFont(SpecimenSize), colors.text)
-        let familyFont = .theme().createDefaultFont(FamilySize, .Bold)
+        painter.drawString(left - 4, .layout.aaTop, .specimenMark, .sampleFont(.layout.markSize), colors.text)
+        let familyFont = .theme().createDefaultFont(.layout.nameSize, .Bold)
         painter.drawString(left, .layout.nameTop, family, familyFont, colors.text)
-        let version  = .versionText()
-        let identity = version.count ? Format.toString("TrueType · %", version) : String.from("TrueType")
-        let metrics  = Format.toString(texts().ui_Metrics, identity, .face.glyphCount, .face.unitsPerEm)
+        let version = .versionText()
+        var metrics = Format.toString(texts().ui_Metrics, .face.glyphCount, .face.unitsPerEm)
+        if version.count do
+            metrics += Format.toString(" · %", version)
         painter.drawString(left, .layout.metricsTop, metrics, .fontCode, colors.faintText)
 
         // The style is a tab, the one in use.
@@ -238,20 +303,21 @@ private impl DocumentView
         painter.fillRect(Math.Rectangle{left, .layout.tabsTop + 22, tabWidth, 2}, colors.arc)
 
         // The row of glyphs, the chosen one on the Arc ground.
-        SectionLabel.paint(me, painter, Math.Rectangle{left, .layout.glyphsTop, LeftColumn, .fontLabel.height}, texts().ui_Glyphs)
+        let glyphWidth = Math.min(LeftColumn, Math.max(0, .clientRect().width - 2 * left))
+        SectionLabel.paint(me, painter, Math.Rectangle{left, .layout.glyphsTop, glyphWidth, .fontLabel.height}, texts().ui_Glyphs)
         let glyphFont = .sampleFont(RowGlyphSize)
         let radius    = .themeMetrics().corner_Control
         var x         = left
         var chosen    = Swag.U32.Max
-        for glyph in RowGlyphs where .face.hasChar(glyph)
+        for glyph in .specimenGlyphs
         {
             var text: String
             text.append(glyph)
             let width = Math.max(Painter.measureString(text, glyphFont).width, 14)
-            if x + width > left + LeftColumn do
+            if x + width > left + glyphWidth do
                 break
             let cell = Math.Rectangle{x - 6, .layout.rowTop, width + 12, RowPitch}
-            if glyph == ChosenGlyph or (chosen == Swag.U32.Max and glyph == RowGlyphs[0] and not .face.hasChar(ChosenGlyph))
+            if glyph == ChosenGlyph or (chosen == Swag.U32.Max and glyph == .specimenGlyphs[0] and not .face.hasChar(ChosenGlyph))
             {
                 chosen = cast(u32, glyph)
                 painter.fillRoundRect(cell, radius, radius, colors.selection)
@@ -514,12 +580,17 @@ impl DocumentView
 
         // The left column: "Aa", the name, the identity, the style, the row of glyphs.
         // The "Aa" stands on its own ink: the room a face keeps above its capitals is left out.
-        let aa = .sampleFont(SpecimenSize)
+        let available = Math.max(1, Math.min(LeftColumn, client.width - 2 * ContentInset))
+        let markWidth = Math.max(1, Painter.measureString(.specimenMark, .sampleFont(SpecimenSize)).width)
+        let nameWidth = Math.max(1, Painter.measureString(.face!.familyName, .theme().createDefaultFont(FamilySize, .Bold)).width)
+        .layout.markSize = Math.max(1, cast(u32, SpecimenSize * Math.min(1, available / markWidth)))
+        .layout.nameSize = Math.max(12, cast(u32, FamilySize * Math.min(1, available / nameWidth)))
+        let aa = .sampleFont(.layout.markSize)
         var y  = ContentInset
         .layout.aaTop        = y - Math.round(aa.height * 0.2)
         y                    = .layout.aaTop + aa.height
         .layout.nameTop      = y
-        y                    += .theme().createDefaultFont(FamilySize, .Bold).height
+        y                    += .theme().createDefaultFont(.layout.nameSize, .Bold).height
         .layout.metricsTop   = y + 2
         y                    += .fontCode.height + 18
         .layout.tabsTop      = y

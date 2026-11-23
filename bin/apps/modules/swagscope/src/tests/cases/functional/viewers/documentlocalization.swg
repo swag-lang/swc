@@ -29,5 +29,5 @@ using Core, Gui, Viewers
     Swag.require(Rtf.texts().ui_ImageOmitted == "[Image non affichée]")
     Swag.require(Pptx.texts().ui_Name == "Présentation")
     Swag.require(Pptx.texts().ui_Previous == "Diapositive précédente")
-    Swag.require(Format.toString(Pptx.texts().ui_CurrentSlide, 1, 2) == "Présentation · diapositive 1 sur 2")
+    Swag.require(Pptx.texts().ui_Titles == "Titres")
 }

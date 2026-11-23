@@ -493,6 +493,10 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             return
         clicked[] = true
         Swag.require(host.capturedPopupMenu() == popup)
+        var point = choice.surfaceRect().center()
+        choice.surface!.surfaceToScreen(&point)
+        host.moveMouse(point)
+        Swag.require(choice.isHot, "the captured menu must forward hover to the nested button")
         host.clickWnd(choice)
         Swag.require(choice.isChecked)
         Swag.require(not popup.isModalEnded())
@@ -526,10 +530,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     menu.sendEvent(&elapsed)
     Swag.require(menu.mouseCapture() == null, "hovering a row must leave pointer capture free")
 
-    let choicePoint = choice.surfaceRect().center()
-    var move        = MouseEvent{kind: .Move, surfacePos: choicePoint}
-    menu.sendEvent(&move)
+    host.moveMouse(choice.surfaceRect().center())
+    Swag.require(choice.isHot, "hovering a hosted button must reach the button")
     Swag.require(menu.mouseCapture() == null, "hovering a button must leave pointer capture free")
+    host.moveMouse(rowPoint)
+    Swag.require(not choice.isHot, "leaving a hosted button must clear its hover state")
     host.clickWnd(choice)
     Swag.require(choice.isChecked and menu.mouseCapture() == null)
 }

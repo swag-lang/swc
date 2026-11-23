@@ -100,7 +100,7 @@ public struct MenuCtrl
     accessKeyRestoreFocus:   *Wnd? = null             // Focus to restore when an access-key-opened bar menu closes.
     ignoreNextRelease:       bool                     // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                     // Whether visible popup entries need the shared glyph column.
-    widgetUnderPointer:      *Wnd?                    // Hosted child currently receiving pointer movement.
+    widgetHoverTarget:       *Wnd?                    // Deepest hosted child currently under the pointer.
     widgetPointerPos:        Math.Point               // Last pointer position delivered to the hosted child.
 }
 
@@ -386,7 +386,9 @@ public impl IWnd for MenuCtrl
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let widgetItem = .widgetItemAt(evt.surfacePos)
+        // The pointer can have entered a hosted child before the menu receives Leave.
+        // That event ends the menu's hover and must not be sent to the new target.
+        let widgetItem = evt.kind == .Leave ? null : .widgetItemAt(evt.surfacePos)
         var widgetTarget: *Wnd?
         if widgetItem
         {
@@ -427,7 +429,7 @@ public impl IWnd for MenuCtrl
             return
         }
 
-        let hit = .hitTest(evt.surfacePos)
+        let hit = evt.kind == .Leave ? Swag.U32.Max : .hitTest(evt.surfacePos)
         if (evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0) and hit != .hotIdx
         {
             // Timer to auto open/hide sub menus
@@ -538,29 +540,38 @@ private impl MenuCtrl
         return null
     }
 
-    // Gives hosted children their normal enter, move, and leave events while the popup owns capture.
-    mtd updateWidgetHover(widget: *Wnd?, surfacePos: Math.Point)
+    // Gives icon buttons hosted in a menu a hover ground distinct from the menu's own ground.
+    mtd styleWidgetHover(widget: *Wnd)
     {
-        if widget == .widgetUnderPointer
+        if widget is IconButton as button do
+            button.style.addStyleSheetColors("btnIcon_HotBk $popupItem_HotBk")
+        for child in widget.children do
+            .styleWidgetHover(child)
+    }
+
+    // Gives the hosted child under the pointer its normal enter, move, and leave events.
+    mtd updateWidgetHover(target: *Wnd?, surfacePos: Math.Point)
+    {
+        if target == .widgetHoverTarget
         {
             .widgetPointerPos = surfacePos
             return
         }
 
-        if .widgetUnderPointer
+        if .widgetHoverTarget
         {
             var leave = MouseEvent{kind: .Leave, surfacePos: surfacePos}
-            leave.target = .widgetUnderPointer
-            .widgetUnderPointer.processEvent(&leave)
+            leave.target = .widgetHoverTarget
+            .widgetHoverTarget.processEvent(&leave)
         }
 
-        .widgetUnderPointer = widget
-        .widgetPointerPos   = surfacePos
-        if widget
+        .widgetHoverTarget = target
+        .widgetPointerPos  = surfacePos
+        if target
         {
             var enter = MouseEvent{kind: .Enter, surfacePos: surfacePos}
-            enter.target = widget
-            widget.processEvent(&enter)
+            enter.target = target
+            target.processEvent(&enter)
         }
     }
 
@@ -1556,7 +1567,7 @@ public impl MenuCtrl
         Swag.assert(index < .items.count, "menu item index is out of range")
         .hideSubVisible()
         .removeTimer()
-        if .items[index]!.widget == .widgetUnderPointer do
+        if let widget = .items[index]!.widget where widget == .widgetHoverTarget or widget.isAncestorOf(.widgetHoverTarget) do
             .clearWidgetHover()
         .items[index]!.widget?.hide()
         .items.deleteAt(index)
@@ -1747,6 +1758,7 @@ public impl MenuCtrl
     {
         Swag.assert(not .bar, "interactive rows belong in popup menus")
         Swag.assert(widget != null and widget.parent == me, "the widget must be a direct child of this popup")
+        .styleWidgetHover(widget)
 
         with let item = me.items.allocate()
         {

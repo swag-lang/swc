@@ -385,6 +385,28 @@ internal func writeSampleFile()->String
         }
     }
     Swag.require(found)
+
+    let signedName = Gui.Testing.tempFilePath("scope-hex-inspector-sleb-ten-bytes-", ".bin")
+    defer discard catch File.delete(signedName)
+    var signedMin: Array'u8
+    signedMin.resize(10)
+    for index in 9 do
+        signedMin[index] = 0x80
+    signedMin[9] = 0x7F
+    expect File.writeAllBytes(signedName, signedMin.toSlice())
+    var signedHost: Testing.HeadlessHost
+    signedHost.setup(900, 600)
+    let signedView = hexTestViewer(&signedHost, signedName, 900, 560)
+    var signedFound = false
+    for reading in signedView.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorSleb128
+        {
+            Swag.require(reading.value == "-9 223 372 036 854 775 808")
+            signedFound = true
+        }
+    }
+    Swag.require(signedFound)
 }
 
 // Address readings use their wire order and are unaffected by the scalar endian option.

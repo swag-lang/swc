@@ -410,8 +410,14 @@ internal func writeSampleFile()->String
     view.refreshInspector()
     var ipv6Found = false
     var guidFound = false
+    var rgbaFound = false
     for reading in view.inspectorView.readings
     {
+        if reading.label == Hex.texts().ui_InspectorRgba8
+        {
+            Swag.require(reading.value == "#00010203")
+            rgbaFound = true
+        }
         if reading.label == Hex.texts().ui_InspectorIpv6
         {
             Swag.require(reading.value == "0001:0203:0405:0607:0809:0A0B:0C0D:0E0F")
@@ -423,7 +429,7 @@ internal func writeSampleFile()->String
             guidFound = true
         }
     }
-    Swag.require(ipv6Found and guidFound)
+    Swag.require(ipv6Found and guidFound and rgbaFound)
 }
 
 // Packed decimal uses explicit sign nibbles and rejects malformed digits.

@@ -63,7 +63,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
   The commands lens copies the main inspected value and each available reading independently. The
   inspector also reads four consecutive bytes as dotted IPv4, sixteen bytes as expanded network-order
   IPv6 and canonical GUID, two to eight bytes as signed packed BCD, and complete ULEB128/SLEB128
-  values, independent of scalar byte order. Common timestamps and color readings remain open.
+  values, independent of scalar byte order. Four bytes are also read as RGBA8 in file order.
+  Common timestamps and other color conventions remain open.
 - Next: add the remaining domain readings without changing grid grouping.
 - Done when: the inspector simultaneously reports selection start/end/length and the caret as
   signed and unsigned 8/16/32/64-bit integers, hexadecimal, binary, octal, `f16`/`f32`/`f64`,

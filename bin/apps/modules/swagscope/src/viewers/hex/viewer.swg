@@ -871,6 +871,9 @@ impl Panel
                                      cast(u32, bytes[2]),
                                      cast(u32, bytes[3]))
         view.readings.add({texts().ui_InspectorIpv4, address, false})
+        let rgba8 = Format.toString("#%{X02}%{X02}%{X02}%{X02}",
+                                    bytes[0], bytes[1], bytes[2], bytes[3])
+        view.readings.add({texts().ui_InspectorRgba8, rgba8, false})
         if bytes.count >= 16
         {
             let ipv6 = Format.toString("%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}",

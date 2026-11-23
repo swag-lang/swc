@@ -40,7 +40,7 @@ func visiblyDiffers(rest, current: Image)->bool
     return changed >= 20
 }
 
-// Move across the capture window's choices without pressing any mouse buttons.
+// Move across the capture window's choices, then select a delay with the mouse.
 #[Swag.TestTag("integration.capture.hub.hover")]
 #test
 {
@@ -93,7 +93,17 @@ func visiblyDiffers(rest, current: Image)->bool
     input.moveTo(menu, entry)
     Swag.require(not visiblyDiffers(delayRest, captureChoice(journey.app, delay)))
     input.moveTo(delay, delay.surfaceRect().center())
-    Swag.require(visiblyDiffers(delayRest, captureChoice(journey.app, delay)),
+    let delayHot = captureChoice(journey.app, delay)
+    Swag.require(visiblyDiffers(delayRest, delayHot),
                  "the delay must respond again after leaving and reentering it")
     Swag.require(annotate.isChecked and not clipboard.isChecked and not delay.isChecked)
+
+    input.click(delay)
+    Swag.require(delay.isChecked and journey.main.captureOptions.delay == 3)
+    let delaySelected = captureChoice(journey.app, delay)
+    // Sample the fill between the glyph and the label, inside the selection outline.
+    let x = delayHot.width / 2
+    let y = delayHot.height / 2
+    Swag.require(delayHot.pixelColor(x, y) == delaySelected.pixelColor(x, y),
+                 "the hover and selected backgrounds must use the same tint")
 }

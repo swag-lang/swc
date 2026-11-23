@@ -266,14 +266,16 @@ impl IWnd for IconButton
         // two controls stacked rather than as one that is picked.
         .focusRingRadius = subRectBk!.radius
 
+        // Framed choices use the same pointer feedback before and after selection.
+        let framed = .checkIndicator == .Frame
         var paintFlags: PaintItemFlags = .None
         switch
         {
         case bc.isDisabled:
-            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameDisabledBk : (.isChecked ? colors.btnIcon_CheckedDisabledBk : colors.btnIcon_DisabledBk)
+            colorBk      = .isChecked and framed ? colors.btnIcon_CheckedFrameDisabledBk : (.isChecked ? colors.btnIcon_CheckedDisabledBk : colors.btnIcon_DisabledBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedDisabledIcon : colors.btnIcon_DisabledIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedDisabledText : colors.btnIcon_DisabledText
-            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameDisabledBorder : colors.btnIcon_CheckedDisabledMark
+            colorChecked = framed ? colors.btnIcon_CheckedFrameDisabledBorder : colors.btnIcon_CheckedDisabledMark
 
         case (.isPressed or .isChecked) and .checkIndicator == .None:
             colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
@@ -282,22 +284,22 @@ impl IWnd for IconButton
             colorChecked = colors.btnIcon_CheckedPressedMark
 
         case .isPressed:
-            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFramePressedBk : (.isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk)
+            colorBk      = framed ? colors.btnIcon_CheckedFramePressedBk : (.isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedPressedIcon : colors.btnIcon_PressedIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedPressedText : colors.btnIcon_PressedText
-            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFramePressedBorder : colors.btnIcon_CheckedPressedMark
+            colorChecked = framed ? colors.btnIcon_CheckedFramePressedBorder : colors.btnIcon_CheckedPressedMark
 
         case .isHot:
-            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameHotBk : (.isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk)
+            colorBk      = framed ? colors.btnIcon_CheckedFrameHotBk : (.isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedHotIcon : colors.btnIcon_HotIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedHotText : colors.btnIcon_HotText
-            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameHotBorder : colors.btnIcon_CheckedHotMark
+            colorChecked = framed ? colors.btnIcon_CheckedFrameHotBorder : colors.btnIcon_CheckedHotMark
 
         default:
-            colorBk      = .isChecked and .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBk : (.isChecked ? colors.btnIcon_CheckedBk : colors.btnIcon_Bk)
+            colorBk      = .isChecked and framed ? colors.btnIcon_CheckedFrameBk : (.isChecked ? colors.btnIcon_CheckedBk : colors.btnIcon_Bk)
             colorIcon    = .isChecked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
             colorText    = .isChecked ? colors.btnIcon_CheckedText : colors.btnIcon_Text
-            colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
+            colorChecked = framed ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
         }
 
         if bc.isDisabled do
@@ -343,7 +345,7 @@ impl IWnd for IconButton
                      .isChecked and
                      .checkIndicator != .None and
                      .checkIndicator != .Ink
-        if marked and .checkIndicator == .Frame
+        if marked and framed
         {
             if .form == .RoundedRectangle do
                 theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colorChecked)

@@ -226,8 +226,8 @@ struct ThemeColors
         btnIcon_CheckedRing:                Color     // Faint ring around a checked icon button.
         btnIcon_CheckedRule:                Color     // Rule of a checked icon button marked on one edge.
         btnIcon_CheckedFrameBk:             Color     // Fill of a framed checked icon button.
-        btnIcon_CheckedFrameHotBk:          Color     // Fill of a hovered framed checked icon button.
-        btnIcon_CheckedFramePressedBk:      Color     // Fill of a pressed framed checked icon button.
+        btnIcon_CheckedFrameHotBk:          Color     // Fill of a framed icon button under the pointer.
+        btnIcon_CheckedFramePressedBk:      Color     // Fill of a framed icon button while held down.
         btnIcon_CheckedFrameDisabledBk:     Color     // Fill of a disabled framed checked icon button.
         btnIcon_CheckedFrameBorder:         Color     // Outline of a framed checked icon button.
         btnIcon_CheckedFrameHotBorder:      Color     // Outline of a hovered framed checked icon button.
@@ -871,7 +871,7 @@ impl ThemeColors
 
         .btnIcon_CheckedFrameBk             = p.selection
         .btnIcon_CheckedFrameHotBk          = p.selection
-        .btnIcon_CheckedFramePressedBk      = pressed
+        .btnIcon_CheckedFramePressedBk      = Color.lerp(p.selection, alternate.mark, PressedShift)
         .btnIcon_CheckedFrameDisabledBk     = .transparent
         .btnIcon_CheckedFrameBorder         = chosenRing
         .btnIcon_CheckedFrameHotBorder      = alternate.mark

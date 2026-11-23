@@ -540,15 +540,6 @@ private impl MenuCtrl
         return null
     }
 
-    // Gives icon buttons hosted in a menu a hover ground distinct from the menu's own ground.
-    mtd styleWidgetHover(widget: *Wnd)
-    {
-        if widget is IconButton as button do
-            button.style.addStyleSheetColors("btnIcon_HotBk $popupItem_HotBk")
-        for child in widget.children do
-            .styleWidgetHover(child)
-    }
-
     // Gives the hosted child under the pointer its normal enter, move, and leave events.
     mtd updateWidgetHover(target: *Wnd?, surfacePos: Math.Point)
     {
@@ -1758,7 +1749,6 @@ public impl MenuCtrl
     {
         Swag.assert(not .bar, "interactive rows belong in popup menus")
         Swag.assert(widget != null and widget.parent == me, "the widget must be a direct child of this popup")
-        .styleWidgetHover(widget)
 
         with let item = me.items.allocate()
         {

@@ -24,6 +24,41 @@ func iconButtonHeadlessReset()
     IconButtonHeadlessCheckCount   = 0
 }
 
+// A framed choice keeps the same tint through hover, press, and selection.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(120, 80)
+    defer host.shutdown()
+    host.theme.setDark()
+
+    let choice = IconButton.create(&host.root, {}, {20, 20, 48, 24}, flags: .Radio)
+    choice.setForm(.RoundedRectangle)
+    choice.setCheckIndicator(.Frame)
+    host.pump()
+
+    let point = choice.surfaceRect().center()
+    let x     = cast(s32, point.x)
+    let y     = cast(s32, point.y)
+    host.moveMouse(point)
+    let hot = host.renderSettled().pixelColor(x, y)
+
+    host.mouseDown(point)
+    let pressed = host.renderSettled().pixelColor(x, y)
+    Swag.require(pressed.b > hot.b and pressed.rgbDistanceTo(hot) < 0.1,
+                 "pressing a framed choice must deepen its hover tint")
+    Swag.require(not choice.isChecked)
+
+    host.mouseUp(point)
+    let selected = host.renderSettled().pixelColor(x, y)
+    Swag.require(choice.isChecked and selected == hot)
+    host.mouseDown(point)
+    Swag.require(host.renderSettled().pixelColor(x, y) == pressed,
+                 "pressing the selected choice must use the same tint")
+    host.mouseUp(point)
+    Swag.require(choice.isChecked and host.renderSettled().pixelColor(x, y) == selected)
+}
+
 // A quiet icon button reflows when a menu arrow is added.
 #test
 {

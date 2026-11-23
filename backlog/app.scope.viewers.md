@@ -84,7 +84,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Evidence: the 25 registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 192 `viewer.*` files plus two standalone font variants, checks each
+  fixture matrix now names all 194 `viewer.*` files plus two standalone font variants, checks each
   entry's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, ODT, RTF, XLSX, ODS,
   PPTX and ODP have content and
   damaged-package cases. Seven complete, openly licensed published documents plus generated

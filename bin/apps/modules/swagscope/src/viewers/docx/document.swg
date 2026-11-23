@@ -78,6 +78,7 @@ struct Document
     pageElementsSimplified:  bool
     sectionLayoutSimplified: bool
     footnotesSimplified:     bool
+    commentsSimplified:      bool
     linksSimplified:         bool
     properties:              Package.DocumentProperties     // What the package says of the document.
 }
@@ -99,6 +100,8 @@ impl Document
             result += texts().ui_SectionLayoutSimplified
         if .footnotesSimplified do
             result += texts().ui_FootnotesSimplified
+        if .commentsSimplified do
+            result += texts().ui_CommentsSimplified
         if .linksSimplified do
             result += texts().ui_LinksSimplified
         return result
@@ -148,19 +151,27 @@ impl Document
         let footnotesSource = catch parts.text(footnotesPath, required: false, limit: 4 * 1024 * 1024) as footnotesReadError orelse {}
         var footnotesParseError: Swag.Error
         var footnotes       = catch FootnoteCatalog.parse(footnotesSource) as footnotesParseError orelse {}
-        var scan            = Package.Scanner.create(source)
+        var commentsPath    = Package.relationshipPath(relations.toSlice(), "/comments")
+        if commentsPath.isEmpty() do
+            commentsPath = "word/comments.xml"
+        var commentsReadError:  Swag.Error
+        let commentsSource = catch parts.text(commentsPath, required: false, limit: 4 * 1024 * 1024) as commentsReadError orelse {}
+        var commentsParseError: Swag.Error
+        var comments       = catch CommentCatalog.parse(commentsSource) as commentsParseError orelse {}
+        var scan           = Package.Scanner.create(source)
         var token: Package.Token
-        var images          = try Package.ImageCatalog.load(fileName,
-                                                            &archive,
-                                                            "word",
-                                                            "word/_rels/document.xml.rels",
-                                                            texts().err_Invalid,
-                                                            texts().err_TooLarge)
+        var images         = try Package.ImageCatalog.load(fileName,
+                                                           &archive,
+                                                           "word",
+                                                           "word/_rels/document.xml.rels",
+                                                           texts().err_Invalid,
+                                                           texts().err_TooLarge)
         var reader = Reader{document: Document{usePaperColors: styles.loaded, stylesSimplified: limited},
-                            images: #move images, numbering: #move numbering, footnotes: #move footnotes,
+                            images: #move images, numbering: #move numbering, footnotes: #move footnotes, comments: #move comments,
                             styles: #move styles, theme: #move theme,
                             numberingLimited: numberingReadError.value() != null or numberingParseError.value() != null,
-                            footnotesLimited: footnotesReadError.value() != null or footnotesParseError.value() != null}
+                            footnotesLimited: footnotesReadError.value() != null or footnotesParseError.value() != null,
+                            commentsLimited: commentsReadError.value() != null or commentsParseError.value() != null}
         while scan.next(&token)
         {
             if token.kind == .Start
@@ -192,9 +203,19 @@ impl Document
                 reader.document.linksSimplified = true
         }
 
+        for id in reader.commentRangeStarts
+        {
+            var found = false
+            for end in reader.commentRangeEnds where end == id do
+                found = true
+            if not found do
+                reader.document.commentsSimplified = true
+        }
+
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         reader.document.html += reader.footnotesHtml()
+        reader.document.html += reader.commentsHtml()
         if reader.document.html.count > 32 * 1024 * 1024 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         var html: String = "<html>"

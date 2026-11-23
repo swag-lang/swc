@@ -2,36 +2,48 @@
 
 Reading and inspecting Word documents in DOCX format.
 
-### app.scope.docx.001 — DOCX lacks faithful page reading
+### app.scope.docx.001 — DOCX section layout is flattened into one flow
 
-- Evidence: the DOCX reader retains ordered paragraphs, simple tables, bounded raster images,
-  page-break separators, numbered and bulleted list levels with per-instance starts and level
-  replacements, horizontal table-cell spans and authored widths, and common inherited
-  paragraph/character styles.
-  Footnote bold, italic, underline and strike runs are preserved. Internal bookmark links become
-  safe HTML fragments; external relationship links remain inert and are disclosed. Document
-  defaults, parent styles, basic theme fonts/colors, sizes, emphasis, spacing and indents are resolved;
-  styled headings populate the filterable outline. Broken optional styles retain readable prose
-  and a visible simplification notice. Related default header/footer text is read with a bounded
-  parser and shown once around the continuous body; page repetition and first/even variants are
-  disclosed as simplified. Referenced footnotes are read from a bounded optional part and shown
-  in first-reference order; separator records are skipped and missing or malformed notes get an
-  inline omission marker. The final section’s authored page width, height and margins shape the
-  reading body. Page and continuous section boundaries are detected, but this single-flow reader
-  discloses that earlier section geometry is simplified; page-repeated headers/footers, footnote
-  placement and styling, comments, floating objects and complex table geometry remain absent.
-  [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
-  preserves navigable pages and adapts them to the reading surface.
-  [File Viewer Plus 7](https://fileviewerplus.com/support/text_documents) offers page formatting,
-  tables and pictures in its document editor and also reads DOC, DOCM and Word templates.
-  A generated 812-paragraph DOCX conversion of the public-domain Christmas Carol now exercises
-  long-form reading, its opening and ending, and Unicode punctuation.
-- Next: compare the same Word-authored DOCX fixtures against their authored layout and File Viewer
-  Plus. Implement per-section geometry, then page-repeated headers/footers and authored footnote
-  placement. Use those files for complex tables, numbering overrides, tabs and
-  typography, and add document-wide search, selection and position restore without materializing
-  every page at open.
-- Done when: authored pages, text flow, images and table structure remain recognizable across a
-  freely licensed DOCX corpus, unsupported constructs are named at their location, and the first
-  page appears without decoding the full package.
-- Related: app.scope.archive.001, app.scope.viewers.009
+- Evidence: the reader uses the last section's page box, turns page breaks into separators, and
+  shows related default header/footer text once. It detects page and continuous section boundaries
+  but does not repeat first/even headers or preserve each section's geometry.
+- Next: add a Word-authored fixture with changing page sizes and margins, all four section-break
+  kinds, and default/first/even header/footer variants. Use it to build section-aware page layout.
+- Done when: next-page, continuous, even-page and odd-page breaks and each supported page box affect
+  the rendered surface; the right header/footer variant appears on the corresponding page; and
+  unsupported section properties are disclosed at the affected section.
+- Related: app.scope.viewers.009
+
+### app.scope.docx.002 — DOCX footnotes lose their authored placement
+
+- Evidence: referenced footnotes are read from a bounded optional part, retain basic run emphasis,
+  and appear in first-reference order in an appendix. Their page/section placement and navigation
+  back to the reference are not preserved; endnotes are not read.
+- Next: add Word-authored footnote and endnote fixtures with repeated references, different
+  placements and a missing ID; implement navigable placement in the document flow.
+- Done when: every supported note marker navigates to its note and back, notes appear at the
+  authored page or section location, and unsupported or unresolved notes have a visible marker.
+- Related: app.scope.viewers.009
+
+### app.scope.docx.003 — DOCX comments are detached from their text ranges
+
+- Evidence: classic comment authors and escaped text appear once in first-reference order. Inline
+  references open their comment, and a return link targets the start of a comment range. Range
+  spans, overlapping/cross-paragraph ranges and threaded replies are not fully represented.
+- Next: add fixtures for overlapping and cross-paragraph ranges, comments in table cells, and
+  threaded replies; preserve each supported range and explicitly disclose unsupported reply forms.
+- Done when: each supported classic comment is anchored to its authored text range, its marker opens
+  the comment and the comment returns to that range; missing references and unsupported ranges or
+  replies have focused tests and visible notices.
+- Related: app.scope.viewers.018, app.scope.viewers.009
+
+### app.scope.docx.004 — Complex DOCX tables and drawings lose structure
+
+- Evidence: simple tables, bounded inline raster images, horizontal spans, authored widths and
+  vertical cell alignment are supported. Nested tables, vertical merges, borders, floating objects,
+  and drawing anchors are not faithfully represented.
+- Next: add Word-authored cases for nested tables, vertical merges, borders and anchored drawings;
+  implement the common structures and identify unsupported features at their location.
+- Done when: supported tables retain row/cell order, spans, widths and alignment, anchored drawings
+  remain at their authored text location, and unsupported structures have a visible local notice.
+- Related: app.scope.viewers.009

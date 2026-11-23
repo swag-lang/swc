@@ -26,6 +26,7 @@ private struct Reader
     images:                Package.ImageCatalog
     numbering:             NumberingCatalog
     footnotes:             FootnoteCatalog
+    comments:              CommentCatalog
     sectionLayout:         PageLayout
     sectionHtml:           String
     sectionBreak:          String
@@ -51,6 +52,8 @@ private struct Reader
     inCellProperties:      bool
     cellTagOpen:           bool
     cellWidthSet:          bool
+    cellAlignmentSet:      bool
+    cellStyle:             String
     imageId:               String
     imageDescription:      String
     imageWidth:            u32
@@ -68,6 +71,10 @@ private struct Reader
     paragraphHasNumPr:     bool
     footnoteReferences:    Array'String
     footnotesLimited:      bool
+    commentReferences:     Array'String
+    commentRangeStarts:    Array's32
+    commentRangeEnds:      Array's32
+    commentsLimited:       bool
     bookmarkNames:         Array'String
     bookmarkReferences:    Array'String
     hyperlinkOpen:         bool
@@ -135,6 +142,21 @@ private impl Reader
         }
     }
 
+    mtd closeCellTag()
+    {
+        if not .cellTagOpen do
+            return
+        if not .cellStyle.isEmpty()
+        {
+            .sectionHtml += " style=\""
+            Package.appendHtmlEscaped(&.sectionHtml, .cellStyle.toString())
+            .sectionHtml += "\""
+        }
+
+        .sectionHtml += ">"
+        .cellTagOpen = false
+    }
+
     mtd flushSection()
     {
         .closeLists()
@@ -197,6 +219,89 @@ private impl Reader
         for reference in .footnoteReferences where reference == id do
             return
         .footnoteReferences.add(id)
+    }
+
+    mtd readCommentReference(token: const *Package.Token)
+    {
+        let rawId     = token.attribute("id") orelse ""
+        var idError: Swag.Error
+        let numericId = catch StrConv.toS32(rawId) as idError orelse -1
+        if rawId.count == 0 or idError.value() != null or numericId < 0
+        {
+            .appendInline(texts().ui_CommentOmitted)
+            .document.commentsSimplified = true
+            return
+        }
+
+        let id      = Format.toString("%", numericId)
+        let comment = .comments.lookup(id.toString())
+        if not comment.found
+        {
+            .appendInline(texts().ui_CommentOmitted)
+            .document.commentsSimplified = true
+            return
+        }
+
+        .appendInline(Format.toString("<sup class=\"docx-comment-reference\"><a href=\"#docx-comment-%\">", id))
+        .appendInline(id.toString())
+        .appendInline("</a>")
+        .appendInline("</sup>")
+        .document.commentsSimplified = true
+        if comment.limited or .commentsLimited do
+            .document.commentsSimplified = true
+        for reference in .commentReferences where reference == id do
+            return
+        if .commentReferences.count >= 4096 do
+            return
+        .commentReferences.add(id)
+    }
+
+    mtd readCommentRange(token: const *Package.Token, start: bool)
+    {
+        let rawId     = token.attribute("id") orelse ""
+        var idError: Swag.Error
+        let numericId = catch StrConv.toS32(rawId) as idError orelse -1
+        if rawId.count == 0 or idError.value() != null or numericId < 0
+        {
+            .document.commentsSimplified = true
+            return
+        }
+
+        if start
+        {
+            for value in .commentRangeStarts where value == numericId
+            {
+                .document.commentsSimplified = true
+                return
+            }
+
+            if .commentRangeStarts.count >= 4096
+            {
+                .document.commentsSimplified = true
+                return
+            }
+
+            .commentRangeStarts.add(numericId)
+            .appendInline(Format.toString("<a id=\"docx-comment-range-%\"></a>", numericId))
+            return
+        }
+
+        var foundStart = false
+        for value in .commentRangeStarts where value == numericId do
+            foundStart = true
+        if not foundStart
+        {
+            .document.commentsSimplified = true
+            return
+        }
+
+        for value in .commentRangeEnds where value == numericId
+        {
+            .document.commentsSimplified = true
+            return
+        }
+
+        .commentRangeEnds.add(numericId)
     }
 
     mtd readBookmark(token: const *Package.Token)
@@ -288,6 +393,48 @@ private impl Reader
             result += "</div>"
         }
 
+        result += "</section>"
+        return result
+    }
+
+    internal mtd commentsHtml()->String
+    {
+        if not .commentReferences.count do
+            return {}
+        var result: String = "<section class=\"docx-comments\"><h2>"
+        result += texts().ui_CommentsTitle
+        result += "</h2>"
+        var rendered = false
+        for id in .commentReferences
+        {
+            let comment = .comments.lookup(id.toString())
+            if not comment.found do
+                continue
+
+            rendered = true
+            result   += Format.toString("<div id=\"docx-comment-%\"><p class=\"docx-comment-author\"><strong>", id)
+            Package.appendHtmlEscaped(&result, comment.author.toString())
+            result += "</strong></p>"
+            result += comment.html
+            var hasRange  = false
+            let numericId = catch StrConv.toS32(id.toString()) orelse -1
+            for start in .commentRangeStarts where start == numericId do
+                hasRange = true
+
+            if hasRange
+            {
+                result += Format.toString("<p><a href=\"#docx-comment-range-%\">", id)
+                result += texts().ui_CommentReturn
+                result += "</a></p>"
+            }
+
+            result += "</div>"
+            if comment.limited or .commentsLimited do
+                .document.commentsSimplified = true
+        }
+
+        if not rendered do
+            return {}
         result += "</section>"
         return result
     }
@@ -627,11 +774,8 @@ private impl Reader
             return
         }
 
-        if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr")
-        {
-            .sectionHtml += ">"
-            .cellTagOpen = false
-        }
+        if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr") do
+            .closeCellTag()
 
         if .inImage
         {
@@ -690,11 +834,10 @@ private impl Reader
             .cellTagOpen      = true
             .inCellProperties = false
             .cellWidthSet     = false
-            if token.empty
-            {
-                .sectionHtml += ">"
-                .cellTagOpen = false
-            }
+            .cellAlignmentSet = false
+            .cellStyle.clear()
+            if token.empty do
+                .closeCellTag()
         }
         elif token.isElement("tcPr")
         {
@@ -723,7 +866,7 @@ private impl Reader
             elif kind == "dxa" and width > 0 and width <= 43200
             {
                 let numbers: Globalization.NumberFormatInfo
-                .sectionHtml  += Format.toString(" style=\"width:%px\"", numbers.format(cast(f64, width) / 15, 2))
+                .cellStyle    += Format.toString("width:%px;", numbers.format(cast(f64, width) / 15, 2))
                 .cellWidthSet = true
             }
             elif kind == "pct" and width > 0 and width <= 10000
@@ -731,13 +874,31 @@ private impl Reader
                 let numbers: Globalization.NumberFormatInfo
                 var percent = numbers.format(cast(f64, width) / 50, 2)
                 percent       += "%"
-                .sectionHtml  += Format.toString(" style=\"width:%\"", percent)
+                .cellStyle    += Format.toString("width:%;", percent)
                 .cellWidthSet = true
             }
             elif kind != "auto"
             {
                 .document.stylesSimplified = true
                 .cellWidthSet = true
+            }
+        }
+        elif .inCellProperties and token.isElement("vAlign")
+        {
+            let value = token.attribute("val") orelse "top"
+            if .cellAlignmentSet
+            {
+                .document.stylesSimplified = true
+            }
+            elif value == "top" or value == "center" or value == "bottom"
+            {
+                .cellStyle        += Format.toString("vertical-align:%;", value == "center" ? "middle" : value)
+                .cellAlignmentSet = true
+            }
+            else
+            {
+                .document.stylesSimplified = true
+                .cellAlignmentSet = true
             }
         }
         elif token.isElement("p")
@@ -794,6 +955,14 @@ private impl Reader
         {
             .readBookmark(token)
         }
+        elif .inParagraph and token.isElement("commentRangeStart")
+        {
+            .readCommentRange(token, true)
+        }
+        elif .inParagraph and token.isElement("commentRangeEnd")
+        {
+            .readCommentRange(token, false)
+        }
         elif .inParagraph and token.isElement("hyperlink")
         {
             .startHyperlink(token)
@@ -814,6 +983,10 @@ private impl Reader
         elif .inRun and token.isElement("footnoteReference")
         {
             .readFootnoteReference(token)
+        }
+        elif .inRun and token.isElement("commentReference")
+        {
+            .readCommentReference(token)
         }
         elif .inRunProperties
         {
@@ -890,11 +1063,7 @@ private impl Reader
         elif token.isElement("tcPr")
         {
             .inCellProperties = false
-            if .cellTagOpen
-            {
-                .sectionHtml += ">"
-                .cellTagOpen = false
-            }
+            .closeCellTag()
         }
         elif token.isElement("p")
         {
@@ -902,12 +1071,7 @@ private impl Reader
         }
         elif token.isElement("tc")
         {
-            if .cellTagOpen
-            {
-                .sectionHtml += ">"
-                .cellTagOpen = false
-            }
-
+            .closeCellTag()
             .sectionHtml += "</td>"
         }
         elif token.isElement("tr")

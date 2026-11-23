@@ -79,9 +79,10 @@ layouts, comparison, then media played together.
   drift beyond half a frame; mixed frame rates step on the leader's rate; a view that falls
   behind says so without moving the others; one sound plays.
 - Release verification covered nine 1920 × 1080 H.264 files at 24 fps in a 3 × 3 native
-  window, using Xvfb and Mesa on four CPUs. Over a 4.3 s play segment the leader reached
-  frame 102 and the largest observed difference between displayed frames was 13 frames.
-  Delayed followers triggered the Behind state. The half-frame acceptance remains open.
+  window, using Xvfb and Mesa on four CPUs. Across four 4.3 s play segments, the maximum
+  differences between displayed frames were 0, 9, 7 and 8 frames. The leader reached at
+  least frame 102 in each run. Delayed followers triggered the Behind state, and the
+  half-frame acceptance remains open.
 - The scene bounds the decoded queue at presentation size and plays one sound stream.
   Software decoding still reconstructs source-resolution pictures. Hardware decoder budgeting
   and container chapter marks depend on app.scope.video.013 and app.scope.video.004.

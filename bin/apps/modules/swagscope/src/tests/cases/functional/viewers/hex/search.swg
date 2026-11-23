@@ -164,8 +164,11 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     Swag.require(plan.byteRange.length == 0)
     Swag.require(view.prepareSearch("range:0xFFFFFFFFFFFFFFFF:0d2:AA", &plan) == .InvalidVisible)
     Swag.require(view.prepareSearch("range:0xFFFFFFFFFFFFFFF0:0d32:AA", &plan) == .InvalidVisible)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
     window.searchBox.setText("range:0xFFFFFFFFFFFFFFF0:0d32:AA")
     Swag.require(window.searchError == Hex.texts().ui_SearchRangeInvalid)
+    Swag.require(Utf8.startsWith(window.searchError, "Utilisez range:"))
 }
 
 // The hexadecimal scan publishes its first stable chunk before EOF, so F3 can navigate those hits.

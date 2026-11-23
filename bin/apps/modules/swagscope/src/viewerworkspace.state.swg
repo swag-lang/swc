@@ -257,6 +257,8 @@ impl ViewerWorkspace
 
     mtd cycleSwitcher(backward: bool)
     {
+        if .scenes.count < 2 do
+            return
         if not .switcher
         {
             .captureScenePreview()
@@ -278,6 +280,19 @@ impl ViewerWorkspace
             let height   = 79 + cast(f32, rows) * 56
             let backdrop = Wnd.create'Wnd(me, area, "scope.scene.switcher.backdrop")
             backdrop.backgroundStyle = .Transparent
+            backdrop.hookOnEvent     = func|workspace|(wnd, evt)
+            {
+                if evt is MouseEvent as mouse where mouse.target == wnd
+                {
+                    if mouse.kind == .Pressed do
+                        workspace.closeSwitcher(choose: false)
+                    mouse.accepted = mouse.kind == .Accept or mouse.kind == .Pressed
+                    return mouse.accepted
+                }
+
+                return false
+            }
+
             backdrop.wndFlags.add(.TopMost)
             backdrop.bringToFront()
             .switchBackdrop = backdrop

@@ -23,7 +23,6 @@ struct ComparisonSheet
 impl ComparisonSheet
 {
     const Width = 540.0
-    const Pitch = 31.0
 
     func create(workspace: *ViewerWorkspace)->*ComparisonSheet
     {
@@ -41,13 +40,35 @@ impl ComparisonSheet
 
     mtd layoutSheet()
     {
-        let area  = .workspace.clientRect()
-        let inset = .themeMetrics().floating_Inset
-        let width = Math.min(Width, area.width - 2 * inset)
-        let top   = .stripInset() + inset
-        .panel.setPosition({area.right() - inset - width, top, width, Math.max(0, area.bottom() - top - inset)})
+        let area   = .workspace.clientRect()
+        let inset  = .themeMetrics().floating_Inset
+        let width  = Math.clamp(area.width - 2 * inset, 0, Width)
+        let top    = .workspace.stripInset() + inset
+        let height = Math.min(.contentHeight(), Math.max(0, area.bottom() - top - inset))
+        .panel.setPosition({area.right() - inset - width, top, width, height})
         .panel.applyLayout()
+        .scroll = Math.min(.scroll, .scrollLimit())
     }
+
+    private mtd headerHeight()->f32
+    {
+        let metrics = .themeMetrics()
+        return metrics.floating_Inset + cast(f32, metrics.infoSheet_TitleFontSize) + 2 * metrics.infoSheet_LineHeight
+    }
+
+    private mtd contentHeight()->f32
+    {
+        let metrics     = .themeMetrics()
+        let factsHeight = cast(f32, .facts.count) * metrics.infoSheet_LineHeight
+        var height      = .headerHeight() + metrics.infoSheet_LineGap + factsHeight + metrics.floating_Inset
+        if .different do
+            height += metrics.infoSheet_LineHeight
+        if .different < .facts.count do
+            height += metrics.infoSheet_LineHeight + (.different ? metrics.infoSheet_BlockGap : 0)
+        return height
+    }
+
+    private mtd scrollLimit()->f32 => Math.max(0, .contentHeight() - .clientRect().height)
 
     mtd refresh()
     {
@@ -68,33 +89,38 @@ impl ComparisonSheet
                 data[side] = comparisonFacts(view.document)
         }
 
+        var paired: Array'bool
+        paired.resize(data[1].rows.count)
         for &row in data[0].rows where not row.group and not row.value.isEmpty()
         {
             let title = row.label()
             if not title.count do
                 continue
             var value: String
-            for &candidate in data[1].rows where candidate.field == row.field and candidate.name == row.name
+            for &candidate, index in data[1].rows
             {
-                value = candidate.value
+                if paired[index] or
+                   candidate.group or
+                   candidate.value.isEmpty() or
+                   candidate.field != row.field or
+                   candidate.name != row.name do
+                    continue
+                paired[index] = true
+                value         = candidate.value
                 break
             }
 
             .addFact(title, row.value, value)
         }
 
-        for &row in data[1].rows where not row.group and not row.value.isEmpty()
+        for &row, index in data[1].rows where not paired[index] and not row.group and not row.value.isEmpty()
         {
             let title = row.label()
-            if not title.count do
-                continue
-            var found = false
-            for &fact in .facts where fact.label == title do
-                found = true
-            if not found do
+            if title.count do
                 .addFact(title, "", row.value)
         }
 
+        .layoutSheet()
         .invalidate()
     }
 
@@ -158,44 +184,54 @@ impl IWnd for ComparisonSheet
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter = evt.paintContext.painter
-        let area    = .clientRect()
-        let colors  = .themeColors()
-        let app     = appStrings()
-        let inset   = .themeMetrics().floating_Inset
-        let title   = .theme().createDefaultFont(21, .Bold)
-        let words   = .theme().createDefaultFont(12)
-        let mono    = .theme().createDefaultFontFs(12)
-        let first   = Math.round(area.width * 0.40)
-        let second  = Math.round((first + area.width) / 2)
-        let span    = second - first - inset
+        let painter  = evt.paintContext.painter
+        let area     = .clientRect()
+        let colors   = .themeColors()
+        let metrics  = .themeMetrics()
+        let app      = appStrings()
+        let inset    = metrics.floating_Inset
+        let pitch    = metrics.infoSheet_LineHeight
+        let title    = .theme().createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
+        let words    = .theme().createDefaultFont(metrics.defaultFontSize)
+        let mono     = .theme().createDefaultFontFs(metrics.defaultFontSize)
+        let first    = Math.round(area.width * 0.37)
+        let second   = Math.round((first + area.right() - inset) / 2)
+        let span     = Math.max(second - first - metrics.infoSheet_LineGap, 0)
+        let identity = inset + cast(f32, metrics.infoSheet_TitleFontSize) + metrics.infoSheet_LineGap
+        let top      = .headerHeight()
         painter.drawString(inset, inset, app.scene_ComparisonSheet, title, colors.text)
-        painter.drawString(inset, inset + 31, Format.toString(app.scene_ComparisonFacts, .different, .facts.count), mono, colors.faintText)
-        painter.drawString(first, 81, Painter.elideString(.names[0], words, span, .deviceScale()), words, colors.text)
-        painter.drawString(second, 81, Painter.elideString(.names[1], words, span, .deviceScale()), words, colors.text)
-        painter.fillRect(inset, 104, area.width - inset * 2, 1, colors.line)
-        let top = 112.0
-        painter.pushClippingRect({inset, top, area.width - inset * 2, Math.max(area.bottom() - top - 12, 0)})
-        var y = top + 8 - .scroll
-        .paintSection(painter, app.scene_Different, y)
-        y += Pitch
+        painter.drawString(inset, identity, Format.toString(app.scene_ComparisonFacts, .different, .facts.count), mono, colors.faintText)
+        let names = top - pitch + metrics.infoSheet_LineGap
+        painter.drawString(first, names, Painter.elideString(.names[0], words, span, .deviceScale()), words, colors.text)
+        painter.drawString(second, names, Painter.elideString(.names[1], words, span, .deviceScale()), words, colors.text)
+        painter.fillRect(inset, top, area.width - inset * 2, metrics.separator_HairlineSize, colors.line)
+        painter.pushClippingRect({inset, top + metrics.infoSheet_LineGap, area.width - inset * 2,
+                                  Math.max(area.bottom() - top - metrics.infoSheet_LineGap - inset, 0)})
+        var y = top + metrics.infoSheet_LineGap - .scroll
+        if .different
+        {
+            .paintSection(painter, app.scene_Different, y)
+            y += pitch
+        }
+
         for &fact, index in .facts
         {
             if index == .different
             {
-                y += 10
+                if .different do
+                    y += metrics.infoSheet_BlockGap
                 .paintSection(painter, app.scene_Identical, y)
-                y += Pitch
+                y += pitch
             }
 
-            let differs = index < .different
-            let color   = differs ? colors.text : colors.faintText
-            painter.drawString(inset, y, Painter.elideString(fact.label, words, first - inset - 10, .deviceScale()), words, colors.softText)
-            painter.drawString(first, y, Painter.elideString(fact.left, mono, span, .deviceScale()), mono, color)
+            let differs    = index < .different
+            let color      = differs ? colors.text : colors.faintText
+            let valueWidth = differs ? span : Math.max(area.right() - inset - first, 0)
+            painter.drawString(inset, y, Painter.elideString(fact.label, words, Math.max(first - 2 * inset, 0), .deviceScale()), words, colors.softText)
+            painter.drawString(first, y, Painter.elideString(fact.left, mono, valueWidth, .deviceScale()), mono, color)
             if differs do
                 painter.drawString(second, y, Painter.elideString(fact.right, mono, span, .deviceScale()), mono, color)
-            painter.fillRect(inset, y + Pitch - 8, area.width - inset * 2, 1, colors.line)
-            y += Pitch
+            y += pitch
         }
 
         painter.popClippingRect()
@@ -205,8 +241,8 @@ impl IWnd for ComparisonSheet
     {
         if evt.kind == .Wheel
         {
-            let maxScroll = Math.max(190 + cast(f32, .facts.count) * Pitch - .clientRect().height, 0)
-            .scroll = Math.clamp(.scroll + (evt.delta.y > 0 ? -Pitch * 3 : Pitch * 3), 0, maxScroll)
+            let step = .themeMetrics().infoSheet_LineHeight * 3
+            .scroll = Math.clamp(.scroll - evt.delta.y * step, 0, .scrollLimit())
             .invalidate()
             return
         }
@@ -219,8 +255,9 @@ impl ComparisonSheet
 {
     private mtd paintSection(painter: *Painter, text: string, y: f32)
     {
-        let font = .theme().createDefaultFont(11, .SemiBold)
-        painter.drawString(.themeMetrics().floating_Inset, y, String.toUpper(text, .Unicode), font, .themeColors().faintText)
+        let metrics = .themeMetrics()
+        let font    = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
+        painter.drawString(metrics.floating_Inset, y, String.toUpper(text, .Unicode), font, .themeColors().faintText)
     }
 }
 
@@ -245,7 +282,6 @@ impl ViewerWorkspace
 
         sheet.scroll = 0
         sheet.refresh()
-        sheet.layoutSheet()
         .activeDocument().lens.close()
         sheet.panel.bringToFront()
         discard .app().animator.arrive(sheet.panel)

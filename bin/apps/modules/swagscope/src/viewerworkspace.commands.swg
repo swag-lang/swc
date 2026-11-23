@@ -41,10 +41,12 @@ impl ViewerWindow
 {
     mtd addSceneCommands()
     {
-        .lens.addCommands(func()->string => appStrings().scene_Layout, SceneCommands.Layouts)
-        .lens.addCommands(func()->string => appStrings().lens_File, [SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.OpenGrid, SceneCommands.CompareSelection])
+        let layoutLabel = func()->string => appStrings().scene_Layout
+        .lens.addCommands(layoutLabel, SceneCommands.Layouts[0 until 6], inLens: false)
+        .lens.addCommands(func()->string => appStrings().scene_SceneList, [SceneCommands.Layouts[6], SceneCommands.OpenGrid])
+        .lens.addCommands(func()->string => appStrings().lens_File, [SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.CompareSelection])
         .lens.addCommands(func()->string => appStrings().lens_View, [SceneCommands.Compare, SceneCommands.Maximize])
-        .lens.addSource(.None, func|document = me|(results) { document.describeScenes(results, atRest: false) })
+        .lens.addSource(.Action, func|document = me|(results) { document.describeScenes(results, atRest: false) })
         .registerKeyShortcut(.Control, .W, ViewerCommands.Close)
         .registerKeyShortcut(.Control, .Oem5, SceneCommands.Layouts[1])
         .registerKeyShortcut(.CtrlAlt, .D2, SceneCommands.Layouts[3])
@@ -60,13 +62,24 @@ impl ViewerWindow
     {
         let workspace = unwrap .workspace
         let scene     = workspace.scene()
-        if atRest and scene and scene.views.count > 1
+        if scene and scene.views.count > 1
         {
-            let layouts = results.addSection(appStrings().scene_Layout)
-            layouts.inline = true
-            .lens.addCommandRows(layouts, SceneCommands.Layouts[0 until 6])
-            let actions = results.addSection("")
-            .lens.addCommandRows(actions, [SceneCommands.Layouts[6], SceneCommands.OpenGrid, SceneCommands.Maximize, SceneCommands.Compare])
+            let label   = appStrings().scene_Layout
+            var matches = atRest or Lens.match(results.folded, label).matched
+            for layout in SceneCommands.LayoutValues[0 until 6] where not matches do
+                matches = Lens.match(results.folded, sceneLayoutTitle(layout)).matched
+            if matches
+            {
+                let layouts = results.addSection(label)
+                layouts.inline = true
+                .lens.addCommandRows(layouts, SceneCommands.Layouts[0 until 6])
+            }
+
+            if atRest
+            {
+                let actions = results.addSection("")
+                .lens.addCommandRows(actions, [SceneCommands.Layouts[6], SceneCommands.OpenGrid, SceneCommands.Maximize, SceneCommands.Compare])
+            }
         }
 
         if workspace.scenes.count < 2 do
@@ -94,6 +107,7 @@ impl ViewerWindow
         let text         = appStrings()
         var name: string = ""
         var hidden       = false
+        var disabled     = false
         var checkable    = false
         var checked      = false
         switch evt.id
@@ -129,6 +143,7 @@ impl ViewerWindow
                 let layout = SceneCommands.LayoutValues[index]
                 name      = sceneLayoutTitle(layout)
                 hidden    = not scene or scene.views.count < 2
+                disabled  = scene and not scene.supportsLayout(layout)
                 checkable = true
                 checked   = scene and scene.layout == layout
                 break
@@ -139,7 +154,8 @@ impl ViewerWindow
             return false
         evt.name          = name
         evt.hidden        = hidden
-        evt.updatedFields |= .Name | .Hidden
+        evt.disabled      = disabled
+        evt.updatedFields |= .Name | .Hidden | .Disabled
         if checkable
         {
             evt.checked = checked

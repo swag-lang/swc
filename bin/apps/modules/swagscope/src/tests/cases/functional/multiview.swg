@@ -89,8 +89,13 @@ using Core, Gui, Pixel, Audio
     workspace.activeDocument().toggleInformation()
     Swag.require(workspace.comparisonSheet!.panel.isLocallyVisible())
     Swag.require(workspace.comparisonSheet.facts.count > 2)
-    workspace.toggleComparison()
+    let sheet = workspace.comparisonSheet
+    let top   = workspace.stripInset() + workspace.themeMetrics().floating_Inset
+    Swag.require(sheet.panel.position.y == top)
+    Swag.require(sheet.panel.position.bottom() < workspace.clientRect().bottom() - workspace.themeMetrics().floating_Inset)
+    workspace.setLayout(.Grid3)
     Swag.require(not workspace.comparisonVisible() and workspace.documentCount() == 2)
+    Swag.require(not sheet.panel.isLocallyVisible() and workspace.scene()!.layout == .Grid3)
 }
 
 #test
@@ -141,6 +146,8 @@ using Core, Gui, Pixel, Audio
     Swag.require(workspace.scenes[0]!.linked and workspace.scenes[0]!.links.scroll)
     host.shortcut(.Tab, .Control)
     Swag.require(workspace.switcher != null)
+    host.keyPress(.W, .Control)
+    Swag.require(workspace.switcher != null and workspace.scenes.count == 2)
     var release = KeyEvent{kind: .Released, key: .Control}
     workspace.activeDocument().sendEvent(&release)
     openViews(&host, workspace)
@@ -163,6 +170,14 @@ using Core, Gui, Pixel, Audio
     let local    = workspace.localToSurface(target)
     let area     = host.surface.position
     let point    = Math.Point{area.x + local.x * workspace.deviceScale(), area.y + local.y * workspace.deviceScale()}
+    let left     = workspace.overlay.dropRect(.Left)
+    let middle   = workspace.overlay.dropRect(.Replace)
+    let gap      = workspace.overlay.localToSurface(Math.Point{(left.right() + middle.x) * 0.5, middle.vertCenter()})
+    let away     = Math.Point{area.x + gap.x * workspace.deviceScale(), area.y + gap.y * workspace.deviceScale()}
+    Swag.require(host.dragFilesOver(away, [path]) == .None)
+    Swag.require(workspace.dragging and workspace.dropTarget == .None)
+    Swag.require(host.dropFiles(away, [path]) == .None)
+    Swag.require(not workspace.dragging and original.currentFile == first)
     Swag.require(host.dragFilesOver(point, [path]) == .Copy)
     Swag.require(workspace.dragging and workspace.dropTarget == .Below)
     Swag.require(host.dropFiles(point, [path]) == .Copy)

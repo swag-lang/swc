@@ -118,9 +118,9 @@ the documents. Leaving it keeps the views side by side.
 
 - Two aligned columns. A line missing on one side leaves a faintly hatched gap, so both columns
   keep the same rows.
-- The charter has no difference tokens; this design proposes two. **Removed** is the Critical
-  ink on a 12 % ground, **Added** the Live ink on a 12 % ground. Changed characters inside a line
-  take the same ink at 30 %. A `−` or `+` in the gutter carries the change without colour.
+- **Removed** uses Critical ink on a 12 % ground. **Added** uses Live ink on a 12 % ground.
+  Changed characters inside a line take the same ink at 30 %. A `−` or `+` in the gutter carries
+  the change without colour.
 - The 14 px **difference band** replaces the hairline between the columns: one mark per change
   over the whole file, the visible range framed, a click jumps to a change. It is the only part
   added.

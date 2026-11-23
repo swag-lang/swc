@@ -303,10 +303,10 @@ scene_Layout        Disposition
 scene_Single        Seule
 scene_SideBySide    Côte à côte
 scene_Stacked       Empilées
-scene_Grid2         2 × 2
-scene_Grid3         3 × 3
-scene_Grid4         4 × 4
-scene_Auto          Auto
+scene_Grid2         Grille 2 × 2
+scene_Grid3         Grille 3 × 3
+scene_Grid4         Grille 4 × 4
+scene_Auto          Grille automatique
 scene_OpenBeside    Ouvrir à côté…
 scene_OpenGrid      Ouvrir des fichiers en grille…
 scene_CompareWith   Comparer avec…

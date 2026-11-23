@@ -284,6 +284,9 @@ func reportViewerLoadingChanged(view: *Wnd)
         .commitViewerTransition(view)
         .updateLoadingIndicator()
         .workspace?.refreshComparison()
+        let comparisonSheet = .workspace?.comparisonSheet
+        if comparisonSheet and comparisonSheet.panel.isLocallyVisible() do
+            comparisonSheet.refresh()
         .workspace?.updateMediaViewport(window)
     }
 }

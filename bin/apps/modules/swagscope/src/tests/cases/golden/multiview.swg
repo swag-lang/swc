@@ -124,7 +124,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let files = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp")]
     workspace.openScene(files, .SideBySide)
     openViews(&host, workspace)
-    workspace.activeDocument().lens.open()
+    workspace.activeDocument().lens.open(">grid")
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.layouts.paper")
 }

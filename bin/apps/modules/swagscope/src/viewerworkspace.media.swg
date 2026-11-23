@@ -409,22 +409,40 @@ impl ViewerWorkspace
 
     mtd paintMediaCaption(painter: *Painter, rect: Math.Rectangle, view: const *SceneView, text: string, active: bool)
     {
-        let colors = .themeColors()
-        let font   = .theme().createDefaultFont(12)
-        let radius = .themeMetrics().corner_Chip
-        let scene  = unwrap .scene()
-        let offset = scene.linked and scene.links.mode == .Relative ?
-                     Format.toString(" · %{+f2} s", view.offset) : String{}
-        var title = String.from(text)
-        title += offset
-        let width = Math.min(Painter.measureString(title, font).width + 18, rect.width - 24)
-        let chip  = Math.Rectangle{rect.x + 12, Math.max(rect.y, .stripInset()) + 12, width, 25}
+        let colors    = .themeColors()
+        let metrics   = .themeMetrics()
+        let font      = .theme().createDefaultFont(metrics.defaultFontSize)
+        let mono      = .theme().createDefaultFontFs(metrics.defaultFontSize)
+        let inset     = metrics.floating_Inset * 0.5
+        let pad       = metrics.infoSheet_LineGap * 2
+        let available = Math.max(0, rect.width - 2 * inset - 2 * pad)
+        let scene     = unwrap .scene()
+        var formatted: String
+        if scene.linked and scene.links.mode == .Relative
+        {
+            formatted = Format.toString("%{+f2} s", view.offset)
+            if .app().language() == "fr" do
+                formatted.replace('.', ",")
+        }
+
+        let offset       = Painter.elideString(formatted, mono, available * 0.38, .deviceScale())
+        let caution      = Painter.elideString(view.behind ? appStrings().scene_Behind : "", font, available * 0.25, .deviceScale())
+        let offsetWidth  = offset.isEmpty() ? 0 : Painter.measureString(offset, mono).width + pad
+        let cautionWidth = caution.isEmpty() ? 0 : Painter.measureString(caution, font).width + pad
+        let title        = Painter.elideString(text, font, Math.max(available - offsetWidth - cautionWidth, 0), .deviceScale())
+        let titleWidth   = Painter.measureString(title, font).width
+        let chip         = Math.Rectangle{rect.x + inset, Math.max(rect.y, .stripInset()) + inset,
+                                          2 * pad + titleWidth + offsetWidth + cautionWidth, metrics.infoSheet_LineHeight}
+        let radius = metrics.corner_Chip
         painter.fillRoundRect(chip, radius, radius, colors.raised)
-        painter.drawStringCenter(chip.horzCenter(), chip.vertCenter(), Painter.elideString(title, font, width - 12, .deviceScale()), font, colors.text)
+        let x = chip.x + pad
+        painter.drawString(x, font.opticalLineTop(chip.vertCenter()), title, font, colors.text)
+        if offsetWidth > 0 do
+            painter.drawString(x + titleWidth + pad, mono.opticalLineTop(chip.vertCenter()), offset, mono, colors.softText)
+        if cautionWidth > 0 do
+            painter.drawString(x + titleWidth + offsetWidth + pad, font.opticalLineTop(chip.vertCenter()), caution, font, colors.caution)
         if active do
             painter.drawRect({rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2}, colors.arc, 2)
-        if view.behind do
-            painter.drawString(chip.x, chip.bottom() + 5, appStrings().scene_Behind, font, colors.caution)
     }
 
     mtd playScene()

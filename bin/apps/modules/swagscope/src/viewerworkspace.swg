@@ -63,6 +63,17 @@ impl ViewerScene
         return {4, 4}
     }
 
+    mtd const supportsLayout(layout: SceneLayout)->bool
+    {
+        switch #complete layout
+        {
+        case .SideBySide, .Stacked:  return .views.count == 2
+        case .Grid2:                 return .views.count <= 4
+        case .Grid3:                 return .views.count <= 9
+        case .Single, .Grid4, .Auto: return true
+        }
+    }
+
     mtd swapViews(first, second: u64)
     {
         var view = #move .views[first]
@@ -298,6 +309,7 @@ impl ViewerWorkspace
 
     mtd suspendScene(capturePreview = true)
     {
+        .closeSwitcher(choose: false)
         let scene = .scene()
         if not scene do
             return
@@ -398,6 +410,7 @@ impl ViewerWorkspace
     {
         if index >= .scenes.count do
             return
+        .closeSwitcher(choose: false)
         let selected = index == .active
         if selected do
             .suspendScene(capturePreview: false)
@@ -434,8 +447,15 @@ impl ViewerWorkspace
     mtd setLayout(layout: SceneLayout)
     {
         let scene = .scene()
-        if not scene do
+        if not scene or not scene.supportsLayout(layout) do
             return
+        if scene.compared and layout != .SideBySide
+        {
+            .storeComparisonState()
+            scene.compared = false
+            .closeComparisonSheet()
+        }
+
         scene.layout    = layout
         scene.maximized = false
         .layoutScene()
@@ -507,7 +527,6 @@ impl ViewerWorkspace
         .switchBackdrop?.setPosition(area, computeLayout: false)
         .refreshComparison()
         .updateMedia()
-        .comparisonSheet?.layoutSheet()
         .comparisonSheet?.refresh()
     }
 

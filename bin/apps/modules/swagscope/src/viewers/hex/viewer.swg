@@ -110,6 +110,25 @@ func readPackedBcd(bytes: const [..] u8)->String
     return result
 }
 
+// Reads the packed little-endian date and time used by FAT directory entries.
+func readFatDateTime(bytes: const [..] u8)->String
+{
+    if bytes.count < 4 do
+        return String.from(texts().ui_ReadingInvalid)
+
+    let date = readScalar(bytes[until 2], false)
+    let time = readScalar(bytes[2 until 4], false)
+    let value = Time.DateTime{cast(u16, 1980 + ((date >> 9) & 0x7F)),
+                              cast(u16, (date >> 5) & 0x0F),
+                              cast(u16, date & 0x1F),
+                              cast(u16, (time >> 11) & 0x1F),
+                              cast(u16, (time >> 5) & 0x3F),
+                              cast(u16, (time & 0x1F) * 2), 0}
+    if not value.isValid() do
+        return String.from(texts().ui_ReadingInvalid)
+    return value.toString(.DateTimeIso)
+}
+
 // Converts one IEEE-754 binary16 value to binary32 without relying on host-specific half types.
 func float16ToFloat(value: u16)->f32
 {
@@ -865,6 +884,7 @@ impl Panel
             view.readings.add({texts().ui_InspectorBcd, readPackedBcd(bytes[until Math.min(bytes.count, 8)]), false})
         if bytes.count < 4 do
             return
+        view.readings.add({texts().ui_InspectorFatDateTime, readFatDateTime(bytes), false})
         let address = Format.toString("%.%.%.%",
                                      cast(u32, bytes[0]),
                                      cast(u32, bytes[1]),

@@ -49,6 +49,7 @@ struct Texts
     ui_InspectorGuid:          string = "GUID"                                                                                               // Canonical hexadecimal GUID spelling from sixteen consecutive bytes.
     ui_InspectorBcd:           string = "BCD"                                                                                                // Signed packed-decimal reading from the caret.
     ui_InspectorRgba8:          string = "RGBA8"                                                                                             // Four file-order color channels, each one byte.
+    ui_InspectorFatDateTime:     string = "FAT date/time"                                                                                    // Packed FAT directory date and time.
     ui_InspectorUleb128:       string = "ULEB128"                                                                                            // Unsigned LEB128 reading from the caret.
     ui_InspectorSleb128:       string = "SLEB128"                                                                                            // Signed LEB128 reading from the caret.
     ui_ReadingInvalid:         string = "invalid"                                                                                             // A domain reading whose bytes exceed its encoding rules.

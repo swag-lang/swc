@@ -482,6 +482,36 @@ internal func writeSampleFile()->String
     Swag.require(found)
 }
 
+// FAT directory timestamps use fixed little-endian fields and reject invalid calendar values.
+#test
+{
+    let encoded: Array'u8 = [0x21, 0x00, 0x21, 0x00]
+    Swag.require(Hex.readFatDateTime(encoded.toSlice()) == "1980-01-01 00:01:02")
+    let invalid: Array'u8 = [0x00, 0x00, 0x00, 0x00]
+    Swag.require(Hex.readFatDateTime(invalid.toSlice()) == Hex.texts().ui_ReadingInvalid)
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-fat-time-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, encoded.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    var found = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorFatDateTime
+        {
+            Swag.require(reading.value == "1980-01-01 00:01:02")
+            found = true
+        }
+    }
+    Swag.require(found)
+    view.setBigEndian(true)
+    view.refreshInspector()
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFatDateTime do
+        Swag.require(reading.value == "1980-01-01 00:01:02")
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

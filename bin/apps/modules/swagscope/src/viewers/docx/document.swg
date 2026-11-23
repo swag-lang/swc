@@ -75,9 +75,11 @@ struct Document
     usePaperColors:          bool
     paperColor:              String
     stylesSimplified:        bool
+    tableMergesSimplified:   bool
     pageElementsSimplified:  bool
     sectionLayoutSimplified: bool
     footnotesSimplified:     bool
+    endnotesSimplified:      bool
     commentsSimplified:      bool
     linksSimplified:         bool
     properties:              Package.DocumentProperties     // What the package says of the document.
@@ -94,12 +96,16 @@ impl Document
             result += .omittedImages == 1 ? String.from(texts().ui_OneImageOmitted) : Format.toString(texts().ui_ImagesOmitted, .omittedImages)
         if .stylesSimplified do
             result += texts().ui_StylesSimplified
+        if .tableMergesSimplified do
+            result += texts().ui_TableMergesSimplified
         if .pageElementsSimplified do
             result += texts().ui_PageElementsSimplified
         if .sectionLayoutSimplified do
             result += texts().ui_SectionLayoutSimplified
         if .footnotesSimplified do
             result += texts().ui_FootnotesSimplified
+        if .endnotesSimplified do
+            result += texts().ui_EndnotesSimplified
         if .commentsSimplified do
             result += texts().ui_CommentsSimplified
         if .linksSimplified do
@@ -120,6 +126,7 @@ impl Document
         let parts     = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
         let source    = try parts.text("word/document.xml")
         let relations = try parts.relationships("word/document.xml")
+        var externalRelationships = try parts.externalRelationships("word/document.xml")
         var theme     = Package.OfficeTheme.defaults()
         let themePath = Package.relationshipPath(relations.toSlice(), "/theme")
         var themeError: Swag.Error
@@ -151,6 +158,13 @@ impl Document
         let footnotesSource = catch parts.text(footnotesPath, required: false, limit: 4 * 1024 * 1024) as footnotesReadError orelse {}
         var footnotesParseError: Swag.Error
         var footnotes       = catch FootnoteCatalog.parse(footnotesSource) as footnotesParseError orelse {}
+        var endnotesPath    = Package.relationshipPath(relations.toSlice(), "/endnotes")
+        if endnotesPath.isEmpty() do
+            endnotesPath = "word/endnotes.xml"
+        var endnotesReadError: Swag.Error
+        let endnotesSource = catch parts.text(endnotesPath, required: false, limit: 4 * 1024 * 1024) as endnotesReadError orelse {}
+        var endnotesParseError: Swag.Error
+        var endnotes       = catch EndnoteCatalog.parse(endnotesSource) as endnotesParseError orelse {}
         var commentsPath    = Package.relationshipPath(relations.toSlice(), "/comments")
         if commentsPath.isEmpty() do
             commentsPath = "word/comments.xml"
@@ -167,10 +181,12 @@ impl Document
                                                            texts().err_Invalid,
                                                            texts().err_TooLarge)
         var reader = Reader{document: Document{usePaperColors: styles.loaded, stylesSimplified: limited},
-                            images: #move images, numbering: #move numbering, footnotes: #move footnotes, comments: #move comments,
+                            images: #move images, numbering: #move numbering, footnotes: #move footnotes, endnotes: #move endnotes, comments: #move comments,
+                            externalRelationships: #move externalRelationships,
                             styles: #move styles, theme: #move theme,
                             numberingLimited: numberingReadError.value() != null or numberingParseError.value() != null,
                             footnotesLimited: footnotesReadError.value() != null or footnotesParseError.value() != null,
+                            endnotesLimited: endnotesReadError.value() != null or endnotesParseError.value() != null,
                             commentsLimited: commentsReadError.value() != null or commentsParseError.value() != null}
         while scan.next(&token)
         {
@@ -215,6 +231,11 @@ impl Document
         if scan.damaged or reader.inBody or reader.inParagraph or not reader.document.paragraphs and not reader.document.tables do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         reader.document.html += reader.footnotesHtml()
+        if reader.footnoteReferences.count do
+            reader.document.footnotesSimplified = true
+        reader.document.html += reader.endnotesHtml()
+        if reader.endnoteReferences.count do
+            reader.document.endnotesSimplified = true
         reader.document.html += reader.commentsHtml()
         if reader.document.html.count > 32 * 1024 * 1024 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}

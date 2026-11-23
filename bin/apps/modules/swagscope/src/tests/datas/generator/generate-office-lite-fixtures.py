@@ -86,6 +86,20 @@ def generate(output: Path) -> None:
     docx("viewer.formatted.docx", '<w:p><w:pPr><w:pStyle w:val="Heading1"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Styled title</w:t></w:r></w:p><w:p><w:r><w:t>Plain &amp; </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>italic</w:t></w:r><w:r><w:t> and </w:t></w:r><w:r><w:rPr><w:u w:val="single"/><w:strike/></w:rPr><w:t>marked</w:t></w:r><w:r><w:rPr><w:b w:val="0"/></w:rPr><w:t> text.</w:t></w:r></w:p><w:p><w:pPr><w:outlineLvl w:val="1"/><w:jc w:val="right"/></w:pPr><w:r><w:t>Second heading</w:t></w:r></w:p>', rels=True, content_types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
     docx("viewer.runs.docx", '<w:p><w:r><w:t>First </w:t></w:r><w:r><w:t>run &amp; second</w:t></w:r><w:r><w:tab/><w:t>tab</w:t><w:br/><w:t>line</w:t></w:r></w:p><w:p><w:r><w:t>&lt;escaped&gt;</w:t></w:r></w:p>', content_types='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
     docx("viewer.pagebreak.docx", '<w:p><w:r><w:t>First </w:t></w:r><w:r><w:t>run &amp; second</w:t></w:r><w:r><w:tab/><w:t>tab</w:t><w:br/><w:t>line</w:t><w:br w:type="page"/><w:t>Page two</w:t></w:r></w:p><w:p><w:r><w:t>&lt;escaped&gt;</w:t></w:r></w:p>', content_types='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+    docx("viewer.table-merge.docx", '<w:tbl><w:tr><w:tc><w:tcPr><w:vMerge w:val="restart"/></w:tcPr><w:p><w:r><w:t>Spans two rows</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Outer cell</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:vMerge/></w:tcPr><w:p/></w:tc><w:tc><w:p><w:r><w:t>Next row cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>', rels=True)
+    docx("viewer.bad-table-merge.docx", '<w:tbl><w:tr><w:tc><w:tcPr><w:vMerge/></w:tcPr><w:p><w:r><w:t>Unmatched merge</w:t></w:r></w:p></w:tc></w:tr></w:tbl>', rels=True)
+    docx("viewer.nested-table.docx", '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Outer cell</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Nested cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl>', rels=True)
+    package(ROOT / "viewer.endnotes.docx", [
+        ("[Content_Types].xml", xml(CT_DOCX), ZIP_DEFLATED),
+        ("word/document.xml", xml(f'<w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>Opening </w:t><w:endnoteReference w:id="2"/><w:t> middle </w:t><w:endnoteReference w:id="1"/><w:t> ending </w:t><w:endnoteReference w:id="2"/><w:t> missing </w:t><w:endnoteReference w:id="9"/><w:t>.</w:t></w:r></w:p></w:body></w:document>'), ZIP_DEFLATED),
+        ("word/_rels/document.xml.rels", xml('<Relationships><Relationship Id="rEndnotes" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes" Target="endnotes.xml"/></Relationships>'), ZIP_DEFLATED),
+        ("word/endnotes.xml", xml(f'<w:endnotes xmlns:w="{W}"><w:endnote w:id="1"><w:p><w:r><w:t>First &amp; safely &lt;escaped&gt; endnote.</w:t></w:r></w:p></w:endnote><w:endnote w:id="2"><w:p><w:r><w:t>Second endnote appears first.</w:t></w:r></w:p></w:endnote></w:endnotes>'), ZIP_DEFLATED),
+    ])
+    package(ROOT / "viewer.external-links.docx", [
+        ("[Content_Types].xml", xml(CT_DOCX), ZIP_DEFLATED),
+        ("word/document.xml", xml(f'<w:document xmlns:w="{W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body><w:p><w:hyperlink r:id="rWeb"><w:r><w:t>Web &amp; source</w:t></w:r></w:hyperlink><w:r><w:t> · </w:t></w:r><w:hyperlink r:id="rMail"><w:r><w:t>Email source</w:t></w:r></w:hyperlink><w:r><w:t> · </w:t></w:r><w:hyperlink r:id="rScript"><w:r><w:t>Unsafe source</w:t></w:r></w:hyperlink><w:r><w:t> · </w:t></w:r><w:hyperlink r:id="rMissing"><w:r><w:t>Missing source</w:t></w:r></w:hyperlink></w:p></w:body></w:document>'), ZIP_DEFLATED),
+        ("word/_rels/document.xml.rels", xml('<Relationships><Relationship Id="rWeb" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.invalid/source?q=one&amp;r=two" TargetMode="External"/><Relationship Id="rMail" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="mailto:field-office@example.invalid" TargetMode="External"/><Relationship Id="rScript" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="javascript:alert(1)" TargetMode="External"/></Relationships>'), ZIP_DEFLATED),
+    ])
     package(ROOT / "viewer.damaged.docx", [("[Content_Types].xml", xml("<Types/>"), ZIP_DEFLATED)])
 
     # RTF source strings remain plain, reviewable source; escaped bytes and broken
@@ -270,7 +284,7 @@ def main() -> None:
     generate(args.output_dir)
     names = [
         "viewer.epub", "viewer.nested.epub", "viewer.damaged.epub",
-        "viewer.docx", "viewer.formatted.docx", "viewer.runs.docx", "viewer.pagebreak.docx", "viewer.damaged.docx",
+        "viewer.docx", "viewer.formatted.docx", "viewer.runs.docx", "viewer.pagebreak.docx", "viewer.endnotes.docx", "viewer.external-links.docx", "viewer.table-merge.docx", "viewer.bad-table-merge.docx", "viewer.nested-table.docx", "viewer.damaged.docx",
         "viewer.rtf", "viewer.unicode.rtf", "viewer.table.rtf", "viewer.destinations.rtf", "viewer.damaged.rtf",
         "viewer.xlsx", "viewer.inline.xlsx", "viewer.damaged.xlsx",
         "viewer.empty-cells.xlsx", "viewer.formulas.xlsx", "viewer.sparse-rows.xlsx", "viewer.wide-column.xlsx",

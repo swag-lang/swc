@@ -26,7 +26,9 @@ private struct Reader
     images:                   Package.ImageCatalog
     numbering:                NumberingCatalog
     footnotes:                FootnoteCatalog
+    endnotes:                 EndnoteCatalog
     comments:                 CommentCatalog
+    externalRelationships:    Array'Package.ExternalRelationship
     sectionLayout:            PageLayout
     sectionHtml:              String
     sectionBreak:             String
@@ -53,6 +55,17 @@ private struct Reader
     cellTagOpen:              bool
     cellWidthSet:             bool
     cellAlignmentSet:         bool
+    cellColumn:               u8
+    cellColumnSpan:           u8
+    cellTagOffset:            u64
+    cellVerticalMerge:        u8
+    tableDepth:               u8
+    tableRowColumns:          [8]u8
+    skipMergedCell:           bool
+    activeMergeRows:          [63]u64
+    nextMergeRows:            [63]u64
+    activeMergeSpans:         [63]u8
+    nextMergeSpans:           [63]u8
     cellStyle:                String
     imageId:                  String
     imageDescription:         String
@@ -74,6 +87,11 @@ private struct Reader
     footnoteReferenceAnchors: Array'String
     footnoteReferenceSerial:  u64
     footnotesLimited:         bool
+    endnoteReferences:        Array'String
+    endnoteReferenceTargets:  Array'String
+    endnoteReferenceAnchors:  Array'String
+    endnoteReferenceSerial:   u64
+    endnotesLimited:          bool
     commentReferences:        Array'String
     commentRangeStarts:       Array's32
     commentRangeEnds:         Array's32
@@ -149,6 +167,55 @@ private impl Reader
     {
         if not .cellTagOpen do
             return
+
+        if .cellVerticalMerge == 2
+        {
+            if .tableDepth == 1 and .cellColumnSpan == 1 and .cellColumn < 63 and .activeMergeRows[.cellColumn]
+            {
+                let origin = .activeMergeRows[.cellColumn]
+                let span   = .activeMergeSpans[.cellColumn] + 1
+                let start  = .cellTagOffset
+                .sectionHtml.remove(start, .sectionHtml.count - start)
+                let digitOffset = origin + 13
+                let oldDigits   = Format.toString("%", .activeMergeSpans[.cellColumn]).count
+                let newDigits   = Format.toString("%", span)
+                .sectionHtml.remove(digitOffset, oldDigits)
+                .sectionHtml.insert(digitOffset, newDigits)
+                let offsetChange = newDigits.count - oldDigits
+                for index in 63
+                {
+                    if .activeMergeRows[index] > digitOffset do .activeMergeRows[index] += offsetChange
+                    if .nextMergeRows[index] > digitOffset do .nextMergeRows[index] += offsetChange
+                }
+                .nextMergeRows[.cellColumn]  = origin
+                .nextMergeSpans[.cellColumn] = span
+                .cellTagOpen                 = false
+                .skipMergedCell              = true
+                if .tableDepth and .tableDepth <= 8 do
+                    .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
+                return
+            }
+
+            .document.tableMergesSimplified = true
+        }
+        elif .cellVerticalMerge == 1
+        {
+            if .tableDepth == 1 and .cellColumnSpan == 1 and .cellColumn < 63
+            {
+                .sectionHtml.insert(.cellTagOffset + 3, " rowspan=\"1\"")
+                .nextMergeRows[.cellColumn]  = .cellTagOffset
+                .nextMergeSpans[.cellColumn] = 1
+            }
+            else
+            {
+                .document.tableMergesSimplified = true
+            }
+        }
+        elif .cellVerticalMerge == 3
+        {
+            .document.tableMergesSimplified = true
+        }
+
         if not .cellStyle.isEmpty()
         {
             .sectionHtml += " style=\""
@@ -158,6 +225,8 @@ private impl Reader
 
         .sectionHtml += ">"
         .cellTagOpen = false
+        if .tableDepth and .tableDepth <= 8 do
+            .tableRowColumns[.tableDepth - 1] += .cellColumnSpan
     }
 
     mtd flushSection()
@@ -247,6 +316,64 @@ private impl Reader
         .footnoteReferenceTargets.add(id)
         .footnoteReferenceAnchors.add(anchor)
         .appendInline(Format.toString("<sup id=\"%\"><a href=\"#docx-footnote-%\">", anchor, id))
+        .appendInline(id.toString())
+        .appendInline("</a></sup>")
+    }
+
+    mtd readEndnoteReference(token: const *Package.Token)
+    {
+        let rawId     = token.attribute("id") orelse ""
+        var idError: Swag.Error
+        let numericId = catch StrConv.toS32(rawId) as idError orelse 0
+        if rawId.count == 0 or idError.value() != null or numericId <= 0
+        {
+            .appendInline(texts().ui_EndnoteOmitted)
+            .document.endnotesSimplified = true
+            return
+        }
+
+        let id   = Format.toString("%", numericId)
+        let note = .endnotes.lookup(id.toString())
+        if not note.found
+        {
+            .appendInline("<sup>")
+            .appendInline(id.toString())
+            .appendInline("</sup>")
+            .appendInline(texts().ui_EndnoteOmitted)
+            .document.endnotesSimplified = true
+            return
+        }
+
+        if note.limited or .endnotesLimited do
+            .document.endnotesSimplified = true
+        var known = false
+        for reference in .endnoteReferences where Utf8.compare(reference.toString(), id.toString()) == 0 do
+            known = true
+        var referenceOmitted = false
+        if not known and .endnoteReferences.count < 4096
+        {
+            .endnoteReferences.add(id)
+        }
+        elif not known
+        {
+            .document.endnotesSimplified = true
+            referenceOmitted = true
+        }
+
+        if .endnoteReferenceSerial >= 4096 or referenceOmitted
+        {
+            .appendInline("<sup>")
+            .appendInline(id.toString())
+            .appendInline("</sup>")
+            .document.endnotesSimplified = true
+            return
+        }
+
+        .endnoteReferenceSerial += 1
+        let anchor = Format.toString("docx-endnote-ref-%", .endnoteReferenceSerial)
+        .endnoteReferenceTargets.add(id)
+        .endnoteReferenceAnchors.add(anchor)
+        .appendInline(Format.toString("<sup id=\"%\"><a href=\"#docx-endnote-%\">", anchor, id))
         .appendInline(id.toString())
         .appendInline("</a></sup>")
     }
@@ -364,9 +491,29 @@ private impl Reader
     {
         if token.empty do
             return
-        if token.attribute("r:id")
+        if .hyperlinkOpen
         {
             .document.linksSimplified = true
+            .appendInline(texts().ui_LinkOmitted)
+            return
+        }
+
+        let relationshipId = token.attribute("r:id")
+        if relationshipId
+        {
+            for relationship in .externalRelationships
+            where Utf8.compare(relationship.id.toString(), relationshipId) == 0 and
+                  Utf8.endsWith(relationship.kind.toString(), "/hyperlink")
+            {
+                var target: String
+                Package.appendHtmlEscaped(&target, relationship.target.toString())
+                .appendInline(Format.toString("<a href=\"%\" rel=\"noopener noreferrer\">", target))
+                .hyperlinkOpen = true
+                return
+            }
+
+            .document.linksSimplified = true
+            .appendInline(texts().ui_LinkOmitted)
             return
         }
 
@@ -375,6 +522,7 @@ private impl Reader
         if fragment.isEmpty() or .hyperlinkOpen
         {
             .document.linksSimplified = true
+            .appendInline(texts().ui_LinkOmitted)
             return
         }
 
@@ -428,6 +576,46 @@ private impl Reader
                 returnNumber += 1
                 result       += Format.toString("<p><a href=\"#%\">", .footnoteReferenceAnchors[index])
                 result       += Format.toString(texts().ui_FootnoteReturn, returnNumber)
+                result       += "</a></p>"
+            }
+
+            result += "</div>"
+        }
+
+        result += "</section>"
+        return result
+    }
+
+    internal mtd endnotesHtml()->String
+    {
+        if not .endnoteReferences.count do
+            return {}
+        var result: String = "<section class=\"docx-endnotes\"><h2>"
+        result += texts().ui_EndnotesTitle
+        result += "</h2>"
+        for id in .endnoteReferences
+        {
+            let note = .endnotes.lookup(id.toString())
+            if not note.found
+            {
+                .document.endnotesSimplified = true
+                continue
+            }
+
+            if note.limited or .endnotesLimited do
+                .document.endnotesSimplified = true
+            result += Format.toString("<div id=\"docx-endnote-%\"><sup>", id)
+            Package.appendHtmlEscaped(&result, id.toString())
+            result += "</sup>"
+            result += note.html
+            var returnNumber = 0'u32
+            for target, index in .endnoteReferenceTargets
+            {
+                if Utf8.compare(target.toString(), id.toString()) != 0 do
+                    continue
+                returnNumber += 1
+                result       += Format.toString("<p><a href=\"#%\">", .endnoteReferenceAnchors[index])
+                result       += Format.toString(texts().ui_EndnoteReturn, returnNumber)
                 result       += "</a></p>"
             }
 
@@ -728,6 +916,9 @@ private impl Reader
 
     internal mtd start(token: const *Package.Token)
     {
+        if .skipMergedCell do
+            return
+
         if not .inBody and token.isElement("background")
         {
             let color = token.attribute("color") orelse "auto"
@@ -817,6 +1008,8 @@ private impl Reader
 
         if .cellTagOpen and not .inCellProperties and not token.isElement("tcPr") do
             .closeCellTag()
+        if .skipMergedCell do
+            return
 
         if .inImage
         {
@@ -864,15 +1057,40 @@ private impl Reader
             .closeLists()
             .document.tables += 1
             .sectionHtml     += "<table>"
+            if .tableDepth == 0
+            {
+                for index in 63
+                {
+                    .activeMergeRows[index]  = 0
+                    .nextMergeRows[index]    = 0
+                    .activeMergeSpans[index] = 0
+                    .nextMergeSpans[index]   = 0
+                }
+            }
+            .tableDepth += 1
         }
         elif token.isElement("tr")
         {
+            if .tableDepth and .tableDepth <= 8 do
+                .tableRowColumns[.tableDepth - 1] = 0
+            if .tableDepth == 1
+            {
+                for index in 63
+                {
+                    .nextMergeRows[index]  = 0
+                    .nextMergeSpans[index] = 0
+                }
+            }
             .sectionHtml += "<tr>"
         }
         elif token.isElement("tc")
         {
             .sectionHtml      += "<td"
             .cellTagOpen      = true
+            .cellTagOffset    = .sectionHtml.count - 3
+            .cellColumn       = .tableDepth and .tableDepth <= 8 ? .tableRowColumns[.tableDepth - 1] : 63
+            .cellColumnSpan   = 1
+            .cellVerticalMerge = 0
             .inCellProperties = false
             .cellWidthSet     = false
             .cellAlignmentSet = false
@@ -890,10 +1108,31 @@ private impl Reader
             if span > 1 and span <= 63
             {
                 .sectionHtml += Format.toString(" colspan=\"%\"", span)
+                .cellColumnSpan = cast(u8, span)
             }
             elif span != 1
             {
                 .document.stylesSimplified = true
+            }
+        }
+        elif .inCellProperties and token.isElement("vMerge")
+        {
+            let value = token.attribute("val") orelse "continue"
+            if .tableDepth != 1
+            {
+                .cellVerticalMerge = 3
+            }
+            elif value == "restart"
+            {
+                .cellVerticalMerge = 1
+            }
+            elif value == "continue"
+            {
+                .cellVerticalMerge = 2
+            }
+            else
+            {
+                .cellVerticalMerge = 3
             }
         }
         elif .inCellProperties and token.isElement("tcW")
@@ -1025,6 +1264,10 @@ private impl Reader
         {
             .readFootnoteReference(token)
         }
+        elif .inRun and token.isElement("endnoteReference")
+        {
+            .readEndnoteReference(token)
+        }
         elif .inRun and token.isElement("commentReference")
         {
             .readCommentReference(token)
@@ -1052,6 +1295,17 @@ private impl Reader
 
     internal mtd end(token: const *Package.Token)
     {
+        if .skipMergedCell
+        {
+            if token.isElement("tc")
+            {
+                .skipMergedCell = false
+                .inCellProperties = false
+                .cellTagOpen = false
+            }
+            return
+        }
+
         if token.isElement("body")
         {
             .closeLists()
@@ -1118,10 +1372,19 @@ private impl Reader
         elif token.isElement("tr")
         {
             .sectionHtml += "</tr>"
+            if .tableDepth == 1
+            {
+                for index in 63
+                {
+                    .activeMergeRows[index]  = .nextMergeRows[index]
+                    .activeMergeSpans[index] = .nextMergeSpans[index]
+                }
+            }
         }
         elif token.isElement("tbl")
         {
             .sectionHtml += "</table>"
+            if .tableDepth do .tableDepth -= 1
         }
     }
 }

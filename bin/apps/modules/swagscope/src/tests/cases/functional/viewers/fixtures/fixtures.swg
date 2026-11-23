@@ -24,7 +24,7 @@ private struct Fixture
 // Every canonical format fixture and named variant selects its intended reading surface.
 #test
 {
-    const Cases: [194] Fixture = [
+    const Cases: [199] Fixture = [
         Fixture{"viewer.txt", "text"},
         Fixture{"viewer.field-notes.txt", "text"},
         Fixture{"viewer.cpp", "code"},
@@ -47,8 +47,13 @@ private struct Fixture
         Fixture{"viewer.numbering-missing.docx", "docx"},
         Fixture{"viewer.footnotes.docx", "docx"},
         Fixture{"viewer.bad-footnotes.docx", "docx"},
+        Fixture{"viewer.endnotes.docx", "docx"},
+        Fixture{"viewer.external-links.docx", "docx"},
         Fixture{"viewer.sections.docx", "docx"},
         Fixture{"viewer.table-span.docx", "docx"},
+        Fixture{"viewer.table-merge.docx", "docx"},
+        Fixture{"viewer.bad-table-merge.docx", "docx"},
+        Fixture{"viewer.nested-table.docx", "docx"},
         Fixture{"viewer.links.docx", "docx"},
         Fixture{"viewer.comments.docx", "docx"},
         Fixture{"viewer.bad-comments.docx", "docx"},

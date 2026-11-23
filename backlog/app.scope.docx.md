@@ -21,15 +21,15 @@ remain in the shared viewer entries `app.scope.viewers.016`, `.001` and `.003`.
 
 ### app.scope.docx.002 — DOCX footnotes lose their authored placement
 
-- Evidence: referenced footnotes are read from a bounded optional part, retain basic run emphasis,
-  and appear in first-reference order in an appendix. Every marker, including repeated references,
-  opens the note and the note links back to each marker. Authored page/section placement is flattened;
-  endnotes are not read.
-- Next: add Word-authored footnote/endnote fixtures with different page/section placements and a
-  missing ID; implement endnotes and place supported notes in the document flow.
-- Done when: supported footnotes and endnotes appear at their authored page or section location,
-  each marker opens its note and each note returns to the selected marker, and unsupported or
-  unresolved notes have a visible marker.
+- Evidence: referenced footnotes and endnotes are read from bounded optional parts, retain basic run
+  emphasis, and appear in separate first-reference-order appendices. Every marker, including repeated
+  references, opens its note and the note links back to each marker. Authored footnote page/section
+  placement is flattened; endnotes are not placed at Word-authored document locations.
+- Next: add Word-authored note fixtures with different page/section placements; place supported
+  footnotes and endnotes in the document flow when the viewer can represent authored page locations.
+- Done when: supported notes appear at their authored page or section location, each marker opens
+  its note and each note returns to the selected marker, and unsupported or unresolved notes have a
+  visible marker.
 - Related: app.scope.viewers.009
 
 ### app.scope.docx.003 — DOCX comments are detached from their text ranges
@@ -46,11 +46,13 @@ remain in the shared viewer entries `app.scope.viewers.016`, `.001` and `.003`.
 
 ### app.scope.docx.004 — Complex DOCX tables and drawings lose structure
 
-- Evidence: simple tables, bounded inline raster images, horizontal spans, authored widths and
-  vertical cell alignment are supported. Nested tables, vertical merges, borders, floating objects,
-  and drawing anchors are not faithfully represented.
-- Next: add Word-authored cases for nested tables, vertical merges, borders and anchored drawings;
-  implement the common structures and identify unsupported features at their location.
-- Done when: supported tables retain row/cell order, spans, widths and alignment, anchored drawings
-  remain at their authored text location, and unsupported structures have a visible local notice.
+- Evidence: simple and nested tables, bounded inline raster images, horizontal spans, authored
+  widths, vertical cell alignment and single-column vertical merges are supported. Unmatched or
+  malformed vertical merges stay visible with a simplification notice. Borders, floating drawings,
+  text boxes, shapes, charts and embedded objects are not represented faithfully.
+- Next: add Word-authored cases for table borders and floating drawings; identify text boxes, shapes,
+  charts and embedded objects at their location instead of silently omitting them.
+- Done when: supported tables retain row/cell order, spans, widths and alignment, supported inline
+  and anchored drawings remain at their authored text location, and unsupported structures have a
+  visible local notice.
 - Related: app.scope.viewers.009

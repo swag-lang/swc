@@ -84,7 +84,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Evidence: the 25 registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 194 `viewer.*` files plus two standalone font variants, checks each
+  fixture matrix now names all 199 `viewer.*` files plus two standalone font variants, checks each
   entry's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, ODT, RTF, XLSX, ODS,
   PPTX and ODP have content and
   damaged-package cases. Seven complete, openly licensed published documents plus generated
@@ -101,8 +101,12 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 - Next: extend the fixture matrix beyond viewer selection and image decoding: map every fixture
   to content assertions, bounded-resource cases, interaction checks and visual states. Start with
   the weakest document readers and then fill behavior gaps in the archive and media variants from
-  the delivery plan. Compare DOCX, XLSX, PPTX and PDF against File Viewer Plus 7 on the same machine
-  and inputs. Measure cold and warm first-content latency, replacement cancellation, peak resident
+  the delivery plan. For DOCX, require content assertions across generated and real Word-authored
+  documents, each implemented or disclosed-unsupported feature in the DOCX backlog, its allowed
+  external hyperlink schemes and unsafe-target cases, malformed package/relationship/optional-part
+  cases, and bounded-load and replacement cases. Compare DOCX, XLSX, PPTX and PDF against File
+  Viewer Plus 7 on the same machine and inputs.
+  Measure cold and warm first-content latency, replacement cancellation, peak resident
   memory and bytes read before first content; set absolute thresholds before making performance a
   regression gate.
 - Done when: the application smoke validates every registered viewer in light and dark themes,
@@ -342,7 +346,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | searchable cue timeline, overlap markers, cue-aware copy/export with parser-loss counts | source/styled modes, media check | [app.scope.subtitle.002](app.scope.subtitle.md), [app.scope.subtitle.003](app.scope.subtitle.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.table.001](app.scope.table.md), [app.scope.table.002](app.scope.table.md) |
 | PDF | `.pdf` | page rendering, bookmarks, page-label navigation, five-page thumbnail rail, bounded page-range PNG export | partial pages, facing pages, region/table selection, embedded-asset inventory | [app.scope.pdf.001](app.scope.pdf.md), [app.scope.pdf.006](app.scope.pdf.md), [app.scope.pdf.009](app.scope.pdf.md), [std.gui.pdf.038](std.gui.pdf.md) |
-| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables, pictures, numbered/bulleted lists, bounded default header/footer text, and referenced footnotes | authored pages, per-section layout, annotations and complex tables | [app.scope.docx.001](app.scope.docx.md) |
+| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables, pictures, numbered/bulleted lists, bounded default header/footer text, referenced footnotes/endnotes, classic comments, nested tables, single-column vertical merges and safe HTTP(S)/mailto hyperlinks | authored pages, per-section layout, comment-range fidelity, complex tables/drawings and other external-link schemes | [app.scope.docx.001](app.scope.docx.md), [app.scope.docx.003](app.scope.docx.md), [app.scope.docx.004](app.scope.docx.md) |
 | XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.xlsx.001](app.scope.xlsx.md) |
 | PPTX | `.pptx` | fitted slides, basic geometry, static tables, signed bar/column charts and masters, title list, five-slide preview rail, text and notes modes | table styles/merges, grouped geometry, advanced chart/text fidelity, format support, omission details, full-screen reading and lazy slides | [app.scope.pptx.002](app.scope.pptx.md), [app.scope.pptx.003](app.scope.pptx.md), [app.scope.pptx.004](app.scope.pptx.md), [app.scope.pptx.005](app.scope.pptx.md), [app.scope.pptx.006](app.scope.pptx.md), [app.scope.pptx.007](app.scope.pptx.md), [app.scope.pptx.008](app.scope.pptx.md), [app.scope.pptx.009](app.scope.pptx.md) |
 | ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.odt.001](app.scope.odt.md) |

@@ -11,6 +11,14 @@ struct Relationship
     kind: String
 }
 
+// One external OOXML relationship with an inert HTTP(S) target.
+struct ExternalRelationship
+{
+    id:     String
+    target: String
+    kind:   String
+}
+
 // Borrows an archive for bounded XML and relationship reads during one document load.
 struct PartReader
 {
@@ -105,6 +113,142 @@ impl PartReader
             fail Errors.InvalidFormatError{.invalidMessage}
         return result
     }
+
+    // Reads external HTTP(S) relationships without resolving them as package paths.
+    mtd const externalRelationships(part: string)->Array'ExternalRelationship fail
+    {
+        let directory = parentPath(part)
+        let name      = Path.fileName(part) orelse ""
+        let path      = Format.toString("%/_rels/%.rels", directory, name)
+        if not .archive.tryFindEntry(path) do
+            return {}
+        let source = try .text(path, limit: 1024 * 1024)
+        var scan   = Scanner.create(source)
+        var token: Token
+        var result: #returntype
+        var ids: Array'String
+        var sawRoot = false
+        var depth = 0'u32
+        while scan.next(&token)
+        {
+            if token.kind == .Start
+            {
+                if not sawRoot
+                {
+                    if not token.isElement("Relationships") do
+                        fail Errors.InvalidFormatError{.invalidMessage}
+                    sawRoot = true
+                }
+                if depth == 1 and token.isElement("Relationship")
+                {
+                    let id     = token.attribute("Id") orelse ""
+                    let target = token.attribute("Target") orelse ""
+                    let kind   = token.attribute("Type") orelse ""
+                    if not id.count do
+                        fail Errors.InvalidFormatError{.invalidMessage}
+                    for seenId in ids where seenId.toString() == id do
+                        fail Errors.InvalidFormatError{.invalidMessage}
+                    ids.add(id)
+                    if ids.count > 4096 do
+                        fail Errors.UnsupportedFormatError{.tooLargeMessage}
+
+                    if token.attribute("TargetMode") == "External"
+                    {
+                        if not target.count or not kind.count do
+                            fail Errors.InvalidFormatError{.invalidMessage}
+                        if safeExternalTarget(target) do
+                            result.add(ExternalRelationship{id, target, kind})
+                    }
+                }
+                if not token.empty do
+                    depth += 1
+            }
+            elif token.kind == .End and depth
+            {
+                depth -= 1
+            }
+        }
+
+        if scan.damaged or not sawRoot or depth do
+            fail Errors.InvalidFormatError{.invalidMessage}
+        return result
+    }
+}
+
+private func safeExternalTarget(target: string)->bool
+{
+    for value in cast(const [..] u8, target)
+    {
+        if value <= 0x20'u8 or value == 0x7F'u8 or value == '\\'u8 or
+           value == '<'u8 or value == '>'u8 or value == '"'u8 do
+            return false
+    }
+
+    if Utf8.startsWith(target, "mailto:", .Latin1NoCase)
+        do return safeMailtoTarget(target)
+
+    var schemeEnd: u64
+    if Utf8.startsWith(target, "https://", .Latin1NoCase)
+    {
+        schemeEnd = 8
+    }
+    elif Utf8.startsWith(target, "http://", .Latin1NoCase)
+    {
+        schemeEnd = 7
+    }
+    else
+    {
+        return false
+    }
+
+    var authorityEnd = schemeEnd
+    while authorityEnd < target.count and
+          target[authorityEnd] != '/'u8 and
+          target[authorityEnd] != '?'u8 and
+          target[authorityEnd] != '#'u8 do
+        authorityEnd += 1
+    if authorityEnd == schemeEnd do
+        return false
+
+    for value in cast(const [..] u8, target[schemeEnd until authorityEnd]) where value == '@'u8 do
+        return false
+    return true
+}
+
+private func safeMailtoTarget(target: string)->bool
+{
+    let recipient = target[7 to]
+    if recipient.count == 0 do
+        return false
+
+    var at = Swag.U64.Max
+    for value, index in cast(const [..] u8, recipient)
+    {
+        if value == '@'u8
+        {
+            if at != Swag.U64.Max do
+                return false
+            at = index
+        }
+        elif not ((value >= 'a'u8 and value <= 'z'u8) or
+                  (value >= 'A'u8 and value <= 'Z'u8) or
+                  (value >= '0'u8 and value <= '9'u8) or
+                  value == '.'u8 or value == '_'u8 or
+                  value == '+'u8 or value == '-'u8)
+        {
+            return false
+        }
+    }
+
+    if at == Swag.U64.Max or at == 0 or at + 1 >= recipient.count do
+        return false
+    let local = recipient[0 until at]
+    let domain = recipient[at + 1 to]
+    if local[0] == '.'u8 or local[local.count - 1] == '.'u8 or
+       domain[0] == '.'u8 or domain[domain.count - 1] == '.'u8 or
+       Utf8.contains(recipient, "..") do
+        return false
+    return true
 }
 
 func relationshipPath(relationships: const [..] Relationship, kind: string)->String

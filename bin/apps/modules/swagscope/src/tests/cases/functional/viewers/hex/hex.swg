@@ -361,6 +361,32 @@ internal func writeSampleFile()->String
     Swag.require(ulebFound and slebFound)
 }
 
+// The inspector provides the full ten-byte window used by terminal ULEB128 and SLEB128 values.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-varint-ten-bytes-", ".bin")
+    defer discard catch File.delete(fileName)
+    var bytes: Array'u8
+    bytes.resize(10)
+    for index in 9 do
+        bytes[index] = 0xFF
+    bytes[9] = 1
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    var found = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorUleb128
+        {
+            Swag.require(reading.value == "18 446 744 073 709 551 615")
+            found = true
+        }
+    }
+    Swag.require(found)
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

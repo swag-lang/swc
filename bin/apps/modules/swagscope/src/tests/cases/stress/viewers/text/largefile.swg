@@ -37,6 +37,11 @@ using Core, Pixel, Gui, Viewers
                                    view.currentLine())
     Swag.require(view.residentStart <= target and target < view.bytesRead and view.currentLine() == 50_000,
                  position)
+    view.windowLine = 0
+    Swag.require(view.currentByteOffset() == target)
+    Swag.require(view.canBookmarkCurrentPosition())
+    Swag.require(view.addCurrentPositionBookmark("Distant"))
+    Swag.require(view.bookmarks[0].line == 0 and view.bookmarks[0].offset == target)
 }
 
 #[Swag.TestTag("stress")]

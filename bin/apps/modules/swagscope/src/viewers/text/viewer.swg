@@ -226,13 +226,22 @@ impl Panel
     // own line index starts again at every window.
     mtd currentLine()->u64 => .windowLine ? .windowLine + .editor.cursorLogicalLineIndex() : 0
 
-    // Returns the exact source byte under the caret while its whole-file line is known.
+    // Returns the exact source byte under the caret, even when the whole-file line is unknown.
     mtd currentByteOffset()->u64
     {
         let line = .currentLine()
-        if not line do
-            return Swag.U64.Max
-        let start = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        var start: u64
+        if line do
+            start = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        else
+        {
+            // Count only the resident text so a distant line need not force a whole-file scan.
+            var residentLines: Viewer.LineCounter
+            start = residentLines.offsetOfLine(.fileName,
+                                               .editor.cursorLogicalLineIndex() + 1,
+                                               .encoding,
+                                               .residentStart)
+        }
         if start == Swag.U64.Max do
             return Swag.U64.Max
         return .offsetOfColumn(start, .editor.cursorLogicalCharPos() + 1).offset
@@ -351,33 +360,32 @@ impl Panel
         return .bookmarksStale
     }
 
-    mtd canBookmarkCurrentLine()->bool
+    mtd canBookmarkCurrentPosition()->bool
     {
-        if not .currentLine() or
-           .bookmarks.count >= ViewerTextBookmarkLimit or
+        if .bookmarks.count >= ViewerTextBookmarkLimit or
            .fileIdentity.isEmpty() or
            .refreshBookmarkStaleness() or
            textFileIdentity(.fileName) != .fileIdentity do
             return false
-        return .lines.offsetOfLine(.fileName, .currentLine(), .encoding, .contentStart) != Swag.U64.Max
+        return .currentByteOffset() != Swag.U64.Max
     }
 
-    // Stores one named line after the current file and its exact line start are checked.
-    internal mtd addCurrentLineBookmark(label: string)->bool
+    // Stores a named current position after its source file and byte offset are checked.
+    internal mtd addCurrentPositionBookmark(label: string)->bool
     {
-        if not .canBookmarkCurrentLine() do
+        if not .canBookmarkCurrentPosition() do
             return false
         let line = .currentLine()
-        let offset = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        let offset = .currentByteOffset()
         return .storeBookmark(label, line, offset)
     }
 
-    // Adds a bookmark at a known exact line start; shared by the lens prompt and focused tests.
+    // Adds a bookmark at an exact byte position; `line` is zero when the whole-file line is unknown.
     internal mtd storeBookmark(label: string, line, offset: u64)->bool
     {
         let name = Latin1.trim(label)
         if name.count == 0 or name.count > BookmarkNameLimit or
-           not line or offset > .fileSize or .bookmarks.count >= ViewerTextBookmarkLimit or
+           offset == Swag.U64.Max or offset > .fileSize or .bookmarks.count >= ViewerTextBookmarkLimit or
            .fileIdentity.isEmpty() or .refreshBookmarkStaleness() or
            textFileIdentity(.fileName) != .fileIdentity do
             return false
@@ -425,28 +433,31 @@ impl Panel
     {
         if .bookmarks.isEmpty() or .refreshBookmarkStaleness() do
             return Swag.U64.Max
-        let current = .currentLine()
-        if not current do
+        let currentLine = .currentLine()
+        let currentOffset = .currentByteOffset()
+        if currentOffset == Swag.U64.Max do
             return Swag.U64.Max
         var found = Swag.U64.Max
         if direction < 0
         {
             var best = 0'u64
-            for bookmark, index in .bookmarks where bookmark.line < current and
-                                                       (found == Swag.U64.Max or bookmark.line > best)
+            for bookmark, index in .bookmarks where bookmark.offset < currentOffset and
+                                                       (not currentLine or not bookmark.line or bookmark.line != currentLine) and
+                                                       (found == Swag.U64.Max or bookmark.offset > best)
             {
                 found = index
-                best = bookmark.line
+                best = bookmark.offset
             }
         }
         else
         {
             var best = Swag.U64.Max
-            for bookmark, index in .bookmarks where bookmark.line > current and
-                                                       (found == Swag.U64.Max or bookmark.line < best)
+            for bookmark, index in .bookmarks where bookmark.offset > currentOffset and
+                                                       (not currentLine or not bookmark.line or bookmark.line != currentLine) and
+                                                       (found == Swag.U64.Max or bookmark.offset < best)
             {
                 found = index
-                best = bookmark.line
+                best = bookmark.offset
             }
         }
         return found
@@ -462,20 +473,21 @@ impl Panel
 
     internal mtd promptBookmarkCurrentLine()
     {
-        if not .canBookmarkCurrentLine() do
+        if not .canBookmarkCurrentPosition() do
             return
         let strings = texts()
         let dialog = EditDlg.createSingleLine(unwrap .surface,
-                                              {title: strings.ui_BookmarkCurrentLine,
+                                              {title: strings.ui_BookmarkCurrentPosition,
                                                message: strings.ui_BookmarkNameHint,
-                                               text: Format.toString(strings.ui_BookmarkDefaultName, .currentLine()),
+                                               text: .currentLine() ? Format.toString(strings.ui_BookmarkDefaultName, .currentLine()) :
+                                                                       Format.toString(strings.ui_BookmarkOffsetName, .currentByteOffset()),
                                                confirmButtonText: strings.ui_BookmarkAdd})
         if dialog.doModal() != Dialog.BtnOk do
             return
-        if not .addCurrentLineBookmark(dialog.text()) do
+        if not .addCurrentPositionBookmark(dialog.text()) do
             MessageDlg.error(.surface,
                              strings.ui_BookmarkNameInvalid,
-                             options: {title: strings.ui_BookmarkCurrentLine})
+                             options: {title: strings.ui_BookmarkCurrentPosition})
     }
 
     internal mtd promptRenameBookmark(index: u64)
@@ -1501,7 +1513,7 @@ impl Panel
         let canGoBack = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex > 0
         let canGoForward = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
         let bookmarkIsStale = .bookmarksStale
-        let canBookmark = .canBookmarkCurrentLine()
+        let canBookmark = .canBookmarkCurrentPosition()
         let canBookmarkBack = not bookmarkIsStale and .bookmarkIndexInDirection(-1) != Swag.U64.Max
         let canBookmarkForward = not bookmarkIsStale and .bookmarkIndexInDirection(1) != Swag.U64.Max
         entries.add(strings.ui_Back,
@@ -1516,7 +1528,7 @@ impl Panel
                     disabled: not canGoForward,
                     defaultKey: {modifiers: .Alt, key: .Right},
                     bindId: "scope.text.history.forward")
-        entries.add(strings.ui_BookmarkCurrentLine,
+        entries.add(strings.ui_BookmarkCurrentPosition,
                     .GoTo,
                     func|view = me|() { view.promptBookmarkCurrentLine() },
                     disabled: not canBookmark,
@@ -1549,7 +1561,9 @@ impl Panel
                                           func|view = me, index|() { discard view.navigateToBookmark(index) },
                                           disabled: stale)
             if destination do
-                destination.detail = stale ? strings.ui_BookmarkStale : Format.toString(strings.ui_BookmarkLine, line)
+                destination.detail = stale ? strings.ui_BookmarkStale :
+                                     line ? Format.toString(strings.ui_BookmarkLine, line) :
+                                            Format.toString(strings.ui_BookmarkOffset, bookmark.offset)
 
             entries.add(Format.toString(strings.ui_RenameBookmark, name),
                         .Edit,

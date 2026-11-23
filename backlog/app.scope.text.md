@@ -17,14 +17,15 @@ and [std.gui.md](std.gui.md).
   file byte offsets, transferred during viewer reload, and persisted through the existing viewer
   state serializer for up to 64 files whose paths pass `ViewerPrivacy.mayPersist`. They are marked
   stale when path, size, creation time, or last-write time changes; a stale bookmark remains listed
-  for rename or clear. Replacements preserving those metadata values may evade stale detection,
-  and adding a bookmark is unavailable when the exact current line is unknown.
-- Next: improve stale detection for replacements that preserve the file's path and metadata, and
-  allow adding a bookmark when the exact current line is unknown.
-- Done when: bookmark current line, previous/next bookmark, back, forward, list, rename, and
-  clear are keyboard reachable; locations survive streamed-window eviction; replacements that
-  preserve path and metadata are still detected as stale; and bookmarks persist across restarts
-  through the viewer state serializer.
+  for rename or clear. Replacements preserving those metadata values may evade stale detection.
+  When the whole-file line number is unavailable, the current resident byte offset can still be
+  bookmarked and shown in the lens.
+- Next: improve stale detection for replacements that preserve the file's path and metadata.
+- Done when: bookmark the current position (a line when known, or its exact resident byte when
+  the whole-file line is unknown); previous/next bookmark, back, forward, list, rename, and clear
+  are keyboard reachable; locations survive streamed-window eviction; replacements that preserve
+  path and metadata are still detected as stale; and bookmarks persist across restarts through the
+  viewer state serializer.
 - Related: app.scope.viewers.003, app.scope.viewers.005
 
 ### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler

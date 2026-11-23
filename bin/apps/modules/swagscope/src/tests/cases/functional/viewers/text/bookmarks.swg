@@ -26,7 +26,7 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     let first = view.lines.offsetOfLine(fileName, 1, view.encoding, view.contentStart)
     let third = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
     Swag.require(view.storeBookmark("Start", 1, first))
-    Swag.require(view.addCurrentLineBookmark("Here"))
+    Swag.require(view.addCurrentPositionBookmark("Here"))
     Swag.require(view.storeBookmark("Middle", 3, third))
     Swag.require(not view.storeBookmark("start", 2, first))
     Swag.require(not view.storeBookmark("  ", 2, first))
@@ -73,6 +73,70 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     Swag.require(view.bookmarks.isEmpty())
 }
 
+// A known resident position can be bookmarked when whole-file line counting is unavailable.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-bookmarks-unknown-line-", ".txt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "first\nsecond\nthird\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view = assume cast(*PlainText.Panel, session.view)
+    completeTextReads(&host, view)
+    let second = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
+    let third = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
+    Swag.require(view.revealLensDestination(second, "", caret: true))
+    completeTextReads(&host, view)
+    view.windowLine = 0
+
+    Swag.require(view.currentLine() == 0 and view.currentByteOffset() == second)
+    Swag.require(view.canBookmarkCurrentPosition())
+    Swag.require(view.addCurrentPositionBookmark("Here"))
+    Swag.require(view.bookmarks[0].line == 0 and view.bookmarks[0].offset == second)
+    Swag.require(view.storeBookmark("Later", 3, third))
+
+    let rows = textBookmarkRows(view, &host, "Here")
+    var found = false
+    for section in rows.sections
+    {
+        for entry in section!.entries where entry.title == "Here" do
+            found = not entry.disabled and entry.detail == Format.toString(PlainText.texts().ui_BookmarkOffset, second)
+    }
+    Swag.require(found)
+    Swag.require(view.navigateBookmark(1))
+    completeTextReads(&host, view)
+    Swag.require(view.currentByteOffset() == third)
+    Swag.require(view.navigateBookmark(-1))
+    completeTextReads(&host, view)
+    Swag.require(view.currentByteOffset() == second)
+}
+
+// The resident byte fallback respects a BOM and multibyte code units in the active encoding.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-bookmarks-unknown-line-utf16-", ".txt")
+    defer discard catch File.delete(fileName)
+    let bytes = [0xFF'u8, 0xFE, 0x61, 0, 0x0A, 0, 0xE9, 0, 0x78, 0, 0x0A, 0, 0x7A, 0]
+    discard expect File.writeAllBytes(fileName, bytes)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view = assume cast(*PlainText.Panel, session.view)
+    completeTextReads(&host, view)
+    Swag.require(view.encoding == .Utf16Le and view.contentStart == 2)
+    let second = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
+    Swag.require(view.revealLensDestination(second, "", caret: true, caretColumn: 1))
+    completeTextReads(&host, view)
+    view.windowLine = 0
+
+    Swag.require(view.currentLine() == 0 and view.currentByteOffset() == second + 2)
+    Swag.require(view.addCurrentPositionBookmark("Wide"))
+    Swag.require(view.bookmarks[0].line == 0 and view.bookmarks[0].offset == second + 2)
+}
+
 // Bookmark storage is bounded, and an offset remains usable after the resident window is evicted.
 #test
 {
@@ -98,7 +162,7 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     let rows = textBookmarkRows(view, &host, "Bookmark Current Line")
     for section in rows.sections
     {
-        for entry in section!.entries where entry.title == PlainText.texts().ui_BookmarkCurrentLine do
+        for entry in section!.entries where entry.title == PlainText.texts().ui_BookmarkCurrentPosition do
             Swag.require(entry.disabled)
     }
 

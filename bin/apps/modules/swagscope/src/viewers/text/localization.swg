@@ -18,9 +18,10 @@ struct Texts
     ui_ZoomMenu:     string = "Zoom…"                  // Tooltip of the zoom value menu.
     ui_Back:         string = "Back in Text"            // Lens command returning to the previous text destination.
     ui_Forward:      string = "Forward in Text"         // Lens command advancing to the next text destination.
-    ui_BookmarkCurrentLine: string = "Bookmark Current Line" // Lens command naming the exact current line.
-    ui_BookmarkNameHint: string = "Choose a unique name for this line." // Prompt for a bookmark name.
+    ui_BookmarkCurrentPosition: string = "Bookmark Current Position" // Lens command naming the current line or byte position.
+    ui_BookmarkNameHint: string = "Choose a unique name for this line or position." // Prompt for a bookmark name.
     ui_BookmarkDefaultName: string = "Line %"            // Suggested name for a bookmarked line.
+    ui_BookmarkOffsetName: string = "Byte %"             // Suggested name when the whole-file line is unknown.
     ui_BookmarkAdd: string = "Bookmark"                  // Confirmation action when adding a bookmark.
     ui_PreviousBookmark: string = "Previous Bookmark"    // Lens command navigating to the previous named line.
     ui_NextBookmark: string = "Next Bookmark"            // Lens command navigating to the next named line.
@@ -29,6 +30,7 @@ struct Texts
     ui_RenameBookmark: string = "Rename Bookmark %"      // Lens action renaming a named line.
     ui_Rename: string = "Rename"                         // Confirmation action when renaming a bookmark.
     ui_BookmarkLine: string = "Line %"                   // Line detail shown for a bookmark.
+    ui_BookmarkOffset: string = "Byte %"                 // Byte offset detail when its whole-file line is unknown.
     ui_BookmarkStale: string = "File changed"            // Detail shown when bookmarks belong to an older file.
     ui_BookmarkNameInvalid: string = "Bookmark names must be unique, nonempty, and no longer than 128 characters." // Validation error for bookmark names.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.

@@ -93,3 +93,36 @@ using Core, Gui, Pixel, Viewers
     var image = host.renderSettled(window)
     assertScopeImageGolden(&image, "viewer.pptx.text.encre")
 }
+
+// The visual slide index beside an authored deck, with its second slide selected.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: 980, height: 590)
+    defer host.shutdown()
+    let window = workspace.primary
+    window.openFile(scopeTestDataPath("viewer.geometry.pptx"), remember: false)
+    completeQueuedViewerFile(&host, window)
+    let deck = assume cast(*Pptx.Panel, window.currentView)
+    deck.openPages()
+    deck.showSlide(1)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.pptx.thumbnails.encre")
+}
+
+// Opening a cell's slide index leaves its neighbor reading a different presentation.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 1280, height: 660)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("viewer.poi-sample.pptx"), scopeTestDataPath("viewer.geometry.pptx")], .SideBySide)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let deck = assume cast(*Pptx.Panel, scene.views[0].document!.currentView)
+    deck.openPages()
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.pptx.thumbnails.grid.paper")
+}

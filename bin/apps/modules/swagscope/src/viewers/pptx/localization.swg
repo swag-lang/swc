@@ -19,6 +19,8 @@ struct Texts
     ui_Preparing:    string = "Preparing presentation…"
     ui_Details:      string = "Presentation · % slides · % images not shown"
     ui_Slide:        string = "Slide %"
+    ui_Titles:       string = "Titles"
+    ui_ShowThumbnails: string = "Show Slide Thumbnails"
     ui_Thumbnails:   string = "Slides"
     ui_ImageOmitted: string = "[Image not shown]"
     err_Invalid:     string = "This presentation has a damaged structure."

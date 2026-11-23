@@ -301,22 +301,18 @@ struct Panel
     pageExportToast:  *Toast?
     previewTextures:  Array'Texture
     thumbnailStart:   u64
-    pagesSelected:    bool
+    using navigation: DocumentPageNavigation
 
     late
     {
         commands:         *Wnd
         info:             *Wnd
         pdfView:          *PdfView
-        navigationMode:   *ComboBox
-        thumbnailScroll:  *ScrollWnd
-        gallery:          *PageGallery
         previousButton:   *IconButton
         nextButton:       *IconButton
         exportPageButton: *IconButton
         pageLabel:        *IconButton
         zoomLabel:        *IconButton
-        pagesHeading:     *SectionLabel
     }
 }
 
@@ -336,7 +332,7 @@ private impl IWnd for Panel
             .pageLabel.toolTip        = texts().ui_GoToPage
             .zoomLabel.toolTip        = texts().ui_ZoomMenu
             .exportPageButton.toolTip = texts().ui_ExportPageShort
-            .translateNavigation()
+            .translateNavigation(texts().ui_Thumbnails, texts().ui_Bookmarks)
             if .facts.pageCount
             {
                 .details = detailsText(&.facts)
@@ -529,6 +525,8 @@ private impl Panel
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
         .exportPageButton.enable(.pdfView.pageCount() > 0 and not .pageExporting)
         .pageLabel.setText(.pageReadout())
+        .navigation.pageCount   = .pdfView.pageCount()
+        .navigation.currentPage = .pdfView.pageIndex
         if .gallery != null and .thumbnailScroll.isVisible() do
             .gallery.revealCurrentPage()
     }
@@ -1119,7 +1117,7 @@ func createViewer(host: Viewer.Host)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline             = DocumentOutline.create(host)
-    view.createPageNavigation()
+    view.createPdfNavigation()
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
     view.outline.follow      = func|view|() { view.followReading() }
 

@@ -40,10 +40,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         }
         if window.currentView is Viewers.Pptx.Panel as deck
         {
-            Swag.require(not deck.thumbnailRail.isLocallyVisible())
+            Swag.require(not deck.gallery.isVisible())
             deck.showSlide(1)
             window.sendCommandEvent(ViewerCommands.Outline)
-            Swag.require(deck.thumbnailRail.isLocallyVisible() and deck.slide == 1)
+            Swag.require(not deck.gallery.isVisible() and deck.slide == 1)
         }
     }
 }

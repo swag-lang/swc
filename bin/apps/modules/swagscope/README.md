@@ -243,7 +243,9 @@ are also available.
   static tables keep their positions and sizes; title placeholders inherit layout/master bounds
   and basic theme colors and text sizes. Cached bar, column, line, standard area and positive
   single-series pie charts render with direct RGB colors on bar, column, line and area series.
-  The filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
+  The optional outline switches between searchable titles and a responsive slide gallery. Decks
+  without titles open the gallery directly. The wheel browses thumbnails and a click selects a
+  slide in the current reading mode. Arrows and Page Up/Down navigate slides, and the lens
   offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly labelled
   simplified layout.
   Read Speaker Notes in the lens opens the current slide's text notes

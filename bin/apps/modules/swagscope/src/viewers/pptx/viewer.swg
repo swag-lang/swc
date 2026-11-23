@@ -1,10 +1,7 @@
 #global internal
 #global namespace Viewers.Pptx
 
-using Core, Gui
-
-private const ThumbnailCount     = 5'u64
-private const ThumbnailRailWidth = 156's32
+using Core, Gui, Pixel
 
 // Offers a presentation's slides before the generic ZIP package structure.
 func viewerPlugin()->Viewer.Plugin
@@ -37,10 +34,8 @@ struct Panel
     slide:            u64 = Swag.U64.Max
     textMode:         bool
     notesMode:        bool
-    thumbnails:       Array'(*HtmlView)
-    thumbnailTiles:   Array'(*Wnd)
-    thumbnailButtons: Array'(*PushButton)
-    thumbnailStart:   u64
+    using navigation: DocumentPageNavigation
+    previews:         Array'Layer
 
     late
     {
@@ -49,13 +44,19 @@ struct Panel
         nextButton:       *IconButton
         slideLabel:       *Label
         outline:          *DocumentOutline
-        thumbnailRail:    *Wnd
-        thumbnailHeading: *Label
     }
 }
 
 private impl IWnd for Panel
 {
+    mtd impl onDestroyEvent(_: *DestroyEvent) => .clearPreviews()
+
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        .clearPreviews()
+        .wnd.IWnd.onThemeEvent(evt)
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if not .load.claim(evt)
@@ -71,14 +72,23 @@ private impl IWnd for Panel
             return
         }
 
+        var hasTitles = false
         var headings: Array'DocumentHeading
         for page, index in .presentation.slides
         {
+            hasTitles = hasTitles or not page.title.isEmpty()
             let title = page.title.isEmpty() ? Format.toString(texts().ui_Slide, index + 1) : page.title
             headings.add(DocumentHeading{title, 1, index})
         }
 
+        // A deck without named slides opens directly to its visual index.
+        if not hasTitles do
+            headings.clear()
         .outline.publish(headings.toSlice())
+        .navigation.pageCount   = .presentation.slides.count
+        .navigation.slideAspect = .presentation.width / .presentation.height
+        .previews.resize(.presentation.slides.count)
+        .setNavigationMode(not hasTitles)
         .showSlide(0)
         .services.loadingChanged(me)
     }
@@ -97,7 +107,7 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
-            .thumbnailHeading.setText(texts().ui_Thumbnails)
+            .translateNavigation(texts().ui_Thumbnails, texts().ui_Titles)
             if .notesMode and .slide < .presentation.slides.count do
                 .buildSlide()
             else do
@@ -138,13 +148,10 @@ private impl Panel
             return
         .slide = index
         .buildSlide()
-        for row, position in .outline.rows where cast(u64, row.userData0) == index + 1
-        {
-            .outline.list.selectLine(cast(u32, position))
-            break
-        }
-
-        .refreshThumbnails()
+        .outline.markReading(index)
+        .navigation.currentPage = index
+        if .gallery.isVisible() do
+            .gallery.revealCurrentPage()
     }
 
     internal mtd turn(direction: s32)
@@ -236,10 +243,9 @@ private impl Panel
         let inset      = .themeMetrics().floating_Inset
         let top        = .stripInset() + inset
         let area       = .clientRect()
-        let railWidth  = .thumbnailRail.isLocallyVisible() ? ThumbnailRailWidth : 0
-        let roomWidth  = Math.max(area.width - railWidth - 2 * inset, 1)
+        let roomWidth  = Math.max(area.width - 2 * inset, 1)
         let roomHeight = Math.max(area.height - top - inset, 1)
-        var bounds     = Math.Rectangle{railWidth + inset, top, roomWidth, roomHeight}
+        var bounds     = Math.Rectangle{inset, top, roomWidth, roomHeight}
         if not .notesMode and not .textMode and not .presentation.slides[.slide].simplified
         {
             let scale = Math.min(roomWidth / .presentation.width, roomHeight / .presentation.height)
@@ -282,114 +288,10 @@ private impl Panel
     {
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: .slide == 0 or .slide >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.pptx.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: .slide >= .presentation.slides.count or .slide + 1 >= .presentation.slides.count, defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.pptx.next")
+        entries.add(texts().ui_ShowThumbnails, .Grid, func|view = me|() { view.openPages() }, disabled: .presentation.slides.isEmpty(), bindId: "scope.pptx.thumbnails")
         entries.add(texts().ui_ShowSlides, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode and not .notesMode, bindId: "scope.pptx.showSlides")
         entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode, bindId: "scope.pptx.readText")
         entries.add(texts().ui_ReadNotes, .Wrap, func|view = me|() { view.showNotes() }, checked: .notesMode, bindId: "scope.pptx.readNotes")
-    }
-
-    mtd createThumbnailRail()
-    {
-        with .thumbnailRail = Wnd.create'Wnd(me, {0, 0, ThumbnailRailWidth, 0})
-        {
-            .dockStyle       = .Left
-            .backgroundStyle = .View
-            .preferredSize.x = ThumbnailRailWidth
-        }
-
-        with .thumbnailHeading = Label.create(.thumbnailRail, texts().ui_Thumbnails, {0, 0, ThumbnailRailWidth, 28})
-        {
-            .dockStyle = .Top
-            .setTextAlignment(.Center, .OpticalCenter)
-        }
-
-        with let scroll = Wnd.create'ScrollWnd(.thumbnailRail, "", {})
-        {
-            .dockStyle = .Center
-            .updateFlags(.TransparentBars | .DisableHorizontal)
-            .setFrameFlags(remove: .Borders)
-        }
-
-        with let content = scroll.createView'Wnd()
-        {
-            .preferredSize.y = cast(s32, ThumbnailCount) * 112
-        }
-
-        scroll.setScrollSize(ThumbnailRailWidth - 4, cast(f32, ThumbnailCount) * 112)
-        for slot in 0 until ThumbnailCount
-        {
-            with let tile = Wnd.create'Wnd(content, {0, 0, ThumbnailRailWidth - 8, 112})
-            {
-                .dockStyle       = .Top
-                .backgroundStyle = .View
-                .margin          = {4, 3, 4, 2}
-            }
-
-            with let button = PushButton.create(tile, "", {0, 0, ThumbnailRailWidth - 16, 28})
-            {
-                .dockStyle  = .Bottom
-                .sigPressed += func|view = me, slot|(_)
-                {
-                    let index = view.thumbnailStart + slot
-                    if index < view.presentation.slides.count do
-                        view.showSlide(index)
-                }
-            }
-
-            .thumbnailTiles.add(tile)
-            .thumbnailButtons.add(button)
-        }
-    }
-
-    mtd refreshThumbnails()
-    {
-        if .thumbnailTiles.isEmpty() or .presentation.slides.isEmpty() do
-            return
-        var first = .slide > 2 ? .slide - 2 : 0
-        if .presentation.slides.count > ThumbnailCount do
-            first = Math.min(first, .presentation.slides.count - ThumbnailCount)
-        .thumbnailStart = first
-        for offset in 0 until ThumbnailCount
-        {
-            let index  = first + offset
-            let button = .thumbnailButtons[offset]
-            if index >= .presentation.slides.count
-            {
-                button.setText("")
-                button.enable(false)
-                if offset < .thumbnails.count
-                {
-                    .thumbnails[offset].hide()
-                    .thumbnails[offset].destroy()
-                }
-
-                continue
-            }
-
-            let label = Format.toString(texts().ui_Slide, index + 1)
-            button.setText(index == .slide ? Format.toString("▶ %", label) : label)
-            button.enable(true)
-            if offset < .thumbnails.count
-            {
-                .thumbnails[offset].hide()
-                .thumbnails[offset].destroy()
-            }
-
-            var style = HtmlStyle.theme()
-            style.followTheme = false
-            with let preview = HtmlView.createText(.thumbnailTiles[offset],
-                                                   .presentation.slides[index].canvasHtml(.presentation.width, .presentation.height),
-                                                   style)
-            {
-                .dockStyle       = .Top
-                .backgroundStyle = .View
-                .preferredSize.y = 80
-            }
-
-            if offset < .thumbnails.count do
-                .thumbnails[offset] = preview
-            else do
-                .thumbnails.add(preview)
-        }
     }
 
     func create(host: Viewer.Host)->*Panel
@@ -402,7 +304,6 @@ private impl Panel
         }
 
         let controls = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        result.createThumbnailRail()
         with result.previousButton = Viewer.createPageStep(controls, -1)
         {
             .sigPressed += func|view = result|(_) { view.turn(-1) }
@@ -469,11 +370,7 @@ func createPresentationViewer(host: Viewer.Host, loader: func(string)->Presentat
     host.attachView(view)
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     view.outline = DocumentOutline.create(host)
-    view.outline.toggle.sigCheckedChanged += func|view|(button)
-    {
-        view.thumbnailRail.show(not button.isChecked)
-        view.layoutSlide()
-    }
+    view.createSlideNavigation()
     view.outline.sigSelected += func|view|(_, index) { view.showSlide(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     view.load.start(host.fileName(), loader, view)

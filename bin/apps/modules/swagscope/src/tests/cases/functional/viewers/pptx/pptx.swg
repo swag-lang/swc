@@ -91,10 +91,12 @@ using Core, Gui, Gui.Testing, Viewers
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.geometry.pptx"), false)
     let view   = assume cast(*Pptx.Panel, window.currentView)
-    Swag.require(view.thumbnailTiles.count == 5 and view.thumbnails.count == 2)
+    Swag.require(not view.gallery.isVisible())
+    view.openPages()
+    host.paint(window)
+    Swag.require(view.gallery.isVisible() and view.previews[0].contentTarget and view.previews[1].contentTarget)
     view.showSlide(1)
-    Swag.require(view.slide == 1 and view.thumbnailStart == 0)
-    Swag.require(Utf8.contains(view.thumbnailButtons[1].text(), "2"))
+    Swag.require(view.slide == 1 and view.navigation.currentPage == 1)
 }
 
 // An embedded slide picture appears inline in the declared slide order.
@@ -135,4 +137,78 @@ using Core, Gui, Gui.Testing, Viewers
     var loadError: Swag.Error
     discard catch Pptx.Presentation.load(scopeTestDataPath("viewer.damaged.pptx")) as loadError
     Swag.require(loadError.value() is Errors.InvalidFormatError)
+}
+
+// A deck of untitled slides has a visual index. Browsing it leaves the slide and the
+// reading mode alone until a thumbnail is chosen, in either palette and layout.
+#test
+{
+    func addPart(entries: *Array'ZipFixtureEntry, name, source: string)
+    {
+        var entry: ZipFixtureEntry
+        entry.name = name
+        entry.plain.add(cast(const [..] u8, source))
+        entry.packed = entry.plain
+        entries.add(entry)
+    }
+
+    let file = Testing.tempFilePath("scope-slide-gallery-", ".pptx")
+    defer discard catch File.delete(file)
+    var entries: Array'ZipFixtureEntry
+    var source: String = "<p:presentation><p:sldIdLst>"
+    for i in 36 do
+        source += Format.toString("<p:sldId id=\"%\" r:id=\"rId1\"/>", 256 + i)
+    source += "</p:sldIdLst></p:presentation>"
+    addPart(&entries, "ppt/presentation.xml", source)
+    addPart(&entries, "ppt/_rels/presentation.xml.rels", """<Relationships><Relationship Id="rId1" Type="relationships/slide" Target="slides/blank.xml"/></Relationships>""")
+    addPart(&entries, "ppt/slides/blank.xml", "<p:sld><p:cSld><p:spTree/></p:cSld></p:sld>")
+    discard expect File.writeAllBytes(file, buildZipEntries(entries.toSlice()).toSlice())
+
+    for light in [false, true]
+    {
+        for grid in [false, true]
+        {
+            var host: HeadlessHost
+            let workspace = testWorkspace(&host, light: light)
+            defer host.shutdown()
+            var window = workspace.primary
+            var other: *Pptx.Panel?
+            if grid
+            {
+                workspace.openScene([file, scopeTestDataPath("viewer.geometry.pptx")], .Grid2)
+                openViews(&host, workspace)
+                let scene = unwrap workspace.scene()
+                window = unwrap scene.views[0].document
+                other = assume cast(*Pptx.Panel, scene.views[1].document!.currentView)
+            }
+            else
+            {
+                window.openFile(file, remember: false)
+                completeQueuedViewerFile(&host, window)
+            }
+
+            let deck = assume cast(*Pptx.Panel, window.currentView)
+            Swag.require(deck.presentation.slides.count == 36 and not deck.gallery.isVisible())
+            deck.showNotes()
+            host.click(deck.view!.surfaceRect().center())
+            host.shortcut(.O, .Control | .Shift)
+            Swag.require(deck.gallery.isVisible() and deck.pagesHeading.isVisible() and not deck.navigationMode.isVisible())
+            let reading = deck.view.position
+            host.mouseWheel(deck.gallery.surfaceRect().center(), -6)
+            host.settleAnimations(&host.surfaceWnd)
+            Swag.require(deck.gallery.scrollPos.y > 0 and deck.slide == 0 and deck.notesMode and deck.view.position == reading)
+            let range = deck.gallery.visibleRange()
+            let index = range.first + deck.gallery.columns
+            host.click(deck.gallery.localToSurface(deck.gallery.cellRect(index).center() - deck.gallery.scrollPos))
+            Swag.require(deck.slide == index and deck.notesMode)
+            host.keyPress(.End)
+            Swag.require(deck.slide == 35 and deck.gallery.visibleRange().end == 36)
+            host.paint(&host.surfaceWnd)
+            Swag.require(deck.previews[35].contentTarget and not deck.previews[0].contentTarget)
+            host.shortcut(.O, .Control | .Shift)
+            Swag.require(not deck.gallery.isVisible() and deck.slide == 35)
+            if other do
+                Swag.require(other.slide == 0 and not other.gallery.isVisible())
+        }
+    }
 }

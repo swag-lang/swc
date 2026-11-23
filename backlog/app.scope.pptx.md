@@ -18,13 +18,13 @@ Reading and inspecting static PowerPoint presentations. This viewer target is ba
 
 ### app.scope.pptx.005 — Load large presentations on demand
 
-- Evidence: the viewer creates a bounded five-slide preview rail, but `Presentation.load` decodes every slide before the first slide is shown. Large decks therefore pay the full parsing cost up front.
+- Evidence: the viewer creates visible slide previews on demand, but `Presentation.load` decodes every slide before the first slide is shown. Large decks therefore pay the full parsing cost up front.
 - Next: separate slide order/metadata discovery from slide decoding and load the selected slide plus preview window on demand.
 - Done when: opening slide 1 does not decode later slide XML, navigation loads the selected slide without duplicate decoding, and memory remains bounded by the current slide and preview window.
 
 ### app.scope.pptx.006 — Add a full-screen reading mode
 
-- Evidence: SwagScope provides an outline, five-slide preview rail, previous/next controls, Page Up/Down, Home/End, notes, and text mode. It has no full-screen slide-show mode.
+- Evidence: SwagScope provides an outline, slide gallery in the outline, previous/next controls, Page Up/Down, Home/End, notes, and text mode. It has no full-screen slide-show mode.
 - Next: add a full-screen read-only mode with keyboard navigation, Escape to return, and the current notes/navigation behavior preserved.
 - Done when: a reader can start at the selected slide, advance and go back through the deck in full screen, and exit without losing the selected slide.
 - Related: app.scope.pptx.005

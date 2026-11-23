@@ -70,6 +70,37 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.require(not view.analysis.isPending())
 }
 
+// The floating inspector keeps each numeric reading legible, including binary16, at a wide size.
+#[Swag.TestTag("golden")]
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-inspector-", ".bin")
+    defer discard catch File.delete(fileName)
+    var payload: Array'u8
+    payload.resize(512)
+    for index in payload.count do
+        payload[index] = cast(u8, index)
+    payload[0] = 0x00
+    payload[1] = 0x3C
+    payload[2] = 0x00
+    payload[3] = 0x00
+    payload[4] = 0x80
+    payload[5] = 0x3F
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(1200, 680)
+    let view = hexTestViewer(&host, fileName, 1200, 640)
+    Swag.require(view.inspector.isLocallyVisible())
+    Swag.require(view.inspectorView.readings[2].label == Hex.texts().ui_InspectorFloat16)
+    Swag.require(view.inspectorView.readings[2].value == "1")
+    Testing.assertContentFits(view.inspector)
+
+    host.moveMouse({-1, -1})
+    var image = host.renderSettled(view)
+    assertScopeImageGolden(&image, "viewer.hex.inspector")
+}
+
 // The host keeps a viewer-specific pattern intact across scanner chunks, publishes every exact
 // byte range, and gives invalid input an explanation without opening a file scan.
 #[Swag.TestTag("golden")]
@@ -138,9 +169,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     with let inspector = view.inspectorView
     {
         Swag.require(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
-        Swag.require(.readings.count == 5 and .readings[0].value == "222")
-        Swag.require(.readings[2].label == "s32" and .readings[2].value == "-272 716 322")
-        Swag.require(.readings[3].label == "u32 BE" and .readings[3].value == "3 735 928 559")
+        Swag.require(.readings.count == 6 and .readings[0].value == "222")
+        Swag.require(.readings[2].label == Hex.texts().ui_InspectorFloat16)
+        Swag.require(.readings[2].value == Format.toString("%{g4}", Hex.float16ToFloat(0xADDE)))
+        Swag.require(.readings[3].label == "s32" and .readings[3].value == "-272 716 322")
+        Swag.require(.readings[4].label == "u32 BE" and .readings[4].value == "3 735 928 559")
         Swag.require(.fields.isEmpty())
     }
 

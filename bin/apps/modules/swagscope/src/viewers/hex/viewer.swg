@@ -472,6 +472,7 @@ impl Panel
         entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not hasSelection, bindId: "scope.hex.copyText")
         entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not hasSelection, bindId: "scope.hex.copyDump")
         entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyOffset")
+        entries.add(strings.ui_CopyValue, .Copy, func|view = me|() { Clipboard.setString(view.inspectorView.headline) }, disabled: .inspectorView.headline.isEmpty(), bindId: "scope.hex.copyValue")
         entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.hex.selectAll")
         entries.add(strings.ui_SetBookmark, .GoTo, func|view = me|() { view.bookmarkOffset = view.grid.caret; view.grid.bookmarkOffset = view.bookmarkOffset; view.hasBookmark = true }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B}, bindId: "scope.hex.setBookmark")
         if .hasBookmark

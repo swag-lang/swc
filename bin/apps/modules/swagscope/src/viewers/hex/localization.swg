@@ -104,6 +104,7 @@ struct Texts
     ui_CopyDump:    string = "Copy Dump"              // Menu entry copying the selection as an offset/hex/text dump.
     ui_CopyFormats: string = "Other Copy Formats"     // Tooltip of the compact menu for alternate selection spellings.
     ui_CopyOffset:  string = "Copy Offset %"          // Lens command copying the offset of the caret in hexadecimal.
+    ui_CopyValue:   string = "Copy Inspected Value"   // Lens command copying the value shown in the inspector.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

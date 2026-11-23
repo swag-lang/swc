@@ -270,6 +270,64 @@ internal func writeSampleFile()->String
         Swag.require(line.label != Hex.texts().ui_InspectorFloat16)
 }
 
+// The lens copies exactly the inspector's current headline, and disables the action without a value.
+#test
+{
+    if not Clipboard.isFake() do
+        return
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-copy-value-", ".bin")
+    defer discard catch File.delete(fileName)
+    let payload: Array'u8 = [42, 43]
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_CopyValue
+    {
+        Swag.require(not entry.disabled)
+        entry.run!()
+        found = true
+    }
+    Swag.require(found and Clipboard.getString() == view.inspectorView.headline and Clipboard.getString() == "42")
+
+    view.grid.moveCaret(1, false)
+    view.refreshInspector()
+    Swag.require(view.inspectorView.headline == "43")
+    results = {}
+    entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    found = false
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_CopyValue
+    {
+        Swag.require(not entry.disabled)
+        entry.run!()
+        found = true
+    }
+    Swag.require(found and Clipboard.getString() == view.inspectorView.headline and Clipboard.getString() == "43")
+
+    let emptyName = Gui.Testing.tempFilePath("scope-hex-copy-value-empty-", ".bin")
+    defer discard catch File.delete(emptyName)
+    expect File.writeAllText(emptyName, "")
+    let emptyView = hexTestViewer(&host, emptyName, 640, 420)
+    results = {}
+    entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    emptyView.describeLens(&entries)
+    found = false
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_CopyValue
+    {
+        Swag.require(entry.disabled)
+        found = true
+    }
+    Swag.require(found)
+}
+
 // Range analysis streams fixed byte counts and keeps inferred strings tied to their source bytes.
 #test
 {

@@ -171,7 +171,7 @@ impl MainWindow
             return texts.msg_PasswordStopped
 
         case .ChangingKeyFiles:
-            return texts.msg_ChangingPassword
+            return texts.msg_ChangingKeyFiles
 
         case .KeyFilesChanged:
             return texts.msg_KeyFilesChanged
@@ -182,10 +182,11 @@ impl MainWindow
     }
 
     // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
-    mtd showError(message: string, err: any? = null)
+    mtd showError(message: string, err: any? = null, shortTitle = false)
     {
+        let failure = err == null ? VaultFailure{} : describeFailure(err)
         .statusHeadline = message
-        .statusDetail   = err == null ? String{} : caughtMessage(err)
+        .statusDetail   = failure.reason
         .refreshStatus()
         if .resident.isHidden()
         {
@@ -193,9 +194,13 @@ impl MainWindow
             return
         }
 
-        if .statusDetail.isEmpty() do
-            MessageDlg.error(unwrap .surface, message)
-        else do
-            MessageDlg.error(unwrap .surface, Format.toString("%\n\n%", message, .statusDetail))
+        if shortTitle
+        {
+            MessageDlg.error(unwrap .surface, failure.reason, options: {title: message, detail: failure.code})
+            return
+        }
+
+        let body = failure.reason.isEmpty() ? String.from(message) : Format.toString("%\n\n%", message, failure.reason)
+        MessageDlg.error(unwrap .surface, body, options: {detail: failure.code})
     }
 }

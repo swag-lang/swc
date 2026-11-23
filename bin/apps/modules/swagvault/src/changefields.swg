@@ -37,10 +37,12 @@ func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     let texts = appStrings()
     let form  = dialog.form
 
-    with let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
+    let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
+    keepCapacity.setState(.Checked)
+
+    with let capacity = form.addTextField(texts.ui_NewCapacity, help: texts.ui_NewCapacityHelp)
     {
         .setUnsignedIntegerRange(1, 1024 * 1024)
-        .selectAll()
         .enable(false)
         setMachineFont(capacity)
     }
@@ -48,15 +50,11 @@ func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     let unit = VaultForm.addCapacityUnit(form)
     unit.enable(false)
 
-    with let keepCapacity = form.addOptionField(texts.ui_KeepCapacity, help: texts.ui_KeepCapacityHelp)
+    keepCapacity.sigChanged += func|capacity, unit|(button)
     {
-        .setState(.Checked)
-        .sigChanged += func|capacity, unit|(button)
-        {
-            let enabled = not button.isChecked()
-            capacity.enable(enabled)
-            unit.enable(enabled)
-        }
+        let enabled = not button.isChecked()
+        capacity.enable(enabled)
+        unit.enable(enabled)
     }
 
     VaultForm.finish(form)

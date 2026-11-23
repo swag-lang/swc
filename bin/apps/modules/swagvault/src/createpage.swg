@@ -86,7 +86,7 @@ impl CreatePage
             .margin.y = PageHeadGap
         }
 
-        with .path = .form.addTextField(texts.ui_Location, placeholder: "C:\\path\\private")
+        with .path = .form.addTextField(texts.ui_Location)
         {
             .updateFlags(.AcceptFileDrop)
             setMachineFont(me.path)
@@ -147,7 +147,7 @@ impl CreatePage
         .passwordForm = FormLayoutCtrl.create(pair, pairOptions)
         .confirmForm  = FormLayoutCtrl.create(pair, pairOptions)
         .password     = .passwordForm.addPasswordField(texts.ui_Password, placeholder: texts.ui_OptionalPassword)
-        .confirm      = .confirmForm.addPasswordField(texts.ui_Confirm, placeholder: texts.ui_EnterAgain)
+        .confirm      = .confirmForm.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
         for edit in [.password, .confirm]
         {
             edit.sigChanged   += func|window = me.window|(_) { window.refreshActions() }
@@ -196,7 +196,7 @@ impl CreatePage
         .form.setRowLabel(cast(u64, CreateRow.Location), texts.ui_Location)
         .form.setRowLabel(cast(u64, CreateRow.Capacity), texts.ui_Capacity)
         .passwordForm.setRowLabel(0, texts.ui_Password)
-        .confirmForm.setRowLabel(0, texts.ui_Confirm)
+        .confirmForm.setRowLabel(0, texts.ui_ConfirmPassword)
         .password.setPlaceholder(texts.ui_OptionalPassword)
         .confirm.setPlaceholder(texts.ui_EnterAgain)
         .browse.setText(texts.ui_Browse)

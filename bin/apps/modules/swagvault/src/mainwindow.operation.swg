@@ -112,8 +112,8 @@ impl MainWindow
 
         with var options: FormDlgOptions
         {
-            .title = appStrings().ui_CreateHidden
-            .confirmButtonText = appStrings().ui_CreateVault
+            .title = appStrings().dlg_TitleCreateHidden
+            .confirmButtonText = appStrings().dlg_BtnCreate
         }
 
         let dialog = FormDlg.create(unwrap .surface, options)
@@ -709,7 +709,7 @@ impl MainWindow
             // A startup mount reports on the notice line alone: a box per vault would meet
             // the reader with a stack of them before the window is even readable.
             if not .operation.fromStartup and not .operation.securityStopped do
-                .showError(appStrings().msg_MountFailed, operationError)
+                .showError(appStrings().msg_MountFailed, operationError, shortTitle: true)
             .setStatus(.operation.securityStopped ? .AutoUnmounted : .MountStopped)
         }
         elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch

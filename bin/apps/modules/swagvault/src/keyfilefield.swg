@@ -8,6 +8,7 @@ struct KeyFileField
     late
     {
         files:    *ListCtrl
+        empty:    *Label
         actions:  *StackLayoutCtrl
         add:      *IconButton
         generate: *IconButton
@@ -16,8 +17,7 @@ struct KeyFileField
 
     sigPathsChanged: SigArray'func||(*KeyFileField)
 
-    paths:       Array'String
-    canGenerate: bool
+    paths: Array'String
 }
 
 // Writes 64 bytes from the system's secure random generator to a new file at `path`.
@@ -50,14 +50,15 @@ impl IWnd for KeyFileField
         let room     = .clientRect()
         let metrics  = .themeMetrics()
         let rows     = cast(f32, Math.max(1, Math.min(cast(u32, .paths.count), VisibleRows)))
-        let listH    = Math.min(.files.lineHeight() * rows + metrics.list_Padding * 2, room.height)
         let gap      = metrics.dialog_BtnPadding
         let actionsH = .actions.measure({}).preferred.y
+        let listH    = Math.min(.files.lineHeight() * rows + metrics.list_Padding * 2, Math.max(0, room.height - gap - actionsH))
         let actionsY = room.y + listH + gap
 
-        .files.arrange(Math.Rectangle{room.x, room.y, room.width, listH})
+        let listRect = Math.Rectangle{room.x, room.y, room.width, listH}
+        .files.arrange(listRect)
+        .empty.arrange(listRect)
         .actions.arrange(Math.Rectangle{room.x, actionsY, room.width, actionsH})
-        .updateRemoveButton()
     }
 }
 
@@ -77,10 +78,12 @@ private impl KeyFileField
         let size = themeRowIconSize(.themeMetrics())
         for path in .paths do
             discard .files.createLine(path.toString(), .theme().fileGlyph(path.toString(), false, size))
-        .files.setEmptyText(appStrings().ui_NoKeyFiles)
-        if not .paths.isEmpty() do
+        let empty = .paths.isEmpty()
+        .empty.show(empty)
+        .files.show(not empty)
+        if not empty do
             .files.selectLine(Math.min(selected, cast(u32, .paths.count - 1)))
-        .updateRemoveButton()
+        .remove.enable(.files.selectedLine() != null)
     }
 
     // Adds the key files not listed yet, and selects the first one added.
@@ -137,7 +140,8 @@ private impl KeyFileField
         var path = dialog.selectedPath()
         discard catch writeRandomKeyFile(path)
         {
-            MessageDlg.error(.surface, appStrings().msg_KeyFileCreateFailed, Swag.err)
+            let failure = describeFailure(Swag.err)
+            MessageDlg.error(.surface, failure.reason, options: {title: appStrings().msg_KeyFileCreateFailed, detail: failure.code})
             return
         }
 
@@ -172,47 +176,6 @@ private impl KeyFileField
         .sigPathsChanged.call(me)
     }
 
-    // Places the cross on the selected row and keeps it aligned as the list scrolls.
-    mtd updateRemoveButton()
-    {
-        let selected = .files.selectedLine()
-        if not selected
-        {
-            .remove.hide()
-            return
-        }
-
-        var index = Swag.U32.Max
-        for i in .files.lineCount()
-        {
-            if .files.lineAt(i) == selected
-            {
-                index = i
-                break
-            }
-        }
-
-        if index == Swag.U32.Max
-        {
-            .remove.hide()
-            return
-        }
-
-        let view     = .files.listView
-        let viewport = view.paddedClientRect()
-        let lineH    = .files.lineHeight()
-        let rowY     = viewport.y + cast(f32, index) * lineH - .files.scrollWnd.scrollPosition().y
-        let buttonH  = Math.min(lineH, .themeMetrics().control_InspectorHeight)
-        if rowY + lineH <= viewport.y or rowY >= viewport.bottom()
-        {
-            .remove.hide()
-            return
-        }
-
-        let buttonSize = Math.min(buttonH, viewport.width)
-        .remove.arrange(Math.Rectangle{viewport.right() - buttonSize, rowY + (lineH - buttonSize) * 0.5, buttonSize, buttonSize})
-        .remove.show()
-    }
 }
 
 impl KeyFileField
@@ -228,18 +191,10 @@ impl KeyFileField
             .backgroundStyle = .Transparent
         }
 
-        result.canGenerate = canGenerate
-        result.files       = ListCtrl.createSimple(result)
-        result.files.updateFlags(.StretchFirstColumn)
-        result.files.sigSelectionChanged += func|field = result|(_)
-        {
-            field.updateRemoveButton()
-        }
-
-        result.files.scrollWnd.sigScrollPositionChanged += func|field = result|(_, _, _)
-        {
-            field.updateRemoveButton()
-        }
+        result.files = ListCtrl.createSimple(result)
+        result.files.updateFlags(.StretchFirstColumn | .Ellipsis)
+        result.empty = Label.create(result, appStrings().ui_NoKeyFiles, flags: .SecondaryText)
+        result.empty.setTextAlignment(.Left, .OpticalCenter)
 
         with result.actions = StackLayoutCtrl.create(result, .Left)
         {
@@ -250,7 +205,6 @@ impl KeyFileField
         with result.add = IconButton.createQuiet(result.actions, menu: false)
         {
             .setIcon(result.theme().icon(.Plus, themeRowIconSize(result.themeMetrics())))
-            .setQuietText(appStrings().ui_AddKeyFiles)
             .sigPressed += func|field = result|(_) { field.chooseExisting() }
         }
 
@@ -258,21 +212,20 @@ impl KeyFileField
         {
             .show(canGenerate)
             .setIcon(result.theme().icon(.SaveAs, themeRowIconSize(result.themeMetrics())))
-            .setQuietText(appStrings().ui_GenerateKeyFile)
             .sigPressed += func|field = result|(_) { field.generateRandom() }
         }
 
-        with result.remove = IconButton.create(result.files.listView,
-                                               result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())),
-                                               {0, 0, result.themeMetrics().control_InspectorHeight, result.themeMetrics().control_InspectorHeight},
-                                               flags: .IconOnly)
+        with result.remove = IconButton.createQuiet(result.actions, menu: false)
         {
-            .toolTip    = appStrings().ui_RemoveKeyFile
+            .setIcon(result.theme().icon(.WndClose, themeRowIconSize(result.themeMetrics())))
             .sigPressed += func|field = result|(_) { field.removeSelected() }
+        }
+        result.files.sigSelectionChanged += func|field = result|(list)
+        {
+            field.remove.enable(list.selectedLine() != null)
         }
 
         result.retranslate()
-        result.rebuild()
         return result
     }
 
@@ -280,9 +233,10 @@ impl KeyFileField
     mtd retranslate()
     {
         let texts = appStrings()
+        .empty.setText(texts.ui_NoKeyFiles)
         .add.setQuietText(texts.ui_AddKeyFiles)
         .generate.setQuietText(texts.ui_GenerateKeyFile)
-        .remove.toolTip = texts.ui_RemoveKeyFile
+        .remove.setQuietText(texts.ui_RemoveKeyFile)
         .rebuild()
     }
 

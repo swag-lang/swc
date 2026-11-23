@@ -27,7 +27,7 @@ msg_UnmountFailed      Impossible de démonter le lecteur. Il reste accessible.
 msg_AutoUnmountBusy    Le démontage automatique s'est arrêté. % lecteurs protégés restent montés.
 msg_AutoUnmountBusyOne Le démontage automatique s'est arrêté. Un lecteur protégé reste monté.
 msg_ForceUnmountTitle  Forcer le démontage
-msg_ForceUnmountText   Les fichiers et dossiers ouverts cesseront de fonctionner. Les applications peuvent perdre les modifications non enregistrées et les écritures en attente.
+msg_ForceUnmountText   Le démontage forcé coupe l’accès aux fichiers ouverts. Les modifications non enregistrées et les écritures en attente peuvent être perdues.
 dlg_BtnForceUnmount    Forcer le démontage
 dlg_BtnForceQuit       Forcer le démontage et quitter
 msg_FinishOperation    Attendez la fin de l'opération en cours, ou arrêtez-la avant de quitter.
@@ -56,7 +56,7 @@ ui_HomeWelcome         Un coffre est un fichier chiffré qui s'ouvre comme un le
 ui_HomeKeeps           Ce qu'on y range n'est lisible que tant qu'il est monté.
 ui_HomePrivacy         Le mode vie privée ne garde aucune liste : ouvrez un coffre depuis son fichier.
 ui_HomeHidden          volumes cachés
-ui_HomeDrop            ou déposez un conteneur sur la fenêtre
+ui_HomeDrop            ou déposez un fichier de coffre sur la fenêtre
 ui_DropTitle           Déposez un coffre pour l'ouvrir
 ui_Mount               Monter
 ui_Unmount             Démonter
@@ -67,18 +67,17 @@ ui_UnlockKeyFilesCount Fichiers clés (%)
 ui_ReadOnly            Lecture seule
 ui_ProtectHidden       Protéger le volume caché
 ui_MountAtStartup      Monter au démarrage
-ui_Forget              Oublier le coffre
+ui_Forget              Retirer de la liste
 ui_ModifyVault         Modifier…
 ui_ChangePassword      Changer le mot de passe…
 ui_ChangeKeyFiles      Changer les fichiers clés…
-ui_Resize              Capacité et camouflage…
+ui_Resize              Modifier la taille du coffre…
 ui_CreateHidden        Créer un volume caché…
 ui_StopCreating        Arrêter la création
 ui_StopResizing        Arrêter le redimensionnement
-ui_HintList            options, démontage automatique, à propos
+ui_HintList            rechercher une commande
 ui_HintNewVault        nouveau coffre
 ui_HintOpenFile        ouvrir un fichier
-ui_HintPrivacy         avec le mode vie privée, la liste reste vide : les coffres s'ouvrent ici
 
 lens_File              Fichier
 lens_Vault             Coffre
@@ -87,30 +86,29 @@ lens_Privacy           Vie privée
 cmd_Options            Options
 
 # The page that creates a vault.
-ui_CreateHelp          Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
-ui_Location            Emplacement
+ui_CreateHelp          Choisissez où enregistrer le coffre et quelle capacité lui donner.
+ui_Location            Fichier du coffre
 ui_Capacity            Capacité
 ui_UnitMiB             Mio
 ui_UnitGiB             Gio
 ui_FreeSpace           % libres sur %
 ui_Password            Mot de passe
-ui_Confirm             Confirmer
 ui_OptionalPassword    Facultatif
 ui_EnterAgain          Saisissez à nouveau
 ui_AddKeyFilesLink     Ajouter des fichiers clés…
-ui_Browse              Parcourir
-ui_CreateVault         Créer le coffre chiffré
+ui_Browse              Parcourir…
+ui_CreateVault         Créer le coffre
 
 # The page that follows a long operation.
 ui_ReadingKeyFile      Lecture du fichier clé
 ui_ReadKeyFileHelp     Le coffre utilise chaque octet du fichier clé pour préparer l’accès.
-ui_Randomizing         Randomisation du conteneur
-ui_Resizing            Redimensionnement du conteneur
-ui_Camouflaging        Renouvellement du camouflage
+ui_Randomizing         Préparation du coffre
+ui_Resizing            Redimensionnement du coffre
+ui_Camouflaging        Modification de la taille du fichier
 ui_ProgressOf          % sur %
 ui_SecondsLeft         encore % s
 ui_MinutesLeft         encore % min
-ui_RandomizeHelp       Chaque octet est rempli de bruit avant que le coffre soit prêt : de l'extérieur, rien ne distingue les données du vide.
+ui_RandomizeHelp       Swag Vault remplit le fichier de données aléatoires pour que l’espace occupé et l’espace libre aient le même aspect.
 
 # The privacy and automatic-unmount page.
 ui_PrivacyTitle        Options
@@ -122,38 +120,39 @@ ui_UnmountOnLockHelp   Démonter les lecteurs protégés au verrouillage de la s
 ui_UnmountOnSuspend    Démonter avant la mise en veille
 ui_UnmountOnSuspendHelp Démonter les lecteurs protégés avant la veille. Les lecteurs utilisés restent montés.
 ui_UnmountOnIdle       Démonter après une période d'inactivité
-ui_UnmountOnIdleHelp   Démonter les lecteurs protégés inutilisés après une absence d'entrée clavier ou souris pendant %.
+ui_UnmountOnIdleHelp   Après % sans activité au clavier ou à la souris, démonter les lecteurs protégés qui ne sont pas utilisés.
 ui_Minutes             % minutes
 
 # The boxes that change a vault.
 ui_NewCapacity         Nouvelle capacité
 ui_NewPassword         Nouveau mot de passe
 ui_ConfirmPassword     Confirmer le mot de passe
-ui_ContainerPassword   Vide si le coffre n'en a pas
+ui_ContainerPassword   Laissez vide si le coffre n’a pas de mot de passe
 ui_KeyFiles            Fichiers clés
-ui_KeyFilesHelp        Chaque fichier listé est requis. Seul son contenu est utilisé : vous pouvez le déplacer sans modifier l'accès.
+ui_KeyFilesHelp        Tous les fichiers de la liste sont requis. Vous pouvez les déplacer, mais leur contenu doit rester identique.
 ui_NoKeyFiles          Aucun fichier clé
-ui_AddKeyFiles         Ajouter des fichiers…
-ui_GenerateKeyFile     Créer un fichier clé aléatoire
+ui_AddKeyFiles         Ajouter…
+ui_GenerateKeyFile     Générer un fichier clé…
 ui_RemoveKeyFile       Retirer de la liste
 ui_RemovePasswordHelp  Laissez vide pour supprimer seulement le mot de passe. Les fichiers clés sélectionnés restent requis.
-ui_NewCapacityHelp     Modifier la capacité peut déplacer les blocs utilisés qui ne tiendraient plus.
+ui_NewCapacityHelp     Si le coffre rétrécit, Swag Vault peut déplacer des données pour les faire tenir dans la nouvelle capacité.
 ui_KeepCapacity        Conserver la capacité actuelle
-ui_KeepCapacityHelp    Renouvelle la taille physique aléatoire sans déplacer les données du coffre.
+ui_KeepCapacityHelp    Si cette option est cochée, seule la taille du fichier sur le disque change.
 ui_HiddenPassword      Mot de passe du volume caché
-ui_HiddenCreateHelp    Utilise un espace libre contigu du coffre. Remplace tout volume caché précédent. Activez la protection à chaque montage du volume contenant pour éviter son écrasement.
-ui_HiddenProtectionHelp Saisissez l'accès caché pour protéger son espace. Une écriture conflictuelle bloque les suivantes jusqu'au démontage. Le lecteur caché n'est pas monté.
+ui_HiddenCreateHelp    Utilise un espace libre contigu et remplace tout volume caché existant. Pour éviter de l’écraser, activez la protection à chaque montage du volume contenant.
+ui_HiddenProtectionHelp Indiquez le mot de passe ou les fichiers clés du volume caché. Si une écriture risque de l’écraser, les suivantes sont bloquées jusqu’au démontage. Le volume caché reste démonté.
 ui_OuterReserve        Espace à garder pour le volume contenant
 ui_OuterReserveHelp    Minimum disponible pour les fichiers ordinaires. Limite seulement la création cachée ; ce choix n'est pas enregistré dans le volume contenant.
 ui_Desktop             Bureau
 dlg_TitleCreate        Créer un conteneur Swag Vault
-dlg_TitleOpen          Ouvrir un conteneur chiffré
+dlg_TitleOpen          Ouvrir un fichier de coffre
 dlg_TitlePassword      Changer le mot de passe du coffre
 dlg_TitleKeyFiles      Sélectionner des fichiers clés
 dlg_TitleAccessKeyFiles Choisir les fichiers clés
-dlg_TitleGenerateKey   Créer un fichier clé aléatoire
+dlg_TitleGenerateKey   Générer un fichier clé
 dlg_TitleChangeKeyFiles Modifier les fichiers clés du coffre
-dlg_TitleResize        Modifier la capacité ou le camouflage
+dlg_TitleResize        Modifier la taille du coffre
+dlg_TitleCreateHidden  Créer un volume caché
 dlg_BtnCreate          Créer
 dlg_BtnOpen            Ouvrir
 dlg_BtnAdd             Ajouter
@@ -172,7 +171,7 @@ msg_PasswordRequired   Un mot de passe est requis.
 msg_PasswordMismatch   Les mots de passe ne correspondent pas.
 msg_KeyFileCreateFailed Impossible de créer le fichier clé aléatoire.
 msg_CreateFailed       Impossible de créer le conteneur.
-msg_Randomizing        Création et randomisation du conteneur... %{#0} %%
+msg_Randomizing        Préparation du coffre… %{#0} %%
 msg_StopRequested      Arrêt en cours...
 msg_CreateCanceled     Création du conteneur annulée. Rien n'a été laissé sur le disque.
 msg_HiddenCreateCanceled Création cachée annulée ; un ancien volume caché peut être endommagé.
@@ -191,8 +190,8 @@ msg_MountedReadOnly    Lecteur chiffré monté en lecture seule sur %.
 msg_MountedProtected   Le lecteur % est monté avec protection du volume caché.
 msg_UnmountSyncStopped Le lecteur a été démonté, mais la synchronisation finale s'est arrêtée.
 msg_Unmounted          Lecteur démonté en toute sécurité.
-msg_Resizing           Redimensionnement du conteneur... %{#0} %%
-msg_Camouflaging       Renouvellement du camouflage physique... %{#0} %%
+msg_Resizing           Redimensionnement du coffre… %{#0} %%
+msg_Camouflaging       Modification de la taille du fichier… %{#0} %%
 msg_ResizeCanceled     Redimensionnement arrêté. Le coffre a conservé sa taille précédente.
 msg_ResizeStopped      Le redimensionnement s'est arrêté.
 msg_ResizeFailed       Impossible de redimensionner le conteneur.
@@ -200,7 +199,8 @@ msg_Resized            Le coffre contient désormais %.
 msg_Camouflaged        Le coffre a conservé sa capacité et reçu une nouvelle taille physique.
 msg_AutoUnmounted      Les lecteurs protégés ont été démontés automatiquement.
 msg_AutoUnmountStopped Les lecteurs protégés ont été démontés, mais la synchronisation finale s'est arrêtée.
-msg_ChangingPassword   Réécriture de l'emplacement de clé...
+msg_ChangingPassword   Modification du mot de passe…
+msg_ChangingKeyFiles   Modification des fichiers clés…
 msg_PasswordChanged    Le coffre s'ouvre désormais avec le nouveau mot de passe.
 msg_PasswordRemoved    Le mot de passe a été supprimé. Les fichiers clés sélectionnés restent requis.
 msg_PasswordFailed     Impossible de changer le mot de passe.
@@ -217,7 +217,7 @@ msg_ErrNotFound          Le conteneur est introuvable.
 msg_ErrAlreadyExists     Un fichier portant ce nom existe déjà.
 msg_ErrAccessDenied      L'accès au conteneur a été refusé.
 msg_ErrReadOnly          Le coffre est monté en lecture seule.
-msg_ErrSparse            Le conteneur est sparse. Convertissez-le en fichier entièrement alloué avant de l'ouvrir.
+msg_ErrSparse            Ce fichier de coffre n’est pas entièrement alloué sur le disque. Créez une copie entièrement allouée avant de l’ouvrir.
 msg_ErrDiskFull          Il n'y a plus de place dans le conteneur.
 msg_ErrIo                Le conteneur n'a pas pu être lu ou écrit.
 msg_ErrInvalidRequest    Le conteneur ne peut pas répondre à cette demande.

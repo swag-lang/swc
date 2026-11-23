@@ -312,10 +312,9 @@ impl OptionsPage
         let viewport = .clientRect()
         let top      = .headColumn.position.bottom() + PageHeadGap
         .scroll.arrange({0, top, viewport.width, Math.max(0, viewport.height - PageFoot - top)})
-        let room   = .scroll.view.clientRect()
-        let width  = Math.min(PageColumnWidth, Math.max(0, room.width - 2 * PageGutter))
+        let width  = .headColumn.position.width
         let height = Math.ceil(.column.measure({width, 0}).preferred.y)
-        .column.arrange({Math.round((room.width - width) * 0.5), 0, width, height})
+        .column.arrange({.headColumn.position.x, 0, width, height})
         .column.applyLayout()
         .scroll.setScrollSize(.scroll.view.position.width, .column.position.bottom() + PageGutter)
         for row in [.privacy, .lock, .suspend, .idle, .resident, .startup] do

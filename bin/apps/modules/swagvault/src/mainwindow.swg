@@ -330,27 +330,35 @@ struct MainWindow
     themeIndex: u32
 }
 
-// The sentence a reader sees for `err`, in the active language, with the native code of the
-// failure under it when one came with it. Where it was raised goes to the debugger output.
-//
-// Returns an owned string, not a view: one kind formats its sentence, and a view into that
-// temporary would dangle as soon as the statement building it ends. The constant sentences are
-// copied out of the string table for the same contract.
-func caughtMessage(err: any?)->String
+struct VaultFailure
 {
-    let texts = appStrings()
+    reason: String
+    code:   String
+}
 
+// Localizes the cause and keeps the native code available as a separate technical detail.
+func describeFailure(err: any?)->VaultFailure
+{
     switch err
     {
     case Error as volumeError:
         logDiagnostic(volumeError)
-        return withErrorCode(kindMessage(volumeError.kind), volumeError.code)
+        return {kindMessage(volumeError.kind), formatErrorCode(volumeError.code)}
 
     case Swag.SystemError as systemError:
-        return withErrorCode(texts.msg_SystemError, systemError.errorID)
+        return {appStrings().msg_SystemError, formatErrorCode(systemError.errorID)}
     }
 
-    return texts.msg_OperationStopped
+    return {reason: appStrings().msg_OperationStopped}
+}
+
+// Formats the failure for places that display it as a single string.
+func caughtMessage(err: any?)->String
+{
+    let failure = describeFailure(err)
+    if failure.code.isEmpty() do
+        return failure.reason
+    return Format.toString("%\n%", failure.reason, failure.code)
 }
 
 // The sentence that tells a reader what a failure of `kind` means for them. A kind that means
@@ -388,14 +396,8 @@ func kindMessage(kind: ErrorKind)->String
     }
 }
 
-// Adds the native code of a failure under its sentence, for whoever reports it; a failure
-// without one keeps the sentence alone.
-func withErrorCode(message: String, code: u64)->String
-{
-    if not code do
-        return message
-    return Format.toString("%\n\n%", message, Format.toString(appStrings().msg_ErrorCode, code))
-}
+// Formats a native error code when one is available.
+func formatErrorCode(code: u64)->String => code ? Format.toString(appStrings().msg_ErrorCode, code) : String{}
 
 // Says the smallest capacity a container can have, in whole mebibytes.
 func minimumSizeMessage()->String
@@ -649,11 +651,7 @@ impl MainWindow
         }
     }
 
-    // Teaches the door while the list is on screen, and on the privacy page, where privacy mode
-    // empties the list, says where the vaults open from instead. While a vault is unfolded the
-    // hand is already at work, and the line steps aside so the actions under the list keep their room.
-    //
-    // Without a vault, the line first teaches the keys of the two ways the home offers.
+    // Shows the command palette shortcut on the list and the two opening shortcuts on the empty home.
     mtd refreshHint()
     {
         let texts = appStrings()
@@ -664,12 +662,8 @@ impl MainWindow
             .hintLine.addHint(Input.formatKeyShortcut(.Control, .O), texts.ui_HintOpenFile)
         }
 
-        switch .page
-        {
-        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
-        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintPrivacy)
-        default: break
-        }
+        if .page == .List and .chosenPath.isEmpty() do
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
 
         .hintLine.show(not .hintLine.hints.isEmpty())
     }

@@ -92,6 +92,7 @@ impl UnlockCard
         {
             field.copyPaths(&window.unlockKeyFiles)
             window.list.card.setKeyFileCount(window.unlockKeyFiles.count)
+            window.list.unfold(window.chosenLockedPath())
             window.refreshActions()
         }
 

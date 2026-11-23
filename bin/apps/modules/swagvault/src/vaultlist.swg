@@ -348,7 +348,7 @@ impl VaultList
     }
 
     // Returns the width of a row: the column, and the outset its ground reaches past it on each side.
-    mtd rowWidth()->f32 => Math.min(PageColumnWidth, Math.max(0, .clientRect().width - 2 * (PageGutter + RowOutset))) + 2 * RowOutset
+    mtd rowWidth()->f32 => Math.min(PageColumnWidth, Math.max(0, .scroll.clientRect().width - 2 * (PageGutter + RowOutset))) + 2 * RowOutset
 
     // Says the words the page wrote at construction again, in the language now active.
     mtd retranslate()
@@ -372,7 +372,7 @@ impl VaultList
         defer .arranging = false
 
         let width = .rowWidth() - 2 * RowOutset
-        let x     = Math.round((.clientRect().width - width) * 0.5)
+        let x     = Math.round((.scroll.clientRect().width - width) * 0.5)
         let home  = .rows.isEmpty()
         .title.show(not home)
         .heading.show(home)

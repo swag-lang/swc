@@ -53,18 +53,17 @@ struct AppStrings
     ui_ReadOnly:       string = "Read Only"
     ui_ProtectHidden:  string = "Protect Hidden Volume"
     ui_MountAtStartup: string = "Mount at Startup"
-    ui_Forget:         string = "Forget Vault"
+    ui_Forget:         string = "Remove from List"
     ui_ModifyVault:     string = "Modify…"
     ui_ChangePassword: string = "Change Password…"
     ui_ChangeKeyFiles: string = "Change Key Files…"
-    ui_Resize:         string = "Capacity and Camouflage…"
+    ui_Resize:         string = "Change Vault Size…"
     ui_CreateHidden:   string = "Create Hidden Volume…"
     ui_StopCreating:   string = "Stop Creating"
     ui_StopResizing:   string = "Stop Resizing"
-    ui_HintList:       string = "options, automatic unmounting, about"
+    ui_HintList:       string = "search commands"
     ui_HintNewVault:   string = "new vault"
     ui_HintOpenFile:   string = "open a file"
-    ui_HintPrivacy:    string = "privacy mode keeps the list empty: vaults open from here"
 
     // The home: the window without a vault. Its second line keeps to the first one's length, and
     // its foot follows the names of the ciphers.
@@ -74,7 +73,7 @@ struct AppStrings
     ui_HomeKeeps:        string = "What you keep in it can be read only while it is mounted."
     ui_HomePrivacy:      string = "Privacy mode keeps no list: open a vault from its file."
     ui_HomeHidden:       string = "hidden volumes"
-    ui_HomeDrop:         string = "or drop a container on the window"
+    ui_HomeDrop:         string = "or drop a vault file on the window"
     ui_DropTitle:        string = "Drop a vault to open it"
 
     // The families the lens groups the commands under.
@@ -107,37 +106,36 @@ struct AppStrings
     msg_AutoUnmountBusy:    string = "Automatic unmounting stopped. % protected drives remain mounted."
     msg_AutoUnmountBusyOne: string = "Automatic unmounting stopped. One protected drive remains mounted."
     msg_ForceUnmountTitle:  string = "Force Unmount"
-    msg_ForceUnmountText:   string = "Open files and folders will stop working. Applications may lose unsaved changes and pending writes."
+    msg_ForceUnmountText:   string = "Forcing the unmount interrupts access to open files. Unsaved changes and pending writes may be lost."
     dlg_BtnForceUnmount:    string = "Force Unmount"
     dlg_BtnForceQuit:       string = "Force Unmount and Quit"
     msg_FinishOperation:    string = "Wait for the current operation to finish, or stop it before quitting."
     msg_ResidentOperation:  string = "An operation is running. Open Swag Vault to follow it or stop it."
 
     // The page that creates a vault. Units are written in the language's own abbreviation.
-    ui_CreateHelp:       string = "Choose a fixed capacity. The complete container is randomized before it is ready."
-    ui_Location:         string = "Location"
+    ui_CreateHelp:       string = "Choose where to save the vault and how much it can hold."
+    ui_Location:         string = "Vault file"
     ui_Capacity:         string = "Capacity"
     ui_UnitMiB:          string = "MiB"
     ui_UnitGiB:          string = "GiB"
     ui_FreeSpace:        string = "% free on %"     // Room left on the volume of the new container: the amount, then the volume.
     ui_Password:         string = "Password"
-    ui_Confirm:          string = "Confirm"
     ui_OptionalPassword: string = "Optional"
     ui_EnterAgain:       string = "Enter again"
     ui_AddKeyFilesLink:  string = "Add Key Files…"
-    ui_Browse:           string = "Browse"
-    ui_CreateVault:      string = "Create Encrypted Vault"
+    ui_Browse:           string = "Browse…"
+    ui_CreateVault:      string = "Create Vault"
 
     // The page that follows a long operation.
     ui_ReadingKeyFile:  string = "Reading the key file"
     ui_ReadKeyFileHelp: string = "The vault uses every byte of the key file to prepare access."
-    ui_Randomizing:     string = "Randomizing the container"
-    ui_Resizing:        string = "Resizing the container"
-    ui_Camouflaging:    string = "Refreshing the camouflage"
+    ui_Randomizing:     string = "Preparing the vault"
+    ui_Resizing:        string = "Resizing the vault"
+    ui_Camouflaging:    string = "Changing the vault file size"
     ui_ProgressOf:      string = "% of %"     // Bytes processed so far, then total bytes.
     ui_SecondsLeft:     string = "% s left"
     ui_MinutesLeft:     string = "% min left"
-    ui_RandomizeHelp:   string = "Every byte is filled with noise before the vault is ready: from outside, nothing tells data from empty space."
+    ui_RandomizeHelp:   string = "Swag Vault fills the file with random data so that used and unused space look the same."
 
     // The privacy and automatic-unmount page. Each option is also a lens command, so its name is
     // set the way a command is.
@@ -150,40 +148,41 @@ struct AppStrings
     ui_UnmountOnSuspend:     string = "Unmount Before Sleep"
     ui_UnmountOnSuspendHelp: string = "Unmount protected drives before sleep. Drives in use remain mounted."
     ui_UnmountOnIdle:        string = "Unmount After Inactivity"
-    ui_UnmountOnIdleHelp:    string = "Unmount protected drives that are not in use after no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
+    ui_UnmountOnIdleHelp:    string = "After % without keyboard or pointer activity, unmount protected drives that are not in use."     // '%' is the delay, chosen inside the sentence.
     ui_Minutes:              string = "% minutes"
 
     // The boxes that change a vault. Their labels stand above the fields.
     ui_NewCapacity:          string = "New capacity"
     ui_NewPassword:          string = "New password"
     ui_ConfirmPassword:      string = "Confirm password"
-    ui_ContainerPassword:    string = "Empty if the vault has none"
+    ui_ContainerPassword:    string = "Leave blank if the vault has no password"
     ui_KeyFiles:             string = "Key files"
-    ui_KeyFilesHelp:         string = "Every listed file is required. File contents are used; the files can be moved without changing access."
+    ui_KeyFilesHelp:         string = "All listed files are required. You can move them, but keep their contents unchanged."
     ui_NoKeyFiles:           string = "No key files"
-    ui_AddKeyFiles:          string = "Add Existing Files"
-    ui_GenerateKeyFile:      string = "Create Random File"
+    ui_AddKeyFiles:          string = "Add Files…"
+    ui_GenerateKeyFile:      string = "Generate Key File…"
     ui_RemoveKeyFile:        string = "Remove from List"
     ui_RemovePasswordHelp:   string = "Leave it empty to remove only the password. Any selected key files remain required."
-    ui_NewCapacityHelp:      string = "Changing capacity may move used blocks that no longer fit."
+    ui_NewCapacityHelp:      string = "If the vault shrinks, Swag Vault may move data to fit the new capacity."
     ui_KeepCapacity:         string = "Keep the current capacity"
-    ui_KeepCapacityHelp:     string = "Refresh the randomized physical size without moving vault data."
+    ui_KeepCapacityHelp:     string = "When checked, only the size of the vault file on disk changes."
     ui_HiddenPassword:       string = "Hidden volume password"
-    ui_HiddenCreateHelp:     string = "Uses contiguous free space in this vault. Replaces any previous hidden volume. Outer writes can destroy it unless protection is enabled at each mount."
-    ui_HiddenProtectionHelp: string = "Enter the hidden access to protect its space. A conflicting write stops all further writes until unmount. The hidden drive is not mounted."
+    ui_HiddenCreateHelp:     string = "Uses contiguous free space and replaces any existing hidden volume. To avoid overwriting it, enable protection each time you mount the outer volume."
+    ui_HiddenProtectionHelp: string = "Enter the hidden volume’s password or key files. If a write would overwrite it, further writes are blocked until unmount. The hidden volume stays unmounted."
     ui_OuterReserve:         string = "Keep free for the outer volume"
     ui_OuterReserveHelp:     string = "Minimum space left for ordinary files. This choice only limits hidden creation; it is not stored in the outer filesystem."
     ui_Desktop:              string = "Desktop"
     ui_AboutThirdParty:      string = "Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp"
     ui_AboutLinuxRuntime:    string = "Filesystem in Userspace — github.com/libfuse/libfuse. Session events use systemd; desktop idle time uses X.Org. See THIRDPARTY.md for licences."
     dlg_TitleCreate:         string = "Create a Swag Vault Container"
-    dlg_TitleOpen:           string = "Open an Encrypted Container"
+    dlg_TitleOpen:           string = "Open a Vault File"
     dlg_TitlePassword:       string = "Change the Vault Password"
     dlg_TitleKeyFiles:       string = "Select Key Files"
     dlg_TitleAccessKeyFiles: string = "Choose Key Files"
-    dlg_TitleGenerateKey:    string = "Create a Random Key File"
+    dlg_TitleGenerateKey:    string = "Generate a Key File"
     dlg_TitleChangeKeyFiles: string = "Change the Vault Key Files"
-    dlg_TitleResize:         string = "Change Capacity or Camouflage"
+    dlg_TitleResize:         string = "Change Vault Size"
+    dlg_TitleCreateHidden:   string = "Create Hidden Volume"
     dlg_BtnCreate:           string = "Create"
     dlg_BtnOpen:             string = "Open"
     dlg_BtnAdd:              string = "Add"
@@ -202,7 +201,7 @@ struct AppStrings
     msg_PasswordMismatch:     string = "The passwords do not match."
     msg_KeyFileCreateFailed:  string = "Could not create the random key file."
     msg_CreateFailed:         string = "Could not create the container."
-    msg_Randomizing:          string = "Creating and randomizing the container... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
+    msg_Randomizing:          string = "Preparing the vault… %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
     msg_StopRequested:        string = "Stopping..."
     msg_CreateCanceled:       string = "Container creation canceled. Nothing was left on disk."
     msg_HiddenCreateCanceled: string = "Hidden creation canceled; a previous hidden volume may be damaged."
@@ -221,8 +220,8 @@ struct AppStrings
     msg_MountedProtected:     string = "Drive % is mounted with hidden-volume protection."
     msg_UnmountSyncStopped:   string = "The drive was unmounted, but final synchronization stopped."
     msg_Unmounted:            string = "Drive unmounted safely."
-    msg_Resizing:             string = "Resizing the container... %{#0}%%"             // '%{#0}' is the percentage; '%%' is the percent sign itself.
-    msg_Camouflaging:         string = "Refreshing physical camouflage... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
+    msg_Resizing:             string = "Resizing the vault… %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
+    msg_Camouflaging:         string = "Changing the vault file size… %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
     msg_ResizeCanceled:       string = "Resizing stopped. The vault kept its previous size."
     msg_ResizeStopped:        string = "Resizing stopped."
     msg_ResizeFailed:         string = "Could not resize the container."
@@ -230,7 +229,8 @@ struct AppStrings
     msg_Camouflaged:          string = "The vault kept its capacity and received a new physical size."
     msg_AutoUnmounted:        string = "Protected drives were unmounted automatically."
     msg_AutoUnmountStopped:   string = "Protected drives were unmounted, but final synchronization stopped."
-    msg_ChangingPassword:     string = "Rewriting the key slot..."
+    msg_ChangingPassword:     string = "Changing the password…"
+    msg_ChangingKeyFiles:     string = "Changing the key files…"
     msg_PasswordChanged:      string = "The vault now opens with the new password."
     msg_PasswordRemoved:      string = "The password was removed. Any selected key files are still required."
     msg_PasswordFailed:       string = "Could not change the password."
@@ -248,7 +248,7 @@ struct AppStrings
     msg_ErrAlreadyExists:     string = "A file with this name already exists."     // The name is taken.
     msg_ErrAccessDenied:      string = "Access to the container was refused."      // The entry exists and refuses the operation.
     msg_ErrReadOnly:          string = "The vault is mounted read only."           // The container refuses every change.
-    msg_ErrSparse:            string = "The container is sparse. Convert it to a fully allocated file before opening it."
+    msg_ErrSparse:            string = "This vault file uses sparse storage. Make a fully allocated copy before opening it."
     msg_ErrDiskFull:          string = "There is no room left in the container."         // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."     // The underlying file could not be reached.
     msg_ErrInvalidRequest:    string = "The container cannot answer that request."       // The operation asked for something the container refuses outright.

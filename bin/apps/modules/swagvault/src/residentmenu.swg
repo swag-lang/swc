@@ -60,6 +60,7 @@ impl ResidentMenu
             menu.addLabel(Format.toString("% · %", texts.ui_SectionMounted, window.mountedDrives.drives.count))
         }
 
+        let iconSize = result.themeMetrics().menuPopup_IconSize
         for &drive, index in window.mountedDrives.drives
         {
             result.paths.add(drive.path)
@@ -72,11 +73,13 @@ impl ResidentMenu
             }
 
             menu.addLabel(label)
-            menu.addItem(texts.cmd_OpenDrive, Format.toString("vault.resident.open.%", index))
-            menu.addItem(texts.ui_Unmount, Format.toString("vault.resident.unmount.%", index), disabled: not ready)
-            menu.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), disabled: not ready)
+            menu.addItem(texts.cmd_OpenDrive, Format.toString("vault.resident.open.%", index), result.theme().icon(.OpenExternal, iconSize))
+            menu.addItem(texts.ui_Unmount, Format.toString("vault.resident.unmount.%", index), result.theme().icon(.Minus, iconSize), disabled: not ready)
+            menu.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), result.theme().icon(.Warning, iconSize), disabled: not ready)
         }
 
+        if not window.mountedDrives.drives.isEmpty() do
+            menu.addSeparator()
         menu.addItem(VaultCommands.UnmountAll)
         menu.addSeparator()
         menu.addItem(VaultCommands.Options)

@@ -175,21 +175,21 @@ impl MainWindow
         {
         case VaultCommands.ShowWindow:
             name = texts.cmd_ShowWindow
-            icon = .OpenExternal
+            icon = .WndMaximize
 
         case VaultCommands.UnmountAll:
             name     = texts.cmd_UnmountAll
-            icon     = .Remove
+            icon     = .RemoveAll
             disabled = not ready or .mountedDrives.drives.count == 0
 
         case VaultCommands.Quit:
             name     = texts.cmd_Quit
-            icon     = .WndClose
+            icon     = .Quit
             disabled = not ready
 
         case VaultCommands.Resident:
             name    = texts.ui_Resident
-            icon    = .Options
+            icon    = .Minimize
             toggle  = true
             checked = .resident.settings.enabled
 
@@ -236,13 +236,13 @@ impl MainWindow
 
         case VaultCommands.Unmount:
             name     = texts.ui_Unmount
-            icon     = .Remove
+            icon     = .Minus
             hidden   = drive == null
             disabled = not ready
 
         case VaultCommands.ForceUnmount:
             name     = texts.cmd_ForceUnmount
-            icon     = .Remove
+            icon     = .Warning
             hidden   = drive == null
             disabled = not ready
 
@@ -277,7 +277,7 @@ impl MainWindow
 
         case VaultCommands.ChangePassword:
             name     = texts.ui_ChangePassword
-            icon     = .Lock
+            icon     = .Edit
             hidden   = not locked
             disabled = not ready
 
@@ -301,7 +301,7 @@ impl MainWindow
 
         case VaultCommands.Forget:
             name     = texts.ui_Forget
-            icon     = .Remove
+            icon     = .WndClose
             hidden   = not locked or .privacyMode
             disabled = not ready
 

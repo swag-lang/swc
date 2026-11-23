@@ -110,6 +110,45 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     assertSurfaceGolden(&host, window, true, "mount.failure")
 }
 
+// A failed mount uses the error as the title and puts the native code under the explanation.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, 1.25)
+    defer host.shutdown()
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        for surface in host.app.surfaces
+        {
+            if surface.view() is MessageDlg as dialog
+            {
+                let texts = appStrings()
+                Swag.require(dialog.label.text() == texts.msg_ErrDriverUnavailable)
+                let detail = unwrap dialog.detailLabel
+                Swag.require(detail.text() == Format.toString(texts.msg_ErrorCode, 5))
+                let image = host.renderSurface(surface)
+                Pixel.Testing.assertImageGolden(&image, "mount.error.dialog.papier")
+                captured[] = true
+                dialog.closeWithResult(Dialog.BtnOk)
+                return
+            }
+        }
+    }
+
+    window.finishMount(volumeError(.DriverUnavailable, 5))
+    Swag.require(captured)
+}
+
 // A French modification menu keeps its opener and the access fields visible at minimum size.
 #[Swag.TestTag("golden")]
 #test
@@ -290,6 +329,52 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     Pixel.Testing.assertImageGolden(&image, "keyfiles.encre")
 }
 
+// A resize with custom capacity shows the capacity option, value and unit in reading order.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, 1.25)
+    defer host.shutdown()
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+
+    let texts  = appStrings()
+    let dialog = FormDlg.create(unwrap window.surface, {title: texts.dlg_TitleResize, confirmButtonText: texts.dlg_BtnApply})
+    let fields = buildVaultResizeForm(dialog)
+    fields.keepCapacity.toggle()
+    fields.capacity.setText("512")
+    dialog.fitHeightToContent(dialog.form.measure({dialog.form.position.width, 0}).preferred.y)
+    dialog.applyLayout()
+    let image = host.renderSurface(unwrap dialog.surface)
+    Pixel.Testing.assertImageGolden(&image, "resize.papier")
+}
+
+// The longest vault form keeps its warning, access fields, and actions visible together.
+#[Swag.TestTag("golden")]
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, 1.25)
+    defer host.shutdown()
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+
+    let texts  = appStrings()
+    let dialog = FormDlg.create(unwrap window.surface, {title: texts.dlg_TitleCreateHidden, confirmButtonText: texts.dlg_BtnCreate})
+    let fields = buildHiddenCreateForm(dialog)
+    dialog.fitHeightToContent(dialog.form.measure({dialog.form.position.width, 0}).preferred.y)
+    dialog.applyLayout()
+    Swag.require(fields.keyFiles.empty.isLocallyVisible())
+    Swag.require(fields.keyFiles.remove.position.right() <= fields.keyFiles.actions.clientRect().right() + 0.5)
+    let image = host.renderSurface(unwrap dialog.surface)
+    Pixel.Testing.assertImageGolden(&image, "hidden.create.encre")
+}
+
 // Mount keeps the chosen key files visible in the unfolded card instead of opening another form.
 #[Swag.TestTag("golden")]
 #test
@@ -298,9 +383,11 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
     fillPictureList(window)
     window.chooseVault("/vault.bin")
+    let titleX = window.list.title.position.x
     for index in 3 do
         window.unlockKeyFiles.add(Format.toString("/home/alice/keys/mount-%.key", index + 1))
     window.list.refresh()
     window.list.card.toggleKeyFiles()
     assertSurfaceGolden(&host, window, true, "unlock.keys")
+    Swag.require(window.list.title.position.x == titleX)
 }

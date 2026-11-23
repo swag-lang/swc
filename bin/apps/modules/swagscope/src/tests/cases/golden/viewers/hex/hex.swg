@@ -169,14 +169,18 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     with let inspector = view.inspectorView
     {
         Swag.require(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
-        Swag.require(.readings.count == 9 and .readings[0].value == "222")
+        Swag.require(.readings.count == 12 and .readings[0].value == "222")
         Swag.require(.readings[2].label == Hex.texts().ui_InspectorFloat16)
         Swag.require(.readings[2].value == Format.toString("%{g4}", Hex.float16ToFloat(0xADDE)))
         Swag.require(.readings[3].label == Hex.texts().ui_InspectorUleb128 and .readings[3].value == "233 805 534")
         Swag.require(.readings[4].label == Hex.texts().ui_InspectorSleb128 and .readings[4].value == "233 805 534")
-        Swag.require(.readings[5].label == Hex.texts().ui_InspectorIpv4 and .readings[5].value == "222.173.190.239")
-        Swag.require(.readings[6].label == "s32" and .readings[6].value == "-272 716 322")
-        Swag.require(.readings[7].label == "u32 BE" and .readings[7].value == "3 735 928 559")
+        Swag.require(.readings[5].label == Hex.texts().ui_InspectorBcd and
+                     .readings[5].value == Hex.texts().ui_ReadingInvalid)
+        Swag.require(.readings[6].label == Hex.texts().ui_InspectorIpv4 and .readings[6].value == "222.173.190.239")
+        Swag.require(.readings[7].value == "DEAD:BEEF:0000:0000:0000:0000:0000:0000")
+        Swag.require(.readings[8].value == "DEADBEEF-0000-0000-0000-000000000000")
+        Swag.require(.readings[9].label == "s32" and .readings[9].value == "-272 716 322")
+        Swag.require(.readings[10].label == "u32 BE" and .readings[10].value == "3 735 928 559")
         Swag.require(.fields.isEmpty())
     }
 

@@ -45,6 +45,9 @@ struct Texts
     ui_InspectorAt:            string = "% at 0x%"                                                                                            // What the inspector read its value as, and where; placeholders: the reading, the offset.
     ui_InspectorFloat16:       string = "f16"                                                                                                // IEEE-754 binary16 reading of the caret bytes.
     ui_InspectorIpv4:          string = "IPv4"                                                                                               // Dotted decimal address from four consecutive caret bytes.
+    ui_InspectorIpv6:          string = "IPv6"                                                                                               // Eight network-order groups from sixteen consecutive caret bytes.
+    ui_InspectorGuid:          string = "GUID"                                                                                               // Canonical hexadecimal GUID spelling from sixteen consecutive bytes.
+    ui_InspectorBcd:           string = "BCD"                                                                                                // Signed packed-decimal reading from the caret.
     ui_InspectorUleb128:       string = "ULEB128"                                                                                            // Unsigned LEB128 reading from the caret.
     ui_InspectorSleb128:       string = "SLEB128"                                                                                            // Signed LEB128 reading from the caret.
     ui_ReadingInvalid:         string = "invalid"                                                                                             // A domain reading whose bytes exceed its encoding rules.

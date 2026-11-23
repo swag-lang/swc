@@ -387,6 +387,73 @@ internal func writeSampleFile()->String
     Swag.require(found)
 }
 
+// Address readings use their wire order and are unaffected by the scalar endian option.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-addresses-", ".bin")
+    defer discard catch File.delete(fileName)
+    let bytes: Array'u8 = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                           0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorIpv6 do
+            Swag.require(reading.value == "0001:0203:0405:0607:0809:0A0B:0C0D:0E0F")
+        if reading.label == Hex.texts().ui_InspectorGuid do
+            Swag.require(reading.value == "00010203-0405-0607-0809-0A0B0C0D0E0F")
+    }
+
+    view.setBigEndian(true)
+    view.refreshInspector()
+    var ipv6Found = false
+    var guidFound = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorIpv6
+        {
+            Swag.require(reading.value == "0001:0203:0405:0607:0809:0A0B:0C0D:0E0F")
+            ipv6Found = true
+        }
+        if reading.label == Hex.texts().ui_InspectorGuid
+        {
+            Swag.require(reading.value == "00010203-0405-0607-0809-0A0B0C0D0E0F")
+            guidFound = true
+        }
+    }
+    Swag.require(ipv6Found and guidFound)
+}
+
+// Packed decimal uses explicit sign nibbles and rejects malformed digits.
+#test
+{
+    let positive: Array'u8 = [0x12, 0x3C]
+    let negative: Array'u8 = [0x12, 0x3D]
+    let malformed: Array'u8 = [0x1A, 0x3C]
+    Swag.require(Hex.readPackedBcd(positive.toSlice()) == "123")
+    Swag.require(Hex.readPackedBcd(negative.toSlice()) == "-123")
+    Swag.require(Hex.readPackedBcd(malformed.toSlice()) == Hex.texts().ui_ReadingInvalid)
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-bcd-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, positive.toSlice())
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    var found = false
+    for reading in view.inspectorView.readings
+    {
+        if reading.label == Hex.texts().ui_InspectorBcd
+        {
+            Swag.require(reading.value == "123")
+            found = true
+        }
+    }
+    Swag.require(found)
+}
+
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {

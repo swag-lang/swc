@@ -33,10 +33,10 @@ private
     // the narrowest window that leaves the grid sixteen bytes beside it.
     const PageInset      = 84.0
     const TabsHeight     = 48.0
-    const InspectorWidth = 300.0
+    const InspectorWidth = 380.0
     const InspectorGap   = 24.0
     const InspectorTop   = 4.0
-    const WideWidth      = 1040.0
+    const WideWidth      = 1120.0
 
     // Fields of one structure the inspector lists at most, around the one the caret stands on.
     const FieldLimit = 8'u64
@@ -74,6 +74,39 @@ func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
         result = (result << 8) | bytes[position]
     }
 
+    return result
+}
+
+// Reads signed packed decimal with a trailing C/F positive or D negative sign nibble.
+func readPackedBcd(bytes: const [..] u8)->String
+{
+    if bytes.count < 2 or bytes.count > 8 do
+        return String.from(texts().ui_ReadingInvalid)
+
+    const Digits = "0123456789"
+    let sign = bytes[bytes.count - 1] & 0x0F
+    if sign != 0x0C and sign != 0x0D and sign != 0x0F do
+        return String.from(texts().ui_ReadingInvalid)
+
+    var result: String
+    if sign == 0x0D do
+        result.append('-'rune)
+    for index in bytes.count
+    {
+        let byte = bytes[index]
+        let high = byte >> 4
+        if high > 9 do
+            return String.from(texts().ui_ReadingInvalid)
+        result.append(cast(rune, Digits[high]))
+
+        if index + 1 < bytes.count
+        {
+            let low = byte & 0x0F
+            if low > 9 do
+                return String.from(texts().ui_ReadingInvalid)
+            result.append(cast(rune, Digits[low]))
+        }
+    }
     return result
 }
 
@@ -749,7 +782,7 @@ impl Panel
             return
         }
         let caret     = .grid.caret
-        let bytes     = .grid.doc.read(caret, Math.min(10'u64, .grid.doc.fileSize - caret))
+        let bytes     = .grid.doc.read(caret, Math.min(16'u64, .grid.doc.fileSize - caret))
         let bigEndian = .readingBigEndian()
         if bytes.isEmpty()
         {
@@ -828,6 +861,8 @@ impl Panel
             view.readings.add({texts().ui_InspectorSleb128, value, false})
         }
 
+        if bytes.count >= 2 do
+            view.readings.add({texts().ui_InspectorBcd, readPackedBcd(bytes[until Math.min(bytes.count, 8)]), false})
         if bytes.count < 4 do
             return
         let address = Format.toString("%.%.%.%",
@@ -836,6 +871,26 @@ impl Panel
                                      cast(u32, bytes[2]),
                                      cast(u32, bytes[3]))
         view.readings.add({texts().ui_InspectorIpv4, address, false})
+        if bytes.count >= 16
+        {
+            let ipv6 = Format.toString("%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}:%{X04}",
+                                       readScalar(bytes[until 2], true),
+                                       readScalar(bytes[2 until 4], true),
+                                       readScalar(bytes[4 until 6], true),
+                                       readScalar(bytes[6 until 8], true),
+                                       readScalar(bytes[8 until 10], true),
+                                       readScalar(bytes[10 until 12], true),
+                                       readScalar(bytes[12 until 14], true),
+                                       readScalar(bytes[14 until 16], true))
+            view.readings.add({texts().ui_InspectorIpv6, ipv6, false})
+
+            let guid = Format.toString("%{X02}%{X02}%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}%{X02}%{X02}%{X02}%{X02}",
+                                       bytes[0], bytes[1], bytes[2], bytes[3],
+                                       bytes[4], bytes[5], bytes[6], bytes[7],
+                                       bytes[8], bytes[9], bytes[10], bytes[11],
+                                       bytes[12], bytes[13], bytes[14], bytes[15])
+            view.readings.add({texts().ui_InspectorGuid, guid, false})
+        }
         let word  = readScalar(bytes[until 4], bigEndian)
         let other = readScalar(bytes[until 4], not bigEndian)
         view.readings.add({"s32", Viewer.groupThousands(Format.toString("%", signedScalar(word, 4))), false})

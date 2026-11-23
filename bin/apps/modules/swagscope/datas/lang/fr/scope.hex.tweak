@@ -25,12 +25,14 @@ ui_GoToMessage   Hexadécimal, décimal 0d, pourcentage, caret, filesize, bookma
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
 ui_RowAuto       Ajuster à la fenêtre
-ui_SearchPlaceholder  Hexa, text:, value: ou selection:
-ui_SearchHelp         Utilisez selection: pour limiter la recherche aux octets sélectionnés ; ajoutez hex:, text: ou value: pour choisir le motif. ? remplace un demi-octet.
+ui_SearchPlaceholder  Hexa, text:, value:, selection: ou range:
+ui_SearchHelp         Utilisez selection: pour limiter la recherche aux octets sélectionnés ou range:offset:longueur:motif pour une plage. Les nombres nus et 0x sont hexadécimaux ; 0d indique le décimal. Ajoutez hex:, text: ou value: pour choisir le motif. ? remplace un demi-octet.
 ui_SearchSelectionRequired Sélectionnez des octets avant d’utiliser selection:
+ui_SearchRangeInvalid Utilisez range:offset:longueur:motif avec une plage non vide située dans le fichier ; nombres nus et 0x en hexadécimal, 0d en décimal.
 ui_SearchPatternError Utilisez des paires hexadécimales avec les jokers ??, ?A ou A?.
 ui_SearchValueError   Saisissez une valeur adaptée à la largeur et à la représentation actives.
 ui_InspectorAt        % à 0x%
+ui_InspectorFloat16   f16
 ui_DetailsCaret       %{f1}%% · valeur % · caret %/%
 ui_DetailsSelection   %{f1}%% · valeur % · sél. %–% (%–%) · long. %/% · caret %/%
 

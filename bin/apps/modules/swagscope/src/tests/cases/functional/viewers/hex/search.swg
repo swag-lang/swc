@@ -82,6 +82,11 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     Swag.require(window.searchMatches[0].offset == start + 2)
     Swag.require(window.searchMatches[1].offset == start + ViewerWindow.SearchChunkSize - 1)
     Swag.require(window.searchMatches[2].offset == end - 3)
+    Swag.require(window.searchIndex == 0)
+    window.findPrevious()
+    Swag.require(window.searchIndex == 2 and window.searchMatch == end - 3)
+    window.findNext()
+    Swag.require(window.searchIndex == 0 and window.searchMatch == start + 2)
 
     // An explicit one-byte selection differs from a caret, even though both have length one.
     window.searchBox.setText("")
@@ -92,6 +97,75 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     host.fireTimer(window.searchTimer)
     Swag.require(window.searchComplete and window.searchMatches.count == 1)
     Swag.require(window.searchMatches[0].offset == start + 2)
+}
+
+// `range:` seeks to an explicit half-open byte range, keeps progress relative to it, and accepts
+// only matches fully contained in that range, even across a streamed chunk boundary.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-hex-search-explicit-range-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    let start = 31'u64
+    let length = ViewerWindow.SearchChunkSize + 5
+    let end = start + length
+    var bytes: Array'u8
+    bytes.resize(end + 20)
+    bytes[start - 1] = 0xAA
+    bytes[start] = 0xBB
+    bytes[start + 3] = 0xAA
+    bytes[start + 4] = 0xBB
+    bytes[start + ViewerWindow.SearchChunkSize - 1] = 0xAA
+    bytes[start + ViewerWindow.SearchChunkSize] = 0xBB
+    bytes[end - 1] = 0xAA
+    bytes[end] = 0xBB
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var host: Testing.HeadlessHost
+    let window = openHexSearchWindow(&host, fileName)
+    let view = assume cast(*Hex.Panel, window.instances[window.activeChoiceIndex].view)
+
+    window.searchBox.setText("range: 0x1F : 0x40005 : hex:AA BB")
+    Swag.require(window.searchByteRange.offset == start and window.searchByteRange.length == length)
+    Swag.require(window.searchCarryBase == start and window.searchTotalBytes == length)
+    Swag.require(window.searchStream.isOpen())
+    host.fireTimer(window.searchTimer)
+    Swag.require(window.searchProcessed > 0 and window.searchProcessed < length)
+    let progress = Format.toString(appStrings().ui_SearchProgress,
+                                   StrConv.toDisplaySize(window.searchProcessed),
+                                   StrConv.toDisplaySize(length))
+    Swag.require(window.searchCountLabel.toolTip == progress)
+    var steps = 0'u32
+    while window.searchTimer and steps < 8
+    {
+        host.fireTimer(window.searchTimer)
+        steps += 1
+    }
+    Swag.require(window.searchComplete and window.searchProcessed == length)
+    Swag.require(window.searchMatches.count == 2)
+    Swag.require(window.searchMatches[0].offset == start + 3)
+    Swag.require(window.searchMatches[1].offset == start + ViewerWindow.SearchChunkSize - 1)
+    Swag.require(window.searchIndex == 0)
+    window.findNext()
+    Swag.require(window.searchIndex == 1 and window.searchMatch == start + ViewerWindow.SearchChunkSize - 1)
+    window.findNext()
+    Swag.require(window.searchIndex == 0 and window.searchMatch == start + 3)
+    window.findPrevious()
+    Swag.require(window.searchIndex == 1 and window.searchMatch == start + ViewerWindow.SearchChunkSize - 1)
+
+    var decimalPlan: Viewer.SearchPlan
+    Swag.require(view.prepareSearch("range:0d31:0d262149:AA", &decimalPlan) == .Valid)
+    Swag.require(decimalPlan.byteRange.offset == start and decimalPlan.byteRange.length == length)
+
+    // Reject zero-length ranges (the shared plan reserves that value for whole-file searches),
+    // overflowing numeric tokens, and ranges extending past EOF before opening a stream.
+    var plan: Viewer.SearchPlan
+    Swag.require(view.prepareSearch("range:0x1F:0d0:AA", &plan) == .InvalidVisible)
+    Swag.require(plan.byteRange.length == 0)
+    Swag.require(view.prepareSearch("range:0xFFFFFFFFFFFFFFFF:0d2:AA", &plan) == .InvalidVisible)
+    Swag.require(view.prepareSearch("range:0xFFFFFFFFFFFFFFF0:0d32:AA", &plan) == .InvalidVisible)
+    window.searchBox.setText("range:0xFFFFFFFFFFFFFFF0:0d32:AA")
+    Swag.require(window.searchError == Hex.texts().ui_SearchRangeInvalid)
 }
 
 // The hexadecimal scan publishes its first stable chunk before EOF, so F3 can navigate those hits.

@@ -100,4 +100,21 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(window.searchMatches[0].offset == start)
     Swag.require(window.searchMatches[ViewerWindow.SearchMatchLimit - 1].offset ==
                  start + ViewerWindow.SearchMatchLimit - 1)
+
+    // The explicit range scope uses the same bounded result set and its offsets remain absolute.
+    window.searchBox.setText(Format.toString("range:0d%:0d%:AA", start, length))
+    steps = 0
+    while window.searchTimer and steps < 4_096
+    {
+        host.fireTimer(window.searchTimer)
+        steps += 1
+    }
+
+    Swag.require(window.searchTimer == null and window.searchComplete)
+    Swag.require(window.searchByteRange.offset == start and window.searchByteRange.length == length)
+    Swag.require(window.searchProcessed == length and window.searchBytesRead == length)
+    Swag.require(window.searchMatchesCapped and window.searchMatches.count == ViewerWindow.SearchMatchLimit)
+    Swag.require(window.searchMatches[0].offset == start)
+    Swag.require(window.searchMatches[ViewerWindow.SearchMatchLimit - 1].offset ==
+                 start + ViewerWindow.SearchMatchLimit - 1)
 }

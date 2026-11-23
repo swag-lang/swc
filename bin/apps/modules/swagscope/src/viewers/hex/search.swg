@@ -17,6 +17,7 @@ enum SearchError
     None        // The query is valid or merely incomplete.
     Pattern     // A hexadecimal pattern contains something other than byte pairs and wildcards.
     Value       // A scalar does not parse or fit the active reading.
+    Range       // A range prefix is malformed or its numbers do not parse.
 }
 
 // One byte pattern and the bits of each byte that have to match.
@@ -60,9 +61,26 @@ impl SearchPattern
 // invalid pattern.
 struct SearchParse
 {
-    pattern: SearchPattern
+    pattern:       SearchPattern
+    state:         SearchParseState
+    error:         SearchError
+    hasByteRange:  bool
+    rangeOffset:   u64
+    rangeLength:   u64
+}
+
+private struct SearchRangeNumber
+{
+    state: SearchParseState
+    value: u64
+}
+
+private struct SearchRangeHeader
+{
     state:   SearchParseState
-    error:   SearchError
+    offset:  u64
+    length:  u64
+    pattern: string
 }
 
 private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
@@ -248,18 +266,17 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     return result
 }
 
-// Parses `query` in one of the three search forms of the hexadecimal viewer.
+// Parses `query` in one of the three pattern forms of the hexadecimal viewer.
 //
 // - `4D 5A ?? ?0` or `hex: 4D 5A` for byte and nibble patterns;
 // - `text: MZ` or `"MZ"` for exact UTF-8 bytes;
 // - `value: 42` for a scalar spelled as `grouping` reads it, in the byte order `bigEndian` selects.
-func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchParse
+private func parseSearchPattern(query: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
     let trimmed = Latin1.trim(query)
     if not trimmed.count
     {
-        var result: #returntype
-        result.state = .Incomplete
+        var result: #returntype = {state: .Incomplete}
         return result
     }
 
@@ -283,4 +300,140 @@ func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchPars
     }
 
     return parseBytePattern(trimmed)
+}
+
+// Parses an unsigned search-range number. Bare values and 0x values are hexadecimal; 0d selects
+// decimal. Parsing consumes the complete token and reports overflow as invalid.
+private func parseSearchRangeNumber(source: string)->SearchRangeNumber
+{
+    let trimmed = Latin1.trim(source)
+    var result: #returntype
+    if not trimmed.count
+    {
+        result.state = .Incomplete
+        return result
+    }
+
+    let decimal = Utf8.startsWith(trimmed, "0d", .Latin1NoCase)
+    let hexadecimal = Utf8.startsWith(trimmed, "0x", .Latin1NoCase)
+    let digits = decimal or hexadecimal ? cast(string, trimmed[2 to]) : trimmed
+    if not digits.count
+    {
+        result.state = .Incomplete
+        return result
+    }
+
+    if decimal
+    {
+        var parsed: #decltype(expect StrConv.parseU64(digits))
+        var parseErrorOutcome: Swag.Error
+        catch { parsed = try StrConv.parseU64(digits) } as parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
+        if parseError == null and parsed.eat == digits.count and not parsed.ovf
+        {
+            result.state = .Valid
+            result.value = parsed.value
+            return result
+        }
+    }
+    else
+    {
+        var parsed: #decltype(expect StrConv.parseX64(digits))
+        var parseErrorOutcome: Swag.Error
+        catch { parsed = try StrConv.parseX64(digits) } as parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
+        if parseError == null and parsed.eat == digits.count and not parsed.ovf
+        {
+            result.state = .Valid
+            result.value = parsed.value
+            return result
+        }
+    }
+
+    result.state = .Invalid
+    return result
+}
+
+// Parses `range:<offset>:<length>:<pattern>` without splitting colons inside pattern prefixes.
+private func parseSearchRangeHeader(query: string)->SearchRangeHeader
+{
+    let body = cast(string, query[6 to])
+    var firstSeparator = body.count
+    for index in body.count
+    {
+        if body[index] == ':'u8
+        {
+            firstSeparator = index
+            break
+        }
+    }
+    if firstSeparator == body.count
+    {
+        var result: #returntype = {state: .Incomplete, pattern: ""}
+        return result
+    }
+
+    let afterOffset = cast(string, body[firstSeparator + 1 to])
+    var secondSeparator = afterOffset.count
+    for index in afterOffset.count
+    {
+        if afterOffset[index] == ':'u8
+        {
+            secondSeparator = index
+            break
+        }
+    }
+    if secondSeparator == afterOffset.count
+    {
+        var result: #returntype = {state: .Incomplete, pattern: ""}
+        return result
+    }
+
+    let parsedOffset = parseSearchRangeNumber(cast(string, body[0 until firstSeparator]))
+    let parsedLength = parseSearchRangeNumber(cast(string, afterOffset[0 until secondSeparator]))
+    if parsedOffset.state != .Valid or parsedLength.state != .Valid
+    {
+        var result: #returntype = {state: parsedOffset.state == .Invalid or parsedLength.state == .Invalid ? .Invalid : .Incomplete, pattern: ""}
+        return result
+    }
+
+    var result: #returntype = {state: .Incomplete, pattern: ""}
+    result.pattern = Latin1.trim(cast(string, afterOffset[secondSeparator + 1 to]))
+    if not result.pattern.count
+    {
+        result.state = .Incomplete
+        return result
+    }
+
+    result.state  = .Valid
+    result.offset = parsedOffset.value
+    result.length = parsedLength.value
+    return result
+}
+
+// Parses an optional explicit file range followed by one of the viewer's pattern forms.
+func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchParse
+{
+    let trimmed = Latin1.trim(query)
+    if not Utf8.startsWith(trimmed, "range:", .Latin1NoCase) do
+        return parseSearchPattern(trimmed, grouping, bigEndian)
+
+    let header = parseSearchRangeHeader(trimmed)
+    if header.state != .Valid
+    {
+        var result: #returntype
+        result.state = header.state
+        if header.state == .Invalid do
+            result.error = .Range
+        return result
+    }
+
+    var result = parseSearchPattern(header.pattern, grouping, bigEndian)
+    if result.state == .Valid
+    {
+        result.hasByteRange = true
+        result.rangeOffset  = header.offset
+        result.rangeLength  = header.length
+    }
+    return result
 }

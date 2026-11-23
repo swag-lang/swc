@@ -54,31 +54,16 @@ are what separate that capable grid from a professional binary-analysis viewer.
   user can distinguish retryable change from a genuine read failure.
 - Related: app.scope.viewers.005
 
-### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
-
-- Evidence: Hexadecimal now reveals the first stable match while its 256 KiB file scan continues,
-  reports processed bytes, and offers a visible Cancel Search action that preserves found matches.
-  It retains at most the first 100,000 matches and continues scanning to EOF; F3/Shift+F3 wrap
-  through that retained set. Hex `selection:` queries capture the selected half-open byte range
-  before prior result presentation is cleared, seek directly to that range, accept only complete
-  matches inside it, and report progress relative to its length. If the captured range is no longer
-  available, the host reports a localized error. Unprefixed queries still scan the whole file.
-- Next: add arbitrary explicit byte-range queries and define consistent forward, backward, and
-  all-match behavior across file, selection, and byte-range scopes while keeping progress,
-  cancellation, and bounded result storage.
-- Done when: the first match is navigable while scanning continues, progress names processed
-  bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
-  file, and forward/backward/all plus file/selection/range scopes behave consistently.
-
 ### app.scope.hexa.001 — The live data inspector lacks domain readings and copy
 
 - Evidence: the information band now follows `Viewers.Hex.GridView.sigCaretChanged` and simultaneously
   spells the exact caret bytes as signed, unsigned, hexadecimal, binary, octal, `f32`/`f64`, and
   printable readings at 8/16/32/64-bit widths in the active byte order, plus boolean at byte width.
-  It does not yet expose `f16`, GUID, timestamp, IP, color, BCD, or varint readings, and values
-  cannot be copied independently.
-- Next: add `f16` and the remaining domain readings, then one copy action per value without changing
-  grid grouping.
+  The inspector now also reads IEEE-754 binary16 in the active byte order whenever two bytes remain.
+  It does not yet expose GUID, timestamp, IP, color, BCD, or varint readings, and values cannot be
+  copied independently.
+- Next: add the remaining domain readings, then one copy action per value without changing grid
+  grouping.
 - Done when: the inspector simultaneously reports selection start/end/length and the caret as
   signed and unsigned 8/16/32/64-bit integers, hexadecimal, binary, octal, `f16`/`f32`/`f64`,
   boolean, character, GUID, common timestamps, IP addresses, colors, BCD, and varints where enough

@@ -77,6 +77,39 @@ func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
     return result
 }
 
+// Converts one IEEE-754 binary16 value to binary32 without relying on host-specific half types.
+func float16ToFloat(value: u16)->f32
+{
+    let sign     = cast(u32, value & 0x8000'u16) << 16
+    let exponent = (value >> 10) & 0x1F'u16
+    var fraction = cast(u32, value & 0x03FF'u16)
+    var bits     = sign
+    if exponent == 0
+    {
+        if fraction
+        {
+            var exponent32 = 113'u32
+            while (fraction & 0x400) == 0
+            {
+                fraction <<= 1
+                exponent32 -= 1
+            }
+            fraction &= 0x3FF
+            bits |= exponent32 << 23 | fraction << 13
+        }
+    }
+    elif exponent == 0x1F
+    {
+        bits |= 0x7F800000 | fraction << 13
+    }
+    else
+    {
+        bits |= (cast(u32, exponent) + 112) << 23 | fraction << 13
+    }
+
+    return cast #bit (f32, bits)
+}
+
 // Hexadecimal view of any file, whatever its size.
 //
 // The view owns the grid the bytes are read in and the compact command group the host places in
@@ -695,6 +728,8 @@ impl Panel
         {
             let value = readScalar(bytes[until 2], bigEndian)
             view.readings.add({"u16", Viewer.groupThousands(value), false})
+            view.readings.add({texts().ui_InspectorFloat16,
+                               Format.toString("%{g4}", float16ToFloat(cast(u16, value))), false})
         }
 
         if bytes.count < 4 do
@@ -782,6 +817,11 @@ impl Panel
         let patternQuery = selectionScoped ? Latin1.trim(cast(string, trimmed[10 to])) : query
         if selectionScoped
         {
+            if Utf8.startsWith(patternQuery, "range:", .Latin1NoCase)
+            {
+                result.error = texts().ui_SearchRangeInvalid
+                return .InvalidVisible
+            }
             if not .grid.hasSelection()
             {
                 result.error = texts().ui_SearchSelectionRequired
@@ -799,10 +839,26 @@ impl Panel
             return .Incomplete
 
         case .Invalid:
-            result.error = parsed.error == .Value ? texts().ui_SearchValueError : texts().ui_SearchPatternError
+            if parsed.error == .Range
+            {
+                result.error = texts().ui_SearchRangeInvalid
+            }
+            else
+            {
+                result.error = parsed.error == .Value ? texts().ui_SearchValueError : texts().ui_SearchPatternError
+            }
             return .InvalidVisible
 
         case .Valid:
+            if parsed.hasByteRange
+            {
+                if parsed.rangeLength == 0 or not Viewer.isByteRangeInBounds(.grid.doc.fileSize, parsed.rangeOffset, parsed.rangeLength)
+                {
+                    result.error = texts().ui_SearchRangeInvalid
+                    return .InvalidVisible
+                }
+                result.byteRange = {offset: parsed.rangeOffset, length: parsed.rangeLength}
+            }
             .searchPattern = #move parsed.pattern
             result.span    = .searchPattern.length()
             return .Valid

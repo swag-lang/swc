@@ -211,7 +211,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   partial-publication rules, and a shared terminal status.
 - Done when: opening and analysis operations remain interruptible, replacement files retire old
   work promptly, the overlay names the current phase, and cancellation never becomes an error.
-- Related: app.scope.hexa.006, std.gui.pdf.029
+- Related: std.gui.pdf.029
 
 ### app.scope.viewers.016 — Whole-file search has no inspectable result set or context projection
 

@@ -36,12 +36,14 @@ struct Texts
     ui_SelectAll:              string = "Select All"                                                                                          // Menu entry selecting the whole file.
     ui_RowWidth:               string = "Bytes per Row"                                                                                       // Option choosing how many bytes one row shows.
     ui_RowAuto:                string = "Fit the Window"                                                                                      // Row width following the window width.
-    ui_SearchPlaceholder:      string = "Hex, text:, value:, or selection:"                                                                  // Placeholder naming the binary query forms and selection scope.
-    ui_SearchHelp:             string = "Use selection: to search only selected bytes; add hex:, text:, or value: for the pattern form. ? matches a nibble." // Tooltip explaining selection scope and binary query syntax.
+    ui_SearchPlaceholder:      string = "Hex, text:, value:, selection:, or range:"                                                          // Placeholder naming the binary query forms and byte scopes.
+    ui_SearchHelp:             string = "Use selection: for selected bytes or range:offset:length:pattern for an explicit range. Bare numbers and 0x are hex; 0d is decimal. Add hex:, text:, or value: for the pattern form. ? matches a nibble." // Tooltip explaining binary query syntax.
     ui_SearchSelectionRequired: string = "Select bytes before using selection:"                                                               // Error when selection scope has no active byte selection.
+    ui_SearchRangeInvalid:     string = "Use range:offset:length:pattern with a nonzero range inside the file; bare numbers and 0x are hex, 0d is decimal." // Invalid, empty, or out-of-file explicit byte range.
     ui_SearchPatternError:     string = "Use hexadecimal byte pairs with ??, ?A, or A? wildcards."                                            // Invalid hexadecimal pattern.
     ui_SearchValueError:       string = "Enter a value that fits the active width and representation."                                        // Invalid active scalar.
     ui_InspectorAt:            string = "% at 0x%"                                                                                            // What the inspector read its value as, and where; placeholders: the reading, the offset.
+    ui_InspectorFloat16:       string = "f16"                                                                                                // IEEE-754 binary16 reading of the caret bytes.
     ui_DetailsCaret:           string = "%{f1}%% · value % · caret %/%"                                                                        // Whole-file percentage, active value, caret in hex and decimal.
     ui_DetailsSelection:       string = "%{f1}%% · value % · sel %–% (%–%) · len %/% · caret %/%"                                               // Percentage, value, selection bounds/length and caret in both radices.
     ui_Analysis:               string = "Analysis"                                                                                            // Heading of the byte-analysis panel.

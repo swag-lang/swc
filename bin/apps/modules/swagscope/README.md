@@ -331,7 +331,10 @@ are also available.
   `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
   visible result is marked while the shared animated marker identifies the current occurrence.
   Prefix a query with `selection:` (for example, `selection: hex: 4D 5A`) to search only the byte
-  selection active when the query starts; matches must fit fully inside that range.
+  selection active when the query starts; matches must fit fully inside that range. Use
+  `range:<offset>:<length>:<pattern>` to search another half-open byte range, for example
+  `range:0x100:0d4096:hex:4D 5A`. Bare numbers and `0x` are hexadecimal; `0d` selects decimal.
+  The range must be nonempty and contained in the file, and matches cannot cross either boundary.
   A cancellable, streaming analysis of the selection or whole file adds a 256-value byte map,
   exact counts, entropy, zero and printable ratios, and bounded inferred ASCII and UTF-16 strings;
   it also reports entropy across up to 256 blocks and exact repeats among complete 64 KiB blocks

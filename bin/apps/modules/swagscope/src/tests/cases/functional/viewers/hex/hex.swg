@@ -221,6 +221,55 @@ internal func writeSampleFile()->String
     Swag.require(Hex.parseSearch("value: 70000", .Unsigned16, false).error == .Value)
 }
 
+// The inspector decodes IEEE-754 binary16 in either byte order and only when two bytes remain.
+#test
+{
+    Swag.require(Hex.float16ToFloat(0x3C00) == 1'f32)
+    Swag.require(Hex.float16ToFloat(0x0001) == 5.960464477539063e-8'f32)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0x0400)) == 0x38800000)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0x7BFF)) == 0x477FE000)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0x0000)) == 0x00000000)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0x8000)) == 0x80000000)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0x7C00)) == 0x7F800000)
+    Swag.require(cast #bit (u32, Hex.float16ToFloat(0xFC00)) == 0xFF800000)
+    let nanBits = cast #bit (u32, Hex.float16ToFloat(0x7E00))
+    Swag.require((nanBits & 0x7F800000) == 0x7F800000 and (nanBits & 0x007FFFFF) != 0)
+    let bigEndianBytes: Array'u8 = [0x3C, 0x00]
+    Swag.require(Hex.float16ToFloat(cast(u16, Hex.readScalar(bigEndianBytes.toSlice(), true))) == 1'f32)
+
+    let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-f16-", ".bin")
+    defer discard catch File.delete(fileName)
+    let halfValue: Array'u8 = [0x00, 0x3C]
+    expect File.writeAllBytes(fileName, halfValue.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(1200, 680)
+    let view = hexTestViewer(&host, fileName, 1200, 640)
+    view.refreshInspector()
+    var found = false
+    for line in view.inspectorView.readings where line.label == Hex.texts().ui_InspectorFloat16
+    {
+        Swag.require(line.value == "1", line.value)
+        found = true
+    }
+    Swag.require(found)
+
+    view.grid.bigEndian = true
+    view.refreshInspector()
+    found = false
+    for line in view.inspectorView.readings where line.label == Hex.texts().ui_InspectorFloat16
+    {
+        Swag.require(line.value != "1", line.value)
+        found = true
+    }
+    Swag.require(found)
+
+    view.grid.moveCaret(1, false)
+    view.refreshInspector()
+    for line in view.inspectorView.readings do
+        Swag.require(line.label != Hex.texts().ui_InspectorFloat16)
+}
+
 // Range analysis streams fixed byte counts and keeps inferred strings tied to their source bytes.
 #test
 {

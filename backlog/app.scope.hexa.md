@@ -9,7 +9,8 @@ stays in [app.scope.md](app.scope.md); cross-viewer contracts stay in
 
 The current foundation already has a 256 KiB resident window aligned to 64 KiB, 64-bit offsets,
 proportional whole-file scrolling, mouse and keyboard selection, a named 1 MiB clipboard bound,
-absolute, named, percentage, decimal, and caret-relative jumps, fitted or fixed row widths, and
+expression-based absolute, named, percentage, decimal, and caret-relative jumps (including Hex
+base and bookmark origins), fitted or fixed row widths, and
 8/16/32/64-bit signed, unsigned, hexadecimal, binary, octal, and floating-point readings in either
 byte order. Streamed search
 accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, marks all visible
@@ -55,14 +56,16 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.006 — Whole-file search cannot yield early, cancel visibly, or bound its matches
 
-- Evidence: the streamed-file search path used by Hexadecimal appends every occurrence to
-  `ViewerWindow.searchMatches` and finalizes its presentation only at EOF. Other viewer-owned
-  match collectors already publish intermediate results. This file-scanning path exposes no byte
-  progress or cancellation action. A file filled with a
-  frequent byte sequence can make result memory proportional to file size even though display is
-  bounded.
-- Next: extend the search contract with incremental batches, cancellation, progress, and a paged or
-  capped result index while preserving F3/Shift+F3 wrapping.
+- Evidence: Hexadecimal now reveals the first stable match while its 256 KiB file scan continues,
+  reports processed bytes, and offers a visible Cancel Search action that preserves found matches.
+  It retains at most the first 100,000 matches and continues scanning to EOF; F3/Shift+F3 wrap
+  through that retained set. Hex `selection:` queries capture the selected half-open byte range
+  before prior result presentation is cleared, seek directly to that range, accept only complete
+  matches inside it, and report progress relative to its length. If the captured range is no longer
+  available, the host reports a localized error. Unprefixed queries still scan the whole file.
+- Next: add arbitrary explicit byte-range queries and define consistent forward, backward, and
+  all-match behavior across file, selection, and byte-range scopes while keeping progress,
+  cancellation, and bounded result storage.
 - Done when: the first match is navigable while scanning continues, progress names processed
   bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
   file, and forward/backward/all plus file/selection/range scopes behave consistently.
@@ -143,19 +146,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
   data, distant jumps retire obsolete reads, progress/error presentation is shared with the host,
   and resident memory remains explicitly bounded.
 
-### app.scope.hexa.009 — Navigation address expressions remain partial
-
-- Evidence: the information band now reports the caret in hexadecimal and decimal, selection
-  bounds and length, the active value, and whole-file percentage. Go To accepts bare and `0x`
-  hexadecimal, `0d` decimal, percentages, named `caret` and `filesize`, and signed caret-relative
-  deltas with explicit invalid and out-of-range handling.
-- Next: extend the side-effect-free parser with arithmetic, alignment, a configurable base address,
-  and a named bookmark origin.
-- Done when: caret, selection start/end/length, active value, and file percentage are visible in
-  hexadecimal and decimal; Go To accepts named `caret` and `filesize`, arithmetic, alignment,
-  percentage, decimal/hex input, configurable base address, and a named bookmark origin; invalid
-  and out-of-range expressions remain explicit.
-
 ### app.scope.hexa.010 — Row layout and reading presentation are only partly configurable
 
 - Evidence: row width is auto or one of 8/16/32/64, byte grouping is fixed at eight in raw-byte
@@ -188,7 +178,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Done when: a compact minimap marks current viewport, selection, search results, bookmarks,
   comparison blocks, structured ranges, and optional entropy without loading the file or obscuring
   ordinary scrollbar interaction.
-- Related: app.scope.hexa.003, app.scope.hexa.004, app.scope.hexa.018
+- Related: app.scope.hexa.003, app.scope.hexa.004
 
 ### app.scope.hexa.013 — Hexadecimal state is not restored
 
@@ -225,33 +215,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
   or the complete collection.
 - Related: app.scope.hexa.001, app.scope.hexa.011
 
-### app.scope.hexa.017 — Checksums stop at CRC-32 and SHA-256 of an analyzed range
-
-- Evidence: an analysis read in full (selection, or the whole file) computes the CRC-32, MD5,
-  SHA-1 and SHA-256 of its range in the same streamed, cancellable pass. The analysis panel shows
-  the CRC-32 and SHA-256 on one line whose tooltip gives all four whole, and the lens copies each.
-  CRC-64, SHA-512 and BLAKE2 are absent, a digest cannot be asked for without the rest of the
-  analysis, and the copy omits the range.
-- Next: let the panel choose the algorithms it computes, and copy a result with its algorithm and
-  range.
-- Done when: checksum, CRC32/CRC64, MD5, SHA-1, SHA-256/SHA-512, and BLAKE2 can run over file or
-  selection with progress and cancellation, never make the range resident, and copy a result with
-  its algorithm and range.
-
-### app.scope.hexa.018 — Byte-distribution analysis lacks block-level findings
-
-- Evidence: the analysis action now streams either the current selection or the whole file through
-  a cancellable 256 KiB job. Its panel publishes a 256-value byte map with exact hover counts,
-  entropy, zero and printable ratios, and a bounded table of inferred ASCII and UTF-16 LE/BE
-  strings whose rows navigate back to their exact byte ranges. It does not yet show entropy by
-  block or repeated-pattern evidence.
-- Next: retain bounded per-block summaries during the same pass, then publish entropy landmarks and
-  repeated-block hints that navigate to both occurrences without retaining file-sized state.
-- Done when: histogram, entropy, zero/printable ratios, chunked entropy, repeated-block hints,
-  and ASCII/UTF string extraction operate on file or selection, results navigate back to bytes, and
-  every analysis remains bounded and labels inference as inference.
-- Related: app.scope.hexa.005, app.scope.hexa.012
-
 ### app.scope.hexa.019 — There is no safe declarative binary schema for unknown formats
 
 - Evidence: the `Binary` viewer contains curated compiled readers, but a reader cannot describe a
@@ -275,7 +238,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Done when: supported executable architectures disassemble selected bytes with file offset and
   virtual address, instructions navigate back to exact byte ranges, invalid opcodes advance safely,
   and no execution or process attachment is introduced.
-- Related: app.scope.hexa.002, app.scope.hexa.009
+- Related: app.scope.hexa.002
 
 ### app.scope.hexa.021 — Selected binary data has no domain visualizers
 

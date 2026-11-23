@@ -252,6 +252,7 @@ struct AppStrings
     ui_Search:                         string = "Find in document"                                // Placeholder of the search field.
     ui_SearchPrevious:                 string = "Previous Match (Shift F3)"                       // Tooltip of the previous-match button.
     ui_SearchNext:                     string = "Next Match (F3)"                                 // Tooltip of the next-match button.
+    ui_SearchCancel:                   string = "Cancel Search"                                   // Tooltip of the button that stops a running file scan.
     ui_SearchOptions:                  string = "Search Options"                                  // Tooltip of the search-options menu button.
     ui_SearchMode:                     string = "Search"                                          // Shared query mode that finds occurrences.
     ui_FilterMode:                     string = "Filter"                                          // Shared query mode that limits visible viewer rows.
@@ -261,6 +262,10 @@ struct AppStrings
     ui_SearchInvalidRegularExpression: string = "Invalid regular expression"                      // Status tooltip for regexp syntax that cannot be compiled.
     ui_NoMatch:                        string = "No match"                                        // Status line when a search reached the end with nothing.
     ui_Searching:                      string = "Searching…"                                      // Status line while a search scans the file.
+    ui_SearchProgress:                 string = "Processed % of %"                                // Status tooltip naming the stable scanned and total file sizes.
+    ui_SearchCancelled:                string = "Search cancelled after %"                        // Status tooltip after the reader stops a file scan.
+    ui_SearchResultsLimited:           string = "Showing the first % matches"                     // Status when the bounded file-search index reached its limit.
+    ui_SearchRangeUnavailable:          string = "The selected byte range is no longer available" // Error when a captured search range cannot be read completely.
     ui_DropTitle:                      string = "Drop a file to view it"                          // Invitation shown while no file is open.
     home_Invite:                       string = "Drop a file or a folder to look at it"           // Invitation beside the home actions, with or without recent files.
     home_Continue:                     string = "Continue"                                        // Section label of the home card when the last file can be taken up again.

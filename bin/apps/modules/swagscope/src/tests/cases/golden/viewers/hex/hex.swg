@@ -144,7 +144,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
         Swag.require(.fields.isEmpty())
     }
 
-    Swag.require(Utf8.contains(view.details.toSlice(), "0x0003FFFE"))
+    Swag.require(Utf8.contains(view.details.toSlice(), "0x3FFFE"))
 }
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
@@ -178,11 +178,12 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     Swag.require(view.analysisView.isLocallyVisible() and view.analysisView.result.scanned == view.grid.doc.fileSize)
     Swag.require(view.analysisView.result.entropy > 0 and view.analysisView.histogram.total == view.grid.doc.fileSize)
-    Swag.require(view.analysisView.stringsList.virtualCount == view.analysisView.result.strings.count)
+    Swag.require(view.analysisView.findingsList.virtualCount ==
+                 view.analysisView.result.strings.count + view.analysisView.result.repeatedBlocks.count * 2)
     Swag.require(view.analysisView.result.strings.count >= 2)
 
     let first = &view.analysisView.result.strings[0]
-    view.analysisView.stringsList.selectLine(0)
+    view.analysisView.findingsList.selectLine(0)
     Swag.require(view.grid.selectionStart() == first.offset and view.grid.selectionLength() == first.length)
 
     // Re-running analysis derives its range from the live grid selection. It does not replay the
@@ -193,7 +194,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     completeHexViewerAnalysis(&host, view)
     Swag.require(view.analysisView.selection and view.analysisView.result.range.offset == selectedStart)
     Swag.require(view.analysisView.result.range.length == selectedLength)
-    Swag.require(not view.analysisView.stringsList.header.flags.has(.Separators))
+    Swag.require(not view.analysisView.findingsList.header.flags.has(.Separators))
 
     window.layoutFileInfo()
     window.resize(1_100, 700)
@@ -214,6 +215,56 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.require(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)
 }
 
+// The bounded repeat section stays readable beside the byte map and its two occurrence rows
+// remain usable as navigation targets in the shipped viewer layout.
+#[Swag.TestTag("golden")]
+#test
+{
+    const BlockSize = 64 * 1024'u64
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-repeated-blocks-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    var payload: Array'u8
+    payload.resize(BlockSize * 4)
+    for index in BlockSize
+    {
+        let value = cast(u8, index % 251)
+        payload[index] = value
+        payload[BlockSize * 2 + index] = value
+        payload[BlockSize + index] = 0x5A
+        payload[BlockSize * 3 + index] = value
+    }
+    payload[BlockSize * 3 + 123] ^= 1
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(1_100, 700)
+    host.theme.setDark()
+    shipFrame(&host)
+    var registry = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move registry)
+    window.openFile(fileName)
+    completeHexViewerOpen(&host, window)
+    let view = selectHexViewer(&host, window)
+    view.analysisButton.setChecked(true)
+    view.analysisButton.sigCheckedChanged.call(view.analysisButton)
+    completeHexViewerAnalysis(&host, view)
+
+    Swag.require(view.analysisView.result.repeatedBlocks.count == 1)
+    Swag.require(view.analysisView.findingsList.virtualCount == view.analysisView.result.strings.count + 2)
+    view.analysisView.findingsList.selectLine(0)
+    Swag.require(view.grid.selectionStart() == 0 and view.grid.selectionLength() == BlockSize)
+    view.analysisView.findingsList.selectLine(1)
+    Swag.require(view.grid.selectionStart() == BlockSize * 2 and view.grid.selectionLength() == BlockSize)
+
+    window.layoutFileInfo()
+    window.resize(1_100, 700)
+    window.applyLayout()
+    host.moveMouse({-1, -1})
+    var image = host.renderSettled(window)
+    assertScopeImageGolden(&image, "viewer.hex.repeated-blocks")
+}
+
 // The options of the bytes stand on the line of readings before the zoom, a quiet glyph like it:
 // the viewer has no other command to float over the grid.
 #[Swag.TestTag("golden")]
@@ -229,7 +280,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.require(view.optionsButton.parent == view.zoomLabel!.parent)
     Swag.require(view.optionsButton.position.right() <= view.zoomLabel.position.x)
     Swag.require(not view.bigEndian and view.rowWidthIndex == 0)
-    Swag.require(view.details == "0x00000000")
+    Swag.require(view.details == "0.0% · value 83 · caret 0x0/0")
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear

@@ -112,6 +112,7 @@ struct Panel
     searchPattern:     SearchPattern
     bookmarkOffset:    u64
     hasBookmark:       bool     // One session-local byte offset; set after the lens stores it.
+    baseAddress:       u64      // Virtual address mapped to file offset zero for Go To expressions.
     navigationHistory: Array'u64
     navigationIndex:   u64 = Swag.U64.Max
     navigatingHistory: bool
@@ -288,14 +289,14 @@ impl Panel
     private mtd analysisRange()->{range: AnalysisRange, selection: bool}
     {
         var result: #returntype
-        result.selection = .grid.selectionLength() > 1
+        result.selection = .grid.hasSelection()
         result.range     = result.selection ?
                            AnalysisRange{.grid.selectionStart(), .grid.selectionLength()} :
                            AnalysisRange{0, .grid.doc.fileSize}
         return result
     }
 
-    // Shows the analysis panel and analyzes the selection, or the whole file when one byte is selected.
+    // Shows the analysis panel and analyzes the selection, or the whole file when only the caret is set.
     //
     // An analysis already running keeps going; the panel only shows it again.
     mtd startAnalysis()
@@ -318,7 +319,7 @@ impl Panel
         .analysisView.show()
         .analysisView.begin(range, selection, .grid.offsetDigits)
         .applyLayout()
-        .analysis.start(.fileName, range, me)
+        .analysis.start(.fileName, range, me, .analysisView.algorithms)
         .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
@@ -413,7 +414,7 @@ impl Panel
         // `:` and an offset, in the grammar of Go to Offset, go there.
         if entries.results.prefix == .Line
         {
-            let target = parseFileOffset(entries.query.toString(), .grid.caret, .grid.doc.fileSize)
+            let target = parseFileOffset(entries.query.toString(), .grid.caret, .grid.doc.fileSize, .baseAddress, .bookmarkOffset, true)
             if target != Swag.U64.Max
             {
                 let value = formatDigits(target, .grid.offsetDigits)
@@ -429,6 +430,7 @@ impl Panel
         let bounded      = .grid.selectionLength() > CopyLimit
         let limit        = StrConv.toDisplaySize(CopyLimit)
         entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.hex.goTo")
+        entries.add(strings.ui_SetBaseAddress, .Settings, func|view = me|() { view.promptBaseAddress() }, bindId: "scope.hex.setBaseAddress")
         let canGoBack    = .navigationIndex != Swag.U64.Max and .navigationIndex > 0
         let canGoForward = .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not canGoBack, defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.hex.back")
@@ -438,7 +440,7 @@ impl Panel
         entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not hasSelection, bindId: "scope.hex.copyDump")
         entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize, bindId: "scope.hex.copyOffset")
         entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.hex.selectAll")
-        entries.add(strings.ui_SetBookmark, .GoTo, func|view = me|() { view.bookmarkOffset = view.grid.caret; view.hasBookmark = true }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B}, bindId: "scope.hex.setBookmark")
+        entries.add(strings.ui_SetBookmark, .GoTo, func|view = me|() { view.bookmarkOffset = view.grid.caret; view.grid.bookmarkOffset = view.bookmarkOffset; view.hasBookmark = true }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B}, bindId: "scope.hex.setBookmark")
         if .hasBookmark
         {
             let bookmark = .bookmarkOffset
@@ -455,16 +457,18 @@ impl Panel
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.grid.resetFontSize() })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.hex.zoomMenu")
 
-        // The checksums of the last analysis read in full, each copied whole with its own row.
+        // Each copied checksum names its algorithm and the half-open byte range it covers.
         let result = &.analysisView.result
         if result.hasDigests
         {
-            let crc = entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.crc32Text()) }, bindId: "scope.hex.analysisCopyCrc32")
-            if crc do
-                crc.detail = result.crc32Text()
-            entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha256Text()) }, bindId: "scope.hex.analysisCopySha256")
-            entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.md5Text()) }, bindId: "scope.hex.analysisCopyMd5")
-            entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha1Text()) }, bindId: "scope.hex.analysisCopySha1")
+            if result.algorithms.crc32 do entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-32", view.analysisView.result.crc32Text())) }, bindId: "scope.hex.analysisCopyCrc32")
+            if result.algorithms.crc64 do entries.add(strings.ui_AnalysisCopyCrc64, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-64/ECMA-182", view.analysisView.result.crc64Text())) }, bindId: "scope.hex.analysisCopyCrc64")
+            if result.algorithms.md5 do entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("MD5", view.analysisView.result.md5Text())) }, bindId: "scope.hex.analysisCopyMd5")
+            if result.algorithms.sha1 do entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-1", view.analysisView.result.sha1Text())) }, bindId: "scope.hex.analysisCopySha1")
+            if result.algorithms.sha256 do entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-256", view.analysisView.result.sha256Text())) }, bindId: "scope.hex.analysisCopySha256")
+            if result.algorithms.sha512 do entries.add(strings.ui_AnalysisCopySha512, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-512", view.analysisView.result.sha512Text())) }, bindId: "scope.hex.analysisCopySha512")
+            if result.algorithms.blake2s do entries.add(strings.ui_AnalysisCopyBlake2s, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2s-256", view.analysisView.result.blake2sText())) }, bindId: "scope.hex.analysisCopyBlake2s")
+            if result.algorithms.blake2b do entries.add(strings.ui_AnalysisCopyBlake2b, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2b-512", view.analysisView.result.blake2bText())) }, bindId: "scope.hex.analysisCopyBlake2b")
         }
     }
 
@@ -613,7 +617,6 @@ impl Panel
     mtd refreshInspector()
     {
         .tabs.follow(.grid.caret)
-        .refreshDetails()
 
         with let view = .inspectorView
         {
@@ -629,17 +632,24 @@ impl Panel
             .inspectorView.invalidate()
         }
 
-        if not .grid.doc.fileSize do
+        if not .grid.doc.fileSize
+        {
+            .refreshDetails()
             return
+        }
         let caret     = .grid.caret
         let bytes     = .grid.doc.read(caret, Math.min(8'u64, .grid.doc.fileSize - caret))
         let bigEndian = .readingBigEndian()
-        if bytes.isEmpty() do
+        if bytes.isEmpty()
+        {
+            .refreshDetails()
             return
+        }
 
         .describeValue(caret, bigEndian)
         .describeReadings(bytes.toSlice(), bigEndian)
         .describeFields(caret)
+        .refreshDetails()
     }
 
     // Writes the value under the caret in large type, and what it was read as: the field of the
@@ -724,20 +734,33 @@ impl Panel
         }
     }
 
-    // Writes the reading line under the grid: the selected range and its length, or the caret's
-    // offset. The host adds the size of the file after it.
+    // Writes the caret, selection, active value, and percentage to the reading line. The host adds
+    // the file size and keeps the complete string as the line's tooltip.
     mtd refreshDetails()
     {
-        if .grid.selectionLength() > 1
+        let fileSize = .grid.doc.fileSize
+        let percent = fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, fileSize - 1) : 0'f64
+        let hexCaret = Format.toString("0x%{X}", .grid.caret)
+        let decimalCaret = Format.toString("%", .grid.caret)
+        var value = .inspectorView.headline.isEmpty() ? String.from("—") : .inspectorView.headline
+        value.replace(" ", "")
+        if .grid.hasSelection()
         {
             .details = Format.toString(texts().ui_DetailsSelection,
+                                       percent,
+                                       value,
                                        Format.toString("0x%{X}", .grid.selectionStart()),
                                        Format.toString("0x%{X}", .grid.selectionEnd()),
-                                       Viewer.groupThousands(.grid.selectionLength()))
+                                       Format.toString("%", .grid.selectionStart()),
+                                       Format.toString("%", .grid.selectionEnd()),
+                                       Format.toString("%", .grid.selectionLength()),
+                                       Format.toString("0x%{X}", .grid.selectionLength()),
+                                       hexCaret,
+                                       decimalCaret)
         }
         else
         {
-            .details = Format.toString("0x%", .offsetText(.grid.caret))
+            .details = Format.toString(texts().ui_DetailsCaret, percent, value, hexCaret, decimalCaret)
         }
 
         .services.showDetails(me, .details)
@@ -754,7 +777,22 @@ impl Panel
     // reporting a visible error for an invalid value or pattern.
     mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
-        var parsed = parseSearch(query, .grid.grouping, .grid.bigEndian)
+        let trimmed = Latin1.trim(query)
+        let selectionScoped = Utf8.startsWith(trimmed, "selection:", .Latin1NoCase)
+        let patternQuery = selectionScoped ? Latin1.trim(cast(string, trimmed[10 to])) : query
+        if selectionScoped
+        {
+            if not .grid.hasSelection()
+            {
+                result.error = texts().ui_SearchSelectionRequired
+                return .InvalidVisible
+            }
+            if not patternQuery.count do
+                return .Incomplete
+            result.byteRange = {offset: .grid.selectionStart(), length: .grid.selectionLength()}
+        }
+
+        var parsed = parseSearch(patternQuery, .grid.grouping, .grid.bigEndian)
         switch #complete parsed.state
         {
         case .Incomplete:
@@ -785,6 +823,33 @@ impl Panel
 
 impl Panel
 {
+    // Keeps the configured virtual base address available to every Go To entry point.
+    mtd setBaseAddress(address: u64)
+    {
+        .baseAddress = address
+        .grid.baseAddress = address
+    }
+
+    // Asks for the virtual address that maps to file offset zero; entering zero clears it.
+    mtd promptBaseAddress()
+    {
+        let current = Format.toString("0x%{X}", .baseAddress)
+        with var options: EditDlgOptions
+        {
+            .title   = texts().ui_SetBaseAddress
+            .message = texts().ui_BaseAddressMessage
+            .text    = current
+        }
+
+        let dialog = EditDlg.createSingleLine(unwrap .surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+
+        let address = parseFileOffset(dialog.text(), 0, Swag.U64.Max)
+        if address != Swag.U64.Max do
+            .setBaseAddress(address)
+    }
+
     // Builds the hex panel: command bar, analysis panel, information group and byte grid. Loads the
     // file in the background.
     func create(host: Viewer.Host)->*Panel
@@ -923,6 +988,8 @@ impl Panel
     {
         with .grid = GridView.create(me)
         {
+            .baseAddress    = me.baseAddress
+            .bookmarkOffset = me.hasBookmark ? me.bookmarkOffset : Swag.U64.Max
             .sigGoToOffset += func|view = me|(_, offset)
             {
                 view.recordNavigation(offset, view.grid.caret)

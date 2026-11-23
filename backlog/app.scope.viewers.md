@@ -156,7 +156,7 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format
   detection explains its evidence, hashes are cancellable for large files, and viewers can link a
   property to the content it describes.
-- Related: app.scope.hexa.017, app.scope.image.003
+- Related: app.scope.image.003
 
 ### app.scope.viewers.011 — Attacker-controlled decoders share the application process
 

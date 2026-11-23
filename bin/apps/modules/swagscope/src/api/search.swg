@@ -82,13 +82,26 @@ struct SearchPresentation
 // Describes the active viewer's search syntax in the application's current language.
 alias DescribeSearch = func||(*SearchPresentation)
 
+// A byte range in a streamed source. `length` bytes beginning at `offset` are searched; the
+// half-open interval is [offset, offset + length). Matches must fit entirely inside it. A zero
+// length means no range was requested, so the host searches the whole file.
+struct SearchByteRange
+{
+    public
+    {
+        offset: u64 // Absolute byte offset of the first searchable byte.
+        length: u64 // Number of searchable bytes beginning at `offset`.
+    }
+}
+
 // Describes a streamed-file search prepared by a viewer.
 struct SearchPlan
 {
     public
     {
-        span:  u64        // Greatest number of source bytes one match can cover.
-        error: String     // Explanation shown beside the shared field when the query is invalid.
+        span:      u64               // Greatest number of source bytes one match can cover.
+        byteRange: SearchByteRange    // Absolute half-open range; length zero searches the whole file.
+        error:     String             // Explanation shown beside the shared field when the query is invalid.
     }
 }
 

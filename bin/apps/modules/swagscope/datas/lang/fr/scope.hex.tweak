@@ -19,33 +19,57 @@ ui_Back          Précédent
 ui_Forward       Suivant
 ui_SetBookmark   Marquer l’offset actuel
 ui_GoToBookmark  Aller à l’offset marqué (%)
-ui_GoToMessage   Décalage hexadécimal ou décimal préfixé par 0d, pourcentage, caret, filesize, ou décalage signé depuis le curseur.
+ui_SetBaseAddress Choisir l’adresse de base
+ui_BaseAddressMessage Adresse virtuelle hexadécimale ou décimale 0d ; saisir zéro pour la désactiver.
+ui_GoToMessage   Hexadécimal, décimal 0d, pourcentage, caret, filesize, bookmark ou base ; opérateurs +, -, *, /, parenthèses, align(valeur, limite). Un signe initial part du caret.
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
 ui_RowAuto       Ajuster à la fenêtre
-ui_SearchPlaceholder  Hexa, text: ou value:
-ui_SearchHelp         Utilisez des octets hexadécimaux et des jokers ? ; préfixez l’UTF-8 exact par text: ou la valeur active par value:.
+ui_SearchPlaceholder  Hexa, text:, value: ou selection:
+ui_SearchHelp         Utilisez selection: pour limiter la recherche aux octets sélectionnés ; ajoutez hex:, text: ou value: pour choisir le motif. ? remplace un demi-octet.
+ui_SearchSelectionRequired Sélectionnez des octets avant d’utiliser selection:
 ui_SearchPatternError Utilisez des paires hexadécimales avec les jokers ??, ?A ou A?.
 ui_SearchValueError   Saisissez une valeur adaptée à la largeur et à la représentation actives.
 ui_InspectorAt        % à 0x%
-ui_DetailsSelection   % – % · % octets sélectionnés
+ui_DetailsCaret       %{f1}%% · valeur % · caret %/%
+ui_DetailsSelection   %{f1}%% · valeur % · sél. %–% (%–%) · long. %/% · caret %/%
 
 ui_Analysis             Analyse
-ui_AnalysisTip          Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné
-ui_AnalysisRun          Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné
+ui_AnalysisTip          Analyser la sélection, ou le fichier entier lorsqu’aucune sélection n’est active
+ui_AnalysisRun          Analyser la sélection actuelle, ou le fichier entier lorsqu’aucune sélection n’est active
 ui_AnalysisCancel       Arrêter l’analyse
 ui_AnalysisClose        Fermer l’analyse
+ui_AnalysisAlgorithms   Algorithmes de somme
+ui_AnalysisCrc32        CRC-32
+ui_AnalysisCrc64        CRC-64/ECMA-182
+ui_AnalysisMd5          MD5
+ui_AnalysisSha1         SHA-1
+ui_AnalysisSha256       SHA-256
+ui_AnalysisSha512       SHA-512
+ui_AnalysisBlake2s      BLAKE2s-256
+ui_AnalysisBlake2b      BLAKE2b-512
 ui_AnalysisFile         Fichier entier · %
 ui_AnalysisSelection    Sélection @% · %
 ui_AnalysisProgress     Analyse · %{f1}%%
 ui_AnalysisCancelled    Arrêt après %
 ui_AnalysisMetrics      Entropie %{f2}/8 · zéro %{f1}%% · imprimable %{f1}%%
+ui_AnalysisEntropyBlocks Entropie par bloc · sélectionner un bloc pour examiner ses octets
+ui_AnalysisEntropy      Bits/octet
+ui_AnalysisFindings       Chaînes · répétitions de 64 Kio
+ui_AnalysisRepeatedBlockKind Bloc
+ui_AnalysisRepeatDetail À %
+ui_AnalysisRepeatLimited Résultats · limite des répétitions atteinte
+ui_AnalysisRepeatLimitsTip Au plus 256 blocs distincts et 256 paires répétées sont conservés.
 ui_AnalysisNoBytes      Aucun octet analysé
-ui_AnalysisDigests      CRC-32 % · SHA-256 %
-ui_AnalysisCopyCrc32    Copier le CRC-32 des octets analysés
-ui_AnalysisCopySha256   Copier le SHA-256 des octets analysés
-ui_AnalysisCopyMd5      Copier le MD5 des octets analysés
-ui_AnalysisCopySha1     Copier le SHA-1 des octets analysés
+ui_AnalysisDigests      Sommes calculées : %
+ui_AnalysisCopyCrc32     Copier le CRC-32 avec sa plage d’octets
+ui_AnalysisCopyCrc64     Copier le CRC-64 avec sa plage d’octets
+ui_AnalysisCopySha256   Copier le SHA-256 avec sa plage d’octets
+ui_AnalysisCopySha512   Copier le SHA-512 avec sa plage d’octets
+ui_AnalysisCopyBlake2s  Copier le BLAKE2s-256 avec sa plage d’octets
+ui_AnalysisCopyBlake2b  Copier le BLAKE2b-512 avec sa plage d’octets
+ui_AnalysisCopyMd5      Copier le MD5 avec sa plage d’octets
+ui_AnalysisCopySha1     Copier le SHA-1 avec sa plage d’octets
 ui_AnalysisByteHint     Survolez la carte pour voir le compte exact
 ui_AnalysisByte         Octet %{X02} · % occurrences · %{f2}%%
 ui_AnalysisByteOnce     Octet %{X02} · 1 occurrence · %{f2}%%
@@ -57,6 +81,8 @@ ui_AnalysisAscii        ASCII
 ui_AnalysisUtf16Little  UTF-16 LE
 ui_AnalysisUtf16Big     UTF-16 BE
 ui_AnalysisOffset       Décalage
+ui_AnalysisType         Type
+ui_AnalysisDetails      Détails
 ui_AnalysisEncoding     Encodage
 ui_AnalysisText         Texte
 err_AnalysisShortRead   Le fichier se termine avant la plage d’analyse

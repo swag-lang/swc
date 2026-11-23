@@ -61,6 +61,29 @@ internal func writeSampleFile()->String
     Swag.require(not view.failureReason.isEmpty())
 }
 
+// Replacing the document clears the old caret and selection state.
+#test
+{
+    let fileName = writeStreamedFile(16)
+    defer discard catch File.delete(fileName)
+    let replacementName = writeStreamedFile(4)
+    defer discard catch File.delete(replacementName)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    view.grid.selectRange(7, 1)
+    Swag.require(view.grid.hasSelection())
+
+    var replacement: Hex.Document
+    let opened = replacement.open(replacementName)
+    Swag.require(opened)
+    defer replacement.close()
+    view.grid.exchangeDocument(&replacement)
+    Swag.require(view.grid.caret == 0 and view.grid.selectionStart() == 0)
+    Swag.require(not view.grid.hasSelection() and view.grid.selectionLength() == 1)
+}
+
 // Typed grouping changes scalar presentation without taking byte-exact movement and selection away.
 #test
 {
@@ -130,7 +153,8 @@ internal func writeSampleFile()->String
     Swag.require(parseFileOffset("00 1F", 0, 1000) == 0x1F)
     Swag.require(parseFileOffset("0d31", 0, 1000) == 31)
     Swag.require(parseFileOffset("50%", 0, 1000) == 499)
-    Swag.require(parseFileOffset("caret", 0x20, 1000) == 0x20)
+    let caret = parseFileOffset("caret", 0x20, 1000)
+    Swag.require(caret == 0x20, Format.toString("caret resolved as %", caret))
     Swag.require(parseFileOffset("FileSize", 0, 1000) == 999)
     Swag.require(parseFileOffset("+10", 0x20, 1000) == 0x30)
     Swag.require(parseFileOffset("-10", 0x20, 1000) == 0x10)
@@ -141,6 +165,27 @@ internal func writeSampleFile()->String
     Swag.require(parseFileOffset("zz", 0, 1000) == Swag.U64.Max)
     Swag.require(parseFileOffset("", 0, 1000) == Swag.U64.Max)
     Swag.require(parseFileOffset("10", 0, 0) == Swag.U64.Max)
+}
+
+// Address expressions honor arithmetic precedence, alignment and the selected file origins.
+#test
+{
+    Swag.require(parseFileOffset("10 + 2 * 3", 0, 1000) == 0x16)
+    Swag.require(parseFileOffset("(10 + 2) * 3", 0, 1000) == 0x36)
+    Swag.require(parseFileOffset("align(17, 10)", 0, 1000) == 0x20)
+    Swag.require(parseFileOffset("align(20, 10)", 0, 1000) == 0x20)
+    Swag.require(parseFileOffset("base", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("bookmark", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("base + 10", 0, 1000, 0x400000, hasAddressContext: true) == 0x10)
+    Swag.require(parseFileOffset("align(base + 11, 10)", 0, 1000, 0x400000, hasAddressContext: true) == 0x20)
+    Swag.require(parseFileOffset("bookmark + 10", 0, 1000, bookmark: 0x40, hasAddressContext: true) == 0x50)
+    Swag.require(parseFileOffset("bookmark", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("base - 1", 0, 1000, 0x400000, hasAddressContext: true) == Swag.U64.Max)
+    Swag.require(parseFileOffset("1 / 0", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("align(10, 0)", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("FFFFFFFFFFFFFFFF * 2", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("10 +", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("(10", 0, 1000) == Swag.U64.Max)
 }
 
 // Binary queries preserve their exact byte span: pairs can carry nibble wildcards, text is UTF-8,
@@ -242,21 +287,127 @@ internal func writeSampleFile()->String
     Swag.require(stopped.cancelled and not stopped.scanned and not stopped.hasDigests)
 }
 
-// An analysis read in full gives the CRC-32 and SHA-256 of exactly its range, as checksum tools
-// print them; the lens copies each whole.
+// Entropy blocks stay bounded, retain exact byte ranges, and navigate from the findings list.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-entropy-blocks-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    const BlockSize = 64 * 1024'u64
+    var payload: Array'u8
+    payload.resize(BlockSize * 2 + 7)
+    for index in BlockSize do
+        payload[BlockSize + index] = cast(u8, index)
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{0, payload.count})
+    Swag.require(result.failureReason.isEmpty() and result.entropyBlocks.count == 3)
+    Swag.require(result.entropyBlocks[0].range.offset == 0 and result.entropyBlocks[0].range.length == BlockSize)
+    Swag.require(result.entropyBlocks[0].entropy == 0)
+    Swag.require(result.entropyBlocks[1].range.offset == BlockSize and result.entropyBlocks[1].range.length == BlockSize)
+    Swag.require(result.entropyBlocks[1].entropy > 7.99)
+    Swag.require(result.entropyBlocks[2].range.offset == BlockSize * 2 and result.entropyBlocks[2].range.length == 7)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    view.analysisView.publish(&result)
+    Swag.require(view.analysisView.entropyList.lineCount() == 3)
+    view.analysisView.entropyList.selectLine(1)
+    Swag.require(view.grid.caret == BlockSize and view.grid.selectionStart() == BlockSize and view.grid.selectionLength() == BlockSize)
+}
+
+// Repeated blocks are reported only after exact byte comparison, and both occurrences navigate
+// to their aligned ranges inside a non-zero analysis selection.
+#test
+{
+    const BlockSize = 64 * 1024'u64
+    let fileName = Gui.Testing.tempFilePath("scope-hex-repeated-blocks-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    let start = 37'u64
+    let length = BlockSize * 4 + 19
+    var payload: Array'u8
+    payload.resize(start + length + 11)
+    for index in BlockSize
+    {
+        let value = cast(u8, index % 251)
+        payload[start + index] = value
+        payload[start + BlockSize * 2 + index] = value
+        payload[start + BlockSize + index] = 0x5A
+        payload[start + BlockSize * 3 + index] = value
+    }
+    payload[start + BlockSize * 3 + 123] ^= 1
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{start, length})
+    Swag.require(result.failureReason.isEmpty() and result.scanned == length)
+    Swag.require(result.repeatedBlocks.count == 1)
+    Swag.require(result.repeatedBlocks[0].firstOffset == start)
+    Swag.require(result.repeatedBlocks[0].repeatedOffset == start + BlockSize * 2)
+    Swag.require(result.repeatedBlocks[0].length == BlockSize)
+    Swag.require(not result.repeatScanTruncated and not result.repeatHintsTruncated)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    view.analysisView.publish(&result)
+    Swag.require(view.analysisView.findingsList.virtualCount == view.analysisView.result.strings.count + 2)
+    view.analysisView.findingsList.selectLine(0)
+    Swag.require(view.grid.selectionStart() == start and view.grid.selectionLength() == BlockSize)
+    view.analysisView.findingsList.selectLine(1)
+    Swag.require(view.grid.selectionStart() == start + BlockSize * 2 and view.grid.selectionLength() == BlockSize)
+}
+
+// A complete analysis computes selectable checksums and copies each with its exact byte range.
 #test
 {
     let fileName = Testing.tempFilePath("scope-hex-digests-", ".bin")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, "xabcx")
 
-    let result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3})
+    var defaults: Hex.AnalysisAlgorithms
+    Swag.require(defaults.crc32 and defaults.md5 and defaults.sha1 and defaults.sha256)
+    Swag.require(not defaults.crc64 and not defaults.sha512 and not defaults.blake2s and not defaults.blake2b)
+
+    var all: Hex.AnalysisAlgorithms
+    all.crc64 = true
+    all.sha512 = true
+    all.blake2s = true
+    all.blake2b = true
+    let result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: all)
     Swag.require(result.hasDigests and result.scanned == 3)
     Swag.require(result.crc32Text() == "352441C2")
     Swag.require(result.sha256Text() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
     Swag.require(result.md5Text() == "900150983cd24fb0d6963f7d28e17f72", result.md5Text())
     Swag.require(result.sha1Text() == "a9993e364706816aba3e25717850c26c9cd0d89d", result.sha1Text())
+    Swag.require(result.crc64Text() == "66501A349A0E0855", result.crc64Text())
+    Swag.require(result.sha512Text() == "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f", result.sha512Text())
+    Swag.require(result.blake2sText() == "508c5e8c327c14e2e1a72ba34eeb452f37458b209ed63a294d999b4c86675982", result.blake2sText())
+    Swag.require(result.blake2bText() == "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923", result.blake2bText())
     Swag.require(Utf8.contains(result.digestsText(), "MD5 900150983cd24fb0d6963f7d28e17f72\nSHA-1 a9993e36"))
+    Swag.require(result.digestCopyText("SHA-256", result.sha256Text()) == "SHA-256 [0x0000000000000001, 0x0000000000000004) ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+
+    // Leaving two algorithms off leaves them out of the stream and the published copy actions.
+    var algorithms = all
+    algorithms.sha256 = false
+    algorithms.blake2b = false
+    let selected = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: algorithms)
+    Swag.require(selected.hasDigests and selected.algorithms.sha512 and not selected.algorithms.sha256 and not selected.algorithms.blake2b)
+    Swag.require(not selected.sha256[0] and not selected.blake2b[0])
+    Swag.require(not Utf8.contains(selected.digestsText(), "SHA-256") and not Utf8.contains(selected.digestsText(), "BLAKE2b"))
+
+    var none: Hex.AnalysisAlgorithms
+    none.crc32 = false
+    none.crc64 = false
+    none.md5 = false
+    none.sha1 = false
+    none.sha256 = false
+    none.sha512 = false
+    none.blake2s = false
+    none.blake2b = false
+    let noChecksums = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: none)
+    Swag.require(noChecksums.hasDigests and noChecksums.digestsText().isEmpty())
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
@@ -264,6 +415,7 @@ internal func writeSampleFile()->String
     var published = result
     view.analysisView.publish(&published)
     Swag.require(view.analysisView.digestsLabel.isLocallyVisible())
+    Swag.require(view.analysisView.algorithmsButton.toolTip == Hex.texts().ui_AnalysisAlgorithms)
 
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
@@ -275,7 +427,36 @@ internal func writeSampleFile()->String
         copied += 1
     }
 
-    Swag.require(copied == 1 and Clipboard.getString() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    Swag.require(copied == 1 and Clipboard.getString() == "SHA-256 [0x0000000000000001, 0x0000000000000004) ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+
+    // The panel toggles remain open for multiple choices and control the next streamed run.
+    host.activateOptionRowWhenShown(Hex.texts().ui_AnalysisSha256)
+    host.thenActivateOptionRow(Hex.texts().ui_AnalysisBlake2b)
+    host.thenActivateOptionRow(Hex.texts().ui_AnalysisSha512)
+    view.analysisView.showAlgorithmOptions()
+    Swag.require(host.autoHandled and not view.analysisView.algorithms.sha256 and view.analysisView.algorithms.blake2b and view.analysisView.algorithms.sha512)
+    view.analysis.start(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: view.analysisView.algorithms)
+    view.analysis.task.wait()
+    var selectedResult = view.analysis.finish()
+    Swag.require(selectedResult.hasDigests and selectedResult.algorithms.sha512 and not selectedResult.algorithms.sha256 and selectedResult.algorithms.blake2b)
+    view.analysisView.publish(&selectedResult)
+    results = {}
+    entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var sha512Copied = false
+    var sha256Available = false
+    for &entry in results.sections[0]!.entries
+    {
+        if entry.title == Hex.texts().ui_AnalysisCopySha512
+        {
+            entry.run!()
+            sha512Copied = true
+        }
+        if entry.title == Hex.texts().ui_AnalysisCopySha256 do sha256Available = true
+    }
+
+    Swag.require(sha512Copied and not sha256Available)
+    Swag.require(Clipboard.getString() == "SHA-512 [0x0000000000000001, 0x0000000000000004) ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f")
 }
 
 // Caret movement, selection, and the row width the window fits.
@@ -453,6 +634,31 @@ internal func writeSampleFile()->String
     Swag.require(not grid.goToTypedOffset("nowhere"))
     Swag.require(grid.caret == 0x300)
 
+    view.setBaseAddress(0x400000)
+    Swag.require(grid.baseAddress == 0x400000)
+    Swag.require(grid.goToTypedOffset("base + 20") and grid.caret == 0x20)
+
+    // The panel's bookmark action updates the same named origin the grid's dialog parses.
+    grid.moveCaret(0x50, false)
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var hasBookmarkAction = false
+    var hasBaseAction     = false
+    for &entry in results.sections[0]!.entries
+    {
+        if entry.title == Hex.texts().ui_SetBookmark
+        {
+            hasBookmarkAction = true
+            entry.run!()
+        }
+        if entry.title == Hex.texts().ui_SetBaseAddress do hasBaseAction = true
+    }
+
+    Swag.require(hasBookmarkAction and hasBaseAction)
+    Swag.require(view.hasBookmark and view.grid.bookmarkOffset == 0x50)
+    Swag.require(grid.goToTypedOffset("bookmark + 10") and grid.caret == 0x60)
+
     let defaultFontSize = grid.fontSize
     host.mouseWheel(grid.surfaceRect().center(), 120, .Control)
     Swag.require(grid.fontSize == defaultFontSize + 1)
@@ -470,6 +676,33 @@ internal func writeSampleFile()->String
     host.keyPress(.D0, .Control | .Shift)
     Swag.require(grid.fontSize == defaultFontSize + 1)
     host.keyPress(.D0, .Control)
+}
+
+// The reading line spells the caret, inclusive selection, active value, and file position.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-hex-readout-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllText(fileName, "0123456789")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+    let grid = view.grid
+
+    Swag.require(view.details == "0.0% · value 48 · caret 0x0/0")
+
+    grid.moveCaret(9, false)
+    Swag.require(view.details == "100.0% · value 57 · caret 0x9/9")
+
+    grid.moveCaret(1, false)
+    grid.moveCaret(3, true)
+    Swag.require(view.details == "33.3% · value 51 · sel 0x1–0x3 (1–3) · len 3/0x3 · caret 0x3/3")
+
+    view.resize(640, 320)
+    view.applyLayout()
+    view.grid.refreshLayout()
+    Testing.assertContentFits(view)
 }
 
 // A search hit is revealed at the offset the host found, and stays marked once the caret moves on.
@@ -617,6 +850,7 @@ internal func writeSampleFile()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.require(Hex.texts().ui_Empty == "Ce fichier est vide.")
+    Swag.require(Utf8.contains(Hex.texts().ui_DetailsCaret, "valeur %"))
     Swag.require(Hex.texts().ui_CopyFormats == "Autres formats de copie")
     var translated: OptionSheet.Page
     view.describeOptions(&translated)
@@ -625,10 +859,10 @@ internal func writeSampleFile()->String
     Swag.require(view.optionsButton.toolTip == "Options")
     Swag.require(view.goToButton.toolTip == "Aller au décalage" and not view.goToButton.isEnabled())
     Swag.require(view.copyFormatsButton.toolTip == "Autres formats de copie" and not view.copyFormatsButton.isEnabled())
-    Swag.require(view.details == "0x00000000")
-    Swag.require(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
-    Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
-    Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.text == "Encodage")
+    Swag.require(Utf8.contains(view.details.toSlice(), "caret 0x0/0") and Utf8.contains(view.details.toSlice(), "0.0%"))
+    Swag.require(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’aucune sélection n’est active")
+    Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’aucune sélection n’est active")
+    Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.findingsList.header.itemAt(1).name.text == "Type")
     discard host.render(view)
     Testing.assertContentFits(unwrap view.optionsButton.parent)
 }

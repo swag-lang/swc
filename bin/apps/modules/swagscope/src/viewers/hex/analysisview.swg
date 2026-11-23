@@ -138,6 +138,7 @@ struct AnalysisView
     late
     {
         titleLabel:    *Label
+        algorithmsButton: *IconButton
         analyzeButton: *IconButton
         cancelButton:  *IconButton
         closeButton:   *IconButton
@@ -146,11 +147,14 @@ struct AnalysisView
         digestsLabel:  *Label
         histogram:     *HistogramView
         byteLabel:     *Label
-        stringsLabel:  *Label
-        stringsList:   *ListCtrl
+        entropyLabel:  *Label
+        entropyList:   *ListCtrl
+        findingsLabel: *Label
+        findingsList:  *ListCtrl
     }
 
     result:       AnalysisResult
+    algorithms:   AnalysisAlgorithms
     offsetDigits: u64 = 8
     selection:    bool
 
@@ -181,6 +185,24 @@ private impl AnalysisView
         }
     }
 
+    mtd describeAlgorithms(page: *OptionSheet.Page)
+    {
+        page.addToggle(texts().ui_AnalysisCrc32, .algorithms.crc32, func|view = me|(on) { view.algorithms.crc32 = on })
+        page.addToggle(texts().ui_AnalysisCrc64, .algorithms.crc64, func|view = me|(on) { view.algorithms.crc64 = on })
+        page.addToggle(texts().ui_AnalysisMd5, .algorithms.md5, func|view = me|(on) { view.algorithms.md5 = on })
+        page.addToggle(texts().ui_AnalysisSha1, .algorithms.sha1, func|view = me|(on) { view.algorithms.sha1 = on })
+        page.addToggle(texts().ui_AnalysisSha256, .algorithms.sha256, func|view = me|(on) { view.algorithms.sha256 = on })
+        page.addToggle(texts().ui_AnalysisSha512, .algorithms.sha512, func|view = me|(on) { view.algorithms.sha512 = on })
+        page.addToggle(texts().ui_AnalysisBlake2s, .algorithms.blake2s, func|view = me|(on) { view.algorithms.blake2s = on })
+        page.addToggle(texts().ui_AnalysisBlake2b, .algorithms.blake2b, func|view = me|(on) { view.algorithms.blake2b = on })
+    }
+
+    internal mtd showAlgorithmOptions()
+    {
+        let sheet = OptionSheet.View.create(.algorithmsButton, func|view = me|(page) { view.describeAlgorithms(page) }, owner: me)
+        sheet.doModal(.algorithmsButton, autoDestroy: true)
+    }
+
     mtd updateByteDetail(value: u32)
     {
         if value == Swag.U32.Max or not .result.scanned
@@ -197,24 +219,68 @@ private impl AnalysisView
             .byteLabel.setText(Format.toString(texts().ui_AnalysisByte, value, count, share))
     }
 
-    mtd fillStringLine(line: *ListLine, index: u32)
+    mtd fillFindingLine(line: *ListLine, index: u32)
     {
-        if index >= .result.strings.count do
+        let repeatCount = .result.repeatedBlocks.count * 2
+        if index < repeatCount
+        {
+            let pair = &.result.repeatedBlocks[index / 2]
+            let offset = index % 2 ? pair.repeatedOffset : pair.firstOffset
+            let other  = index % 2 ? pair.firstOffset : pair.repeatedOffset
+            line.setItem(0, .offsetText(offset))
+            line.setItem(1, texts().ui_AnalysisRepeatedBlockKind)
+            line.setItem(2, Format.toString(texts().ui_AnalysisRepeatDetail, .offsetText(other)))
             return
-        let value = &.result.strings[index]
+        }
+
+        let stringIndex = index - repeatCount
+        if stringIndex >= .result.strings.count do
+            return
+        let value = &.result.strings[stringIndex]
         line.setItem(0, .offsetText(value.offset))
         line.setItem(1, .encodingName(value.kind))
         line.setItem(2, value.text)
     }
 
-    mtd navigateSelection(list: *ListCtrl)
+    mtd navigateFinding(list: *ListCtrl)
     {
         for index in list.lineCount() where list.isLineSelected(index)
         {
-            if index >= .result.strings.count do
+            let repeatCount = .result.repeatedBlocks.count * 2
+            if index < repeatCount
+            {
+                let pair = &.result.repeatedBlocks[index / 2]
+                let offset = index % 2 ? pair.repeatedOffset : pair.firstOffset
+                .sigNavigate.call(me, offset, pair.length)
                 return
-            let value = &.result.strings[index]
+            }
+
+            let stringIndex = index - repeatCount
+            if stringIndex >= .result.strings.count do
+                return
+            let value = &.result.strings[stringIndex]
             .sigNavigate.call(me, value.offset, value.length)
+            return
+        }
+    }
+
+    mtd fillEntropyBlockLine(line: *ListLine, index: u32)
+    {
+        if index >= .result.entropyBlocks.count do
+            return
+        let block = &.result.entropyBlocks[index]
+        line.setItem(0, .offsetText(block.range.offset))
+        line.setItem(1, Format.toString("%{f2}", block.entropy))
+    }
+
+    mtd navigateEntropyBlock(list: *ListCtrl)
+    {
+        for index in list.lineCount() where list.isLineSelected(index)
+        {
+            if index >= .result.entropyBlocks.count do
+                return
+            let block = &.result.entropyBlocks[index]
+            .sigNavigate.call(me, block.range.offset, block.range.length)
             return
         }
     }
@@ -223,6 +289,7 @@ private impl AnalysisView
     // entropy and the share of zero and printable bytes, then the strings count.
     mtd refreshResultText()
     {
+        .findingsLabel.toolTip.clear()
         .scopeLabel.setText(.scopeText(.result.range))
         if not .result.failureReason.isEmpty()
         {
@@ -248,16 +315,40 @@ private impl AnalysisView
         if .result.hasDigests
         {
             // The line cannot hold whole digests; its tooltip gives every one, MD5 and SHA-1 too.
-            .digestsLabel.setText(Format.toString(texts().ui_AnalysisDigests, .result.crc32Text(), .result.sha256Text()))
+            .digestsLabel.setText(Format.toString(texts().ui_AnalysisDigests, .algorithmCount()))
             .digestsLabel.toolTip = .result.digestsText()
         }
 
-        if .result.stringsTruncated do
-            .stringsLabel.setText(Format.toString(texts().ui_AnalysisStringsLimited, .result.strings.count))
+        if .result.repeatScanTruncated or .result.repeatHintsTruncated
+        {
+            .findingsLabel.setText(texts().ui_AnalysisRepeatLimited)
+            .findingsLabel.toolTip = texts().ui_AnalysisRepeatLimitsTip
+        }
+        elif not .result.repeatedBlocks.isEmpty()
+        {
+            .findingsLabel.setText(texts().ui_AnalysisFindings)
+            .findingsLabel.toolTip = texts().ui_AnalysisRepeatLimitsTip
+        }
+        elif .result.stringsTruncated do
+            .findingsLabel.setText(Format.toString(texts().ui_AnalysisStringsLimited, .result.strings.count))
         elif .result.strings.count == 1 do
-            .stringsLabel.setText(texts().ui_AnalysisOneString)
+            .findingsLabel.setText(texts().ui_AnalysisOneString)
         else do
-            .stringsLabel.setText(Format.toString(texts().ui_AnalysisStringsCount, .result.strings.count))
+            .findingsLabel.setText(Format.toString(texts().ui_AnalysisStringsCount, .result.strings.count))
+    }
+
+    mtd algorithmCount()->u32
+    {
+        var count = 0'u32
+        if .result.algorithms.crc32 do count += 1
+        if .result.algorithms.crc64 do count += 1
+        if .result.algorithms.md5 do count += 1
+        if .result.algorithms.sha1 do count += 1
+        if .result.algorithms.sha256 do count += 1
+        if .result.algorithms.sha512 do count += 1
+        if .result.algorithms.blake2s do count += 1
+        if .result.algorithms.blake2b do count += 1
+        return count
     }
 
     // Creates the title row and its run, stop, and close actions.
@@ -277,6 +368,13 @@ private impl AnalysisView
             .dockStyle  = .Right
             .toolTip    = texts().ui_AnalysisClose
             .sigPressed += func|view = me|(_) { view.sigClose.call(view) }
+        }
+
+        with .algorithmsButton = IconButton.create(header, .theme().icon(.Settings, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
+        {
+            .dockStyle  = .Right
+            .toolTip    = texts().ui_AnalysisAlgorithms
+            .sigPressed += func|view = me|(_) { view.showAlgorithmOptions() }
         }
 
         with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
@@ -302,10 +400,10 @@ private impl AnalysisView
         }
     }
 
-    // Creates the list of inferred strings, where selecting a line navigates to its bytes.
-    mtd createStringsList()
+    // Creates the shared virtual findings list; selecting a line navigates to its exact bytes.
+    mtd createFindingsList()
     {
-        with .stringsList = ListCtrl.createMultiColumns(me)
+        with .findingsList = ListCtrl.createMultiColumns(me)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -318,12 +416,41 @@ private impl AnalysisView
             .header.form = .Transparent
             .header.updateFlags(remove: .Clickable | .Separators)
             .addColumn(texts().ui_AnalysisOffset, 82)
-            .addColumn(texts().ui_AnalysisEncoding, 78)
-            .addColumn(texts().ui_AnalysisText, 150)
-            .onFillVirtualLine   = &fillAnalysisStringLine
-            .sigSelectionChanged += func|view = me|(list) { view.navigateSelection(list) }
+            .addColumn(texts().ui_AnalysisType, 78)
+            .addColumn(texts().ui_AnalysisDetails, 150)
+            .onFillVirtualLine   = &fillAnalysisFindingLine
+            .sigSelectionChanged += func|view = me|(list) { view.navigateFinding(list) }
         }
     }
+
+    // Creates the virtual entropy-block list, where selecting a row navigates to its bytes.
+    mtd createEntropyList()
+    {
+        with .entropyLabel = Label.create(me, texts().ui_AnalysisEntropyBlocks, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        {
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        with .entropyList = ListCtrl.createMultiColumns(me, {0, 0, 0, 92})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+            .listView.backgroundStyle = .Transparent
+            .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
+            .setSelectionMode(.Single)
+            .setFirstColumnIconMargin(false)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.DisableHorizontal)
+            .header.form = .Transparent
+            .header.updateFlags(remove: .Clickable | .Separators)
+            .addColumn(texts().ui_AnalysisOffset, 82)
+            .addColumn(texts().ui_AnalysisEntropy, 78)
+            .onFillVirtualLine    = &fillAnalysisEntropyLine
+            .sigSelectionChanged += func|view = me|(list) { view.navigateEntropyBlock(list) }
+        }
+    }
+
 }
 
 impl AnalysisView
@@ -347,8 +474,11 @@ impl AnalysisView
         .metricsLabel.setText(Format.toString(texts().ui_AnalysisProgress, 0'f64))
         .histogram.clear()
         .byteLabel.setText(texts().ui_AnalysisByteHint)
-        .stringsLabel.setText(texts().ui_AnalysisStrings)
-        .stringsList.setVirtualCount(0)
+        .entropyLabel.setText(texts().ui_AnalysisEntropyBlocks)
+        .entropyList.setVirtualCount(0)
+        .findingsLabel.setText(texts().ui_AnalysisStrings)
+        .findingsLabel.toolTip = ""
+        .findingsList.setVirtualCount(0)
         .analyzeButton.hide()
         .cancelButton.show()
     }
@@ -367,7 +497,8 @@ impl AnalysisView
         .refreshResultText()
         .histogram.setResult(&.result)
         .updateByteDetail(Swag.U32.Max)
-        .stringsList.setVirtualCount(cast(u32, .result.strings.count))
+        .findingsList.setVirtualCount(cast(u32, .result.strings.count + .result.repeatedBlocks.count * 2))
+        .entropyList.setVirtualCount(cast(u32, .result.entropyBlocks.count))
         .cancelButton.hide()
         .analyzeButton.show()
         .invalidate()
@@ -379,10 +510,15 @@ impl AnalysisView
         .analyzeButton.toolTip             = texts().ui_AnalysisRun
         .cancelButton.toolTip              = texts().ui_AnalysisCancel
         .closeButton.toolTip               = texts().ui_AnalysisClose
-        .stringsList.header.itemAt(0).name = texts().ui_AnalysisOffset
-        .stringsList.header.itemAt(1).name = texts().ui_AnalysisEncoding
-        .stringsList.header.itemAt(2).name = texts().ui_AnalysisText
-        .stringsList.header.invalidate()
+        .algorithmsButton.toolTip          = texts().ui_AnalysisAlgorithms
+        .entropyLabel.setText(texts().ui_AnalysisEntropyBlocks)
+        .entropyList.header.itemAt(0).name = texts().ui_AnalysisOffset
+        .entropyList.header.itemAt(1).name = texts().ui_AnalysisEntropy
+        .entropyList.header.invalidate()
+        .findingsList.header.itemAt(0).name = texts().ui_AnalysisOffset
+        .findingsList.header.itemAt(1).name = texts().ui_AnalysisType
+        .findingsList.header.itemAt(2).name = texts().ui_AnalysisDetails
+        .findingsList.header.invalidate()
         if .result.range.length or
            .result.scanned or
            .result.cancelled or
@@ -393,8 +529,7 @@ impl AnalysisView
         }
     }
 
-    // Builds the analysis panel: header, scope and metrics lines, the byte histogram with the
-    // detail of the hovered byte, and the list of strings found.
+    // Builds the analysis panel: header, scope, byte histogram, entropy samples, and navigable findings.
     func create(parent: *Wnd)->*AnalysisView
     {
         with let result = Wnd.create'AnalysisView(parent)
@@ -440,21 +575,29 @@ impl AnalysisView
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        result.createEntropyList()
+        with result.findingsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        result.createStringsList()
+        result.createFindingsList()
         result.applyLayout()
         return result
     }
 }
 
 // Fills one line of the virtual strings list from the panel that owns the list.
-private func fillAnalysisStringLine(list: *ListCtrl, line: *ListLine?, index: u32)
+private func fillAnalysisFindingLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line do
-        assume cast(*AnalysisView, list.parent).fillStringLine(line, index)
+        assume cast(*AnalysisView, list.parent).fillFindingLine(line, index)
+}
+
+// Fills one line of the virtual entropy list from the panel that owns it.
+private func fillAnalysisEntropyLine(list: *ListCtrl, line: *ListLine?, index: u32)
+{
+    if line do
+        assume cast(*AnalysisView, list.parent).fillEntropyBlockLine(line, index)
 }

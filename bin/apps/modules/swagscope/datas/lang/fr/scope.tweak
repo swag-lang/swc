@@ -31,6 +31,7 @@ ui_CloseSearch Fermer la recherche (Échap)
 ui_Search       Rechercher dans le document
 ui_SearchPrevious Occurrence précédente (Maj+F3)
 ui_SearchNext   Occurrence suivante (F3)
+ui_SearchCancel Annuler la recherche
 ui_SearchOptions Options de recherche
 ui_SearchMode    Rechercher
 ui_FilterMode    Filtrer
@@ -40,6 +41,10 @@ ui_SearchRegularExpression Utiliser une expression régulière
 ui_SearchInvalidRegularExpression Expression régulière incorrecte
 ui_NoMatch      Aucun résultat
 ui_Searching    Recherche…
+ui_SearchProgress Octets traités : % sur %
+ui_SearchCancelled Recherche annulée après %
+ui_SearchResultsLimited Premiers résultats affichés : %
+ui_SearchRangeUnavailable La plage d’octets sélectionnée n’est plus disponible
 ui_DropTitle    Déposez un fichier pour l'afficher
 ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.

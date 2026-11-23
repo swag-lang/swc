@@ -83,6 +83,13 @@ impl ViewerWindow
             .enable(false)
         }
 
+        with .searchCancelButton = Viewer.createActionButton(.searchNavigation, .Stop)
+        {
+            .toolTip    = appStrings().ui_SearchCancel
+            .sigPressed += func|window = me|(_) { window.cancelSearch() }
+            .hide()
+        }
+
         with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .MatchWholeWord)
         {
             .toolTip = appStrings().ui_SearchOptions

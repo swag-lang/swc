@@ -39,6 +39,7 @@ struct ViewerWindow
         searchCountLabel:            *Label
         searchPrevious:              *IconButton
         searchNext:                  *IconButton
+        searchCancelButton:          *IconButton
         searchCloseButton:           *IconButton
         searchOptionsButton:         *IconButton
         appearanceButton:            *AppearanceButton
@@ -108,8 +109,11 @@ struct ViewerWindow
     searchError:             String
     searchCarry:             String
     searchCarryBase:         u64
+    searchByteRange:         Viewer.SearchByteRange
+    searchBytesRead:         u64
     searchProcessed:         u64
     searchProgress:          u64
+    searchTotalBytes:        u64
     searchSpan:              u64
     searchMatches:           Array'Viewer.SearchMatch
     searchIndex:             u64  = Swag.U64.Max
@@ -117,6 +121,8 @@ struct ViewerWindow
     searchComplete:          bool
     searchSelectLast:        bool
     searchKeepPosition:      bool
+    searchMatchesCapped:     bool
+    searchCancelled:         bool
     searchMatchCaseOption:   bool
     searchWholeWordOption:   bool
     searchRegexOption:       bool
@@ -709,6 +715,7 @@ impl ViewerWindow
     // waits for it, so each chunk keeps the query span plus this margin of the one before.
     const SearchChunkSize   = 256 * 1024'u64
     const SearchCarryMargin = 4'u64
+    const SearchMatchLimit  = 100_000'u64
 
     // How often the current match follows a moving or progressively loaded view.
     const SearchBoundsPoll: Time.Duration = 16'ms
@@ -790,6 +797,7 @@ impl ViewerWindow
         .returnExplorerCaptionButton.button.setIcon(.theme().icon(.ChevronLeft, .themeMetrics().wnd_CaptionButtonGlyph))
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
         .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
+        .searchCancelButton.setIcon(.theme().icon(.Stop, themeActionIconSize(.themeMetrics())))
         .refreshSearchPresentation()
         .refreshExplorerCaption()
     }
@@ -1083,12 +1091,21 @@ impl ViewerWindow
         {
             let count = Math.max(SearchCountWidth,
                                  Painter.measureString(.searchCountLabel.text(), unwrap .searchCountLabel.font().regular).width + SearchGroupSpacing)
-            let navigation = count + 2 * height
+            let cancelWidth = .searchCancelButton.isLocallyVisible() ? height + SearchGroupSpacing : 0
+            let navigation  = count + 2 * height + cancelWidth
             right -= navigation + SearchGroupSpacing
             .searchNavigation.setPosition({right, rowY, navigation, height}, computeLayout: false)
             .searchCountLabel.setPosition({0, 0, count, height}, computeLayout: false)
             .searchPrevious.setPosition({x: count, y: 0, width: height, height: height}, computeLayout: false)
             .searchNext.setPosition({x: count + height, y: 0, width: height, height: height}, computeLayout: false)
+            if .searchCancelButton.isLocallyVisible()
+            {
+                .searchCancelButton.setPosition({x: count + 2 * height + SearchGroupSpacing,
+                                                 y: 0,
+                                                 width: height,
+                                                 height: height},
+                                                computeLayout: false)
+            }
         }
 
         let fieldWidth = compact ? innerWidth - height - SearchGroupSpacing : right - SearchGroupSpacing
@@ -1473,8 +1490,9 @@ impl ViewerWindow
         let texts = appStrings()
         .refreshTitle()
         .teachHints(.isExploring())
-        .searchPrevious.toolTip = texts.ui_SearchPrevious
-        .searchNext.toolTip     = texts.ui_SearchNext
+        .searchPrevious.toolTip     = texts.ui_SearchPrevious
+        .searchNext.toolTip         = texts.ui_SearchNext
+        .searchCancelButton.toolTip = texts.ui_SearchCancel
         .refreshExplorerCaption()
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .searchCloseButton.toolTip   = texts.ui_CloseSearch

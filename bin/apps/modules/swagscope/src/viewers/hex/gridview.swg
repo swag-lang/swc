@@ -227,13 +227,16 @@ struct GridView
     late scroll: *ScrollWnd
 
     doc: Document
+    baseAddress: u64
+    bookmarkOffset: u64 = Swag.U64.Max
 
     sigCaretChanged: SigArray'func||(*Wnd)          // Emitted after the caret or the selection moves.
     sigGoToOffset:   SigArray'func||(*Wnd, u64)     // Emitted when Go To accepts an explicit destination.
 
     topRow: u64     // First row the viewport shows.
-    caret:  u64     // Byte the caret stands on.
-    anchor: u64     // Byte the current selection started from.
+    caret:           u64     // Byte the caret stands on.
+    anchor:          u64     // Byte the current selection started from.
+    selectionActive: bool    // Distinguishes a selected byte from a caret with no selection.
 
     // Range the host's search last revealed. It outlives the selection so the hit stays visible
     // once the reader has moved the caret away from it.
@@ -377,7 +380,7 @@ impl GridView
     mtd selectionStart()->u64  => Math.min(.caret, .anchor)
     mtd selectionEnd()->u64    => Math.max(.caret, .anchor)
     mtd selectionLength()->u64 => .doc.fileSize ? .selectionEnd() - .selectionStart() + 1 : 0
-    mtd hasSelection()->bool   => .caret != .anchor
+    mtd hasSelection()->bool   => .selectionActive
 
     // Writes the surface bounds of the visible text cells of the current match to `result`, and reports whether any are visible.
     //
@@ -563,8 +566,11 @@ impl GridView
             return
         let clamped = Math.min(target, .lastOffset())
         .caret = clamped
-        if not extend do
+        .selectionActive = extend
+        if not extend
+        {
             .anchor = clamped
+        }
         .ensureCaretVisible(center)
         .sigCaretChanged.call(me)
         .invalidate()
@@ -587,6 +593,7 @@ impl GridView
             return
         .anchor = 0
         .caret  = .lastOffset()
+        .selectionActive = true
         .sigCaretChanged.call(me)
         .invalidate()
     }
@@ -653,6 +660,7 @@ impl GridView
         let count = Math.min(length, .doc.fileSize - offset)
         .caret  = offset
         .anchor = count ? offset + count - 1 : offset
+        .selectionActive = count > 0
         .ensureCaretVisible(true)
         .sigCaretChanged.call(me)
         .invalidate()
@@ -664,6 +672,7 @@ impl GridView
         .matchLength = 0
         .searchHits  = null
         .anchor      = .caret
+        .selectionActive = false
         .invalidate()
     }
 
@@ -842,7 +851,7 @@ impl GridView
     // The target is centered so its neighbourhood is readable.
     mtd goToTypedOffset(text: string)->bool
     {
-        let target = parseFileOffset(text, .caret, .doc.fileSize)
+        let target = parseFileOffset(text, .caret, .doc.fileSize, .baseAddress, .bookmarkOffset, true)
         if target == Swag.U64.Max do
             return false
         .sigGoToOffset.call(me, target)
@@ -1348,6 +1357,9 @@ impl GridView
     mtd exchangeDocument(document: *Document)
     {
         swap(&.doc, document)
+        .caret           = 0
+        .anchor          = 0
+        .selectionActive = false
         .refreshLayout()
         .invalidate()
     }

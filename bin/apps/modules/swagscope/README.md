@@ -312,22 +312,34 @@ are also available.
   analysis. Shared search indexes every decoded report column and reveals folded matches by
   outlining only the matching text. A compact centered lower
   group walks visited rows backward or forward and opens the structure-command menu for copying,
-  expansion, collapse, and file-offset navigation.
+  expansion, collapse, and file-offset navigation. Go To accepts hexadecimal, `0d` decimal,
+  percentages, `caret`, `filesize`, arithmetic, parentheses, and `align(value, boundary)`; a leading
+  sign is relative to the selected row. Binary has no configured base address or session bookmark,
+  so those named origins are unavailable there.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and its options set the row width and an
   independent scalar width, representation, and explicit Little/Big byte order; zoom sets the
   fixed-width font. Its
-  inspector reports the exact caret offset and file percentage, selection length, active value,
-  and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
-  printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and
-  signed caret-relative positions. A visible commands button exposes copy, navigation, and row
+  reading line reports the caret or selection bounds and length in hexadecimal and decimal, the
+  active value, and whole-file percentage; its tooltip retains the complete line. The inspector
+  shows the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
+  printable readings. Go To accepts hexadecimal, `0d` decimal, percentages, `caret`, `filesize`,
+  `bookmark` and `base` origins, arithmetic with parentheses, and `align(value, boundary)`. The
+  leading `+` or `-` remains caret-relative. Set `base` from the commands lens; it maps a virtual
+  base address to file offset zero. A visible commands button exposes copy, navigation, and row
   layout without requiring a right click. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
   `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
   visible result is marked while the shared animated marker identifies the current occurrence.
+  Prefix a query with `selection:` (for example, `selection: hex: 4D 5A`) to search only the byte
+  selection active when the query starts; matches must fit fully inside that range.
   A cancellable, streaming analysis of the selection or whole file adds a 256-value byte map,
   exact counts, entropy, zero and printable ratios, and bounded inferred ASCII and UTF-16 strings;
-  selecting an inferred string returns to its source bytes, and Analyze reruns on that live
-  selection instead of replaying the range that originally opened the panel.
+  it also reports entropy across up to 256 blocks and exact repeats among complete 64 KiB blocks
+  aligned to the analyzed range. The virtual findings list lets you navigate to each inferred
+  string or either occurrence of a repeated block. The repeat scan retains at most 256 distinct
+  block copies and 256 repeated pairs, and labels results when either limit omits later findings.
+  Analyze reruns on the live selection instead of replaying the range that originally opened the
+  panel.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested

@@ -267,10 +267,41 @@ impl ViewerWorkspace
         rect.inflate(-metrics.wnd_CaptionButtonMargin)
         if rect.width <= 0 or rect.height <= 0 do
             return
-        var pen = Pen.createSolid(.themeColors().arc, metrics.focusRing_Size)
+        var pen = Pen.createDash(.Dash, .themeColors().arc, metrics.focusRing_Size)
         pen.borderPos = .Inside
         painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
     }
+
+    private mtd paintCellFocus(painter: *Painter, rect: Math.Rectangle)
+    {
+        let metrics = .themeMetrics()
+        var pen = Pen.createSolid(.themeColors().arc, metrics.fileTile_RingWidth)
+        pen.borderPos = .Inside
+        painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
+    }
+
+    // The seams belong to the ground between cells, including vacant ones. The shared
+    // title strip and any panels that open over the workspace keep their own ground.
+    mtd paintGridDividers(painter: *Painter, scene: const *ViewerScene)
+    {
+        let grid = scene.dimensions()
+        let cols = cast(u64, grid.x)
+        let rows = cast(u64, grid.y)
+        let body = .clientRect()
+        let top = .stripInset()
+        let ink = .themeColors().line
+        for col in 1 until cols
+        {
+            let x = .gridCellRect(scene, col - 1).right()
+            painter.fillRect(x, top, 1, body.bottom() - top, ink)
+        }
+        for row in 1 until rows
+        {
+            let y = .gridCellRect(scene, (row - 1) * cols).bottom()
+            painter.fillRect(body.x, y, body.width, 1, ink)
+        }
+    }
+
     mtd paintSceneChrome(painter: *Painter)
     {
         let scene = .scene()
@@ -278,49 +309,14 @@ impl ViewerWorkspace
             return
 
         let colors  = .themeColors()
-        let font    = .theme().createDefaultFont(12)
         if scene.views.count > 1 and not .comparisonVisible()
         {
-            let divider = .dividerRect()
-            if divider.width > 0
-            {
-                let vertical = scene.dimensions().y == 1
-                let line     = vertical ? Math.Rectangle{divider.x + 3, divider.y, 1, divider.height} :
-                               Math.Rectangle{divider.x, divider.y + 3, divider.width, 1}
-                painter.fillRect(line, colors.line)
-            }
-
             let metrics  = .themeMetrics()
             let inset    = metrics.floating_Inset
-            let relative = scene.linked and scene.links.mode == .Relative and .isMediaScene()
-            for view, index in scene.views where view.document and view.document.isLocallyVisible()
-            {
-                let rect       = .viewRect(scene, index)
-                let active     = scene.active == index and not .vacancy
-                let hovered    = .isHoveredDocument(view.document)
-                if active
-                {
-                    let line = metrics.fileTile_RingWidth
-                    painter.fillRect(rect.x + inset, rect.y, Math.min(rect.width, 3 * inset), line, colors.arc)
-                }
-
-                if .usesCellCaptions() or not hovered and (ScenePlayer.from(view.document).film or view.document.isEdgeToEdge()) do
-                    continue
-
-                let name:    string = Path.fileName(view.path) orelse view.path
-                var caption: String = name
-                if relative do
-                    caption = Format.toString("% · %{+f2} s", name, view.offset)
-                if view.behind do
-                    caption = Format.toString("% · %", caption, appStrings().scene_Behind)
-                let room  = Math.max(0, rect.width - 2 * inset - ViewerWorkspace.ViewTitleHeight)
-                let title = Painter.elideString(caption, font, room, .deviceScale())
-                let y     = rect.y + ViewerWorkspace.ViewTitleHeight * 0.5
-                painter.drawString(rect.x + inset, font.opticalLineTop(y), title, font, hovered ? colors.softText : colors.faintText)
-            }
-
             if .isTiled()
             {
+                if not .vacancy do
+                    .paintCellFocus(painter, .viewRect(scene, scene.active))
                 let plus = .theme().icon(.Plus, metrics.menuPopup_IconSize)
                 for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max
                 {
@@ -328,7 +324,7 @@ impl ViewerWorkspace
                     plus.paint(painter, Math.round(rect.horzCenter() - plus.sizeX * 0.5),
                                Math.round(rect.vertCenter() - plus.sizeY * 0.5), colors.faintText)
                     if .vacancy and cell == .vacantCell do
-                        painter.fillRect(rect.x + inset, rect.y, Math.min(rect.width, 3 * inset), metrics.fileTile_RingWidth, colors.arc)
+                        .paintCellFocus(painter, rect)
                 }
             }
             if scene.maximized
@@ -347,6 +343,15 @@ impl ViewerWorkspace
                     painter.fillRect(x, y, size, size, ink)
                 }
             }
+        }
+
+        if .comparisonVisible()
+        {
+            let compare = unwrap .comparison
+            if compare.hasSeparateSides() do
+                .paintCellFocus(painter, .cellRect(scene, scene.active))
+            elif not compare.isPicture() or compare.mode != .Flip do
+                .paintCellFocus(painter, compare.captionArea(scene.active))
         }
 
         .paintDropHighlight(painter, scene)
@@ -444,29 +449,6 @@ impl IWnd for SceneDivider
 
 impl ViewerWorkspace
 {
-    mtd createCloseFileButton()
-    {
-        let workspace = me
-        with .closeFileButton = CaptionButton.createLeading(unwrap .surface, .WndClose, ViewerCommands.Close)
-        {
-            .sigPressed += func|workspace|(_) { discard workspace.activeDocument().runCommand(ViewerCommands.Close) }
-            .hide()
-        }
-    }
-
-    mtd refreshCloseFileButton()
-    {
-        if .closeFileButton == null do
-            return
-        let document = .activeDocument()
-        let shortcut = document.keyShortcutName(ViewerCommands.Close)
-        let action = document.isExploring() ? appStrings().scene_CloseView : appStrings().ui_CloseFile
-        .closeFileButton.toolTip = shortcut.isEmpty() ? String.from(action) : Format.toString("% (%)", action, shortcut)
-        .closeFileButton.show(.scenes.count == 1 and
-                              .documentCount() == 1 and
-                              not document.fullScreen)
-    }
-
     mtd trackViewHover(evt: *MouseEvent)
     {
         let position = evt.surfacePos
@@ -502,72 +484,11 @@ impl ViewerWorkspace
             return
         let previous = .hoveredDocument
         .hoveredDocument = document
-        .restCellChrome(previous)
-        document?.layoutCellCaption()
-        .layoutCloseViewButtons()
-        .invalidate()
+        if previous and .usesCellCaptions() and previous.usesTimedViewerBar() do
+            previous.concealViewerBar()
     }
 
-    private mtd restCellChrome(document: *ViewerWindow?)
-    {
-        if not document do
-            return
-        if .usesCellCaptions() and document.usesTimedViewerBar() do
-            document.concealViewerBar()
-        else do
-            document.layoutCellCaption()
-    }
-
-    mtd isHoveredDocument(document: *ViewerWindow)->bool => .hoveredDocument == document
-
-    mtd layoutCloseViewButtons()
-    {
-        let scene      = .scene()
-        let count      = scene and scene.views.count > 1 ? scene.views.count : 0
-        let metrics    = .themeMetrics()
-        let comparison = .comparisonVisible()
-        let pictures   = comparison and .comparison!.isPicture()
-        while .closeViewButtons.count < count
-        {
-            let index     = .closeViewButtons.count
-            let workspace = me
-            let button    = IconButton.create(me, .theme().icon(.WndClose, metrics.chevron_Size), flags: .Overlay | .CenterContent)
-            button.wndFlags.add(.TopMost)
-            button.focusPolicy = .None
-            button.setForm(.RoundedRectangle)
-            button.sigPressed += func|workspace, index|(_) { workspace.closeView(index) }
-            .closeViewButtons.add(button)
-        }
-
-        for button, index in .closeViewButtons
-        {
-            if not scene or
-               index >= count or
-               (pictures and not .comparison!.showsPictureHeader(index)) or
-               (not comparison and (.usesCellCaptions() or scene.views[index].document != .hoveredDocument)) or
-               not (scene.views[index].document?.isLocallyVisible() orelse false)
-            {
-                button.hide()
-                continue
-            }
-
-            let rect = .cellRect(scene, index)
-            let size = Math.min(ViewTitleHeight, Math.min(rect.width, rect.height))
-            if size < metrics.chevron_Size
-            {
-                button.hide()
-                continue
-            }
-
-            let path: string = scene.views[index].path
-            let name = Path.fileName(path) orelse path
-            button.toolTip = Format.toString("% · %", appStrings().scene_CloseView, name)
-            let bounds = pictures ? .comparison!.pictureCloseRect(index) :
-                         Math.Rectangle{rect.right() - size - metrics.wnd_CaptionButtonMargin, rect.y, size, size}
-            button.setPosition(bounds, computeLayout: false)
-            button.show()
-        }
-    }
+    mtd isHoveredDocument(document: *ViewerWindow?)->bool => .hoveredDocument == document
 
     private mtd maximizedWorkBottom()->f32
     {

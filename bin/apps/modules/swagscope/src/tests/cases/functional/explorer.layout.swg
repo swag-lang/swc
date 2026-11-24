@@ -91,7 +91,7 @@ using Core, Gui, Pixel
     let bounds  = address.surfaceRect()
     Swag.require(address.isLocallyVisible() and document.surfaceRect().contains(bounds.center()))
     Swag.require(bounds.bottom() < document.searchGroup.surfaceRect().y)
-    Swag.require(not host.surfaceWnd.titleHidden and host.surfaceWnd.name == workspace.sceneName(unwrap workspace.scene()))
+    Swag.require(host.surfaceWnd.titleHidden and host.surfaceWnd.name == workspace.sceneName(unwrap workspace.scene()))
 
     let crumb = address.breadcrumb
     let point = crumb.localToSurface(crumb.items.backPtr().bodyRect.center())
@@ -107,11 +107,11 @@ using Core, Gui, Pixel
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
     host.finishAnimations()
-    Swag.require(document.cellCaptionClose.isVisible() and not document.cellCaptionTitle.isVisible())
-    let close = document.cellCaptionClose.surfaceRect()
+    Swag.require(document.cellCaption.close.isVisible() and not document.cellCaption.title.isVisible())
+    let close = document.cellCaption.close.surfaceRect()
     Swag.require(close.x >= address.surfaceRect().right())
-    Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == document.cellCaptionClose)
-    host.clickWnd(document.cellCaptionClose)
+    Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == document.cellCaption.close)
+    host.clickWnd(document.cellCaption.close)
     Swag.require(workspace.documentCount() == 1 and Path.equals(workspace.activeDocument().currentFile, expect Path.absolute(left)))
 }
 
@@ -132,8 +132,8 @@ using Core, Gui, Pixel
     Swag.require(document.searchBox.hasFocus())
     workspace.closeView(1)
     Swag.require(workspace.activeDocument() == document and document.searchBox.hasFocus())
-    Swag.require(explorer.address.isVisible() and workspace.closeFileButton.isVisible())
-    host.clickWnd(workspace.closeFileButton)
+    Swag.require(explorer.address.isVisible() and document.cellCaption.close.isVisible())
+    host.clickWnd(document.cellCaption.close)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isVisible())
 }
 

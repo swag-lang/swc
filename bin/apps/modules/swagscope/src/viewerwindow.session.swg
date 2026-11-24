@@ -546,7 +546,7 @@ impl ViewerWindow
             .refreshExplorerCaption()
         }
 
-        .adoptSession(instance)
+        .adoptSession(&.instances[.activeChoiceIndex])
         .armSlide()
         .currentView!.dockStyle = .Center
         if .currentCommands do
@@ -556,7 +556,7 @@ impl ViewerWindow
         .currentCommands?.show()
         .workspace?.updateMediaViewport(me)
         .updateViewerBar()
-        .updateFileInfo(instance.details)
+        .updateFileInfo(.instances[.activeChoiceIndex].details)
         .updateSearchAvailability()
         .applyLayout()
         .invalidate()
@@ -706,15 +706,14 @@ impl ViewerWindow
         if not .retireActiveLoadingChoice(index) do
             return false
 
-        let instance = &.instances[index]
         .hideCurrentSession()
-        .adoptSession(instance)
+        .adoptSession(&.instances[index])
         .currentView!.show()
         .currentInfo?.show()
         .currentCommands?.show()
         .updateViewerBar()
         .activeChoiceIndex = index
-        .updateFileInfo(instance.details)
+        .updateFileInfo(.instances[index].details)
         .updateSearchAvailability()
         .applyLayout()
         .updateLoadingIndicator()
@@ -764,11 +763,10 @@ impl ViewerWindow
         if index >= .choices.count do
             return false
 
-        let choice   = &.choices[index]
-        let instance = &.instances[index]
-        if instance.view do
+        if .instances[index].view do
             return .showCreatedChoice(index)
 
+        let choice = &.choices[index]
         if choice.pluginIndex >= .index.plugins.count do
             return false
 
@@ -846,11 +844,11 @@ impl ViewerWindow
         }
 
         .activeChoiceIndex = index
-        instance[]         = #move next
-        .updateFileInfo(instance.details)
+        .instances[index]  = #move next
+        .updateFileInfo(.instances[index].details)
         .updateSearchAvailability()
         if stage do
-            .commitViewerTransition(instance.view)
+            .commitViewerTransition(.instances[index].view)
         else do
             .applyLayout()
         .updateLoadingIndicator()

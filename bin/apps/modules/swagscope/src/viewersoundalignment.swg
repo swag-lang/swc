@@ -225,6 +225,7 @@ impl ViewerWorkspace
         scene.links.mode = .Relative
         scene.links.time = true
         scene.linked     = true
+        .refreshMediaCaptions()
         .invalidate()
         catch .primary.saveState()
         return true

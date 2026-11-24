@@ -564,7 +564,11 @@ impl Explorer
         var room = frame.captionRoomRect()
         room.x     += metrics.wnd_CaptionPathGap
         room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
-        let inCaption = .window.stripInset() > 0 and (.window.workspace?.scenes.count orelse 0) < 2 and not room.isEmpty()
+        let hasClose = .window.hasSoloCaption() or (.window.workspace?.usesCellCaptions() orelse false)
+        let closeWidth = hasClose ? ViewerWorkspace.ViewTitleHeight : 0.0
+        // Below this width the ancestor menu alone would consume the title strip.
+        let inCaption = .window.stripInset() > 0 and (.window.workspace?.scenes.count orelse 0) < 2 and
+                        room.width >= closeWidth + ToolHeight * 4
         let rowY      = inCaption ? 0 : ToolHeight + HeaderGap
         .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
@@ -616,26 +620,38 @@ impl Explorer
                 .window.searchOptionsButton.setPosition({fieldWidth - options, 0, options, ToolHeight})
                 fieldWidth -= options + ViewerWindow.SearchGroupSpacing
             }
-            let placeholder = compact ? appStrings().ui_FilterMode : appStrings().ui_FilterFiles
-            if .window.searchBox.name.text != placeholder do
-                .window.searchBox.setPlaceholder(placeholder)
-            .window.searchBox.setPosition({0, 0, Math.max(fieldWidth, 0), ToolHeight})
+            let field = .window.searchBox
+            field.setPosition({0, 0, Math.max(fieldWidth, 0), ToolHeight})
+            let full = appStrings().ui_FilterFiles
+            let font = field.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
+            let textWidth = Painter.measureStringSnapped(full, font, deviceScale: .deviceScale())
+            let room = field.paddedClientRect().width - field.icon.sizeX - metrics.iconText_Margin
+            let placeholder = compact or textWidth > room ? appStrings().ui_FilterMode : full
+            if field.name.text != placeholder do
+                field.setPlaceholder(placeholder)
         }
 
         if inCaption
         {
             let height = Math.min(ToolHeight, room.height)
             let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
-            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width * 0.7), height})
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width - closeWidth), height})
         }
         else
         {
             let origin = .window.surfaceToLocal(line.localToSurface(Math.Point{}))
-            let closeRoom = (.window.workspace?.usesCellCaptions() orelse false) ? ViewerWorkspace.ViewTitleHeight + metrics.miniBar_Distance : 0
-            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, Math.max(0, space - closeRoom)), ToolHeight})
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, Math.max(0, space - closeWidth)), ToolHeight})
         }
         .address.refreshPath()
+        if hasClose and not .address.edit.isLocallyVisible() and not .address.breadcrumb.items.isEmpty()
+        {
+            let leaf = .address.breadcrumb.items.backPtr()
+            let width = Math.ceil(Math.max(leaf.bodyRect.right(), leaf.arrowRect.right()))
+            if width > 0 do
+                .address.resize(Math.min(width, .address.position.width), .address.position.height)
+        }
         .address.show(.isVisible() and (not inCaption or .window.isWorkspaceActive()))
+        .window.layoutCellCaption()
     }
 
     // Shows the listing presentation and its thumbnail options in one compact sheet.

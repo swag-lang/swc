@@ -155,13 +155,11 @@ struct ViewerWorkspace
     late primary:         *ViewerWindow
     late tabs:            *SceneTabs
     late divider:         *SceneDivider
-    late closeFileButton: *CaptionButton
     late mediaLinks:      *CaptionButton
     late mediaTransport:  *CaptionButton
     late mediaPlayPause:  *CaptionButton
 
     scenes:           ArrayPtr'ViewerScene
-    closeViewButtons: Array'(*IconButton)
     active:           u64
     activation:       u64
     paintedScene:     u64
@@ -208,7 +206,6 @@ impl ViewerWorkspace
         result.primary.focusPolicy = .Click
         result.tabs                = SceneTabs.create(result)
         result.divider             = SceneDivider.create(result)
-        result.createCloseFileButton()
         result.createMediaControls()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
@@ -281,7 +278,7 @@ impl ViewerWorkspace
         return scene and scene.views.count > 1 and not scene.maximized and scene.layout != .Single
     }
 
-    mtd usesCellCaptions()->bool => .documentCount() > 1 and not .wantsComparisonSheet()
+    mtd usesCellCaptions()->bool => .documentCount() > 1 and not .comparisonVisible()
 
     func attachDocument(workspace: *ViewerWorkspace, view: *SceneView, remember: bool)
     {
@@ -499,8 +496,6 @@ impl ViewerWorkspace
         .dismissVacancy()
         scene.active = index
         .showScene()
-        if .comparisonVisible() and .comparison!.mode == .Flip do
-            .comparison!.showFlippedName()
     }
 
     // A selected hole borrows a window for its ordinary open commands. It becomes a scene
@@ -711,7 +706,7 @@ impl ViewerWorkspace
 
     mtd layoutScene()
     {
-        if .closeFileButton == null do
+        if .mediaTransport == null do
             return
         let area         = .clientRect()
         let scene        = .scene()
@@ -756,7 +751,6 @@ impl ViewerWorkspace
             .vacancy.applyLayout()
         }
         .focusDelegate = .activeDocument()
-        .refreshCloseFileButton()
         .updateMedia()
         .tabs.layoutTabs()
         .invalidate()
@@ -825,13 +819,13 @@ impl ViewerWorkspace
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
             let document = view.document
-            if child == document.cellCaptionClose do
+            if child == document.cellCaption.close do
                 return false
             .selectView(index)
             if evt.kind != .DoubleClick do
                 return false
             let content = document.currentView
-            let caption = child == document.cellCaption or child == document.cellCaptionTitle
+            let caption = child == document.cellCaption or child == document.cellCaption.title
             let frame   = ScenePlayer.from(document).film?.imageView == child
             if child == document or child == content or caption or frame
             {
@@ -932,9 +926,12 @@ impl IWnd for ViewerWorkspace
         .layoutScene()
     }
 
-    mtd impl onPaint(_: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        .paintedScene = .scene()?.recent orelse 0
+        let scene = .scene()
+        .paintedScene = scene?.recent orelse 0
+        if scene and .isTiled() and not .comparisonVisible() do
+            .paintGridDividers(evt.paintContext.painter, scene)
     }
 
     mtd impl onAfterPaint(evt: *PaintEvent)

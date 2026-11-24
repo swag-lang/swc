@@ -134,75 +134,69 @@ impl ViewerWindow
         if show
         {
             let travel = metrics.motion_AnchorTravel
-            discard .app().animator.arrive(panel, {0, panel == .viewerBar ? travel : -travel}, duration, .EaseInOut)
+            discard .app().animator.arrive(panel, {0, travel}, duration, .EaseInOut)
         }
         else do
             discard .app().animator.leave(panel, duration, .EaseInOut)
     }
 
-    // Cells use the same compact caption, with media sharing the transport's reveal.
+    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and .workspace.documentCount() == 1 and .isWorkspaceActive() and not .fullScreen
+
+    mtd hasCellFooter()->bool => .workspace and .workspace.usesCellCaptions() and .workspace.vacancy != me and not .isExploring() and
+                                 (not .fullScreen or .workspace.isTiled()) and (not .currentFile.isEmpty() or not .pendingFile.isEmpty())
+
     mtd layoutCellCaption()
     {
-        let workspace = .workspace
-        let tiled = workspace and workspace.usesCellCaptions()
-        let revealed = tiled and (.usesTimedViewerBar() ? .viewerBarShown : workspace!.isHoveredDocument(me))
-        if not revealed
-        {
-            .showViewerOverlay(.cellCaption, false)
+        if .cellCaption == null do
             return
-        }
-
-        let metrics = .themeMetrics()
-        let inset   = metrics.miniBar_Distance
-        let pad     = metrics.miniBar_Padding
-        let size    = ViewerWorkspace.ViewTitleHeight
-        let area    = .documentArea()
-        let maxWidth = Math.min(252, area.width - 2 * inset)
-        if maxWidth < size or area.height < size + 2 * inset
-        {
-            .showViewerOverlay(.cellCaption, false)
-            return
-        }
-
+        let solo = .hasSoloCaption()
+        let footer = .hasCellFooter()
         let exploring = .isExploring()
+        let folder = exploring and (solo or (.workspace?.usesCellCaptions() orelse false))
         let path: string = exploring ? .explorer!.requested : (.pendingFile.isEmpty() ? .currentFile : .pendingFile)
         let name = Path.fileName(path) orelse path
-        let compact = exploring or not name.count or maxWidth < 2 * size
-        let font = .cellCaptionTitle.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
-        let width = compact ? size : Math.min(maxWidth, Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: .deviceScale())) + size + 4 * pad)
-        if .cellCaptionTitle.text() != name do
-            .cellCaptionTitle.setText(name)
-        let action = (workspace!.scene()?.maximized orelse false) ? appStrings().scene_RestoreLayout : appStrings().scene_Maximize
-        let shortcut = .keyShortcutName(SceneCommands.Maximize)
-        .cellCaptionTitle.toolTip = shortcut.isEmpty() ? Format.toString("%\n%", path, action) : Format.toString("%\n% (%)", path, action, shortcut)
-        .cellCaptionTitle.show(not compact)
-        if not compact do
-            .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
-        .cellCaptionClose.toolTip = name.count ? Format.toString("% · %", appStrings().scene_CloseView, name) : String.from(appStrings().scene_CloseView)
-        .cellCaptionClose.setPosition({compact ? 0 : width - size - pad, 0, size, size}, computeLayout: false)
-        let x = .usesTimedViewerBar() ? area.x + inset : area.right() - width - inset
-        .cellCaption.setPosition({x, Math.max(area.y, .stripInset()) + inset, width, size}, computeLayout: false)
-        .showViewerOverlay(.cellCaption, true)
+        if not folder and (not name.count or not (solo or footer))
+        {
+            .cellCaption.hide()
+            return
+        }
+
+        let caption = .cellCaption
+        let parent = footer ? cast(*Wnd, .readingLine) : cast(*Wnd, me)
+        if caption.parent != parent do
+            caption.setParent(parent)
+        let action = solo and not exploring ? appStrings().ui_CloseFile : appStrings().scene_CloseView
+        let label = footer ? .workspace!.mediaCaption(me, name) : String.from(name)
+        let shortcut = .isWorkspaceActive() ? .keyShortcutName(ViewerCommands.Close) : String{}
+        caption.setFile(path, label, action, shortcut)
+        caption.title.show(not folder)
+        caption.show()
+        if footer
+        {
+            .readingLine.computeLayout()
+            return
+        }
+
+        let frame = .surface!.wnd
+        if folder
+        {
+            let address = .explorer!.address.position
+            caption.place(address.right(), address.vertCenter(), ViewerWorkspace.ViewTitleHeight)
+            return
+        }
+
+        let room = frame.captionContentRect()
+        let width = caption.widthFor(room.width)
+        let x = Math.clamp(frame.clientRect().horzCenter() - width * 0.5, room.x, Math.max(room.x, room.right() - width))
+        let origin = .surfaceToLocal(frame.localToSurface(Math.Point{x, room.vertCenter()}))
+        caption.place(origin.x, origin.y, width)
     }
 
     private mtd createCellCaption()
     {
-        let metrics = .themeMetrics()
-        .cellCaption = FloatingPanel.create(me, id: "scope.cell.caption")
-        .cellCaption.corner = metrics.miniBar_Corner
-        .cellCaption.wndFlags.add(.TopMost)
-        .cellCaption.hide()
-        with .cellCaptionTitle = Label.create(.cellCaption, "", flags: .SecondaryText | .Ellipsis)
-        {
-            .setTextHorizontalAlignment(.Left)
-        }
-        with .cellCaptionClose = IconButton.create(.cellCaption, .theme().icon(.WndClose, metrics.chevron_Size),
-                                                   flags: .Overlay | .CenterContent)
-        {
-            .focusPolicy = .None
-            .setForm(.RoundedRectangle)
-            .sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
-        }
+        .cellCaption = ViewerFileCaption.create(me)
+        .cellCaption.close.sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
+        .readingLine.caption = .cellCaption
     }
 
     // Builds the sheet of readings `I` opens, and the hint teaching the door while the window is
@@ -295,11 +289,13 @@ impl ViewerWindow
     // and the panels beside it the floating inset away from the top as well, as the sheet stands.
     mtd updateDocumentInsets()
     {
+        let metrics = .themeMetrics()
+        let inset = .hasCellFooter() ? Math.clamp(.clientRect().width / 16, metrics.miniBar_Padding, metrics.floating_Inset) : metrics.floating_Inset
+        .readingLine.margin.x = inset
+        .readingLine.margin.z = inset
         let compact    = .compactVideoCell()
         let tiledVideo = .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false)
-        var strip = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
-        if not .fullScreen and not .isEdgeToEdge() and (.workspace?.wantsComparisonSheet() orelse false) do
-            strip = Math.max(strip, ViewerWorkspace.ViewTitleHeight)
+        let strip = .fullScreen or .isEdgeToEdge() ? 0.0 : .stripInset()
         let search = .searchBar != null and .searchBar.isLocallyVisible() ?
                      Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
         .documentHost.padding = Math.Vector4{0, strip + search, 0, 0}

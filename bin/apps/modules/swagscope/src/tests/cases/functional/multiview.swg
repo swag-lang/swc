@@ -297,17 +297,17 @@ using Core, Gui, Pixel, Audio
         Swag.require(pane.viewerBar.isVisible() and pane.cellCaption.isVisible())
         host.advanceAnimations(0.06)
         let opacity = pane.viewerBar.presentationOpacity
-        Swag.require(opacity > 0 and opacity < 1 and opacity == pane.cellCaption.presentationOpacity)
+        Swag.require(opacity > 0 and opacity < 1)
         Swag.require(pane.viewerBar.isAncestorOf(film.bottomVeil))
         Swag.require(film.surfaceRect().contains(pane.viewerBar.surfaceRect().center()))
         Swag.require(film.playButton.position.right() <= film.optionsButton.position.x)
         host.fireTimer(pane.viewerBarTimer)
-        Swag.require(not pane.viewerBar.isVisible() and not pane.cellCaption.isVisible())
+        Swag.require(not pane.viewerBar.isVisible() and pane.cellCaption.isVisible())
         host.advanceAnimations(0.03)
         let fading = pane.viewerBar.presentationOpacity
-        Swag.require(fading > 0 and fading < opacity and fading == pane.cellCaption.presentationOpacity)
+        Swag.require(fading > 0 and fading < opacity)
         pane.revealViewerBar()
-        Swag.require(pane.viewerBar.presentationOpacity == fading and pane.cellCaption.presentationOpacity == fading)
+        Swag.require(pane.viewerBar.presentationOpacity == fading)
         host.finishAnimations()
         pane.concealViewerBar()
         host.finishAnimations()
@@ -334,7 +334,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(scene.maximized and short.imageView.isFitted == fitted)
     document.revealViewerBar()
     host.finishAnimations()
-    var titlePoint = document.cellCaptionTitle.surfaceRect().center()
+    var titlePoint = document.cellCaption.title.surfaceRect().center()
     host.surface.surfaceToScreen(&titlePoint)
     host.doubleClick(titlePoint)
     Swag.require(not scene.maximized and short.imageView.isFitted == fitted)
@@ -382,14 +382,14 @@ using Core, Gui, Pixel, Audio
     let film = unwrap ScenePlayer.from(document).film
     document.revealViewerBar()
     Swag.require(film.bottomVeil.compact and document.viewerBar.isVisible())
-    Swag.require(not document.readingLine.isLocallyVisible())
-    Swag.require(film.clientRect().height == document.clientRect().height)
+    Swag.require(document.cellCaption.parent == document.readingLine and document.readingLine.isVisible())
+    Swag.require(film.surfaceRect().bottom() <= document.readingLine.surfaceRect().y)
 
     workspace.closeView(1)
     Swag.require(scene.layout == .Single and workspace.activeDocument() == document)
     Swag.require(not film.bottomVeil.compact and not film.sceneManaged and film.sceneViewport == {})
     Swag.require(document.readingLine.isLocallyVisible() and document.viewerBar.isVisible())
-    Swag.require(not workspace.mediaLinks.isLocallyVisible() and workspace.closeFileButton.isLocallyVisible())
+    Swag.require(not workspace.mediaLinks.isLocallyVisible() and document.cellCaption.close.isVisible())
 }
 
 // The viewer registry also governs group playback for formats without a media glyph.
@@ -690,7 +690,13 @@ using Core, Gui, Pixel, Audio
         let content = document.documentPanel.surfaceRect()
         Swag.require(panel.isVisible() and panel.surfaceRect().x >= body.x and panel.surfaceRect().right() <= content.x)
         Swag.require(content.width > 0 and content.right() <= body.right())
-        Swag.require(document.readingLine.surfaceRect().x == body.x + document.themeMetrics().floating_Inset)
+        let footer = document.readingLine.surfaceRect()
+        let inset = footer.x - body.x
+        Swag.require(inset >= document.themeMetrics().miniBar_Padding and inset <= document.themeMetrics().floating_Inset)
+        document.sendCommandEvent(ViewerCommands.Outline)
+        Swag.require(not panel.isVisible() and document.readingLine.surfaceRect() == footer)
+        document.sendCommandEvent(ViewerCommands.Outline)
+        Swag.require(panel.isVisible() and document.readingLine.surfaceRect() == footer)
     }
     workspace.closeView(1)
     Swag.require(panel.isVisible() and document.documentPanel.surfaceRect().right() == document.surfaceRect().right())

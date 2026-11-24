@@ -67,7 +67,9 @@ impl SceneComparison
         let right  = .pictureView(1)
         let colors = .themeColors()
         let footer = Math.Rectangle{area.x, area.bottom() - FooterHeight, area.width, FooterHeight}
-        let body   = Math.Rectangle{area.x, area.y, area.width, Math.max(area.height - FooterHeight, 0)}
+        let top = area.y + ViewerWorkspace.ViewTitleHeight
+        let body = Math.Rectangle{area.x, top, area.width, Math.max(footer.y - top, 0)}
+        painter.fillRect({area.x, area.y, area.width, ViewerWorkspace.ViewTitleHeight}, colors.ground)
         painter.fillRect(body, Color.fromArgb(Argb.Black))
         painter.fillRect(footer, colors.ground)
         if not left or not right do
@@ -125,7 +127,6 @@ impl SceneComparison
         }
 
         painter.popClippingRect()
-        .paintPictureNames(painter)
         .paintProbe(painter, footer, bounds, left, right)
     }
 
@@ -171,46 +172,6 @@ impl SceneComparison
         let height = high * scale
         return {viewport.horzCenter() - width / 2 + pan.x * viewport.width,
                 viewport.vertCenter() - height / 2 + pan.y * viewport.height, width, height}
-    }
-
-    private mtd pictureHeader(side: u64)->{name: String, rect: Math.Rectangle}
-    {
-        let body    = .clientRect()
-        let font    = .theme().createDefaultFont(12)
-        let metrics = .themeMetrics()
-        let inset   = metrics.floating_Inset
-        let pad     = 2 * metrics.wnd_CaptionButtonMargin
-        let close        = ViewerWorkspace.ViewTitleHeight
-        let path: string = .paths[side]
-        let name    = Path.fileName(path) orelse path
-        var text    = Painter.elideString(name, font, Math.max(0, body.width * 0.5 - 2 * (inset + pad) - close), .deviceScale())
-        let width   = Painter.measureString(text, font).width + 2 * pad + close
-        let x       = side == 0 ? body.x + inset : body.right() - inset - width
-        return {#move text, {x, .stripInset() + inset, width, ViewerWorkspace.ViewTitleHeight}}
-    }
-
-    mtd pictureCloseRect(side: u64)->Math.Rectangle
-    {
-        let header = .pictureHeader(side)
-        let size   = header.rect.height
-        return {header.rect.right() - size, header.rect.y, size, size}
-    }
-
-    mtd showsPictureHeader(side: u64)->bool =>
-        .mode != .Flip or (.flipTimer != null and (side != 0) == .shownRight)
-
-    private mtd paintPictureNames(painter: *Painter)
-    {
-        let colors = .themeColors()
-        let font   = .theme().createDefaultFont(12)
-        let radius = .themeMetrics().corner_Chip
-        for side in 2 where .showsPictureHeader(side)
-        {
-            let header = .pictureHeader(side)
-            let close  = header.rect.height
-            painter.fillRoundRect(header.rect, radius, radius, colors.raised)
-            painter.drawStringCenter(header.rect.horzCenter() - close * 0.5, header.rect.vertCenter(), header.name, font, colors.text)
-        }
     }
 
     private mtd paintProbe(painter: *Painter, footer: Math.Rectangle, bounds: [2] Math.Rectangle, left, right: *ImageView)
@@ -306,6 +267,12 @@ impl SceneComparison
             evt.accepted = point.y >= .stripInset() and point.y < body.bottom() - FooterHeight
 
         case .Pressed where evt.button == .Left:
+            if point.y < .stripInset() + ViewerWorkspace.ViewTitleHeight
+            {
+                if .mode != .Flip do
+                    .workspace.selectView(point.x < body.horzCenter() ? 0 : 1)
+                return
+            }
             .drag = true
             .captureMouse()
             if .mode == .Curtain do
@@ -318,8 +285,6 @@ impl SceneComparison
             .releaseMouse()
 
         case .Move:
-            if .mode == .Flip and evt.delta != {} do
-                .showFlippedName()
             if .drag
             {
                 if .mode == .Curtain
@@ -330,7 +295,7 @@ impl SceneComparison
                 {
                     let side   = .workspace.scene()!.active
                     let width  = .mode == .SideBySide ? body.width * 0.5 : body.width
-                    let height = body.height - FooterHeight - .stripInset()
+                    let height = body.height - FooterHeight - ViewerWorkspace.ViewTitleHeight - .stripInset()
                     let delta  = Math.Point{evt.delta.x / Math.max(width, 1), evt.delta.y / Math.max(height, 1)}
                     if .independentRight(side) do
                         .rightPan += delta

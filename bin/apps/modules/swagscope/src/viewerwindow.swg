@@ -80,9 +80,7 @@ struct ViewerWindow
         searchOverlay:               *ViewerSearchOverlay
         dropHighlight:               *FileDropHighlight
         viewerBar:                   *FloatingPanel
-        cellCaption:                 *FloatingPanel
-        cellCaptionTitle:            *Label
-        cellCaptionClose:            *IconButton
+        cellCaption:                 *ViewerFileCaption
         home:                        *ViewerHome
     }
 
@@ -932,7 +930,7 @@ impl ViewerWindow
         .informationCaptionButton.setChecked(.informationOpen())
         if .workspace and .workspace.tabs != null
         {
-            .workspace.refreshCloseFileButton()
+            .layoutCellCaption()
             .workspace.tabs.layoutTabs()
         }
         if not .explorer do
@@ -1308,13 +1306,13 @@ impl ViewerWindow
         .documentPanel.backgroundStyle = .View
         if enabled
         {
-            .readingLine.hide()
+            .readingLine.show(.hasCellFooter())
             .mainSplitter.setPaneVisible(LeftPanelIndex, false)
             .mainSplitter.setPaneVisible(RightPanelIndex, false)
         }
         else
         {
-            .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
+            .readingLine.show(.hasCellFooter() or .readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
             let left        = .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId
             let index       = left ? LeftPanelIndex : RightPanelIndex
             let placeholder = left ? .outlinePanelPlaceholder : .sidePanelPlaceholder

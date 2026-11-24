@@ -77,6 +77,7 @@ impl ViewerWorkspace
         if wasFramingLinked != framingLinked and .comparisonVisible() and .comparison!.isPicture() do
             .comparison!.synchronizePictureFraming(fromRight: framingLinked and scene.active == 1)
         .updateMedia()
+        .refreshMediaCaptions()
         .invalidate()
         .linkReading(.activeDocument())
         catch .primary.saveState()
@@ -89,6 +90,7 @@ impl ViewerWorkspace
         scene.linked       = true
         scene.links.time   = true
         scene.links.leader = mode == .Leader ? scene.active : Swag.U64.Max
+        .refreshMediaCaptions()
         .invalidate()
         catch .primary.saveState()
     }

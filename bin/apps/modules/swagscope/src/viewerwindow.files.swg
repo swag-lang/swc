@@ -2,9 +2,18 @@ impl ViewerWindow
 {
     mtd isExploring()->bool => .explorerActive and .explorer and .explorer.isLocallyVisible()
 
-    mtd showsCaptionTitle()->bool =>
-        (.workspace?.scenes.count orelse 0) < 2 and
-        ((.workspace?.documentCount() orelse 0) > 1 or not .isExploring() and not .isEdgeToEdge())
+    mtd showsCaptionTitle()->bool
+    {
+        if .workspace
+        {
+            if .workspace.scenes.count > 1 or .hasSoloCaption() do
+                return false
+            let count = .workspace.documentCount()
+            if count > 1 do
+                return count > 2
+        }
+        return not .isExploring() and not .isEdgeToEdge()
+    }
 
     // Reports whether the selected plugin explicitly requests an edge-to-edge presentation.
     mtd isEdgeToEdge()->bool
@@ -72,12 +81,12 @@ impl ViewerWindow
     {
         .refreshReadingAppearance()
 
-        // A document that takes the whole window writes its title itself, over its picture.
+        // Only the active document owns the shared title strip.
         if .isWorkspaceActive() do
             .surface?.wnd.showTitle(.showsCaptionTitle())
         .updateDocumentInsets()
         let wasVisible = .readingLine.isLocallyVisible()
-        .readingLine.show(.readingLine.hasContent() and
+        .readingLine.show(.hasCellFooter() or .readingLine.hasContent() and
                           .canShowReadingLine() and
                           not .fullScreen and
                           not .isEdgeToEdge())

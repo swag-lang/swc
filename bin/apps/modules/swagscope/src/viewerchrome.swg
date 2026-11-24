@@ -1,5 +1,62 @@
 using Core, Pixel, Gui
 
+// A file and its close action share one hit-tested group in the title or the cell's reading line.
+struct ViewerFileCaption
+{
+    using wnd: Wnd
+    late title: *Label
+    late close: *IconButton
+}
+
+impl ViewerFileCaption
+{
+    func create(parent: *Wnd)->*ViewerFileCaption
+    {
+        let metrics = parent.themeMetrics()
+        let result = Wnd.create'ViewerFileCaption(parent, "scope.file.caption")
+        result.backgroundStyle = .Transparent
+        result.wndFlags.add(.TopMost)
+        result.hide()
+        with result.title = Label.create(result, "", flags: .SecondaryText | .Ellipsis)
+        {
+            .style.setFont(parent.theme().createDefaultFont(metrics.wnd_TitleFontSize), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+        with result.close = IconButton.create(result, parent.theme().icon(.WndClose, metrics.chevron_Size),
+                                             flags: .Overlay | .CenterContent)
+        {
+            .focusPolicy = .None
+            .setForm(.RoundedRectangle)
+        }
+        return result
+    }
+
+    mtd setFile(path, name, action, shortcut: string)
+    {
+        if .title.text() != name do
+            .title.setText(name)
+        .title.toolTip = path
+        .close.toolTip = shortcut.count ? Format.toString("% · % (%)", name, action, shortcut) : Format.toString("% · %", name, action)
+    }
+
+    mtd widthFor(room: f32)->f32
+    {
+        let text = .title.text()
+        let font = .title.font().regular orelse .theme().createDefaultFont(.themeMetrics().wnd_TitleFontSize)
+        let width = Painter.measureStringSnapped(text, font, deviceScale: .deviceScale())
+        return Math.min(Math.max(room, 0), Math.ceil(width) + .themeMetrics().btnIcon_SpacingArrowH + ViewerWorkspace.ViewTitleHeight)
+    }
+
+    mtd place(x, centerY, width: f32)
+    {
+        let size = ViewerWorkspace.ViewTitleHeight
+        .setPosition({Math.round(x), Math.round(centerY - size * 0.5), width, size}, computeLayout: false)
+        let edge = Math.max(0, width - size)
+        .title.setPosition({0, 0, Math.max(0, edge - .themeMetrics().btnIcon_SpacingArrowH), size}, computeLayout: false)
+        .close.setPosition({edge, 0, Math.min(width, size), size}, computeLayout: false)
+    }
+}
+
 // The faint line of readings at the foot of the document.
 //
 // What the window knows about the open file — its encoding, its lines, the selection a viewer
@@ -12,6 +69,7 @@ struct ViewerReadingLine
     using wnd: Wnd
 
     late details: *Label
+    caption: *ViewerFileCaption?
 }
 
 impl IWnd for ViewerReadingLine
@@ -50,7 +108,7 @@ impl ViewerReadingLine
     mtd contributions()->Array'(*Wnd)
     {
         var result: #returntype
-        for child in .children where child != cast(*Wnd, .details) and child.isLocallyVisible() do
+        for child in .children where child != cast(*Wnd, .details) and child != cast(*Wnd?, .caption) and child.isLocallyVisible() do
             result.add(child)
         return result
     }
@@ -64,6 +122,9 @@ impl ViewerReadingLine
         let client  = .clientRect()
         let viewers = .contributions()
 
+        let named = .caption and .caption.parent == me and .caption.isLocallyVisible()
+        let reserved = named ? .caption!.widthFor(Math.max(ViewerWorkspace.ViewTitleHeight, client.width * 0.45)) : 0.0
+        let spacing = named and client.width < 8 * ViewerWorkspace.ViewTitleHeight ? GroupSpacing * 0.5 : GroupSpacing
         var right = client.right()
         for i in reversed(viewers.count)
         {
@@ -72,15 +133,25 @@ impl ViewerReadingLine
             let one    = viewers[i]
             let limit  = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
             let wanted = Math.min(Math.ceil(one.itf.measureContent(Math.Point{limit, client.height}).x), limit)
-            let width  = Math.max(Math.min(wanted, right - client.x), 0)
+            let width  = Math.max(Math.min(wanted, right - client.x - reserved), 0)
             right -= width
             one.setPosition(Math.Rectangle{right, client.y + Math.round((client.height - one.position.height) * 0.5), width, one.position.height}, computeLayout: false)
             one.applyLayout()
             if width do
-                right -= GroupSpacing
+                right = Math.max(client.x + reserved, right - spacing)
         }
 
-        .details.setPosition(Math.Rectangle{client.x, client.y, Math.max(right - client.x, 0), client.height}, computeLayout: false)
+        var left = client.x
+        if named
+        {
+            let width = .caption!.widthFor(right - left)
+            .caption.place(left, client.vertCenter(), width)
+            left += width + spacing
+            // A few clipped letters beside the name are less useful than its full tooltip.
+            if right - left < 80 do
+                left = right
+        }
+        .details.setPosition(Math.Rectangle{left, client.y, Math.max(right - left, 0), client.height}, computeLayout: false)
     }
 }
 

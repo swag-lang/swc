@@ -55,6 +55,10 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     openViews(&host, workspace)
     finishComparison(&host, comparison)
     Swag.require(workspace.comparisonVisible() and comparison.text.changes.count == 2)
+    let survivor = comparison.paths[0]
+    host.clickWnd(comparison.captions[1].close)
+    Swag.require(workspace.documentCount() == 1 and workspace.activeDocument().currentFile == survivor)
+    Swag.require(not workspace.comparisonVisible())
 }
 
 #test
@@ -138,15 +142,14 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     Swag.require(comparison.mode == .Flip)
     let shownRight = comparison.shownRight
     host.keyPress(.Space)
-    Swag.require(comparison.shownRight != shownRight and comparison.flipTimer != null)
+    Swag.require(comparison.shownRight != shownRight)
     let visible = comparison.shownRight ? 1'u64 : 0'u64
     let scene = unwrap workspace.scene()
-    Swag.require(scene.active == visible and workspace.closeViewButtons[visible].isVisible())
-    Swag.require(not workspace.closeViewButtons[1 - visible].isVisible())
+    Swag.require(scene.active == visible and comparison.captions[visible].close.isVisible())
+    Swag.require(not comparison.captions[1 - visible].close.isVisible())
     Swag.require(workspace.dropRect(scene, visible).width == workspace.clientRect().width)
     Swag.require(workspace.dropRect(scene, 1 - visible).isEmpty())
-    host.fireTimer(comparison.flipTimer)
-    Swag.require(comparison.flipTimer == null and not workspace.closeViewButtons[visible].isVisible())
+    Swag.require(comparison.captions[visible].title.isVisible())
 
     host.keyPress(.I)
     let sheet = unwrap workspace.comparisonSheet

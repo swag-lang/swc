@@ -598,6 +598,39 @@ impl ViewerWorkspace
         }
     }
 
+    mtd mediaCaption(document: *ViewerWindow, name: string)->String
+    {
+        let scene = .scene()
+        var label = String.from(name)
+        if scene and scene.linked and .isMediaScene()
+        {
+            for view in scene.views where view.document == document
+            {
+                if scene.links.mode == .Relative and view.offset != 0 do
+                    label += Format.toString(" · %{+f2} s", view.offset)
+                if view.behind do
+                    label += Format.toString(" · %", appStrings().scene_Behind)
+                break
+            }
+        }
+        return label
+    }
+
+    mtd refreshMediaCaptions()
+    {
+        let scene = .scene()
+        if scene
+        {
+            if .comparisonVisible() do
+                .comparison!.refresh()
+            else
+            {
+                for view in scene.views where view.document do
+                    view.document.layoutCellCaption()
+            }
+        }
+    }
+
     mtd alignSceneHere()
     {
         let scene = .scene()
@@ -609,6 +642,7 @@ impl ViewerWorkspace
         scene.links.mode = .Relative
         scene.linked     = true
         scene.links.time = true
+        .refreshMediaCaptions()
         .invalidate()
         catch .primary.saveState()
     }
@@ -698,7 +732,7 @@ impl ViewerWorkspace
         defer
         {
             if statusChanged do
-                .invalidate()
+                .refreshMediaCaptions()
         }
 
         for &view, index in scene.views

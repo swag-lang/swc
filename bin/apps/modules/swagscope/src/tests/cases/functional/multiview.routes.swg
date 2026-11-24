@@ -111,7 +111,7 @@ using Core, Gui, Audio
     Swag.require(host.dropFilesOnWnd(workspace.tabs, [path]) == .Copy)
     openViews(&host, workspace)
     Swag.require(workspace.scenes.count == 3 and workspace.activeDocument().currentFile == replacement)
-    Swag.require(not workspace.closeFileButton.isLocallyVisible())
+    Swag.require(not workspace.activeDocument().cellCaption.isVisible())
     let tabs = workspace.tabs
     let item = tabs.items[workspace.active]
     var close = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.vertCenter()})
@@ -143,6 +143,19 @@ using Core, Gui, Audio
     host.click(corner)
     Swag.require(workspace.vacancy and workspace.activeDocument() == workspace.vacancy)
     Swag.require(workspace.vacantCell == 8 and scene.views.count == 2)
+    let image = host.renderSettled(&host.surfaceWnd)
+    let cell  = workspace.vacancy.surfaceRect()
+    let probes: [4] Math.Point = [{cell.x + 1, cell.vertCenter()}, {cell.right() - 1, cell.vertCenter()},
+                  {cell.horzCenter(), cell.y + 1}, {cell.horzCenter(), cell.bottom() - 1}]
+    for point in probes do
+        Swag.require(image.pixelColor(cast(s32, point.x), cast(s32, point.y)) == workspace.themeColors().arc)
+    let previous = original.surfaceRect()
+    Swag.require(image.pixelColor(cast(s32, previous.x + 1), cast(s32, previous.vertCenter())) != workspace.themeColors().arc)
+    let seam = Math.Point{previous.right(), previous.bottom()}
+    let line = workspace.themeColors().line
+    Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, previous.y + 10)) == line)
+    Swag.require(image.pixelColor(cast(s32, previous.x + 10), cast(s32, seam.y)) == line)
+    Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, previous.y - 2)) != line)
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     host.shortcut(.O, .Control)
     Swag.require(host.autoHandled and workspace.vacancy and scene.views.count == 2)
@@ -240,31 +253,34 @@ using Core, Gui, Audio
     let scene = unwrap workspace.scene()
     let original = workspace.activeDocument()
     let last = unwrap scene.views[2].document
-    let closeFile = workspace.closeFileButton
-    Swag.require(not closeFile.isLocallyVisible())
+    let closeFile = original.cellCaption.close
     let middle = unwrap scene.views[1].document
-    Swag.require(not middle.cellCaption.isLocallyVisible())
+    Swag.require(middle.cellCaption.isVisible() and middle.cellCaption.parent == middle.readingLine)
     var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
     Swag.require(middle.cellCaption.isLocallyVisible())
-    let closePoint = middle.cellCaptionClose.surfaceRect().center()
+    let closePoint = middle.cellCaption.close.surfaceRect().center()
     let target = host.surfaceWnd.windowAt(closePoint.x, closePoint.y)
-    Swag.require(target == middle.cellCaptionClose, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.cellCaption.position))
-    host.clickWnd(middle.cellCaptionClose)
+    Swag.require(target == middle.cellCaption.close, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.cellCaption.position))
+    host.clickWnd(middle.cellCaption.close)
     Swag.require(scene.views.count == 2 and scene.views[1].document == last)
     Swag.require(workspace.activeDocument() == original)
     pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
-    host.clickWnd(last.cellCaptionClose)
+    host.clickWnd(last.cellCaption.close)
     Swag.require(scene.views.count == 1 and workspace.activeDocument() == original)
     Swag.require(scene.layout == .Single and not scene.linked and not scene.compared)
     Swag.require(original.position == workspace.clientRect())
-    Swag.require(closeFile.isLocallyVisible() and not original.cellCaption.isLocallyVisible())
+    Swag.require(closeFile.isVisible() and original.cellCaption.parent == original)
+    let filename = original.cellCaption.title.surfaceRect()
+    let close = closeFile.surfaceRect()
+    Swag.require(filename.width > 0 and filename.right() <= close.x)
+    Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == closeFile)
     host.clickWnd(closeFile)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isLocallyVisible())
-    Swag.require(not closeFile.isLocallyVisible())
+    Swag.require(not closeFile.isVisible())
 }
 
 // Shared caption actions follow the selected file, and screen and media settings belong to the window.

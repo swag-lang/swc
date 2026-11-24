@@ -39,7 +39,7 @@ struct SceneComparison
     diffSources:     [2] Texture
     diffFrames:      [2] u64
     diffAligned:     bool
-    flipTimer:       *Timer?
+    captions:        Array'(*ViewerFileCaption)
     vectors:         [2] ComparedDrawing
 }
 
@@ -58,6 +58,12 @@ impl SceneComparison
         result.modeButton.sigPressed += func|comparison = result|(button) { comparison.showPictureMenu(button) }
         result.zoomButton            = IconButton.createQuiet(result)
         result.zoomButton.sigPressed += func|comparison = result|(button) { comparison.showZoomMenu(button) }
+        for side in 2
+        {
+            let caption = ViewerFileCaption.create(result)
+            caption.close.sigPressed += func|workspace, side|(_) { workspace.closeView(side) }
+            result.captions.add(caption)
+        }
         result.hide()
         return result
     }
@@ -163,28 +169,39 @@ impl SceneComparison
             .zoomButton.setPosition({area.right() - inset - 88, area.height - FooterHeight, 88, FooterHeight}, computeLayout: false)
         }
 
+        if .isPicture() and .mode == .Flip do
+            .shownRight = .workspace.scene()!.active == 1
+        for caption, side in .captions
+        {
+            let path: string = .paths[side]
+            let name = Path.fileName(path) orelse path
+            let room = .captionArea(side)
+            let document = unwrap .workspace.scene()!.views[side].document
+            let label = .kind == .Media ? .workspace.mediaCaption(document, name) : String.from(name)
+            let shortcut = document.isWorkspaceActive() ? document.keyShortcutName(ViewerCommands.Close) : String{}
+            caption.setFile(path, label, appStrings().scene_CloseView, shortcut)
+            let width = caption.widthFor(Math.max(0, room.width - 2 * .themeMetrics().floating_Inset))
+            caption.place(room.horzCenter() - width * 0.5, room.vertCenter(), width)
+            caption.show(not .isPicture() or .mode != .Flip or (side != 0) == .shownRight)
+        }
         .invalidate()
+    }
+
+    mtd hasSeparateSides()->bool => .isPicture() ? .mode == .SideBySide : not .options.unified
+
+    mtd captionArea(side: u64)->Math.Rectangle
+    {
+        let area = .clientRect()
+        let single = .isPicture() and .mode == .Flip
+        let width = single ? area.width : area.width * 0.5
+        return {single ? area.x : area.x + cast(f32, side) * width, .stripInset(), width, ViewerWorkspace.ViewTitleHeight}
     }
 
     mtd setPictureMode(mode: PictureComparisonMode)
     {
         .mode = mode
-        if mode == .Flip do
-            .showFlippedName()
-        else do
-            .stopTimer(&.flipTimer)
         .refresh()
-        .workspace.layoutCloseViewButtons()
         catch .workspace.primary.saveState()
-    }
-
-    mtd showFlippedName()
-    {
-        .stopTimer(&.flipTimer)
-        .shownRight = .workspace.scene()!.active == 1
-        .flipTimer = .addTimer(ViewerWindow.ViewerBarLinger)
-        .workspace.layoutCloseViewButtons()
-        .invalidate()
     }
 
     mtd step(delta: s32)
@@ -235,7 +252,6 @@ impl SceneComparison
         }
 
         let mono   = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
-        let title  = .theme().createDefaultFont(12)
         let inset  = .themeMetrics().floating_Inset
         let top    = area.y + ViewerWorkspace.ViewTitleHeight
         let bottom = area.bottom() - FooterHeight
@@ -243,25 +259,6 @@ impl SceneComparison
         let left   = Math.Rectangle{area.x, top, band.x - area.x, band.height}
         let right  = Math.Rectangle{band.right(), top, area.right() - band.right(), band.height}
         let count  = .text.rows.count
-        let scene  = unwrap .workspace.scene()
-        for side in 2
-        {
-            let part         = side == 0 ? left : right
-            let path: string = .paths[side]
-            let name         = Path.fileName(path) orelse path
-            let label        = Painter.elideString(name, title, part.width - inset, .deviceScale())
-            painter.drawStringCenter(part.horzCenter(),
-                                     area.y + ViewerWorkspace.ViewTitleHeight / 2,
-                                     label,
-                                     title,
-                                     side == scene.active ? colors.text : colors.softText)
-            if side == scene.active
-            {
-                let width = Painter.measureString(label, title).width
-                painter.fillRect(part.horzCenter() - width / 2, top - 3, width, 2, colors.arc)
-            }
-        }
-
         let visible = cast(u64, Math.ceil(band.height / RowHeight))
         if .options.unified
         {
@@ -397,19 +394,6 @@ impl IWnd for SceneComparison
         .operation.wait()
         .clearComparedDrawings()
         .app().renderer.removeTexture(&.diffTexture)
-    }
-
-    mtd impl onTimerEvent(evt: *TimerEvent)
-    {
-        if evt.timer != .flipTimer
-        {
-            evt.accepted = false
-            return
-        }
-
-        .stopTimer(&.flipTimer)
-        .workspace.layoutCloseViewButtons()
-        .invalidate()
     }
 
     mtd impl onTaskEvent(evt: *TaskEvent)
@@ -557,8 +541,16 @@ impl ViewerWorkspace
 
     mtd refreshComparison()
     {
-        defer .layoutCloseViewButtons()
         let scene = .scene()
+        let wasVisible = .comparisonVisible()
+        defer
+        {
+            if scene and wasVisible != .comparisonVisible()
+            {
+                for view in scene.views where view.document do
+                    view.document.layoutFileInfo()
+            }
+        }
         if not scene or not scene.compared or scene.views.count != 2 or scene.maximized
         {
             .comparison?.hide(keepActivities: true)

@@ -38,6 +38,8 @@ public struct SurfaceWnd
         groundHitTest: GroundHitTest?          // Answers, under the strip, whether a surface position is ground that drags the window.
         sizingBorder:  SizingBorder = None     // Border under the pointer, or being dragged.
 
+        sigCaptionPressed: SigArray'func||(*SurfaceWnd)     // Emitted when the primary button presses the draggable title strip, before a possible window move.
+
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
@@ -70,16 +72,19 @@ impl IWnd for SurfaceWnd
             if evt.button != .Left do
                 break
             srfn.bringToFront()
-            if srfn.isMaximized do
-                break
-            if srfn.flags.has(.Resizable) do
+            if not srfn.isMaximized and srfn.flags.has(.Resizable) do
                 .sizingBorder = .hitTestBorders(evt.surfacePos)
             else do
                 .sizingBorder = .None
             if .sizingBorder == .None and not .hitTestCaption(evt.surfacePos) do
                 break
-            .captureMouse()
-            .movingSurface = true
+            if .sizingBorder == .None do
+                .notifyCaptionPress(evt.surfacePos)
+            if not srfn.isMaximized
+            {
+                .captureMouse()
+                .movingSurface = true
+            }
 
         case .Leave:
             .sizingBorder = .None
@@ -605,6 +610,13 @@ impl SurfaceWnd
         if srfn.flags.has(.SmallCaption) do
             return .padding.y
         return 0
+    }
+
+    internal mtd notifyCaptionPress(point: Math.Point)
+    {
+        let y = .surfaceToLocal(point).y
+        if y >= 0 and y < .stripHeight() do
+            .sigCaptionPressed.call(me)
     }
 
     // Reports whether the surface position `surfacePos` drags the window.

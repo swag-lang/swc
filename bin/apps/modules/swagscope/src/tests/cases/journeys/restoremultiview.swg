@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-func nativeWorkspace(app: *Application, state: string)->*ViewerWorkspace
+internal func nativeWorkspace(app: *Application, state: string)->*ViewerWorkspace
 {
     app.setAppIcon(expect Image.decode(".png", AppIcon))
     app.setStatePath(state)
@@ -15,7 +15,7 @@ func nativeWorkspace(app: *Application, state: string)->*ViewerWorkspace
     return workspace
 }
 
-func waitForWorkspace(app: *Application, workspace: *ViewerWorkspace)
+internal func waitForWorkspace(app: *Application, workspace: *ViewerWorkspace)
 {
     let surface = unwrap workspace.surface
     var watch: Time.Stopwatch

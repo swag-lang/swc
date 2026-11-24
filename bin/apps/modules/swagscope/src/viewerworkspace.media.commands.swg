@@ -141,7 +141,7 @@ impl ViewerWorkspace
 
         if not .isMediaScene() do
             return false
-        if evt.modifiers == .None
+        if evt.modifiers == .None and not .focusOnGrid
         {
             switch evt.key
             {

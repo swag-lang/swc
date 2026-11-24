@@ -898,6 +898,12 @@ impl ViewerWindow
 
         .explorer?.address.show(.isExploring())
         .surface?.wnd.showTitle(.showsCaptionTitle())
+        let selected = .acceptsViewCommands()
+        .outlineCaptionButton.enable(selected)
+        .returnExplorerCaptionButton.enable(selected)
+        .viewerCaptionButton.enable(selected)
+        .informationCaptionButton.enable(selected or (.workspace?.wantsComparisonSheet() orelse false))
+        .refreshCaptionButton.enable(selected)
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
         .forwardCaptionButton.show(exploring)
@@ -936,9 +942,9 @@ impl ViewerWindow
         if not .explorer do
             return
 
-        .backCaptionButton.enable(.explorer.history.canGoBack())
-        .forwardCaptionButton.enable(.explorer.history.canGoForward())
-        .upCaptionButton.enable(.explorer.canGoUp())
+        .backCaptionButton.enable(selected and .explorer.history.canGoBack())
+        .forwardCaptionButton.enable(selected and .explorer.history.canGoForward())
+        .upCaptionButton.enable(selected and .explorer.canGoUp())
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -1328,6 +1334,8 @@ impl ViewerWindow
 
     mtd isWorkspacePrimary()->bool => not .workspace or .workspace.primary == null or .workspace.primary == me
 
+    mtd acceptsViewCommands()->bool => not (.workspace?.focusOnGrid orelse false)
+
     mtd isWorkspaceActive()->bool => not .workspace or .workspace.primary == null or .workspace.activeDocument() == me
 
     mtd captionDocument()->*ViewerWindow
@@ -1706,7 +1714,7 @@ impl ViewerWindow
 
         // The keys of an explored page are taught while what it shows leaves its foot free: an
         // archive's way in and out, a folder's filter.
-        let roomy = exploring and
+        let roomy = exploring and .acceptsViewCommands() and .isWorkspaceActive() and
                     .explorer and
                     .explorer.scroll.scrollSize.y + HintRoom < .explorer.scroll.clientRect().height
         let archive = roomy and .explorer!.listing.isArchive

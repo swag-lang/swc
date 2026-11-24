@@ -358,6 +358,13 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // The system takes this press for itself, so no window hears it as a click.
             surface.app.notifyPressedElsewhere()
 
+            if wParam == HTCAPTION
+            {
+                var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
+                surface.screenToSurface(&pt)
+                surface.wnd.notifyCaptionPress(pt)
+            }
+
             // A press on the caption or a border runs USER32's move or size loop inside
             // DefWindowProc. The window does not hear of it until the pointer has actually
             // moved, so the clock is armed from the press and runs until the loop returns.

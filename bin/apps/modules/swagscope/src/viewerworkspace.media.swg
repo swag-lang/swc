@@ -511,11 +511,12 @@ impl ViewerWorkspace
                          for layout in SceneCommands.LayoutValues where current.supportsLayout(layout) do
                              layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout,
                                                func|workspace, layout|() { workspace.setLayout(layout) },
+                                               disabled: workspace.focusOnGrid and layout == .Single,
                                                icon: workspace.theme().icon(sceneLayoutIcon(layout), themeRowIconSize(workspace.themeMetrics())))
                      },
                      icon: .theme().icon(sceneLayoutIcon(scene.visibleLayout()), size))
         page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
-                       func|workspace|() { workspace.toggleMaximized() },
+                       func|workspace|() { workspace.toggleMaximized() }, disabled: .focusOnGrid,
                        icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))
         if not .isMediaScene() and .hasViewLinks() do
             page.addLink(text.scene_ViewLinks, "",
@@ -832,12 +833,21 @@ impl ViewerWorkspace
         if not media do
             return
         page.addHeading(text.scene_LinkTime)
-        page.addSegments(text.scene_LinkTime,
-                         [text.scene_Absolute, text.scene_Relative, text.scene_Leader],
-                         cast(u32, scene.links.mode),
-                         func|workspace|(index) { workspace.setTimeMode(MediaCommands.TimeValues[index]) })
+        if .focusOnGrid
+        {
+            for mode in MediaCommands.TimeValues do
+                page.addChoice(sceneTimeTitle(mode), scene.links.mode == mode,
+                               func|workspace, mode|() { workspace.setTimeMode(mode) }, disabled: mode == .Leader)
+        }
+        else
+        {
+            page.addSegments(text.scene_LinkTime,
+                             [text.scene_Absolute, text.scene_Relative, text.scene_Leader],
+                             cast(u32, scene.links.mode),
+                             func|workspace|(index) { workspace.setTimeMode(MediaCommands.TimeValues[index]) })
+        }
 
-        page.addAction(text.scene_AlignHere, func|workspace|() { workspace.alignSceneHere() }, icon: .theme().icon(.GoTo, size))
+        page.addAction(text.scene_AlignHere, func|workspace|() { workspace.alignSceneHere() }, disabled: .focusOnGrid, icon: .theme().icon(.GoTo, size))
         page.addAction(text.scene_AlignSound, func|workspace|() { workspace.alignSceneSound() }, icon: .theme().icon(.AudioTracks, size))
         page.addHeading(text.scene_AtEnd)
         for mode in [SceneEndMode.Independent, .Shortest, .LoopLeader] do
@@ -845,6 +855,6 @@ impl ViewerWorkspace
                            mode == .effectiveEndMode(scene),
                            func|workspace, mode|() { workspace.setEndMode(mode) },
                            icon: .theme().icon(sceneEndIcon(mode), themeRowIconSize(.themeMetrics())))
-        page.addToggle(text.scene_Solo, scene.links.solo == scene.active, func|workspace|(_) { workspace.toggleSolo() })
+        page.addToggle(text.scene_Solo, scene.links.solo == scene.active, func|workspace|(_) { workspace.toggleSolo() }, disabled: .focusOnGrid)
     }
 }

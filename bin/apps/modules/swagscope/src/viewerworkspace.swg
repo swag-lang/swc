@@ -173,6 +173,7 @@ struct ViewerWorkspace
     switchCursor:     u64
     switcher:         *FloatingPanel?
     switchBackdrop:   *Wnd?
+    focusOnGrid:      bool          // The title strip has released the cell while the scene keeps its playback leader.
     hoveredDocument:  *ViewerWindow?
     pointerKnown:     bool
     pointerPosition:  Math.Point
@@ -199,9 +200,15 @@ impl ViewerWorkspace
     func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWorkspace
     {
         let result = Wnd.create'ViewerWorkspace(parent, "scope.workspace")
+        result.focusPolicy = .Click
         result.backgroundStyle = .Application
         result.wndFlags.add(.AfterChildrenPaint)
         result.surface!.setView(result)
+        result.surface.wnd.sigCaptionPressed += func(frame)
+        {
+            if frame.view is ViewerWorkspace as workspace do
+                workspace.releaseCellFocus()
+        }
         result.primary             = ViewerWindow.create(result, #move index, result)
         result.primary.focusPolicy = .Click
         result.tabs                = SceneTabs.create(result)
@@ -371,7 +378,7 @@ impl ViewerWorkspace
         if scene.links.solo == index do
             scene.links.solo = Swag.U64.Max
         document.queueFile(path)
-        if scene.active == index do
+        if scene.active == index and not .focusOnGrid do
             .showScene()
         else do
             .selectView(index)
@@ -415,6 +422,7 @@ impl ViewerWorkspace
 
     mtd suspendScene(capturePreview = true)
     {
+        .focusOnGrid = false
         .dismissVacancy()
         .clearDropHighlight()
         .hoveredDocument = null
@@ -483,17 +491,33 @@ impl ViewerWorkspace
         catch .primary.saveState()
     }
 
+    mtd releaseCellFocus()
+    {
+        if not .isTiled() or .focusOnGrid do
+            return
+        let previous = .activeDocument()
+        previous.hideSearch()
+        previous.closeInformation()
+        .dismissVacancy()
+        .focusOnGrid = true
+        .showScene()
+    }
+
     mtd selectView(index: u64)
     {
         let scene = .scene()
-        if not scene or index >= scene.views.count or (index == scene.active and not .vacancy) do
+        if not scene or index >= scene.views.count or (index == scene.active and not .vacancy and not .focusOnGrid) do
             return
         let previous = .activeDocument()
-        previous.explorer?.address.hide()
-        previous.hideSearch()
-        previous.closeInformation()
-        previous.concealViewerBar()
+        if previous != scene.views[index].document
+        {
+            previous.explorer?.address.hide()
+            previous.hideSearch()
+            previous.closeInformation()
+            previous.concealViewerBar()
+        }
         .dismissVacancy()
+        .focusOnGrid = false
         scene.active = index
         .showScene()
     }
@@ -505,6 +529,7 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or not .isTiled() or cell >= scene.cellCount() or scene.viewInCell(cell) != Swag.U64.Max do
             return
+        .focusOnGrid = false
         if not .vacancy
         {
             let previous = .activeDocument()
@@ -682,7 +707,7 @@ impl ViewerWorkspace
     mtd toggleMaximized()
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 or .vacancy do
+        if not scene or scene.views.count < 2 or .vacancy or .focusOnGrid do
             return
         scene.maximized = not scene.maximized
         if scene.maximized do
@@ -700,7 +725,9 @@ impl ViewerWorkspace
         document.refreshReadingAppearance()
         .tabs.invalidate()
         let focused = document.focusedWindow()
-        if focused != document and not document.isAncestorOf(focused) do
+        if .focusOnGrid do
+            .setFocus()
+        elif focused != document and not document.isAncestorOf(focused) do
             document.setFocus()
     }
 
@@ -710,6 +737,8 @@ impl ViewerWorkspace
             return
         let area         = .clientRect()
         let scene        = .scene()
+        if not .isTiled() do
+            .focusOnGrid = false
         var primaryShown = not scene
         if scene
         {
@@ -730,6 +759,8 @@ impl ViewerWorkspace
                 if visible
                 {
                     view.document.setPosition(.viewRect(scene, index))
+                    if view.document.isExploring() do
+                        view.document.teachHints(true)
                     view.document.layoutFileInfo()
                     view.document.applyLayout()
                 }
@@ -750,7 +781,7 @@ impl ViewerWorkspace
             .vacancy.setPosition(.gridCellRect(unwrap scene, .vacantCell))
             .vacancy.applyLayout()
         }
-        .focusDelegate = .activeDocument()
+        .focusDelegate = .focusOnGrid ? null : .activeDocument()
         .updateMedia()
         .tabs.layoutTabs()
         .invalidate()
@@ -847,6 +878,12 @@ impl ViewerWorkspace
         let index  = cast(s64, single ? scene.active : (.vacancy ? .vacantCell : scene.cellOf(scene.active)))
         let column = index % cols
         let inGrid = not scene.maximized and scene.layout != .Single and cols > 1
+        if .focusOnGrid and (key == .Left or key == .Right or key == .Up or key == .Down)
+        {
+            if not swap do
+                .selectView(scene.active)
+            return true
+        }
         var target = index
         switch key
         {

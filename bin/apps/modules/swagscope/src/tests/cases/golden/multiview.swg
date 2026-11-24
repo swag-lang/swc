@@ -57,6 +57,23 @@ using Core, Gui, Pixel, Audio
     assertScopeImageGolden(&image, "scene.vacant.paper")
 }
 
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: 760, height: 480)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.png")], .Grid2)
+    openViews(&host, workspace)
+    let strip = host.surfaceWnd.captionContentRect()
+    var point = host.surfaceWnd.localToSurface(strip.center())
+    host.surface.surfaceToScreen(&point)
+    host.click(point)
+    Swag.require(workspace.focusOnGrid and not workspace.activeDocument().informationCaptionButton.isEnabled())
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.unselected.encre")
+}
+
 func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: bool)
 {
     var host: Testing.HeadlessHost

@@ -211,6 +211,8 @@ impl ViewerWindow
     // with the ways of showing the explored folder: one exclusive choice, shown as one row.
     private mtd describeViewerChoices(results: *Lens.Results)
     {
+        if not .acceptsViewCommands() do
+            return
         let texts = appStrings()
         let typed:   String = results.query
         let query = typed.toString()
@@ -360,6 +362,8 @@ impl ViewerWindow
     // Answers the lens with the rows of the viewer on screen, under its name.
     private mtd describeViewerCommands(results: *Lens.Results)
     {
+        if not .acceptsViewCommands() do
+            return
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
             return
         let instance = &.instances[.activeChoiceIndex]
@@ -378,6 +382,8 @@ impl ViewerWindow
     // and cues.
     private mtd describeFileLines(results: *Lens.Results)
     {
+        if not .acceptsViewCommands() do
+            return
         if .isExploring() or .currentFile.isEmpty() do
             return
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
@@ -605,6 +611,8 @@ impl ViewerWindow
         let texts = appStrings()
         let limit = alone ? LensFilesAlone : LensFilesBeside
         .addFileSection(results, texts.ui_Recent, .recent.toSlice(), limit, remember: true)
+        if not .acceptsViewCommands() do
+            return
         if .siblingsDirty do
             .rebuildSiblings()
         .addFileSection(results, texts.lens_InFolder, .siblings.toSlice(), limit, remember: false)
@@ -668,10 +676,40 @@ impl ViewerWindow
         }
     }
 
+    // The last document still hosts the shared lens and title controls when the grid has focus.
+    // Only commands with a window or scene target can run in that state.
+    mtd needsSelectedCell(id: WndId)->bool
+    {
+        switch id
+        {
+        case ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.Lens, ViewerCommands.FullScreen,
+             ViewerCommands.Dismiss, ViewerCommands.GeneralOptions, ViewerCommands.ClearHistory,
+             ViewerCommands.OnlineMovies, ViewerCommands.OnlineMusic:
+            return false
+        case ViewerCommands.Information:
+            return not (.workspace?.wantsComparisonSheet() orelse false)
+        case SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.CompareSelection, SceneCommands.Maximize,
+             SceneCommands.Layouts[0], MediaCommands.Solo, MediaCommands.AlignHere, MediaCommands.Times[2],
+             ComparisonCommands.ZoomIn, ComparisonCommands.ZoomOut:
+            return true
+        default:
+            return Utf8.startsWith(id, "scope.") and not Utf8.startsWith(id, "scope.scene.") and not Utf8.startsWith(id, "scope.compare.")
+        }
+    }
+
     // Describes one command of the window for the lens and every other presenter: its name, its
     // glyph, and whether it applies, is available and is in force now.
     mtd computeCommandState(evt: *CommandStateEvent)->bool
     {
+        let unavailable = not .acceptsViewCommands() and .needsSelectedCell(evt.id)
+        defer
+        {
+            if unavailable and evt.accepted
+            {
+                evt.disabled = true
+                evt.updatedFields.add(.Disabled)
+            }
+        }
         if .computeSceneCommand(evt) or .computeComparisonCommand(evt) or .computeMediaCommand(evt) do
             return true
 
@@ -1123,6 +1161,8 @@ impl ViewerWindow
     // Runs a window command. A path supplied by a context menu takes precedence over the selection.
     mtd runCommand(id: WndId, contextPath: string? = null)->bool
     {
+        if not .acceptsViewCommands() and .needsSelectedCell(id) do
+            return true
         if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id) do
             return true
 
@@ -1156,7 +1196,14 @@ impl ViewerWindow
             .chooseFile()
 
         case ViewerCommands.Explore:
-            .exploreFolder()
+            if .acceptsViewCommands() do
+                .exploreFolder()
+            else
+            {
+                let folder = .selectExplorerFolder()
+                if not folder.isEmpty() do
+                    .workspace!.openDocument(folder)
+            }
 
         case ViewerCommands.ReturnToExplorer:
             .closeFile()

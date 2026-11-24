@@ -477,3 +477,64 @@ using Core, Gui, Audio
     host.keyPress(.F9, .CtrlShift)
     Swag.require(workspace.scene() == scene and scene.views.count == 1 and not scene.maximized)
 }
+
+// A title-ground press leaves the grid in charge of global keys. Files, folders and empty
+// cells can reclaim the keyboard without changing the scene or another cell's contents.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true)
+    defer host.shutdown()
+    let folder = Testing.tempFilePath("scope-focus-folder-", "")
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    workspace.openScene([scopeTestDataPath("sample.cpp"), folder], .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let code = unwrap scene.views[0].document
+    let listing = unwrap scene.views[1].document
+    completeExplorer(&host, unwrap listing.explorer)
+    workspace.selectView(1)
+    Swag.require(listing.hintLine.isVisible())
+
+    let strip = host.surfaceWnd.captionContentRect()
+    var title = host.surfaceWnd.localToSurface(strip.center())
+    host.surface.surfaceToScreen(&title)
+    host.click(title)
+    Swag.require(workspace.focusOnGrid and workspace.hasFocus())
+    Swag.require(not listing.hintLine.isVisible() and not listing.informationCaptionButton.isEnabled())
+    Swag.require(listing.sendComputeCommandStateEvent(ViewerCommands.Close).disabled)
+    Swag.require(not listing.sendComputeCommandStateEvent(SceneCommands.OpenGrid).disabled)
+    host.shortcut(.W, .Control)
+    host.keyPress(.I)
+    Swag.require(not listing.informationOpen() and workspace.documentCount() == 2)
+    host.shortcut(.Space, .Control)
+    Swag.require(listing.lens.isOpen())
+    host.keyPress(.Escape)
+    Swag.require(not listing.lens.isOpen() and workspace.focusOnGrid)
+
+    host.finishAnimations()
+    host.clickWnd(listing.explorer.scroll)
+    Swag.require(not workspace.focusOnGrid and listing.hintLine.isVisible())
+    workspace.selectView(0)
+    Swag.require(not listing.hintLine.isVisible() and code.informationCaptionButton.isEnabled())
+    host.click(title)
+    Swag.require(workspace.focusOnGrid and not code.viewerCaptionButton.isEnabled())
+    host.keyPress(.Right, .Alt)
+    Swag.require(not workspace.focusOnGrid and code.viewerCaptionButton.isEnabled())
+    host.click(title)
+    host.keyPress(.Tab)
+    Swag.require(not workspace.focusOnGrid and workspace.activeDocument() == code)
+
+    var hole = workspace.localToSurface(workspace.gridCellRect(scene, 3).center())
+    host.surface.surfaceToScreen(&hole)
+    host.click(hole)
+    Swag.require(workspace.vacancy and workspace.vacantCell == 3)
+    host.click(title)
+    Swag.require(workspace.focusOnGrid and not workspace.vacancy)
+    host.clickWnd(code.cellCaption.close)
+    Swag.require(workspace.documentCount() == 1 and not workspace.focusOnGrid)
+    Swag.require(listing.hintLine.isVisible() and listing.informationCaptionButton.isEnabled())
+    host.click(title)
+    Swag.require(not workspace.focusOnGrid and listing.hintLine.isVisible())
+}

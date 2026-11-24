@@ -313,19 +313,10 @@ impl ViewerWorkspace
         {
             let metrics  = .themeMetrics()
             let inset    = metrics.floating_Inset
-            if .isTiled()
+            if .isTiled() and not .focusOnGrid
             {
-                if not .vacancy do
-                    .paintCellFocus(painter, .viewRect(scene, scene.active))
-                let plus = .theme().icon(.Plus, metrics.menuPopup_IconSize)
-                for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max
-                {
-                    let rect = .gridCellRect(scene, cell)
-                    plus.paint(painter, Math.round(rect.horzCenter() - plus.sizeX * 0.5),
-                               Math.round(rect.vertCenter() - plus.sizeY * 0.5), colors.faintText)
-                    if .vacancy and cell == .vacantCell do
-                        .paintCellFocus(painter, rect)
-                }
+                let rect = .vacancy ? .gridCellRect(scene, .vacantCell) : .viewRect(scene, scene.active)
+                .paintCellFocus(painter, rect)
             }
             if scene.maximized
             {
@@ -345,7 +336,7 @@ impl ViewerWorkspace
             }
         }
 
-        if .comparisonVisible()
+        if .comparisonVisible() and not .focusOnGrid
         {
             let compare = unwrap .comparison
             if compare.hasSeparateSides() do
@@ -673,6 +664,11 @@ impl ViewerWorkspace
             return true
         }
 
+        if .focusOnGrid and evt.key == .Tab and (evt.modifiers == .None or evt.modifiers == .Shift)
+        {
+            .selectView(.scene()!.active)
+            return true
+        }
         if source is EditBox or .focusedWindow() is EditBox do
             return false
         if .vacancy and evt.modifiers == .None and evt.key == .Return

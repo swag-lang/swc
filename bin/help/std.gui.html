@@ -14194,6 +14194,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_SurfaceWnd_movingSurface" class="code-type">movingSurface</td><td class="code-type">bool</td><td><p>Whether a pointer drag is moving or resizing the surface.</p>
 </td></tr>
+<tr><td id="Gui_SurfaceWnd_sigCaptionPressed" class="code-type">sigCaptionPressed</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_SurfaceWnd">Gui.SurfaceWnd</a>))</td><td><p>Emitted when the primary button presses the draggable title strip, before a possible window move.</p>
+</td></tr>
 <tr><td id="Gui_SurfaceWnd_sizingBorder" class="code-type">sizingBorder</td><td class="code-type"><a href="#Gui_SizingBorder">Gui.SizingBorder</a></td><td><p>Border under the pointer, or being dragged.</p>
 </td></tr>
 <tr><td id="Gui_SurfaceWnd_titleHidden" class="code-type">titleHidden</td><td class="code-type">bool</td><td><p>Whether the document writes the title itself, so the strip does not.</p>
@@ -27894,7 +27896,7 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">theme</span>()-&gt;<span class="SCst"><a href="#Gui_Markdown_Style">Style</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_bringToFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.bringToFront</span> <a class="api-item-permalink" href="#Gui_Surface_bringToFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1160">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_bringToFront" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.bringToFront</span> <a class="api-item-permalink" href="#Gui_Surface_bringToFront" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1167">src</a></div>
 <p>Brings the surface to the front of its current Z-order group.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bringToFront</span>()</span></div>
 </section>
@@ -27931,23 +27933,23 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.disable</span> <a class="api-item-permalink" href="#Gui_Surface_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1185">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.disable</span> <a class="api-item-permalink" href="#Gui_Surface_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1192">src</a></div>
 <p>Disables input for the surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">disable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.enable</span> <a class="api-item-permalink" href="#Gui_Surface_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1169">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.enable</span> <a class="api-item-permalink" href="#Gui_Surface_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1176">src</a></div>
 <p>Enables input for the surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">enable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_hasTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.hasTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_hasTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L973">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_hasTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.hasTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_hasTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L980">src</a></div>
 <p>Reports whether the native notification-area registration succeeded.</p>
 <p>The icon can still be placed in the system's overflow area.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasTrayIcon</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_hide" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.hide</span> <a class="api-item-permalink" href="#Gui_Surface_hide" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1273">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_hide" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.hide</span> <a class="api-item-permalink" href="#Gui_Surface_hide" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1280">src</a></div>
 <p>Hides the surface without destroying it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hide</span>()</span></div>
 </section>
@@ -27962,12 +27964,12 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">invalidateRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_isTopMost" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.isTopMost</span> <a class="api-item-permalink" href="#Gui_Surface_isTopMost" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1157">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_isTopMost" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.isTopMost</span> <a class="api-item-permalink" href="#Gui_Surface_isTopMost" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1164">src</a></div>
 <p>Returns whether the surface belongs to the topmost Z-order group.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isTopMost</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_removeTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.removeTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_removeTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L976">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_removeTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.removeTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_removeTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L983">src</a></div>
 <p>Removes the notification-area icon owned by this surface, if any.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeTrayIcon</span>()</span></div>
 </section>
@@ -27978,32 +27980,32 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">renderingContext</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_RenderContext">RenderContext</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_requestClose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestClose</span> <a class="api-item-permalink" href="#Gui_Surface_requestClose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L996">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_requestClose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestClose</span> <a class="api-item-permalink" href="#Gui_Surface_requestClose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1003">src</a></div>
 <p>Requests a close through the regular system-command event path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestClose</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_requestMaximize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestMaximize</span> <a class="api-item-permalink" href="#Gui_Surface_requestMaximize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1020">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_requestMaximize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestMaximize</span> <a class="api-item-permalink" href="#Gui_Surface_requestMaximize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1027">src</a></div>
 <p>Requests maximization through the regular system-command event path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestMaximize</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_requestMinimize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestMinimize</span> <a class="api-item-permalink" href="#Gui_Surface_requestMinimize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1008">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_requestMinimize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestMinimize</span> <a class="api-item-permalink" href="#Gui_Surface_requestMinimize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1015">src</a></div>
 <p>Requests minimization through the regular system-command event path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestMinimize</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_requestRestore" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestRestore</span> <a class="api-item-permalink" href="#Gui_Surface_requestRestore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1032">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_requestRestore" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.requestRestore</span> <a class="api-item-permalink" href="#Gui_Surface_requestRestore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1039">src</a></div>
 <p>Requests restoration through the regular system-command event path.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestRestore</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_screenToSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.screenToSurface</span> <a class="api-item-permalink" href="#Gui_Surface_screenToSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1404">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_screenToSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.screenToSurface</span> <a class="api-item-permalink" href="#Gui_Surface_screenToSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1411">src</a></div>
 <p>Converts <span class="code-inline">pt</span> in place from physical screen pixels to logical surface coordinates.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">screenToSurface</span>(pt: *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_sendCustomMessage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.sendCustomMessage</span> <a class="api-item-permalink" href="#Gui_Surface_sendCustomMessage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1071">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_sendCustomMessage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.sendCustomMessage</span> <a class="api-item-permalink" href="#Gui_Surface_sendCustomMessage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1078">src</a></div>
 <p>Sends a custom message to the surface created with <span class="code-inline">surfaceId</span>, possibly in another process, and returns whether it was found.</p>
 <p>The target surface view receives a <a href="#Gui_SysUserEvent">Gui.SysUserEvent</a> of kind <span class="code-inline">CustomMessage</span> carrying <span class="code-inline">id</span> and <span class="code-inline">param</span>. The call waits until the message has been handled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sendCustomMessage</span>(surfaceId: <span class="STpe">string</span>, id: <span class="STpe">u32</span>, param: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -28014,12 +28016,12 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIcon</span>(icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_setOpacity" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setOpacity</span> <a class="api-item-permalink" href="#Gui_Surface_setOpacity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1200">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_setOpacity" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setOpacity</span> <a class="api-item-permalink" href="#Gui_Surface_setOpacity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1207">src</a></div>
 <p>Changes the opacity used to present the whole surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setOpacity</span>(opacity: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_setPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setPosition</span> <a class="api-item-permalink" href="#Gui_Surface_setPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1125">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_setPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setPosition</span> <a class="api-item-permalink" href="#Gui_Surface_setPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1132">src</a></div>
 <p>Sets the surface bounds in physical screen pixels, clamped to <a href="#Gui_Surface_minSize">Gui.Surface.minSize</a> and <a href="#Gui_Surface_maxSize">Gui.Surface.maxSize</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPosition</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>)</span></div>
 </section>
@@ -28030,12 +28032,12 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTitle</span>(name: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_setTopMost" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setTopMost</span> <a class="api-item-permalink" href="#Gui_Surface_setTopMost" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_setTopMost" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setTopMost</span> <a class="api-item-permalink" href="#Gui_Surface_setTopMost" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1154">src</a></div>
 <p>Enables or disables placement above all non-topmost windows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTopMost</span>(enabled = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_setTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_setTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L877">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_setTrayIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.setTrayIcon</span> <a class="api-item-permalink" href="#Gui_Surface_setTrayIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L884">src</a></div>
 <p>Shows <span class="code-inline">icon</span> for this surface in the notification area, with an optional tooltip.</p>
 <p>Interactions reach the surface view as a <a href="#Gui_SysUserEvent">Gui.SysUserEvent</a> whose <a href="#Gui_SysUserEvent_TrayAction">Gui.SysUserEvent.TrayAction</a> reports icon activation and context-menu requests. A second call replaces the icon, and the icon is removed automatically when the surface is destroyed. Nothing is shown without a native window or when <span class="code-inline">icon</span> cannot be converted.</p>
 <p>NIM_SETVERSION selects the Shell's current callback format. If it is unavailable, the window procedure continues to recognize the version 0 mouse notifications.</p>
@@ -28054,13 +28056,13 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">shadowMargin</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.show</span> <a class="api-item-permalink" href="#Gui_Surface_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1214">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.show</span> <a class="api-item-permalink" href="#Gui_Surface_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1221">src</a></div>
 <p>Shows the surface and emits its one-time initialization event when needed.</p>
 <p>A <a href="#Gui_SurfaceFlags_Sheet">Gui.SurfaceFlags.Sheet</a> arrives the way a floating surface does inside a window: it fades in over its owner, without travel, unless motion is reduced.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_showMaximized" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showMaximized</span> <a class="api-item-permalink" href="#Gui_Surface_showMaximized" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1290">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_showMaximized" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showMaximized</span> <a class="api-item-permalink" href="#Gui_Surface_showMaximized" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1297">src</a></div>
 <p>Shows the surface maximized and preserves its current bounds for restoration.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showMaximized</span>()</span></div>
 <p>Shows the surface maximized, with <span class="code-inline">restoreTo</span> as the bounds a later restore returns to.</p>
@@ -28068,23 +28070,23 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showMaximized</span>(restoreTo: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_showMinimized" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showMinimized</span> <a class="api-item-permalink" href="#Gui_Surface_showMinimized" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1387">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_showMinimized" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showMinimized</span> <a class="api-item-permalink" href="#Gui_Surface_showMinimized" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1394">src</a></div>
 <p>Shows the surface minimized.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showMinimized</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_showNormal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showNormal</span> <a class="api-item-permalink" href="#Gui_Surface_showNormal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1376">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_showNormal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showNormal</span> <a class="api-item-permalink" href="#Gui_Surface_showNormal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1383">src</a></div>
 <p>Restores a minimized or maximized surface to its normal bounds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showNormal</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_showNormalAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showNormalAt</span> <a class="api-item-permalink" href="#Gui_Surface_showNormalAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1349">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_showNormalAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showNormalAt</span> <a class="api-item-permalink" href="#Gui_Surface_showNormalAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1356">src</a></div>
 <p>Leaves a maximized or minimized state and places the surface, in one native transaction.</p>
 <p>Restoring first and placing afterwards publishes two geometry transactions, and the compositor shows the window at its restored bounds in between. Entering full screen from a maximized window is the case that exists, and that intermediate picture is what it looked like. <span class="code-inline">pos</span> is in physical screen pixels and becomes the bounds a later restore uses.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showNormalAt</span>(pos: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_showTrayMessage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showTrayMessage</span> <a class="api-item-permalink" href="#Gui_Surface_showTrayMessage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L933">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_showTrayMessage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.showTrayMessage</span> <a class="api-item-permalink" href="#Gui_Surface_showTrayMessage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L940">src</a></div>
 <p>Shows a short notification from the notification-area icon of this surface.</p>
 <p><span class="code-inline">title</span> leads the notification and <span class="code-inline">message</span> says the rest; the system keeps at most 63 UTF-16 units of the first and 255 of the second. The notification is silent, carries the icon set by <a href="#Gui_Surface_setTrayIcon">Gui.Surface.setTrayIcon</a>, and leaves on its own: it asks no answer, and the system may hold it back while the reader asked not to be disturbed. Nothing is shown without a notification-area icon.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showTrayMessage</span>(title, message: <span class="STpe">string</span>)</span></div>
@@ -28096,7 +28098,7 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">size</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_surfaceToScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.surfaceToScreen</span> <a class="api-item-permalink" href="#Gui_Surface_surfaceToScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1420">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_surfaceToScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.surfaceToScreen</span> <a class="api-item-permalink" href="#Gui_Surface_surfaceToScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L1427">src</a></div>
 <p>Converts <span class="code-inline">pt</span> in place from logical surface coordinates to physical screen pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceToScreen</span>(pt: *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 </section>
@@ -28118,42 +28120,42 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">view</span>()-&gt;*<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Surface_win32Handle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.win32Handle</span> <a class="api-item-permalink" href="#Gui_Surface_win32Handle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L727">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Surface_win32Handle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Surface.win32Handle</span> <a class="api-item-permalink" href="#Gui_Surface_win32Handle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/surface.win32.swg#L734">src</a></div>
 <p>Returns the Win32 window handle owned by this surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">win32Handle</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HWND">HWND</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_captionContentRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.captionContentRect</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_captionContentRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L373">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_captionContentRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.captionContentRect</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_captionContentRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L378">src</a></div>
 <p>Returns the logical caption area left between the application mark and visible buttons, less the room the view keeps for its own controls there.</p>
 <p>Coordinates are local to this window. A document drawing its own title uses this same area; an empty rectangle means the surface has no caption, as in full screen.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">captionContentRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_captionRoomRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.captionRoomRect</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_captionRoomRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L404">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_captionRoomRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.captionRoomRect</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_captionRoomRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L409">src</a></div>
 <p>Returns the logical caption area between the application mark, with the actions after it, and the actions before the window buttons.</p>
 <p>Coordinates are local to this window. A view setting controls of its own in the strip places them here and keeps the title clear of them with <a href="#Gui_SurfaceWnd_reserveCaptionRoom">Gui.SurfaceWnd.reserveCaptionRoom</a>; an empty rectangle means the surface has no caption.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">captionRoomRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_reserveCaptionRoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.reserveCaptionRoom</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_reserveCaptionRoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L389">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_reserveCaptionRoom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.reserveCaptionRoom</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_reserveCaptionRoom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L394">src</a></div>
 <p>Keeps the title clear of controls the view sets in the strip itself.</p>
 <p><span class="code-inline">leading</span> and <span class="code-inline">trailing</span> are the widths those controls take, air included, from each end of <a href="#Gui_SurfaceWnd_captionRoomRect">Gui.SurfaceWnd.captionRoomRect</a>. The title and <a href="#Gui_SurfaceWnd_captionContentRect">Gui.SurfaceWnd.captionContentRect</a> leave them out; pass zeros when the controls go.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserveCaptionRoom</span>(leading: <span class="STpe">f32</span>, trailing: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_setCaptionConcealed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.setCaptionConcealed</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_setCaptionConcealed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L441">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_setCaptionConcealed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.setCaptionConcealed</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_setCaptionConcealed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L446">src</a></div>
 <p>Conceals the large application caption during a transient presentation.</p>
 <p>The native placement and surface flags stay in force. Call with false to restore the strip, including the title and controls that were visible before it was concealed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCaptionConcealed</span>(concealed: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_setChromePalette" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.setChromePalette</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_setChromePalette" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L455">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_setChromePalette" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.setChromePalette</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_setChromePalette" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L460">src</a></div>
 <p>Matches the window glyph, title and caption controls to a document palette.</p>
 <p>The palette is copied and affects only the chrome, including controls recreated after a full-screen transition. Pass <span class="code-inline">null</span> to follow the application theme again. The content and application theme remain independently styled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setChromePalette</span>(palette: <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_ThemePalette">ThemePalette</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_showTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.showTitle</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_showTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L429">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SurfaceWnd_showTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SurfaceWnd.showTitle</span> <a class="api-item-permalink" href="#Gui_SurfaceWnd_showTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L434">src</a></div>
 <p>Leaves the title out of the strip, or writes it there again.</p>
 <p>A document that takes the whole window — a film — writes the title itself where it can be read over its picture, and only while the reader asks for it; the strip then keeps the glyph and the window buttons alone. The surface keeps its title for the system all the same.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showTitle</span>(shown: <span class="STpe">bool</span>)</span></div>
@@ -32279,6 +32281,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.SurfaceWnd.maximizeBtn|Gui_SurfaceWnd_maximizeBtn|Caption maximize button, present with Gui.SurfaceFlags.MaximizeButton.",
 "v|Gui.SurfaceWnd.minimizeBtn|Gui_SurfaceWnd_minimizeBtn|Caption minimize button, present with Gui.SurfaceFlags.MinimizeButton.",
 "v|Gui.SurfaceWnd.movingSurface|Gui_SurfaceWnd_movingSurface|Whether a pointer drag is moving or resizing the surface.",
+"v|Gui.SurfaceWnd.sigCaptionPressed|Gui_SurfaceWnd_sigCaptionPressed|Emitted when the primary button presses the draggable title strip, before a possible window move.",
 "v|Gui.SurfaceWnd.sizingBorder|Gui_SurfaceWnd_sizingBorder|Border under the pointer, or being dragged.",
 "v|Gui.SurfaceWnd.titleHidden|Gui_SurfaceWnd_titleHidden|Whether the document writes the title itself, so the strip does not.",
 "s|Gui.Wnd|Gui_Wnd|Forms one node in a retained GUI tree and provides layout, event, and painting services.",

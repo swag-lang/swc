@@ -167,7 +167,7 @@ impl ViewerWindow
             caption.setParent(parent)
         let action = solo and not exploring ? appStrings().ui_CloseFile : appStrings().scene_CloseView
         let label = footer ? .workspace!.mediaCaption(me, name) : String.from(name)
-        let shortcut = .isWorkspaceActive() ? .keyShortcutName(ViewerCommands.Close) : String{}
+        let shortcut = .acceptsViewCommands() and .isWorkspaceActive() ? .keyShortcutName(ViewerCommands.Close) : String{}
         caption.setFile(path, label, action, shortcut)
         caption.title.show(not folder)
         caption.show()

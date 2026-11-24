@@ -178,7 +178,7 @@ impl SceneComparison
             let room = .captionArea(side)
             let document = unwrap .workspace.scene()!.views[side].document
             let label = .kind == .Media ? .workspace.mediaCaption(document, name) : String.from(name)
-            let shortcut = document.isWorkspaceActive() ? document.keyShortcutName(ViewerCommands.Close) : String{}
+            let shortcut = document.acceptsViewCommands() and document.isWorkspaceActive() ? document.keyShortcutName(ViewerCommands.Close) : String{}
             caption.setFile(path, label, appStrings().scene_CloseView, shortcut)
             let width = caption.widthFor(Math.max(0, room.width - 2 * .themeMetrics().floating_Inset))
             caption.place(room.horzCenter() - width * 0.5, room.vertCenter(), width)

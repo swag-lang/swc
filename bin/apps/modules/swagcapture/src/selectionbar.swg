@@ -37,6 +37,7 @@ struct SelectionBar
     shownForm:     *BaseForm?              // The form the bar was filled for, whose face, size and style it shows.
     faceButton:    *IconButton?            // Current text face, opened as a filtered choice popup.
     sizeButton:    *IconButton?            // Current text size, opened through the same choice popup.
+    stepNumber:    *Stepper?
     choicePopover: *TextChoicePopover?     // Open face or size list, if any.
 }
 
@@ -69,8 +70,7 @@ impl SelectionBar
             .rebuild(kind)
         }
 
-        .updateCommandState()
-        .refreshTextControls()
+        .refreshControls()
     }
 
     // Returns the kind of mini-bar the selection calls for.
@@ -91,48 +91,69 @@ impl SelectionBar
         return .Single
     }
 
-    // Returns the colour the mini-bar swatch stands for on the selected form: what fills a text,
-    // a callout, a step or a filled shape, and the stroke of every other form.
-    mtd swatchField()->{type: typeinfo, name: string}
+    // Shares the inspector's colour roles, including the fill ink of a pixel selection.
+    mtd swatchSlot()->ColorSlot
     {
-        switch .main.getCapture()?.getSelectedFormType()
+        let form = unwrap .main.getCapture()!.getSelectedBaseForm()
+        if form.subKind == .PixSel do
+            return .Fill
+
+        switch .main.getCapture()!.getSelectedFormType()
         {
         case FormText, FormCallout, FormStep:
-            return {BaseForm, #nameof(BaseForm.backColor)}
+            return .Fill
 
-        // A filled shape is seen by its fill, an outlined one by its outline.
         case FormShape, FormPolygon:
-            let form = .main.getCapture()?.getSelectedBaseForm()
-            if form and form.subKind != .PixSel and form.backColor.a do
-                return {BaseForm, #nameof(BaseForm.backColor)}
+            if form.backColor.a do
+                return .Fill
         }
 
-        return {BaseForm, #nameof(BaseForm.borderColor)}
+        return .Border
     }
 
-    // Returns the colour of the mini-bar swatch.
-    mtd swatchColor()->Color
-    {
-        let form = .main.getCapture()?.getSelectedBaseForm()
-        if not form do
-            return Argb.Black
-        return .swatchField().name == #nameof(BaseForm.backColor) ? form.backColor : form.borderColor
-    }
+    mtd swatchColor()->Color => .main.propWnd.slotColor(.swatchSlot())
 
-    // Keeps the face and the size in step with the inspector and undo.
-    mtd refreshTextControls()
+    // Updates controls in place so undo and inspector edits preserve the current keyboard stop.
+    mtd refreshControls()
     {
-        if .main.libraryMode do
-            return
-        let style = .main.selectedTextStyle()
-        if not style.found do
-            return
-        let defaultFace = .theme().res.defaultTypeFaceR.familyName()
-        let shown       = style.face.count ? style.face : defaultFace
-        .faceButton?.setText(shown)
-        if .faceButton do
-            .faceButton.toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
-        .sizeButton?.setText(Format.toString("%", cast(s32, Math.round(style.size))))
+        .updateCommandState()
+        if .shownKind == .Text
+        {
+            let style = .main.selectedTextStyle()
+            if not style.found do
+                return
+
+            let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+            let shown       = style.face.count ? style.face : defaultFace
+            .faceButton?.setText(shown)
+            if .faceButton do
+                .faceButton.toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
+            .sizeButton?.setText(Format.toString("%", cast(s32, Math.round(style.size))))
+
+            for item in .items
+            {
+                if item.wnd is IconButton as button where button.flags.has(.Radio)
+                {
+                    let align = alignIsVertical(button.userData) ? style.alignVert : style.align
+                    button.setChecked(alignOfUserData(button.userData) == align)
+                }
+            }
+        }
+        elif .shownKind == .Step
+        {
+            let form = .main.getCapture()?.getSelectedBaseForm()
+            if form is FormStep as step
+            {
+                .stepNumber?.setValue(cast(s64, step.index))
+                for item in .items
+                {
+                    if item.wnd is IconButton as button where button.flags.has(.Radio) do
+                        button.setChecked(enumFromUserData'FormShapeKind(button.userData) == step.kind)
+                }
+            }
+        }
+
+        .invalidate()
     }
 
     // Fills the bar with what applies to a selection of `kind`.
@@ -140,6 +161,7 @@ impl SelectionBar
     {
         .faceButton = null
         .sizeButton = null
+        .stepNumber = null
         .clear()
         if kind == .None do
             return
@@ -172,12 +194,15 @@ impl SelectionBar
 
                 .sigPopupRequested += func|bar = me, main = me.main|(button)
                 {
-                    let popover = ColorPopover.open(assume cast(*IconButton, button), appStrings().ui_PropColor, bar.swatchColor(), &main.recentColors)
+                    let slot    = bar.swatchSlot()
+                    let popover = ColorPopover.open(assume cast(*IconButton, button),
+                                                    appStrings().ui_PropColor,
+                                                    main.propWnd.slotColor(slot),
+                                                    &main.recentColors)
                     popover.hangFrom(button, main.selectionSurfaceRect())
-                    popover.sigColorChanged += func|bar, main, button, var first = true|(pop)
+                    popover.sigColorChanged += func|main, button, slot, var first = true|(pop)
                     {
-                        let field = bar.swatchField()
-                        main.propWnd.pushTypedValue(pop.color.argb, field.type, field.name, first, true)
+                        main.propWnd.setSlotColor(slot, pop.color, first)
                         first = false
                         button.invalidate()
                     }
@@ -207,6 +232,22 @@ impl SelectionBar
 
         .addSeparator()
         .addButton(theme.icon(.Remove, size), ActionSelection.DeleteSelection, appStrings().act_Delete)
+
+        if kind == .Text
+        {
+            let more = .addButton(theme.icon(.More, size), toolTip: appStrings().tip_SelectionActions)
+            more.sigPressed += func|main = me.main|(button)
+            {
+                let menu = MenuCtrl.createPopup(main)
+                menu.addItem(ActionEdit.EditText)
+                menu.addItem(ActionCopyPaste.Duplicate)
+                menu.addItem(ActionCopyPaste.Copy)
+                menu.addItem(ActionCopyPaste.Cut)
+                menu.addSeparator()
+                menu.addItem(ActionEdit.ResetRotation)
+                discard menu.doModal(assume cast(*IconButton, button), autoDestroy: true)
+            }
+        }
     }
 
     // Adds the current text face as a quiet popup trigger, level with the size beside it.
@@ -248,6 +289,7 @@ impl SelectionBar
             .toolTip = appStrings().prop_Size
             .updateFlags(add: .Popup)
             .setText(Format.toString("%", cast(s32, Math.round(style.size))))
+            .style.setFont(font, .Regular)
             .resize(width, metrics.miniBar_ButtonSize)
             .sigPopupRequested += func|bar = me, main = me.main, selectedForm|(button) { bar.choicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size, selectedForm) }
             .sigPopupClosed    += func|bar = me|(_) { bar.choicePopover = null }
@@ -256,33 +298,11 @@ impl SelectionBar
         .addItem(.sizeButton)
     }
 
-    // Adds bold and italic to the mini-bar: two letters, set in the style they turn on, lit when on.
+    // The typography toggles share their glyph and checked state with the lens.
     mtd addTextStyle()
     {
-        let style = .main.selectedTextStyle()
-        if not style.found do
-            return
-
-        let size      = .themeMetrics().defaultFontSize
-        with let bold = .addButton({}, toolTip: appStrings().prop_StyleBold, flags: .Toggle)
-        {
-            .updateFlags(add: .CenterContent, remove: .IconOnly)
-            .setText("B")
-            .setCheckIndicator(.Ink)
-            .style.setFont(.theme().createDefaultFont(size, .Bold), .Regular)
-            .setChecked(style.style == .Bold or style.style == .BoldItalic)
-            .sigPressed += func|main = me.main|(_) { main.postCommandEvent(ActionEdit.Bold) }
-        }
-
-        with let italic = .addButton({}, toolTip: appStrings().prop_StyleItalic, flags: .Toggle)
-        {
-            .updateFlags(add: .CenterContent, remove: .IconOnly)
-            .setText("I")
-            .setCheckIndicator(.Ink)
-            .style.setFont(.theme().createDefaultFont(size, .Italic), .Regular)
-            .setChecked(style.style == .Italic or style.style == .BoldItalic)
-            .sigPressed += func|main = me.main|(_) { main.postCommandEvent(ActionEdit.Italic) }
-        }
+        .addButton(.main.icon(.Bold), ActionEdit.Bold, appStrings().prop_StyleBold, flags: .Toggle)
+        .addButton(.main.icon(.Italic), ActionEdit.Italic, appStrings().prop_StyleItalic, flags: .Toggle)
     }
 
     // Adds the three horizontal alignments of the text to the mini-bar, the one in force checked.
@@ -296,7 +316,10 @@ impl SelectionBar
         const Aligns = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
         const Across = [CaptureIcons.TextAlignLeft, CaptureIcons.TextAlignCenter, CaptureIcons.TextAlignRight]
         const Down   = [CaptureIcons.AlignTop, CaptureIcons.AlignMiddle, CaptureIcons.AlignBottom]
-        let size = .themeMetrics().menuPopup_IconSize
+        let texts      = appStrings()
+        let acrossTips = [texts.act_AlignLeft, texts.act_AlignCenter, texts.act_AlignRight]
+        let downTips   = [texts.act_AlignTop, texts.act_AlignMiddle, texts.act_AlignBottom]
+        let size       = .themeMetrics().menuPopup_IconSize
         for vertical in [false, true]
         {
             if vertical do
@@ -304,7 +327,7 @@ impl SelectionBar
             for align, i in Aligns
             {
                 let glyph       = vertical ? Down[i] : Across[i]
-                let tip         = vertical ? appStrings().ui_AnchorVertical : appStrings().ui_Anchor
+                let tip         = vertical ? downTips[i] : acrossTips[i]
                 with let button = .addButton(.main.icon(glyph, size), toolTip: tip, flags: .Radio)
                 {
                     .userData = alignUserData(align, vertical)
@@ -333,7 +356,7 @@ impl SelectionBar
         let current = found.kind
         for kind in FormShapeKind
         {
-            with let button = .addButton({}, toolTip: appStrings().act_Shape, flags: .Radio)
+            with let button = .addButton({}, toolTip: shapeChoiceName(kind), flags: .Radio)
             {
                 .userData = enumToUserData(kind)
                 .setChecked(current == kind)
@@ -366,7 +389,7 @@ impl SelectionBar
             return
         let step = found
 
-        with let stepper = Stepper.create(me, {0, 0, StepperWidth, 0})
+        with .stepNumber = Stepper.create(me, {0, 0, StepperWidth, 0})
         {
             .setRange(1, 999)
             .setValue(cast(s64, step.index))
@@ -377,6 +400,6 @@ impl SelectionBar
             }
         }
 
-        .addItem(stepper)
+        .addItem(.stepNumber)
     }
 }

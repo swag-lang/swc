@@ -24,7 +24,7 @@ impl IActionUI for ActionLibTrash
         }
 
         let libWnd = assume cast(*LibraryWnd, cxt.wnd)
-        let hasSel = libWnd.view.focusItem != Swag.U32.Max
+        let hasSel = libWnd.hasSelected()
 
         switch cxt.id
         {

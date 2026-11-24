@@ -8,6 +8,9 @@ func acceptOwnCmdIds() { #ast("mtd impl accept(cxt: ActionContext)->bool { retur
 // Returns the main window every command of this application runs against.
 func mainWndOf(cxt: ActionContext)->*MainWnd => assume cast(*MainWnd, cxt.wnd)
 
+// The library exposes file actions on metadata. Canvas commands need the open editor document.
+func editorCaptureOf(main: *MainWnd)->*Capture? => main.libraryMode ? null : main.getCapture()
+
 // What a purely-mechanical command needs to be enabled; evaluated by updateFromTable
 enum CmdNeed
 {
@@ -39,7 +42,7 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
     for &d in table where d.id == cxt.id
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
 
         var disabled = false
         switch #complete d.need

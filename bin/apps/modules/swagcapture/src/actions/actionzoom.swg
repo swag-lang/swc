@@ -18,7 +18,7 @@ impl IActionUI for ActionZoom
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
 
         switch cxt.id
         {

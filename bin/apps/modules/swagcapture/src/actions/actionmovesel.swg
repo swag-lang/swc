@@ -1,6 +1,6 @@
 using Gui
 
-// The keyboard commands that nudge the selected forms by five pixels, or by one.
+// The commands that nudge the selected forms by one or ten pixels of the capture.
 struct ActionMoveSel {}
 
 impl ActionMoveSel
@@ -21,73 +21,58 @@ impl IActionUI for ActionMoveSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = mainWndOf(cxt)
-
-        let capture = main.getCapture()
-        let hasSel  = capture and capture.selection.count
+        let main    = mainWndOf(cxt)
+        let capture = editorCaptureOf(main)
+        let texts   = appStrings()
+        let far     = cxt.id == .Left or cxt.id == .Top or cxt.id == .Right or cxt.id == .Bottom
 
         switch cxt.id
         {
-        case .Left, .Top, .Right, .Bottom:
-            evt.updatedFields |= .Disabled
-            evt.disabled      = not hasSel
+        case .Left1, .Left:
+            evt.name = Format.toString(texts.act_NudgeLeft, far ? NudgeFar : 1)
+            evt.icon = main.theme().icon(.ChevronLeft)
 
-        case .Left1, .Top1, .Right1, .Bottom1:
-            evt.updatedFields |= .Disabled
-            evt.disabled      = not hasSel
+        case .Right1, .Right:
+            evt.name = Format.toString(texts.act_NudgeRight, far ? NudgeFar : 1)
+            evt.icon = main.theme().icon(.ChevronRight)
+
+        case .Top1, .Top:
+            evt.name = Format.toString(texts.act_NudgeUp, far ? NudgeFar : 1)
+            evt.icon = main.theme().icon(.ChevronUp)
+
+        case .Bottom1, .Bottom:
+            evt.name = Format.toString(texts.act_NudgeDown, far ? NudgeFar : 1)
+            evt.icon = main.theme().icon(.ChevronDown)
         }
 
+        evt.updatedFields |= .Name | .Icon | .Disabled | .Hidden
+        evt.disabled      = main.libraryMode or not capture or capture.selection.isEmpty()
+        evt.hidden        = evt.disabled
         return true
     }
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = mainWndOf(cxt)
-        let capture = unwrap main.getCapture()
-
-        var undo: *Undo
-        switch cxt.id
+        let main      = mainWndOf(cxt)
+        let capture   = unwrap main.getCapture()
+        with let undo = capture.newUndo(.OffsetSelection)
         {
-        case .Left1:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = -1
-
-        case .Top1:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = -1
-
-        case .Right1:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = 1
-
-        case .Bottom1:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = 1
-
-        case .Left:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = -NudgeFar
-
-        case .Top:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = -NudgeFar
-
-        case .Right:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosX = NudgeFar
-
-        case .Bottom:
-            undo         = capture.newUndo(.OffsetSelection)
-            undo.newPosY = NudgeFar
-
-        default:
-            return false
+            switch cxt.id
+            {
+            case ActionMoveSel.Left1:   .newPosX = -1
+            case ActionMoveSel.Right1:  .newPosX = 1
+            case ActionMoveSel.Top1:    .newPosY = -1
+            case ActionMoveSel.Bottom1: .newPosY = 1
+            case ActionMoveSel.Left:    .newPosX = -NudgeFar
+            case ActionMoveSel.Right:   .newPosX = NudgeFar
+            case ActionMoveSel.Top:     .newPosY = -NudgeFar
+            case ActionMoveSel.Bottom:  .newPosY = NudgeFar
+            }
         }
 
-        Swag.assert(undo != null)
         capture.pushUndo(undo)
+        main.placeMiniBar()
         main.invalidate()
-
         return true
     }
 }

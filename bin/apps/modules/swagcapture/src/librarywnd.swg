@@ -349,7 +349,7 @@ impl LibraryWnd
 
     mtd getCapture()->*Capture?
     {
-        if .view.focusItem < .view.items.count do
+        if not .trashMode and .view.focusItem < .view.items.count do
             return .view.items[.view.focusItem].capture
         return null
     }
@@ -418,13 +418,10 @@ impl LibraryWnd
         .registerKeyShortcut(.None, .Return, ActionLibSel.Open)
         .registerKeyShortcut(.None, .Delete, ActionLibSel.Delete)
         .registerKeyShortcut(.None, .Oem2, ActionLibSel.Search)
+        .registerKeyShortcut(.Control, .F, ActionLibSel.Search)
         .registerKeyShortcut(.None, .Divide, ActionLibSel.Search)
-        .registerKeyShortcut(.None, .D0, ActionLibSel.Rate0)
-        .registerKeyShortcut(.None, .D1, ActionLibSel.Rate1)
-        .registerKeyShortcut(.None, .D2, ActionLibSel.Rate2)
-        .registerKeyShortcut(.None, .D3, ActionLibSel.Rate3)
-        .registerKeyShortcut(.None, .D4, ActionLibSel.Rate4)
-        .registerKeyShortcut(.None, .D5, ActionLibSel.Rate5)
+        for id, rating in RatingCommandIds do
+            .registerKeyShortcut(.None, ratingKey(cast(u8, rating)), id)
     }
 
     // Teaches the keys of the page on its hint line: open, delete, rename, rate and search the
@@ -449,8 +446,17 @@ impl LibraryWnd
             return
         }
 
+        let deleteKey = Input.formatKeyShortcut(.None, .Delete)
+        if .trashMode
+        {
+            .hintLine.addHint(deleteKey, texts.hint_DeleteForever)
+            .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_TrashSpace)
+            return
+        }
+
         .hintLine.addHint(strings().key_Enter, texts.hint_Open)
-        .hintLine.addHint(Input.formatKeyShortcut(.None, .Delete), texts.hint_Delete)
+        .hintLine.addHint(deleteKey, texts.hint_Delete)
         .hintLine.addHint(Input.formatKeyShortcut(.None, .F2), texts.hint_Rename)
         .hintLine.addHint(texts.key_Ratings, texts.hint_Rate)
         .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
@@ -552,6 +558,8 @@ impl LibraryWnd
             .margin.w  = .margin.y
             .setPlaceholder(appStrings().ui_Search)
             .sigTextChanged += func|libWnd = me|(ed) { libWnd.setSearch(ed.text()) }
+            .sigSubmitted   += func|libWnd = me|(_) { libWnd.view.setFocus() }
+            .sigCancelled   += func|libWnd = me|(_) { libWnd.view.setFocus() }
         }
 
         .createCommandBar(titleRow)
@@ -952,7 +960,7 @@ impl LibraryWnd
     mtd removeSelected()
     {
         var failed: bool
-        for name in .selectedFiles()
+        for name in .selectedCaptureFiles()
         {
             if not g_Library.removeFile(name.toString()) do
                 failed = true
@@ -1496,8 +1504,11 @@ impl LibraryWnd
 
         // The commands of the page: those of the selection, how it is shown, what it filters and
         // which folder it reads. They route through the page, where the library registers them.
-        .describeCommands(results, query, texts.act_Library, SelectionIds)
-        .describeActions(results, query)
+        .describeCommands(results, query, texts.act_Library, [ActionLibSel.Search])
+        if .trashMode do
+            .describeCommands(results, query, texts.act_Library, [ActionLibTrash.Restore, ActionLibTrash.DeleteForever])
+        else do
+            .describeActions(results, query)
         .describeCommands(results, query, texts.ui_BarView, ThumbnailSizeIds)
         .describeCommands(results, query, texts.ui_BarView, SortIds)
         .describeCommands(results, query, texts.ui_BarView, OverlayIds)
@@ -1519,19 +1530,18 @@ impl LibraryWnd
     // Every other command of the page is one word away.
     mtd describeLensRest(results: *Lens.Results)
     {
-        let texts  = appStrings()
-        let chosen = .selectedFiles()
+        let texts = appStrings()
         if .trashMode
         {
             .describeCommands(results, "", texts.lens_Selection, [ActionLibTrash.Restore, ActionLibTrash.DeleteForever])
         }
-        elif not chosen.isEmpty() and .view.focusItem < .view.items.count
+        elif .hasSelected() and .view.focusItem < .view.items.count
         {
             let family  = texts.lens_Selection
             let focused = .view.items[.view.focusItem]
             .describeItemActions(results, "", family, focused)
-            describeAction(results, "", family, texts.act_MoveSelected, .commandFolderIcon(), func|libWnd = me|() { libWnd.moveSelected() })
-            .describeCommands(results, "", family, [ActionFile.DeleteCapture])
+            if focused.kind != .Image do
+                .describeCommands(results, "", family, [ActionFile.DeleteCapture])
 
             // The rating is one choice among six, with each value drawn as its familiar star score.
             if focused.kind != .Image
@@ -1577,10 +1587,11 @@ impl LibraryWnd
             let state = .sendComputeCommandStateEvent(id)
             if state.updatedFields.has(.Hidden) and state.hidden do
                 continue
-            if state.name.isEmpty() or not Lens.match(query, state.name).matched do
+            let title = query.count != 0 and state.updatedFields.has(.LongName) ? state.longName.toString() : state.name.toString()
+            if not title.count or not Lens.match(query, title).matched do
                 continue
 
-            with let entry = sectionOf(results, family).addEntry(state.name)
+            with let entry = sectionOf(results, family).addEntry(title)
             {
                 .disabled = state.updatedFields.has(.Disabled) and state.disabled
                 .critical = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
@@ -1591,8 +1602,8 @@ impl LibraryWnd
                     .monoDetail = true
                 }
 
-                if state.updatedFields.has(.Checked) and state.checked do
-                    .detail = LensCheck
+                .checked   = state.updatedFields.has(.Checked) and state.checked
+                .checkable = state.updatedFields.has(.Checked)
                 if state.updatedFields.has(.Icon) do
                     .glyph = state.icon
             }
@@ -1626,36 +1637,24 @@ impl LibraryWnd
         if focused.kind == .Image do
             return
 
-        for rating in 6 do
-            discard .addRatingEntry(sectionOf(results, family), cast(u8, rating))
+        .describeCommands(results, query, family, [ActionFile.CopyImage])
+        for rating in 6
+        {
+            let stars = cast(u8, rating)
+            if Lens.match(query, ratingLabel(stars)).matched or Lens.match(query, appStrings().act_Rating).matched do
+                discard .addRatingEntry(sectionOf(results, family), stars)
+        }
     }
 
     // Adds what can be done with the focused cell and the selection, as far as the query names it,
     // under `family`: open, then locate an image, or export, tag and favour the captures.
     mtd describeItemActions(results: *Lens.Results, query: string, family: string, focused: *LibraryItem)
     {
-        let texts = appStrings()
-        describeAction(results,
-                       query,
-                       family,
-                       texts.act_OpenSelected,
-                       .theme().icon(.OpenFile),
-                       func|libWnd = me, focused|() { libWnd.view.openItem(focused) },
-                       Input.formatKeyShortcut(.None, .Return))
-        if focused.kind == .Image
-        {
-            describeAction(results,
-                           query,
-                           family,
-                           texts.act_LocateImage,
-                           .theme().icon(.OpenExternal),
-                           func|focused|() { discard Env.showInFileExplorer(focused.fi.fullName) })
-            return
-        }
-
-        describeAction(results, query, family, texts.act_ExportSelected, .theme().icon(.Export), func|libWnd = me|() { libWnd.exportSelected() })
-        describeAction(results, query, family, texts.act_EditTags, .theme().icon(.Edit), func|libWnd = me|() { libWnd.editSelectedTags() })
-        describeAction(results, query, family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
+        if focused.kind == .Image do
+            .describeCommands(results, query, family, [ActionLibSel.Open, ActionLibSel.RevealImage, ActionLibSel.Move])
+        else do
+            .describeCommands(results, query, family, [ActionLibSel.Open, ActionLibSel.Export, ActionLibSel.EditTags,
+                                                       ActionLibSel.Favorite, ActionLibSel.Move])
     }
 
     // Adds the rating `stars` to `section`: its star score, its key, and the rating of the
@@ -1670,9 +1669,10 @@ impl LibraryWnd
                 .paint      = func|libWnd = me, stars|(painter, rect) { libWnd.paintRatingStars(painter, rect, stars) }
             }
 
-            .detail     = Input.formatKeyShortcut(.None, ratingKey(stars))
+            let id = RatingCommandIds[stars]
+            .detail     = me.keyShortcutName(id)
             .monoDetail = true
-            .run        = func|libWnd = me, stars|() { libWnd.rateSelected(stars) }
+            .run        = func|libWnd = me, id|() { libWnd.sendCommandEvent(id) }
         }
 
         return entry
@@ -1932,7 +1932,6 @@ const RatingFilterIds  = [ActionLibFilter.RatingAny, ActionLibFilter.Rating1, Ac
 const LinkFilterIds    = [ActionLibFilter.UpToDateLinkedImage, ActionLibFilter.UnSavedLinkedImage, ActionLibFilter.LinkedImage, ActionLibFilter.UnLinkedImage]
 const OverlayIds       = [ActionLibSort.Invert, ActionLibView.Ratings, ActionLibView.LinkMarkers]
 const FolderIds        = [ActionLibTrash.Toggle, ActionLibTrash.Empty]
-const SelectionIds     = [ActionFile.CopyImage, ActionFile.RenameCapture, ActionFile.DeleteCapture, ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails, ActionLibTrash.Restore, ActionLibTrash.DeleteForever]
 
 // The mark of the choice in force, at the end of its row of the lens.
 const LensCheck = "✓"

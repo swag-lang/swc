@@ -182,10 +182,12 @@ impl IActionUI for ActionCapture
             evt.icon = g_Recorder ? main.theme().icon(.Stop) : main.icon(.RecordWindow)
 
         case .CancelRecording:
-            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.updatedFields |= .Name | .Icon | .Disabled | .Hidden | .RenderingHint
             evt.name          = appStrings().act_CancelRecording
             evt.icon          = main.theme().icon(.WndClose)
             evt.disabled      = g_Recorder == null
+            evt.hidden        = evt.disabled
+            evt.renderingHint |= .Critical
 
         case .LastArea:
             evt.updatedFields |= .Name | .Icon

@@ -36,7 +36,7 @@ impl IActionUI for ActionAlign
             return true
         }
 
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
         let hasSel  = capture and capture.selection.count
 
         switch cxt.id

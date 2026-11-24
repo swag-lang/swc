@@ -16,7 +16,7 @@ impl IActionUI for ActionUndo
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
 
         switch cxt.id
         {
@@ -44,8 +44,17 @@ impl IActionUI for ActionUndo
 
         switch cxt.id
         {
-        case .DoUndo: capture.undo()
-        case .DoRedo: capture.redo()
+        case .DoUndo:
+            if capture.isTracingPolygon()
+            {
+                capture.stopDrag(main.editWnd.editView)
+                capture.endInteractiveMove()
+            }
+
+            capture.undo()
+
+        case .DoRedo:
+            capture.redo()
         }
 
         capture.selectionHasChanged()

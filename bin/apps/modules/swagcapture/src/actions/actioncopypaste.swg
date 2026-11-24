@@ -21,7 +21,7 @@ impl IActionUI for ActionCopyPaste
     {
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
-        let hasSel  = capture and capture.selection.count
+        let hasSel  = not main.libraryMode and capture and capture.selection.count
 
         switch cxt.id
         {
@@ -79,7 +79,8 @@ impl IActionUI for ActionCopyPaste
             }
 
         case .CopyAsImage:
-            evt.updatedFields |= .Disabled | .Name | .LongName | .Icon
+            evt.updatedFields |= .Disabled | .Name | .LongName | .Icon | .Hidden
+            evt.hidden        = main.libraryMode
             evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
             if capture and capture.media == .Video
             {

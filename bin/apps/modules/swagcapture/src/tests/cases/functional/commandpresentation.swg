@@ -302,3 +302,45 @@ using Swag, Core
     main.lens.close()
     Swag.require(rows == 1)
 }
+
+// Search returns the same timeline commands as the context menu, and the editor commands
+// operate only on an open document.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let nudge = main.sendComputeCommandStateEvent(ActionMoveSel.Right)
+    Swag.require(nudge.name == Format.toString(appStrings().act_NudgeRight, NudgeFar))
+    Swag.require(nudge.shortcut == Input.formatKeyShortcut(.Shift, .Right))
+    main.lens.open(nudge.name)
+    var found: bool
+    for section in main.lens.results.sections where section do
+        for &entry in section.entries where entry.id == ActionMoveSel.Right do
+            found = entry.detail == nudge.shortcut and not entry.disabled
+    Swag.require(found)
+    main.lens.close()
+
+    Swag.require(main.sendComputeCommandStateEvent(ActionTimeline.TrimStart).hidden)
+    let capture = Memory.new'Capture()
+    capture.file = testTempCapturePath()
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    expect testWriteFrames(Capture.mediaPathOf(file), [testFramePicture(10, 0), testFramePicture(40, 8)], 400_000)
+    expect capture.adoptRecording()
+    main.editWnd.editView.setCapture(capture)
+    main.lens.open(appStrings().act_TrimStart)
+    found = false
+    for section in main.lens.results.sections where section do
+        for &entry in section.entries where entry.id == ActionTimeline.TrimStart do
+            found = entry.detail == Input.formatKeyShortcut(.Shift, .I) and not entry.disabled
+    Swag.require(found)
+    main.lens.close()
+}

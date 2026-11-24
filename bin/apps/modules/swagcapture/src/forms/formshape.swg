@@ -6,6 +6,17 @@ enum FormShapeKind
     RoundRectangle
 }
 
+func shapeChoiceName(kind: FormShapeKind)->string
+{
+    let texts = appStrings()
+    switch #complete kind
+    {
+    case .Ellipse:        return texts.kind_Ellipse
+    case .Rectangle:      return texts.kind_Rectangle
+    case .RoundRectangle: return texts.kind_RoundRectangle
+    }
+}
+
 const FormShapeKindValues: [3] FormShapeKind = [.Ellipse, .Rectangle, .RoundRectangle]
 
 const MinRoundSize = 10.0

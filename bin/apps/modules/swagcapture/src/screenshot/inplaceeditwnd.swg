@@ -34,7 +34,7 @@ func inPlaceEditTools()->[11] InPlaceEditTool
             InPlaceEditTool{.Line, .Line, texts.tip_InpLine},
             InPlaceEditTool{.Arrow, .Arrow, texts.tip_InpArrow},
             InPlaceEditTool{.Text, .Text, texts.tip_InpText},
-            InPlaceEditTool{.Callout, .Text, texts.act_Callout},
+            InPlaceEditTool{.Callout, .Callout, texts.act_Callout},
             InPlaceEditTool{.Step, .Step, texts.act_Step},
             InPlaceEditTool{.Draw, .Draw, texts.tip_InpDraw},
             InPlaceEditTool{.Marker, .Highlight, texts.tip_InpMarker},
@@ -236,9 +236,6 @@ impl InPlaceEditWnd
                     editor.updateEditMode()
                 }
             }
-
-            if tool.mode == .Callout do
-                button.iconPainter = func(btn, bc, pos, flags) { MainWnd.drawCalloutGlyph(btn, bc, pos, flags) }
         }
 
         .bar.addSeparator()

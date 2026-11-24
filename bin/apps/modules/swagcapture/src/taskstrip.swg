@@ -39,6 +39,7 @@ impl IWnd for TaskStrip
         switch evt.kind
         {
         case .LanguageChanged:
+            .captureChoice.toolTip = appStrings().tip_CaptureModes
             .frozenButton.setQuietText(appStrings().ui_Frozen)
             .shortcutWarning.setQuietText(appStrings().ui_ShortcutsUnavailable)
             .itf.onLayout()
@@ -188,6 +189,7 @@ impl TaskStrip
             .owner       = main
             .focusPolicy = .None
             .margin.x    = -main.themeMetrics().wnd_CaptionActionGap
+            .toolTip     = appStrings().tip_CaptureModes
             .setIcon(.theme().icon(.ChevronDown))
             .sigPressed += func|main|(button) { main.showCaptureMenu(button) }
         }

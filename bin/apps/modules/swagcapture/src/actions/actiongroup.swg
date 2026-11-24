@@ -16,7 +16,7 @@ impl IActionUI for ActionGroup
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
         let isLib   = main.libraryMode
 
         switch cxt.id

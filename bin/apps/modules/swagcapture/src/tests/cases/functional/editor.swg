@@ -548,12 +548,13 @@ using Swag, Core
     shape.backColor   = Argb.Zero
     shape.borderColor = Argb.Red
     f.capture.selection.add(0)
+    f.main.propWnd = PropWnd.create(f.main, f.main)
     let bar = SelectionBar.create(f.main, f.main)
-    Swag.require(bar.swatchField().name == #nameof(BaseForm.borderColor))
+    Swag.require(bar.swatchSlot() == .Border)
     Swag.require(bar.swatchColor() == Argb.Red)
 
     shape.backColor = Argb.Blue
-    Swag.require(bar.swatchField().name == #nameof(BaseForm.backColor))
+    Swag.require(bar.swatchSlot() == .Fill)
     Swag.require(bar.swatchColor() == Argb.Blue)
 }
 

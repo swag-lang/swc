@@ -221,6 +221,11 @@ const ImageTransformIds = [ActionImage.FlipImage, ActionImage.MirrorImage, Actio
 const ToolMenuIds       = [ActionToolMode.Selection, ActionToolMode.Shape, ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
                            ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight, ActionToolMode.Step,
                            ActionToolMode.Img, ActionToolMode.PixSel, ActionToolMode.Favorites, ActionQuickStyle.Reset]
+const TimelineIds = [ActionTimeline.Play, ActionTimeline.PrevFrame, ActionTimeline.NextFrame,
+                     ActionTimeline.ShowFrom, ActionTimeline.ShowUntil, ActionTimeline.ShowAlways,
+                     ActionTimeline.TrimStart, ActionTimeline.TrimEnd, ActionTimeline.KeepAll]
+const NudgeIds = [ActionMoveSel.Left1, ActionMoveSel.Right1, ActionMoveSel.Top1, ActionMoveSel.Bottom1,
+                  ActionMoveSel.Left, ActionMoveSel.Right, ActionMoveSel.Top, ActionMoveSel.Bottom]
 const ViewPanelIds  = [ActionView.Inspector, ActionView.Recent]
 const ViewZoomIds   = [ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit]
 const RecentSizeIds = [ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig]
@@ -1448,6 +1453,8 @@ impl MainWnd
 
     mtd captureHasChanged()
     {
+        if .propWnd != null do
+            .propWnd.refreshPosition()
         .updateReading()
         .placeTimeline()
         if .recentWnd != null
@@ -1515,6 +1522,15 @@ impl MainWnd
     // Offers the capture modes and screen-reading options before taking a screenshot.
     mtd showCaptureMenu(button: *IconButton)
     {
+        if g_Recorder
+        {
+            let menu = MenuCtrl.createPopup(me)
+            menu.addItem(ActionCapture.RecordVideo)
+            menu.addItem(ActionCapture.CancelRecording)
+            discard menu.doModal(button, autoDestroy: true)
+            return
+        }
+
         let main      = me
         with let menu = MenuCtrl.createPopup(me)
         {
@@ -1539,6 +1555,15 @@ impl MainWnd
 
         menu.addSeparator()
         .addDelayChoices(menu)
+
+        let setup = MenuCtrl.createPopup(me)
+        setup.addItem(ActionCapture.ToInPlace)
+        setup.addItem(ActionCapture.ToEditor)
+        setup.addItem(ActionCapture.ToClipboard)
+        setup.addSeparator()
+        setup.addItem(ActionCapture.HideEditor)
+        menu.addSeparator()
+        menu.addPopup(appStrings().ui_MenuCaptureSetup, setup, .theme().icon(.Options))
         discard menu.doModal(button, autoDestroy: true)
     }
 
@@ -2037,33 +2062,6 @@ impl MainWnd
         .taskStrip = TaskStrip.create(me)
     }
 
-    // Speech-bubble glyph drawn for the Callout tool: the icon sheet has no sprite for this
-    // tool, so it paints its own rounded body plus a small tail. Its round corners are deliberate:
-    // the glyph depicts a shape the user draws, not chrome.
-    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, _: PaintItemFlags)
-    {
-        bc.painter.setParams(.Antialiased)
-        let col = btn.isChecked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
-
-        // A custom painter is handed the whole content rectangle, not the icon extent, so the
-        // glyph places itself where a sprite of the set would have landed: centred in its cell.
-        let glyphSize = btn.themeMetrics().toolDock_Glyph
-        let box       = Math.Rectangle{pos.horzCenter() - glyphSize * 0.5, pos.vertCenter() - glyphSize * 0.5, glyphSize, glyphSize}
-
-        // The sprites of the set are outlines on about three fifths of their box; the bubble
-        // matches that weight so the dock reads as one column of glyphs.
-        var body = box
-        body.inflate(-box.width * 0.18, -box.height * 0.22)
-        body.height *= 0.72
-
-        let stroke = 1.4'f32
-        let tx     = body.x + body.width * 0.28
-        let tip    = body.bottom() + box.height * 0.18
-        bc.painter.drawLine(tx, body.bottom(), tx, tip, col, stroke)
-        bc.painter.drawLine(tx, tip, tx + body.width * 0.28, body.bottom(), col, stroke)
-        bc.painter.drawRoundRect(body, 3, 3, col, stroke)
-    }
-
     // The work area: the capture on the ground, and the floating parts that serve it.
     //
     // The editor takes the whole window, under the strip too; the dock, the inspector, the
@@ -2103,9 +2101,7 @@ impl MainWnd
         .dock.addToGroup(arrow, .toolIcon(.Line), ActionToolMode.Line)
         .dock.addTool(.toolIcon(.Text), ActionToolMode.Text)
 
-        // The callout has no sprite of its own: its cell draws the bubble.
-        let callout = .dock.addTool(.toolIcon(.Text), ActionToolMode.Callout)
-        callout.iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
+        .dock.addTool(.toolIcon(.Callout), ActionToolMode.Callout)
 
         let draw = .dock.addTool(.toolIcon(.Draw), ActionToolMode.Draw)
         .dock.addToGroup(draw, .toolIcon(.Highlight), ActionToolMode.Highlight)
@@ -2221,7 +2217,10 @@ impl MainWnd
             return
 
         let capture = .getCapture()
-        if .miniBar.shownKind == .None or not capture or capture.selection.isEmpty()
+        if .miniBar.shownKind == .None or
+           not capture or
+           capture.selection.isEmpty() or
+           capture.isTracingPolygon()
         {
             discard .app().animator.leave(.miniBar)
             return
@@ -2244,7 +2243,9 @@ impl MainWnd
         // when choosing which side of the selection has room.
         let stripInset = .editArea.stripInset()
         room.y      += stripInset
-        room.height -= stripInset
+        room.height -= stripInset + .themeMetrics().hintLine_Bottom + .themeMetrics().hintLine_Height
+        if let timeline = .timeline where timeline.panel.isLocallyVisible() do
+            room.height -= TimelineHeight + TimelineGap
 
         // Across, it stands within the picture when the picture is wide enough for it, so that it
         // never straddles a side edge of the capture: a gap of the bar's own distance is the most
@@ -2428,7 +2429,13 @@ impl MainWnd
         // With a selection, the line teaches its keys: nudge, duplicate, then the words of a shape
         // that has some, or delete; four keys are what the room beside the inspector holds. Without
         // one, what the tool in hand does, and the lens.
-        let capture  = .getCapture()
+        let capture = .getCapture()
+        if capture and capture.isTracingPolygon()
+        {
+            .hintLine.addHint("", appStrings().hint_PolygonPoints)
+            return
+        }
+
         let selected = not .libraryMode and capture and not capture.selection.isEmpty()
         if selected
         {
@@ -2513,8 +2520,16 @@ impl MainWnd
             .addSource(.None, func|main = me|(results) { main.describeRecentCaptures(results) })
             .addSource(.None, func|main = me|(results)
             {
-                if main.libraryMode do
+                if main.libraryMode
+                {
                     main.libWnd.describeLens(results)
+                    let editor = main.sendComputeCommandStateEvent(ActionGlobal.ShowEditor)
+                    if Lens.match(results.query, editor.name).matched
+                    {
+                        let section = results.addSection(appStrings().ui_MenuView)
+                        main.lens.addCommandRows(section, [ActionGlobal.ShowEditor])
+                    }
+                }
             })
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
@@ -2527,6 +2542,7 @@ impl MainWnd
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.recordScreenId(idx), menuSection: 1)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record, menuSection: 2)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.CancelRecording, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
             .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
@@ -2538,6 +2554,8 @@ impl MainWnd
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditObjectIds, menuGroup: func()->string => appStrings().ui_MenuObject)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditorSelectionIds, menuGroup: func()->string => appStrings().lens_Selection)
             .addCommands(func()->string => appStrings().ui_MenuEdit, PixelSelectionIds, inMenu: false)
+            .addCommands(func()->string => appStrings().lens_Selection, NudgeIds, inMenu: false)
+            .addCommands(func()->string => appStrings().lens_Timeline, TimelineIds, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuAlign, AlignMenuIds, menuFamily: func()->string => appStrings().ui_MenuEdit, menuGroup: func()->string => appStrings().ui_MenuAlign)
             .addCommands(func()->string => appStrings().ui_MenuArrange, ArrangeMenuIds, menuFamily: func()->string => appStrings().ui_MenuEdit, menuGroup: func()->string => appStrings().ui_MenuArrange)
             .addCommand(func()->string => appStrings().ui_MenuImage, ActionCopyPaste.CopyAsImage)
@@ -2588,9 +2606,7 @@ impl MainWnd
         if edited and edited.isTimed()
         {
             let timeline = results.addSection(appStrings().lens_Timeline)
-            .lens.addCommandRows(timeline, [ActionTimeline.Play, ActionTimeline.PrevFrame, ActionTimeline.NextFrame,
-                                            ActionTimeline.ShowFrom, ActionTimeline.ShowUntil, ActionTimeline.ShowAlways,
-                                            ActionTimeline.TrimStart, ActionTimeline.TrimEnd, ActionTimeline.KeepAll])
+            .lens.addCommandRows(timeline, TimelineIds)
         }
 
         let selection = results.addSection(appStrings().lens_Selection)

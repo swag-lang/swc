@@ -261,6 +261,15 @@ impl Capture
         return Math.abs(localPos.x - .movingStart.x) > ClickZone or Math.abs(localPos.y - .movingStart.y) > ClickZone
     }
 
+    // The polygon keeps the pointer between vertices, including after the first release.
+    mtd isTracingPolygon()->bool
+    {
+        return .mouseMode == .Creating and
+               not .firstMouseMove and
+               not .forms.isEmpty() and
+               .forms.back() is FormPolygon
+    }
+
     // Leaves the current drag and gives the pointer back.
     mtd stopDrag(view: *EditView)
     {
@@ -416,6 +425,12 @@ impl Capture
 
             if editView.main.editMode == .PixSel do
                 itf.subKind = .PixSel
+
+            // Publishing the new form lets the inspector and mini-bar read its bounds. Start
+            // the polygon first so those readers cannot seed the empty point list with a preset.
+            if itf is FormPolygon do
+                discard itf.edit(evt, .movingStart, localPos, view.zoom)
+
             let undo = .newUndo(.CreateForm)
             undo.oldForms.add(itf)
             .pushUndo(undo)
@@ -430,10 +445,8 @@ impl Capture
 
         let f = .forms.back()
 
-        // The pre-edit bound must not be read on the pass that just created the
-        // form: FormPolygon.boundRect() seeds a default shape while its point list
-        // is still empty, and the pushUndo above has already repainted the whole
-        // view anyway.
+        // Creating the undo step already invalidated the whole view. Later moves only
+        // repaint the old and new bounds.
         var oldCreateBound: Math.Rectangle
         if not createdNow do
             oldCreateBound = f.boundRect()
@@ -443,8 +456,11 @@ impl Capture
         // the form covered and covers. The release commits the full refresh
         // through endInteractiveMove.
         .interactiveMove = true
-        if not f.edit(evt, .movingStart, localPos, view.zoom) do
+        if not (createdNow and f is FormPolygon) and not f.edit(evt, .movingStart, localPos, view.zoom)
+        {
             .stopDrag(view)
+            view.main.fillHintLine()
+        }
 
         // Every edit step reshapes the new form's content.
         .invalidateFormCache(f)

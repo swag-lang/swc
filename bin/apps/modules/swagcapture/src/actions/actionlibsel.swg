@@ -13,6 +13,11 @@ impl ActionLibSel
     newCmdId("Home")
     newCmdId("End")
     newCmdId("Open")
+    newCmdId("RevealImage")
+    newCmdId("Export")
+    newCmdId("EditTags")
+    newCmdId("Favorite")
+    newCmdId("Move")
     newCmdId("Delete")
     newCmdId("Search")
     newCmdId("Rate0")
@@ -22,6 +27,9 @@ impl ActionLibSel
     newCmdId("Rate4")
     newCmdId("Rate5")
 }
+
+const RatingCommandIds = [ActionLibSel.Rate0, ActionLibSel.Rate1, ActionLibSel.Rate2,
+                          ActionLibSel.Rate3, ActionLibSel.Rate4, ActionLibSel.Rate5]
 
 impl IActionUI for ActionLibSel
 {
@@ -36,25 +44,81 @@ impl IActionUI for ActionLibSel
         }
 
         let libWnd = assume cast(*LibraryWnd, cxt.wnd)
-        let hasSel = libWnd.view.focusItem != Swag.U32.Max
+        let view   = libWnd.view
+        let item   = view.focusItem < view.items.count ? view.items[view.focusItem] : null
+        let texts  = appStrings()
+        let theme  = libWnd.theme()
 
         switch cxt.id
         {
         // The arrows start a walk on the first capture when none is chosen.
         case .Left, .Up, .Right, .Down, .Home, .End:
-            evt.updatedFields |= .Disabled
-            evt.disabled      = libWnd.view.items.isEmpty()
+            switch cxt.id
+            {
+            case .Left:  evt.name = texts.act_LibraryPrevious
+            case .Right: evt.name = texts.act_LibraryNext
+            case .Up:    evt.name = texts.act_LibraryAbove
+            case .Down:  evt.name = texts.act_LibraryBelow
+            case .Home:  evt.name = texts.act_LibraryFirst
+            case .End:   evt.name = texts.act_LibraryLast
+            }
 
-        case .Open, .Delete:
-            evt.updatedFields |= .Disabled
-            evt.disabled      = not hasSel
+            evt.updatedFields |= .Name | .Disabled
+            evt.disabled      = view.items.isEmpty()
 
-        // A capture in the recycle bin is not rated; an image has no rating to keep.
+        case .Open:
+            evt.name     = texts.act_OpenSelected
+            evt.icon     = theme.icon(.OpenFile)
+            evt.disabled = libWnd.trashMode or not item or (item.kind != .Image and not item.capture)
+
+        case .RevealImage:
+            evt.name     = texts.act_LocateImage
+            evt.icon     = theme.icon(.OpenExternal)
+            evt.disabled = libWnd.trashMode or not item or item.kind != .Image
+
+        case .Export, .EditTags, .Favorite:
+            evt.disabled = libWnd.trashMode or not item or item.kind == .Image
+            switch cxt.id
+            {
+            case .Export:
+                evt.name     = texts.act_ExportSelected
+                evt.icon     = theme.icon(.Export)
+                evt.disabled = evt.disabled or libWnd.exporting
+
+            case .EditTags:
+                evt.name = texts.act_EditTags
+                evt.icon = theme.icon(.Edit)
+
+            case .Favorite:
+                evt.name = texts.act_FavoriteCapture
+                evt.icon = theme.icon(.Star)
+                evt.updatedFields.add(.Checked)
+                evt.checked = item and item.capture and item.capture.favorite
+            }
+
+        case .Move:
+            evt.name     = texts.act_MoveSelected
+            evt.icon     = theme.icon(.ExploreFolder)
+            evt.disabled = libWnd.trashMode or not libWnd.hasSelected()
+
+        case .Search:
+            evt.name = texts.act_SearchLibrary
+            evt.icon = theme.icon(.Search)
+
+        case .Delete:
+            evt.updatedFields |= .Name | .Disabled
+            evt.name          = texts.act_DeleteCapture
+            evt.disabled      = not libWnd.hasSelected()
+
         case .Rate0, .Rate1, .Rate2, .Rate3, .Rate4, .Rate5:
-            evt.updatedFields |= .Disabled
-            evt.disabled      = not hasSel or libWnd.trashMode or libWnd.selectedCaptureFiles().isEmpty()
+            evt.updatedFields |= .Name | .Disabled
+            evt.disabled      = libWnd.trashMode or not item or item.kind == .Image or not libWnd.hasSelected()
+            for id, rating in RatingCommandIds where id == cxt.id do
+                evt.name = ratingLabel(cast(u8, rating))
         }
 
+        if evt.icon.isValid() do
+            evt.updatedFields |= .Name | .Icon | .Disabled
         return true
     }
 
@@ -83,8 +147,22 @@ impl IActionUI for ActionLibSel
             libWnd.moveSelEnd()
 
         case .Open:
-            if libWnd.view.focusItem < libWnd.view.items.count do
-                libWnd.view.openItem(libWnd.view.items[libWnd.view.focusItem])
+            libWnd.view.openItem(libWnd.view.items[libWnd.view.focusItem])
+
+        case .RevealImage:
+            discard Env.showInFileExplorer(libWnd.view.items[libWnd.view.focusItem].fi.fullName)
+
+        case .Export:
+            libWnd.exportSelected()
+
+        case .EditTags:
+            libWnd.editSelectedTags()
+
+        case .Favorite:
+            libWnd.toggleSelectedFavorite()
+
+        case .Move:
+            libWnd.moveSelected()
 
         // Delete sends the captures to the recycle bin, and erases them from there for good.
         case .Delete:
@@ -93,23 +171,9 @@ impl IActionUI for ActionLibSel
         case .Search:
             libWnd.searchEdit.setFocus()
 
-        case .Rate0:
-            libWnd.rateSelected(0)
-
-        case .Rate1:
-            libWnd.rateSelected(1)
-
-        case .Rate2:
-            libWnd.rateSelected(2)
-
-        case .Rate3:
-            libWnd.rateSelected(3)
-
-        case .Rate4:
-            libWnd.rateSelected(4)
-
-        case .Rate5:
-            libWnd.rateSelected(5)
+        case .Rate0, .Rate1, .Rate2, .Rate3, .Rate4, .Rate5:
+            for id, rating in RatingCommandIds where id == cxt.id do
+                libWnd.rateSelected(cast(u8, rating))
         }
 
         return true

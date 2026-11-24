@@ -208,6 +208,13 @@ act_EmptyRecycleBin    Vider la corbeille
 act_Favorites          Favoris
 act_Fill               Remplir
 act_FileDetails        Détails du fichier
+act_LibraryPrevious    Sélectionner l’élément précédent
+act_LibraryNext        Sélectionner l’élément suivant
+act_LibraryAbove       Sélectionner l’élément du dessus
+act_LibraryBelow       Sélectionner l’élément du dessous
+act_LibraryFirst       Sélectionner le premier élément
+act_LibraryLast        Sélectionner le dernier élément
+act_SearchLibrary      Rechercher dans la bibliothèque
 act_OpenSelected       Ouvrir
 act_LocateImage        Afficher l'image dans son dossier
 act_EditTags           Modifier les étiquettes…
@@ -273,6 +280,10 @@ act_LocateLinkedImage  Localiser l'image liée
 act_LocateLinkedVideo  Localiser la vidéo liée
 act_MediumView         Vignettes moyennes
 act_Minimize           Réduire dans la zone de notification
+act_NudgeLeft          Décaler à gauche (% px)
+act_NudgeRight         Décaler à droite (% px)
+act_NudgeUp            Décaler vers le haut (% px)
+act_NudgeDown          Décaler vers le bas (% px)
 act_MoveBackward       Reculer
 act_MoveForward        Avancer
 act_NewFromClipboard   Nouvelle depuis le presse-papiers
@@ -342,6 +353,8 @@ tip_PauseRecording     Pause
 tip_ResumeRecording    Reprendre
 tip_StopRecording      Arrêter et garder
 tip_CancelRecording    Annuler l'enregistrement
+tip_SelectionActions   Autres actions sur la sélection
+tip_CaptureModes       Choisir quoi capturer
 tip_LibraryFolders     Parcourir un dossier ou choisir où Swag Capture stocke les captures
 tip_SmallRecent        Petites vignettes récentes
 tip_MediumRecent       Vignettes récentes moyennes
@@ -481,6 +494,7 @@ prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la captu
 ui_OneObject           1 objet
 ui_Objects             % objets
 kind_Rectangle         Rectangle
+kind_RoundRectangle    Rectangle arrondi
 kind_Ellipse           Ellipse
 count_Rectangle        % rectangle|% rectangles
 count_Ellipse          % ellipse|% ellipses
@@ -502,6 +516,8 @@ hint_Rename            renommer
 key_Ratings            0–5
 hint_Rate              noter
 hint_Filter            filtrer
+hint_DeleteForever     supprimer définitivement
+hint_TrashSpace        restaurer, filtres, dossiers
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
 hint_EmptySearchSpace  recherche, filtres, dossiers
 ui_LibraryEmpty        Aucune capture ici pour l'instant.
@@ -534,7 +550,8 @@ hint_ToolSelect        Cliquer un objet pour le choisir, glisser autour de plusi
 hint_ToolShape         Glisser pour tracer un rectangle ou une ellipse
 hint_ToolArrow         Glisser pour tracer une flèche
 hint_ToolLine          Glisser pour tracer une ligne
-hint_ToolPolygon       Glisser pour tracer un polygone
+hint_ToolPolygon       Glisser pour tracer le premier côté
+hint_PolygonPoints     Cliquer pour ajouter un point. Double-cliquer pour fermer le polygone.
 hint_ToolText          Glisser pour placer un texte
 hint_ToolCallout       Glisser pour placer une bulle, puis glisser le point de la queue pour la diriger
 hint_ToolDraw          Glisser pour dessiner à main levée

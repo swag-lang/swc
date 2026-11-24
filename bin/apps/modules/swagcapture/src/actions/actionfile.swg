@@ -141,7 +141,7 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .LongName
             evt.name          = appStrings().act_Delete
             evt.longName      = appStrings().act_DeleteCapture
-            evt.disabled      = not capture
+            evt.disabled      = not capture or (main.libraryMode and not main.libWnd.hasSelected())
             evt.icon          = main.theme().icon(.Remove)
 
         case .DupCapture:
@@ -194,17 +194,28 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = mainWndOf(cxt)
-        let capture = unwrap main.getCapture()
-
+        let main = mainWndOf(cxt)
         switch cxt.id
         {
         case .NewImage:
             main.newImage()
+            return true
 
         case .NewFromClipboard:
             main.newCapture(Clipboard.getImage())
+            return true
 
+        case .OpenImage:
+            main.openImage()
+            return true
+        }
+
+        let capture = main.getCapture()
+        if not capture do
+            return true
+
+        switch cxt.id
+        {
         case .SaveAsImage:
             main.saveAsImage()
 

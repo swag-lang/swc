@@ -27,7 +27,7 @@ impl IActionUI for ActionSelection
         }
 
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
         let hasSel  = capture and capture.selection.count
         let isLib   = main.libraryMode
 

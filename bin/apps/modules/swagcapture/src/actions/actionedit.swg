@@ -75,7 +75,7 @@ impl IActionUI for ActionEdit
         }
 
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
         let hasSel  = capture and capture.selection.count
 
         // Null-initialized: '!lastSelType' below is a genuine "no selection" test.

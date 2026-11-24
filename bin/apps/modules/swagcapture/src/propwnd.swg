@@ -153,6 +153,9 @@ struct PropWnd
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
     late gridBindType: typeinfo
 
+    positionForm:   *BaseForm?
+    positionFields: [4] (*EditBox?)
+
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
     needRebuild: bool
@@ -172,12 +175,6 @@ impl PropWnd
         let scroll = .grid.scrollWnd
         let shown  = scroll.view.clientRect().height
         return {scroll.view.scrollPos.y > 0.5, scroll.view.scrollPos.y + shown < scroll.scrollSize.y - 0.5}
-    }
-
-    mtd hasRealSelection()->bool
-    {
-        let capture = .main.getCapture()
-        return capture and not capture.selection.isEmpty()
     }
 
     mtd getSelectedBaseForm()->*BaseForm
@@ -446,6 +443,7 @@ impl PropWnd
     // editable field.
     mtd selectionHasChanged()
     {
+        .positionForm = null
         for it in .topLayout.children do
             it.destroy()
         .grid.clear()
@@ -802,7 +800,9 @@ impl PropWnd
             with let button = IconButton.create(stack, {}, {0, 0, width, size}, flags: .Radio)
             {
                 .userData = enumToUserData(value)
-                .toolTip  = tip
+                .toolTip  = row == .ShapeKind or row == .StepKind
+                            ? shapeChoiceName(enumFromStoredValue'FormShapeKind(value))
+                            : tip
                 .setForm(.RoundedRectangle)
                 .setCheckIndicator(.Full)
                 .setChecked(value == current)
@@ -1176,14 +1176,15 @@ impl PropWnd
     // since a form may stand outside the capture.
     mtd propXY()
     {
-        if not .hasRealSelection() do
+        let capture = .main.getCapture()
+        if not capture or capture.selection.count != 1 do
             return
         let t = .getSelectedFormType()
         if t != FormShape and t != FormText and t != FormCallout do
             return
-        let curSel = .getSelectedBaseForm()
+        let form = .getSelectedBaseForm()
 
-        func addBox(prop: *PropWnd, parent: *Wnd, label: string, name: string, value: s32, signed: bool)
+        func addBox(prop: *PropWnd, parent: *Wnd, label: string, name: string, value: s32, signed: bool)->*EditBox
         {
             let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .ReleaseFocusOnEnterOrEscape)
             edit.setLayoutMetrics(PositionLetterWidth, 0, 0)
@@ -1201,6 +1202,8 @@ impl PropWnd
                 let {value: v, eat: _, ovf: _} = catch StrConv.parseS32(ed.text()) { return; }
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
+
+            return edit.edit
         }
 
         // The position opens with its own section label, as the other groups of settings.
@@ -1219,11 +1222,25 @@ impl PropWnd
         }
 
         let texts = appStrings()
-        addBox(me, strip, texts.ui_PosX, #nameof(BaseForm.x), curSel.x, true)
-        addBox(me, strip, texts.ui_PosY, #nameof(BaseForm.y), curSel.y, true)
-        addBox(me, strip, texts.ui_PosW, #nameof(BaseForm.w), curSel.w, false)
-        addBox(me, strip, texts.ui_PosH, #nameof(BaseForm.h), curSel.h, false)
+        .positionFields[0] = addBox(me, strip, texts.ui_PosX, #nameof(BaseForm.x), form.x, signed: true)
+        .positionFields[1] = addBox(me, strip, texts.ui_PosY, #nameof(BaseForm.y), form.y, signed: true)
+        .positionFields[2] = addBox(me, strip, texts.ui_PosW, #nameof(BaseForm.w), form.w, signed: false)
+        .positionFields[3] = addBox(me, strip, texts.ui_PosH, #nameof(BaseForm.h), form.h, signed: false)
+        .positionForm      = form
         .grid.endAppendRows()
+    }
+
+    // Gestures update the form after the inspector has been built. Update the four readings
+    // without replacing the controls or the value the reader is in the middle of typing.
+    mtd refreshPosition()
+    {
+        let form = .positionForm
+        if not form or form != .main.getCapture()?.getSelectedBaseForm() do
+            return
+
+        let values = [form.x, form.y, form.w, form.h]
+        for edit, index in .positionFields where edit and not edit.hasFocus() do
+            edit.setText(Format.toString("%", values[index]), notify: false)
     }
 }
 
@@ -1347,7 +1364,7 @@ impl IPropertyNotify for PropWnd
         }
 
         if .main.miniBar != null do
-            .main.miniBar.refreshTextControls()
+            .main.miniBar.refreshControls()
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
 
@@ -1401,7 +1418,7 @@ impl IWnd for PropWnd
             .needRebuild = false
             .selectionHasChanged()
             if .main.miniBar != null do
-                .main.miniBar.refreshTextControls()
+                .main.miniBar.refreshControls()
         }
     }
 

@@ -19,7 +19,7 @@ impl IActionUI for ActionView
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
         switch cxt.id
         {
         case .Clip:
@@ -43,7 +43,7 @@ impl IActionUI for ActionView
 
         case .Inspector:
             evt.updatedFields |= .Icon
-            evt.icon          = cxt.wnd!.theme().icon(.Settings)
+            evt.icon          = cxt.wnd!.theme().icon(.Options)
             evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name          = appStrings().act_ShowInspector
             evt.checked       = not main.inspector.folded

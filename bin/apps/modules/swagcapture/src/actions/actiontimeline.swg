@@ -42,7 +42,8 @@ impl IActionUI for ActionTimeline
             }
         }
 
-        evt.updatedFields |= .Name | .Icon | .Disabled
+        evt.updatedFields |= .Name | .Icon | .Disabled | .Hidden
+        evt.hidden        = not timed
         switch cxt.id
         {
         case .Play:

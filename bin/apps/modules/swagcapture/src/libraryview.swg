@@ -217,46 +217,36 @@ impl IWnd for LibraryView
         let shiftPressed = evt.modifiers.has(.Shift)
         let ctrlPressed  = evt.modifiers.has(.Control)
 
-        if evt.kind == .Released and .hotItem != Swag.U32.Max and evt.button == .Left
+        if evt.button == .Left
         {
-            if not ctrlPressed and not shiftPressed do
-                .selModel.clear()
-
-            if shiftPressed and .focusItem < .items.count do
-                .selModel.selectRange(.hotItem, .focusItem)
-            elif ctrlPressed and .selModel.isSelected(.hotItem) do
-                .selModel.unselect(.hotItem)
-            else do
-                .selModel.select(.hotItem)
-
-            .focusItem = .hotItem
-            .invalidate()
-            .setFocus()
+            if evt.kind == .Released
+            {
+                .selectAt(.hotItem, shiftPressed, ctrlPressed)
+                .setFocus()
+            }
+            elif evt.kind == .DoubleClick and .hotItem < .items.count and not .libWnd.trashMode
+            {
+                .setFocusItem(.hotItem)
+                .libWnd.sendCommandEvent(ActionLibSel.Open)
+            }
         }
 
-        if evt.kind == .DoubleClick and .focusItem < .items.count and evt.button == .Left
-        {
-            // Trashed captures are not editable; they must be restored first.
-            if .libWnd.trashMode do
-                return
-
-            .openItem(.items[.focusItem])
-        }
-
-        if evt.kind == .Pressed and
-           evt.button == .Right and
-           (.hotItem < .items.count or .focusItem < .items.count) do
+        if evt.kind == .Pressed and evt.button == .Right and .hotItem < .items.count do
             .showItemMenu(evt.surfacePos)
     }
 
-    // Opens the context menu of the cell under the pointer, or of the focused one: trash actions in
-    // the trash, file actions for an image, and the full capture menu otherwise.
+    // Opens the context menu for the cell under the pointer, preserving a multiple selection
+    // while directing file-specific commands at that cell.
     mtd showItemMenu(surfacePos: Math.Point)
     {
-        if .hotItem < .items.count and not .selModel.isSelected(.hotItem)
+        if not .selModel.isSelected(.hotItem)
         {
             .setFocusItem(.hotItem)
+        }
+        else
+        {
             .focusItem = .hotItem
+            .invalidate()
         }
 
         let focused        = .items[.focusItem]
@@ -272,19 +262,19 @@ impl IWnd for LibraryView
             }
             elif focused.kind == .Image
             {
-                .addItem(appStrings().act_OpenSelected, "capture.library.open", icon: .theme().icon(.OpenFile))
+                .addItem(ActionLibSel.Open)
                 .addSeparator()
-                .addItem(appStrings().act_LocateImage, "capture.library.reveal", icon: .theme().icon(.Folder))
+                .addItem(ActionLibSel.RevealImage)
             }
             else
             {
-                .addItem(appStrings().act_OpenSelected, "capture.library.open", icon: .theme().icon(.OpenFile))
+                .addItem(ActionLibSel.Open)
                 .addSeparator()
                 .addItem(ActionFile.CopyImage)
-                .addItem(appStrings().act_ExportSelected, "capture.library.export", icon: .theme().icon(.Export))
+                .addItem(ActionLibSel.Export)
                 .addItem(ActionFile.RenameCapture)
-                .addItem(appStrings().act_EditTags, "capture.library.tags", icon: .theme().icon(.Edit))
-                .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.favorite)
+                .addItem(ActionLibSel.EditTags)
+                .addItem(ActionLibSel.Favorite)
 
                 let metrics     = .themeMetrics()
                 let ratingNames = [appStrings().act_NoRating,
@@ -326,13 +316,14 @@ impl IWnd for LibraryView
                                 other.setChecked(other == selected)
                         }
 
-                        selected.postCommandEvent(Format.toString("capture.library.rating.%", rating))
+                        selected.postCommandEvent(RatingCommandIds[rating])
                     }
                 }
 
                 menu.addWidget(ratingChoices, fullWidth: true)
 
                 .addSeparator()
+                .addItem(ActionLibSel.Move)
                 .addItem(ActionFile.DeleteCapture)
                 .addSeparator()
                 .addItem(ActionFile.CaptureFileLocation)
@@ -342,23 +333,7 @@ impl IWnd for LibraryView
             }
         }
 
-        let result = menu.doModal(surfacePos, autoDestroy: true)
-        if not result do
-            return
-        switch result
-        {
-        case "capture.library.open":     .openItem(focused)
-        case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullName)
-        case "capture.library.tags":     .libWnd.editSelectedTags()
-        case "capture.library.export":   .libWnd.exportSelected()
-        case "capture.library.favorite": .libWnd.toggleSelectedFavorite()
-        case "capture.library.rating.0": .libWnd.rateSelected(0)
-        case "capture.library.rating.1": .libWnd.rateSelected(1)
-        case "capture.library.rating.2": .libWnd.rateSelected(2)
-        case "capture.library.rating.3": .libWnd.rateSelected(3)
-        case "capture.library.rating.4": .libWnd.rateSelected(4)
-        case "capture.library.rating.5": .libWnd.rateSelected(5)
-        }
+        discard menu.doModal(surfacePos, autoDestroy: true)
     }
 
     // The library owns the item's facts and actions; Gui supplies the common file-tile rendering.
@@ -782,6 +757,9 @@ impl LibraryView
             if item.fi.fullName == selection.focused do
                 .focusItem = cast(u32, i)
         }
+
+        if .focusItem == Swag.U32.Max do
+            .focusItem = .firstSelected()
     }
 
     // Drops the cell of `file`, which left the library. The selection and the focus stay on the
@@ -810,8 +788,8 @@ impl LibraryView
 
         .hotItem = Swag.U32.Max
         .restoreSelection(selection)
-        if selection.focused == file and removedAt < .items.count do
-            .focusItem = cast(u32, removedAt)
+        if selection.focused == file and .focusItem == Swag.U32.Max and not .items.isEmpty() do
+            .focusItem = cast(u32, Math.min(removedAt, .items.count - 1))
     }
 
     // Whether the date of `it` falls on the year, month, and day the sidebar picked; a zero picks
@@ -1200,10 +1178,51 @@ impl LibraryView
         .invalidate()
     }
 
+    // Keeps the focused cell in the selection, including when a Ctrl-click removes it.
+    mtd selectAt(index: u32, extend: bool, toggle: bool)
+    {
+        if index >= .items.count
+        {
+            if not extend and not toggle do
+                .clearSelection()
+            return
+        }
+
+        if extend and .focusItem < .items.count
+        {
+            .selModel.selectRange(index, .focusItem)
+        }
+        elif toggle and .selModel.isSelected(index)
+        {
+            .selModel.unselect(index)
+            if .focusItem == index do
+                .focusItem = .firstSelected()
+            .invalidate()
+            return
+        }
+        else
+        {
+            if not toggle do
+                .selModel.clear()
+            .selModel.select(index)
+        }
+
+        .focusItem = index
+        .invalidate()
+    }
+
+    private mtd const firstSelected()->u32
+    {
+        for index in .items.count where .selModel.isSelected(cast(u32, index)) do
+            return cast(u32, index)
+        return Swag.U32.Max
+    }
+
     mtd clearSelection()
     {
         .focusItem = Swag.U32.Max
         .selModel.clear()
+        .invalidate()
     }
 
     mtd setFocusItem(focus: u32)

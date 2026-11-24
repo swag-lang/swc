@@ -53,7 +53,7 @@ impl IActionUI for ActionImage
         if updateFromTable(cxt, evt, [
             CmdDesc{ResizeImage, appStrings().act_ResizeImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Resize)},
             CmdDesc{ExpandImage, appStrings().act_ExpandImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Expand)},
-            CmdDesc{ExpandCapture, appStrings().act_ExpandCapture, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Expand)},
+            CmdDesc{ExpandCapture, appStrings().act_ExpandCapture, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.FullScreen)},
             CmdDesc{TrimCapture, appStrings().act_TrimCapture, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Crop)},
             CmdDesc{FlipImage, appStrings().act_FlipImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Flip)},
             CmdDesc{MirrorImage, appStrings().act_MirrorImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Mirror)},
@@ -64,7 +64,7 @@ impl IActionUI for ActionImage
         }
 
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()
+        let capture = editorCaptureOf(main)
 
         switch cxt.id
         {

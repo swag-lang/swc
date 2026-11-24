@@ -434,12 +434,12 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     g_Library.loaded = true
     main.swapLibraryMode()
     Swag.require(main.libraryMode and main.libWnd.presentationOpacity == 1)
-    Swag.require(not main.libWnd.view.hasFocus())
+    Swag.require(main.libWnd.view.hasFocus())
     Swag.require(main.propWnd.topLayout.children[0] == controls)
     text.fontSize = 36
     main.swapLibraryMode()
     Swag.require(not main.libraryMode and main.editArea.presentationOpacity == 1)
-    Swag.require(not main.editWnd.editView.hasFocus())
+    Swag.require(main.editWnd.editView.hasFocus())
     var fontSize: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
         fontSize = item
@@ -1832,4 +1832,92 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
         Swag.require(main.inspector.detail == appStrings().ui_NextObjects)
         Swag.require(capture.name.text == appStrings().act_CaptureArea)
     }
+}
+
+// The box readings follow the same shape from creation through a keyboard nudge.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let view    = main.editWnd.editView
+    let picture = view.getCaptureRect()
+    let start   = view.localToSurface(picture.topLeft() - view.scrollPos + Math.Point{40, 50})
+    host.drag(start, start + Math.Point{114, 86})
+
+    let capture = unwrap main.getCapture()
+    let shape   = unwrap capture.getSelectedBaseForm()
+    let fields  = main.propWnd.positionFields
+    Swag.require(shape.w > 32 and shape.h > 32)
+    Swag.require(fields[0]!.text() == Format.toString("%", shape.x))
+    Swag.require(fields[1]!.text() == Format.toString("%", shape.y))
+    Swag.require(fields[2]!.text() == Format.toString("%", shape.w))
+    Swag.require(fields[3]!.text() == Format.toString("%", shape.h))
+
+    main.sendCommandEvent(ActionMoveSel.Right)
+    Swag.require(fields[0] == main.propWnd.positionFields[0])
+    Swag.require(fields[0]!.text() == Format.toString("%", shape.x))
+}
+
+// A polygon starts at the pointer even when the full inspector reads its bounds.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.sendCommandEvent(ActionToolMode.Poly)
+    let view    = main.editWnd.editView
+    let picture = view.getCaptureRect()
+    let start   = view.localToSurface(picture.topLeft() - view.scrollPos + Math.Point{40, 50} * view.zoom)
+    host.drag(start, start + Math.Point{100, 0} * view.zoom)
+
+    let capture = unwrap main.getCapture()
+    let polygon = assume cast(*FormPolygon, capture.forms[0])
+    Swag.require(capture.isTracingPolygon())
+    Swag.require(polygon.points.count == 3)
+    Gui.Testing.assertPoint(polygon.points[0], 40, 50)
+    Swag.require(not main.miniBar.isLocallyVisible())
+    Swag.require(main.hintLine.hints[0].text == appStrings().hint_PolygonPoints)
+
+    main.sendCommandEvent(ActionUndo.DoUndo)
+    Swag.require(capture.forms.isEmpty() and not capture.isTracingPolygon())
+    Swag.require(host.app.mouseCapture() == null)
+}
+
+// An inspector edit and its undo update a step marker's controls without rebuilding the bar.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let step    = testAddStep(capture, 120, 90, 32, 32)
+    step.index = 2
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    let counter = unwrap main.miniBar.stepNumber
+
+    main.propWnd.pushTypedValue(7, FormStep, #nameof(FormStep.index), first: true)
+    host.runFrames(2)
+    Swag.require(step.index == 7 and counter.value == 7)
+    main.sendCommandEvent(ActionUndo.DoUndo)
+    Swag.require(counter == main.miniBar.stepNumber and counter.value == 2)
 }

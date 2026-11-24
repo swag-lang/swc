@@ -143,6 +143,11 @@ impl MainWnd
                                              options)
 
         .applyLayout()
+        if .libraryMode do
+            .libWnd.view.setFocus()
+        else do
+            .editWnd.editView.setFocus()
+        .updateReading()
         .updateState()
     }
 }

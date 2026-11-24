@@ -1284,3 +1284,58 @@ func testLibraryKey(lib: *Wnd, id: WndId)
 
     Swag.require(scroll.scrollPosition().y == 0)
 }
+
+// Library keys are live as soon as the page opens. A context click moves the file-specific
+// target within a multiple selection, and Ctrl-clicking the last cell clears the selection.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    g_Library.loaded = true
+    main.swapLibraryMode()
+    let library = main.libWnd
+    host.keyPress(.F, .Control)
+    Swag.require(library.searchEdit.hasFocus())
+    host.keyPress(.Escape)
+
+    let view = library.view
+    Swag.require(view.hasFocus())
+    host.keyPress(.F, .Control)
+    host.keyPress(.Return)
+    Swag.require(view.hasFocus())
+    discard testAddLibraryItem(view, "first.scc", 10, 1)
+    discard testAddLibraryItem(view, "second.scc", 10, 2)
+    main.applyLayout()
+    host.paint(main)
+    view.setFocusItem(0)
+    view.selectAt(1, extend: false, toggle: true)
+    Swag.require(view.focusItem == 1 and view.selModel.isSelected(0) and view.selModel.isSelected(1))
+    Swag.require(main.sendComputeCommandStateEvent(ActionImage.ResizeImage).disabled)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, view, checked = &checked|(_)
+    {
+        if checked[] or not host.capturedPopupMenu() do
+            return
+        checked[] = true
+        Swag.require(view.focusItem == 0 and view.selModel.isSelected(0) and view.selModel.isSelected(1))
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    host.click(view.localToSurface(view.items[0].rect.center()), Input.MouseButton.Right)
+    host.app.sigFrame.clear()
+    Swag.require(checked)
+
+    view.selectAt(0, extend: false, toggle: true)
+    view.selectAt(1, extend: false, toggle: true)
+    Swag.require(not library.hasSelected() and view.focusItem == Swag.U32.Max)
+    main.swapLibraryMode()
+    Swag.require(main.sizeReading.isLocallyVisible() and main.zoomReading.isLocallyVisible())
+}

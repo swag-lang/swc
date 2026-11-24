@@ -71,7 +71,7 @@ func qualityOptionWidth(theme: *Theme)->f32
 func createQualityOption(parent: *Wnd, options: *CaptureOptions)->*IconButton
 {
     let label       = Format.toString(appStrings().ui_AimQuality, options.recordVideoQuality.label())
-    with let result = createRecordOption(parent, parent.theme().icon(.Settings), label, false, toggle: false)
+    with let result = createRecordOption(parent, parent.theme().icon(.Options), label, false, toggle: false)
     {
         .toolTip = appStrings().tip_AimQuality
         .resize(qualityOptionWidth(parent.theme()), .position.height)

@@ -63,13 +63,14 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let shapes = testFindStyleButtons(prop, appStrings().act_Shape)
     let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
-    Swag.require(shapes.count == 3 and dashes.count == 4)
-    for i in shapes.count
+    Swag.require(dashes.count == 4)
+    for kind, index in FormShapeKindValues
     {
-        let shape = shapes[i].surfaceRect()
-        let dash  = dashes[i].surfaceRect()
+        let shapes = testFindStyleButtons(prop, shapeChoiceName(kind))
+        Swag.require(shapes.count == 1)
+        let shape = shapes[0].surfaceRect()
+        let dash  = dashes[index].surfaceRect()
         Swag.require(shape.x == dash.x and shape.width == dash.width)
     }
 

@@ -305,7 +305,6 @@ func performInPlaceEdit(capture: *Capture, surface: *Surface, main: *MainWnd, ta
     }
 
     inPlaceWnd.newMain.fileDlgState = main.fileDlgStateInPlace
-    defer main.fileDlgStateInPlace = inPlaceWnd.newMain.fileDlgState
 
     var accepted: bool
     scope
@@ -315,6 +314,8 @@ func performInPlaceEdit(capture: *Capture, surface: *Surface, main: *MainWnd, ta
         accepted = waitForCapture()
     }
 
+    // Recording pumps frames and can destroy the overlay before this function returns.
+    main.fileDlgStateInPlace = inPlaceWnd.newMain.fileDlgState
     let copied = inPlaceWnd.copied
     inPlaceWnd.editWnd.editView.capture = null
     if capture.backTexture.isValid() do

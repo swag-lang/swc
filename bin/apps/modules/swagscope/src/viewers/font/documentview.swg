@@ -581,12 +581,16 @@ impl DocumentView
         // The left column: "Aa", the name, the identity, the style, the row of glyphs.
         // The "Aa" stands on its own ink: the room a face keeps above its capitals is left out.
         let available = Math.max(1, Math.min(LeftColumn, client.width - 2 * ContentInset))
-        let markWidth = Math.max(1, Painter.measureString(.specimenMark, .sampleFont(SpecimenSize)).width)
+        let mark = .sampleFont(SpecimenSize)
+        let markWidth = Math.max(1, Painter.measureString(.specimenMark, mark).width)
         let nameWidth = Math.max(1, Painter.measureString(.face!.familyName, .theme().createDefaultFont(FamilySize, .Bold)).width)
-        .layout.markSize = Math.max(1, cast(u32, SpecimenSize * Math.min(1, available / markWidth)))
+        let top = Math.min(ContentInset, Math.floor(client.height * 0.1))
+        let markRoom = Math.max(1, client.height - 2 * top - .theme().createDefaultFont(FamilySize, .Bold).height)
+        let scale = Math.min(available / markWidth, markRoom / mark.height, 1.0'f32)
+        .layout.markSize = Math.max(1, cast(u32, SpecimenSize * scale))
         .layout.nameSize = Math.max(12, cast(u32, FamilySize * Math.min(1, available / nameWidth)))
         let aa = .sampleFont(.layout.markSize)
-        var y  = ContentInset
+        var y  = top
         .layout.aaTop        = y - Math.round(aa.height * 0.2)
         y                    = .layout.aaTop + aa.height
         .layout.nameTop      = y

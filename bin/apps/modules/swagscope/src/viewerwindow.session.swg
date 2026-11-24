@@ -100,6 +100,7 @@ impl ViewerWindow
                   autoplayScene = false)
     {
         .sceneAutoPlay = autoplayScene
+        .workspace?.fillVacancy(me, fileName)
         .rememberTextBookmarkSessions()
         .captureResume()
         if .isExploring() and not preserveReading do
@@ -936,7 +937,7 @@ impl ViewerWindow
 
     mtd openFile(fileName: string, remember = true)
     {
-        if .workspace do
+        if .workspace and .workspace.vacancy != me do
             .workspace.openDocument(fileName, remember)
         else do
             .queueFile(fileName, remember)

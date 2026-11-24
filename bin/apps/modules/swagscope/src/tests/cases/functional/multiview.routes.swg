@@ -82,8 +82,8 @@ using Core, Gui, Audio
     Swag.require(host.dragFilesOver(left, [path]) == .Copy and workspace.dropView == 0)
     Swag.require(host.dragFilesOver(right, [path]) == .Copy and workspace.dropView == 1)
     Swag.require(workspace.activeDocument() == original)
-    Swag.require(host.dragFilesOver(empty, [path]) == .None and workspace.dropView == Swag.U64.Max)
-    Swag.require(host.dropFiles(empty, [path]) == .None)
+    Swag.require(host.dragFilesOver(empty, [path]) == .Copy and workspace.dropView == 3)
+    Swag.require(workspace.activeDocument() == original and scene.views.count == 3)
     Swag.require(scene.views[1].path == second)
     Swag.require(host.dragFilesOver(right, [path]) == .Copy and workspace.dropView == 1)
     host.cancelDrag()
@@ -96,6 +96,11 @@ using Core, Gui, Audio
     Swag.require(scene.views[0].document == original and original.currentFile == first)
     Swag.require(scene.views[1].document == target and workspace.activeDocument().currentFile == replacement)
     Swag.require(scene.views[2].path == third)
+
+    Swag.require(host.dropFiles(empty, [path]) == .Copy)
+    openViews(&host, workspace)
+    Swag.require(workspace.scene() == scene and scene.views.count == 4 and scene.active == 3)
+    Swag.require(scene.views[3].path == replacement and scene.views[0].document == original)
 
     // Several files still open together in a new scene.
     Swag.require(host.dropFiles(right, [first.toString(), second.toString()]) == .Copy)
@@ -118,6 +123,62 @@ using Core, Gui, Audio
     Swag.require(workspace.scenes.count == 3)
     host.click(close)
     Swag.require(workspace.scenes.count == 2)
+}
+
+// A distant hole keeps its physical position. Cancelling an open leaves it empty, and closing
+// that focus never closes a neighbour. Both file and folder shortcuts operate in the chosen cell.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 780, height: 500)
+    defer host.shutdown()
+    let first = expect Path.absolute(scopeTestDataPath("viewer.png"))
+    let other = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    workspace.openScene([first, other], .Grid3)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let original = workspace.activeDocument()
+    var corner = workspace.localToSurface(workspace.gridCellRect(scene, 8).center())
+    host.surface.surfaceToScreen(&corner)
+    host.click(corner)
+    Swag.require(workspace.vacancy and workspace.activeDocument() == workspace.vacancy)
+    Swag.require(workspace.vacantCell == 8 and scene.views.count == 2)
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    host.shortcut(.O, .Control)
+    Swag.require(host.autoHandled and workspace.vacancy and scene.views.count == 2)
+    host.keyPress(.W, .Control)
+    Swag.require(not workspace.vacancy and workspace.activeDocument() == original and scene.views.count == 2)
+    host.keyPress(.Down, .Alt)
+    Swag.require(workspace.vacancy and workspace.vacantCell == 3)
+    host.keyPress(.Up, .CtrlAlt)
+    Swag.require(workspace.vacantCell == 0 and scene.viewInCell(3) == 0)
+    host.keyPress(.Down, .CtrlAlt)
+    Swag.require(workspace.vacantCell == 3 and scene.viewInCell(0) == 0)
+    host.acceptModalFileDialog(other)
+    host.shortcut(.O, .Control)
+    openViews(&host, workspace)
+    Swag.require(not workspace.vacancy and workspace.scenes.count == 1 and scene.views.count == 3)
+    Swag.require(scene.cellOf(scene.active) == 3 and workspace.activeDocument().currentFile == other)
+    host.click(corner)
+    let folder = Path.directoryName(first) orelse ""
+    host.acceptModalFileDialog(folder)
+    host.shortcut(.E, .Control)
+    host.pump()
+    Swag.require(host.autoHandled and workspace.activeDocument().isExploring() and scene.cellOf(scene.active) == 8)
+    let saved = saveViewerState(workspace.primary)
+    host.keyPress(.W, .Control)
+    Swag.require(scene.cellOf(scene.active) == 3)
+    host.keyPress(.W, .Control)
+    host.keyPress(.W, .Control)
+    Swag.require(scene.views.count == 1 and scene.layout == .Single and workspace.activeDocument() == original)
+    host.keyPress(.W, .Control)
+    Swag.require(not workspace.scene() and workspace.primary.home.isLocallyVisible())
+    loadViewerState(workspace.primary, saved.toSlice())
+    workspace.restoreScenes()
+    openViews(&host, workspace)
+    let restored = unwrap workspace.scene()
+    Swag.require(restored.views.count == 4 and restored.cellOf(restored.active) == 8)
+    Swag.require(restored.viewInCell(2) == Swag.U64.Max and restored.viewInCell(3) == 2)
 }
 
 // The grid owns file drops over a video, including files the standalone player can attach.

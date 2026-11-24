@@ -4,7 +4,7 @@
 using Core, Gui, Pixel
 
 private const HeaderWidth  = 64.0'f32
-private const HeaderHeight = 28.0'f32
+const HeaderHeight = 28.0'f32
 private const ScrollSpan   = 4_194_304.0'f32
 
 // Paints only the visible portion of an authored worksheet, independently of its row address span.

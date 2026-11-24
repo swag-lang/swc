@@ -9,9 +9,8 @@ ui_Numbers  Numéros de ligne
 ui_TabWidth Largeur des tabulations
 ui_MatchingDelimiter Aller au délimiteur correspondant
 ui_DelimiterUnavailable % · aucun délimiteur correspondant dans le texte chargé
-ui_Details  % · UTF-8
-ui_Detection % · % · détecté par %
-ui_ManualDetails % · % · langue choisie manuellement
+ui_Details  % · %
+ui_ManualDetails choix manuel
 ui_ExtensionEvidence extension %
 ui_FilenameEvidence nom de fichier %
 ui_ShebangEvidence ligne d’interpréteur

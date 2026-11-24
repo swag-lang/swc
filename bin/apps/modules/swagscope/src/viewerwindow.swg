@@ -1831,6 +1831,7 @@ impl ViewerWindow
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
+        .workspace?.fillVacancy(me, source)
         if .isWorkspaceActive() do
             .surface?.clearFocus()
         if not .explorer do

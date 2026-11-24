@@ -169,7 +169,7 @@ impl ViewerWindow
         let name = Path.fileName(path) orelse path
         let compact = exploring or not name.count or maxWidth < 2 * size
         let font = .cellCaptionTitle.font().regular orelse .theme().createDefaultFont(metrics.defaultFontSize)
-        let width = compact ? size : Math.min(maxWidth, Math.ceil(Painter.measureString(name, font).width) + size + 4 * pad)
+        let width = compact ? size : Math.min(maxWidth, Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: .deviceScale())) + size + 4 * pad)
         if .cellCaptionTitle.text() != name do
             .cellCaptionTitle.setText(name)
         let action = (workspace!.scene()?.maximized orelse false) ? appStrings().scene_RestoreLayout : appStrings().scene_Maximize
@@ -180,7 +180,7 @@ impl ViewerWindow
             .cellCaptionTitle.setPosition({2 * pad, 0, width - size - 3 * pad, size}, computeLayout: false)
         .cellCaptionClose.toolTip = name.count ? Format.toString("% · %", appStrings().scene_CloseView, name) : String.from(appStrings().scene_CloseView)
         .cellCaptionClose.setPosition({compact ? 0 : width - size - pad, 0, size, size}, computeLayout: false)
-        let x = exploring ? area.right() - width - inset : area.x + inset
+        let x = .usesTimedViewerBar() ? area.x + inset : area.right() - width - inset
         .cellCaption.setPosition({x, Math.max(area.y, .stripInset()) + inset, width, size}, computeLayout: false)
         .showViewerOverlay(.cellCaption, true)
     }

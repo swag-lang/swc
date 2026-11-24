@@ -22,6 +22,7 @@ struct SceneView
     playMode:  Viewer.PlayMode
     offset:    f64
     behind:    bool
+    cellPlusOne: u64  // Zero follows document order. A file placed in a hole keeps its chosen cell.
 }
 
 struct ViewerScene
@@ -42,6 +43,55 @@ struct ViewerScene
 
 impl ViewerScene
 {
+    mtd const cellOf(index: u64)->u64 => .views[index].cellPlusOne ? .views[index].cellPlusOne - 1 : index
+
+    mtd const viewInCell(cell: u64)->u64
+    {
+        for _, index in .views where .cellOf(index) == cell do
+            return index
+        return Swag.U64.Max
+    }
+
+    mtd const cellCount()->u64
+    {
+        let size = .dimensions()
+        return cast(u64, size.x * size.y)
+    }
+
+    mtd packCells()
+    {
+        for &view in .views do
+            view.cellPlusOne = 0
+    }
+
+    mtd removeView(index: u64)
+    {
+        var sparse = false
+        for _, i in .views where .cellOf(i) != i
+        {
+            sparse = true
+            break
+        }
+        if sparse
+        {
+            for &view, i in .views do
+                view.cellPlusOne = .cellOf(i) + 1
+        }
+        .views.removeAtOrdered(index)
+        if sparse and .views.count > 1
+        {
+            let dims = .dimensions(useMaximized: false)
+            let cells = cast(u64, dims.x * dims.y)
+            for _, i in .views where .cellOf(i) >= cells
+            {
+                .packCells()
+                return
+            }
+        }
+        else do
+            .packCells()
+    }
+
     mtd const visibleLayout()->SceneLayout => .maximized ? .Single : .layout
 
     mtd const dimensions(useMaximized = true)->Math.Point
@@ -83,6 +133,7 @@ impl ViewerScene
         var view = #move .views[first]
         .views[first]  = #move .views[second]
         .views[second] = #move view
+        swap(&.views[first].cellPlusOne, &.views[second].cellPlusOne)
         .links.leader  = remapSwappedView(.links.leader, first, second)
         .links.solo    = remapSwappedView(.links.solo, first, second)
     }
@@ -136,6 +187,8 @@ struct ViewerWorkspace
     mediaPlayKeyDown: bool
     alignSound:       SceneSoundAlignment
     dropView:         u64 = Swag.U64.Max
+    vacancy:          *ViewerWindow?
+    vacantCell:       u64
     readingLinksBusy: bool
 }
 
@@ -194,6 +247,8 @@ impl ViewerWorkspace
 
     mtd activeDocument()->*ViewerWindow
     {
+        if .vacancy do
+            return .vacancy
         let scene = .scene()
         if not scene or scene.active >= scene.views.count do
             return .primary
@@ -320,7 +375,7 @@ impl ViewerWorkspace
             scene.links.solo = Swag.U64.Max
         document.queueFile(path)
         if scene.active == index do
-            .layoutScene()
+            .showScene()
         else do
             .selectView(index)
     }
@@ -330,6 +385,8 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or scene.views.count >= MaxViews do
             return
+        .dismissVacancy()
+        scene.packCells()
         let index = scene.active + 1
         if scene.links.leader >= index and scene.links.leader < scene.views.count do
             scene.links.leader += 1
@@ -361,6 +418,7 @@ impl ViewerWorkspace
 
     mtd suspendScene(capturePreview = true)
     {
+        .dismissVacancy()
         .clearDropHighlight()
         .hoveredDocument = null
         .mediaPlayKeyDown = false
@@ -431,21 +489,77 @@ impl ViewerWorkspace
     mtd selectView(index: u64)
     {
         let scene = .scene()
-        if not scene or index >= scene.views.count or index == scene.active do
+        if not scene or index >= scene.views.count or (index == scene.active and not .vacancy) do
             return
         let previous = .activeDocument()
         previous.explorer?.address.hide()
         previous.hideSearch()
         previous.closeInformation()
         previous.concealViewerBar()
+        .dismissVacancy()
         scene.active = index
         .showScene()
         if .comparisonVisible() and .comparison!.mode == .Flip do
             .comparison!.showFlippedName()
     }
 
+    // A selected hole borrows a window for its ordinary open commands. It becomes a scene
+    // document only once a file or folder is chosen, so traversal never changes the session.
+    mtd focusVacancy(cell: u64)
+    {
+        let scene = .scene()
+        if not scene or not .isTiled() or cell >= scene.cellCount() or scene.viewInCell(cell) != Swag.U64.Max do
+            return
+        if not .vacancy
+        {
+            let previous = .activeDocument()
+            previous.explorer?.address.hide()
+            previous.hideSearch()
+            previous.closeInformation()
+            previous.concealViewerBar()
+            .vacancy = ViewerWindow.create(me, createViewerPluginRegistry(), me)
+            .vacancy.focusPolicy = .Click
+            .vacancy.onlineMovies = .primary.onlineMovies
+            .vacancy.onlineMusic = .primary.onlineMusic
+            .vacancy.applyFullScreenPresentation(.primary.fullScreen)
+            .vacancy.home.hide()
+            .vacancy.hintLine.clearHints()
+            .vacancy.hintLine.addHint(.vacancy.keyShortcutName(ViewerCommands.Open), appStrings().hint_Open)
+            .vacancy.hintLine.addHint(.vacancy.keyShortcutName(ViewerCommands.Explore), appStrings().cmd_Explore)
+            .vacancy.hintLine.show()
+        }
+        .vacantCell = cell
+        .showScene()
+    }
+
+    mtd dismissVacancy()
+    {
+        let document = .vacancy
+        if not document do
+            return
+        .vacancy = null
+        .retireDocument(document)
+    }
+
+    mtd fillVacancy(document: *ViewerWindow, path: string)
+    {
+        if .vacancy != document do
+            return
+        let scene = unwrap .scene()
+        scene.views.add({path: String.from(path), document: document, cellPlusOne: .vacantCell + 1})
+        scene.active = scene.views.count - 1
+        document.hintLine.hide()
+        .vacancy = null
+        .layoutScene()
+    }
+
     mtd closeDocument(document: *ViewerWindow)
     {
+        if document == .vacancy
+        {
+            .closeView()
+            return
+        }
         let scene = .scene()
         if not scene do
             return
@@ -466,6 +580,15 @@ impl ViewerWorkspace
             return
         }
 
+        if .vacancy
+        {
+            .dismissVacancy()
+            if index == Swag.U64.Max
+            {
+                .showScene()
+                return
+            }
+        }
         let closing = index == Swag.U64.Max ? scene.active : index
         if closing >= scene.views.count do
             return
@@ -477,7 +600,7 @@ impl ViewerWorkspace
 
         .clearDropHighlight()
         .retireDocument(unwrap scene.views[closing].document)
-        scene.views.removeAtOrdered(closing)
+        scene.removeView(closing)
         scene.links.leader = remapClosedView(scene.links.leader, closing)
         scene.links.solo   = remapClosedView(scene.links.solo, closing)
         scene.active       = scene.active == closing ? Math.min(closing, scene.views.count - 1) : remapClosedView(scene.active, closing)
@@ -538,6 +661,9 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or not scene.supportsLayout(layout) do
             return
+        .dismissVacancy()
+        if layout != scene.layout and layout != .Single do
+            scene.packCells()
         if layout == .Single and scene.views.count > 1
         {
             if not scene.maximized do
@@ -553,7 +679,7 @@ impl ViewerWorkspace
 
         scene.layout    = layout
         scene.maximized = false
-        .layoutScene()
+        .showScene()
         .showMaximizedHint(false)
         catch .primary.saveState()
     }
@@ -561,7 +687,7 @@ impl ViewerWorkspace
     mtd toggleMaximized()
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 do
+        if not scene or scene.views.count < 2 or .vacancy do
             return
         scene.maximized = not scene.maximized
         if scene.maximized do
@@ -624,6 +750,11 @@ impl ViewerWorkspace
         if primaryShown and .retiring.contains(.primary) and not .primary.pendingEmpty.isEmpty() do
             .primary.continueStartup()
         .primary.show(primaryShown)
+        if .vacancy
+        {
+            .vacancy.setPosition(.gridCellRect(unwrap scene, .vacantCell))
+            .vacancy.applyLayout()
+        }
         .focusDelegate = .activeDocument()
         .refreshCloseFileButton()
         .updateMedia()
@@ -638,6 +769,9 @@ impl ViewerWorkspace
     }
 
     mtd viewRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
+        => .gridCellRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
+
+    mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
         var body = .clientRect()
         if scene.views.count <= 1 do
@@ -683,6 +817,11 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or scene.views.count < 2 or evt.button != .Left do
             return false
+        if .vacancy and evt.kind == .DoubleClick and (child == .vacancy or .vacancy.isOwnerOf(child))
+        {
+            .vacancy.chooseFile()
+            return true
+        }
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
             let document = view.document
@@ -710,7 +849,8 @@ impl ViewerWorkspace
         if not scene or scene.views.count < 2 do
             return false
         let cols   = cast(s64, scene.maximized or scene.layout == .Single ? 1 : scene.dimensions().x)
-        let index  = cast(s64, scene.active)
+        let single = scene.maximized or scene.layout == .Single
+        let index  = cast(s64, single ? scene.active : (.vacancy ? .vacantCell : scene.cellOf(scene.active)))
         let column = index % cols
         let inGrid = not scene.maximized and scene.layout != .Single and cols > 1
         var target = index
@@ -736,11 +876,30 @@ impl ViewerWorkspace
             return false
         }
 
-        if target < 0 or target >= cast(s64, scene.views.count) do
+        if target < 0 or target >= cast(s64, single ? scene.views.count : scene.cellCount()) do
             return true
+        let cell = cast(u64, target)
+        let view = single ? cell : scene.viewInCell(cell)
+        if view == Swag.U64.Max
+        {
+            if swap and not .vacancy
+            {
+                scene.views[scene.active].cellPlusOne = cell + 1
+                .showScene()
+            }
+            else do
+                .focusVacancy(cell)
+            return true
+        }
+        if swap and .vacancy
+        {
+            scene.views[view].cellPlusOne = .vacantCell + 1
+            .focusVacancy(cell)
+            return true
+        }
         if swap do
-            .swapSceneViews(scene.active, cast(u64, target))
-        .selectView(cast(u64, target))
+            .swapSceneViews(scene.active, view)
+        .selectView(view)
         return true
     }
 }
@@ -844,6 +1003,16 @@ impl IWnd for ViewerWorkspace
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if evt.kind == .Pressed and evt.button == .Left and .isTiled()
+        {
+            let scene = unwrap .scene()
+            let cell = .vacantCellAt(scene, .surfaceToLocal(evt.surfacePos))
+            if cell != Swag.U64.Max
+            {
+                .focusVacancy(cell)
+                return
+            }
+        }
         if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave do
             .trackViewHover(evt)
         evt.accepted = false

@@ -564,11 +564,10 @@ impl Panel
     // Restores the language summary after a delimiter search temporarily reports its result.
     private mtd showLanguageDetails()
     {
-        if .languageEvidence == "manual selection" do
-            .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName, Viewer.encodingName(.encoding)))
-        else do
-            .services.showDetails(me, Format.toString(texts().ui_Detection, .languageName, Viewer.encodingName(.encoding), .languageEvidence))
+        .services.showDetails(me, .languageDetails())
     }
+
+    mtd languageDetails()->String => Format.toString(texts().ui_Details, .languageName, Viewer.encodingName(.encoding))
 
     // Moves `cp` to the next rune of the text; the end of a line reads as a line feed.
     private mtd stepForward(cp: *RichEditCursor)->bool
@@ -812,7 +811,7 @@ impl Panel
         .lexed = true
         .editor.invalidate()
         writeLanguageOverride(.fileName, language, swag)
-        .services.showDetails(me, Format.toString(texts().ui_ManualDetails, .languageName, Viewer.encodingName(.encoding)))
+        .showLanguageDetails()
     }
 
     // Follows scrolling with the resident window, routes the keys the code view answers for, and
@@ -996,7 +995,8 @@ impl Panel
     {
         var data: MediaInfoData
         data.add(.Text, group: true)
-        data.add(.Language, .languageName)
+        let evidence = .languageEvidence == "manual selection" ? texts().ui_ManualDetails : .languageEvidence.toString()
+        data.add(.Language, Format.toString("% · %", .languageName, evidence))
         data.add(.Encoding, Viewer.encodingName(.encoding))
         if .hasStatistics do
             data.addTextStatistics(&.statistics, withWords: false)
@@ -1015,7 +1015,7 @@ func createViewer(host: Viewer.Host)
     }
 
     host.attachView(view)
-    host.setDetails(Format.toString(texts().ui_Detection, view.languageName, Viewer.encodingName(view.encoding), view.languageEvidence))
+    host.setDetails(view.languageDetails())
 
     with var search: Viewer.SearchApi
     {

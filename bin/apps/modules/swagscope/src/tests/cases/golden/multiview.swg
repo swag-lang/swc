@@ -39,6 +39,24 @@ using Core, Gui, Pixel, Audio
     assertScopeImageGolden(&image, "scene.text.paper")
 }
 
+// A selected empty cell teaches its two local open commands and leaves the other readers in place.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 800, height: 540)
+    defer host.shutdown()
+    workspace.openScene([scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.srt")], .Grid2)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    var point = workspace.localToSurface(workspace.gridCellRect(scene, 3).center())
+    host.surface.surfaceToScreen(&point)
+    host.click(point)
+    Swag.require(workspace.vacancy and workspace.vacantCell == 3 and scene.views.count == 3)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.vacant.paper")
+}
+
 func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: bool)
 {
     var host: Testing.HeadlessHost

@@ -54,6 +54,11 @@ struct Panel
 
 private impl IWnd for Panel
 {
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .fitGridMargins()
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if not .load.claim(evt)
@@ -89,6 +94,18 @@ private impl IWnd for Panel
 
 private impl Panel
 {
+    mtd fitGridMargins()
+    {
+        if not .gridHost do
+            return
+        let metrics = .themeMetrics()
+        let rows = 3 * .workbook.sheets[.sheet].defaultRowHeight
+        let room = .clientRect().height - HeaderHeight - rows - metrics.scrollBar_Size
+        let vertical = Math.clamp(Math.floor(room * 0.5), 0.0, metrics.floating_Inset)
+        let side = Math.min(metrics.floating_Inset, Math.floor(.clientRect().width * 0.04))
+        .gridHost.margin = {side, vertical, side, vertical}
+    }
+
     internal mtd retire()->bool => .load.retire()
 
     mtd refreshNavigation()
@@ -200,14 +217,13 @@ private impl Panel
         }
         else
         {
-            let inset = .themeMetrics().floating_Inset
             with .gridHost = Wnd.create'Wnd(me, "scope.xlsx.grid")
             {
                 .dockStyle       = .Center
                 .backgroundStyle = .Transparent
-                .margin          = {inset, .stripInset() + inset, inset, inset}
             }
 
+            .fitGridMargins()
             .grid = Grid.create(.gridHost, sheet, &.workbook.styles, .showHiddenRanges)
             .grid.selectAddress(address)
             .selection        = .grid.selected

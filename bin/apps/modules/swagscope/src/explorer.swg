@@ -2855,9 +2855,10 @@ impl ExplorerGrid
     {
         let header = .explorer.archiveHeader
         let room   = Math.max(.cell.x - 3 * .themeMetrics().header_Separator, 0)
-        let ratio  = Math.min(124.0, Math.floor(room * 0.23))
-        let size   = Math.min(96.0, Math.floor(room * 0.18))
-        let date   = Math.min(136.0, Math.floor(room * 0.24))
+        // Give a narrow cell the complete name and size first, then the date and compression.
+        let size   = room >= 176 ? Math.clamp(Math.floor(room * 0.18), 80.0, 96.0) : 0
+        let date   = room >= 320 ? Math.clamp(Math.floor(room * 0.24), 112.0, 136.0) : 0
+        let ratio  = room >= 480 ? Math.min(124.0, Math.floor(room * 0.23)) : 0
         header.setItemWidth(0, room - ratio - size - date)
         header.setItemWidth(1, ratio)
         header.setItemWidth(2, size)

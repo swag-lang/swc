@@ -51,6 +51,11 @@ opens its viewer without requiring exploration. The lens lists recent files, nei
 and recently viewed folders. Alt+Left/Right navigate history, Alt+Up or Backspace goes up, and
 F5 refreshes the location.
 
+In a grid, click an empty cell or move to it with Alt and an arrow key. Ctrl+O opens a file
+there and Ctrl+E opens a folder. Dropping one file into the cell also opens it in place.
+Ctrl+W leaves an empty cell or closes the selected document. Closing down to one document
+returns it to the full window.
+
 Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
 Lists and thumbnail grids render only their visible rows. Two background tasks at most produce
 thumbnails through the viewer registry, reusing a renderer in each task. Image, Video, Comic,

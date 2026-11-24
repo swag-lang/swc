@@ -259,10 +259,11 @@ impl ViewerWorkspace
     mtd paintDropHighlight(painter: *Painter, scene: const *ViewerScene)
     {
         let index = .dropView
-        if index >= scene.views.count do
+        if index == Swag.U64.Max do
             return
         let metrics = .themeMetrics()
-        var rect    = .dropRect(scene, index)
+        let view    = scene.viewInCell(index)
+        var rect    = view == Swag.U64.Max ? .gridCellRect(scene, index) : .dropRect(scene, view)
         rect.inflate(-metrics.wnd_CaptionButtonMargin)
         if rect.width <= 0 or rect.height <= 0 do
             return
@@ -295,7 +296,7 @@ impl ViewerWorkspace
             for view, index in scene.views where view.document and view.document.isLocallyVisible()
             {
                 let rect       = .viewRect(scene, index)
-                let active     = scene.active == index
+                let active     = scene.active == index and not .vacancy
                 let hovered    = .isHoveredDocument(view.document)
                 if active
                 {
@@ -318,6 +319,18 @@ impl ViewerWorkspace
                 painter.drawString(rect.x + inset, font.opticalLineTop(y), title, font, hovered ? colors.softText : colors.faintText)
             }
 
+            if .isTiled()
+            {
+                let plus = .theme().icon(.Plus, metrics.menuPopup_IconSize)
+                for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max
+                {
+                    let rect = .gridCellRect(scene, cell)
+                    plus.paint(painter, Math.round(rect.horzCenter() - plus.sizeX * 0.5),
+                               Math.round(rect.vertCenter() - plus.sizeY * 0.5), colors.faintText)
+                    if .vacancy and cell == .vacantCell do
+                        painter.fillRect(rect.x + inset, rect.y, Math.min(rect.width, 3 * inset), metrics.fileTile_RingWidth, colors.arc)
+                }
+            }
             if scene.maximized
             {
                 let area   = .clientRect()
@@ -330,7 +343,7 @@ impl ViewerWorkspace
                 {
                     let x   = left + cast(f32, index % cols) * (size + 2)
                     let y   = bottom + cast(f32, index / cols) * (size + 2)
-                    let ink = index == scene.active ? colors.arc : (index < scene.views.count ? colors.strongLine : colors.line)
+                    let ink = index == scene.cellOf(scene.active) ? colors.arc : (scene.viewInCell(index) != Swag.U64.Max ? colors.strongLine : colors.line)
                     painter.fillRect(x, y, size, size, ink)
                 }
             }
@@ -612,6 +625,16 @@ impl ViewerWorkspace
         .primary.dropHighlight.hide()
     }
 
+    mtd vacantCellAt(scene: const *ViewerScene, point: Math.Point)->u64
+    {
+        if .isTiled() and not .comparisonVisible()
+        {
+            for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max and .gridCellRect(scene, cell).contains(point) do
+                return cell
+        }
+        return Swag.U64.Max
+    }
+
     mtd dropFiles(evt: *DragDropEvent, onTabs = false)->bool
     {
         if evt.kind == .Leave
@@ -640,11 +663,13 @@ impl ViewerWorkspace
                 let rect = .dropRect(scene, i)
                 if not rect.isEmpty() and rect.contains(point)
                 {
-                    index = i
+                    index = scene.cellOf(i)
                     break
                 }
             }
 
+            if index == Swag.U64.Max do
+                index = .vacantCellAt(scene, point)
             if index == Swag.U64.Max
             {
                 .clearDropHighlight()
@@ -657,8 +682,20 @@ impl ViewerWorkspace
             .clearDropHighlight()
             if not one do
                 .openScene(evt.data.files.toSlice(), .Auto)
-            elif index != Swag.U64.Max do
-                .replaceDocument(index, evt.data.files[0])
+            elif index != Swag.U64.Max
+            {
+                let view = scene!.viewInCell(index)
+                if view == Swag.U64.Max
+                {
+                    .focusVacancy(index)
+                    .activeDocument().queueFile(evt.data.files[0])
+                }
+                else
+                {
+                    .dismissVacancy()
+                    .replaceDocument(view, evt.data.files[0])
+                }
+            }
             else do
                 .openDocument(evt.data.files[0])
         }
@@ -717,6 +754,11 @@ impl ViewerWorkspace
 
         if source is EditBox or .focusedWindow() is EditBox do
             return false
+        if .vacancy and evt.modifiers == .None and evt.key == .Return
+        {
+            .vacancy.chooseFile()
+            return true
+        }
         if (evt.modifiers == .Alt or evt.modifiers == .CtrlAlt) and .moveView(evt.key, evt.modifiers == .CtrlAlt) do
             return true
         if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source) do

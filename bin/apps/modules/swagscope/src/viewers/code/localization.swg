@@ -18,10 +18,9 @@ struct Texts
     ui_MatchingDelimiter:    string = "Go to Matching Bracket"     // Lens command moving the caret to the bracket, parenthesis or brace pairing with the one at it.
     ui_DelimiterUnavailable: string = "% · no matching delimiter in loaded source"
     ui_TabWidth:             string = "Tab Width"     // Lens commands placing a tab stop every 2, 4 or 8 spaces; the number follows.
-    // Summary the host shows beside the file size. `%` takes the name of the language.
-    ui_Details:           string = "% · UTF-8"
-    ui_Detection:         string = "% · % · detected from %"
-    ui_ManualDetails:     string = "% · % · manual language choice"
+    // Language and encoding in the reading line.
+    ui_Details:           string = "% · %"
+    ui_ManualDetails:     string = "manual selection"
     ui_ExtensionEvidence: string = "extension %"
     ui_FilenameEvidence:  string = "filename %"
     ui_ShebangEvidence:   string = "interpreter line"

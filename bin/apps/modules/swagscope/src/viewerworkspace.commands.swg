@@ -128,7 +128,7 @@ impl ViewerWindow
         case SceneCommands.Beside:
             icon   = .Duplicate
             name   = text.scene_OpenBeside
-            hidden = not scene or scene.views.count >= ViewerWorkspace.MaxViews
+            hidden = not scene or workspace.vacancy != null or scene.views.count >= ViewerWorkspace.MaxViews
 
         case SceneCommands.CompareSelection:
             icon   = .Duplicate
@@ -138,7 +138,7 @@ impl ViewerWindow
         case SceneCommands.CompareWith:
             icon     = .Duplicate
             name     = text.scene_CompareWith
-            hidden   = not scene or .isExploring()
+            hidden   = not scene or workspace.vacancy != null or .isExploring()
             disabled = scene and scene.views.count > 1 and workspace.scenes.count >= ViewerWorkspace.MaxScenes
 
         case SceneCommands.OpenGrid:
@@ -155,7 +155,7 @@ impl ViewerWindow
         case SceneCommands.Maximize:
             icon   = scene and scene.maximized ? .ExitFullScreen : .FullScreen
             name   = scene and scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize
-            hidden = not scene or scene.views.count < 2
+            hidden = not scene or workspace.vacancy != null or scene.views.count < 2
 
         default:
             for id, index in SceneCommands.Layouts where id == evt.id

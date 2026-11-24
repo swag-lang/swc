@@ -722,7 +722,7 @@ impl ViewerWindow
             let views = .workspace?.documentCount() orelse 0
             name   = views > 1 or (exploring and views > 0) ? texts.scene_CloseView : texts.ui_CloseFile
             icon   = .commandGlyph(.WndClose)
-            hidden = not hasFile and not exploring
+            hidden = not hasFile and not exploring and not (.workspace and .workspace.vacancy == me)
 
         case ViewerCommands.Dismiss:
             name     = Gui.strings().dlg_Close

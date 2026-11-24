@@ -4,6 +4,7 @@ using Core, Gui, Pixel
 
 struct SavedSceneView
 {
+    cellPlusOne: u64
     path:      String
     reading:   ViewerReadingState
     readState: bool
@@ -74,11 +75,16 @@ impl ViewerWorkspace
                 if viewIndex == scene.links.solo do
                     record.links.solo = record.views.count
                 .captureView(view)
-                record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode})
+                record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: scene.cellOf(viewIndex) + 1})
             }
 
             if record.views.isEmpty() do
                 continue
+            if record.views.count != scene.views.count
+            {
+                for &view in record.views do
+                    view.cellPlusOne = 0
+            }
             if index == .active do
                 selected = saved.count
             saved.add(#move record)
@@ -106,11 +112,16 @@ impl ViewerWorkspace
                 if scene.views.count >= MaxViews do
                     break
                 if not view.path.isEmpty() and .primary.privacy.mayRemember(view.path) do
-                    scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode})
+                    scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: view.cellPlusOne})
             }
 
             if scene.views.isEmpty() do
                 continue
+            for _, index in scene.views where scene.cellOf(index) >= scene.cellCount() or scene.viewInCell(scene.cellOf(index)) != index
+            {
+                scene.packCells()
+                break
+            }
             scene.active          = Math.min(record.active, scene.views.count - 1)
             scene.maximized       = record.maximized and scene.views.count > 1
             if scene.layout == .Single and scene.views.count > 1

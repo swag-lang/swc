@@ -545,6 +545,8 @@ impl ViewerWorkspace
         let scene = .scene()
         if not scene or scene.views.count != 2 do
             return
+        .dismissVacancy()
+        scene.packCells()
         scene.compared  = not scene.compared
         scene.linked    = scene.compared
         scene.layout    = .SideBySide
